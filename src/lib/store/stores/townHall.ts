@@ -12,7 +12,7 @@ export type LinkResult = "linked" | "rejected" | "none" | "failed";
 /** `removed-here-only`: this device forgot the link but the site still lists the connection, so the parent removes it there. */
 export type UnlinkResult = "forgotten" | "removed-here-only";
 
-/** Only the Town Hall site itself may hand out a link: a return that names another site is never trusted. */
+/** Whether an address is the configured Town Hall site: only it may hand out a link, and a link counts only for it. */
 function isTownHallSite(candidate: string): boolean {
   try {
     return new URL(candidate).origin === new URL(townHallSiteUrl()).origin;
@@ -42,14 +42,23 @@ export const useTownHallStore = defineStore("townHall", () => {
 
   const hostSession = (): string | null => hostNonce(window.wpApiSettings);
 
+  /**
+   * The stored link, but only while it belongs to the configured site: a link counts only for the site that issued it.
+   * One for another site (a development override pointing elsewhere) stays in storage and counts again when the site matches.
+   */
+  const activeLink = computed(() => {
+    if (!link.value) return null;
+    return isTownHallSite(link.value.siteUrl) ? link.value : null;
+  });
+
   /** The link first; else the session of the website hosting the app; else a guest. */
   const auth = computed<TownHallAuth>(() => {
-    if (link.value) return basicAuthOf(link.value);
+    if (activeLink.value) return basicAuthOf(activeLink.value);
     const nonce = hostSession();
     return nonce ? { kind: "nonce", nonce } : { kind: "none" };
   });
   const isLinked = computed(() => auth.value.kind !== "none");
-  const signedInThroughWebsite = computed(() => !link.value && hostSession() !== null);
+  const signedInThroughWebsite = computed(() => !activeLink.value && hostSession() !== null);
 
   let initPromise: Promise<void> | null = null;
 
@@ -129,7 +138,10 @@ export const useTownHallStore = defineStore("townHall", () => {
     link.value = null;
   }
 
-  /** Ask the site to delete this device's connection; a site that cannot be reached or refuses leaves it to the parent. */
+  /**
+   * Ask the site to delete this device's connection. Whatever goes wrong (a refusal, no connection, an unexpected error)
+   * the connection is not known to be gone, so the answer is false and the parent removes it on the site.
+   */
   async function removeFromSite(current: TownHallLink): Promise<boolean> {
     if (!current.appPasswordUuid) return false;
     try {
@@ -138,8 +150,7 @@ export const useTownHallStore = defineStore("townHall", () => {
         method: "DELETE",
       });
       return true;
-    } catch (e) {
-      if (!(e instanceof TownHallError)) throw e;
+    } catch {
       return false;
     }
   }
@@ -147,7 +158,7 @@ export const useTownHallStore = defineStore("townHall", () => {
   /** Remove the connection on the site if it lets us, and the link from this device either way. */
   async function unlink(): Promise<UnlinkResult> {
     await init();
-    const current = link.value;
+    const current = activeLink.value;
     if (!current) return "forgotten";
     const removedOnSite = await removeFromSite(current);
     await forgetLink();

@@ -202,11 +202,17 @@ describe("town hall store", () => {
       const init = store.init();
 
       const linking = store.completeLink(linkedQuery());
-      release(null);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      // while the stored link is still loading, nothing is checked and nothing is saved
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+
+      release(storedLink({ userLogin: "old@example.com" }));
       await init;
 
       expect(await linking).toBe("linked");
       expect(store.link?.userLogin).toBe(LOGIN);
+      expect(store.auth).toEqual(BASIC);
     });
   });
 
@@ -241,6 +247,17 @@ describe("town hall store", () => {
 
       expect(mockDb.clearLink).toHaveBeenCalledTimes(1);
       expect(store.link).toBeNull();
+    });
+
+    it("forgets it here even when the attempt to ask the site breaks unexpectedly", async () => {
+      fetchMock.mockRejectedValue(new Error("something nobody planned for"));
+      const store = await linked();
+
+      expect(await store.unlink()).toBe("removed-here-only");
+
+      expect(mockDb.clearLink).toHaveBeenCalledTimes(1);
+      expect(store.link).toBeNull();
+      expect(store.isLinked).toBe(false);
     });
 
     it("forgets it here without asking the site when the connection's id was never read", async () => {
@@ -348,6 +365,58 @@ describe("town hall store", () => {
       expect(store.auth).toEqual(BASIC);
       expect(store.isLinked).toBe(true);
       expect(store.signedInThroughWebsite).toBe(false);
+    });
+  });
+
+  describe("a link counts only for the site that issued it", () => {
+    const OTHER = "https://other.example";
+    const storedForOtherSite = async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ siteUrl: OTHER }));
+      const store = useTownHallStore();
+      await store.init();
+      return store;
+    };
+    afterEach(() => {
+      localStorage.removeItem("xp:townHallSite");
+    });
+
+    it("is not used for auth or counted as linked, and stays in storage", async () => {
+      const store = await storedForOtherSite();
+
+      expect(store.auth).toEqual({ kind: "none" });
+      expect(store.isLinked).toBe(false);
+      expect(store.signedInThroughWebsite).toBe(false);
+      expect(store.link).toEqual(storedLink({ siteUrl: OTHER }));
+      expect(mockDb.clearLink).not.toHaveBeenCalled();
+    });
+
+    it("lets the website's session through instead", async () => {
+      window.wpApiSettings = { root: "https://doit.forthexp.com/wp-json", nonce: "n1" };
+      const store = await storedForOtherSite();
+
+      expect(store.auth).toEqual({ kind: "nonce", nonce: "n1" });
+      expect(store.signedInThroughWebsite).toBe(true);
+    });
+
+    it("is not unlinked on the other site: no request, and the link stays", async () => {
+      const store = await storedForOtherSite();
+
+      expect(await store.unlink()).toBe("forgotten");
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(mockDb.clearLink).not.toHaveBeenCalled();
+      expect(store.link).toEqual(storedLink({ siteUrl: OTHER }));
+    });
+
+    it("follows the configured site: the same stored link counts under the override that names its site", async () => {
+      localStorage.setItem("xp:townHallSite", OTHER);
+      const elsewhere = await storedForOtherSite();
+      expect(elsewhere.isLinked).toBe(true);
+
+      localStorage.removeItem("xp:townHallSite");
+      setActivePinia(createPinia());
+      const home = await storedForOtherSite();
+      expect(home.isLinked).toBe(false);
     });
   });
 
