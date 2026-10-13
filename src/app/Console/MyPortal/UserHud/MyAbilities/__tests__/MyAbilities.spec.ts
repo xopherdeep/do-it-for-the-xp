@@ -1,5 +1,6 @@
 import { flushPromises, shallowMount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { defineComponent, h } from "vue";
 import { AbilityType } from "@/hooks/abilities/abilityConstants";
 import type { Ability } from "@/types/abilities";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -70,6 +71,12 @@ jest.mock("@/hooks/abilities/useAbilitySystem", () => {
 
 const HERO = "hero-1";
 
+// The app shell components main.ts registers globally: stand-ins here, the cast is all this spec reads
+const Stub = defineComponent({ render: () => h("span") });
+const SHELL = Object.fromEntries(
+  ["xp-app-header", "xp-app-section", "xp-app-row", "xp-app-chip", "xp-app-empty", "xp-back-button"].map((name) => [name, Stub])
+);
+
 const mountPage = () => {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -78,7 +85,7 @@ const mountPage = () => {
     name: { nick: "Hero" },
     stats: { level: 1, hp: { now: 50, max: 50 }, mp: { now: 40, max: 40 }, gp: { wallet: 0, debt: 0 } },
   };
-  return shallowMount(MyAbilities, { props: { userId: HERO }, global: { plugins: [pinia] } });
+  return shallowMount(MyAbilities, { props: { userId: HERO }, global: { plugins: [pinia], components: SHELL } });
 };
 
 beforeEach(() => {
