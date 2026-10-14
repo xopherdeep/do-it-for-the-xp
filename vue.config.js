@@ -95,6 +95,11 @@ module.exports = {
   // `old/` drafts (.gitignore marks backgrounds/ai, backgrounds/old and backgrounds/gaia as
   // local-only) and wind-temple/old/. No code requests those keys, so drop them from every context.
   configureWebpack: {
+    // Salts every content hash so all asset URLs change. Bump it when browsers hold a bad cached copy of an
+    // asset: /css, /js, /fonts, /media and /img are cached as immutable for a year (public/_headers), and in
+    // Oct 2026 phones had saved an HTML page under the stylesheet's URL, which left the app unstyled.
+    output: { hashSalt: 'xp-2026-10-14' },
+
     // Webpack 5 persistent disk cache makes warm rebuilds and restarts much faster; one cache per mode
     ...(FS_CACHE ? {
       cache: {
