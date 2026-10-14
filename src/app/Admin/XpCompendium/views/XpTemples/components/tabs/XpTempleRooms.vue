@@ -333,8 +333,9 @@ export default defineComponent({
       return 'fa-clouds';
     };
 
+    // The address names the room's floor: the list shows every floor, and the editor opens the cell on the floor named
     const navigateToRoom = (room: RoomListItem) => {
-      ionRouter.push(`/game-master/compendium/temples/${templeId}/rooms/${room.row}/${room.col}`);
+      ionRouter.push(`/game-master/compendium/temples/${templeId}/rooms/${room.floor}/${room.row}/${room.col}`);
     };
 
     return {

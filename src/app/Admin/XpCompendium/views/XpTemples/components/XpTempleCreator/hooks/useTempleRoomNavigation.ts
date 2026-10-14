@@ -3,7 +3,7 @@
  * 
  * Handles room navigation, adjacent room detection, and door state management.
  */
-import { ref, computed, ComputedRef, Ref } from 'vue';
+import { ref, computed, watch, ComputedRef, Ref } from 'vue';
 import { useIonRouter, createAnimation, toastController } from '@ionic/vue';
 import { useBack } from '@/hooks/useBack';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
@@ -21,7 +21,7 @@ import {
   type AdjacentRooms,
   type Direction
 } from './grid/doorSides';
-import { floorSlice } from './grid/floorLayers';
+import { floorSlice, levelIdAfterLoad, type MazeData } from './grid/floorLayers';
 import {
   canLocateRoom,
   computeAdjacency,
@@ -37,12 +37,26 @@ const noAnimation = () => createAnimation();
 
 export type { Direction, AdjacentRooms };
 
+/**
+ * The floor the room editor works on. The address names one (rooms/2F/1/2), so a room on another floor opens its own
+ * cell; an old two-part address (rooms/1/2) names none and keeps the floor the creator was on. A named floor the
+ * loaded maze lacks is corrected like any loaded floor; a maze still loading cannot be checked yet, and the loader
+ * corrects it afterwards.
+ */
+export const floorForAddress = (maze: MazeData, named: string | undefined, current: string): string => {
+  if (!named) return current;
+  const isMazeLoaded = Array.isArray(maze) ? maze.length > 0 : Object.keys(maze).length > 0;
+  return isMazeLoaded ? levelIdAfterLoad(maze, named) : named;
+};
+
 export interface UseTempleRoomNavigationProps {
   templeId: string;
   rowIdx: ComputedRef<number>;
   colIdx: ComputedRef<number>;
   roomData: Ref<Room | null>;
   saveToStore: () => void;
+  /** The floor the address names; absent for an old two-part address */
+  floor?: Ref<string | undefined>;
 }
 
 export interface UseTempleRoomNavigationReturn {
@@ -84,6 +98,24 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
 
   // Get maze helper
   const getMaze = (): string[][] => floorSlice(store.templeMaze, store.currentLevelId);
+
+  // The editor reads its floor from the store, so the address's floor goes there before the room loads
+  const adoptAddressFloor = () => {
+    store.currentLevelId = floorForAddress(store.templeMaze, props.floor?.value, store.currentLevelId);
+  };
+  adoptAddressFloor();
+  watch(() => props.floor?.value, adoptAddressFloor);
+
+  // The address of a room on the floor being edited
+  const roomAddress = (name: string, row: number, col: number) => ({
+    name,
+    params: {
+      templeId: props.templeId,
+      floor: store.currentLevelId,
+      row: row.toString(),
+      col: col.toString()
+    }
+  });
 
   // Calculate adjacency for current room
   const calculateAdjacency = () => {
@@ -182,27 +214,19 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return;
     
-    // Save current room data before navigating
-    const maze = getMaze();
-    const symbol = maze[props.rowIdx.value][props.colIdx.value];
-    if (props.roomData.value) {
-      store.roomsData[symbol] = { ...props.roomData.value };
+    // Save current room data before navigating, the way every other way out of the room does: a cell on a shared token
+    // (the wall, the entrance, a config token) gets its own symbol first, so the edit never lands on every cell.
+    // A wall nobody changed has nothing of its own to save.
+    const symbol = getMaze()[props.rowIdx.value]?.[props.colIdx.value];
+    const isUntouchedWall = isWallToken(symbol) && props.roomData.value?.type === 'wall';
+    if (!isUntouchedWall) {
+      props.saveToStore();
     }
     
     // Navigate to adjacent room
     const coords = getRelativeRoom(dir);
     if (coords) {
-      ionRouter.replace(
-        {
-          name: 'xp-temple-room-editor',
-          params: {
-            templeId: props.templeId,
-            row: coords.row.toString(),
-            col: coords.col.toString()
-          }
-        },
-        noAnimation
-      );
+      ionRouter.replace(roomAddress('xp-temple-room-editor', coords.row, coords.col), noAnimation);
     }
   };
 
@@ -311,17 +335,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const target = coords[targetIdx];
     
     if (target) {
-      ionRouter.replace(
-        {
-          name: 'xp-temple-room-editor',
-          params: {
-            templeId: props.templeId,
-            row: target.row.toString(),
-            col: target.col.toString()
-          }
-        },
-        noAnimation
-      );
+      ionRouter.replace(roomAddress('xp-temple-room-editor', target.row, target.col), noAnimation);
     }
   };
 
@@ -336,17 +350,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
 
   // Navigate to specific cell coordinates (for mini-map)
   const goToCell = (row: number, col: number) => {
-    ionRouter.replace(
-      {
-        name: 'xp-room-editor',
-        params: {
-          templeId: props.templeId,
-          row: row.toString(),
-          col: col.toString()
-        }
-      },
-      noAnimation
-    );
+    ionRouter.replace(roomAddress('xp-room-editor', row, col), noAnimation);
   };
 
   return {

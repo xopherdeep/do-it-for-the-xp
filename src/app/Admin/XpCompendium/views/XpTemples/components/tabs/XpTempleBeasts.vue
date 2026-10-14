@@ -140,6 +140,7 @@ import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
 import { useTimers } from "@/hooks/useTimers";
+import { isSharedConfigToken, withPickedBeast } from "../XpTempleCreator/hooks/grid/roomSymbols";
 import type { QuestTier } from "@/lib/services/temples/questRooms";
 import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
 import { useTempleQuests } from "../../hooks/useTempleQuests";
@@ -245,11 +246,13 @@ export default defineComponent({
         : [ev.detail.value].filter(Boolean);
     };
 
-    const navigateToRoom = (entry: { row: number; col: number }) => {
+    // The address names the room's floor, so the editor opens the cell on that floor
+    const navigateToRoom = (entry: { floor: string; row: number; col: number }) => {
       ionRouter.push({
         name: "xp-temple-room-editor",
         params: {
           templeId,
+          floor: entry.floor,
           row: entry.row.toString(),
           col: entry.col.toString(),
         },
@@ -335,20 +338,18 @@ export default defineComponent({
         currentBeasts,
         "temple-beasts-tab",
         (selectedIds) => {
-          if (!temple.value.dungeonLayout) return;
+          const layout = temple.value.dungeonLayout;
+          if (!layout) return;
 
+          const heldRoom = layout.rooms[entry.roomSymbol];
           let targetSymbol = entry.roomSymbol;
 
           // PROMOTION LOGIC:
-          // If the current symbol is a shorthand/shared one (like '____', 'O__O', etc.)
-          // we MUST promote it to a unique 'Rxxx' ID so this specific cell can have its own data.
-          // Note: ROOM_WALL is usually '____' and EMPTY is often 'O__O' in some templates.
-          const isSharedSymbol =
-            !targetSymbol.startsWith("R") && targetSymbol !== "_00_";
-
-          if (isSharedSymbol) {
-            const newSymbol = creatorStore.generateUniqueSymbol();
-            const maze = temple.value.dungeonLayout.maze;
+          // A symbol many cells share (a config token like MINI, or the wall) cannot hold one cell's own beasts, so the
+          // cell takes a symbol of its own. A room's own symbol (R001, M0201) is already its own and is edited in place.
+          if (isSharedConfigToken(targetSymbol)) {
+            const newSymbol = creatorStore.generateUniqueSymbol(entry.row, entry.col, heldRoom?.type ?? entry.tier);
+            const maze = layout.maze;
 
             // Update the maze grid
             if (Array.isArray(maze)) {
@@ -364,30 +365,18 @@ export default defineComponent({
             targetSymbol = newSymbol;
           }
 
-          // Update room data with the selected beasts
-          if (!temple.value.dungeonLayout.rooms[targetSymbol]) {
-            // Initialize room if it doesn't exist
-            temple.value.dungeonLayout.rooms[targetSymbol] = {
-              type: resolveRoomTypeFromTier(entry.tier),
-            };
-          }
+          // The room keeps what it had (sides, lockOnEnter, difficulty); only the beast tapped is replaced
+          const room = withPickedBeast(heldRoom, resolveRoomTypeFromTier(entry.tier), entry.beastId, selectedIds);
+          layout.rooms[targetSymbol] = room;
 
-          const roomData = temple.value.dungeonLayout.rooms[targetSymbol];
-          if (roomData) {
-            if (!roomData.content) roomData.content = {};
-            roomData.content.beasts = selectedIds;
+          // Sync with creator store
+          creatorStore.roomsData[targetSymbol] = JSON.parse(JSON.stringify(room));
 
-            // Sync with creator store
-            creatorStore.roomsData[targetSymbol] = JSON.parse(
-              JSON.stringify(roomData)
-            );
+          // Persist the change to DB
+          saveTemple();
 
-            // Persist the change to DB
-            saveTemple();
-
-            // Set pending scroll target for return navigation
-            creatorStore.pendingScrollId = targetSymbol;
-          }
+          // Set pending scroll target for return navigation
+          creatorStore.pendingScrollId = targetSymbol;
         }
       );
 

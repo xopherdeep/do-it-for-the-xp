@@ -13,6 +13,7 @@ import {
   isUniqueRoomSymbol,
   promoteToUniqueSymbol,
   roomSymbols,
+  withPickedBeast,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/roomSymbols";
 
 describe("roomSymbols", () => {
@@ -32,6 +33,10 @@ describe("roomSymbols", () => {
   });
 });
 
+// What the temple creator store writes into a saved maze: five characters, not the legacy single letters
+const STORED_WALL = "_____";
+const STORED_ENTRANCE = "_00__";
+
 describe("isUniqueRoomSymbol", () => {
   it("is false for the shared wall and entrance symbols and true for any other", () => {
     expect(isUniqueRoomSymbol(____)).toBe(false);
@@ -39,6 +44,23 @@ describe("isUniqueRoomSymbol", () => {
     expect(isUniqueRoomSymbol("R001")).toBe(true);
     expect(isUniqueRoomSymbol("M001")).toBe(true);
     expect(isUniqueRoomSymbol("")).toBe(true);
+  });
+
+  it("is false for the stored wall and entrance tokens, so retyping a saved wall never deletes the shared record", () => {
+    expect(isUniqueRoomSymbol(STORED_WALL)).toBe(false);
+    expect(isUniqueRoomSymbol(STORED_ENTRANCE)).toBe(false);
+  });
+
+  it("is false for the other spellings of the wall and the entrance", () => {
+    expect(isUniqueRoomSymbol("____")).toBe(false);
+    expect(isUniqueRoomSymbol("WALL")).toBe(false);
+    expect(isUniqueRoomSymbol("_00_")).toBe(false);
+    expect(isUniqueRoomSymbol("EXIT")).toBe(false);
+  });
+
+  it("stays true for a room id and a coordinate id", () => {
+    expect(isUniqueRoomSymbol("R001")).toBe(true);
+    expect(isUniqueRoomSymbol("M0201")).toBe(true);
   });
 });
 
@@ -66,6 +88,9 @@ describe("isSharedConfigToken", () => {
 
   it("is false for the entrance, any token starting with R, and coordinate ids", () => {
     expect(isSharedConfigToken(_00_)).toBe(false);
+    expect(isSharedConfigToken(STORED_ENTRANCE)).toBe(false);
+    expect(isSharedConfigToken("_00_")).toBe(false);
+    expect(isSharedConfigToken("EXIT")).toBe(false);
     expect(isSharedConfigToken("R001")).toBe(false);
     expect(isSharedConfigToken("Roof")).toBe(false);
     expect(isSharedConfigToken("M0001")).toBe(false);
@@ -83,6 +108,8 @@ describe("isClearableRoomSymbol", () => {
   it("is false for the wall, the entrance and shared config tokens", () => {
     expect(isClearableRoomSymbol(____)).toBe(false);
     expect(isClearableRoomSymbol(_00_)).toBe(false);
+    expect(isClearableRoomSymbol(STORED_WALL)).toBe(false);
+    expect(isClearableRoomSymbol(STORED_ENTRANCE)).toBe(false);
     expect(isClearableRoomSymbol("M001")).toBe(false);
     expect(isClearableRoomSymbol("BOSS")).toBe(false);
   });
@@ -112,6 +139,13 @@ describe("chooseRoomSymbol", () => {
     const gen = generate();
     expect(chooseRoomSymbol(____, "wall", "monster", gen)).toBe("R042");
     expect(chooseRoomSymbol(_00_, "entrance", "loot", gen)).toBe("R042");
+    expect(gen).toHaveBeenCalledTimes(2);
+  });
+
+  it("generates a unique symbol for a stored wall or entrance token even when the type did not change", () => {
+    const gen = generate();
+    expect(chooseRoomSymbol(STORED_WALL, "empty", "empty", gen)).toBe("R042");
+    expect(chooseRoomSymbol(STORED_ENTRANCE, "empty", "empty", gen)).toBe("R042");
     expect(gen).toHaveBeenCalledTimes(2);
   });
 
@@ -149,6 +183,8 @@ describe("promoteToUniqueSymbol", () => {
   it("keeps the entrance, room ids and coordinate ids without generating", () => {
     const gen = generate();
     expect(promoteToUniqueSymbol(_00_, gen)).toBe(_00_);
+    expect(promoteToUniqueSymbol(STORED_ENTRANCE, gen)).toBe(STORED_ENTRANCE);
+    expect(promoteToUniqueSymbol("_00_", gen)).toBe("_00_");
     expect(promoteToUniqueSymbol("R001", gen)).toBe("R001");
     expect(promoteToUniqueSymbol("M0001", gen)).toBe("M0001");
     expect(gen).not.toHaveBeenCalled();
@@ -208,5 +244,53 @@ describe("buildRoomRecord", () => {
 
   it("only locks sides for a boss, not a miniboss", () => {
     expect(buildRoomRecord("miniboss", {}, plainDoors())).toEqual({ type: "miniboss" });
+  });
+});
+
+describe("withPickedBeast", () => {
+  const miniboss = () => ({
+    type: "miniboss",
+    sides: { north: "locked", east: "door", south: "door", west: "door" },
+    content: { beasts: ["b1", "b2", "b3"], lockOnEnter: true, difficulty: "hard" as const, xp: 50 },
+  });
+
+  it("replaces the one beast in its place and keeps the rest of the list", () => {
+    const record = withPickedBeast(miniboss(), "miniboss", "b2", ["b9"]);
+    expect(record.content?.beasts).toEqual(["b1", "b9", "b3"]);
+  });
+
+  it("keeps the sides, lockOnEnter, difficulty and rewards the room had", () => {
+    const record = withPickedBeast(miniboss(), "miniboss", "b1", ["b9"]);
+    expect(record).toEqual({ ...miniboss(), content: { ...miniboss().content, beasts: ["b9", "b2", "b3"] } });
+  });
+
+  it("takes several picks into the one slot, in order", () => {
+    expect(withPickedBeast(miniboss(), "miniboss", "b2", ["b8", "b9"]).content?.beasts).toEqual(["b1", "b8", "b9", "b3"]);
+  });
+
+  it("drops the beast when nothing is picked in its place", () => {
+    expect(withPickedBeast(miniboss(), "miniboss", "b2", []).content?.beasts).toEqual(["b1", "b3"]);
+  });
+
+  it("adds the pick at the end for a slot with no beast yet", () => {
+    expect(withPickedBeast(miniboss(), "miniboss", "", ["b9"]).content?.beasts).toEqual(["b1", "b2", "b3", "b9"]);
+    expect(withPickedBeast(miniboss(), "miniboss", "gone", ["b9"]).content?.beasts).toEqual(["b1", "b2", "b3", "b9"]);
+  });
+
+  it("starts a record of the fallback type for a cell that has none", () => {
+    expect(withPickedBeast(undefined, "boss", "", ["b9"])).toEqual({ type: "boss", content: { beasts: ["b9"] } });
+  });
+
+  it("fills in the beasts of a record that has content but no list", () => {
+    const record = withPickedBeast({ type: "monster", content: { xp: 5 } }, "monster", "", ["b9"]);
+    expect(record).toEqual({ type: "monster", content: { xp: 5, beasts: ["b9"] } });
+  });
+
+  it("does not change the record it is given", () => {
+    const held = miniboss();
+    const record = withPickedBeast(held, "miniboss", "b2", ["b9"]);
+    expect(held).toEqual(miniboss());
+    expect(record).not.toBe(held);
+    expect(record.content).not.toBe(held.content);
   });
 });

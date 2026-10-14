@@ -9,7 +9,7 @@ import {
   TELE,
   SHOP,
 } from "@/lib/engine/dungeons/roomTypes";
-import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { isEntranceToken, isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
 import { hasNonDoorSide, lockBossSides } from "./doorSides";
 
@@ -27,9 +27,10 @@ export const roomSymbols: Record<string, string> = {
   health: "H__P",
 };
 
-// The wall and entrance symbols are shared by every cell; any other symbol belongs to one room
+// The wall and entrance symbols are shared by every cell; any other symbol belongs to one room. A saved maze holds the
+// five-character tokens ("_____", "_00__"), not the single letters, so every spelling counts.
 export const isUniqueRoomSymbol = (symbol: string) =>
-  symbol !== ____ && symbol !== _00_;
+  !isWallToken(symbol) && !isEntranceToken(symbol);
 
 // A coordinate token is a letter and four digits (R0000, M0000): one room's own id
 export const isCoordinateToken = (token: string): boolean =>
@@ -37,7 +38,7 @@ export const isCoordinateToken = (token: string): boolean =>
 
 // A shared config token: not the entrance, not a room id, not already a unique coordinate id
 export const isSharedConfigToken = (token: string): boolean =>
-  !token.startsWith("R") && token !== _00_ && !isCoordinateToken(token);
+  !token.startsWith("R") && !isEntranceToken(token) && !isCoordinateToken(token);
 
 // A cell symbol that owns a room record, so clearing the cell clears the record too
 export const isClearableRoomSymbol = (cellSymbol: string): boolean =>
@@ -59,7 +60,7 @@ export const chooseRoomSymbol = (
     symbolToUse = ____;
   } else if (newType === "entrance") {
     symbolToUse = _00_;
-  } else if (currentSymbol === ____ || currentSymbol === _00_) {
+  } else if (isWallToken(currentSymbol) || isEntranceToken(currentSymbol)) {
     symbolToUse = generateSymbol();
   } else if (newType !== currentType) {
     symbolToUse = generateSymbol();
@@ -109,4 +110,29 @@ export const buildRoomRecord = (
   }
 
   return roomData;
+};
+
+/**
+ * The room record after a beast is picked for one of its beast slots: the record the cell had is kept whole (sides,
+ * lockOnEnter, difficulty, rewards) and only that slot changes. The picked beasts take the place of `replacedId` in
+ * the list; a slot with no beast yet adds them at the end. A cell with no record starts one of `fallbackType`.
+ */
+export const withPickedBeast = (
+  room: Room | undefined,
+  fallbackType: string,
+  replacedId: string,
+  pickedIds: string[]
+): Room => {
+  const record: Room = room ? JSON.parse(JSON.stringify(room)) : { type: fallbackType };
+  const content: RoomContent = record.content ?? {};
+  const beasts = content.beasts ?? [];
+  const slot = replacedId ? beasts.indexOf(replacedId) : -1;
+  const holdsReplacedBeast = slot >= 0;
+
+  content.beasts = holdsReplacedBeast
+    ? [...beasts.slice(0, slot), ...pickedIds, ...beasts.slice(slot + 1)]
+    : [...beasts, ...pickedIds];
+  record.content = content;
+
+  return record;
 };

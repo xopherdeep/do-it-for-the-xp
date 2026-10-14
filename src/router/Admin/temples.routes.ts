@@ -8,7 +8,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
       import("@/app/Admin/XpCompendium/views/XpTemples"),
   },
   {
-    path: "temples/creator/:templeId/rooms/:row/:col",
+    path: "temples/creator/:templeId/rooms/:floor?/:row/:col",
     name: "xp-room-editor",
     meta: { pro: "templeCreator" },
     component: () =>
@@ -117,7 +117,8 @@ export const TempleRoutes: RouteRecordRaw[] = [
         ]
       },
       {
-        path: "rooms/:row/:col",
+        // The floor comes first; an old two-part address (rooms/1/2) has none and opens the floor the creator was on
+        path: "rooms/:floor?/:row/:col",
         name: "xp-temple-room-editor",
         meta: { pro: "templeCreator" },
         component: () =>

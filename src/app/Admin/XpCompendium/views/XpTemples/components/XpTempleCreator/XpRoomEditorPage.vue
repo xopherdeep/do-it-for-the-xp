@@ -126,7 +126,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, watch, ref, computed } from 'vue';
+import { defineComponent, onMounted, watch, ref, computed, toRef } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton,
   IonContent, onIonViewWillEnter,
@@ -168,6 +168,8 @@ export default defineComponent({
   },
   props: {
     templeId: { type: String, required: true },
+    // The floor the room is on; an old two-part address has none and keeps the floor the creator was on
+    floor: { type: String, required: false },
     row: { type: String, required: true },
     col: { type: String, required: true }
   },
@@ -210,7 +212,8 @@ export default defineComponent({
       rowIdx: editor.rowIdx,
       colIdx: editor.colIdx,
       roomData: editor.roomData,
-      saveToStore: editor.saveToStore
+      saveToStore: editor.saveToStore,
+      floor: toRef(props, 'floor')
     });
 
     // The quest room's card: the quest, or the live quest that fills a shipped template
