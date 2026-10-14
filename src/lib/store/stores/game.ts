@@ -1,15 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import XpApi from "@/lib/api/doit.forthexp.com.api";
+import { loadThemeChoice, saveThemeChoice } from "@/lib/utils/gameStyle";
 
 export const useGameStore = defineStore('game', () => {
   // --- Global UI State ---
   const devMode = ref(false);
   const area = ref<any>(null);
-  const theme = reactive({
-    ui: 'nintendo',
-    rpg: 'earthbound'
-  });
+  const theme = reactive(loadThemeChoice());
   const userActions = ref<any[]>([]);
   
   // FAB Style: 'retro' (centered menu) or 'modern' (radial shortcuts)
@@ -101,6 +99,7 @@ export const useGameStore = defineStore('game', () => {
   function changeSoundFX(payload: { ui: string, rpg: string }) {
     theme.ui = payload.ui;
     theme.rpg = payload.rpg;
+    saveThemeChoice(theme);
   }
 
   // --- Getters (Functional) ---

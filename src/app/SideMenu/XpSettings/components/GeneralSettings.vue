@@ -262,6 +262,7 @@
   import HomeChoresModal from "./HomeChoresModal.vue";
   import MovingHouseModal from "./MovingHouseModal.vue";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
+  import { dialogMessage } from "@/lib/utils/dialogMessage";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
 
@@ -283,6 +284,9 @@
       ? "on an unknown date"
       : `on ${date.toLocaleString()}`;
   };
+
+  /** The backup and restore dialogs share the RPG message box and its short-lines layout */
+  const RPG_ALERT = "rpg-alert";
 
   export default defineComponent({
     name: "general-settings",
@@ -373,7 +377,7 @@
         message: string,
         buttons: AlertButton[] = ["OK"]
       ) {
-        const alert = await alertController.create({ header, message, buttons });
+        const alert = await alertController.create({ header, message, buttons, cssClass: RPG_ALERT });
         await alert.present();
       },
 
@@ -393,9 +397,23 @@
 
       async confirmBackup() {
         const alert = await alertController.create({
-          header: "Back up everything",
-          message:
-            "This downloads one file with profiles (passcodes included), quests, beasts, abilities, accessories, shops, temples and the progress through them, Dos and Don'ts, the quest and purchase logs, and chat. Keep the file somewhere safe.",
+          header: "Back up everything?",
+          cssClass: RPG_ALERT,
+          message: dialogMessage({
+            lead: "Saves one file you can restore later.",
+            groups: [
+              {
+                tone: "keep",
+                lines: [
+                  "Profiles and passcodes",
+                  "Quests, beasts, powers, shops",
+                  "Temples and their progress",
+                  "Logs, chat, Dos and Don'ts",
+                ],
+              },
+            ],
+            note: "It holds passcodes, so keep it somewhere safe.",
+          }),
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
@@ -462,13 +480,20 @@
       },
 
       async confirmRestore(backup: BackupFile, summary: BackupSummary) {
-        const contents = summary.stores
-          .map(({ label, count }) => `${label} ${count}`)
-          .join(", ");
         const alert = await alertController.create({
           header: "Replace everything?",
           subHeader: `Backup made ${formatBackupDate(summary.exportedAt)}`,
-          message: `This replaces what the app holds now with the backup's contents: ${contents} (${summary.total} entries in all). Anything not listed stays as it is. This cannot be undone.`,
+          cssClass: [RPG_ALERT, "rpg-alert--danger"],
+          message: dialogMessage({
+            lead: `These ${summary.total} entries replace what is here now:`,
+            groups: [
+              {
+                tone: "info",
+                lines: summary.stores.map(({ label, count }) => `${label}: ${count}`),
+              },
+            ],
+            note: "Anything not listed stays. This can't be undone.",
+          }),
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
@@ -491,8 +516,30 @@
         }
         const alert = await alertController.create({
           header: "Load the starter world?",
-          message:
-            "This adds a ready-made set of quests, beasts (the classic monsters too), Powers, rewards, shop stock and Do This, Not That rules. Everything you made yourself is kept; only the starter's own entries are reset if you changed them. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are not touched.",
+          cssClass: RPG_ALERT,
+          message: dialogMessage({
+            lead: "Adds a ready-made world your heroes can play right away.",
+            groups: [
+              {
+                title: "Adds",
+                tone: "add",
+                lines: [
+                  "Quests, open for anyone to claim",
+                  "Beasts, Powers and rewards",
+                  "Shop stock and Dos and Don'ts",
+                ],
+              },
+              {
+                title: "Keeps",
+                tone: "keep",
+                lines: [
+                  "Everything you made yourself",
+                  "Profiles, temples, logs and chat",
+                ],
+              },
+            ],
+            note: "Starter entries you edited go back to the original.",
+          }),
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
@@ -521,29 +568,30 @@
 
       /** Caches and open screens still hold the old data, so the only button reloads the app */
       async showRestoreDone(result: RestoreResult, source?: string) {
-        const notes = [
-          result.mode === "merge"
-            ? `Added ${result.total} entries from ${source ?? "the file"}. Everything else you made was kept.`
-            : `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`,
+        const isMerge = result.mode === "merge";
+        const lead = isMerge
+          ? `Added ${result.total} entries from ${source ?? "the file"}.`
+          : `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`;
+        // A merge always leaves profiles and logs alone, so listing them would only repeat the confirm dialog
+        const untouched = isMerge ? [] : result.untouched;
+        const warnings = [
+          ...(result.ignored.length
+            ? [`Skipped (not in this app version): ${result.ignored.join(", ")}`]
+            : []),
+          ...(result.usersReloaded ? [] : ["The profile list could not be refreshed"]),
         ];
-        if (result.untouched.length) {
-          notes.push(
-            `Not ${source ? "part of it" : "in that backup"}, so left as they were: ${result.untouched.join(", ")}.`
-          );
-        }
-        if (result.ignored.length) {
-          notes.push(
-            `Skipped, because this version of the app does not have them: ${result.ignored.join(", ")}.`
-          );
-        }
-        if (!result.usersReloaded) {
-          notes.push("The profile list could not be refreshed.");
-        }
-        notes.push("Reload the app so every screen shows the restored data.");
 
         const alert = await alertController.create({
-          header: "Restore complete",
-          message: notes.join(" "),
+          header: isMerge ? "Starter world loaded" : "Restore complete",
+          cssClass: RPG_ALERT,
+          message: dialogMessage({
+            lead,
+            groups: [
+              { title: "Left as they were", tone: "keep", lines: untouched },
+              { tone: "warn", lines: warnings },
+            ],
+            note: "Reload so every screen shows the new data.",
+          }),
           backdropDismiss: false,
           buttons: [
             {

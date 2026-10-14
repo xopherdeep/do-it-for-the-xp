@@ -160,6 +160,14 @@ const showMinutes = (event: Event) => {
   text-transform: var(--xp-app-title-transform);
 }
 
+// A column as tall as the screen, so the form below the header fills it
+.content-wrapper {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .effort-list {
   background: transparent;
 }

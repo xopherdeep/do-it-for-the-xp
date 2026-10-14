@@ -551,12 +551,15 @@ $rp-ink: $reveal-ink;
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: reveal-panel-in 0.32s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.15) forwards;
-  // The Earthbound box exactly, but for the minty ring: the building's accent takes its place (fallback: minty)
-  box-shadow:
-    0 0 0 5px $eb-color-medium-purple,
+  // The Earthbound box exactly, but for the minty ring: the building's accent takes its place (fallback: minty);
+  // the other game styles draw their own frame (--gs-frame)
+  box-shadow: var(
+    --gs-frame,
+    0 0 0 5px #{$eb-color-medium-purple},
     0 0 0 10px var(--xp-app-accent, #68d0b8),
-    0 0 0 12px $eb-color-pale-yellow,
-    0 0 0 16px $eb-color-slate;
+    0 0 0 12px #{$eb-color-pale-yellow},
+    0 0 0 16px #{$eb-color-slate}
+  );
 }
 
 .rp__title {
