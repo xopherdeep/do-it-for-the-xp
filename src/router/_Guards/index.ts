@@ -9,6 +9,7 @@ import { handleGmGuard } from "./gm.guard";
 import { handleWorldGuard } from "./world.guard";
 import { handleProGuard } from "./pro.guard";
 import { handleTransitionGuard } from "./transition.guard";
+import { handleAreaGuard } from "./area.guard";
 
 /**
  * Applies all router guards to the provided router instance.
@@ -78,6 +79,9 @@ export function useRouterGuards(router: Router): void {
 
   // 7. Scene transitions run last (beforeResolve), once every guard above has allowed the navigation
   handleTransitionGuard(router);
+
+  // 8. The Area tab remembers the last place the hero stood (afterEach, side effect only)
+  handleAreaGuard(router);
 }
 
 // Re-export individual guards for testing or direct use
@@ -90,3 +94,4 @@ export { handleProGuard } from "./pro.guard";
 export { handleBattleTimerGuard } from "./battle.guard";
 export { handleBgmGuard } from "./bgm.guard";
 export { handleTransitionGuard } from "./transition.guard";
+export { handleAreaGuard } from "./area.guard";

@@ -6,7 +6,8 @@ import type { VictoryCardState } from "../battle/battleView";
 /**
  * The victory card in jsdom: the loot rolling up tile by tile, what a tap means before and after the numbers have
  * landed, and the ribbons for a held quest and a level-up. The card is presentational (no store, router or sounds),
- * so nothing is mocked; the fake clock drives the count-up.
+ * so nothing is mocked; the fake clock drives the count-up. Its sound cues are events (`rolling`, `land`) that the page
+ * turns into the points roll and the landing chimes.
  */
 
 /** XP starts at 0 ms, GP at 250 ms and AP at 500 ms; each rolls 30 steps of 30 ms. The extra 50 ms is slack. */
@@ -121,6 +122,108 @@ describe("BattleVictoryCard", () => {
       expect(jest.getTimerCount()).toBeGreaterThan(0);
       card.unmount();
       expect(jest.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("sound cues", () => {
+    /** What the card told the page: when the roll sound ran, and which tiles landed a number. */
+    const cues = (card: CardWrapper) => ({
+      rolling: (card.emitted("rolling") ?? []).map(([on]) => on),
+      land: (card.emitted("land") ?? []).map(([stat]) => stat),
+    });
+
+    it("starts the roll sound once for the whole count, not once per tile", async () => {
+      const card = show();
+      await roll(100);
+      expect(cues(card).rolling).toEqual([true]);
+      await roll(600); // GP and AP have begun rolling by now
+      expect(cues(card).rolling).toEqual([true]);
+    });
+
+    it("rings one chime as each tile lands its exact number, in order, and rolls on until the last one", async () => {
+      const card = show();
+      await roll(890); // XP lands at ~900 ms
+      expect(cues(card).land).toEqual([]);
+      await roll(30);
+      expect(cues(card).land).toEqual(["xp"]);
+      expect(cues(card).rolling).toEqual([true]); // GP and AP are still counting
+
+      await roll(250); // GP lands at ~1150 ms
+      expect(cues(card).land).toEqual(["xp", "gp"]);
+      expect(cues(card).rolling).toEqual([true]);
+
+      await roll(250); // AP lands at ~1400 ms: the roll sound stops with the last number
+      expect(cues(card).land).toEqual(["xp", "gp", "ap"]);
+      expect(cues(card).rolling).toEqual([true, false]);
+
+      await roll(COUNT_UP_MS);
+      expect(cues(card).land).toEqual(["xp", "gp", "ap"]); // nothing rings twice
+    });
+
+    it("plays the landing chime once, and stops the roll, when a tap finishes the count early", async () => {
+      const card = show();
+      await roll(100);
+      await card.trigger("click");
+      expect(cues(card).land).toHaveLength(1);
+      expect(cues(card).rolling).toEqual([true, false]);
+
+      await roll(COUNT_UP_MS); // the cancelled chains stay silent
+      expect(cues(card).land).toHaveLength(1);
+      expect(cues(card).rolling).toEqual([true, false]);
+    });
+
+    it("chimes for the tiles a tap finished, not the ones that already landed", async () => {
+      const card = show({ card: makeCard({ rewards: { xp: 500, gp: 250, ap: 100 } }) });
+      await roll(920); // XP has landed; GP and AP are still counting
+      expect(cues(card).land).toEqual(["xp"]);
+      await card.trigger("click");
+      expect(cues(card).land).toEqual(["xp", "gp"]); // one chime for everything the tap finished
+      expect(cues(card).rolling).toEqual([true, false]);
+    });
+
+    it("ends the quiet tail without a chime when the digits are all showing but the last tile has not landed", async () => {
+      const card = show();
+      await roll(1000); // every digit is final (the count eases out), but AP's landing is still 400 ms away
+      expect(card.classes()).not.toContain("is-counting");
+      await card.trigger("click");
+      expect(card.emitted("continue")).toHaveLength(1);
+      expect(cues(card)).toEqual({ rolling: [true, false], land: ["xp"] });
+    });
+
+    it("stays silent for the tap that continues, and for tiles with no loot", async () => {
+      const card = show({ card: makeCard({ rewards: { xp: 0, gp: 0, ap: 3 } }) });
+      await roll(COUNT_UP_MS);
+      expect(cues(card)).toEqual({ rolling: [true, false], land: ["ap"] });
+
+      await card.trigger("click");
+      expect(card.emitted("continue")).toHaveLength(1);
+      expect(cues(card)).toEqual({ rolling: [true, false], land: ["ap"] });
+    });
+
+    it("makes no sound at all when nothing is won", async () => {
+      const card = show({ card: makeCard({ rewards: { xp: 0, gp: 0, ap: 0 } }) });
+      await roll(COUNT_UP_MS);
+      expect(cues(card)).toEqual({ rolling: [], land: [] });
+    });
+
+    it("stops the roll sound when the card is hidden mid-count, and starts it again on a new roll", async () => {
+      const card = show();
+      await roll(300);
+      await card.setProps({ visible: false });
+      expect(cues(card).rolling).toEqual([true, false]);
+
+      await card.setProps({ visible: true });
+      await roll(100);
+      expect(cues(card).rolling).toEqual([true, false, true]);
+    });
+
+    it("stops the roll sound when the card goes away mid-count", async () => {
+      const onRolling = jest.fn();
+      const card = mount(BattleVictoryCard, { props: { visible: true, card: makeCard(), onRolling } });
+      await roll(300);
+      expect(onRolling.mock.calls).toEqual([[true]]);
+      card.unmount();
+      expect(onRolling.mock.calls).toEqual([[true], [false]]);
     });
   });
 

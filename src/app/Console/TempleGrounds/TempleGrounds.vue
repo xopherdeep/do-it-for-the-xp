@@ -251,10 +251,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0], currentPosition[1] + 1)
-              ? 'fa-lock'
-              : 'fa-arrow-alt-right'
-  "
+            :class="moveIcons.east"
           />
         </ion-fab-button>
       </ion-fab>
@@ -270,10 +267,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0], currentPosition[1] - 1)
-              ? 'fa-lock'
-              : ' fa-arrow-alt-left'
-  "
+            :class="moveIcons.west"
           />
         </ion-fab-button>
       </ion-fab>
@@ -289,10 +283,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0] + 1, currentPosition[1])
-              ? 'fa-lock'
-              : 'fa-arrow-alt-down'
-  "
+            :class="moveIcons.south"
           />
         </ion-fab-button>
       </ion-fab>
@@ -308,10 +299,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0] - 1, currentPosition[1])
-              ? 'fa-lock'
-              : ' fa-arrow-alt-up'
-  "
+            :class="moveIcons.north"
           />
         </ion-fab-button>
       </ion-fab>
@@ -375,6 +363,17 @@
       @unlock="unlockShownDoor"
       @leave="isDoorOpen = false"
       @done="finishShownDoor"
+    />
+
+    <!-- A cracked wall close up: a Bomb in a hand blows it open, the stone crumbles and the way shows -->
+    <temple-wall-reveal
+      :open="isWallOpen"
+      :wall="wallShown"
+      :element="templeElement"
+      :result="wallResult"
+      @bomb="blowShownWall"
+      @leave="leaveShownWall"
+      @done="finishShownWall"
     />
 
     <!-- The temple is cleared: the egg cracks, the Pegasus is free and the reward counts up; Fly home walks out -->

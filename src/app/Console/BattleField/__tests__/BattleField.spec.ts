@@ -292,8 +292,11 @@ describe("BattleField: a free fight", () => {
     await nextTick();
     expect(wrapper.find("[data-cy=victory-card]").exists()).toBe(true);
     expect(mockPlaySound).toHaveBeenCalledWith("win");
+    mockPlaySound.mockClear();
     jest.advanceTimersByTime(1500);
     await flushPromises();
+    // The card counts silently; the page rolls the points sound while it counts and chimes as AP lands (XP and GP are 0)
+    expect(mockPlaySound.mock.calls).toEqual([["fillPoints"], ["select"], ["fillPoints", { stop: true }]]);
     expect(wrapper.find(".reward-value[data-stat=ap]").text()).toBe("1");
     expect(wrapper.find(".reward-value[data-stat=xp]").text()).toBe("0");
     expect(wrapper.find(".victory-work").text()).toContain("2 chores in");

@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import type { EquipmentItem } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { answerRiddle, onEnterRoom, readExits, resetVisitMemory, roomActions } from "@/lib/services/temples/RoomInteractions";
-import { bombInPack, handLabel, mpCostOf, shortItemName, useItem, type ItemUseContext } from "@/lib/services/temples/ItemUse";
+import { bombInPack, handLabel, isBombsItem, mpCostOf, shortItemName, useItem, type ItemUseContext } from "@/lib/services/temples/ItemUse";
 import { inventoryOf } from "@/lib/services/inventory/Inventory";
 import { useUserStore } from "@/lib/store/stores/user";
 import { HERO, addHero, contextAt, dungeons, enter, hero, hp, makeTemple, mp, temples } from "./templeFixtures";
@@ -395,100 +395,86 @@ describe("Bottles", () => {
 describe("Bombs", () => {
   const lockedHall = () => hall({ E: { type: "entrance", locked: { east: true } } });
 
-  it("blow open a locked side of the room the hero stands in, for one Bomb and no MP", () => {
-    packBombs(2);
-    const id = makeTemple({ E: { type: "entrance" }, H: { type: "empty", locked: { east: true } }, F: { type: "empty" } }, [["E", "H", "F"]]);
-    enter(id, [0, 1]);
-
-    const outcome = useItem(BOMBS, itemContext(id, [0, 1]));
-
-    expect(outcome).toMatchObject({ message: "Boom! The east door blows open.", sound: "damage", shake: true });
-    expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(false);
-    expect(mp()).toBe(60);
-    expect(bombInPack(HERO)?.qty).toBe(1);
-  });
-
-  it("spend one Bomb, not MP", () => {
-    packBombs(2);
-    const before = mp();
-
-    expect(useItem(BOMBS, itemContext(lockedHall(), [0, 0])).message).toBe("Boom! The east door blows open.");
-    expect(mp()).toBe(before);
-    expect(bombInPack(HERO)?.qty).toBe(1);
-  });
-
-  it("take the first locked side, going clockwise from north", () => {
-    packBombs(1);
+  /** The hero in H with a room on every side: a row of three, a room above and a room below. A cracked wall is drawn where `barriers` say. */
+  const crackedHall = (barriers: object, extra: object = {}, at: [number, number] = [1, 1]) => {
     const id = makeTemple(
-      { E: { type: "entrance" }, H: { type: "empty", locked: { west: true, south: true } }, F: { type: "empty" }, W: { type: "wall" } },
+      {
+        E: { type: "entrance" },
+        H: { type: "empty", barriers, ...extra } as Room,
+        F: { type: "empty" },
+        U: { type: "empty" },
+        D: { type: "empty" },
+        W: { type: "wall" },
+      },
       [
-        ["E", "H"],
-        ["W", "F"],
+        ["W", "U", "W"],
+        ["E", "H", "F"],
+        ["W", "D", "W"],
       ]
     );
-    enter(id, [0, 1]);
+    enter(id, at);
+    return id;
+  };
 
-    useItem(BOMBS, itemContext(id, [0, 1]));
+  describe("isBombsItem: the item the cracked wall's sheet looks for in a hand", () => {
+    it("knows the Bombs by name, by icon, and from a stored copy with an old description", () => {
+      expect(isBombsItem(BOMBS, catalog())).toBe(true);
+      expect(isBombsItem({ name: "Old Name", faIcon: "bomb" }, catalog())).toBe(true);
+      expect(isBombsItem({ name: "Bombs", desc: "40MP | old" }, [])).toBe(true);
+    });
 
-    expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ south: false, west: true });
-    expect(bombInPack(HERO)).toBeNull(); // the last one is gone from the pack
+    it("says no to every other tool, to a Bomb in the pack's name only, and to an empty hand", () => {
+      expect(isBombsItem(LANTERN, catalog())).toBe(false);
+      expect(isBombsItem(HOOK, catalog())).toBe(false);
+      expect(isBombsItem({ name: "Bomb" }, catalog())).toBe(false);
+      expect(isBombsItem(null, catalog())).toBe(false);
+      expect(isBombsItem(undefined, catalog())).toBe(false);
+    });
   });
 
-  it("skip a lock that leads nowhere (a wall, a void, the edge of the floor) and take the one that opens a way", () => {
-    packBombs(1);
-    const id = makeTemple(
-      { W: { type: "wall" }, H: { type: "empty", locked: { north: true, west: true, east: true } }, F: { type: "empty" } },
-      [["W", "H", "F"]]
-    );
-    enter(id, [0, 1]);
+  describe("never open a locked door (a cracked wall is what a Bomb is for)", () => {
+    it("answer 'Nothing to blow up here.' beside a small lock with a room beyond it, and keep the Bomb and the lock", () => {
+      packBombs(2);
+      const before = mp();
 
-    const outcome = useItem(BOMBS, itemContext(id, [0, 1]));
+      expect(useItem(BOMBS, itemContext(lockedHall(), [0, 0]))).toEqual({ message: "Nothing to blow up here." });
 
-    expect(outcome.message).toBe("Boom! The east door blows open.");
-    expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ north: true, west: true, east: false });
-    expect(bombInPack(HERO)).toBeNull();
-  });
+      expect(mp()).toBe(before);
+      expect(bombInPack(HERO)?.qty).toBe(2);
+    });
 
-  it("find nothing to blow up when every lock leads nowhere, and keep the Bomb", () => {
-    packBombs(1);
-    const id = makeTemple({ V: { type: "void" }, H: { type: "empty", locked: { west: true, north: true } } }, [["V", "H"]]);
-    enter(id, [0, 1]);
+    it("leave the lock shut even when the tap names that side", () => {
+      packBombs(1);
+      const id = makeTemple({ E: { type: "entrance" }, H: { type: "empty", locked: { east: true } }, F: { type: "empty" } }, [["E", "H", "F"]]);
+      enter(id, [0, 1]);
 
-    expect(useItem(BOMBS, itemContext(id, [0, 1]))).toEqual({ message: "Nothing to blow up here." });
+      expect(useItem(BOMBS, itemContext(id, [0, 1], { side: "east" }))).toEqual({ message: "Nothing to blow up here." });
 
-    expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ west: true, north: true });
-    expect(bombInPack(HERO)?.qty).toBe(1);
+      expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(true);
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("locked");
+      expect(bombInPack(HERO)?.qty).toBe(1);
+    });
+
+    it("leave every lock shut when they lead nowhere either", () => {
+      packBombs(1);
+      const id = makeTemple({ V: { type: "void" }, H: { type: "empty", locked: { west: true, north: true } } }, [["V", "H"]]);
+      enter(id, [0, 1]);
+
+      expect(useItem(BOMBS, itemContext(id, [0, 1]))).toEqual({ message: "Nothing to blow up here." });
+
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ west: true, north: true });
+      expect(bombInPack(HERO)?.qty).toBe(1);
+    });
   });
 
   describe("on a cracked wall (a bombable side)", () => {
-    /** The hero in H with a room on every side: a row of three, a room above and a room below. A cracked wall is drawn where `barriers` say. */
-    const crackedHall = (barriers: object, extra: object = {}, at: [number, number] = [1, 1]) => {
-      const id = makeTemple(
-        {
-          E: { type: "entrance" },
-          H: { type: "empty", barriers, ...extra } as Room,
-          F: { type: "empty" },
-          U: { type: "empty" },
-          D: { type: "empty" },
-          W: { type: "wall" },
-        },
-        [
-          ["W", "U", "W"],
-          ["E", "H", "F"],
-          ["W", "D", "W"],
-        ]
-      );
-      enter(id, at);
-      return id;
-    };
-
     it("blows it open from both rooms for one Bomb and no MP, and lets the hero walk through", () => {
       packBombs(2);
       const id = crackedHall({ east: "bombable" });
 
       const outcome = useItem(BOMBS, itemContext(id, [1, 1]));
 
-      expect(outcome).toMatchObject({ message: "Boom! The east wall blows open.", sound: "damage", shake: true });
+      expect(outcome).toMatchObject({ message: "Boom! The east wall blows open.", sound: "damage", shake: true, blownSide: "east" });
       expect(temples.doorKind(id, [1, 1], "east")).toBe("open");
       expect(temples.doorKind(id, [1, 2], "west")).toBe("open");
       expect([...(temples.getTempleState(id)?.openedDoors ?? [])].sort()).toEqual(["1F:1,1>east", "1F:1,2>west"]);
@@ -521,15 +507,17 @@ describe("Bombs", () => {
       expect(temples.doorKind(id, [1, 1], "east")).toBe("bombable");
     });
 
-    it("goes to the next cracked wall when the tapped side is not one, and to a cracked wall before a small lock", () => {
+    it("goes to the next cracked wall when the tapped side is not one, and never to a small lock", () => {
       packBombs(2);
       const id = crackedHall({ south: "bombable" }, { locked: { east: true } });
 
       expect(useItem(BOMBS, itemContext(id, [1, 1], { side: "north" })).message).toBe("Boom! The south wall blows open.");
       expect(temples.doorKind(id, [1, 1], "east")).toBe("locked");
 
-      // Nothing cracked is left: the small lock is next
-      expect(useItem(BOMBS, itemContext(id, [1, 1])).message).toBe("Boom! The east door blows open.");
+      // Nothing cracked is left: the small lock stays shut and the second Bomb is kept
+      expect(useItem(BOMBS, itemContext(id, [1, 1]))).toEqual({ message: "Nothing to blow up here." });
+      expect(temples.doorKind(id, [1, 1], "east")).toBe("locked");
+      expect(bombInPack(HERO)?.qty).toBe(1);
     });
 
     it("finds nothing to blow up in a plain wall, and keeps the Bomb", () => {
@@ -580,12 +568,12 @@ describe("Bombs", () => {
   });
 
   describe("beside the boss door, which only the Boss Key opens", () => {
-    /** The hero in H: the boss door east, a small lock south. */
+    /** The hero in H: the boss door east, a cracked wall south. */
     const bossHall = () => {
       const id = makeTemple(
         {
           E: { type: "entrance" },
-          H: { type: "empty", locked: { east: true, south: true } },
+          H: { type: "empty", locked: { east: true }, barriers: { south: "bombable" } } as Room,
           B: { type: "boss" },
           F: { type: "empty" },
           W: { type: "wall" },
@@ -599,12 +587,12 @@ describe("Bombs", () => {
       return id;
     };
 
-    it("blow the small lock and leave the boss door shut", () => {
+    it("blow the cracked wall and leave the boss door shut", () => {
       packBombs(1);
       const id = bossHall();
 
-      expect(useItem(BOMBS, itemContext(id, [0, 1])).message).toBe("Boom! The south door blows open.");
-      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true, south: false });
+      expect(useItem(BOMBS, itemContext(id, [0, 1])).message).toBe("Boom! The south wall blows open.");
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true });
       expect(bombInPack(HERO)).toBeNull();
     });
 
@@ -614,8 +602,18 @@ describe("Bombs", () => {
       const base = itemContext(id, [0, 1]);
       const exits = { ...base.exits, east: { ...base.exits.east, locked: true } };
 
-      expect(useItem(BOMBS, { ...base, exits }).message).toBe("Boom! The south door blows open.");
-      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true, south: false });
+      expect(useItem(BOMBS, { ...base, exits, side: "east" }).message).toBe("Boom! The south wall blows open.");
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true });
+    });
+
+    it("find nothing to blow up when the boss door is the only way on", () => {
+      packBombs(1);
+      const id = makeTemple({ E: { type: "entrance" }, H: { type: "empty", locked: { east: true } }, B: { type: "boss" } }, [["E", "H", "B"]]);
+      enter(id, [0, 1]);
+
+      expect(useItem(BOMBS, itemContext(id, [0, 1], { side: "east" }))).toEqual({ message: "Nothing to blow up here." });
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true });
+      expect(bombInPack(HERO)?.qty).toBe(1);
     });
   });
 
@@ -632,7 +630,7 @@ describe("Bombs", () => {
     expect(useItem(BOMBS, itemContext(hall(), [0, 0])).message).toBe("Out of bombs.");
   });
 
-  it("find nothing to blow up in a room without a locked side, and keep the Bomb", () => {
+  it("find nothing to blow up in a room without a cracked side, and keep the Bomb", () => {
     packBombs(1);
     const id = hall();
 
@@ -643,19 +641,19 @@ describe("Bombs", () => {
     expect(bombInPack(HERO)?.qty).toBe(1);
   });
 
-  it("need no MP: a hero with none left can still blow a door", () => {
+  it("need no MP: a hero with none left can still blow a cracked wall", () => {
     addHero({ mp: { now: 0, max: 80 } });
     packBombs(1);
-    const id = lockedHall();
+    const id = crackedHall({ east: "bombable" });
 
-    const outcome = useItem(BOMBS, itemContext(id, [0, 0]));
+    const outcome = useItem(BOMBS, itemContext(id, [1, 1]));
 
-    expect(outcome).toMatchObject({ message: "Boom! The east door blows open." });
-    expect(dungeons.getRoom(id, [0, 0])!.locked!.east).toBe(false);
+    expect(outcome).toMatchObject({ message: "Boom! The east wall blows open." });
+    expect(temples.doorKind(id, [1, 1], "east")).toBe("open");
     expect(mp()).toBe(0);
   });
 
-  it("cannot break the seal of a fight that is still on, and keep the Bomb", () => {
+  it("do not break the seal of a fight that is still on: it is a lock, and a lock is not for a Bomb", () => {
     packBombs(1);
     const id = makeTemple({ E: { type: "entrance" }, M: { type: "monster", content: { lockOnEnter: true } } }, [["E", "M"]]);
     enter(id, [0, 0]);
@@ -663,7 +661,7 @@ describe("Bombs", () => {
 
     const outcome = useItem(BOMBS, itemContext(id, [0, 1]));
 
-    expect(outcome.sound).toBe("error");
+    expect(outcome).toEqual({ message: "Nothing to blow up here." });
     expect(dungeons.getRoom(id, [0, 1])!.locked!.west).toBe(true);
     expect(mp()).toBe(60);
     expect(bombInPack(HERO)?.qty).toBe(1);

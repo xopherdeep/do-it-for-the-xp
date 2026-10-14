@@ -53,11 +53,11 @@ describe("ItemRules", () => {
     expect(describeItem("Ice Wand")).toBe("10MP | Temple: Freezes the traps next to you. Fight: +10 minutes on the clock.");
     expect(describeItem("Fire Wand")).toBe("10MP | Fight: Every chore earns 1.5x the minutes.");
     expect(describeItem("My Quests")).toBeNull();
-    expect(itemCardLine("Bombs")).toBe("Bombs (uses a Bomb). Temple: Blows open a locked door. Fight: The beast misses its next strike.");
+    expect(itemCardLine("Bombs")).toBe("Bombs (uses a Bomb). Temple: Blows open a cracked wall. Fight: The beast misses its next strike.");
   });
 
   it("leaves the MP part out at 0 MP", () => {
-    expect(describeItem("Bombs")).toBe("Temple: Blows open a locked door. Fight: The beast misses its next strike.");
+    expect(describeItem("Bombs")).toBe("Temple: Blows open a cracked wall. Fight: The beast misses its next strike.");
     expect(describeItem("Bottles")).toBe(
       "Temple: Bottles an unused spring as Spring Water or Silver Water. Fight: Opens your potions and food."
     );

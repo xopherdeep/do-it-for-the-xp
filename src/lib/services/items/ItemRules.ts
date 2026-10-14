@@ -53,7 +53,7 @@ export const ITEM_RULES: Record<string, ItemRule> = {
     consumes: 'Bomb',
     temple: 'blast-door',
     fight: 'stun',
-    templeLine: 'Blows open a locked door.',
+    templeLine: 'Blows open a cracked wall.',
     fightLine: 'The beast misses its next strike.',
   },
   "Gaia's Quake": {
