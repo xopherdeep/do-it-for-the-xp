@@ -158,45 +158,11 @@
               </ion-label>
             </ion-item>
 
-            <ion-item
-              button
-              :detail="false"
-              :disabled="isBackupBusy"
-              :style="canRestore() ? undefined : { opacity: 0.5 }"
-              @click="confirmStarterWorld"
-            >
+            <ion-item button :detail="false" router-link="/xp-settings/packs">
               <ion-icon slot="start" :icon="sparklesOutline"></ion-icon>
               <ion-label>
-                <h2>Load the starter world</h2>
-                <p>Add ready-made quests, beasts, Powers, rewards and shops. What you made yourself stays</p>
-              </ion-label>
-            </ion-item>
-
-            <ion-item
-              button
-              :detail="false"
-              :disabled="isBackupBusy"
-              :style="canRestore() ? undefined : { opacity: 0.5 }"
-              @click="openMovingHouse"
-            >
-              <ion-icon slot="start" :icon="cubeOutline"></ion-icon>
-              <ion-label>
-                <h2>Moving House</h2>
-                <p>Add a quest pack for packing and moving your home, sized for each hero. What you made yourself stays</p>
-              </ion-label>
-            </ion-item>
-
-            <ion-item
-              button
-              :detail="false"
-              :disabled="isBackupBusy"
-              :style="canRestore() ? undefined : { opacity: 0.5 }"
-              @click="openHomeChores"
-            >
-              <ion-icon slot="start" :icon="homeOutline"></ion-icon>
-              <ion-label>
-                <h2>Home chores</h2>
-                <p>Add everyday chores for the rooms you have, sized for each hero. What you made yourself stays</p>
+                <h2>Packs</h2>
+                <p>Ready-made worlds to load now live under Settings, Packs</p>
               </ion-label>
             </ion-item>
           </ion-item-group>
@@ -245,8 +211,6 @@
 
         <!-- </ion-card-content> -->
       </ion-card>
-      <moving-house-modal :is-open="showMoving" @close="showMoving = false" />
-      <home-chores-modal :is-open="showHome" @close="showHome = false" />
     </ion-content>
   </ion-page>
 </template>
@@ -254,13 +218,10 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { arrowBack, cloudDownloadOutline, cloudUploadOutline, cubeOutline, homeOutline, sparklesOutline } from "ionicons/icons";
+  import { arrowBack, cloudDownloadOutline, cloudUploadOutline, sparklesOutline } from "ionicons/icons";
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
-  import type { BackupFile, BackupSummary, RestoreMode, RestoreResult } from "@/lib/services/core/BackupService";
-  import { buildStarterWorld } from "@/lib/services/core/StarterWorld";
-  import HomeChoresModal from "./HomeChoresModal.vue";
-  import MovingHouseModal from "./MovingHouseModal.vue";
+  import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
   import { dialogMessage } from "@/lib/utils/dialogMessage";
 
@@ -291,27 +252,8 @@
   export default defineComponent({
     name: "general-settings",
 
-    components: { HomeChoresModal, MovingHouseModal },
     mixins: [ionic],
     methods: {
-      /** The Moving House pack is a merge like the starter world, so only a Game Master may build it */
-      openMovingHouse() {
-        if (!canManageFamily()) {
-          this.showGmOnlyToast();
-          return;
-        }
-        this.showMoving = true;
-      },
-
-      /** The Home chores pack is a merge too, so only a Game Master may build it */
-      openHomeChores() {
-        if (!canManageFamily()) {
-          this.showGmOnlyToast();
-          return;
-        }
-        this.showHome = true;
-      },
-
       saveGeneralSettings() {
         // In a real app, this would save to a database or local storage
         localStorage.setItem(
@@ -508,72 +450,20 @@
         await alert.present();
       },
 
-      /** A merge: the starter world adds its own records and keeps every other one; profiles and logs are not in it */
-      async confirmStarterWorld() {
-        if (!canManageFamily()) {
-          this.showGmOnlyToast();
-          return;
-        }
-        const alert = await alertController.create({
-          header: "Load the starter world?",
-          cssClass: RPG_ALERT,
-          message: dialogMessage({
-            lead: "Adds a ready-made world your heroes can play right away.",
-            groups: [
-              {
-                title: "Adds",
-                tone: "add",
-                lines: [
-                  "Quests, open for anyone to claim",
-                  "Beasts, Powers and rewards",
-                  "Shop stock and Dos and Don'ts",
-                ],
-              },
-              {
-                title: "Keeps",
-                tone: "keep",
-                lines: [
-                  "Everything you made yourself",
-                  "Profiles, temples, logs and chat",
-                ],
-              },
-            ],
-            note: "Starter entries you edited go back to the original.",
-          }),
-          buttons: [
-            { text: "Cancel", role: "cancel" },
-            {
-              text: "Load starter world",
-              handler: () => {
-                this.runRestore(buildStarterWorld(), "the starter world", "merge");
-              },
-            },
-          ],
-        });
-        await alert.present();
-      },
-
-      /** `source` names what was loaded in the done dialog; a file is named by the date it was made */
-      async runRestore(backup: BackupFile, source?: string, mode: RestoreMode = "replace") {
+      async runRestore(backup: BackupFile) {
         try {
-          const result = await this.withLoading(
-            mode === "merge" ? "Adding to your data..." : "Restoring your data...",
-            () => backupService.restoreBackup(backup, { mode })
+          const result = await this.withLoading("Restoring your data...", () =>
+            backupService.restoreBackup(backup)
           );
-          await this.showRestoreDone(result, source);
+          await this.showRestoreDone(result);
         } catch (error) {
           await this.showAlert("Restore failed", errorMessage(error));
         }
       },
 
       /** Caches and open screens still hold the old data, so the only button reloads the app */
-      async showRestoreDone(result: RestoreResult, source?: string) {
-        const isMerge = result.mode === "merge";
-        const lead = isMerge
-          ? `Added ${result.total} entries from ${source ?? "the file"}.`
-          : `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`;
-        // A merge always leaves profiles and logs alone, so listing them would only repeat the confirm dialog
-        const untouched = isMerge ? [] : result.untouched;
+      async showRestoreDone(result: RestoreResult) {
+        const lead = `Restored ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`;
         const warnings = [
           ...(result.ignored.length
             ? [`Skipped (not in this app version): ${result.ignored.join(", ")}`]
@@ -582,12 +472,12 @@
         ];
 
         const alert = await alertController.create({
-          header: isMerge ? "Starter world loaded" : "Restore complete",
+          header: "Restore complete",
           cssClass: RPG_ALERT,
           message: dialogMessage({
             lead,
             groups: [
-              { title: "Left as they were", tone: "keep", lines: untouched },
+              { title: "Left as they were", tone: "keep", lines: result.untouched },
               { tone: "warn", lines: warnings },
             ],
             note: "Reload so every screen shows the new data.",
@@ -625,8 +515,6 @@
       );
       const isPremiumUser = ref(true); // In a real app, this would be determined by user's subscription
       const isBackupBusy = ref(false); // A backup or restore is running
-      const showMoving = ref(false); // The Moving House dialog is open
-      const showHome = ref(false); // The Home chores dialog is open
 
       // Initialize dark mode on component mount
       if (generalSettings.value.darkMode) {
@@ -637,15 +525,11 @@
         generalSettings,
         isPremiumUser,
         isBackupBusy,
-        showMoving,
-        showHome,
         canRestore: () => canManageFamily(),
         arrowBack,
         cloudDownloadOutline,
         cloudUploadOutline,
         sparklesOutline,
-        cubeOutline,
-        homeOutline,
       };
     },
   });
