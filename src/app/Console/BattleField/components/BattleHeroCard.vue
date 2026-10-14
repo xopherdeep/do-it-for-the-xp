@@ -155,7 +155,7 @@ $lavender-dark: #9080a8;
 .hero-card {
   position: relative;
   width: 100%;
-  max-width: 192px;
+  max-width: 140px;
   margin: 0 auto;
   border-radius: 4px;
   background: $lavender;
@@ -256,6 +256,7 @@ $lavender-dark: #9080a8;
 .stat-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 
   & + & {
@@ -271,7 +272,7 @@ $lavender-dark: #9080a8;
   align-items: center;
   flex-shrink: 0;
   width: 16px;
-  height: 30px;
+  height: 40px;
   font-family: "Fourside", "StatusPlz", monospace;
   font-size: 0.85rem;
   line-height: 0.88;
@@ -284,10 +285,11 @@ $lavender-dark: #9080a8;
   }
 }
 
+// Earthbound's rolling meter: narrow tiles, taller than wide
 .odometer {
   position: relative;
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   gap: 1px;
   padding: 2px 2px 4px;
   background: $ink;
@@ -296,15 +298,15 @@ $lavender-dark: #9080a8;
 
 .digit {
   box-sizing: border-box;
-  flex: 1;
-  min-width: 0;
-  height: 24px;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding-bottom: 4px;
   font-family: "Pixel Takhisis", "Orange Kid", "StatusPlz", monospace;
-  font-size: 20px;
+  font-size: 25px;
   font-weight: 600;
   text-align: center;
   color: $ink;
