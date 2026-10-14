@@ -492,7 +492,7 @@
         const alert = await alertController.create({
           header: "Load the starter world?",
           message:
-            "This adds a ready-made set of quests, beasts (the classic monsters too), Powers, rewards and shop stock. Everything you made yourself is kept; only the starter's own entries are reset if you changed them. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are not touched.",
+            "This adds a ready-made set of quests, beasts (the classic monsters too), Powers, rewards, shop stock and Do This, Not That rules. Everything you made yourself is kept; only the starter's own entries are reset if you changed them. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are not touched.",
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
