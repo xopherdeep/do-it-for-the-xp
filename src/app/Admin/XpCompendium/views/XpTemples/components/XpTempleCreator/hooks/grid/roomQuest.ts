@@ -15,7 +15,7 @@ import {
   roomQuestIds,
   type QuestTier,
 } from "@/lib/services/temples/questRooms";
-import { ensureContent } from "./roomContent";
+import { ensureContent, retypeRoom } from "./roomContent";
 
 /** The type picker's guide key for a quest room. It is not an engine type: the room's `type` is its tier. */
 export const QUEST_ROOM_KEY = "quest";
@@ -23,16 +23,17 @@ export const QUEST_ROOM_KEY = "quest";
 /**
  * Picks `quest` for the room: writes `content.questId` (a list of quests the room held gives way to the one pick),
  * sets the room `type` from the quest's tier, and seals a miniboss or boss room on entry when the Game Master has
- * not chosen yet (a boss fight is always sealed). Everything else the room holds stays, a shipped template included:
- * it takes over if the quest is ever deleted (5.2). Returns the tier. The cell's shared token (M001, MINI, BOSS)
- * becomes a unique symbol when the room is saved.
+ * not chosen yet (a boss fight is always sealed). A room of the tier's own kind keeps everything else it holds, a
+ * shipped template included: it takes over if the quest is ever deleted (5.2). A room of another kind is rebuilt
+ * for the tier first (`retypeRoom`), so a chest's loot does not follow it into a miniboss. Returns the tier. The
+ * cell's shared token (M001, MINI, BOSS) becomes a unique symbol when the room is saved.
  */
 export function applyQuestPick(room: Room, quest: Pick<Achievement, "id" | "difficulty">): QuestTier {
-  const content = ensureContent(room);
   const tier = questTier(quest.difficulty);
+  retypeRoom(room, tier);
+  const content = ensureContent(room);
   content.questId = String(quest.id);
   delete content.questIds;
-  room.type = tier;
   const isSealedByDefault = tier !== "monster" && content.lockOnEnter === undefined;
   if (isSealedByDefault) content.lockOnEnter = true;
   return tier;

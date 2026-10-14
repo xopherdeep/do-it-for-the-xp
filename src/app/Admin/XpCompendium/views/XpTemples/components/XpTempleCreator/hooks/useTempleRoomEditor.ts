@@ -31,9 +31,11 @@ import { floorSlice, getEntranceFloor, sortedFloorKeys, writeMazeCell } from './
 import { listMonsterConfigs, type MonsterConfigOption } from './grid/monsterConfigs';
 import { syncNeighbourSides } from './grid/neighbourLinks';
 import {
+  adoptSharedRecord,
   applyChestType,
   ensureContent,
   prepareRoomForEditing,
+  retypeRoom,
   seedTravelTargets,
   stepForRoomType,
   toggleConsumableItem
@@ -582,9 +584,10 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       return;
     }
 
-    // Any other type makes the room a classic one again: a quest left on it would still resolve and win
+    // Any other type makes the room a classic one again: a quest left on it would still resolve and win. Its content
+    // is rebuilt for the new type too: a seal or a chest left on it would outlive the type that meant it
     releaseQuest(roomData.value);
-    roomData.value.type = type;
+    retypeRoom(roomData.value, type);
 
     const step = stepForRoomType(type);
 
@@ -606,7 +609,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       if (!store.roomsData['BOSS']) {
         store.roomsData['BOSS'] = { type: 'boss', content: { lockOnEnter: true } as RoomContent };
       }
-      roomData.value = JSON.parse(JSON.stringify(store.roomsData['BOSS']));
+      roomData.value = adoptSharedRecord(store.roomsData['BOSS'], roomData.value);
       modalStep.value = 3;
       return;
     }
@@ -639,7 +642,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         type: pendingMonsterType.value || 'monster',
         content: {} as RoomContent
       };
-      roomData.value = JSON.parse(JSON.stringify(store.roomsData[newSymbol]));
+      roomData.value = adoptSharedRecord(store.roomsData[newSymbol], roomData.value);
     } else {
       // Use the selected M-token (shared config)
       writeMazeCell(store.templeMaze, store.currentLevelId, r, c, token);
@@ -654,7 +657,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         // Update the type if different (e.g., switching from monster to boss)
         store.roomsData[token].type = pendingMonsterType.value || 'monster';
       }
-      roomData.value = JSON.parse(JSON.stringify(store.roomsData[token]));
+      roomData.value = adoptSharedRecord(store.roomsData[token], roomData.value);
     }
 
     pendingMonsterType.value = null;

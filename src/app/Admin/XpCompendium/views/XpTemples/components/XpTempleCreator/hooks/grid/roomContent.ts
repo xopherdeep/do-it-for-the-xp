@@ -1,9 +1,11 @@
 /**
  * Room records for the room editor page: tidying a stored room before it is edited (legacy fields, default sides,
- * the chest it already holds), what each room type sends the type picker to next, and the content a chosen chest,
- * consumable or travel room starts with.
+ * the chest it already holds), what each room type sends the type picker to next, the content a chosen chest,
+ * consumable or travel room starts with, the record a room becomes when its type changes, and the chest a Quick Edit
+ * loot pick writes.
  */
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
+import { PEGASUS_ROOM_TYPES } from "@/lib/services/temples/ChestLoot";
 import { defaultSides, legacyLockedToSides } from "./doorSides";
 
 /** The room's content object, created empty first when the room has none */
@@ -95,6 +97,96 @@ export const stepForRoomType = (type: string): TypeStep => {
   if (type === "boss") return "boss";
   if (CONFIG_STEP_ROOM_TYPES.includes(type)) return "config";
   return "close";
+};
+
+const COMBAT_ROOM_TYPES = ["monster", "miniboss", "boss"];
+
+/** The wall and the entrance are shared tokens: every cell that shows one reads the same record, so it holds nothing of its own */
+const SHARED_TOKEN_TYPES = ["wall", "entrance"];
+
+/**
+ * What a type change carries over from the room's old content, by the family of types both rooms belong to. Beasts
+ * and the name are handled apart (`contentAfterTypeChange`); a chest, a shop, a heal or a travel target stays with
+ * the type that owns it.
+ */
+const CARRIED_WITHIN_FAMILY: { types: readonly string[]; keys: readonly string[] }[] = [
+  {
+    types: COMBAT_ROOM_TYPES,
+    keys: ["difficulty", "xp", "gp", "ap", "lockOnEnter", "quest", "questId", "questIds"],
+  },
+  { types: PEGASUS_ROOM_TYPES, keys: ["dungeon"] },
+];
+
+const copyOf = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+/**
+ * The content a room has once its type changes from `fromType` to `toType`: built from the new type's template, so
+ * it keeps only what the new type owns. The name always stays; beasts stay in a combat room; the fight (rewards, seal,
+ * quest) stays between combat rooms and the Pegasus pick between the egg rooms. A seal never outlives a fight, and
+ * leaving the boss lets go of the one the boss template put there; a boss is always sealed. A chest never moves to
+ * another type, so a Boss Key cannot ride along into a miniboss that the audit then counts. The wall and the entrance
+ * start empty. The same type keeps all of its content. The content given is not changed.
+ */
+export const contentAfterTypeChange = (
+  fromType: string,
+  toType: string,
+  content: RoomContent | undefined
+): RoomContent => {
+  const held: RoomContent = content ?? {};
+  if (fromType === toType) return copyOf(held);
+  if (SHARED_TOKEN_TYPES.includes(toType)) return {};
+
+  const next: RoomContent = {};
+  if (held.name !== undefined) next.name = held.name;
+  if (held.beasts !== undefined && COMBAT_ROOM_TYPES.includes(toType)) next.beasts = held.beasts;
+
+  const family = CARRIED_WITHIN_FAMILY.find((f) => f.types.includes(fromType) && f.types.includes(toType));
+  family?.keys.forEach((key) => {
+    if (held[key] !== undefined) next[key] = held[key];
+  });
+
+  if (fromType === "boss") delete next.lockOnEnter;
+  if (toType === "boss") next.lockOnEnter = true;
+  return copyOf(next);
+};
+
+/** Makes the room `toType` in place: its content is rebuilt (`contentAfterTypeChange`); its sides and the rest stay. */
+export const retypeRoom = (room: Room, toType: string): void => {
+  if (room.type === toType) return;
+  room.content = contentAfterTypeChange(room.type, toType, room.content);
+  room.type = toType;
+};
+
+/**
+ * A copy of a shared config's record (the BOSS token, M001) for this cell. The config owns the fight; the cell keeps
+ * its own doors and its name, which no config can know.
+ */
+export const adoptSharedRecord = (shared: Room, mine: Room): Room => {
+  const adopted = copyOf(shared);
+  const sides = mine.sides ?? adopted.sides;
+  if (sides) adopted.sides = copyOf(sides);
+  const name = mine.content?.name;
+  if (name !== undefined) ensureContent(adopted).name = name;
+  return adopted;
+};
+
+/**
+ * What a chest holds after the Quick Edit "Select Loot" pick: the room's own content with the chest set to the
+ * dungeon item (`{ chest: 'dungeon', dungeon: <id> }`, the pair the room editor, the audit and the chest reveal read),
+ * merged, so the name, a mimic and the rest stay. `null` is the Empty pick: the dungeon item comes off. The old
+ * `item` key nothing read is dropped. The content given is not changed.
+ */
+export const pickChestItem = (content: RoomContent | undefined, itemId: string | null): RoomContent => {
+  const next: RoomContent = { ...(content ?? {}) };
+  delete next.item;
+  if (itemId === null) {
+    delete next.dungeon;
+    if (next.chest === "dungeon") delete next.chest;
+    return next;
+  }
+  next.chest = "dungeon";
+  next.dungeon = itemId;
+  return next;
 };
 
 /**

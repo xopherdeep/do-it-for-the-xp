@@ -25,6 +25,7 @@ import { bossDoorSides } from "@/lib/services/temples/authoredDoors";
 import { adoptStoredLayout, storedLayout } from "../../../hooks/templeData/storedLayout";
 
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
+import type { Room } from "@/lib/engine/core/dungeons/types";
 import { copyTextToClipboard } from "@/lib/utils/clipboard";
 import {
   blankFloorLayer,
@@ -44,6 +45,9 @@ import {
   mazeHasEntrance,
 } from "./grid/mazeReadouts";
 import { buildInitialMaze, entranceCellOnFloor, resizeMaze } from "./grid/resizeMaze";
+import { defaultSides } from "./grid/doorSides";
+import { contentAfterTypeChange } from "./grid/roomContent";
+import { releaseQuest } from "./grid/roomQuest";
 import {
   buildRoomRecord,
   chooseRoomSymbol,
@@ -582,14 +586,19 @@ export function useTempleCreator(
     const s = quickEditState.value;
     selectCell(s.row, s.col);
 
-    // Default content/sides for quick type switching
-    const defaultSides = {
-      north: "door",
-      east: "door",
-      south: "door",
-      west: "door",
-    };
-    applyRoomChanges(type, {}, defaultSides);
+    // The tile the room already is changes nothing: its quest, beasts, locks and doors stay
+    if (type === s.roomType) {
+      quickEditState.value.isOpen = false;
+      return;
+    }
+
+    // A tile picks a classic type, as the room editor's type picker does: the quest goes and the content is rebuilt for
+    // the new type. The doors stay, except on the shared wall and entrance tokens, which have none of their own
+    const classic: Room = { type: s.roomType, content: { ...s.content } };
+    releaseQuest(classic);
+    const content = contentAfterTypeChange(s.roomType, type, classic.content);
+    const ownsDoors = type !== "wall" && type !== "entrance";
+    applyRoomChanges(type, content, ownsDoors ? { ...s.sides } : defaultSides());
     quickEditState.value.isOpen = false;
   };
 

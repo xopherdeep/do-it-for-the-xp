@@ -78,6 +78,31 @@ describe("applyQuestPick", () => {
     expect(room.sides).toBe(sides);
   });
 
+  it("rebuilds a room that was another type from the tier's template: a chest's Boss Key and a boss's seal do not ride along", () => {
+    const chest: Room = {
+      type: "loot",
+      sides: { north: "locked", east: "door", south: "door", west: "door" },
+      content: { name: "Vault", chest: "dungeon", dungeon: "master-key", gold: 50, items: ["potion"] },
+    };
+    expect(applyQuestPick(chest, quest("m", 3))).toBe("miniboss");
+    expect(chest.type).toBe("miniboss");
+    expect(chest.content).toEqual({ name: "Vault", questId: "m", lockOnEnter: true });
+    expect(chest.sides).toEqual({ north: "locked", east: "door", south: "door", west: "door" });
+
+    const boss: Room = { type: "boss", content: { lockOnEnter: true, beasts: ["b1"] } };
+    applyQuestPick(boss, quest("s", 1));
+    expect(boss.type).toBe("monster");
+    expect(boss.content).toEqual({ beasts: ["b1"], questId: "s" });
+  });
+
+  it("keeps the fight and the shipped template when the tier moves between combat types", () => {
+    const template = { beastId: "beast-dish-goblin", difficulty: 2, basicSchedule: "daily" };
+    const room: Room = { type: "monster", content: { beasts: ["b1"], xp: 200, quest: template, lockOnEnter: false } };
+    applyQuestPick(room, quest("q1", 13));
+    expect(room.type).toBe("boss");
+    expect(room.content).toEqual({ beasts: ["b1"], xp: 200, quest: template, questId: "q1", lockOnEnter: true });
+  });
+
   it("turns a list room into a one-quest room: the pick replaces the list", () => {
     const room: Room = { type: "monster", content: { questIds: ["mugs", "dishes"], beasts: ["b1"] } };
     applyQuestPick(room, quest("mugs", 2));

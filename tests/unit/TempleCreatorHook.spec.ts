@@ -2,11 +2,16 @@
  * The Temple Creator hook (useTempleCreator) at two points the Game Master touches: pressing Save, which must write the
  * temple to the database once, and a temple whose entrance is stored as "floor index,row,col" (the multi-floor temples
  * the game ships, e.g. shadow-temple [0, 3, 2]), which the editor must read as a cell on one floor, not as row,col.
- * Only the browser's storage is faked (in memory).
+ * Quick Edit's type tiles and its Select Loot pick are covered too. Only the browser's storage is faked (in memory).
  */
+import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { toastController } from "@ionic/vue";
 import { useTempleCreator } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleCreator";
+import XpTempleCreatorPopovers from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/XpTempleCreatorPopovers.vue";
+import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
+import type { Room } from "@/lib/engine/core/dungeons/types";
+import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
 import { writeMazeCell } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/floorLayers";
@@ -41,6 +46,8 @@ jest.mock("@ionic/storage", () => {
   return { Drivers: { IndexedDB: "indexeddb", LocalStorage: "localstorage" }, Storage: FakeStorage };
 });
 jest.mock("@ionic/vue", () => ({
+  // The Quick Edit popover's shell: its slot, shown at once (the real one needs a browser to open)
+  IonPopover: { name: "IonPopover", render() { return require("vue").h("div", (this as any).$slots.default?.()); } },
   toastController: { create: jest.fn(() => Promise.resolve({ present: jest.fn() })) },
   alertController: { create: jest.fn() },
   createAnimation: jest.fn(),
@@ -217,14 +224,45 @@ describe("a 'row,col' entrance", () => {
     expect(stored?.dungeonLayout?.entrance).toEqual([1, 2]);
   });
 
-  it("is the entrance cell on every floor, as before", () => {
+  // Changed with #1359: this pinned "on every floor", but the game starts the hero on the first floor (startAt), so a
+  // resize of another floor stamped a second entrance or moved the saved one
+  it("is the entrance cell on the first floor only, as the game reads it", () => {
     const creator = startTemple(nextId(), "3x4", "1,2");
     creator.addFloor("2F");
-    for (const floor of ["1F", "2F"]) {
-      creator.currentLevelId.value = floor;
-      expect(creator.isEntrancePosition(1, 2)).toBe(true);
-      expect(creator.entranceOnThisFloor.value).toBe("1,2");
-    }
+
+    creator.currentLevelId.value = "1F";
+    expect(creator.isEntrancePosition(1, 2)).toBe(true);
+    expect(creator.entranceOnThisFloor.value).toBe("1,2");
+
+    creator.currentLevelId.value = "2F";
+    expect(creator.isEntrancePosition(1, 2)).toBe(false);
+    expect(creator.entranceOnThisFloor.value).toBe("-1,-1");
+  });
+
+  it("is not stamped or moved when another floor is resized (wind-temple's entrance at 5,2, a floor added, 2F made 3x3)", () => {
+    const creator = startTemple(nextId(), "6x4", "5,2");
+    creator.addFloor("2F"); // shows 2F
+    creator.gridSize.value = "3x3";
+
+    creator.resizeGrid();
+
+    const floors = creator.templeMaze.value as Record<string, string[][]>;
+    expect(entranceCells(floors["2F"])).toEqual([]); // no second entrance, nothing stamped over a room of 2F
+    expect(entranceCells(floors["1F"])).toEqual([[5, 2]]);
+    expect(creator.entrancePosition.value).toBe("5,2");
+  });
+
+  it("still moves to 0,0 when the first floor itself is resized past it", () => {
+    const creator = startTemple(nextId(), "6x4", "5,2");
+    creator.addFloor("2F");
+    creator.currentLevelId.value = "1F";
+    creator.gridSize.value = "3x3";
+
+    creator.resizeGrid();
+
+    const floors = creator.templeMaze.value as Record<string, string[][]>;
+    expect(entranceCells(floors["1F"])).toEqual([[0, 0]]);
+    expect(creator.entrancePosition.value).toBe("0,0");
   });
 });
 
@@ -523,5 +561,157 @@ describe("initializeGrid on a temple with floors", () => {
     creator.initializeGrid();
     expect(floorMap(creator)["2F"]).toHaveLength(3);
     expect(floorMap(creator)["1F"]).toHaveLength(5);
+  });
+});
+
+
+// --- #1366, #1365: Quick Edit ----------------------------------------------------------------------------------------
+
+const lockedEast = { north: "door", east: "locked", south: "door", west: "door" };
+
+/** A temple whose cell 1,1 holds `room` under its own symbol, with Quick Edit open on it (the long press) */
+const quickEditOn = (room: Room) => {
+  const creator = startTemple(nextId(), "3x4", "0,0");
+  (creator.templeMaze.value as string[][])[1][1] = "R0101";
+  creator.roomsData.value.R0101 = room;
+  creator.showQuickEditPopover(new Event("click"), 1, 1);
+  return creator;
+};
+
+const cell = (creator: ReturnType<typeof useTempleCreator>) => (creator.templeMaze.value as string[][])[1][1];
+
+const questRoom = (): Room => ({
+  type: "monster",
+  sides: { ...lockedEast },
+  content: { name: "Kitchen", questId: "q1", beasts: ["b1"], lockOnEnter: true, xp: 100, gp: 10, ap: 1 },
+});
+
+describe("Quick Edit type tiles", () => {
+  // Added with #1366: a tap on the tile already lit rebuilt the room from {} with plain doors (quest, beasts and locks gone)
+  it("leaves the room alone when the tile is the type it already is", () => {
+    const creator = quickEditOn(questRoom());
+    creator.applyQuickType("monster");
+
+    expect(cell(creator)).toBe("R0101");
+    expect(creator.roomsData.value.R0101).toEqual(questRoom());
+    expect(creator.quickEditState.value.isOpen).toBe(false);
+  });
+
+  it("keeps the doors and the name when the type changes, and takes the quest and the fight with it", () => {
+    const creator = quickEditOn(questRoom());
+    creator.applyQuickType("loot");
+
+    const symbol = cell(creator);
+    expect(symbol).not.toBe("R0101");
+    expect(creator.roomsData.value.R0101).toBeUndefined();
+    expect(creator.roomsData.value[symbol]).toEqual({ type: "loot", sides: lockedEast, content: { name: "Kitchen" } });
+  });
+
+  it("keeps the fight between combat types: a monster that becomes a miniboss keeps its quest, beasts and seal", () => {
+    const creator = quickEditOn(questRoom());
+    creator.applyQuickType("miniboss");
+
+    // A tile is a classic type: the quest goes, the rest of the fight stays
+    expect(creator.roomsData.value[cell(creator)]).toEqual({
+      type: "miniboss",
+      sides: lockedEast,
+      content: { name: "Kitchen", beasts: ["b1"], lockOnEnter: true, xp: 100, gp: 10, ap: 1 },
+    });
+  });
+
+  it("lets go of a boss's seal when the room becomes an empty room", () => {
+    const bossDoors = { north: "masterlocked", east: "masterlocked", south: "masterlocked", west: "masterlocked" };
+    const creator = quickEditOn({ type: "boss", sides: { ...bossDoors }, content: { lockOnEnter: true, beasts: ["b1"] } });
+    creator.applyQuickType("empty");
+
+    expect(creator.roomsData.value[cell(creator)]).toEqual({ type: "empty", sides: bossDoors });
+  });
+
+  it("gives a chest holding the Boss Key none of it when it becomes a miniboss", () => {
+    const creator = quickEditOn({ type: "loot", content: { chest: "dungeon", dungeon: "master-key", name: "Vault" } });
+    creator.applyQuickType("miniboss");
+
+    expect(creator.roomsData.value[cell(creator)]).toEqual({ type: "miniboss", content: { name: "Vault" } });
+  });
+
+  it("gives a wall no doors: it is the shared wall token, not a room of its own", () => {
+    const creator = quickEditOn(questRoom());
+    creator.applyQuickType("wall");
+
+    expect(cell(creator)).toBe(____);
+    expect(creator.roomsData.value.R0101).toBeUndefined();
+    const keepsOldDoors = Object.values(creator.roomsData.value).some((room: any) => room?.sides?.east === "locked");
+    expect(keepsOldDoors).toBe(false);
+  });
+
+  it("gives the entrance plain doors and no content, not the name of the room it replaced", () => {
+    const creator = quickEditOn(questRoom());
+    creator.applyQuickType("entrance");
+
+    expect(cell(creator)).toBe(_00_);
+    expect(creator.roomsData.value[_00_]).toEqual({ type: "entrance" });
+  });
+});
+
+describe("Quick Edit Select Loot", () => {
+  const bossKeyPlaced = (creator: ReturnType<typeof useTempleCreator>) =>
+    auditTemple({ dungeonLayout: { maze: creator.templeMaze.value, rooms: creator.roomsData.value } }).checks.find(
+      (check) => check.id === "bossKey"
+    )?.ok;
+
+  /** The Game Master long-presses the chest, opens the loot grid and taps `label`; the layout applies what the popover sends */
+  const pickLoot = async (creator: ReturnType<typeof useTempleCreator>, label: string) => {
+    const popover = mount(XpTempleCreatorPopovers, {
+      props: {
+        modelValue: creator.quickEditState.value,
+        roomIcons: {},
+        dungeonItems: getDungeonItems(),
+        hasEntrance: true,
+      },
+    });
+    await popover.find(".type-btn.loot").trigger("click"); // the tile opens the grid
+    const button = popover.findAll(".item-btn").find((b) => b.text() === label);
+    await button?.trigger("click");
+
+    const sent = popover.emitted("apply-content");
+    expect(sent).toHaveLength(1);
+    const { roomType, content, sides } = (sent as any[][])[0][0];
+    creator.applyRoomChanges(roomType, content, sides);
+  };
+
+  // Added with #1365: the pick wrote `{ item: id }` over the chest, which nothing reads, and the Boss Key never existed
+  it("writes the chest config the editor and the audit read, not an `item` nothing reads", async () => {
+    const creator = quickEditOn({ type: "loot", content: { name: "Vault" } });
+    expect(bossKeyPlaced(creator)).toBe(false);
+
+    await pickLoot(creator, "Boss Key");
+
+    const room = creator.roomsData.value[cell(creator)];
+    expect(room.type).toBe("loot");
+    expect(room.content).toEqual({ name: "Vault", chest: "dungeon", dungeon: "master-key" });
+    expect(bossKeyPlaced(creator)).toBe(true);
+  });
+
+  it("merges into what the chest already holds: its name, its mimic and its doors stay", async () => {
+    const creator = quickEditOn({
+      type: "loot",
+      sides: { ...lockedEast },
+      content: { name: "Vault", isMimic: true, mimicType: "random", chest: "dungeon", dungeon: "small-key" },
+    });
+
+    await pickLoot(creator, "Dungeon Map");
+
+    const room = creator.roomsData.value[cell(creator)];
+    expect(room.content).toEqual({ name: "Vault", isMimic: true, mimicType: "random", chest: "dungeon", dungeon: "dungeon-map" });
+    expect(room.sides).toEqual(lockedEast);
+  });
+
+  it("takes the item off for Empty and keeps the rest of the chest", async () => {
+    const creator = quickEditOn({ type: "loot", content: { name: "Vault", chest: "dungeon", dungeon: "master-key" } });
+
+    await pickLoot(creator, "Empty");
+
+    expect(creator.roomsData.value[cell(creator)].content).toEqual({ name: "Vault" });
+    expect(bossKeyPlaced(creator)).toBe(false);
   });
 });

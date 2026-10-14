@@ -1,13 +1,17 @@
 /**
  * Characterization of the room-record rules the room editor page uses (hooks/grid/roomContent): tidying a stored room
- * before it is edited, where each room type sends the type picker, and the content a chosen chest, consumable or
- * travel room starts with.
+ * before it is edited, where each room type sends the type picker, the content a chosen chest, consumable or travel
+ * room starts with, the record a room becomes when its type changes and the chest a Quick Edit loot pick writes.
  */
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
 import {
+  adoptSharedRecord,
   applyChestType,
+  contentAfterTypeChange,
   ensureContent,
+  pickChestItem,
   prepareRoomForEditing,
+  retypeRoom,
   seedTravelTargets,
   stepForRoomType,
   toggleConsumableItem,
@@ -312,5 +316,166 @@ describe("toggleConsumableItem", () => {
     const content: RoomContent = { items: [] };
     toggleConsumableItem(content, "elixir");
     expect(content.items).toEqual(["elixir"]);
+  });
+});
+
+describe("contentAfterTypeChange", () => {
+  const sealedBoss: RoomContent = { name: "Attic", beasts: ["b1"], xp: 800, gp: 80, ap: 8, lockOnEnter: true };
+
+  it("never carries a seal to a room that does not fight: a boss turned into a chest, a heal or an empty room", () => {
+    ["loot", "health", "empty", "shop", "stairs-up"].forEach((type) => {
+      const next = contentAfterTypeChange("boss", type, sealedBoss);
+      expect(next).not.toHaveProperty("lockOnEnter");
+      expect(next).not.toHaveProperty("beasts");
+      expect(next).not.toHaveProperty("xp");
+    });
+    expect(contentAfterTypeChange("miniboss", "loot", { lockOnEnter: true })).toEqual({});
+  });
+
+  it("never carries a chest to a room that is not a chest, the Boss Key a miniboss would hold above all", () => {
+    const chest: RoomContent = { chest: "dungeon", dungeon: "master-key", gold: 50, items: ["potion"], isMimic: true, mimicType: "random" };
+    ["monster", "miniboss", "boss", "empty", "master", "stairs-down"].forEach((type) => {
+      const next = contentAfterTypeChange("loot", type, chest);
+      ["chest", "dungeon", "gold", "items", "isMimic", "mimicType"].forEach((key) => expect(next).not.toHaveProperty(key));
+    });
+  });
+
+  it("keeps the name of the room whatever the type becomes", () => {
+    ["loot", "boss", "empty", "master", "shop"].forEach((type) => {
+      expect(contentAfterTypeChange("monster", type, { name: "Kitchen", beasts: ["b1"] }).name).toBe("Kitchen");
+    });
+  });
+
+  it("starts the wall and the entrance empty: they are shared tokens that hold nothing of their own", () => {
+    expect(contentAfterTypeChange("monster", "wall", { name: "Kitchen", beasts: ["b1"], lockOnEnter: true })).toEqual({});
+    expect(contentAfterTypeChange("loot", "entrance", { name: "Vault", chest: "dungeon" })).toEqual({});
+  });
+
+  it("keeps the fight between combat rooms: beasts, rewards, the seal and the shipped quest", () => {
+    const quest = { beastId: "beast-dish-goblin", difficulty: 2, basicSchedule: "daily" };
+    const monster: RoomContent = { beasts: ["b1"], xp: 100, gp: 10, ap: 1, difficulty: "hard", lockOnEnter: true, quest, questId: "q1" };
+    expect(contentAfterTypeChange("monster", "miniboss", monster)).toEqual(monster);
+    expect(contentAfterTypeChange("miniboss", "monster", monster)).toEqual(monster);
+  });
+
+  it("seals a boss and lets go of the seal when the room stops being one: the boss template put it there, not the Game Master", () => {
+    expect(contentAfterTypeChange("monster", "boss", { beasts: ["b1"], lockOnEnter: false }).lockOnEnter).toBe(true);
+    expect(contentAfterTypeChange("empty", "boss", {}).lockOnEnter).toBe(true);
+    expect(contentAfterTypeChange("boss", "monster", sealedBoss)).toEqual({ name: "Attic", beasts: ["b1"], xp: 800, gp: 80, ap: 8 });
+    expect(contentAfterTypeChange("miniboss", "monster", { lockOnEnter: true }).lockOnEnter).toBe(true);
+  });
+
+  it("brings the beasts of a room that had none into a combat room, and only into one", () => {
+    expect(contentAfterTypeChange("empty", "monster", { beasts: [] })).toEqual({ beasts: [] });
+    expect(contentAfterTypeChange("empty", "loot", { beasts: [] })).toEqual({});
+  });
+
+  it("keeps the Pegasus pick between the egg rooms and nowhere else", () => {
+    expect(contentAfterTypeChange("dragon-egg", "master", { dungeon: "Rainbow" })).toEqual({ dungeon: "Rainbow" });
+    expect(contentAfterTypeChange("master", "loot", { dungeon: "Rainbow" })).toEqual({});
+    expect(contentAfterTypeChange("loot", "master", { chest: "dungeon", dungeon: "master-key" })).toEqual({});
+  });
+
+  it("drops travel targets, shop and heal settings: the new type starts from its own template", () => {
+    expect(contentAfterTypeChange("stairs-up", "stairs-down", { targetLevel: "2F", targetCoords: { x: 1, y: 1 } })).toEqual({});
+    expect(contentAfterTypeChange("shop", "empty", { shopId: "s1", healthPoints: 5 })).toEqual({});
+  });
+
+  it("leaves the content as it is when the type does not change, and never hands back the object it was given", () => {
+    const content: RoomContent = { beasts: ["b1"], lockOnEnter: true, chest: "dungeon", dungeon: "master-key" };
+    const same = contentAfterTypeChange("miniboss", "miniboss", content);
+    expect(same).toEqual(content);
+    expect(same).not.toBe(content);
+    expect(contentAfterTypeChange("monster", "miniboss", content).beasts).not.toBe(content.beasts);
+  });
+
+  it("reads a room with no content as an empty one", () => {
+    expect(contentAfterTypeChange("empty", "loot", undefined)).toEqual({});
+    expect(contentAfterTypeChange("empty", "boss", undefined)).toEqual({ lockOnEnter: true });
+  });
+});
+
+describe("retypeRoom", () => {
+  it("sets the type, rebuilds the content and leaves the sides, the coordinates and every other field of the room", () => {
+    const sides = { north: "locked", east: "door", south: "bombable", west: "door" };
+    const room: Room = {
+      type: "boss",
+      sides,
+      coords: { x: 1, y: 2 },
+      visited: true,
+      content: { name: "Attic", lockOnEnter: true, beasts: ["b1"] },
+    };
+    retypeRoom(room, "loot");
+    expect(room.type).toBe("loot");
+    expect(room.content).toEqual({ name: "Attic" });
+    expect(room.sides).toBe(sides);
+    expect(room.coords).toEqual({ x: 1, y: 2 });
+    expect(room.visited).toBe(true);
+  });
+
+  it("does nothing to a room whose type does not change", () => {
+    const content: RoomContent = { lockOnEnter: true, chest: "dungeon", dungeon: "master-key" };
+    const room: Room = { type: "miniboss", content };
+    retypeRoom(room, "miniboss");
+    expect(room.content).toBe(content);
+    expect(room.content).toEqual({ lockOnEnter: true, chest: "dungeon", dungeon: "master-key" });
+  });
+
+  it("gives a room with no content the new type's template", () => {
+    const room: Room = { type: "empty" };
+    retypeRoom(room, "boss");
+    expect(room).toEqual({ type: "boss", content: { lockOnEnter: true } });
+  });
+});
+
+describe("adoptSharedRecord", () => {
+  it("hands back a copy of the shared record that keeps this cell's own doors and name", () => {
+    const shared: Room = { type: "boss", content: { lockOnEnter: true, beasts: ["b9"] } };
+    const mine: Room = {
+      type: "loot",
+      sides: { north: "locked", east: "door", south: "door", west: "door" },
+      content: { name: "Attic" },
+    };
+    const adopted = adoptSharedRecord(shared, mine);
+    expect(adopted).toEqual({
+      type: "boss",
+      sides: { north: "locked", east: "door", south: "door", west: "door" },
+      content: { lockOnEnter: true, beasts: ["b9"], name: "Attic" },
+    });
+    expect(adopted.content?.beasts).not.toBe(shared.content?.beasts);
+    expect(shared.content).not.toHaveProperty("name");
+    expect(shared).not.toHaveProperty("sides");
+  });
+
+  it("lets the cell's name win over the shared record's, and falls back on the record's doors when the cell has none", () => {
+    const shared: Room = { type: "monster", sides: { north: "wall" }, content: { name: "Pantry" } };
+    expect(adoptSharedRecord(shared, { type: "empty", content: { name: "Attic" } }).content?.name).toBe("Attic");
+    const nameless = adoptSharedRecord(shared, { type: "empty" });
+    expect(nameless.content?.name).toBe("Pantry");
+    expect(nameless.sides).toEqual({ north: "wall" });
+  });
+});
+
+describe("pickChestItem", () => {
+  it("makes the chest hold the dungeon item the editor, the audit and the chest reveal read", () => {
+    expect(pickChestItem({}, "master-key")).toEqual({ chest: "dungeon", dungeon: "master-key" });
+    expect(pickChestItem(undefined, "compass")).toEqual({ chest: "dungeon", dungeon: "compass" });
+  });
+
+  it("merges into what the chest already holds instead of replacing it, and drops the old `item` nothing read", () => {
+    const held: RoomContent = { name: "Vault", isMimic: true, mimicType: "random", gold: 50, item: "master-key" };
+    const next = pickChestItem(held, "dungeon-map");
+    expect(next).toEqual({ name: "Vault", isMimic: true, mimicType: "random", gold: 50, chest: "dungeon", dungeon: "dungeon-map" });
+    expect(next).not.toHaveProperty("item");
+    expect(held.item).toBe("master-key");
+  });
+
+  it("replaces the item a dungeon chest held", () => {
+    expect(pickChestItem({ chest: "dungeon", dungeon: "small-key" }, "master-key")).toEqual({ chest: "dungeon", dungeon: "master-key" });
+  });
+
+  it("takes the dungeon item off the chest for Empty, and keeps the rest of it", () => {
+    expect(pickChestItem({ name: "Vault", chest: "dungeon", dungeon: "master-key" }, null)).toEqual({ name: "Vault" });
+    expect(pickChestItem({ chest: "gold", gold: 50 }, null)).toEqual({ chest: "gold", gold: 50 });
   });
 });
