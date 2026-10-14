@@ -11,9 +11,11 @@
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
       <div class="packs max-w-5xl mx-auto">
-        <p class="packs__intro">
-          A pack adds a ready-made set of quests, beasts, rewards and house rules. What you made yourself always stays.
-        </p>
+        <ion-card class="pack-card packs__intro">
+          <ion-card-content>
+            A pack adds a ready-made set of quests, beasts, rewards and house rules. What you made yourself always stays.
+          </ion-card-content>
+        </ion-card>
 
         <div class="packs__grid">
           <ion-card
@@ -311,21 +313,26 @@ const closeBuilder = () => {
 </script>
 
 <style lang="scss" scoped>
+// The gap rule of the Settings grid: each card's border is a 16px box-shadow drawn outside it, so the page pads
+// 16px more and cards sit 48px apart; every visible gap (edges, between cards, around the heading) comes out 16px
 .packs {
-  &__intro {
-    margin: 0 0 16px;
-    line-height: 1.4;
-  }
+  padding: 16px;
+
 
   &__heading {
-    margin: 24px 0 12px;
+    display: inline-block;
+    margin: 32px 0;
+    padding: 4px 12px;
     font-size: 1.1rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
   }
 
   &__grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+    gap: 48px;
 
     @media (min-width: 768px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -372,6 +379,11 @@ const closeBuilder = () => {
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
+  }
+
+  &.packs__intro {
+    margin-bottom: 48px !important;
+    line-height: 1.4;
   }
 
   ion-card-content {
