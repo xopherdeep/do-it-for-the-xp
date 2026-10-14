@@ -8,7 +8,8 @@ import { changeBGM } from "@/lib/engine/audio/routeMusic";
  *
  * Effect names must exist in src/assets/fx (ui.nintendo first, then rpg.earthbound):
  * startBattle, attack, preAttack, damage (hero hit), enemyDamage (beast hit), enemyDie, win,
- * levelUp, die, text, cursor, no, select. Unknown names play nothing, silently.
+ * levelUp, die, text, cursor, no, select, gp (the rupee chime), fillPoints (the points roll). Unknown names play
+ * nothing, silently.
  */
 export type BattleSound =
   | "startBattle"
@@ -23,7 +24,15 @@ export type BattleSound =
   | "text"
   | "cursor"
   | "no"
-  | "select";
+  | "select"
+  | "gp"
+  | "fillPoints";
+
+/** The loot a victory tile counts up. */
+export type TallyStat = "xp" | "gp" | "ap";
+
+/** The chime that rings as a tile lands its number: gold has its own, XP and AP share the plain select. */
+const TALLY_LANDING: Record<TallyStat, BattleSound> = { xp: "select", gp: "gp", ap: "select" };
 
 export const useBattleAudio = () => {
   const audioStore = useAudioStore();
@@ -61,7 +70,17 @@ export const useBattleAudio = () => {
     else if (!playing) playSound("win");
   };
 
-  return { playSound, startBattleBgm, startBossBgm, stopBgm, playVictory };
+  /**
+   * The points roll is one sustained sound (about four seconds), so the count-up starts it once and stops it when the
+   * numbers are done; the card's three tiles overlap, so a tile landing early must not cut it for the others.
+   */
+  const startTally = () => playSound("fillPoints");
+  const stopTally = () => play$fx("fillPoints", { stop: true });
+
+  /** One chime as a tile lands its exact number (once for a tap that finishes the count early). */
+  const playLanding = (stat: TallyStat) => playSound(TALLY_LANDING[stat]);
+
+  return { playSound, startBattleBgm, startBossBgm, stopBgm, playVictory, startTally, stopTally, playLanding };
 };
 
 export type BattleAudio = ReturnType<typeof useBattleAudio>;

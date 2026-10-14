@@ -22,7 +22,7 @@ import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
 import { clearBattleProgress, loadBattleProgress, pruneBattleProgress, saveBattleProgress } from "./battle/battleProgress";
 import type { EnemyAnimation, HitPopup, VictoryCardState } from "./battle/battleView";
 import { useAtbDisplay } from "./composables/useAtbDisplay";
-import { useBattleAudio } from "./composables/useBattleAudio";
+import { useBattleAudio, type TallyStat } from "./composables/useBattleAudio";
 import { useBattleBackground } from "./composables/useBattleBackground";
 import { useBattleDialog } from "./composables/useBattleDialog";
 import { useBattleFeedback } from "./composables/useBattleFeedback";
@@ -193,6 +193,10 @@ export default defineComponent({
       resolveVictory?.();
       resolveVictory = null;
     };
+
+    /** The card counts the loot silently; the points roll runs while it counts and a chime rings as each number lands. */
+    const rollVictorySound = (on: boolean) => (on ? audio.startTally() : audio.stopTally());
+    const landVictorySound = (stat: TallyStat) => audio.playLanding(stat);
 
     const outcome = useBattleOutcome({
       ctx,
@@ -771,6 +775,8 @@ export default defineComponent({
       // victory
       victoryCard,
       continueAfterVictory,
+      rollVictorySound,
+      landVictorySound,
     };
   },
 });

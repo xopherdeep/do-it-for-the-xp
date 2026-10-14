@@ -102,7 +102,13 @@
     <!-- The loot, counted up over the folded arena -->
     <transition name="victory-pop">
       <div v-if="victoryCard" class="victory-overlay">
-        <BattleVictoryCard :visible="true" :card="victoryCard" @continue="continueAfterVictory" />
+        <BattleVictoryCard
+          :visible="true"
+          :card="victoryCard"
+          @continue="continueAfterVictory"
+          @rolling="rollVictorySound"
+          @land="landVictorySound"
+        />
       </div>
     </transition>
   </ion-page>
