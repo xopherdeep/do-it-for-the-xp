@@ -17,24 +17,28 @@
               <ion-label>Look</ion-label>
             </ion-item-divider>
 
-            <ion-item>
-              <ion-label>
-                <h2>Game style</h2>
-                <p>The look of every window and menu. Styles marked Pro come with XP Pro.</p>
-              </ion-label>
-              <ion-select
-                :value="theme.rpg"
-                interface="action-sheet"
-                aria-label="Game style"
-                @ionChange="changeRPGSound"
-              >
-                <ion-select-option
-                  v-for="style in gameStyles"
-                  :key="style"
-                  :value="style"
-                  >{{ gameStyleLabel(style) }}</ion-select-option
+            <!-- Option rows stack: the words get the full width, the choice sits under them -->
+            <ion-item class="setting-stacked">
+              <div class="setting-stacked__body">
+                <ion-label>
+                  <h2>Game style</h2>
+                  <p>The look of every window and menu. Styles marked Pro come with XP Pro.</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  :value="theme.rpg"
+                  interface="action-sheet"
+                  aria-label="Game style"
+                  @ionChange="changeRPGSound"
                 >
-              </ion-select>
+                  <ion-select-option
+                    v-for="style in gameStyles"
+                    :key="style"
+                    :value="style"
+                    >{{ gameStyleLabel(style) }}</ion-select-option
+                  >
+                </ion-select>
+              </div>
             </ion-item>
           </ion-item-group>
 
@@ -43,20 +47,23 @@
               <ion-label>Sound</ion-label>
             </ion-item-divider>
 
-            <ion-item lines="none">
-              <ion-label>
-                <h2>Menu sounds</h2>
-                <p>The clicks and chimes as you move through menus</p>
-              </ion-label>
-              <ion-select
-                :value="theme.ui"
-                interface="action-sheet"
-                aria-label="Menu sounds"
-                @ionChange="changeUISound"
-              >
-                <ion-select-option value="nintendo">Nintendo</ion-select-option>
-                <ion-select-option value="sony">PlayStation</ion-select-option>
-              </ion-select>
+            <ion-item lines="none" class="setting-stacked">
+              <div class="setting-stacked__body">
+                <ion-label>
+                  <h2>Menu sounds</h2>
+                  <p>The clicks and chimes as you move through menus</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  :value="theme.ui"
+                  interface="action-sheet"
+                  aria-label="Menu sounds"
+                  @ionChange="changeUISound"
+                >
+                  <ion-select-option value="nintendo">Nintendo</ion-select-option>
+                  <ion-select-option value="sony">PlayStation</ion-select-option>
+                </ion-select>
+              </div>
             </ion-item>
           </ion-item-group>
         </ion-list>
