@@ -424,7 +424,7 @@ describe("shops", () => {
     expect(outcome.gp).toBe(100);
     expect(outcome.wares).toEqual([
       expect.objectContaining({ id: "potion-of-vigor", name: "Potion of Vigor", price: 15 }),
-      { id: "bomb", name: "Bomb", price: 20, blurb: "blows open a locked door" },
+      { id: "bomb", name: "Bomb", price: 20, blurb: "blows open a cracked wall" },
       expect.objectContaining({ id: "special:EarthquakeScroll", name: "Earthquake Scroll", price: 50 }),
     ]);
   });

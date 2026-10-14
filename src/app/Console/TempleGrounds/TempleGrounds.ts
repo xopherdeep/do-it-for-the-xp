@@ -22,6 +22,7 @@ import TempleWalls from './TempleWalls.vue';
 import TempleChestReveal from './components/TempleChestReveal.vue';
 import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
 import TempleDoorReveal from './components/TempleDoorReveal.vue';
+import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
@@ -34,7 +35,7 @@ import { readExits } from '@/lib/services/temples/RoomInteractions';
 import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
 import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
 import { useTempleLayout } from './templeGrounds/useTempleLayout';
-import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal } from './templeGrounds/templeReveals';
+import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
@@ -68,6 +69,7 @@ export default defineComponent({
     'temple-chest-reveal': TempleChestReveal,
     'temple-choice-reveal': TempleChoiceReveal,
     'temple-door-reveal': TempleDoorReveal,
+    'temple-wall-reveal': TempleWallReveal,
     'temple-pegasus-reveal': TemplePegasusReveal,
     XpVitalsBar,
     XpPurseBar,
@@ -134,6 +136,7 @@ export default defineComponent({
       canMoveDown,
       canMoveLeft,
       canMoveRight,
+      moveIcons,
       move,
       isDoorLocked,
       processChestItems,
@@ -267,6 +270,18 @@ export default defineComponent({
       templeElement
     });
 
+    // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
+    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
+
+    // The live item definitions: the copy stored on the profile has no click. The composable needs the
+    // router and the game store; where those are missing the navigation items simply have no click.
+    let itemCatalog: EquipmentItem[] = [];
+    try {
+      itemCatalog = useEquipmentItems().specialItems;
+    } catch (error) {
+      debug.warn('Equipment catalog unavailable', error);
+    }
+
     // The locked door close up
     const { door, showLockedDoor, unlockShownDoor, completeShownDoor: finishShownDoor } = useDoorReveal({
       props,
@@ -277,6 +292,15 @@ export default defineComponent({
       applyOutcome
     });
     const { isDoorOpen, doorShown, doorResult } = door;
+
+    // The cracked wall close up: a Bomb in a hand blows it open
+    const { wall, showCrackedWall, blowShownWall, completeShownWall: finishShownWall, leaveShownWall } = useWallReveal({
+      liveContext,
+      applyOutcome,
+      heldItems: () => [leftHandItem.value, rightHandItem.value] as Array<EquipmentItem | null>,
+      catalog: () => itemCatalog
+    });
+    const { isWallOpen, wallShown, wallResult } = wall;
 
     // Walking: swipes and arrows, and the floor following the hero
     const { handleTouchStart: onTouchStart, handleTouchEnd: onTouchEnd, handleMove: moveWithUpdate } = useTempleMovement({
@@ -292,11 +316,10 @@ export default defineComponent({
       fx,
       updateBg,
       showLockedDoor,
+      showCrackedWall,
       arrive
     });
 
-    // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
-    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
     const isEquipmentOpen = ref(false);
     const isProfileOpen = ref(false);
     const isPegasusOpen = ref(false);
@@ -314,15 +337,6 @@ export default defineComponent({
         say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
       });
     });
-
-    // The live item definitions: the copy stored on the profile has no click. The composable needs the
-    // router and the game store; where those are missing the navigation items simply have no click.
-    let itemCatalog: EquipmentItem[] = [];
-    try {
-      itemCatalog = useEquipmentItems().specialItems;
-    } catch (error) {
-      debug.warn('Equipment catalog unavailable', error);
-    }
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {
@@ -361,6 +375,7 @@ export default defineComponent({
       canMoveDown,
       canMoveLeft,
       canMoveRight,
+      moveIcons,
       toggleMap,
       isCurrentRoom,
 
@@ -394,6 +409,12 @@ export default defineComponent({
       doorResult,
       unlockShownDoor,
       finishShownDoor,
+      isWallOpen,
+      wallShown,
+      wallResult,
+      blowShownWall,
+      finishShownWall,
+      leaveShownWall,
       isPegasusRevealOpen,
       pegasusShown,
       pegasusReward,

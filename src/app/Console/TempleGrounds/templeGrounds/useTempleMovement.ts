@@ -1,6 +1,6 @@
 import { onMounted, watch } from 'vue';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
-import type { useDoorReveal } from './templeReveals';
+import type { useDoorReveal, useWallReveal } from './templeReveals';
 import type { useRoomOutcomes } from './useRoomOutcomes';
 import type { useTempleLayout } from './useTempleLayout';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
@@ -25,10 +25,11 @@ export interface TempleMovementDeps
   fx: (key: string) => void;
   updateBg: ReturnType<typeof useTempleLayout>['updateBg'];
   showLockedDoor: ReturnType<typeof useDoorReveal>['showLockedDoor'];
+  showCrackedWall: ReturnType<typeof useWallReveal>['showCrackedWall'];
   arrive: ReturnType<typeof useRoomOutcomes>['handleArrival'];
 }
 
-/** The hero walks: a swipe or an arrow toward an open door, a shut door comes up close, and the floor follows. */
+/** The hero walks: a swipe or an arrow toward an open door, a shut door or a cracked wall comes up close, and the floor follows. */
 export const useTempleMovement = (deps: TempleMovementDeps) => {
   const {
     props,
@@ -43,6 +44,7 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
     fx,
     updateBg,
     showLockedDoor,
+    showCrackedWall,
     arrive
   } = deps;
 
@@ -88,6 +90,13 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
       case 'east':
         newCol = col + 1;
         break;
+    }
+
+    // A cracked wall is no door to walk into: the wall comes up close, and a Bomb (if the hero holds one) blows it open
+    const isCrackedWall = templeSystem.doorKind(props.temple, [row, col], direction) === 'bombable';
+    if (isCrackedWall) {
+      showCrackedWall(direction);
+      return;
     }
 
     // Check if door is locked (the boss door counts, bar or no bar in front of it)

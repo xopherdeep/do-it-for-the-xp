@@ -150,10 +150,12 @@ const CORNERS = ["nw", "ne", "sw", "se"];
 .wall--west .sconce  { top: 50%; left: calc(50% - 15px); transform: translateY(-50%); }
 .wall--east .sconce  { top: 50%; right: calc(50% - 15px); transform: translateY(-50%); }
 
-// A cracked wall: a jagged fissure through the stone, lit from behind, where a Bomb would open the way
+// A cracked wall: a jagged fissure through the stone, lit from behind, where a Bomb would open the way. The light
+// breathes slowly, so a crack reads as a thing to try
 .crack {
   position: absolute;
   filter: drop-shadow(0 0 4px var(--glow));
+  animation: crack-glow 2.4s ease-in-out infinite;
 
   &::before {
     content: "";
@@ -234,6 +236,11 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   filter: drop-shadow(0 0 6px #ffb028) drop-shadow(0 1px 2px #000);
 }
 
+@keyframes crack-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--glow)); }
+  50% { filter: drop-shadow(0 0 9px var(--glow)); }
+}
+
 @keyframes sconce-flicker {
   0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
   50% { opacity: 1; transform: translateX(-50%) scale(1.12); }
@@ -245,6 +252,6 @@ const CORNERS = ["nw", "ne", "sw", "se"];
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sconce { animation: none; }
+  .sconce, .crack { animation: none; }
 }
 </style>

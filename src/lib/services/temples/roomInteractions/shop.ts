@@ -29,7 +29,7 @@ export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
   const hero = useUserStore().getUserById(ctx.userId);
   const wares: Ware[] = [
     { id: POTION_ID, name: 'Potion of Vigor', price: shopPrice(POTION_PRICE, hero), blurb: `restore ${POTION_HEAL} HP` },
-    { id: BOMB_ID, name: 'Bomb', price: shopPrice(BOMB_PRICE, hero), blurb: 'blows open a locked door' },
+    { id: BOMB_ID, name: 'Bomb', price: shopPrice(BOMB_PRICE, hero), blurb: 'blows open a cracked wall' },
   ];
   const special = room.content?.specialItem;
   const hasSpecialItem = typeof special === 'string' && special;
