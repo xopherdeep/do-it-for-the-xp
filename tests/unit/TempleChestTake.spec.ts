@@ -10,7 +10,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { ChestSystem } from "@/lib/engine/core/dungeons/ChestSystem";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { isChestEmptyIn, roomActions } from "@/lib/services/temples/RoomInteractions";
-import { HERO, addHero, contextAt, dungeons, hero, makeTemple, temples } from "./templeFixtures";
+import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
+import { HERO, addHero, contextAt, dungeons, hero, makeTemple, nextTempleId, temples } from "./templeFixtures";
 
 // The hero's saves, in memory: what one visit writes, the next one reads back
 const mockSaves = new Map<string, unknown>();
@@ -320,5 +321,49 @@ describe("taking from a chest through the temple screen's hook: only what was ti
       expect(hero().inventory).toHaveLength(20);
       chest.done();
     });
+  });
+});
+
+describe("two chests drawn with one token", () => {
+  const FIRST: [number, number] = [0, 1];
+  const SECOND: [number, number] = [0, 2];
+
+  /** The creator's palette draws every supplies chest with one token; the engine registers them as two rooms */
+  const twoChests = (): string => {
+    const id = nextTempleId();
+    registerTemple(id, { maze: [["E", "C", "C"]], rooms: { E: { type: "empty" }, C: supplies }, entrance: [0, 0] });
+    return id;
+  };
+
+  it("gives each chest an id of its own", () => {
+    const id = twoChests();
+
+    expect(roomAt(id, FIRST).content?.chestId).toBe(`${id}:chest:1F:0:1`);
+    expect(roomAt(id, SECOND).content?.chestId).toBe(`${id}:chest:1F:0:2`);
+    expect(ChestSystem.getInstance().getChest(`${id}:chest:1F:0:1`)).toBeDefined();
+    expect(ChestSystem.getInstance().getChest(`${id}:chest:1F:0:2`)).toBeDefined();
+  });
+
+  it("leaves the other chest full when the hero empties one", async () => {
+    const id = twoChests();
+    await openFor(id);
+
+    expect(temples.takeFromChest(id, "1F", FIRST, ["potion", "ether"])).toBe(true);
+
+    expect(isChestEmptyIn(roomAt(id, FIRST))).toBe(true);
+    expect(isChestEmptyIn(roomAt(id, SECOND))).toBe(false);
+    expect(roomAt(id, SECOND).content?.items).toEqual(["potion", "ether"]);
+    expect(roomAt(id, SECOND).isEmpty).toBeFalsy();
+    expect(ChestSystem.getInstance().getChest(`${id}:chest:1F:0:2`)?.isEmpty).toBe(false);
+  });
+
+  it("leaves the other chest as it is when the hero takes only part of one", async () => {
+    const id = twoChests();
+    await openFor(id);
+
+    expect(temples.takeFromChest(id, "1F", FIRST, ["potion"])).toBe(false);
+
+    expect(roomAt(id, FIRST).content?.items).toEqual(["ether"]);
+    expect(roomAt(id, SECOND).content?.items).toEqual(["potion", "ether"]);
   });
 });

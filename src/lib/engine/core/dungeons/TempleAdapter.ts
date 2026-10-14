@@ -7,7 +7,7 @@ import { DungeonManager } from './DungeonManager';
 import { TempleSystem } from './TempleSystem';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import type { TempleInterface } from '@/lib/databases/TempleDb';
-import { TempleHydrator } from './TempleHydrator';
+import { roomsPerCell } from './cellRooms';
 import { lockedFromSides } from '@/lib/services/temples/authoredDoors';
 import debug from '@/lib/utils/debug';
 
@@ -43,36 +43,37 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
   const hasSameLayoutRunning = running && !options.force && registeredLayouts.get(templeId) === signature;
   if (hasSameLayoutRunning) return running;
 
+  // Convert rooms
+  const engineRooms: Record<string, Room> = {};
+  for (const [key, room] of Object.entries(templeData.rooms ?? {})) {
+    // Content and doors are copied: play writes into them (chest ids, seals), and the layout it came
+    // from must stay as it was authored, or the next registration would start from a played-in layout
+    // The temple creator draws doors as `sides`; the engine plays them as `locked` (lockedFromSides)
+    const authored = lockedFromSides(room as Room);
+    engineRooms[key] = {
+      type: (room as any).type || 'empty',
+      content: (room as any).content ? JSON.parse(JSON.stringify((room as any).content)) : undefined,
+      visited: (room as any).visited || false,
+      locked: authored.locked ? { ...authored.locked } : undefined,
+      isEmpty: (room as any).isEmpty || false
+    };
+  }
+
+  // A layout may draw many cells with one token, but play writes into the room of the cell the hero is in (a fight
+  // seals its doors, a key door opens, a chest gets its id and is emptied): cells sharing a token get a room each here
+  const { maze, rooms } = roomsPerCell(templeData.maze || [], engineRooms);
+
   // Convert the temple data to a dungeon
   const dungeon: Dungeon = {
     id: templeId,
     name: templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    maze: templeData.maze || [],
-    rooms: {},
+    maze,
+    rooms,
     visitedPositions: new Set<string>()
   };
   // Where the hero starts ([row, col] or [floor, row, col]); without it TempleSystem starts at [0, 0]
   const hasAuthoredEntrance = Array.isArray(templeData.entrance) && templeData.entrance.length;
   if (hasAuthoredEntrance) dungeon.entrance = [...templeData.entrance];
-
-  // Convert rooms
-  if (templeData.rooms) {
-    for (const [key, room] of Object.entries(templeData.rooms)) {
-      // Content and doors are copied: play writes into them (chest ids, seals), and the layout it came
-      // from must stay as it was authored, or the next registration would start from a played-in layout
-      // The temple creator draws doors as `sides`; the engine plays them as `locked` (lockedFromSides)
-      const authored = lockedFromSides(room as Room);
-      const engineRoom: Room = {
-        type: (room as any).type || 'empty',
-        content: (room as any).content ? JSON.parse(JSON.stringify((room as any).content)) : undefined,
-        visited: (room as any).visited || false,
-        locked: authored.locked ? { ...authored.locked } : undefined,
-        isEmpty: (room as any).isEmpty || false
-      };
-
-      dungeon.rooms[key] = engineRoom;
-    }
-  }
 
   // Register the dungeon with the engine
   dungeonManager.registerDungeon(dungeon);
@@ -153,39 +154,4 @@ export async function registerCustomTemples(options: RegisterTempleOptions = {})
   } catch (error) {
     debug.error('Error registering custom temples:', error);
   }
-}
-
-/**
- * Convert specific room keys to their type and content
- * Useful for testing and debugging
- */
-export function getRoomInfo(roomKey: string): { type: string; content?: any } {
-  // This is a simplified example - you may need to adjust based on your data
-  const specialRooms: Record<string, { type: string; content?: any }> = {
-    'LMAP': { type: 'loot', content: { chest: 'dungeon', dungeon: 'map' } },
-    'LCOM': { type: 'loot', content: { chest: 'dungeon', dungeon: 'compass' } },
-    'K001': { type: 'loot', content: { chest: 'dungeon', dungeon: 'key' } },
-    'MK__': { type: 'loot', content: { chest: 'dungeon', dungeon: 'master-key' } }
-  };
-  
-  return specialRooms[roomKey] || { type: 'empty' };
-}
-/**
- * Register a temple using the DSL format
- */
-export function registerTempleFromDSL(templeId: string, dungeonName: string, blueprint: string): Dungeon {
-  const dungeon = TempleHydrator.hydrate(blueprint, templeId, dungeonName);
-  const dungeonManager = DungeonManager.getInstance();
-  dungeonManager.registerDungeon(dungeon);
-  return dungeon;
-}
-
-/**
- * Register a multi-floor temple using the DSL format
- */
-export function registerMultiFloorTempleFromDSL(templeId: string, dungeonName: string, blueprints: Record<string, string>): Dungeon {
-  const dungeon = TempleHydrator.hydrateMultiFloor(blueprints, templeId, dungeonName);
-  const dungeonManager = DungeonManager.getInstance();
-  dungeonManager.registerDungeon(dungeon);
-  return dungeon;
 }

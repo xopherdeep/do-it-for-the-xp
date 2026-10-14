@@ -76,36 +76,6 @@ export const SPATIAL_PALETTE: Record<string, Partial<Room>> = {
 export const isMonsterToken = (token: string) => /^[MmB](\d{3,4}|\d{2}[_!])$/.test(token);
 
 /**
- * Helper to identify if a token is a key room starting with K (K000-K999)
- */
-export const isKeyToken = (token: string) => /^K\d{3,4}$/.test(token);
-
-/**
- * Helper to identify if a token is a loot room starting with $ ($000-$999)
- */
-export const isLootToken = (token: string) => /^[L$]\d{3,4}$/.test(token);
-
-/**
- * Helper to identify if a token is a teleporter room starting with T (T000-T999)
- */
-export const isTeleportToken = (token: string) => /^T\d{3,4}$/.test(token);
-
-/**
- * Helper to identify if a token is a shop room starting with S
- */
-export const isShopToken = (token: string) => /^S\d{3,4}$/.test(token);
-
-/**
- * Helper to identify if a token is a health/mana recovery room
- */
-export const isRecoveryToken = (token: string) => /^[HA]\d{3,4}$/.test(token);
-
-/**
- * Helper to identify if a token is a save point
- */
-export const isSaveToken = (token: string) => /^V\d{3,4}$/.test(token);
-
-/**
  * Helper to identify if a token is a locked door room D...
  */
 export const isLockedDoorToken = (token: string) => token.startsWith('D') && (token.length === 4);
@@ -118,15 +88,6 @@ export const isWallToken = (token: string) =>
   token === '_____' || // 5-char wall (temple-creator store format)
   token === 'WALL' || // Legacy literal
   token === '_';      // Legacy single char
-
-/**
- * Helper to identify if a token is explicitly an empty room
- */
-export const isEmptyRoomToken = (token: string) =>
-  /^[A-Za-z]\d{4}$/.test(token) || // New coordinate-based tokens (TXXYY)
-  /^R\d{3,4}$/.test(token) || // Standard R000 or RXXYY
-  token === '0' ||    // Legacy single char
-  token === 'O__O';   // Legacy 4-char
 
 /**
  * Helper to identify if a token is an entrance/exit
