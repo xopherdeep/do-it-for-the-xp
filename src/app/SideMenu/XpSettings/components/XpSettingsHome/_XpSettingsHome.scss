@@ -25,7 +25,7 @@
     max-width: none !important;
     flex: none !important;
 
-    &[size="12"] {
+    &.full-row {
       grid-column: 1 / -1;
     }
   }

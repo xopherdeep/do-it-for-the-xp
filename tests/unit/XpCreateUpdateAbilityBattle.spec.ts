@@ -1,113 +1,111 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createMemoryHistory, createRouter } from "vue-router";
 import XpCreateUpdateAbility from "@/app/Admin/XpCompendium/views/XpAbilities/components/XpCreateUpdateAbility.vue";
+import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
+import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import { AbilityType } from "@/hooks/abilities/abilityConstants";
+import type { Ability } from "@/hooks/abilities/abilityConstants";
 
-jest.mock("@ionic/vue", () => ({
-  ...jest.requireActual("@ionic/vue"),
-  IonPage: { name: "IonPage", template: "<div><slot /></div>" },
-  IonHeader: { name: "IonHeader", template: "<div><slot /></div>" },
-  IonToolbar: { name: "IonToolbar", template: "<div><slot /></div>" },
-  IonTitle: { name: "IonTitle", template: "<div><slot /></div>" },
-  IonButtons: { name: "IonButtons", template: "<div><slot /></div>" },
-  IonButton: { name: "IonButton", template: "<button><slot /></button>" },
-  IonBackButton: { name: "IonBackButton", template: "<div></div>" },
-  IonContent: { name: "IonContent", template: "<div><slot /></div>" },
-  IonCard: { name: "IonCard", template: "<div><slot /></div>" },
-  IonCardContent: { name: "IonCardContent", template: "<div><slot /></div>" },
-  IonList: { name: "IonList", template: "<div><slot /></div>" },
-  IonListHeader: { name: "IonListHeader", template: "<div><slot /></div>" },
-  IonItem: { name: "IonItem", template: "<div><slot /></div>" },
-  IonLabel: { name: "IonLabel", template: "<label><slot /></label>" },
-  IonInput: { name: "IonInput", template: "<input />" },
-  IonTextarea: { name: "IonTextarea", template: "<textarea />" },
-  IonSelect: {
-    name: "IonSelect",
-    template: "<select @change='$emit(\"ionChange\", $event)'><slot /></select>",
-  },
-  IonSelectOption: { name: "IonSelectOption", template: "<option><slot /></option>" },
-  IonNote: { name: "IonNote", template: "<div><slot /></div>" },
-  IonFooter: { name: "IonFooter", template: "<div><slot /></div>" },
-  IonRange: { name: "IonRange", template: "<div></div>" },
-  modalController: { create: jest.fn(), dismiss: jest.fn() },
-  toastController: { create: jest.fn(), dismiss: jest.fn() },
-}));
+/**
+ * "In battle" on the Power wizard's "What does it do?" step: the In-Game Power's fight effect (eleven effects or None),
+ * starting on the preset's own and saving the Game Master's pick.
+ */
 
+jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn(), default: {} }));
 jest.mock("@/lib/databases/AbilitiesDb", () => ({
   __esModule: true,
   default: class {
-    getAbility = jest.fn();
-    saveAbility = jest.fn();
+    getAbilityById = jest.fn();
+    setAbility = jest.fn();
   },
-  abilitiesStorage: { getItem: jest.fn(), setItem: jest.fn() },
+  abilitiesStorage: {},
 }));
+jest.mock("uuid", () => ({ v4: jest.fn(() => "test-id") }));
 
-jest.mock("uuid", () => ({
-  v4: jest.fn(() => "test-id"),
-}));
+const slot = { template: "<div><slot /></div>" };
+const stubs = {
+  IonPage: slot,
+  IonHeader: slot,
+  IonToolbar: slot,
+  IonFooter: slot,
+  IonContent: slot,
+  IonTitle: slot,
+  IonButtons: slot,
+  IonButton: { template: "<button><slot /></button>" },
+  IonIcon: { template: "<i />" },
+  IonModal: { props: ["isOpen"], template: "<div v-if='isOpen'><slot /></div>" },
+  XpCloseButton: { template: "<button></button>" },
+  XpSpeakButton: { props: ["text"], template: "<button></button>" },
+  XpIconPicker: { template: "<div></div>" },
+};
+
+const LIST = "/game-master/compendium/abilities";
+const page = { template: "<div></div>" };
+
+type Form = ReturnType<typeof mount>;
+type Draft = { ability: Ability };
+
+/** A new Power with a name, on "What does it do?" (the step with the effect fields), of the kind asked for. */
+const openWhatDoesItDo = async (name: string, kind: Ability["type"] = AbilityType.RealLife): Promise<Form> => {
+  setActivePinia(createPinia());
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: LIST, component: page },
+      { path: `${LIST}/create-update/:id?`, component: page },
+    ],
+  });
+  router.push(`${LIST}/create-update`);
+  await router.isReady();
+  const wrapper = mount(XpCreateUpdateAbility, { global: { plugins: [router], stubs, components: { XpAppRow, XpAppSection } } });
+  await flushPromises();
+  await wrapper.get('[data-test="name"]').setValue(name);
+  await wrapper.get(`[data-test="kind-${kind}"]`).trigger("click");
+  await wrapper.get('[data-test="next"]').trigger("click");
+  await flushPromises();
+  return wrapper;
+};
+
+const choices = (wrapper: Form, group: string) => wrapper.findAll(`[data-cy="${group}"] [data-value]`).map((each) => each.attributes("data-value"));
+const picked = (wrapper: Form, group: string) => wrapper.get(`[data-cy="${group}"] .is-picked`).attributes("data-value");
+const choose = async (wrapper: Form, group: string, value: string) => {
+  await wrapper.get(`[data-cy="${group}"] [data-value="${value}"]`).trigger("click");
+  await flushPromises();
+};
+const draftOf = (wrapper: Form) => (wrapper.vm as unknown as Draft).ability;
 
 describe("XpCreateUpdateAbility: In battle field", () => {
-  let router: ReturnType<typeof createRouter>;
-
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    router = createRouter({
-      history: createMemoryHistory(),
-      routes: [
-        { path: "/game-master/compendium/abilities", component: { template: "<div></div>" } },
-        { path: "/game-master/abilities/:id/edit", component: { template: "<div></div>" } },
-      ],
-    });
-  });
-
   it("shows In battle only for in-game Powers", async () => {
-    // Real-life Power: field should NOT be present
-    const realLifeWrapper = mount(XpCreateUpdateAbility, {
-      global: { plugins: [router] },
-      props: {},
-    });
+    const realLife = await openWhatDoesItDo("Movie night");
+    expect(realLife.find('[data-cy="ability-battle-effect"]').exists()).toBe(false);
 
-    let battleEffectField = realLifeWrapper.find("[data-cy=ability-battle-effect]");
-    expect(battleEffectField.exists()).toBe(false);
-
-    // In-game Power: field SHOULD be present
-    const inGameWrapper = mount(XpCreateUpdateAbility, {
-      global: { plugins: [router] },
-      props: {},
-    });
-
-    // Set to in-game type from the start
-    inGameWrapper.vm.ability.type = AbilityType.InGame;
-    await inGameWrapper.vm.$nextTick();
-
-    battleEffectField = inGameWrapper.find("[data-cy=ability-battle-effect]");
-    expect(battleEffectField.exists()).toBe(true);
+    const inGame = await openWhatDoesItDo("Movie night", AbilityType.InGame);
+    expect(inGame.find('[data-cy="ability-battle-effect"]').exists()).toBe(true);
   });
 
-  it("starts on the preset pick and saves the GM's choice", async () => {
-    const wrapper = mount(XpCreateUpdateAbility, {
-      global: { plugins: [router] },
-      props: {},
-    });
+  it("offers None and the eleven effects", async () => {
+    const wrapper = await openWhatDoesItDo("Stop", AbilityType.InGame);
+    const values = choices(wrapper, "ability-battle-effect");
+    expect(values[0]).toBe("none");
+    expect(values).toHaveLength(12);
+    expect(values).toEqual(expect.arrayContaining(["frost", "time-stop", "kindle", "gust", "stun", "pin", "weaken", "vanish", "charge", "moonlight", "heal"]));
+  });
 
-    // Set ability name to "Stop" and type to in-game
-    wrapper.vm.ability.name = "Stop";
-    wrapper.vm.ability.type = AbilityType.InGame;
-    await wrapper.vm.$nextTick();
+  it("starts on the preset pick and saves the Game Master's choice", async () => {
+    const wrapper = await openWhatDoesItDo("Stop", AbilityType.InGame);
+    expect(picked(wrapper, "ability-battle-effect")).toBe("time-stop");
 
-    // Find the battle effect select
-    const battleEffectSelect = wrapper.find("[data-cy=ability-battle-effect]");
-    expect(battleEffectSelect.exists()).toBe(true);
+    await choose(wrapper, "ability-battle-effect", "frost");
+    expect(draftOf(wrapper).battleEffect).toBe("frost");
 
-    // Check that it starts on the preset (time-stop)
-    const selectElement = battleEffectSelect.find("select");
-    expect(selectElement.element.value).toBe("time-stop");
+    await choose(wrapper, "ability-battle-effect", "none");
+    expect(draftOf(wrapper).battleEffect).toBe("none");
+    expect(picked(wrapper, "ability-battle-effect")).toBe("none");
+  });
 
-    // Change to None by triggering the ionChange event
-    const selectInIonItem = battleEffectSelect.find("select");
-    await selectInIonItem.setValue("none");
-    await wrapper.vm.$nextTick();
-    expect(wrapper.vm.ability.battleEffect).toBe("none");
+  it("reads a Power with no preset as None", async () => {
+    const wrapper = await openWhatDoesItDo("Quick Save", AbilityType.InGame);
+    expect(picked(wrapper, "ability-battle-effect")).toBe("none");
   });
 });

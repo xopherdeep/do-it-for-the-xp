@@ -132,6 +132,8 @@ export const EconomyRoutes: RouteRecordRaw[] = [
       import(
         "@/app/Admin/XpCompendium/views/XpAccessories/components/XpCreateUpdateAccessory.vue"
       ),
+    // The form reads `id` as a prop: without this an edit opened empty and saved a second copy of the item
+    props: true,
   },
 ];
 

@@ -28,9 +28,9 @@
       <ion-grid class="max-w-5xl">
         <ion-row>
           <ion-col
-            size="12"
-            size-md="4"
-            v-for="tile in tiles"
+            v-for="(tile, index) in tiles"
+            :size="index === tiles.length - 1 && tiles.length % 2 === 1 ? '12' : '6'"
+            :class="{ 'full-row': index === tiles.length - 1 && tiles.length % 2 === 1 }"
             :key="tile.title"
           >
             <ion-card
@@ -39,7 +39,7 @@
             >
               <ion-card-header class="ion-text-center">
                 <i
-                  class="fad fa-5x"
+                  class="fad fa-3x"
                   :class="tile.icon"
                   style="color: var(--ion-color-rpg)"
                 ></i>
