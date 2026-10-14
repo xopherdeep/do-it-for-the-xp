@@ -441,6 +441,7 @@ describe("signing in, masquerading, loading", () => {
         "setJobClass",
         "setLook",
         "setQuestEffects",
+        "setPowerTimers",
         "setQuestGrudges",
         "setVoice",
         "setWallet",

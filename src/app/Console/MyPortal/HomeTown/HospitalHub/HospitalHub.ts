@@ -4,6 +4,7 @@ import { useBack } from "@/hooks/useBack";
 import { useCopy, useVoice } from "@/hooks/useVoice";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import XpHospitalPatients from "./components/XpHospitalPatients.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useUserStore } from "@/lib/store/stores/user";
 import { quoteBenchRest, quoteCare } from "@/lib/services/hometown/Lodging";
@@ -32,7 +33,8 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     XpIcon,
-    XpRevealPrompt
+    XpRevealPrompt,
+    XpHospitalPatients
   },
   data() {
     return {
@@ -107,7 +109,7 @@ export default defineComponent({
       const walks: Record<WalkAway, () => unknown> = {
         leave: () => this.goBack(),
         patients: () => this.openPatientsModal(),
-        stats: () => this.$router.push(`/my-portal/${this.userId}/hospital/stats`)
+        stats: () => this.viewVitals(this.userId)
       };
       walks[pick]();
     },
@@ -120,14 +122,28 @@ export default defineComponent({
       this.isModalOpen = false;
     },
 
-    dismissPatientsModal() {
-      this.play$fx("no");
-      const modal = this.$refs.patientsModal as any;
-      if (modal?.$el) {
-        modal.$el.dismiss();
-      } else {
-        this.closePatientsModal();
+    /** A hero's chart: the Vital Statistics page (the board closes first so it is not left open behind it). */
+    viewVitals(userId: string) {
+      this.play$fx("select");
+      this.closePatientsModal();
+      this.$router.push({ name: "view-stats", params: { userId } });
+    },
+
+    /**
+     * Treat from the Patients board: Nurse Joy quotes the care the hero needs (Heal for HP, Revive when only MP is
+     * spent), then the board comes back so the new bar shows.
+     */
+    async treatFromBoard() {
+      this.closePatientsModal();
+      const hp = this.userStore.getUserById(this.userId)?.stats?.hp;
+      const kind = hp && hp.now < hp.max ? "heal" : "revive";
+      this.isTalking = true;
+      try {
+        await this.handleCare(kind);
+      } finally {
+        this.isTalking = false;
       }
+      this.openPatientsModal();
     },
 
     /**

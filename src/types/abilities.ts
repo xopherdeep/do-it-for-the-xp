@@ -98,6 +98,11 @@ export interface Ability {
   battleEffect?: BattleEffectId | "none";
   /** Real-life Powers: the quest-board effect the Game Master picked ("On the quest board"); 'none' wins over the preset default. */
   boardEffect?: PowerBoardEffectId | "none";
+  /**
+   * Real-life Powers: minutes on the clock once cast (services/abilities/PowerTimers.ts). Above 0 makes the Power a
+   * timed privilege, like 30 minutes of video games; 0 or missing is a privilege with no timer.
+   */
+  timerMinutes?: number;
 }
 
 /**

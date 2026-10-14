@@ -23,7 +23,7 @@
               <ion-card-header>
                 <ion-card-title class="flex items-center gap-2">
                   <xp-icon icon="heartbeat" primary="red" secondary="pink" />
-                  Current Status
+                  {{ user.name?.nick || user.name?.full || "Current Status" }}
                 </ion-card-title>
               </ion-card-header>
               <ion-card-content>
@@ -78,14 +78,11 @@
               <ion-card-header>
                 <ion-card-title class="flex items-center gap-2">
                   <xp-icon
-                    :icon="getAreaIcon(key.toString())"
+                    :icon="area.icon"
                     :primary="area.color"
                     :secondary="getLighterColor(area.color)"
                   />
-                  {{
-                    key.toString().charAt(0).toUpperCase() +
-                    key.toString().slice(1)
-                  }}
+                  {{ area.name }}
                   <div class="total-score">
                     {{ getAreaTotal(key.toString()) }}
                   </div>
@@ -95,17 +92,12 @@
               <ion-card-content>
                 <ion-list>
                   <ion-item
-                    v-for="(desc, statKey) in area.stats"
+                    v-for="(stat, statKey) in area.stats"
                     :key="statKey"
                   >
-                    <ion-label>
-                      <h3>
-                        {{
-                          statKey.toString().charAt(0).toUpperCase() +
-                          statKey.toString().slice(1)
-                        }}
-                      </h3>
-                      <p>{{ desc }}</p>
+                    <ion-label class="ion-text-wrap">
+                      <h3>{{ stat.name }}</h3>
+                      <p>{{ stat.description }}</p>
                     </ion-label>
                     <ion-badge
                       slot="end"
@@ -134,7 +126,7 @@
   import { useUserStore } from "@/lib/store/stores/user";
   import ionic from "@/lib/mixins/ionic";
   import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
-  import type { StatAreas } from "../types";
+  import { PILLARS } from "@/constants";
   import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
@@ -155,62 +147,19 @@
       // Get user from props via getUserById
       const user = computed(() => userStore.getUserById(props.userId));
 
-      const areas: StatAreas = {
-        physical: {
-          color: "danger",
-          stats: {
-            strength: "Use less HP when completing a task",
-            defense: "Influences max HP",
-            endurance: "Influences HP restore rate",
-          },
-        },
-        mental: {
-          color: "tertiary",
-          stats: {
-            intelligence: "Use less MP when casting abilities",
-            perception: "Influences max MP",
-            wisdom: "Influences MP restore rate",
-          },
-        },
-        social: {
-          color: "warning",
-          stats: {
-            charisma: "Influence success rate of social interactions",
-            leadership: "Boost party member stats",
-            luck: "Improve random outcomes",
-          },
-        },
-        misc: {
-          color: "success",
-          stats: {
-            agility: "Influences action speed",
-            dexterity: "Improves accuracy",
-            vitality: "Enhances healing effects",
-          },
-        },
-      };
+      // The five pillars and their stats, the same source the profile and the level-up screens read
+      const areas = Object.fromEntries(
+        Object.entries(PILLARS).map(([key, pillar]) => [
+          key,
+          { ...pillar, icon: pillar.icon.replace(/^fa-/, "") },
+        ])
+      );
 
       const isHpChanged = ref(false);
       const isMpChanged = ref(false);
       const prevHp = ref(0);
       const prevMp = ref(0);
       const changedStats = ref<Set<string>>(new Set());
-
-      // Helper to get icon for each area
-      const getAreaIcon = (key: string) => {
-        switch (key) {
-          case "physical":
-            return "dumbbell";
-          case "mental":
-            return "brain";
-          case "social":
-            return "users";
-          case "misc":
-            return "star";
-          default:
-            return "question";
-        }
-      };
 
       // Optionally, helper to get lighter color (stub)
       const getLighterColor = (color: string) => {
@@ -229,17 +178,14 @@
         }
       };
 
-      // Optionally, helper to get area total (stub)
-      const getAreaTotal = (key: string) => {
-        // Implement your logic here, or return 0 as a placeholder
-        return key;
+      // Trained stats live under stats.special; older profiles kept them at the top level
+      const getStat = (stat: string): number => {
+        const stats = (user.value?.stats || {}) as Record<string, any>;
+        return Number(stats.special?.[stat] ?? stats[stat] ?? 0) || 0;
       };
 
-      // Optionally, helper to get stat value (stub)
-      const getStat = (stat: string) => {
-        // Implement your logic here, or return 0 as a placeholder
-        return stat;
-      };
+      const getAreaTotal = (key: string): number =>
+        Object.keys(areas[key]?.stats || {}).reduce((total, stat) => total + getStat(stat), 0);
 
       // Track HP/MP changes and trigger animations
       watch(
@@ -294,7 +240,6 @@
         isMpChanged,
         changedStats,
         user,
-        getAreaIcon,
         getLighterColor,
         getAreaTotal,
         getStat,
@@ -310,26 +255,49 @@
         cover no-repeat;
     }
 
+    // The settings pages' spacing: the card's frame is a 16px shadow drawn outside it, so the gap between cards equals
+    // the gap around them (the page's 16px ion-padding). The game style's card rule is keyed by the app's id, hence
+    // the weight.
+    ion-grid,
+    ion-col {
+      padding: 0;
+    }
+
     ion-card {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      margin: 1rem;
+      width: calc(100% - 32px) !important;
+      margin: 16px auto !important;
+
+      & ~ ion-card {
+        margin-top: 48px !important;
+      }
 
       ion-card-header {
-        border-bottom: 1px solid var(--ion-color-light);
+        border-bottom: 1px solid rgba(231, 230, 179, 0.25);
       }
 
       ion-card-title {
         font-size: 1.2rem;
-        color: var(--ion-color-dark);
 
         .total-score {
           margin-left: auto;
-          background: var(--ion-color-light);
-          padding: 0.25rem 0.75rem;
-          border-radius: 1rem;
+          min-width: 2.5rem;
+          text-align: center;
+          padding: 0.15rem 0.6rem;
+          border: 2px solid currentColor;
+          border-radius: 2px;
           font-size: 1rem;
+        }
+      }
+
+      // the game's windows are dark: stat names and their promises in the window's own colours
+      ion-item ion-label {
+        h3 {
+          color: #f7e8a8;
+        }
+
+        p {
+          color: #e7e6b3;
+          opacity: 0.8;
         }
       }
     }
@@ -360,7 +328,7 @@
 
           .value {
             font-size: 0.875rem;
-            color: var(--ion-color-medium);
+            color: #e7e6b3;
           }
 
           .value.changed {

@@ -3,6 +3,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useProStore } from "@/lib/store/stores/pro";
 import XpBonus from "./components/XpBonus.vue";
 import XpGroundedForgive from "./components/XpGroundedForgive.vue";
+import XpPowerTimerEnd from "./components/XpPowerTimerEnd.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import AchievementDb, {
   achievementStorage,
@@ -44,6 +45,7 @@ export default defineComponent({
     // XpTemples,
     XpStatBox,
     XpGroundedForgive,
+    XpPowerTimerEnd,
     RecycleScroller,
     XpDashboardGrid:
       require("@/components/molecules/StatGrid/XpDashboardGrid.vue").default,
