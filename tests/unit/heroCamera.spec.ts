@@ -7,14 +7,18 @@ import {
   easeOutCubic,
   fullFrame,
   lerpFrame,
+  measureHero,
   pixelsToDataUrl,
   placeCamera,
   renderHeroSnapshot,
   stageFrame,
   stepFrame,
 } from "@/components/organisms/HeroModel/heroCamera";
+import { animateHero } from "@/components/organisms/HeroModel/voxel/animate";
 import { buildHero } from "@/components/organisms/HeroModel/voxel/build";
+import { FIT_MARGIN } from "@/components/organisms/voxel/fitCamera";
 import { DEFAULT_LOOK } from "@/lib/hero-look/types";
+import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 
 /**
  * The hero's camera without WebGL: frames, the focus tween and the snapshot pixel loop. jsdom has no canvas, so the
@@ -86,7 +90,10 @@ describe("heroCamera frames", () => {
   it("stageFrame zooms to the head for bust and keeps the whole hero for full", () => {
     const hero = buildHero(DEFAULT_LOOK);
     expect(stageFrame(hero, "full")).toEqual(fullFrame(hero));
-    expect(stageFrame(hero, "bust")).toEqual({ ...bustFrame(hero), width: 11 });
+    // 11 is the close-up's width; a head that sweeps wider than that (the cube's corners turning) keeps its own
+    const headWidth = measureHero(hero).headReach * 2;
+    expect(headWidth).toBeLessThan(FRAME_WIDTH);
+    expect(stageFrame(hero, "bust")).toEqual({ ...bustFrame(hero), width: Math.max(11, headWidth) });
   });
 
   it("the bust close-up sits closer than the whole body on a tall stage", () => {
@@ -96,6 +103,77 @@ describe("heroCamera frames", () => {
     placeCamera(full, stageFrame(hero, "full"), 0.6);
     placeCamera(bust, stageFrame(hero, "bust"), 0.6);
     expect(bust.position.length()).toBeLessThan(full.position.length());
+  });
+});
+
+/** Hats and what the hands hold: the tallest and the widest the hero gets */
+const WIZARD_WITH_A_SWORD: HeroLook = { ...DEFAULT_LOOK, hat: "wizard", leftHand: "shield", rightHand: "sword" };
+
+const ANIMATIONS: HeroAnimation[] = ["idle", "wave", "walk", "victory", "hurt", "dance", "hop"];
+
+/** Every part's box corners, on screen (-1..1 each way), as the live stage would draw the hero turned `yaw` at `time` */
+const screenCorners = (hero: THREE.Group, camera: THREE.PerspectiveCamera, animation: HeroAnimation, time: number, yaw: number): THREE.Vector3[] => {
+  animateHero(hero, animation, time);
+  hero.rotation.y = yaw;
+  hero.updateMatrixWorld(true);
+  camera.updateMatrixWorld(true);
+  const out: THREE.Vector3[] = [];
+  hero.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh || mesh.name === "shadow") return;
+    mesh.geometry.computeBoundingBox();
+    const { min, max } = mesh.geometry.boundingBox as THREE.Box3;
+    for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) out.push(new THREE.Vector3(x, y, z).applyMatrix4(mesh.matrixWorld).project(camera));
+  });
+  return out;
+};
+
+describe("the hero stays inside its view", () => {
+  it("the whole-body frame is cut for the animation: a victory hop needs more height than standing still", () => {
+    const hero = buildHero(DEFAULT_LOOK);
+    const still = fullFrame(hero, "idle");
+    const cheering = fullFrame(hero, "victory");
+    expect(cheering.height).toBeGreaterThan(still.height + 1);
+    expect(cheering.centerY).toBeGreaterThan(still.centerY);
+    // the quick builder hop is a bounce on the spot: it keeps the idle frame instead of pumping the camera
+    expect(fullFrame(hero, "hop")).toEqual(still);
+  });
+
+  it("a wide wielder widens the frame, a bare hero keeps the standard width", () => {
+    expect(fullFrame(buildHero(DEFAULT_LOOK)).width).toBe(FRAME_WIDTH);
+    expect(fullFrame(buildHero(WIZARD_WITH_A_SWORD)).width).toBeGreaterThan(FRAME_WIDTH);
+  });
+
+  it("the close-up keeps a wizard's whole hat: no cap on the height, the brim's width asked for", () => {
+    const plain = buildHero(DEFAULT_LOOK);
+    const wizard = buildHero({ ...DEFAULT_LOOK, hat: "wizard" });
+    const plainTop = bustFrame(plain).centerY + bustFrame(plain).height / 2;
+    const wizardTop = bustFrame(wizard).centerY + bustFrame(wizard).height / 2;
+    expect(wizardTop).toBeGreaterThan(21);
+    expect(wizardTop).toBeGreaterThan(plainTop + 3);
+    expect(stageFrame(wizard, "bust").width).toBeGreaterThanOrEqual(measureHero(wizard).headReach * 2);
+  });
+
+  it.each([
+    ["a phone stage", 390 / 844],
+    ["a square thumbnail", 1],
+    ["the builder's wide stage", 390 / 330],
+  ])("nothing of the hero is cut off on %s, in any animation, turned any way", (_name, aspect) => {
+    const hero = buildHero(WIZARD_WITH_A_SWORD);
+    const camera = new THREE.PerspectiveCamera();
+    for (const animation of ANIMATIONS) {
+      placeCamera(camera, fullFrame(hero, animation), aspect);
+      // the hop keeps the idle frame, so its peak may touch the air round the frame: it is allowed to use all of it
+      const limit = animation === "hop" ? 1 : 1 - FIT_MARGIN / 2;
+      for (const yaw of [0, DEFAULT_YAW, Math.PI / 2, Math.PI]) {
+        for (let step = 0; step < 14; step++) {
+          for (const corner of screenCorners(hero, camera, animation, step * 0.1, yaw)) {
+            expect(Math.abs(corner.x)).toBeLessThanOrEqual(limit);
+            expect(Math.abs(corner.y)).toBeLessThanOrEqual(limit);
+          }
+        }
+      }
+    }
   });
 });
 

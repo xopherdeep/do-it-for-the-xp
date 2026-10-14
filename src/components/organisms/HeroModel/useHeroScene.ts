@@ -4,7 +4,7 @@ import type { Ref } from "vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import { animateHero } from "./voxel/animate";
 import { buildHero, disposeHero } from "./voxel/build";
-import { DEFAULT_YAW, FOV, addHeroLights, placeCamera, renderHeroSnapshot, stageFrame, stepFrame } from "./heroCamera";
+import { DEFAULT_YAW, FOV, addHeroLights, framingOf, placeCamera, renderHeroSnapshot, stageFrame, stepFrame } from "./heroCamera";
 import type { Frame, SnapshotFraming } from "./heroCamera";
 import debug from "@/lib/utils/debug";
 
@@ -49,6 +49,8 @@ export function useHeroScene(
   let frame: Frame = { centerY: 8, height: 20 };
   /** The focus the camera is framed on or easing toward; null until the first frame */
   let aimedFocus: SnapshotFraming | null = null;
+  /** The animation whose reach the frame was cut for: a victory hop needs more room than standing still */
+  let aimedAnimation: HeroAnimation | null = null;
   // The focus tween: the camera eases from tweenFrom to tweenTo, started at tweenStart (null when settled)
   let tweenFrom: Frame | null = null;
   let tweenTo: Frame | null = null;
@@ -86,19 +88,22 @@ export function useHeroScene(
   const lookKey = (value: HeroLook): string => JSON.stringify(value, Object.keys(value).sort());
 
   /**
-   * Point the camera at the hero for the current focus. When the focus changed, or an ease is already under way (the
-   * rebuilt hero may stand a little taller), it eases from wherever the camera is now; the first frame, and a stage
-   * that is not ticking (off screen), land at once. Places the camera when it lands but draws nothing.
+   * Point the camera at the hero for the current focus and animation: the frame is cut to what the hero fills while that
+   * animation plays, so a raised arm or a hop is not clipped. When the focus or the animation's frame changed, or an ease
+   * is already under way (the rebuilt hero may stand a little taller), it eases from wherever the camera is now; the first
+   * frame, and a stage that is not ticking (off screen), land at once. Places the camera when it lands but draws nothing.
    */
   const aimCamera = (): void => {
     if (!hero || !camera) return;
     const focus = options.focus?.value ?? "full";
-    const target = stageFrame(hero, focus);
+    const framing = framingOf(animation.value);
+    const target = stageFrame(hero, focus, framing);
     const hadFrame = aimedFocus !== null;
     const isMoving = tweenTo !== null;
-    const hasNewFocus = focus !== aimedFocus;
+    const hasNewAim = focus !== aimedFocus || framing !== aimedAnimation;
     aimedFocus = focus;
-    if (running && hadFrame && (hasNewFocus || isMoving)) {
+    aimedAnimation = framing;
+    if (running && hadFrame && (hasNewAim || isMoving)) {
       tweenFrom = frame; // from wherever the camera is now, so a change mid-move turns smoothly
       tweenTo = target;
       tweenStart = now();
@@ -302,6 +307,9 @@ export function useHeroScene(
   watch(look, rebuild, { deep: true });
   watch(animation, () => {
     t0 = now();
+    // A pose that reaches higher or wider than the last one (a victory hop, a hurt lean) asks for another frame
+    const isNewFraming = !!hero && !!camera && framingOf(animation.value) !== aimedAnimation;
+    if (isNewFraming) aimCamera();
     if (!running) render();
   });
   if (options.focus) {
