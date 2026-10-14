@@ -75,14 +75,16 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
   }
 
   // Register the dungeon with the engine
-  const isReplacingLayout = Boolean(running) && !options.force;
   dungeonManager.registerDungeon(dungeon);
   registeredLayouts.set(templeId, signature);
 
-  // A different layout replaced the one a hero may be halfway through: their run stays, on the new rooms. Done here, where
-  // every registration passes, so no way of registering (the editor's save, the temple screen, a reload of all custom
-  // temples) can leave a run standing in a room that is no longer there. A forced registration resets the temple instead.
-  if (isReplacingLayout) TempleSystem.getInstance().refreshRun(templeId);
+  // A run may already stand for this temple: on a different layout than the one it was halfway through, or ahead of any
+  // layout at all (a win reported by the battle page after a reload creates the run before the temple screen registers
+  // anything). Either way the run stays, on these rooms: what the hero did is put back on them. Done here, where every
+  // registration passes, so no way of registering (the editor's save, the temple screen, a reload of all custom temples)
+  // can leave a run standing in a room that is no longer there, or chests full that the hero emptied. A temple without a
+  // run is left alone by refreshRun. A forced registration resets the temple instead.
+  if (!options.force) TempleSystem.getInstance().refreshRun(templeId);
 
   return dungeon;
 }

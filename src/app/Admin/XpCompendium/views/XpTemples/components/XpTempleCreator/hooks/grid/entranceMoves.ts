@@ -52,10 +52,10 @@ export interface EntranceAfterFloorRemoval {
 }
 
 /**
- * The entrance position after the floor `removedLevelId` is deleted from `maze` (given as it is before). Only an
- * entrance stored as "floor index,row,col" is touched: a floor removed before it shifts its index down one, and if
- * its own floor is removed it goes back to 0,0 of the entrance floor (the lowest surface floor) of the floors left,
- * the same place a resize puts an entrance that fell outside the grid.
+ * The entrance position after the floor `removedLevelId` is deleted from `maze` (given as it is before). A "row,col"
+ * entrance is a cell of the first floor, floor index 0. A floor removed before the entrance's floor shifts its index down
+ * one, and if its own floor is removed it goes back to 0,0 of the entrance floor (the lowest surface floor) of the
+ * floors left, the same place a resize puts an entrance that fell outside the grid.
  */
 export const entranceAfterFloorRemoval = (
   entrancePosition: string,
@@ -63,7 +63,10 @@ export const entranceAfterFloorRemoval = (
   removedLevelId: string
 ): EntranceAfterFloorRemoval => {
   const unchanged = { entrancePosition, resetTo: null };
-  const { floorIndex, row, col } = readEntrancePosition(entrancePosition) ?? { floorIndex: null, row: 0, col: 0 };
+  const position = readEntrancePosition(entrancePosition);
+  const floorIndex = position === null ? null : position.floorIndex ?? 0;
+  const row = position?.row ?? 0;
+  const col = position?.col ?? 0;
   const keys = floorKeysOf(maze);
   const removedIndex = keys.indexOf(removedLevelId);
   const namesNoFloorOfTheMaze = floorIndex === null || removedIndex < 0;

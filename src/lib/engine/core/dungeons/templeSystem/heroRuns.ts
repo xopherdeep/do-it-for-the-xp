@@ -31,14 +31,57 @@ export function markRoomCleared(runs: TempleRuns, templeId: string, level: strin
   runs.queueSave(templeId);
 }
 
-/** Where an entrance puts the hero: `[row, col]` on the first floor, or `[floorIndex, row, col]` */
+/**
+ * Where an entrance puts the hero: `[row, col]` on the first floor the temple has (the editor allows floors named
+ * ['2F','3F'], so not always "1F"), or `[floorIndex, row, col]`
+ */
 export function startAt(temple: Dungeon, entrance: number[]): { level: string; position: [number, number] } {
-  const isOnAFloor = entrance.length === 3;
-  if (!isOnAFloor) return { level: '1F', position: [entrance[0], entrance[1]] };
-
   // The floor index is an index into the keys of the maze object
   const floors = floorsOf(temple);
+  const isOnAFloor = entrance.length === 3;
+  if (!isOnAFloor) return { level: floors[0] ?? '1F', position: [entrance[0], entrance[1]] };
+
   return { level: floors[entrance[0]] || floors[0], position: [entrance[1], entrance[2]] };
+}
+
+/**
+ * Where a hero can start when the entrance is not a room to stand in (a wall, outside the grid, a floor that is
+ * gone): like the solver (templeGraph findEntrance), the first entrance room of the temple, else the first cell
+ * with a floor. Undefined when the temple has no cell to stand in at all.
+ */
+function fallbackStart(runs: TempleRuns, templeId: string, temple: Dungeon): { level: string; position: [number, number] } | undefined {
+  let firstStandable: { level: string; position: [number, number] } | undefined;
+  for (const level of floorsOf(temple)) {
+    const grid = Array.isArray(temple.maze) ? temple.maze : temple.maze[level];
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        const position: [number, number] = [row, col];
+        if (!canStandAt(runs, templeId, level, position)) continue;
+        if (runs.dungeonManager.getRoom(templeId, position, level)?.type === 'entrance') return { level, position };
+        firstStandable ??= { level, position };
+      }
+    }
+  }
+  return firstStandable;
+}
+
+/** The place `start` names if the hero can stand there, else the fallback (logged: the layout's entrance is wrong) */
+function standableStart(
+  runs: TempleRuns,
+  templeId: string,
+  temple: Dungeon,
+  start: { level: string; position: [number, number] }
+): { level: string; position: [number, number] } {
+  if (canStandAt(runs, templeId, start.level, start.position)) return start;
+
+  const fallback = fallbackStart(runs, templeId, temple);
+  const where = `${start.level} [${start.position.join(',')}]`;
+  if (!fallback) {
+    debug.error(`Temple ${templeId} has no room to stand in; the hero starts at ${where}`);
+    return start;
+  }
+  debug.warn(`Temple ${templeId}: ${where} is not a room to stand in; the hero starts at ${fallback.level} [${fallback.position.join(',')}]`);
+  return fallback;
 }
 
 export function initTemple(runs: TempleRuns, templeId: string, startPosition?: number[], startLevel?: string, userId?: string): boolean {
@@ -52,12 +95,20 @@ export function initTemple(runs: TempleRuns, templeId: string, startPosition?: n
   // Determine starting position and level
   const floors = floorsOf(temple);
   const start = startAt(temple, startPosition || temple.entrance || [0, 0]);
-  const finalPos = start.position;
+  let finalPos = start.position;
   let finalLevel = start.level;
 
   // A floor named outright (the battle page hands back "2F", not an index) beats the guess above
   const isFloorNamed = startLevel && floors.includes(startLevel);
   if (isFloorNamed) finalLevel = startLevel;
+
+  // A run that is already going stays where it is; a new one must start in a room the hero can stand in
+  const isRunGoing = Boolean(runs.templeStates[templeId]);
+  if (!isRunGoing) {
+    const place = standableStart(runs, templeId, temple, { level: finalLevel, position: finalPos });
+    finalLevel = place.level;
+    finalPos = place.position;
+  }
 
   // Create temple state if it doesn't exist
   const { state } = openState(runs, templeId, userId, finalPos, finalLevel, true);
@@ -78,7 +129,8 @@ export function initTemple(runs: TempleRuns, templeId: string, startPosition?: n
 
 /**
  * The state of a temple for a hero: the run already going in memory, or a fresh one starting at
- * `position` on `level`. A hero's saved progress is read back as soon as they are tied to the temple.
+ * `position` on `level`. A hero's saved progress is read back as soon as they are tied to the temple. A run whose
+ * blood moon has fallen due is put away and read back too, so the moon rises (see loadProgress).
  * @param resume Whether a fresh run moves to where the saved progress left the hero, once it is read
  */
 export function openState(
@@ -93,6 +145,12 @@ export function openState(
   const bound = runs.heroByTemple.get(templeId);
   const isAnotherHeroRun = userId && bound && bound !== userId;
   if (isAnotherHeroRun) releaseTemple(runs, templeId);
+
+  // A blood moon that fell due while this hero's run stayed in memory (the screen closed, the app open) never meets
+  // loadProgress, where a due moon rises. Put the run away and read it back, and it does.
+  const goingRun = runs.templeStates[templeId];
+  const isMoonDueOnTheirRun = userId && bound === userId && goingRun && isBloodMoonDue(goingRun);
+  if (isMoonDueOnTheirRun) releaseTemple(runs, templeId);
 
   const created = !runs.templeStates[templeId];
   if (created) runs.templeStates[templeId] = createTempleState(position, level);
@@ -198,7 +256,7 @@ export function refreshRun(runs: TempleRuns, templeId: string): void {
 
   const canStayPut = canStandAt(runs, templeId, state.currentLevel, state.currentPosition);
   if (!canStayPut) {
-    const entrance = startAt(temple, temple.entrance || [0, 0]);
+    const entrance = standableStart(runs, templeId, temple, startAt(temple, temple.entrance || [0, 0]));
     state.currentLevel = entrance.level;
     state.currentPosition = entrance.position;
   }

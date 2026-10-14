@@ -25,11 +25,19 @@ export const readEntrancePosition = (entrancePosition: string): EntrancePosition
 };
 
 /**
- * Whether the position puts the entrance on `levelId`: "row,col" holds on every floor, "floor index,row,col" only on
- * the floor at that place in the maze's floor keys (the multi-floor temples the game ships store it this way)
+ * Whether the position puts the entrance on `levelId`. "row,col" is a cell of the FIRST floor of the maze (the game's
+ * startAt starts the hero there; it is not on every floor), "floor index,row,col" is on the floor at that place in the
+ * maze's floor keys (the multi-floor temples the game ships store it this way)
  */
-const isOnFloor = (position: EntrancePosition, maze: MazeData, levelId: string): boolean =>
-  position.floorIndex === null || floorKeysOf(maze)[position.floorIndex] === levelId;
+const isOnFloor = (position: EntrancePosition, maze: MazeData, levelId: string): boolean => {
+  const floorKeys = floorKeysOf(maze);
+  if (position.floorIndex === null) {
+    // A maze that lists no floor yet has only the floor on show to put it on
+    const hasNoFloorsListed = floorKeys.length === 0;
+    return hasNoFloorsListed || floorKeys[0] === levelId;
+  }
+  return floorKeys[position.floorIndex] === levelId;
+};
 
 /** The entrance's cell on one floor; null when the position is not a position or names another floor */
 export const entranceCellOnFloor = (
@@ -43,7 +51,7 @@ export const entranceCellOnFloor = (
 };
 
 /**
- * A grid of walls for a "RxC" grid size with the entrance on it: `entrancePosition` is "row,col" (any floor) or
+ * A grid of walls for a "RxC" grid size with the entrance on it: `entrancePosition` is "row,col" (the first floor) or
  * "floor index,row,col" (placed only when that floor is the current one).
  */
 export const buildInitialMaze = (
@@ -74,8 +82,9 @@ export interface ResizedMaze {
 /**
  * A copy of `mazeData` (the grid of the floor `currentLevelId`) at the new size: cells inside the old grid keep their
  * symbol, the rest are walls. An old entrance symbol that is not on the entrance cell becomes an empty room, and the
- * entrance cell itself is placed (or reset to 0,0 when it fell outside the new grid). A "floor,row,col" entrance that
- * is on another floor places nothing here. `maze` is the whole temple, to tell which floor that position names.
+ * entrance cell itself is placed (or reset to 0,0 when it fell outside the new grid). An entrance that is on another
+ * floor places nothing here, and a "row,col" one is on the first floor only. `maze` is the whole temple, to tell which
+ * floor a position names.
  */
 export const resizeMaze = (
   mazeData: string[][],

@@ -6,6 +6,7 @@
  *
  * Only the browser's storage is faked (in memory). The adapter, the dungeon manager and the temple system are real.
  */
+import { getTempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { ChestSystem } from "@/lib/engine/core/dungeons/ChestSystem";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
@@ -264,5 +265,72 @@ describe("a hero's run when the Game Master saves a different layout", () => {
     expect(() => temples.refreshRun(id)).not.toThrow();
     expect(() => temples.refreshRun("no-such-temple")).not.toThrow();
     expect(temples.getTempleState(id)).toBeUndefined();
+  });
+});
+
+// A hard reload on the battle page wipes the engine; the hero wins there before the temple screen registers the temple.
+// (Here, not in TempleSystemCleared.spec: that spec fakes the adapter, and the registration is what is under test.)
+describe("a win reported before the temple is registered", () => {
+  const HERO = "hero-1";
+
+  /** What the hero's save says: the chest emptied, the key door opened, the fight won */
+  const saveProgress = (id: string) =>
+    getTempleProgressDb().saveProgress({
+      userId: HERO,
+      templeId: id,
+      currentLevel: "1F",
+      currentPosition: [0, 3],
+      hasMap: true,
+      hasCompass: false,
+      playerKeys: 0,
+      visitedRooms: ["1F:0,0", "1F:0,1", "1F:0,2", "1F:0,3"],
+      clearedRooms: [],
+      hasMasterKey: false,
+      openedDoors: ["1F:0,1>east"],
+      openedChests: ["1F:0,2"],
+      keyItems: [],
+      timesCleared: 0,
+      bloodMoons: 0,
+    });
+
+  const keyDoorLayout = () => edited(oneFloor(), (layout) => (layout.rooms.HALL = { type: "empty", locked: { east: true } }));
+
+  it("puts the saved chests and doors on the layout when it registers, so nothing refills or re-locks", async () => {
+    const id = nextId();
+    await saveProgress(id);
+    temples.markRoomCleared(id, "1F", [0, 3], HERO); // no dungeon is registered yet: the run and the read start anyway
+    await temples.whenProgressReady(id);
+
+    registerTemple(id, keyDoorLayout());
+
+    expect(dungeons.getRoom(id, [0, 2])?.isEmpty).toBe(true); // the chest the hero emptied stays empty ...
+    expect(chests.getChest(chestId(id))?.isEmpty).toBe(true); // ... and is not refilled for a second loot
+    expect(dungeons.getRoom(id, [0, 1])?.locked?.east).toBe(false); // the key door stays open, the key stays spent
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 3] }); // the hero stays in the room they won
+    expect(temples.isRoomCleared(id, "1F", [0, 3])).toBe(true);
+  });
+
+  it("does the same when the save lands after the temple registered", async () => {
+    const id = nextId();
+    await saveProgress(id);
+    temples.markRoomCleared(id, "1F", [0, 3], HERO);
+
+    registerTemple(id, keyDoorLayout()); // the read is still on its way
+    await temples.whenProgressReady(id);
+
+    expect(dungeons.getRoom(id, [0, 2])?.isEmpty).toBe(true);
+    expect(dungeons.getRoom(id, [0, 1])?.locked?.east).toBe(false);
+  });
+
+  it("leaves the layout as drawn for a hero with nothing saved", async () => {
+    const id = nextId();
+    temples.markRoomCleared(id, "1F", [0, 3], HERO);
+    await temples.whenProgressReady(id);
+
+    registerTemple(id, keyDoorLayout());
+
+    expect(dungeons.getRoom(id, [0, 2])?.isEmpty).toBe(false);
+    expect(dungeons.getRoom(id, [0, 1])?.locked?.east).toBe(true);
+    expect(temples.isRoomCleared(id, "1F", [0, 3])).toBe(true);
   });
 });

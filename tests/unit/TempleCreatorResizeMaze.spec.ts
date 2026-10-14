@@ -1,8 +1,12 @@
 /**
  * Characterization of the maze grid builders the temple creator uses (hooks/grid/resizeMaze): the starting grid
  * with the entrance in place and resizing a floor's grid while keeping what it already holds.
+ *
+ * A "row,col" entrance is a cell of the FIRST floor of the maze, as the engine reads it (TempleSystem startAt): it is not
+ * on every floor, so painting or resizing another floor never stamps or moves it.
  */
 import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
+import { entranceAfterFloorRemoval } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/entranceMoves";
 import {
   buildInitialMaze,
   entranceCellOnFloor,
@@ -47,9 +51,29 @@ describe("readEntrancePosition", () => {
 describe("entranceCellOnFloor", () => {
   const floors = { "1F": [], "2F": [], B1: [] };
 
-  it("is the cell of a 'row,col' position on every floor", () => {
+  // Changed with #1359: the editor read this as "on every floor" while the engine starts the hero on the first floor
+  it("is the cell of a 'row,col' position on the first floor of the maze, and on no other", () => {
     expect(entranceCellOnFloor("1,2", floors, "1F")).toEqual({ row: 1, col: 2 });
-    expect(entranceCellOnFloor("1,2", floors, "B1")).toEqual({ row: 1, col: 2 });
+    expect(entranceCellOnFloor("1,2", floors, "2F")).toBeNull();
+    expect(entranceCellOnFloor("1,2", floors, "B1")).toBeNull();
+  });
+
+  it("takes the first floor key as the first floor, whatever it is called", () => {
+    const upper = { "2F": [], "3F": [] };
+    expect(entranceCellOnFloor("1,2", upper, "2F")).toEqual({ row: 1, col: 2 });
+    expect(entranceCellOnFloor("1,2", upper, "3F")).toBeNull();
+    expect(entranceCellOnFloor("1,2", upper, "1F")).toBeNull();
+    // The same floor a '0,row,col' position names
+    expect(entranceCellOnFloor("0,1,2", upper, "2F")).toEqual({ row: 1, col: 2 });
+  });
+
+  it("puts a 'row,col' position on the floor on show when the maze lists no floor yet", () => {
+    expect(entranceCellOnFloor("1,2", {}, "1F")).toEqual({ row: 1, col: 2 });
+  });
+
+  it("reads a single-grid maze's 'row,col' position as a cell of its one floor, 1F", () => {
+    expect(entranceCellOnFloor("1,2", [["_"]], "1F")).toEqual({ row: 1, col: 2 });
+    expect(entranceCellOnFloor("1,2", [["_"]], "2F")).toBeNull();
   });
 
   // Added with #1155: the editor read these as row,col and so drew the entrance at (floor, row) on every floor
@@ -107,6 +131,12 @@ describe("buildInitialMaze", () => {
     const maze = { "1F": [], "2F": [] };
     expect(entranceCells(buildInitialMaze("3x3", "1,0,2", maze, "2F"))).toEqual([[0, 2]]);
     expect(entranceCells(buildInitialMaze("3x3", "1,0,2", maze, "1F"))).toEqual([]);
+  });
+
+  it("places a 'row,col' entrance only on the first floor of a maze of floors", () => {
+    const maze = { "1F": [], "2F": [] };
+    expect(entranceCells(buildInitialMaze("3x3", "1,2", maze, "1F"))).toEqual([[1, 2]]);
+    expect(entranceCells(buildInitialMaze("3x3", "1,2", maze, "2F"))).toEqual([]);
   });
 
   it("reads a single-grid maze as the one floor 1F for a 'floor,row,col' entrance", () => {
@@ -249,6 +279,76 @@ describe("resizeMaze", () => {
     expect(entrancePosition).toBe("1,0,0");
   });
 
+  // The report of #1359: wind-temple has its entrance at (5,2) on a single grid; adding 2F and resizing it stamped a
+  // second entrance on 2F and moved the saved entrance to 0,0 while 1F kept its entrance at (5,2)
+  describe("a 'row,col' entrance, with a floor added", () => {
+    const floors = { "1F": [], "2F": [] };
+
+    it("leaves the entrance and the position alone when another floor is resized and the cell falls outside it", () => {
+      const old = [
+        ["R001", "R002"],
+        ["R003", "R004"],
+      ];
+      const { maze, entranceOutsideGrid, entrancePosition } = resizeMaze(old, 3, 3, "5,2", floors, "2F");
+      expect(maze).toEqual([
+        ["R001", "R002", ____],
+        ["R003", "R004", ____],
+        [____, ____, ____],
+      ]);
+      expect(maze.flat()).not.toContain(_00_); // no second entrance on 2F
+      expect(entranceOutsideGrid).toBe(false);
+      expect(entrancePosition).toBe("5,2");
+    });
+
+    it("does not stamp the entrance over a real room of another floor when the cell falls inside it", () => {
+      const old = [
+        ["R001", "R002", "R003"],
+        ["R004", "R005", "R006"],
+      ];
+      const { maze, entrancePosition } = resizeMaze(old, 2, 3, "1,1", floors, "2F");
+      expect(maze).toEqual(old);
+      expect(entrancePosition).toBe("1,1");
+    });
+
+    it("turns a stray entrance symbol of another floor into an empty room", () => {
+      const old = [
+        ["R001", _00_],
+        ["R002", "R003"],
+      ];
+      const { maze } = resizeMaze(old, 2, 2, "0,0", floors, "2F");
+      expect(maze).toEqual([
+        ["R001", "O__O"],
+        ["R002", "R003"],
+      ]);
+    });
+
+    it("still places the entrance on the first floor, and moves it to 0,0 there when it falls outside", () => {
+      const old = [
+        ["R001", "R002", "R003"],
+        ["R004", "R005", "R006"],
+        ["R007", "R008", _00_],
+      ];
+      const inside = resizeMaze(old, 3, 3, "2,2", floors, "1F");
+      expect(inside.maze[2][2]).toBe(_00_);
+      expect(inside.entrancePosition).toBe("2,2");
+
+      const outside = resizeMaze(old, 2, 2, "2,2", floors, "1F");
+      expect(outside.maze).toEqual([
+        [_00_, "R002"],
+        ["R004", "R005"],
+      ]);
+      expect(outside.entranceOutsideGrid).toBe(true);
+      expect(outside.entrancePosition).toBe("0,0");
+    });
+
+    it("counts the first floor key as the first floor, so floors named 2F and 3F put it on 2F", () => {
+      const upper = { "2F": [], "3F": [] };
+      const old = [["R001", "R002"]];
+      expect(resizeMaze(old, 1, 2, "0,1", upper, "2F").maze[0][1]).toBe(_00_);
+      expect(resizeMaze(old, 1, 2, "0,1", upper, "3F").maze).toEqual(old);
+    });
+  });
+
   it("reads a single-grid maze as the one floor 1F for a 'floor,row,col' entrance, with no maze given too", () => {
     const old = [["R001", "R002"], ["R003", "R004"]];
     expect(resizeMaze(old, 2, 2, "0,1,0", [["_"]], "1F").maze[1][0]).toBe(_00_);
@@ -282,5 +382,22 @@ describe("resizeMaze", () => {
 
   it("throws for a grid with no rows because the entrance has no cell to go back to", () => {
     expect(() => resizeMaze([["R001"]], 0, 0, "0,0")).toThrow(TypeError);
+  });
+});
+
+describe("a 'row,col' entrance in the floor moves", () => {
+  const grid: string[][] = [["R001"]];
+
+  it("goes back to 0,0 of the entrance floor when the first floor is the one removed", () => {
+    const upper = { "2F": grid, "3F": grid };
+    expect(entranceAfterFloorRemoval("1,2", upper, "2F")).toEqual({
+      entrancePosition: "0,0,0",
+      resetTo: { levelId: "3F", row: 0, col: 0 },
+    });
+  });
+
+  it("is left alone when another floor is removed", () => {
+    const upper = { "2F": grid, "3F": grid };
+    expect(entranceAfterFloorRemoval("1,2", upper, "3F")).toEqual({ entrancePosition: "1,2", resetTo: null });
   });
 });
