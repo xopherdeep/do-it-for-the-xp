@@ -1,5 +1,6 @@
 import { RouteLocationNormalized } from "vue-router";
 import { toastController } from "@ionic/vue";
+import { useFamilyStore } from "@/lib/store/stores/family";
 import { IMPERSONATOR_KEY, useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 
@@ -79,8 +80,21 @@ export function resolveGmAccess(
   return Object.values(users).some(isGameMaster) ? "denied" : "no-game-master";
 }
 
+function defaultKidMode(): boolean {
+  try {
+    return useFamilyStore().isKidMode;
+  } catch {
+    return false;
+  }
+}
+
 /** True when the signed-in person may open the Game Master area (guard and SideMenu share it). */
-export function canAccessGameMaster(view: GmStoreView = useUserStore()): boolean {
+export function canAccessGameMaster(
+  view: GmStoreView = useUserStore(),
+  kidMode: boolean = defaultKidMode()
+): boolean {
+  const isKid = Boolean(kidMode);
+  if (isKid) return false;
   return resolveGmAccess(view) !== "denied";
 }
 
@@ -108,8 +122,10 @@ const PASSCODE_PATTERN = /^\d{4}$/;
  */
 export function passcodeProblem(passcode: unknown, forGameMaster: boolean): string | null {
   const text = typeof passcode === "string" ? passcode : "";
-  if (PASSCODE_PATTERN.test(text)) return null;
-  if (forGameMaster) return "Game Masters need a 4-digit passcode";
+  const isValidPasscode = PASSCODE_PATTERN.test(text);
+  if (isValidPasscode) return null;
+  const isForGameMaster = Boolean(forGameMaster);
+  if (isForGameMaster) return "Game Masters need a 4-digit passcode";
   return text === "" ? null : "A passcode is exactly 4 digits";
 }
 
@@ -211,10 +227,12 @@ export async function handleGmGuard(
   try {
     // A hard refresh or deep link gets here before App.ts has loaded the profiles. Without them
     // even a parent looks like a stranger, so load them first (as the my-portal route does).
-    if (Object.keys(userStore.users).length === 0) {
+    const hasNoProfilesLoaded = Object.keys(userStore.users).length === 0;
+    if (hasNoProfilesLoaded) {
       await userStore.loadUsers();
     }
-    if (canAccessGameMaster(userStore)) return;
+    const hasAccess = canAccessGameMaster(userStore);
+    if (hasAccess) return;
   } catch (error) {
     // Fail closed: a gate that errors out must not wave anybody through
     debug.error("Game Master guard could not verify the profile", error);

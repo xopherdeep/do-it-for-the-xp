@@ -1,4 +1,6 @@
 import { Router } from "vue-router";
+import { useFamilyStore } from "@/lib/store/stores/family";
+import { handleHeroPhoneGuard } from "./heroPhone.guard";
 import { handleLogoutGuard } from "./logout.guard";
 import { handleAuthGuard } from "./auth.guard";
 import { handleBattleTimerGuard } from "./battle.guard";
@@ -14,17 +16,28 @@ import { handleTransitionGuard } from "./transition.guard";
  */
 export function useRouterGuards(router: Router): void {
   router.beforeEach(async (to, from, next) => {
+    // 0. Hero phone kid-mode gate: in kid mode, only hero-phone and link-phone are accessible.
+    await useFamilyStore().init();
+    const heroPhoneResult = handleHeroPhoneGuard(to, useFamilyStore().isKidMode);
+    const hasHeroPhoneRedirect = typeof heroPhoneResult === "object" && heroPhoneResult !== null;
+    if (hasHeroPhoneRedirect) {
+      return next(heroPhoneResult);
+    }
+
     // 1. Logout confirmation (blocks if pending)
-    if (handleLogoutGuard(to, router)) {
+    const isLogoutBlocked = handleLogoutGuard(to, router);
+    if (isLogoutBlocked) {
       return next(false);
     }
 
     // 2. Authentication check
     const authResult = handleAuthGuard(to);
-    if (authResult === false) {
+    const isAuthRefused = authResult === false;
+    if (isAuthRefused) {
       return next(false);
     }
-    if (typeof authResult === "object") {
+    const hasAuthRedirect = typeof authResult === "object" && authResult !== null;
+    if (hasAuthRedirect) {
       return next(authResult);
     }
 
@@ -32,20 +45,24 @@ export function useRouterGuards(router: Router): void {
     //    auth so a signed-out visitor goes to log-in first, and before the side-effect guards
     //    so a refused hero never triggers the Game Master soundtrack.
     const gmResult = await handleGmGuard(to);
-    if (typeof gmResult === "object") {
+    const hasGmRedirect = typeof gmResult === "object" && gmResult !== null;
+    if (hasGmRedirect) {
       return next(gmResult);
     }
 
     // 3b. XP Pro gate: routes with meta.pro open the upsell instead when the family is not Pro
     const proResult = await handleProGuard(to, from);
-    if (proResult === false) return next(false);
-    if (typeof proResult === "object") return next(proResult);
+    const isProRefused = proResult === false;
+    if (isProRefused) return next(false);
+    const hasProRedirect = typeof proResult === "object" && proResult !== null;
+    if (hasProRedirect) return next(proResult);
 
     // 4. Onboarding gate: on foot the hero reaches only Hometown and the Plains; the overworld and the
     //    other regions need a freed Pegasus. Before the side-effect guards so a turned-back hero never
     //    starts the soundtrack or the encounter clock of a region they did not enter.
     const worldResult = await handleWorldGuard(to);
-    if (typeof worldResult === "object") {
+    const hasWorldRedirect = typeof worldResult === "object" && worldResult !== null;
+    if (hasWorldRedirect) {
       return next(worldResult);
     }
 
@@ -64,6 +81,7 @@ export function useRouterGuards(router: Router): void {
 }
 
 // Re-export individual guards for testing or direct use
+export { handleHeroPhoneGuard } from "./heroPhone.guard";
 export { handleLogoutGuard } from "./logout.guard";
 export { handleAuthGuard, type AuthGuardResult } from "./auth.guard";
 export { handleGmGuard, canAccessGameMaster, isGameMasterRoute, type GmGuardResult } from "./gm.guard";
