@@ -19,6 +19,15 @@ import {
   actionSheetController,
 } from "@ionic/vue";
 import { RecycleScroller } from "vue-virtual-scroller";
+import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
+import {
+  close,
+  colorWandOutline,
+  heartOutline,
+  leafOutline,
+  personAddOutline,
+  waterOutline,
+} from "ionicons/icons";
 import debug from "@/lib/utils/debug";
 import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
 
@@ -203,13 +212,15 @@ export default defineComponent({
 
     async presentActionSheet() {
       const actionSheet = await actionSheetController.create({
+        // The same sheet the buildings open: an ionicon beside each choice, echoing the dashboard's area icons
+        ...appSheet(undefined, "dashboard-action-sheet"),
         header: "Create New...",
-        cssClass: "dashboard-action-sheet",
         mode: "ios",
         buttons: [
           {
             text: "New Profile",
             cssClass: "action-profile",
+            icon: personAddOutline,
             handler: () => {
               this.openNewProfileModal();
             },
@@ -217,6 +228,7 @@ export default defineComponent({
           {
             text: "New Ability",
             cssClass: "action-ability",
+            icon: colorWandOutline,
             handler: () => {
               this.navigateTo({ name: "xp-add-ability" });
             },
@@ -224,6 +236,7 @@ export default defineComponent({
           {
             text: "New Beast",
             cssClass: "action-beast",
+            icon: heartOutline,
             handler: () => {
               this.navigateTo({ name: "xp-add-beast" });
             },
@@ -231,6 +244,7 @@ export default defineComponent({
           {
             text: "New Quest",
             cssClass: "action-quest",
+            icon: leafOutline,
             handler: () => {
               this.navigateTo({ name: "xp-achievement-config" });
             },
@@ -238,6 +252,7 @@ export default defineComponent({
           {
             text: "New Temple",
             cssClass: "action-temple",
+            icon: waterOutline,
             handler: async () => {
               if (!(await useProStore().requirePro("templeCreator"))) return;
               this.navigateTo({
@@ -250,6 +265,7 @@ export default defineComponent({
             text: "Cancel",
             role: "cancel",
             cssClass: "action-cancel",
+            icon: close,
           },
         ],
       });
