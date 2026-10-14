@@ -361,6 +361,35 @@ describe("BattleField: a free fight", () => {
     (Math.random as jest.Mock).mockRestore();
   });
 
+  it("lands the strike on its own when nobody taps: waiting out the message box never holds the hit back", async () => {
+    const { wrapper, userStore, vm, tap } = await enterBattle("/battle/hero-1/free/");
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+    await tap();
+    await tap();
+    jest.advanceTimersByTime(6 * 60 * 1000 + 200);
+    await flushPromises();
+    expect(vm.dialogText).toBe("Socktopus attacks!");
+
+    // No taps: the line types, lingers long enough to read, and the hit lands
+    for (let beat = 0; beat < 10 && vm.dialogText !== "Max takes 4 damage!"; beat++) {
+      jest.advanceTimersByTime(500);
+      await flushPromises();
+    }
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(26);
+    expect(vm.dialogText).toBe("Max takes 4 damage!");
+
+    // The damage line moves on too and the hero gets the menu and a fresh clock back
+    for (let beat = 0; beat < 10 && vm.dialogText; beat++) {
+      jest.advanceTimersByTime(500);
+      await flushPromises();
+    }
+    expect(vm.dialogText).toBe("");
+    expect(wrapper.find(".menu-item").exists()).toBe(true);
+    // A fresh clock from the moment the hit landed, already ticking while the damage line was read
+    expect(wrapper.find(".attack-timer-label").text()).toMatch(/^5:5\d$/);
+    (Math.random as jest.Mock).mockRestore();
+  });
+
   it("asks before running away, and Defend trades a glancing hit for a fresh clock", async () => {
     const { wrapper, userStore, vm, tap, readUntilMenu } = await enterBattle("/battle/hero-1/free/");
     await tap();

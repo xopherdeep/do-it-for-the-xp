@@ -48,9 +48,9 @@ describe("dialogLines (characterization)", () => {
     ]);
   });
 
-  it("bracesLines and attacksLines announce the move", () => {
-    expect(bracesLines("Ada")).toEqual(["Ada braces!"]);
-    expect(attacksLines(bunny)).toEqual(["Dust Bunny attacks!"]);
+  it("bracesLines and attacksLines announce the move and move on by themselves", () => {
+    expect(bracesLines("Ada")).toEqual([{ text: "Ada braces!", auto: true }]);
+    expect(attacksLines(bunny)).toEqual([{ text: "Dust Bunny attacks!", auto: true }]);
   });
 
   it("runAwayLines types the first line and waits on the second", () => {
@@ -111,8 +111,8 @@ describe("dialogLines (characterization)", () => {
   });
 
   it("damageTakenLines says whether the brace helped", () => {
-    expect(damageTakenLines("Ada", 6, true)).toEqual(["Ada braced: only 6 damage!"]);
-    expect(damageTakenLines("Ada", 12, false)).toEqual(["Ada takes 12 damage!"]);
+    expect(damageTakenLines("Ada", 6, true)).toEqual([{ text: "Ada braced: only 6 damage!", auto: true }]);
+    expect(damageTakenLines("Ada", 12, false)).toEqual([{ text: "Ada takes 12 damage!", auto: true }]);
   });
 
   it("fallenLines ends the fight with the blackout", () => {

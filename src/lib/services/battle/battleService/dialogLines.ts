@@ -15,7 +15,8 @@ export const stepsForwardLines = (enemy: Enemy, next: Enemy): EngineMessage[] =>
   `${next.name} steps forward!`
 ];
 
-export const bracesLines = (heroName: string): EngineMessage[] => [`${heroName} braces!`];
+/** The beast's turn never waits on a tap: the brace, the strike and the hit all move on by themselves. */
+export const bracesLines = (heroName: string): EngineMessage[] => [autoLine(`${heroName} braces!`)];
 
 /**
  * A run always works: the run, whatever the beast lands on the way out (see partingStrikeLines), then the getaway.
@@ -58,10 +59,11 @@ export const frozenStrikeLine = (enemy: Enemy): string => `${enemy.name} is froz
 
 export const stunnedStrikeLine = (enemy: Enemy): string => `${enemy.name} is stunned and misses its strike!`;
 
-export const attacksLines = (enemy: Enemy): EngineMessage[] => [`${enemy.name} attacks!`];
+/** The hit lands when this line moves on, by itself or on a tap: waiting on it never holds the strike back. */
+export const attacksLines = (enemy: Enemy): EngineMessage[] => [autoLine(`${enemy.name} attacks!`)];
 
 export const damageTakenLines = (heroName: string, damage: number, braced: boolean): EngineMessage[] => [
-  braced ? `${heroName} braced: only ${damage} damage!` : `${heroName} takes ${damage} damage!`
+  autoLine(braced ? `${heroName} braced: only ${damage} damage!` : `${heroName} takes ${damage} damage!`)
 ];
 
 export const fallenLines = (heroName: string): EngineMessage[] => [`${heroName} has fallen!`, 'You blacked out...'];
