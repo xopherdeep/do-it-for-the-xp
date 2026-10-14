@@ -37,12 +37,13 @@ $eb-color-white: #ffffff;
 }
 
 // Mixins
+// The box follows the chosen Game Style: the other themes set --gs-* on ion-app (themes/_gameStyle.scss)
 @mixin eb-box() {
-  border-radius: 1px;
-  box-shadow: 0 0 0 5px $eb-color-medium-purple, 0 0 0 10px $eb-color-minty-blue,
-    0 0 0 12px $eb-color-pale-yellow, 0 0 0 16px $eb-color-slate;
-  background-color: $eb-color-dark-purple;
-  color: $eb-color-cream;
+  border-radius: var(--gs-radius, 1px);
+  box-shadow: var(--gs-frame, 0 0 0 5px #{$eb-color-medium-purple}, 0 0 0 10px #{$eb-color-minty-blue},
+    0 0 0 12px #{$eb-color-pale-yellow}, 0 0 0 16px #{$eb-color-slate});
+  background: var(--gs-window, #{$eb-color-dark-purple});
+  color: var(--gs-text, #{$eb-color-cream});
 }
 
 @mixin eb-checkerboard-config($bg-color, $pattern-color) {

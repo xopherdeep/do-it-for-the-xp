@@ -1,5 +1,6 @@
 import type { Ability, AbilityStatus, TimePeriod } from "@/types/abilities";
 import type { HeroAbilitySnapshot, HeroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
+import { toFaClass } from "@/lib/utils/faIcon";
 
 /**
  * What one Power says on its row of the Powers app: the kind, the AP it asks for and how far the hero has come, the
@@ -112,12 +113,11 @@ export const buildPowerRow = (
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
   const stateLine = groundedReason && status === "available" ? groundedReason : stateLineOf(ability, status, earned, needed);
 
-  const icon = ability.icon ?? "";
   return {
     id: ability.id,
     name: ability.name,
     description: ability.description ?? "",
-    icon: icon.startsWith("fa-") ? icon : "fa-sparkles",
+    icon: toFaClass(ability.icon, "fa-sparkles"),
     type: ability.type,
     typeLabel: ability.type === "in-game" ? "Spell" : "Privilege",
     mpCost: Number(ability.mpCost) || 0,

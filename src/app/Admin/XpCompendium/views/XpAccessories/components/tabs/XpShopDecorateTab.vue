@@ -110,58 +110,17 @@
     customWorld,
   } from "@/lib/databases/ShopsDb";
   import {
-    SHOP_WORLD_CHOICES,
     saveShopFields,
     shopToast,
     shopWorldBackground,
   } from "../../hooks/useShopData";
-
-  // Duotone Font Awesome names that suit a shop sign (all of them are in the bundled icon set).
-  const SHOP_ICON_NAMES = [
-    "store",
-    "store-alt",
-    "shopping-bag",
-    "sack-dollar",
-    "treasure-chest",
-    "gem",
-    "farm",
-    "pegasus",
-    "horse",
-    "ship",
-    "anchor",
-    "campground",
-    "caravan",
-    "wagon-covered",
-    "dungeon",
-    "igloo",
-    "snowflake",
-    "island-tropical",
-    "cactus",
-    "cauldron",
-    "hat-witch",
-    "hat-wizard",
-    "flask-potion",
-    "book-spells",
-    "scroll",
-    "swords",
-    "shield",
-    "crown",
-    "chess-rook",
-    "moon",
-    "cloud",
-    "mountain",
-    "tree",
-    "house",
-    "torii-gate",
-    "skull",
-  ];
-
-  const iconClass = (name: string) => `fad fa-${name}`;
-  const iconLabel = (value: string) =>
-    value
-      .replace(/^fa[dsrlb]? fa-/, "")
-      .replace(/-/g, " ")
-      .replace(/^./, (letter) => letter.toUpperCase());
+  // The worlds and the sign icons are the wizard's own lists, so Decorate and the create form cannot drift
+  import {
+    SHOP_WORLD_CHOICES,
+    normalWorld,
+    shopIconChoices,
+    shopIconClass,
+  } from "../../shopWizard";
 
   export default defineComponent({
     name: "XpShopDecorateTab",
@@ -183,14 +142,15 @@
       const blueprint = computed(() => SHOP_METADATA[shop?.value?.id ?? ""]);
       const defaultWorld = computed(() => blueprint.value?.world ?? "");
       const defaultIcon = computed(() =>
-        blueprint.value ? iconClass(blueprint.value.icon) : ""
+        blueprint.value ? shopIconClass(blueprint.value.icon) : ""
       );
 
       watch(
         () => shop?.value,
         (loaded) => {
-          draftWorld.value = loaded?.world ?? "";
-          draftIcon.value = loaded?.icon || iconClass("store");
+          // A shop saved with an old world name (mountain, snow) shows the art it meant and can be saved as such
+          draftWorld.value = normalWorld(loaded?.world);
+          draftIcon.value = loaded?.icon || shopIconClass("store");
         },
         { immediate: true }
       );
@@ -204,16 +164,11 @@
       );
 
       // The shop's default and current icons are always on offer, even when they are not stock choices.
-      const icons = computed(() => {
-        const stock = SHOP_ICON_NAMES.map(iconClass);
-        const offered = [defaultIcon.value, shop?.value?.icon].filter(Boolean) as string[];
-        const extra = Array.from(new Set(offered)).filter((value) => !stock.includes(value));
-        return [...extra, ...stock].map((value) => ({
-          value,
-          label: iconLabel(value),
-          isDefault: value === defaultIcon.value,
-        }));
-      });
+      const icons = computed(() =>
+        shopIconChoices([defaultIcon.value, shop?.value?.icon]).map(
+          (choice) => ({ ...choice, isDefault: choice.value === defaultIcon.value })
+        )
+      );
 
       const previewBg = computed(() => shopWorldBackground(draftWorld.value));
 

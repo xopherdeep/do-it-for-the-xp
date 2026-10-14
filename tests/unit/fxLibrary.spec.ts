@@ -58,7 +58,15 @@ describe("$fx", () => {
     expect($fx.theme).toEqual({ ui: "nintendo", rpg: "earthbound" });
     expect(Object.keys($fx)).toEqual(["theme", "ui", "rpg"]);
     expect(Object.keys($fx.ui)).toEqual(["nintendo", "sony"]);
-    expect(Object.keys($fx.rpg)).toEqual(["earthbound", "chronoTrigger", "finalFantasy"]);
+    expect(Object.keys($fx.rpg)).toEqual(["earthbound", "chronoTrigger", "finalFantasy", "zelda"]);
+  });
+
+  it("gives every game style the soundtrack and every Earthbound sound key", () => {
+    const keys = Object.keys($fx.rpg.earthbound);
+    for (const style of Object.values($fx.rpg) as Record<string, unknown>[]) {
+      expect(keys.filter((key) => !(key in style))).toEqual([]);
+      expect(style.BGM).toBe($fx.rpg.earthbound.BGM);
+    }
   });
 
   it("gives the nintendo UI set its sounds", () => {

@@ -13,9 +13,10 @@
         class="shop-tab-bar"
         v-if="shopId"
       >
+        <!-- Info is the shop's dashboard page; no other page of a shop is called Info -->
         <ion-tab-button
-          tab="splash"
-          :href="`/game-master/compendium/economy/shops/${shopId}/splash`"
+          tab="dashboard"
+          :href="`/game-master/compendium/economy/shops/${shopId}/dashboard`"
         >
           <ion-icon :icon="bookOutline" />
           <ion-label>Info</ion-label>

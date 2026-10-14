@@ -1,7 +1,6 @@
 import { ref, computed, watch, InjectionKey } from "vue";
 import { useRouter } from "vue-router";
-import { useBack } from "@/hooks/useBack";
-import { alertController, toastController, modalController } from "@ionic/vue";
+import { toastController, modalController } from "@ionic/vue";
 import { debounce } from "lodash";
 
 import AchievementDb, {
@@ -32,6 +31,7 @@ import { useProStore } from "@/lib/store/stores/pro";
 import { withoutUnsetMinutes } from "@/lib/services/quests/questFormRules";
 import { useQuestEffort } from "./useQuestEffort";
 import { useBeastSuggestion } from "./useBeastSuggestion";
+import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -55,13 +55,18 @@ const resolveLegacyAdventureType = (hasBeast: boolean, hasSubAchievements: boole
 const isSavedQuestId = (questId?: string) =>
   Boolean(questId && questId !== "new");
 
+/** What opening a quest found: whether it was already saved, and whether it was still a draft (the wizard opens by it). */
+export interface LoadedQuest {
+  isSaved: boolean;
+  wasDraft: boolean;
+}
+
 export const AchievementFormInjectionKey: InjectionKey<
   ReturnType<typeof useAchievementForm>
 > = Symbol("AchievementForm");
 
 export function useAchievementForm() {
   const router = useRouter();
-  const { back } = useBack();
 
   // State
   const id = ref<string>("");
@@ -91,7 +96,6 @@ export function useAchievementForm() {
   const lastSavedState = ref("");
 
   // UI State
-  const activeSegment = ref("dashboard");
   const addCategoryModalOpen = ref(false);
   const endsModalOpen = ref(false);
   const startsModalOpen = ref(false);
@@ -121,28 +125,7 @@ export function useAchievementForm() {
   ];
   const fibonacciIndex = ref(0);
 
-  const segments = computed(() => {
-    const type = achievement.value.adventureType;
-    let typeIcon = "fa-shapes"; // valid fad icon? yes.
-
-    if (type === "beast") {
-      typeIcon = "fa-paw-claws";
-    } else if (type === "chain") {
-      typeIcon = "fa-link";
-    }
-
-    return [
-      { name: "How", icon: typeIcon, path: "quest-type" },
-      { name: "Who", icon: "fa-users", path: "heros" },
-      { name: "What", icon: "fa-cubes", path: "dashboard" },
-
-      { name: "When", icon: "fa-calendar", path: "when" },
-
-      { name: "Why", icon: "fa-hand-holding-medical", path: "points" },
-    ];
-  });
-
-  // Achievement types for bottom tab bar
+  // The three kinds of quest (step one's Normal / Beast / Chain segments are QUEST_KINDS in questConfigWizard)
   const achievementTypes = [
     {
       name: "Basic Task",
@@ -333,10 +316,6 @@ export function useAchievementForm() {
     (newType) => {
       if (newType === "asNeeded") {
         achievement.value.assignee = [];
-        // If currently on Heros tab, switch to Quest tab
-        if (activeSegment.value === "heros") {
-          activeSegment.value = "dashboard";
-        }
       }
     }
   );
@@ -423,17 +402,10 @@ export function useAchievementForm() {
     );
   });
 
-  // Validation
-  const isValidAdventure = computed(() => {
-    const a = achievement.value;
-    if (!a.achievementName?.trim()) return false;
-    if (!a.categoryId) return false;
-    if (!a.difficulty) return false;
+  // Validation: the rules are one list, shared with the wizard's steps (questConfigWizard.ts)
+  const isValidAdventure = computed(() => isQuestReady(achievement.value));
 
-    return isStrategyComplete.value && isPartyComplete.value;
-  });
-
-  // The Why tab's tier chip and minutes, and the How tab's suggested beast (docs/Quest-Rooms-Spec.md section 9)
+  // The How hard? step's tier chip and minutes, and the chore step's suggested beast (docs/Quest-Rooms-Spec.md section 9)
   const effort = useQuestEffort(achievement);
   const { applySuggestedBeast, resetPick, ...suggestionForTabs } = useBeastSuggestion({
     achievement,
@@ -442,36 +414,17 @@ export function useAchievementForm() {
     isLive: isValidAdventure,
   });
 
-  const getValidationMessage = () => {
-    const messages: string[] = [];
-    if (!achievement.value.achievementName?.trim())
-      messages.push("• Name your quest");
-    if (!achievement.value.categoryId) messages.push("• Select a category");
-    if (!achievement.value.difficulty)
-      messages.push("• Set the difficulty level");
-
-    const isMissingBeast =
-      achievement.value.adventureType === "beast" &&
-      !achievement.value.beastId;
-    if (isMissingBeast) {
-      messages.push("• Choose a beast to challenge");
-    }
-    const isMissingChainQuests =
-      achievement.value.adventureType === "chain" &&
-      !achievement.value.subAchievementIds?.length;
-    if (isMissingChainQuests) {
-      messages.push("• Add quests to your quest chain");
-    }
-    if (!["simple", "beast", "chain"].includes(achievement.value.adventureType))
-      messages.push("• Choose a quest type (How)");
-    if (!isPartyComplete.value) messages.push("• Pick the heroes (Who)");
-    return messages.join("\n");
-  };
+  /** What the quest still needs before heroes see it, one "• line" each (the Save chip's list) */
+  const getValidationMessage = () =>
+    questMissing(achievement.value)
+      .map((line) => `• ${line}`)
+      .join("\n");
 
   // Actions
-  const loadData = async (routeId?: string) => {
+  const loadData = async (routeId?: string): Promise<LoadedQuest> => {
     loading.value = true;
     resetPick();
+    let loaded: LoadedQuest = { isSaved: false, wasDraft: false };
     try {
       // Update ID if provided
       if (routeId) {
@@ -500,6 +453,7 @@ export function useAchievementForm() {
       if (isSavedQuestId(id.value)) {
         const task = await achievementDb.getTaskById(id.value);
         if (task) {
+          loaded = { isSaved: true, wasDraft: task.draft === true };
           achievement.value = { ...achievement.value, ...task };
 
           // Honor stored adventureType, or infer if legacy
@@ -531,6 +485,7 @@ export function useAchievementForm() {
     } finally {
       loading.value = false;
     }
+    return loaded;
   };
 
   /** What goes to storage: no empty times of day, no unusable minutes */
@@ -581,33 +536,36 @@ export function useAchievementForm() {
     }, {} as Record<string, number>)
   );
 
-  const saveManual = async () => {
-    if (!isValidAdventure.value) {
-      const alert = await alertController.create({
-        header: "Incomplete Adventure",
-        message: getValidationMessage(),
-        buttons: ["OK"],
-      });
-      await alert.present();
-      return;
-    }
+  /** Save the pending edit now (leaving the page before the 2 second timer runs) */
+  const flushSave = async () => {
+    await autosave.flush();
+  };
 
-    achievement.value.achievementName = formatQuestName(
-      achievement.value.achievementName
-    );
-    achievement.value.draft = false;
-    await applySuggestedBeast();
-    await achievementDb.setTask(questForStorage());
-    lastSavedState.value = JSON.stringify(achievement.value);
-    saveState.value = "saved";
-    const toast = await toastController.create({
-      message: "Quest saved!",
-      duration: 2000,
-      cssClass: "rpg-toast",
-      position: "top",
-    });
-    await toast.present();
-    back();
+  /**
+   * The last step's verb: the quest is complete, so mark it Ready (no longer a draft) and save it for good. Returns
+   * false, saving nothing, while it is not complete; the wizard keeps the verb shut until then. The page says "Ready".
+   */
+  const markReady = async (): Promise<boolean> => {
+    if (!isValidAdventure.value) return false;
+    saving.value = true;
+    saveState.value = "saving";
+    try {
+      achievement.value.achievementName = formatQuestName(
+        achievement.value.achievementName
+      );
+      achievement.value.draft = false;
+      await applySuggestedBeast();
+      await achievementDb.setTask(questForStorage());
+      lastSavedState.value = JSON.stringify(achievement.value);
+      saveState.value = "saved";
+      return true;
+    } catch (error) {
+      debug.error("Quest could not be marked Ready:", error);
+      saveState.value = "error";
+      return false;
+    } finally {
+      saving.value = false;
+    }
   };
 
   // Watchers
@@ -658,7 +616,6 @@ export function useAchievementForm() {
     getValidationMessage,
 
     // UI
-    activeSegment,
     adventureType: computed({
       get: () => achievement.value.adventureType,
       set: (val) => (achievement.value.adventureType = val),
@@ -673,7 +630,6 @@ export function useAchievementForm() {
     displayFibonacciValue,
     ...effort,
     ...suggestionForTabs,
-    segments,
     achievementTypes,
     assignmentTypes,
     toggleHero,
@@ -736,7 +692,8 @@ export function useAchievementForm() {
 
     // Actions
     loadData,
-    saveManual,
+    markReady,
+    flushSave,
     updatePoints,
     increaseDifficulty,
     decreaseDifficulty,
@@ -786,8 +743,18 @@ export function useAchievementForm() {
     showBonusModal,
 
     // Category Actions
-    addCategory: async (cat: any) => {
-      await categoryDb.setCategory(cat);
+    /** Tapping a category in the modal files the quest under it */
+    pickCategory: (cat: AchievementCategoryInterface) => {
+      achievement.value.categoryId = cat.id;
+    },
+    /** A typed name that is already a category (any case or spacing) is picked, never added a second time */
+    addCategory: async (cat: AchievementCategoryInterface) => {
+      const existing = findCategory(categories.value, cat.name);
+      if (existing) {
+        achievement.value.categoryId = existing.id;
+        return;
+      }
+      await categoryDb.setCategory({ ...cat, name: cleanCategoryName(cat.name) });
       const all = await categoryDb.getAll();
       categories.value = all.sort(sortCategoryByName);
       achievement.value.categoryId = cat.id;

@@ -1,5 +1,7 @@
 import { RouteRecordRaw } from "vue-router";
 
+const CONFIG = "/game-master/compendium/achievements/config";
+
 export const AchievementRoutes: RouteRecordRaw[] = [
   {
     path: "achievements",
@@ -9,50 +11,26 @@ export const AchievementRoutes: RouteRecordRaw[] = [
         "@/app/Admin/XpCompendium/views/XpAchievements/XpAchievements.vue"
       ),
   },
+  // The quest config is one page, the wizard (What's the chore? -> Who? -> When? -> How hard? -> Ready?). The step is
+  // the page's own state, not a route; "dashboard" stays the name callers push (the quest list, the temple room editor).
   {
-    path: "achievements/config/:id",
+    path: "achievements/config/:id/dashboard",
+    name: "xp-achievement-config-dashboard",
     component: () =>
       import(
         "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/XpConfigAchievement.vue"
       ),
     props: true,
-    children: [
-      {
-        path: "",
-        name: "xp-achievement-config",
-        redirect: (to: any) => `/game-master/compendium/achievements/config/${to.params.id || 'new'}/dashboard`,
-      },
-      {
-        path: "dashboard",
-        name: "xp-achievement-config-dashboard",
-        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestDashboardTab.vue"),
-        props: true,
-      },
-      {
-        path: "heros",
-        name: "xp-achievement-config-heros",
-        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestHerosTab.vue"),
-        props: true,
-      },
-      {
-        path: "when",
-        name: "xp-achievement-config-when",
-        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestScheduleTab.vue"),
-        props: true,
-      },
-      {
-        path: "points",
-        name: "xp-achievement-config-points",
-        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestRewardsTab.vue"),
-        props: true,
-      },
-      {
-        path: "quest-type",
-        name: "xp-achievement-config-type",
-        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestTypeTab.vue"),
-        props: true,
-      },
-    ]
+  },
+  // A link without the page name, and the old tab addresses (heros, when, points, quest-type), land on the wizard
+  {
+    path: "achievements/config/:id",
+    name: "xp-achievement-config",
+    redirect: (to) => `${CONFIG}/${to.params.id || "new"}/dashboard`,
+  },
+  {
+    path: "achievements/config/:id/:tab(heros|when|points|quest-type)",
+    redirect: (to) => `${CONFIG}/${to.params.id || "new"}/dashboard`,
   },
 ];
 

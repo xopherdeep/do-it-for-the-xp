@@ -1,0 +1,405 @@
+// Game Style surfaces shared by the Final Fantasy, Chrono Trigger and Zelda themes.
+//
+// Each theme sets its look as --gs-* custom properties on ion-app#<id> and includes
+// game-style-surfaces() inside that block; the rules here only read the properties, so the
+// same windows, bars, lists, sheets, alerts and toasts take each game's frame, palette and
+// font. eb-box() (styles/themes/earthbound.scss) reads the same --gs-window/--gs-frame/
+// --gs-radius/--gs-text properties, so component boxes follow the theme too, and fall back
+// to Earthbound when no game style sets them.
+//
+// The frames are CSS recreations of each game's menu look; no game art is shipped.
+//
+// Tokens:
+//   --gs-font, --gs-font-title      body and heading fonts
+//   --gs-font-adjust                font-size-adjust for a body font with a short x-height
+//   --gs-title-case                 text-transform for headings
+//   --gs-text, --gs-text-dim        text colors inside windows
+//   --gs-accent                     headings, labels, the selected value
+//   --gs-text-shadow                the drop shadow every SNES menu font carries
+//   --gs-page, --gs-page-color      page background (any background value) and its base color
+//   --gs-window, --gs-window-color  window fill (any background value) and its base color
+//   --gs-frame, --gs-radius         window frame as box-shadow rings, and its corner radius
+//   --gs-bar, --gs-bar-frame        the top toolbar fill and frame
+//   --gs-divider, --gs-select       lines between rows, and the row under the cursor
+//   --gs-cursor, --gs-cursor-w/-h   the menu cursor image and its size
+
+// Pixel cursors, drawn on a grid for this app (an original glove and heart, not game sprites)
+$gs-hand-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 10' shape-rendering='crispEdges'%3E%3Crect x='4' y='0' width='10' height='1' fill='%23101018'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23101018'/%3E%3Crect x='4' y='1' width='10' height='1' fill='%23f8f8f8'/%3E%3Crect x='14' y='1' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='2' width='3' height='1' fill='%23101018'/%3E%3Crect x='3' y='2' width='4' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='2' width='7' height='1' fill='%23101018'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='3' width='5' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='3' width='3' height='1' fill='%23f8f8f8'/%3E%3Crect x='10' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='4' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='4' width='6' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='4' width='4' height='1' fill='%23101018'/%3E%3Crect x='0' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='5' width='3' height='1' fill='%23f8f8f8'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='6' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='6' width='6' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='6' width='3' height='1' fill='%23101018'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%23a8a8b8'/%3E%3Crect x='2' y='7' width='4' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='7' width='2' height='1' fill='%23f8f8f8'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='8' width='1' height='1' fill='%23101018'/%3E%3Crect x='2' y='8' width='3' height='1' fill='%23a8a8b8'/%3E%3Crect x='5' y='8' width='2' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='8' width='2' height='1' fill='%23101018'/%3E%3Crect x='2' y='9' width='6' height='1' fill='%23101018'/%3E%3C/svg%3E");
+$gs-heart-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 8' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='3' height='1' fill='%23200000'/%3E%3Crect x='5' y='0' width='3' height='1' fill='%23200000'/%3E%3Crect x='0' y='1' width='1' height='1' fill='%23200000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23e83030'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23f8f8f8'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23e83030'/%3E%3Crect x='4' y='1' width='1' height='1' fill='%23200000'/%3E%3Crect x='5' y='1' width='3' height='1' fill='%23e83030'/%3E%3Crect x='8' y='1' width='1' height='1' fill='%23200000'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%23200000'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23f8f8f8'/%3E%3Crect x='2' y='2' width='6' height='1' fill='%23e83030'/%3E%3Crect x='8' y='2' width='1' height='1' fill='%23200000'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%23200000'/%3E%3Crect x='1' y='3' width='6' height='1' fill='%23e83030'/%3E%3Crect x='7' y='3' width='1' height='1' fill='%23a01010'/%3E%3Crect x='8' y='3' width='1' height='1' fill='%23200000'/%3E%3Crect x='1' y='4' width='1' height='1' fill='%23200000'/%3E%3Crect x='2' y='4' width='4' height='1' fill='%23e83030'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%23a01010'/%3E%3Crect x='7' y='4' width='1' height='1' fill='%23200000'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%23200000'/%3E%3Crect x='3' y='5' width='2' height='1' fill='%23e83030'/%3E%3Crect x='5' y='5' width='1' height='1' fill='%23a01010'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%23200000'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23200000'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23a01010'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%23200000'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23200000'/%3E%3C/svg%3E");
+
+@mixin gs-cursor {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: var(--gs-cursor-w, 20px);
+  height: var(--gs-cursor-h, 13px);
+  transform: translateY(-50%);
+  background: var(--gs-cursor) no-repeat center / contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 2;
+  animation: gs-cursor-bob 0.6s steps(2, end) infinite;
+}
+
+@keyframes gs-cursor-bob {
+  from {
+    margin-left: 0;
+  }
+
+  to {
+    margin-left: 3px;
+  }
+}
+
+@mixin gs-window {
+  background: var(--gs-window);
+  box-shadow: var(--gs-frame);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text);
+}
+
+@mixin gs-text {
+  font-family: var(--gs-font);
+  color: var(--gs-text);
+  text-shadow: var(--gs-text-shadow);
+}
+
+@mixin gs-heading {
+  font-family: var(--gs-font-title);
+  color: var(--gs-accent);
+  text-transform: var(--gs-title-case, none);
+  text-shadow: var(--gs-text-shadow);
+  letter-spacing: 0.5px;
+  font-weight: normal;
+}
+
+@mixin game-style-surfaces {
+  font-family: var(--gs-font);
+  color: var(--gs-text);
+
+  // Ionic's own colors follow the game: dark pages, light text
+  --ion-background-color: var(--gs-page-color);
+  --ion-text-color: var(--gs-text);
+  --ion-item-background: transparent;
+  --ion-toolbar-background: var(--gs-window-color);
+  --ion-toolbar-color: var(--gs-text);
+  --ion-border-color: var(--gs-divider);
+  --ion-color-step-850: var(--gs-text);
+
+  // Fonts on every text element, over the Earthbound fonts components set for themselves
+  ion-title,
+  ion-card-title,
+  ion-list-header,
+  ion-item-divider,
+  ion-segment-button {
+    font-family: var(--gs-font-title);
+  }
+
+  ion-card-content,
+  ion-card-subtitle,
+  ion-item,
+  ion-label,
+  ion-note,
+  ion-select,
+  ion-input,
+  ion-textarea,
+  ion-searchbar,
+  ion-button,
+  ion-chip,
+  ion-badge,
+  ion-label h1,
+  ion-label h2,
+  ion-label h3,
+  ion-label p,
+  ion-card p,
+  .action-sheet-button,
+  .alert-message {
+    font-family: var(--gs-font);
+    font-size-adjust: var(--gs-font-adjust, none);
+
+    // icon fonts keep their own size
+    i,
+    ion-icon {
+      font-size-adjust: none;
+    }
+  }
+
+  // Pages sit on the game's own backdrop instead of the Earthbound checkerboard
+  ion-content#container,
+  .bg-slide,
+  .xp-settings-home ion-content {
+    --background: var(--gs-page);
+    background: transparent;
+    animation: none;
+  }
+
+  // The top bar is a window strip
+  ion-toolbar.rpg-box {
+    --background: var(--gs-bar);
+    --color: var(--gs-text);
+    --border-width: 0;
+    box-shadow: var(--gs-bar-frame);
+    margin-bottom: 1em;
+
+    ion-title {
+      @include gs-heading;
+      color: var(--gs-text);
+      font-size: 22px;
+    }
+
+    ion-back-button,
+    ion-menu-button,
+    ion-buttons {
+      --color: var(--gs-text);
+      color: var(--gs-text);
+    }
+  }
+
+  // Cards are the game's menu windows
+  ion-card {
+    @include gs-window;
+    margin: 1rem auto;
+    width: calc(100% - 2.5em);
+    display: block;
+    position: relative;
+    overflow: visible;
+    border: none;
+    --background: transparent;
+    --color: var(--gs-text);
+
+    ion-card-header {
+      border-bottom: none;
+    }
+
+    ion-card-title {
+      @include gs-heading;
+      background: transparent !important;
+      padding: 1px 5px;
+      font-size: 20px;
+    }
+
+    ion-card-subtitle {
+      color: var(--gs-text-dim);
+      text-shadow: var(--gs-text-shadow);
+    }
+
+    ion-card-content,
+    ion-card-content p {
+      color: var(--gs-text);
+      text-shadow: var(--gs-text-shadow);
+    }
+
+    hr {
+      background: var(--gs-divider) !important;
+    }
+
+    ion-list,
+    ion-item-group {
+      background: transparent;
+      --background: transparent;
+    }
+
+    // Rows: transparent on the window, room on the left for the cursor
+    ion-item {
+      --background: transparent;
+      --ion-item-background: transparent;
+      --border-color: var(--gs-divider);
+      --color: var(--gs-text) !important;
+      --padding-start: 28px;
+      background: transparent;
+      color: var(--gs-text) !important;
+      text-shadow: var(--gs-text-shadow);
+      position: relative;
+
+      ion-label {
+        color: var(--gs-text) !important;
+
+        h1,
+        h2,
+        h3 {
+          color: var(--gs-text);
+          font-size: 19px;
+        }
+
+        p {
+          color: var(--gs-text-dim) !important;
+          font-size: 15px;
+        }
+      }
+
+      ion-select {
+        color: var(--gs-accent) !important;
+        --placeholder-color: var(--gs-text-dim);
+      }
+
+      &:hover,
+      &.ion-focused,
+      &.item-has-focus {
+        --background: var(--gs-select);
+
+        &::before {
+          @include gs-cursor;
+        }
+      }
+    }
+
+    // Section headers are labels on the window, not white or black bars
+    ion-list-header,
+    ion-item-divider {
+      --background: transparent;
+      --color: var(--gs-accent);
+      --padding-start: 12px;
+      @include gs-heading;
+      font-size: 18px;
+      min-height: 36px;
+      border-bottom: 1px solid var(--gs-divider);
+
+      ion-label {
+        @include gs-heading;
+        color: var(--gs-accent) !important;
+      }
+    }
+  }
+
+  // The same windows on settings pages: keep the settings layout, change only the look
+  .xp-settings-page ion-content ion-card {
+    width: calc(100% - 32px);
+    margin: 16px auto;
+
+    & ~ ion-card {
+      margin-top: 32px;
+    }
+  }
+
+  .settings-card ion-card-header ion-thumbnail {
+    background: var(--gs-select) !important;
+  }
+
+  ion-segment {
+    font-family: var(--gs-font-title);
+
+    ion-segment-button ion-label {
+      font-family: var(--gs-font-title);
+    }
+  }
+
+  // Action sheets (every ion-select uses one) are a menu window with the cursor
+  .action-sheet-wrapper {
+    --background: transparent;
+    --color: var(--gs-text);
+
+    .action-sheet-container {
+      @include gs-window;
+      max-width: 90%;
+      width: 360px;
+      margin: 0 auto 24px;
+      padding: 6px 0;
+    }
+
+    .action-sheet-group {
+      background: transparent !important;
+      color: var(--gs-text);
+      border-radius: 0;
+    }
+
+    .action-sheet-title {
+      @include gs-heading;
+      font-size: 18px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--gs-divider);
+    }
+
+    .action-sheet-button {
+      @include gs-text;
+      position: relative;
+      font-size: 18px;
+      padding-left: 34px;
+      background: transparent;
+
+      &:hover,
+      &.ion-focused,
+      &.ion-activated {
+        background: var(--gs-select);
+
+        &::before {
+          @include gs-cursor;
+          left: 8px;
+        }
+      }
+
+      &.action-sheet-selected {
+        color: var(--gs-accent);
+        font-weight: normal;
+      }
+
+      &.action-sheet-cancel {
+        color: var(--gs-text-dim);
+        border-top: 1px solid var(--gs-divider);
+      }
+    }
+  }
+
+  // Alerts: a dialog window
+  ion-alert {
+    --background: var(--gs-window-color);
+
+    .alert-wrapper {
+      @include gs-window;
+    }
+
+    .alert-title,
+    .alert-sub-title {
+      @include gs-heading;
+    }
+
+    .alert-message,
+    .alert-radio-label,
+    .alert-checkbox-label,
+    .alert-input {
+      @include gs-text;
+    }
+
+    .alert-button {
+      @include gs-text;
+      color: var(--gs-accent);
+      text-transform: none;
+    }
+  }
+
+  // Toasts: a message window (rpg-toast is the app's own toast class)
+  ion-toast,
+  ion-toast.rpg-toast {
+    --background: var(--gs-window-color);
+    --color: var(--gs-text);
+    --border-radius: var(--gs-radius);
+    --box-shadow: var(--gs-frame);
+    --button-color: var(--gs-accent);
+    font-family: var(--gs-font);
+
+    &::part(container) {
+      background: var(--gs-window) !important;
+      box-shadow: var(--gs-frame) !important;
+      border-radius: var(--gs-radius) !important;
+      color: var(--gs-text) !important;
+    }
+
+    &::part(header),
+    &::part(message) {
+      font-family: var(--gs-font);
+      color: var(--gs-text) !important;
+    }
+
+    &::part(button),
+    &::part(icon) {
+      font-family: var(--gs-font);
+      color: var(--gs-accent) !important;
+    }
+  }
+
+  // Scrollbars in the window colors
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gs-text-dim) var(--gs-window-color);
+  }
+}

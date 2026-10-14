@@ -1,12 +1,13 @@
 /**
- * The quest form hook (useAchievementForm) at the three things the Game Master sees on the Why and How tabs:
- * the tier chip and the "About how long?" minutes (they follow the difficulty slider until the parent edits the
- * minutes, and a reset goes back), and the beast the library suggests for a quest that has none (only for a plain
- * quest with no beast; a live quest takes it on save, the beast joins the bestiary). Only the browser's storage is
- * faked (in memory); the rules are in tests/unit/questFormRules.spec.ts.
+ * The quest form hook (useAchievementForm) at the things the Game Master sees in the quest wizard: the tier chip and
+ * the "About how long?" minutes on How hard? (they follow the difficulty slider until the parent edits the minutes, and
+ * a reset goes back), the beast the library suggests for a quest that has none on What's the chore? (only for a plain
+ * quest with no beast; a live quest takes it on save, the beast joins the bestiary), the category a typed name picks,
+ * and the Ready verb of the last step. Only the browser's storage is faked (in memory); the step rules are in
+ * tests/unit/questConfigWizard.spec.ts and the form rules in tests/unit/questFormRules.spec.ts.
  */
 import { nextTick } from "vue";
-import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import AchievementDb, { AchievementCategoryDb, achievementCategoryStorage, achievementStorage } from "@/lib/databases/AchievementDb";
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { useAchievementForm } from "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/hooks/useAchievementForm";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
@@ -110,7 +111,7 @@ const savedQuest = async (form: Awaited<ReturnType<typeof newForm>>) => {
   return achievementDb.getTaskById(form.achievement.value.id);
 };
 
-describe("the Why tab: tier chip and minutes", () => {
+describe("How hard?: tier chip and minutes", () => {
   it("names the tier of the difficulty", async () => {
     const form = await newForm();
     expect(form.questTierName.value).toBe("Monster");
@@ -180,7 +181,7 @@ describe("the Why tab: tier chip and minutes", () => {
   });
 });
 
-describe("the How tab: the beast the library suggests", () => {
+describe("What's the chore?: the beast the library suggests", () => {
   it("suggests the beast of the chore for a quest with no beast", async () => {
     const form = await newForm();
     expect(form.suggestedBeast.value?.name).toBe("Dish Goblin");
@@ -270,5 +271,81 @@ describe("the How tab: the beast the library suggests", () => {
     form.achievement.value.assignee = ["hero-1"];
     const saved = await savedQuest(form);
     expect(saved).toMatchObject({ beastId: "beast-socktopus", adventureType: "beast", draft: false });
+  });
+});
+
+describe("What's the chore?: the category a typed name picks", () => {
+  const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
+
+  beforeEach(async () => {
+    await categoryDb.clear();
+  });
+
+  it("adds a new category and files the quest under it", async () => {
+    const form = await newForm();
+    await form.addCategory({ id: "cat-kitchen", name: "  Kitchen " });
+    expect(form.categories.value).toEqual([{ id: "cat-kitchen", name: "Kitchen" }]);
+    expect(form.achievement.value.categoryId).toBe("cat-kitchen");
+  });
+
+  it("picks the category a typed name already is, in any case or spacing, and adds no second one", async () => {
+    const form = await newForm();
+    await form.addCategory({ id: "cat-kitchen", name: "Kitchen" });
+    await form.addCategory({ id: "cat-garden", name: "Garden" });
+    expect(form.achievement.value.categoryId).toBe("cat-garden");
+
+    await form.addCategory({ id: "cat-again", name: "  kitchen " });
+    expect(form.achievement.value.categoryId).toBe("cat-kitchen");
+    expect(form.categories.value.map((category) => category.name)).toEqual(["Garden", "Kitchen"]);
+    expect((await categoryDb.getAll()).map((category) => category.id).sort()).toEqual(["cat-garden", "cat-kitchen"]);
+  });
+
+  it("files the quest under a category the parent taps in the list", async () => {
+    const form = await newForm();
+    await form.addCategory({ id: "cat-kitchen", name: "Kitchen" });
+    await form.addCategory({ id: "cat-garden", name: "Garden" });
+    form.pickCategory({ id: "cat-kitchen", name: "Kitchen" });
+    expect(form.achievement.value.categoryId).toBe("cat-kitchen");
+  });
+});
+
+describe("Ready?: the last step's verb", () => {
+  it("lists what a quest still needs, in the words of the steps", async () => {
+    const form = await newForm("Load the dishwasher", false);
+    form.achievement.value.categoryId = "";
+    form.achievement.value.assignee = [];
+    expect(form.isValidAdventure.value).toBe(false);
+    expect(form.getValidationMessage()).toBe("• Pick a category\n• Pick at least one hero");
+    form.achievement.value.categoryId = "cat-1";
+    form.achievement.value.assignee = ["hero-1"];
+    expect(form.isValidAdventure.value).toBe(true);
+    expect(form.getValidationMessage()).toBe("");
+  });
+
+  it("marks a complete draft Ready: saved for good, no longer a draft", async () => {
+    const form = await newForm("Load the dishwasher", false);
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+    form.achievement.value.categoryId = "cat-1";
+    form.achievement.value.assignee = ["hero-1"];
+    expect(await form.markReady()).toBe(true);
+    expect(form.saveState.value).toBe("saved");
+    expect(await achievementDb.getTaskById(form.achievement.value.id)).toMatchObject({ draft: false });
+  });
+
+  it("refuses a quest that is not complete, and saves nothing", async () => {
+    const form = await newForm("Load the dishwasher", false);
+    expect(await form.markReady()).toBe(false);
+    expect(await achievementDb.getTaskById(form.achievement.value.id)).toBeNull();
+  });
+});
+
+describe("opening a quest", () => {
+  it("says whether it was already saved and whether it was still a draft", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Half done", draft: true });
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-live", achievementName: "Done", draft: false });
+    const form = useAchievementForm();
+    expect(await form.loadData("q-draft")).toEqual({ isSaved: true, wasDraft: true });
+    expect(await form.loadData("q-live")).toEqual({ isSaved: true, wasDraft: false });
+    expect(await form.loadData("q-nowhere")).toEqual({ isSaved: false, wasDraft: false });
   });
 });

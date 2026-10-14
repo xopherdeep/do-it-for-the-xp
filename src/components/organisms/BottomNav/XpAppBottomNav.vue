@@ -34,6 +34,7 @@ import { computed } from "vue";
 import { IonIcon } from "@ionic/vue";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import { play$fx } from "@/assets/fx";
+import { toFaClass } from "@/lib/utils/faIcon";
 import type { AppNavTab } from "./appBottomNav";
 export type { AppNavTab };
 
@@ -62,11 +63,6 @@ const hasPositiveBadge = (badge?: number | string | null): boolean => {
   if (badge === null || badge === undefined) return false;
   if (typeof badge === "number") return badge > 0;
   return Boolean(String(badge).trim());
-};
-
-const toFaClass = (icon?: string): string => {
-  if (!icon) return "";
-  return icon.startsWith("fa-") ? icon : `fa-${icon}`;
 };
 
 const selectTab = (id: string) => {

@@ -25,10 +25,7 @@
                 @ionChange="changeUISound"
               >
                 <ion-select-option value="nintendo">Nintendo</ion-select-option>
-                <ion-select-option value="playstation"
-                  >PlayStation</ion-select-option
-                >
-                <ion-select-option value="xbox">Xbox</ion-select-option>
+                <ion-select-option value="sony">PlayStation</ion-select-option>
               </ion-select>
             </ion-item>
           </ion-item-group>
