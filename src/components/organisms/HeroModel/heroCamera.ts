@@ -202,11 +202,15 @@ export const stepFrame = (
   return { frame: lerpFrame(from, to, easeOutCubic(k)), done: false };
 };
 
-export const addHeroLights =(scene: THREE.Scene): void => {
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.7));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+/** A cool sky over a warm floor bounce, a warm key from the camera's upper right and a faint cool fill from behind */
+export const addHeroLights = (scene: THREE.Scene): void => {
+  scene.add(new THREE.HemisphereLight(0xeef4ff, 0x8a6e58, 1.5));
+  const sun = new THREE.DirectionalLight(0xfff0dc, 2.3);
   sun.position.set(6, 12, 10);
   scene.add(sun);
+  const back = new THREE.DirectionalLight(0xb8d0ff, 0.3);
+  back.position.set(-8, 6, -10);
+  scene.add(back);
 };
 
 /** Rows come out bottom-up and anti-aliased edges are premultiplied: flip and un-premultiply into a PNG data URL */

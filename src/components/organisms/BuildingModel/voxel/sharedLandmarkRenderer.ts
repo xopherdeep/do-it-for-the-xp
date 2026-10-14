@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { isOrganizeMode } from "@/components/organisms/DraggableSpot/spotState";
 import { fitCamera, fitPosition, measurePositions } from "@/components/organisms/voxel/fitCamera";
+import { createSoftShadowMaterial, createVoxelMaterial, voxelGeometry } from "@/components/organisms/voxel/voxelMaterial";
 import type { Bounds, Ring } from "@/components/organisms/voxel/fitCamera";
 
 export interface LandmarkOptions {
@@ -93,7 +94,8 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
     sharedRenderer = new THREE.WebGLRenderer({
       canvas: sharedCanvas,
       alpha: true,
-      antialias: false,
+      // Phones (2x and up) are sharp enough without it; a 1x screen gets smooth block edges
+      antialias: (window.devicePixelRatio || 1) <= 1.5,
       powerPreference: "high-performance",
       depth: true,
       stencil: false,
@@ -145,25 +147,8 @@ const buildClientMesh = (client: LandmarkClient): void => {
   }
 
   const data = client.getMeshData();
-  const colors = new Float32Array(data.colors.length);
-  const color = new THREE.Color();
-  for (let i = 0; i < data.colors.length; i += 12) {
-    color.setRGB(data.colors[i], data.colors[i + 1], data.colors[i + 2], THREE.SRGBColorSpace);
-    for (let k = 0; k < 4; k++) {
-      colors[i + k * 3] = color.r;
-      colors[i + k * 3 + 1] = color.g;
-      colors[i + k * 3 + 2] = color.b;
-    }
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(data.positions, 3));
-  geometry.setAttribute("normal", new THREE.BufferAttribute(data.normals, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setIndex(new THREE.BufferAttribute(data.indices, 1));
-  geometry.computeBoundingBox();
-
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const geometry = voxelGeometry(data);
+  const material = createVoxelMaterial();
   client.mesh = new THREE.Mesh(geometry, material);
   client.mesh.position.y = 0;
   client.group.add(client.mesh);
@@ -225,20 +210,17 @@ const frameClient = (client: LandmarkClient): void => {
 
 const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIntensity = 1.3): void => {
   const scene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity);
+  // Sky from above, warm bounce from the floor: tops read lighter than undersides even where the sun does not reach
+  const ambient = new THREE.HemisphereLight(0xeef4ff, 0x8a7460, ambientIntensity * 1.15);
   scene.add(ambient);
-  const dirLight = new THREE.DirectionalLight(0xffffff, dirIntensity);
+  const dirLight = new THREE.DirectionalLight(0xfff2e0, dirIntensity * 1.15);
   dirLight.position.set(18, 30, 22);
   scene.add(dirLight);
   const fillLight = new THREE.DirectionalLight(0xb0d8ff, 0.48);
   fillLight.position.set(-18, 12, -18);
   scene.add(fillLight);
-  const shadowGeo = new THREE.CircleGeometry(SHADOW_RADIUS, 16);
-  const shadowMat = new THREE.MeshBasicMaterial({
-    color: 0x000000,
-    transparent: true,
-    opacity: 0.22,
-  });
+  const shadowGeo = new THREE.CircleGeometry(SHADOW_RADIUS, 24);
+  const shadowMat = createSoftShadowMaterial(0.6);
   const shadow = new THREE.Mesh(shadowGeo, shadowMat);
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = SHADOW_Y;

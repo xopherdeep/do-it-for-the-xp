@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import type { HeroLook } from "@/lib/hero-look/types";
+import { createSoftShadowMaterial, createVoxelMaterial, voxelGeometry } from "@/components/organisms/voxel/voxelMaterial";
 import { assembleHero } from "./assemble";
 import { buildMeshData } from "./mesh";
-import type { Box } from "./mesh";
+import type { Box, MeshData } from "./mesh";
 import type { Part, PartName } from "./shape";
 
 /**
@@ -15,7 +16,7 @@ import type { Part, PartName } from "./shape";
  *      |- armL -> handL   hands hang off their arm so they follow it (a held item rides in the hand's geometry)
  *      `- armR -> handR
  *
- * One merged BufferGeometry (vertex colours, no textures) per named group, one shared material: 8 body draws plus the
+ * One merged BufferGeometry (vertex colours, no textures) per named group, one shared voxel material (voxelMaterial.ts): 8 body draws plus the
  * shadow = 9 draw calls.
  */
 export interface HeroRig {
@@ -31,28 +32,45 @@ export interface RestPose {
 
 export const PART_NAMES: PartName[] = ["torso", "head", "armL", "armR", "legL", "legR", "handL", "handR"];
 
-const toGeometry = (boxes: Box[], pivot: { x: number; y: number; z: number }): THREE.BufferGeometry => {
-  const centred = boxes.map((b) => ({ ...b, x: b.x - pivot.x, y: b.y - pivot.y, z: b.z - pivot.z }));
-  const data = buildMeshData(centred);
-  const colors = new Float32Array(data.colors.length);
-  const color = new THREE.Color();
-  // Faces share one colour across their four vertices; convert sRGB to the renderer's working space once per face
-  for (let i = 0; i < data.colors.length; i += 12) {
-    color.setRGB(data.colors[i], data.colors[i + 1], data.colors[i + 2], THREE.SRGBColorSpace);
-    for (let k = 0; k < 4; k++) {
-      colors[i + k * 3] = color.r;
-      colors[i + k * 3 + 1] = color.g;
-      colors[i + k * 3 + 2] = color.b;
-    }
+/**
+ * The parts whose rest pose touches another's, for the shade where they meet: the head sits on the torso and the torso
+ * on the legs. Arms and hands swing and lift too far for a baked contact to hold, so they shade only themselves.
+ */
+const CONTACTS: Partial<Record<PartName, PartName[]>> = {
+  torso: ["head", "legL", "legR"],
+  head: ["torso"],
+  legL: ["torso"],
+  legR: ["torso"],
+};
+
+/**
+ * Recently meshed parts by what they are made of. Baking the shading is the dear part of a build, and the builder's
+ * thumbnails rebuild the same hero dozens of times with one option changed: the other parts come from here.
+ */
+const meshCache = new Map<string, MeshData>();
+const MESH_CACHE_SIZE = 96;
+
+const meshPart = (boxes: Box[], occluders: Box[]): MeshData => {
+  const key = JSON.stringify([boxes, occluders]);
+  const cached = meshCache.get(key);
+  if (cached) {
+    // most recently used last, so the oldest is first out
+    meshCache.delete(key);
+    meshCache.set(key, cached);
+    return cached;
   }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(data.positions, 3));
-  geometry.setAttribute("normal", new THREE.BufferAttribute(data.normals, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setIndex(new THREE.BufferAttribute(data.indices, 1));
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  return geometry;
+  const data = buildMeshData(boxes, occluders);
+  meshCache.set(key, data);
+  if (meshCache.size > MESH_CACHE_SIZE) meshCache.delete(meshCache.keys().next().value as string);
+  return data;
+};
+
+const toGeometry = (part: Part, byName: Map<PartName, Part>): THREE.BufferGeometry => {
+  const { pivot } = part;
+  const centre = (boxes: Box[]): Box[] => boxes.map((b) => ({ ...b, x: b.x - pivot.x, y: b.y - pivot.y, z: b.z - pivot.z }));
+  const occluders = (CONTACTS[part.name] ?? []).flatMap((name) => byName.get(name)?.boxes ?? []);
+  // The mesh data is shared between cached builds: geometries only read it
+  return voxelGeometry(meshPart(centre(part.boxes), centre(occluders)));
 };
 
 const setRest = (group: THREE.Group, rot: [number, number, number] = [0, 0, 0]): void => {
@@ -64,7 +82,7 @@ const setRest = (group: THREE.Group, rot: [number, number, number] = [0, 0, 0]):
 export const buildHero = (look: HeroLook): THREE.Group => {
   const parts = assembleHero(look);
   const byName = new Map<PartName, Part>(parts.map((p) => [p.name, p]));
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const material = createVoxelMaterial();
 
   const root = new THREE.Group();
   root.name = "hero";
@@ -79,7 +97,7 @@ export const buildHero = (look: HeroLook): THREE.Group => {
     if (!part) throw new Error(`hero part missing: ${name}`);
     const group = new THREE.Group();
     group.name = name;
-    const mesh = new THREE.Mesh(toGeometry(part.boxes, part.pivot), material);
+    const mesh = new THREE.Mesh(toGeometry(part, byName), material);
     mesh.name = `${name}Mesh`;
     group.add(mesh);
     const parent = part.parent ? byName.get(part.parent) : undefined;
@@ -94,8 +112,8 @@ export const buildHero = (look: HeroLook): THREE.Group => {
   }
 
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(4.8, 12).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }),
+    new THREE.CircleGeometry(4.8, 24).rotateX(-Math.PI / 2),
+    createSoftShadowMaterial(0.5),
   );
   shadow.name = "shadow";
   shadow.position.y = 0.03;
