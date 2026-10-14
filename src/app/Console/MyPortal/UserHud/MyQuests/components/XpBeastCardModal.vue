@@ -206,6 +206,8 @@ import {
   tierBadge,
 } from "../beastCard";
 import type { BeastCardStatus, CardStep } from "../beastCard";
+import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
+import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 
 defineOptions({ name: "xp-beast-card-modal" });
 
@@ -430,22 +432,12 @@ const hunt = () => {
   void router.push(questBattleRoute(heroId.value, String(props.quest.id)));
 };
 
+// The battle's loot card counts the claim up over the closing card (locked tiles when the Game Master approves first)
 const announce = ({ awaitingApproval, levelUp, paid }: CompletionResult) => {
   const nick = userStore.getUserById(heroId.value)?.name?.nick || "The hero";
-  if (awaitingApproval) {
-    void say(t("beastCard.toast.sent"), nick);
-    return;
-  }
-  play$fx("select");
-  const { xp, gp, ap } = paid ?? rewards.value;
-  void say(t("beastCard.toast.tamed", { nick, quest: questTitle.value }), t("beastCard.toast.loot", { xp, gp, ap }), 2000);
-  if (!levelUp?.didLevelUp) return;
-  const { newLevel } = levelUp;
-  // let the rewards toast clear first
-  timers.startTimeout(2000, () => {
-    play$fx("levelUp");
-    void say(t("beastCard.toast.levelUp", { level: newLevel }), nick, 2400);
-  });
+  void showRewards(
+    questRewardsCard({ nick, questName: questTitle.value, rewards: paid ?? rewards.value, held: awaitingApproval, levelUp }),
+  );
 };
 
 const claim = async () => {
