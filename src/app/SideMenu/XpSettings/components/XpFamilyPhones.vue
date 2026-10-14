@@ -148,17 +148,23 @@ const PROBLEM_LINES: Partial<Record<FamilyProblem, FamilyCopyKey>> = {
 const banners = computed((): Banner[] => {
   const found: Banner[] = [];
   const isHomeElsewhere = family.home === "home-elsewhere";
-  const isOtherFamily = family.home === "other-family";
+  const isOtherFamily = family.home === "other-family" || (family.problem as string) === "other-family";
   if (isHomeElsewhere) {
     found.push({ id: "home-elsewhere", line: t("family.homeElsewhere"), action: { cy: "family-make-home", label: "Make this home", run: askToMakeHome } });
   }
   if (isOtherFamily) found.push({ id: "other-family", line: t("family.otherFamily") });
-  const problemLine = family.problem ? PROBLEM_LINES[family.problem as FamilyProblem] : undefined;
-  const hasProblemLine = problemLine !== undefined;
-  if (hasProblemLine) {
-    const isUnknownToSite = family.problem === "not-member";
+  const isHomeTaken = (family.home as string) === "taken";
+  const isHomeNotMember = (family.home as string) === "not-member";
+  const hasHomeProblem = isHomeTaken || isHomeNotMember;
+  const rawProblem = family.problem ?? (hasHomeProblem ? (family.home as FamilyProblem) : null);
+  const problemLine = rawProblem ? PROBLEM_LINES[rawProblem] : undefined;
+  const alreadyHasBanner = found.some((b) => b.id === `problem-${rawProblem}`);
+  const hasProblemLine = problemLine !== undefined && !alreadyHasBanner;
+  const shouldShowProblem = hasProblemLine && Boolean(rawProblem);
+  if (shouldShowProblem) {
+    const isUnknownToSite = rawProblem === "not-member";
     const action = isUnknownToSite ? { cy: "family-register", label: "Go to the Town Hall", run: goToTownHall } : undefined;
-    found.push({ id: `problem-${family.problem}`, line: t(problemLine), action });
+    found.push({ id: `problem-${rawProblem}`, line: t(problemLine as FamilyCopyKey), action });
   }
   return found;
 });

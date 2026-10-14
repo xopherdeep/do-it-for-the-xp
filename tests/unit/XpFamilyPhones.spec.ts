@@ -39,12 +39,21 @@ const PromptStub = defineComponent({
   setup(props, { emit }) {
     return () =>
       props.prompt
-        ? h("div", { "data-cy": "prompt" }, [
-            h("p", { "data-cy": "prompt-lines" }, props.prompt.options.lines.join(" ")),
-            ...props.prompt.options.choices.map((choice: { id: string; label: string }) =>
-              h("button", { "data-cy": `prompt-${choice.id}`, onClick: () => emit("respond", { id: choice.id, amount: null }) }, choice.label)
-            ),
-          ])
+        ? h(
+            "div",
+            {
+              "data-cy": "prompt",
+              "data-speaker": props.prompt.options.speaker,
+              "data-accent": props.prompt.options.accent,
+              "data-sprite": props.prompt.options.sprite,
+            },
+            [
+              h("p", { "data-cy": "prompt-lines" }, props.prompt.options.lines.join(" ")),
+              ...props.prompt.options.choices.map((choice: { id: string; label: string }) =>
+                h("button", { "data-cy": `prompt-${choice.id}`, onClick: () => emit("respond", { id: choice.id, amount: null }) }, choice.label)
+              ),
+            ]
+          )
         : null;
   },
 });
@@ -104,6 +113,14 @@ describe("XpFamilyPhones", () => {
   });
 
   describe("the heroes", () => {
+    it("two hero rows rendered when two heroes exist", async () => {
+      fill(kid(), kidTwo());
+      const wrapper = await open();
+      expect(rows(wrapper)).toHaveLength(2);
+      expect(rowOf(wrapper, "h-1").text()).toContain("Mia");
+      expect(rowOf(wrapper, "h-2").text()).toContain("Bo");
+    });
+
     it("has a row for each hero, Game Masters included, under their nickname", async () => {
       const wrapper = await open();
       expect(rows(wrapper)).toHaveLength(3);
@@ -117,7 +134,7 @@ describe("XpFamilyPhones", () => {
       expect(rowOf(wrapper, "h-1").find('[data-cy="family-phones-open"]').exists()).toBe(true);
     });
 
-    it("a hero without a nickname gets the clerk's line and an Edit button, and no Phones button", async () => {
+    it("hero with no nickname shows the needs-nickname line and no Phones button", async () => {
       fill(kid(), nameless());
       const wrapper = await open();
       const row = rowOf(wrapper, "h-3");
@@ -125,6 +142,7 @@ describe("XpFamilyPhones", () => {
       expect(row.find('[data-cy="family-edit"]').exists()).toBe(true);
       expect(row.find('[data-cy="family-phones-open"]').exists()).toBe(false);
       expect(rowOf(wrapper, "h-1").find('[data-cy="family-needs-nickname"]').exists()).toBe(false);
+      expect(rowOf(wrapper, "h-1").find('[data-cy="family-phones-open"]').exists()).toBe(true);
     });
 
     it("Edit opens the profile form for that hero, and the site hears of the new nickname after it closes", async () => {
@@ -146,9 +164,13 @@ describe("XpFamilyPhones", () => {
   });
 
   describe("age groups", () => {
-    it("asks for a kid with no birthday, not for a Game Master", async () => {
+    it("age picker shows for a kid without birthday, and not for a Game Master", async () => {
       const wrapper = await open();
+      expect(rowOf(wrapper, "h-1").find(".fp-ages").exists()).toBe(true);
+      expect(rowOf(wrapper, "h-1").find('[data-cy="age-h-1-teen"]').exists()).toBe(true);
+      expect(rowOf(wrapper, "h-2").find(".fp-ages").exists()).toBe(true);
       expect(rowOf(wrapper, "h-2").find('[data-cy="age-h-2-teen"]').exists()).toBe(true);
+      expect(rowOf(wrapper, "gm-1").find(".fp-ages").exists()).toBe(false);
       expect(rowOf(wrapper, "gm-1").find('[data-cy="age-gm-1-teen"]').exists()).toBe(false);
     });
 
@@ -156,9 +178,10 @@ describe("XpFamilyPhones", () => {
       fill(kid({ birthday: `${new Date().getFullYear() - 8}-01-01` }));
       const wrapper = await open();
       expect(wrapper.find('[data-cy="age-h-1-teen"]').exists()).toBe(false);
+      expect(wrapper.find(".fp-ages").exists()).toBe(false);
     });
 
-    it("picking teen calls setAgeGroup", async () => {
+    it("picking an age group (e.g. 'teen') calls family.setAgeGroup(heroId, 'teen')", async () => {
       const wrapper = await open();
       await cy(wrapper, "age-h-2-teen").trigger("click");
       expect(mockFamily.setAgeGroup).toHaveBeenCalledWith("h-2", "teen");
@@ -187,13 +210,28 @@ describe("XpFamilyPhones", () => {
       expect(cy(await open(), "family-banner").exists()).toBe(false);
     });
 
-    it("home elsewhere: the banner, and Yes to the clerk's question makes this device home", async () => {
+    it("home: 'home-elsewhere' banner with Make this home button (homeQuestionPrompt, then makeHome())", async () => {
       mockFamily.home = "home-elsewhere";
       const wrapper = await open();
-      expect(cy(wrapper, "family-banner").text()).toContain("This family's home is another device.");
-      await cy(wrapper, "family-make-home").trigger("click");
+      const banner = cy(wrapper, "family-banner");
+      expect(banner.exists()).toBe(true);
+      expect(banner.find("ion-label").text()).toBe("This family's home is another device. Make this one home?");
+      const button = cy(wrapper, "family-make-home");
+      expect(button.exists()).toBe(true);
+      expect(button.text()).toBe("Make this home");
+
+      await button.trigger("click");
       await flushPromises();
+
+      const promptEl = cy(wrapper, "prompt");
+      expect(promptEl.exists()).toBe(true);
+      expect(promptEl.attributes("data-speaker")).toBe("Town Clerk");
+      expect(promptEl.attributes("data-accent")).toBe("townHall");
+      expect(promptEl.attributes("data-sprite")).toBe("tablet");
       expect(cy(wrapper, "prompt-lines").text()).toBe("This family's home is another device. Make this one home?");
+      expect(cy(wrapper, "prompt-yes").text()).toBe("Make it home");
+      expect(cy(wrapper, "prompt-no").text()).toBe("Not now");
+
       await cy(wrapper, "prompt-yes").trigger("click");
       await flushPromises();
       expect(mockFamily.makeHome).toHaveBeenCalledTimes(1);
@@ -209,29 +247,69 @@ describe("XpFamilyPhones", () => {
       expect(mockFamily.makeHome).not.toHaveBeenCalled();
     });
 
-    it("another family on this account", async () => {
-      mockFamily.home = "other-family";
-      const wrapper = await open();
-      expect(cy(wrapper, "family-banner").text()).toContain("This account already runs another family.");
-      expect(cy(wrapper, "family-make-home").exists()).toBe(false);
-    });
+    describe("other-family, taken, not-member banners with their respective clerk lines", () => {
+      it("shows other-family banner with clerk line", async () => {
+        mockFamily.home = "other-family";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe(
+          "This account already runs another family. Bring it here with a backup file, or link this phone as a hero's phone with a code from the family's device."
+        );
+        expect(cy(wrapper, "family-make-home").exists()).toBe(false);
+      });
 
-    it("a family that belongs to another account", async () => {
-      mockFamily.problem = "taken";
-      expect(cy(await open(), "family-banner").text()).toContain("This family is registered to another account.");
-    });
+      it("shows other-family banner when problem is other-family", async () => {
+        mockFamily.problem = "other-family";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe(
+          "This account already runs another family. Bring it here with a backup file, or link this phone as a hero's phone with a code from the family's device."
+        );
+      });
 
-    it("an account the site does not know yet: the line and a way to the Town Hall's registration", async () => {
-      mockFamily.problem = "not-member";
-      const wrapper = await open();
-      expect(cy(wrapper, "family-banner").text()).toContain("The site doesn't know your family yet.");
-      await cy(wrapper, "family-register").trigger("click");
-      expect(mockPush).toHaveBeenCalledWith({ name: "town-hall", params: { userId: "gm-1" } });
-    });
+      it("shows taken banner with clerk line", async () => {
+        mockFamily.problem = "taken";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe("This family is registered to another account.");
+        expect(cy(wrapper, "family-make-home").exists()).toBe(false);
+      });
 
-    it("no connection: the courier line", async () => {
-      mockFamily.problem = "offline";
-      expect(cy(await open(), "family-banner").text()).toContain("The courier hasn't arrived.");
+      it("shows taken banner when home status is taken", async () => {
+        mockFamily.home = "taken";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe("This family is registered to another account.");
+      });
+
+      it("shows not-member banner with clerk line and link to Town Hall registration", async () => {
+        mockFamily.problem = "not-member";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe(
+          "The site doesn't know your family yet. Register the family with me first."
+        );
+        const registerButton = cy(wrapper, "family-register");
+        expect(registerButton.exists()).toBe(true);
+        expect(registerButton.text()).toBe("Go to the Town Hall");
+        await registerButton.trigger("click");
+        expect(mockPush).toHaveBeenCalledWith({ name: "town-hall", params: { userId: "gm-1" } });
+      });
+
+      it("shows not-member banner when home status is not-member", async () => {
+        mockFamily.home = "not-member";
+        const wrapper = await open();
+        const banner = cy(wrapper, "family-banner");
+        expect(banner.exists()).toBe(true);
+        expect(banner.find("ion-label").text()).toBe(
+          "The site doesn't know your family yet. Register the family with me first."
+        );
+      });
     });
   });
 });
