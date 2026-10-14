@@ -1,6 +1,7 @@
 // Characterization of the $fx object (src/assets/fx/library.ts and the sets it is built from) as it
 // behaved when fx/index.ts was split into modules.
 import { BGM_CDN, fallbackFor } from "@/lib/engine/audio/remoteBgm";
+import { GAME_STYLES } from "@/lib/utils/gameStyle";
 
 class FakeAudio {
   listeners: string[] = [];
@@ -58,7 +59,7 @@ describe("$fx", () => {
     expect($fx.theme).toEqual({ ui: "nintendo", rpg: "earthbound" });
     expect(Object.keys($fx)).toEqual(["theme", "ui", "rpg"]);
     expect(Object.keys($fx.ui)).toEqual(["nintendo", "sony"]);
-    expect(Object.keys($fx.rpg)).toEqual(["earthbound", "chronoTrigger", "finalFantasy", "zelda"]);
+    expect(Object.keys($fx.rpg)).toEqual([...GAME_STYLES]);
   });
 
   it("gives every game style the soundtrack and every Earthbound sound key", () => {

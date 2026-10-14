@@ -20,6 +20,7 @@ const PERK_TEXT: Record<ProGate, string> = {
   templeCreator: "build your own dungeons",
   advancedSchedule: "custom repeats, times of day, several times a day",
   aiHelpers: "beast names, quest checklists, schedule ideas",
+  gameStyles: "Dragon Quest, Pokémon, Secret of Mana, Phantasy Star, Virtual Boy and Mario RPG looks",
 };
 
 /** What the page shows before (or without) the server catalog: the two subscriptions, lifetime hidden. */

@@ -42,17 +42,11 @@
                 interface="action-sheet"
                 @ionChange="changeRPGSound"
               >
-                <ion-select-option value="earthbound"
-                  >Earthbound</ion-select-option
-                >
-                <ion-select-option value="chronoTrigger"
-                  >Chrono Trigger</ion-select-option
-                >
-                <ion-select-option value="finalFantasy"
-                  >Final Fantasy</ion-select-option
-                >
-                <ion-select-option value="zelda"
-                  >Legend of Zelda</ion-select-option
+                <ion-select-option
+                  v-for="style in gameStyles"
+                  :key="style"
+                  :value="style"
+                  >{{ gameStyleLabel(style) }}</ion-select-option
                 >
               </ion-select>
             </ion-item>
@@ -117,6 +111,13 @@
     toastController,
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
+  import { useProStore } from "@/lib/store/stores/pro";
+  import {
+    GAME_STYLES,
+    GAME_STYLE_NAMES,
+    GameStyle,
+    isProGameStyle,
+  } from "@/lib/utils/gameStyle";
 
   export default defineComponent({
     name: "ThemeSettings",
@@ -145,6 +146,8 @@
     },
     setup() {
       const gameStore = useGameStore();
+      const pro = useProStore();
+      pro.init().catch(() => undefined);
 
       const themeSettings = ref({
         darkMode: false,
@@ -162,6 +165,8 @@
       return {
         themeSettings,
         gameStore,
+        pro,
+        gameStyles: GAME_STYLES,
       };
     },
     methods: {
@@ -193,8 +198,20 @@
         });
       },
 
-      changeRPGSound(ev) {
-        const { ui } = this.theme;
+      gameStyleLabel(style: GameStyle) {
+        const isLocked = isProGameStyle(style) && !this.pro.isPro;
+        return `${GAME_STYLE_NAMES[style]}${isLocked ? " (Pro)" : ""}`;
+      },
+
+      async changeRPGSound(ev) {
+        const { ui, rpg } = this.theme;
+        if (ev.detail.value === rpg) return;
+        // A Pro style without Pro opens the upsell and the picker goes back to the current style
+        const isLocked = isProGameStyle(ev.detail.value) && !(await this.pro.requirePro("gameStyles"));
+        if (isLocked) {
+          ev.target.value = rpg;
+          return;
+        }
         this.update$fx({
           rpg: ev.detail.value,
           ui,
