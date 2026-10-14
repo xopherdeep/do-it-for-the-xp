@@ -31,6 +31,7 @@
               button
               :routerLink="item.route"
               class="settings-card"
+              :class="{ 'settings-card--soon': item.soon }"
             >
               <ion-card-header class="ion-text-center">
                 <ion-thumbnail class="mx-auto">
@@ -39,6 +40,7 @@
                 <ion-card-title>
                   {{ item.title }}
                 </ion-card-title>
+                <ion-badge v-if="item.soon" color="medium" class="soon-badge">Coming soon</ion-badge>
               </ion-card-header>
               <hr />
               <ion-card-content class="rpg-box">

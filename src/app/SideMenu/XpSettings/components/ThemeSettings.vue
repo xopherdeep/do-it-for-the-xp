@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title>Theme Settings</ion-title>
+        <ion-title>Theme</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -14,32 +14,18 @@
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>UI Theme</ion-label>
+              <ion-label>Look</ion-label>
             </ion-item-divider>
 
             <ion-item>
-              <ion-label>Interface Style</ion-label>
-              <ion-select
-                :value="theme.ui"
-                interface="action-sheet"
-                @ionChange="changeUISound"
-              >
-                <ion-select-option value="nintendo">Nintendo</ion-select-option>
-                <ion-select-option value="sony">PlayStation</ion-select-option>
-              </ion-select>
-            </ion-item>
-          </ion-item-group>
-
-          <ion-item-group>
-            <ion-item-divider>
-              <ion-label>RPG Theme</ion-label>
-            </ion-item-divider>
-
-            <ion-item>
-              <ion-label>Game Style</ion-label>
+              <ion-label>
+                <h2>Game style</h2>
+                <p>The look of every window and menu. Styles marked Pro come with XP Pro.</p>
+              </ion-label>
               <ion-select
                 :value="theme.rpg"
                 interface="action-sheet"
+                aria-label="Game style"
                 @ionChange="changeRPGSound"
               >
                 <ion-select-option
@@ -54,43 +40,35 @@
 
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Display</ion-label>
+              <ion-label>Sound</ion-label>
             </ion-item-divider>
 
-            <ion-item>
+            <ion-item lines="none">
               <ion-label>
-                <h2>Dark Mode</h2>
-                <p>Enable dark theme across the app</p>
+                <h2>Menu sounds</h2>
+                <p>The clicks and chimes as you move through menus</p>
               </ion-label>
-              <ion-toggle
-                v-model="themeSettings.darkMode"
-                @ionChange="toggleDarkMode"
-              ></ion-toggle>
-            </ion-item>
-
-            <ion-item>
-              <ion-label>Color Theme</ion-label>
               <ion-select
-                v-model="themeSettings.colorTheme"
+                :value="theme.ui"
                 interface="action-sheet"
-                @ionChange="updateColorTheme"
+                aria-label="Menu sounds"
+                @ionChange="changeUISound"
               >
-                <ion-select-option value="default">Default</ion-select-option>
-                <ion-select-option value="fantasy">Fantasy</ion-select-option>
-                <ion-select-option value="retro"
-                  >Retro Gaming</ion-select-option
-                >
+                <ion-select-option value="nintendo">Nintendo</ion-select-option>
+                <ion-select-option value="sony">PlayStation</ion-select-option>
               </ion-select>
             </ion-item>
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <xp-coming-soon-card title="Display" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent } from "vue";
   import { useGameStore } from "@/lib/store/stores/game";
   import {
     IonPage,
@@ -101,17 +79,17 @@
     IonList,
     IonItem,
     IonLabel,
-    IonToggle,
     IonCard,
     IonButtons,
     IonSelect,
     IonSelectOption,
     IonItemGroup,
     IonItemDivider,
-    toastController,
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
   import { useProStore } from "@/lib/store/stores/pro";
+  import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import { THEME_COMING_SOON } from "./comingSoon";
   import {
     GAME_STYLES,
     GAME_STYLE_NAMES,
@@ -130,13 +108,13 @@
       IonList,
       IonItem,
       IonLabel,
-      IonToggle,
       IonCard,
       IonButtons,
       IonSelect,
       IonSelectOption,
       IonItemGroup,
       IonItemDivider,
+      XpComingSoonCard,
     },
     mixins: [ionic],
     computed: {
@@ -149,38 +127,16 @@
       const pro = useProStore();
       pro.init().catch(() => undefined);
 
-      const themeSettings = ref({
-        darkMode: false,
-        colorTheme: "default",
-      });
-
-      // Load saved settings
-      const savedSettings = localStorage.getItem("themeSettings");
-      if (savedSettings) {
-        themeSettings.value = JSON.parse(savedSettings);
-        // Apply saved dark mode
-        document.body.classList.toggle("dark", themeSettings.value.darkMode);
-      }
-
       return {
-        themeSettings,
         gameStore,
         pro,
         gameStyles: GAME_STYLES,
+        comingSoon: THEME_COMING_SOON,
       };
     },
     methods: {
       changeSoundFX(payload: { ui: string; rpg: string }) {
         return Promise.resolve(this.gameStore.changeSoundFX(payload));
-      },
-
-      async showToast(message: string) {
-        const toast = await toastController.create({
-          message,
-          duration: 2000,
-          position: "bottom",
-        });
-        await toast.present();
       },
 
       update$fx({ rpg, ui }) {
@@ -216,28 +172,6 @@
           rpg: ev.detail.value,
           ui,
         });
-      },
-
-      toggleDarkMode() {
-        document.body.classList.toggle("dark", this.themeSettings.darkMode);
-        this.saveSettings();
-        this.showToast(
-          `Dark mode ${this.themeSettings.darkMode ? "enabled" : "disabled"}`
-        );
-      },
-
-      updateColorTheme() {
-        this.saveSettings();
-        this.showToast(
-          `Color theme changed to ${this.themeSettings.colorTheme}`
-        );
-      },
-
-      saveSettings() {
-        localStorage.setItem(
-          "themeSettings",
-          JSON.stringify(this.themeSettings)
-        );
       },
     },
   });
