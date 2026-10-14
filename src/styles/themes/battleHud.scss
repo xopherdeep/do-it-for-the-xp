@@ -1,0 +1,347 @@
+@use "gameStyle" as *;
+
+// The battle HUD's HP and MP box (BattleHeroCard.vue) in every Game Style but Earthbound, which
+// keeps its rolling odometers. The card becomes the game's own window (--gs-* tokens) and the
+// .gs-stats rows draw HP and MP the way that game's status screen does. The odometer rows stay
+// in the page, collapsed, because they carry the numbers screen readers read.
+
+ion-app:not(#earthbound) .battle-hero-card {
+  background: var(--gs-window);
+  box-shadow: var(--gs-frame);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text);
+  --hud-hp-label: "HP";
+  --hud-mp-label: "MP";
+  --hud-hp-fill: var(--xp-color-hp);
+  --hud-mp-fill: var(--xp-color-mp);
+  --hud-track: rgba(0, 0, 0, 0.45);
+  --hud-meter-h: 5px;
+
+  .status-box {
+    padding: 6px 9px 7px;
+  }
+
+  .hero-name,
+  .hero-level,
+  .hero-loading {
+    font-family: var(--gs-font);
+    font-size-adjust: var(--gs-font-adjust, none);
+    color: var(--gs-text);
+    text-shadow: var(--gs-text-shadow);
+  }
+
+  .hero-name {
+    font-size: 1.15rem;
+    font-weight: normal;
+  }
+
+  .hero-level {
+    color: var(--gs-text-dim);
+  }
+
+  .stat-row {
+    height: 0;
+    margin: 0;
+
+    .stat-label,
+    .odometer {
+      display: none;
+    }
+  }
+
+  .gs-stats {
+    display: block;
+  }
+
+  .gs-stat {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "label num"
+      "meter meter";
+    align-items: baseline;
+    column-gap: 6px;
+
+    & + .gs-stat {
+      margin-top: 3px;
+    }
+  }
+
+  .gs-label {
+    grid-area: label;
+    font-family: var(--gs-font-title);
+    font-size: 0.95rem;
+    color: var(--gs-accent);
+    text-transform: var(--gs-title-case, none);
+    text-shadow: var(--gs-text-shadow);
+  }
+
+  .gs-hp .gs-label::before {
+    content: var(--hud-hp-label);
+  }
+
+  .gs-mp .gs-label::before {
+    content: var(--hud-mp-label);
+  }
+
+  .gs-num {
+    grid-area: num;
+    justify-self: end;
+    font-family: var(--gs-font);
+    font-size-adjust: var(--gs-font-adjust, none);
+    font-size: 1.3rem;
+    line-height: 1.1;
+    color: var(--gs-text);
+    text-shadow: var(--gs-text-shadow);
+    font-variant-numeric: tabular-nums;
+
+    b {
+      font-weight: normal;
+    }
+
+    i {
+      font-style: normal;
+      font-size: 0.8em;
+      color: var(--gs-text-dim);
+    }
+  }
+
+  .gs-meter {
+    grid-area: meter;
+    display: block;
+    height: var(--hud-meter-h);
+    margin-top: 2px;
+    background: var(--hud-track);
+    overflow: hidden;
+  }
+
+  .gs-fill {
+    display: block;
+    height: 100%;
+    background: var(--hud-hp-fill);
+    transition: width 0.3s ease-out;
+  }
+
+  .gs-mp .gs-fill {
+    background: var(--hud-mp-fill);
+  }
+
+  .gs-hearts {
+    display: none;
+  }
+
+  // Low HP: the number warns like the games do (yellow at half, red and blinking near the end)
+  .gs-stats.is-mid .gs-hp .gs-num b {
+    color: #f8d030;
+  }
+
+  .gs-stats.is-low .gs-hp .gs-num b {
+    color: #ff4848;
+    animation: hud-low-blink 0.8s steps(1, end) infinite;
+  }
+}
+
+// Final Fantasy and Chrono Trigger: numbers only, current over max, no gauges
+ion-app#finalFantasy,
+ion-app#chronoTrigger {
+  .battle-hero-card .gs-meter {
+    display: none;
+  }
+}
+
+// Dragon Quest: the status box shows H and M with the current number only
+ion-app#dragonQuest .battle-hero-card {
+  --hud-hp-label: "H";
+  --hud-mp-label: "M";
+
+  .gs-meter,
+  .gs-num i {
+    display: none;
+  }
+
+  .gs-stat {
+    grid-template-columns: 1.2em 1fr;
+  }
+}
+
+// Zelda: a row of hearts for HP and a green magic meter in a white frame
+ion-app#zelda .battle-hero-card {
+  --hud-mp-label: "MAGIC";
+  --hud-mp-fill: linear-gradient(180deg, #78f878 0%, #20b020 100%);
+  --hud-track: #000000;
+  --hud-meter-h: 7px;
+
+  .gs-hp {
+    grid-template-areas: "hearts hearts";
+
+    .gs-label,
+    .gs-num,
+    .gs-meter {
+      display: none;
+    }
+  }
+
+  .gs-hearts {
+    grid-area: hearts;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 2px 0;
+  }
+
+  // each heart: an empty (darkened) heart, and the full heart over it, cut to half for a half heart
+  .gs-heart {
+    position: relative;
+    width: 15px;
+    height: 13px;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--gs-cursor) no-repeat left center / 15px 13px;
+      image-rendering: pixelated;
+    }
+
+    &::before {
+      filter: grayscale(1) brightness(0.35);
+    }
+
+    &.is-half::after {
+      right: 50%;
+    }
+
+    &.is-empty::after {
+      display: none;
+    }
+  }
+
+  .gs-mp .gs-meter {
+    box-shadow: 0 0 0 1px #000000, 0 0 0 2px #f8f8f8;
+    margin: 4px 2px 2px;
+  }
+
+  .gs-mp .gs-label {
+    font-size: 0.7rem;
+  }
+
+  .gs-mp .gs-num {
+    display: none;
+  }
+}
+
+// Pokémon: "HP:" over a rounded gauge in a dark frame, the numbers under it; MP is PP
+ion-app#pokemon .battle-hero-card {
+  --hud-hp-label: "HP:";
+  --hud-mp-label: "PP:";
+  --hud-hp-fill: #306230;
+  --hud-mp-fill: #306230;
+  --hud-track: #9bbc0f;
+  --hud-meter-h: 6px;
+
+  .gs-stat {
+    grid-template-areas:
+      "label meter"
+      "num num";
+    align-items: center;
+  }
+
+  .gs-label {
+    font-size: 0.75rem;
+  }
+
+  .gs-meter {
+    margin: 0;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px #0f380f;
+  }
+
+  .gs-num {
+    font-size: 1rem;
+  }
+
+  .gs-stats.is-mid .gs-hp .gs-num b,
+  .gs-stats.is-low .gs-hp .gs-num b {
+    color: #0f380f;
+  }
+
+  .gs-stats.is-low .gs-hp .gs-fill {
+    animation: hud-low-blink 0.8s steps(1, end) infinite;
+  }
+}
+
+// Secret of Mana: gold gauges with a dark wood edge
+ion-app#secretOfMana .battle-hero-card {
+  --hud-hp-fill: linear-gradient(180deg, #f8e8a0 0%, #e0a840 100%);
+  --hud-mp-fill: linear-gradient(180deg, #b8e0ff 0%, #4890e0 100%);
+  --hud-track: #182c68;
+
+  .gs-meter {
+    box-shadow: 0 0 0 1px #7a4c1c;
+    border-radius: 2px;
+  }
+}
+
+// Phantasy Star: thin glowing neon gauges
+ion-app#phantasyStar .battle-hero-card {
+  --hud-hp-fill: #40f0ff;
+  --hud-mp-fill: #c070ff;
+  --hud-track: rgba(64, 240, 255, 0.12);
+  --hud-meter-h: 3px;
+
+  .gs-fill {
+    box-shadow: 0 0 6px currentColor;
+  }
+}
+
+// Virtual Boy: every gauge in red
+ion-app#virtualBoy .battle-hero-card {
+  --hud-hp-fill: #ff0000;
+  --hud-mp-fill: #aa0000;
+  --hud-track: #2a0000;
+
+  .gs-stats.is-mid .gs-hp .gs-num b {
+    color: #ff8080;
+  }
+
+  .gs-stats.is-low .gs-hp .gs-num b {
+    color: #ff0000;
+  }
+}
+
+// Super Mario RPG: rounded candy gauges, and MP is FP (flower points)
+ion-app#marioRpg .battle-hero-card {
+  --hud-mp-label: "FP";
+  --hud-hp-fill: linear-gradient(180deg, #ff9090 0%, #e03838 100%);
+  --hud-mp-fill: linear-gradient(180deg, #a0d8ff 0%, #3878e0 100%);
+  --hud-track: #f0d8a0;
+  --hud-meter-h: 7px;
+
+  .gs-meter {
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px #c09060;
+  }
+
+  .gs-fill {
+    border-radius: 6px;
+  }
+
+  // yellow would vanish on the cream window
+  .gs-stats.is-mid .gs-hp .gs-num b {
+    color: #e07000;
+  }
+}
+
+@keyframes hud-low-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ion-app .battle-hero-card .gs-stats * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
