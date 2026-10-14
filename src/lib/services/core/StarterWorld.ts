@@ -25,8 +25,9 @@ import {
   rewardFromPreset,
 } from "@/lib/services/shops/rewardPresets";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
-import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import type { DosDont } from "@/lib/databases/DosDontsDb";
+import { doDontFromSeed, plainBeast, questFromSeed } from "./packs/packSeeds";
+import type { DoDontSeed, QuestSeed } from "./packs/packSeeds";
 
 /** The stores the starter world fills; everything else in BACKUP_STORES is left untouched by a restore */
 export const STARTER_WORLD_STORES = [
@@ -38,9 +39,6 @@ export const STARTER_WORLD_STORES = [
   "__shops",
   "__dosDonts",
 ] as const;
-
-/** A fixed day in the past, so every repeating quest is already running */
-const STARTED_ON = "2026-01-01T00:00:00.000Z";
 
 export const STARTER_CATEGORIES: AchievementCategoryInterface[] = [
   { id: "cat-chamber", name: "The Hero's Chamber" },
@@ -75,33 +73,7 @@ export const STARTER_LEGO_BEAST: Beast = {
   ],
 };
 
-export const STARTER_BEASTS: Beast[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS, STARTER_LEGO_BEAST].map(
-  ({ id, name, element, avatar, bg1, bg2, aspectRatio, checklist }) => ({
-    id, name, ...(element ? { element } : {}), avatar, bg1, bg2, aspectRatio, checklist: [...checklist],
-  })
-);
-
-interface QuestSeed {
-  id: string;
-  name: string;
-  categoryId: string;
-  beastId?: string;
-  schedule: "daily" | "weekly";
-  difficulty: 1 | 2 | 3;
-  requiresApproval?: boolean;
-  /**
-   * The parts of the day the chore belongs to. Two or more make one daily quest done that many times
-   * (brushing teeth morning and night); none leaves it untimed, shown only under the calendar's All tab.
-   */
-  timesOfDay?: TimeOfDay[];
-}
-
-/** Rewards grow with difficulty: a daily tidy pays a little, a weekly haul pays a lot */
-const REWARDS: Record<QuestSeed["difficulty"], { xp: number; gp: number; ap: number }> = {
-  1: { xp: 60, gp: 15, ap: 1 },
-  2: { xp: 120, gp: 30, ap: 2 },
-  3: { xp: 220, gp: 60, ap: 4 },
-};
+export const STARTER_BEASTS: Beast[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS, STARTER_LEGO_BEAST].map(plainBeast);
 
 const QUEST_SEEDS: QuestSeed[] = [
   { id: "quest-socks", name: "Tame the Socktopus", categoryId: "cat-chamber", beastId: "beast-socktopus", schedule: "weekly", difficulty: 2 },
@@ -156,33 +128,6 @@ const QUEST_SEEDS: QuestSeed[] = [
   { id: "quest-zelda-oot", name: "Hero of Time", categoryId: "cat-bosses", schedule: "weekly", difficulty: 3, requiresApproval: true },
 ];
 
-const questFromSeed = (seed: QuestSeed): Achievement => ({
-  id: seed.id,
-  achievementName: seed.name,
-  categoryId: seed.categoryId,
-  beastId: seed.beastId ?? "",
-  subAchievementIds: [],
-  requiresApproval: Boolean(seed.requiresApproval),
-  bonusAchievement: false,
-  // An open bounty: any hero the family already has can claim it, so the world needs no profiles
-  type: "asNeeded",
-  assignee: [],
-  startsOn: STARTED_ON,
-  endsOn: "",
-  dueByTime: "",
-  ...(seed.timesOfDay?.length ? { timesOfDay: [...seed.timesOfDay] } : {}),
-  basicSchedule: seed.schedule,
-  scheduleType: "basic",
-  showDailyUntilComplete: seed.schedule === "daily",
-  customFrequency: 1,
-  customPeriodType: "day",
-  customPeriodNumber: 1,
-  repeatOnDays: [],
-  difficulty: seed.difficulty,
-  ...REWARDS[seed.difficulty],
-  adventureType: seed.beastId ? "beast" : "simple",
-});
-
 export const STARTER_QUESTS: Achievement[] = QUEST_SEEDS.map(questFromSeed);
 
 /** Every ready-made Power: the Compendium's presets, as the Game Master would add them one by one */
@@ -192,18 +137,6 @@ export const STARTER_ABILITIES: Ability[] = [
   ...TECH_MAGE_PRESETS,
   ...HYBRID_PRESETS,
 ].map((preset) => ({ ...preset, isPreset: true }));
-
-interface DoDontSeed {
-  id: string;
-  type: DosDont["type"];
-  whatFor: string;
-  /** The Add Do form's Fibonacci effort scale (1, 2, 3, 5, 8, 13) */
-  difficulty: 1 | 2 | 3 | 5;
-  notes?: string;
-}
-
-/** GP per point of effort, as the Add Do form prices it (a do pays it, a don't takes it away) */
-const DO_DONT_GP_PER_EFFORT = 20;
 
 const DO_DONT_SEEDS: DoDontSeed[] = [
   { id: "do-kind-words", type: "do", whatFor: "Using kind words with a sibling", difficulty: 1 },
@@ -221,23 +154,6 @@ const DO_DONT_SEEDS: DoDontSeed[] = [
   { id: "dont-mess", type: "dont", whatFor: "Leaving a mess for someone else", difficulty: 1 },
   { id: "dont-tantrum", type: "dont", whatFor: "Throwing a tantrum", difficulty: 2 },
 ];
-
-const doDontFromSeed = (seed: DoDontSeed): DosDont => ({
-  id: seed.id,
-  type: seed.type,
-  whatFor: seed.whatFor,
-  difficulty: seed.difficulty,
-  // GP only, the Add Do form's default: a do rewards gold, a don't costs it
-  awardPoints: { xp: false, gp: true, ap: false },
-  points: {
-    xp: 0,
-    gp: seed.difficulty * DO_DONT_GP_PER_EFFORT * (seed.type === "do" ? 1 : -1),
-    ap: 0,
-  },
-  notes: seed.notes ?? "",
-  createdAt: Date.parse(STARTED_ON),
-  updatedAt: Date.parse(STARTED_ON),
-});
 
 /** A starter set of house rules for the Do This, Not That board: everyday good deeds and the slips that cost gold */
 export const STARTER_DOS_DONTS: DosDont[] = DO_DONT_SEEDS.map(doDontFromSeed);

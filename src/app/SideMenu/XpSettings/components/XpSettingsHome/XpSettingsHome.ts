@@ -31,6 +31,13 @@ export default defineComponent({
         route: '/xp-settings/general'
       },
       {
+        id: 'packs',
+        title: 'Packs',
+        description: 'Load ready-made worlds of quests, beasts, rewards and house rules.',
+        icon: require('@/assets/icons/target.png'),
+        route: '/xp-settings/packs'
+      },
+      {
         id: 'family',
         title: 'Family Settings',
         description: 'Add kids, invite adults and manage your family settings from here.',
