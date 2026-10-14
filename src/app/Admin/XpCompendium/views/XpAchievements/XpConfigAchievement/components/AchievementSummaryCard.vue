@@ -69,7 +69,7 @@
     <!-- Click Prompt -->
     <div class="quest-card-prompt">
       <i class="fad fa-hand-pointer"></i>
-      <span>Tap to configure</span>
+      <span>Tap a tile to change it</span>
     </div>
   </div>
 </template>

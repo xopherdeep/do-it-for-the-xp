@@ -1,195 +1,181 @@
 <template>
-  <ion-page class="quest-type-tab">
-    <ion-content class="bg-slide bg-slide-dark" :fullscreen="true">
-      <div class="content-wrapper">
-        <!-- Splash Header -->
-        <XpSplashHeader v-model="achievement.achievementName" :icon="activeLoreCombo.icon"
-          :tagline="activeLoreCombo.tagline" placeholder="Name Your Quest..." />
+  <!-- Step 1, What's the chore?: the category, what the kind means, and the beast or the chain it needs. The name and the
+       Normal / Beast / Chain segments are at the bottom of the step (XpConfigAchievement), in thumb reach. -->
+  <div class="quest-type-tab" data-test="step-chore">
+    <xp-app-section>
+      <xp-app-row
+        icon="tags"
+        title="Category"
+        :subtitle="categoryName"
+        data-test="category-row"
+        @click="addCategoryModalOpen = true"
+      />
+    </xp-app-section>
 
-        <div class="tab-content">
-          <!-- TYPE SELECTOR -->
-          <div class="section-card">
-            <h3 class="section-title">Adventure Type</h3>
-            <div class="type-grid">
-              <div v-for="type in achievementTypes" :key="type.value" :class="[
-                'type-option',
-                { selected: adventureType === type.value },
-              ]" @click="adventureType = type.value">
-                <i :class="['fad', type.icon, 'type-icon']"></i>
-                <span class="type-name">{{ type.name }}</span>
-                <span class="type-desc">{{ type.text }}</span>
+    <p class="kind-note" data-test="kind-note">
+      <i :class="['fad', `fa-${activeKind.icon}`]" aria-hidden="true"></i>
+      <span>{{ activeKind.hint }}</span>
+    </p>
 
-                <div class="check-mark" v-if="adventureType === type.value">
-                  <i class="fas fa-check-circle"></i>
-                </div>
-              </div>
-            </div>
+    <div class="chore-kind">
+      <!-- BEAST SELECTOR -->
+      <div v-if="adventureType === 'beast'" class="dynamic-section beast-section">
+        <div class="section-header">
+          <i class="fad fa-dragon section-icon text-danger"></i>
+          <div>
+            <h3>Select The Threat</h3>
+            <p>Choose the beast to be hunted.</p>
           </div>
+        </div>
 
-          <!-- DYNAMIC CONTENT AREA -->
-
-          <!-- BEAST SELECTOR -->
-          <div v-if="adventureType === 'beast'" class="dynamic-section beast-section">
-            <div class="section-header">
-              <i class="fad fa-dragon section-icon text-danger"></i>
-              <div>
-                <h3>Select The Threat</h3>
-                <p>Choose the beast to be hunted.</p>
-              </div>
-            </div>
-
-            <div class="beast-grid">
-              <template v-if="beasts.length > 0">
-                <ion-grid class="ion-no-padding">
-                  <ion-row>
-                    <!-- Generate Beast Card (AI) -->
-                    <ion-col size="4" size-md="4">
-                      <div class="beast-column-content">
-                        <div class="beast-card-wrapper generate-beast-card" :class="{ loading: isGeneratingBeast }"
-                          @click="generateBeastWithAI">
-                          <div class="generate-beast-content">
-                            <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin fa-3x"></i>
-                            <i v-else-if="!pro.isPro" class="fad fa-lock fa-3x"></i>
-                            <i v-else class="fad fa-sparkles fa-3x"></i>
-                            <span class="generate-label">{{ isGeneratingBeast ? 'Generating...' : 'AI Generate'
-                              }}</span>
-                            <span class="generate-hint">Create a random beast</span>
-                          </div>
-                        </div>
-                        <div class="beast-name-spacer"></div>
+        <div class="beast-grid">
+          <template v-if="beasts.length > 0">
+            <ion-grid class="ion-no-padding">
+              <ion-row>
+                <!-- Generate Beast Card (AI) -->
+                <ion-col size="4" size-md="4">
+                  <div class="beast-column-content">
+                    <div class="beast-card-wrapper generate-beast-card" :class="{ loading: isGeneratingBeast }"
+                      @click="generateBeastWithAI">
+                      <div class="generate-beast-content">
+                        <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin fa-3x"></i>
+                        <i v-else-if="!pro.isPro" class="fad fa-lock fa-3x"></i>
+                        <i v-else class="fad fa-sparkles fa-3x"></i>
+                        <span class="generate-label">{{ isGeneratingBeast ? 'Generating...' : 'AI Generate'
+                          }}</span>
+                        <span class="generate-hint">Create a random beast</span>
                       </div>
-                    </ion-col>
-                    <!-- Existing Beasts -->
-                    <ion-col size="4" size-md="4" v-for="beast in beasts" :key="beast.id">
-                      <div :class="[
-                        'beast-card-wrapper',
-                        { selected: achievement.beastId === beast.id },
-                      ]" @click="achievement.beastId = beast.id">
-                        <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :bg1="beast.bg1"
-                          :bg2="beast.bg2" :selected="achievement.beastId === beast.id" />
-                        <!-- Edit Button -->
-                        <div v-if="achievement.beastId === beast.id" class="edit-beast-badge"
-                          @click.stop="editBeast(beast.id)">
-                          <i class="fad fa-edit"></i>
-                        </div>
-                      </div>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </template>
+                    </div>
+                    <div class="beast-name-spacer"></div>
+                  </div>
+                </ion-col>
+                <!-- Existing Beasts -->
+                <ion-col size="4" size-md="4" v-for="beast in beasts" :key="beast.id">
+                  <div :class="[
+                    'beast-card-wrapper',
+                    { selected: achievement.beastId === beast.id },
+                  ]" @click="achievement.beastId = beast.id">
+                    <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :bg1="beast.bg1"
+                      :bg2="beast.bg2" :selected="achievement.beastId === beast.id" />
+                    <!-- Edit Button -->
+                    <div v-if="achievement.beastId === beast.id" class="edit-beast-badge"
+                      @click.stop="editBeast(beast.id)">
+                      <i class="fad fa-edit"></i>
+                    </div>
+                  </div>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </template>
 
-              <div v-else class="empty-state beast-empty-state text-center">
-                <i class="fad fa-dragon fa-4x mb-3 text-medium"></i>
-                <h3>No Beasts Found</h3>
-                <p>You need a nemesis to fight! Create one now.</p>
-                <div class="empty-state-buttons">
-                  <ion-button @click="generateBeastWithAI" class="mt-4" color="tertiary" :disabled="isGeneratingBeast">
-                    <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin mr-2"></i>
-                    <i v-else-if="!pro.isPro" class="fad fa-lock mr-2"></i>
-                    <i v-else class="fad fa-sparkles mr-2"></i>
-                    {{ isGeneratingBeast ? 'Generating...' : 'AI Generate' }}
-                  </ion-button>
-                  <ion-button @click="createBeast" class="mt-4" color="danger">
-                    <i class="fas fa-plus mr-2"></i>
-                    Create Manually
-                  </ion-button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- CHAIN SELECTOR -->
-          <div v-if="adventureType === 'chain'" class="dynamic-section chain-section">
-            <div class="section-header">
-              <i class="fad fa-link section-icon text-warning"></i>
-              <div>
-                <h3>Build The Chain</h3>
-                <p>Select achievements to link together.</p>
-              </div>
-            </div>
-
-            <ion-list class="chain-list">
-              <ion-item class="chain-select-item">
-                <ion-label position="stacked">Linked Quests</ion-label>
-                <ion-select v-model="achievement.subAchievementIds" multiple mode="ios" placeholder="Select links...">
-                  <ion-select-option v-for="quest in availableAchievements" :key="quest.id" :value="quest.id">
-                    {{ quest.achievementName }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-            </ion-list>
-          </div>
-
-          <!-- SIMPLE ERRAND -->
-          <div v-if="adventureType === 'simple'" class="dynamic-section simple-section text-center">
-            <!-- The library's suggestion for a quest with no beast; the quest takes it when it is saved -->
-            <div v-if="suggestedBeast" class="suggestion-card" data-test="beast-suggestion">
-              <div class="suggestion-main">
-                <img
-                  v-if="portraitUrl(suggestedBeast)"
-                  :src="portraitUrl(suggestedBeast)"
-                  :alt="suggestedBeast.name"
-                  class="suggestion-portrait"
-                />
-                <i v-else class="fad fa-dragon suggestion-portrait suggestion-portrait-empty"></i>
-                <div class="suggestion-text">
-                  <span class="suggestion-kicker">Suggested beast</span>
-                  <strong class="suggestion-name" data-test="suggested-name">{{ suggestedBeast.name }}</strong>
-                  <span class="suggestion-hint">It joins your bestiary when the quest is saved, and the quest becomes a fight.</span>
-                </div>
-              </div>
-              <div class="suggestion-actions">
-                <ion-button fill="outline" color="primary" data-test="beast-change" @click="isChanging = !isChanging">
-                  Change
-                </ion-button>
-                <ion-button fill="clear" color="medium" data-test="beast-none" @click="decline">
-                  No beast
-                </ion-button>
-              </div>
-              <div v-if="isChanging" class="suggestion-list">
-                <button
-                  v-for="entry in otherSuggestions"
-                  :key="String(entry.id)"
-                  type="button"
-                  class="suggestion-option"
-                  @click="choose(entry)"
-                >
-                  <img v-if="portraitUrl(entry)" :src="portraitUrl(entry)" alt="" class="suggestion-option-portrait" />
-                  <span class="suggestion-option-text">
-                    <strong>{{ entry.name }}</strong>
-                    <span v-if="'chore' in entry">{{ entry.chore }}</span>
-                  </span>
-                </button>
-                <button type="button" class="suggestion-option suggestion-browse" @click="browseBestiary">
-                  <i class="fad fa-paw-claws"></i>
-                  <span class="suggestion-option-text"><strong>Choose from my bestiary</strong></span>
-                </button>
-              </div>
-            </div>
-
-            <div v-else class="empty-state">
-              <i class="fad fa-feather-alt fa-4x mb-3 text-success"></i>
-              <h3>Peaceful Errand</h3>
-              <p>
-                No threats detected. This is a skill challenge or simple chore.
-              </p>
-              <ion-button v-if="isBeastDeclined" fill="clear" color="medium" data-test="beast-allow" @click="restoreSuggestion">
-                Suggest a beast
+          <div v-else class="empty-state beast-empty-state text-center">
+            <i class="fad fa-dragon fa-4x mb-3 text-medium"></i>
+            <h3>No Beasts Found</h3>
+            <p>You need a nemesis to fight! Create one now.</p>
+            <div class="empty-state-buttons">
+              <ion-button @click="generateBeastWithAI" class="mt-4" color="tertiary" :disabled="isGeneratingBeast">
+                <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin mr-2"></i>
+                <i v-else-if="!pro.isPro" class="fad fa-lock mr-2"></i>
+                <i v-else class="fad fa-sparkles mr-2"></i>
+                {{ isGeneratingBeast ? 'Generating...' : 'AI Generate' }}
+              </ion-button>
+              <ion-button @click="createBeast" class="mt-4" color="danger">
+                <i class="fas fa-plus mr-2"></i>
+                Create Manually
               </ion-button>
             </div>
           </div>
         </div>
       </div>
-    </ion-content>
-  </ion-page>
+
+      <!-- CHAIN SELECTOR -->
+      <div v-if="adventureType === 'chain'" class="dynamic-section chain-section">
+        <div class="section-header">
+          <i class="fad fa-link section-icon text-warning"></i>
+          <div>
+            <h3>Build The Chain</h3>
+            <p>Select achievements to link together.</p>
+          </div>
+        </div>
+
+        <ion-list class="chain-list">
+          <ion-item class="chain-select-item">
+            <ion-label position="stacked">Linked Quests</ion-label>
+            <ion-select v-model="achievement.subAchievementIds" multiple mode="ios" placeholder="Select links...">
+              <ion-select-option v-for="quest in availableAchievements" :key="quest.id" :value="quest.id">
+                {{ quest.achievementName }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <!-- SIMPLE ERRAND -->
+      <div v-if="adventureType === 'simple'" class="dynamic-section simple-section text-center">
+        <!-- The library's suggestion for a quest with no beast; the quest takes it when it is saved -->
+        <div v-if="suggestedBeast" class="suggestion-card" data-test="beast-suggestion">
+          <div class="suggestion-main">
+            <img
+              v-if="portraitUrl(suggestedBeast)"
+              :src="portraitUrl(suggestedBeast)"
+              :alt="suggestedBeast.name"
+              class="suggestion-portrait"
+            />
+            <i v-else class="fad fa-dragon suggestion-portrait suggestion-portrait-empty"></i>
+            <div class="suggestion-text">
+              <span class="suggestion-kicker">Suggested beast</span>
+              <strong class="suggestion-name" data-test="suggested-name">{{ suggestedBeast.name }}</strong>
+              <span class="suggestion-hint">It joins your bestiary when the quest is saved, and the quest becomes a fight.</span>
+            </div>
+          </div>
+          <div class="suggestion-actions">
+            <ion-button fill="outline" color="primary" data-test="beast-change" @click="isChanging = !isChanging">
+              Change
+            </ion-button>
+            <ion-button fill="clear" color="medium" data-test="beast-none" @click="decline">
+              No beast
+            </ion-button>
+          </div>
+          <div v-if="isChanging" class="suggestion-list">
+            <button
+              v-for="entry in otherSuggestions"
+              :key="String(entry.id)"
+              type="button"
+              class="suggestion-option"
+              @click="choose(entry)"
+            >
+              <img v-if="portraitUrl(entry)" :src="portraitUrl(entry)" alt="" class="suggestion-option-portrait" />
+              <span class="suggestion-option-text">
+                <strong>{{ entry.name }}</strong>
+                <span v-if="'chore' in entry">{{ entry.chore }}</span>
+              </span>
+            </button>
+            <button type="button" class="suggestion-option suggestion-browse" @click="browseBestiary">
+              <i class="fad fa-paw-claws"></i>
+              <span class="suggestion-option-text"><strong>Choose from my bestiary</strong></span>
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="empty-state">
+          <i class="fad fa-feather-alt fa-4x mb-3 text-success"></i>
+          <h3>Peaceful Errand</h3>
+          <p>
+            No threats detected. This is a skill challenge or simple chore.
+          </p>
+          <ion-button v-if="isBeastDeclined" fill="clear" color="medium" data-test="beast-allow" @click="restoreSuggestion">
+            Suggest a beast
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { inject, computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
-  IonPage,
-  IonContent,
   IonGrid,
   IonRow,
   IonCol,
@@ -201,9 +187,11 @@ import {
   IonButton,
   toastController,
 } from "@ionic/vue";
-import XpSplashHeader from "@/components/atoms/SplashHeader/XpSplashHeader.vue";
+import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
+import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
+import { QUEST_KINDS } from "../../../questConfigWizard";
 import { generateFullBeast } from "@/lib/services/ai/GeminiService";
 import { useProStore } from "@/lib/store/stores/pro";
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
@@ -211,11 +199,11 @@ import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 
 const {
   achievement,
-  activeLoreCombo,
-  achievementTypes,
   adventureType,
   beasts,
   achievements,
+  categories,
+  addCategoryModalOpen,
   loadData,
   suggestedBeast,
   beastSuggestions,
@@ -227,6 +215,15 @@ const {
 
 const router = useRouter();
 const pro = useProStore();
+
+// The category the quest is filed under: the row shows it, a tap opens the category list
+const categoryName = computed(
+  () => categories.value.find((category) => category.id === achievement.value.categoryId)?.name || "Pick a category"
+);
+
+// What the chosen kind means, under the row (the segments themselves are at the bottom of the step)
+const activeKind = computed(() => QUEST_KINDS.find((kind) => kind.value === adventureType.value) ?? QUEST_KINDS[0]);
+
 const bestiaryDb = new BestiaryDb(beastStorage);
 const isGeneratingBeast = ref(false);
 
@@ -345,92 +342,25 @@ const generateBeastWithAI = async () => {
 </script>
 
 <style lang="scss" scoped>
-.tab-content {
-  padding: 16px;
-  max-width: 800px;
-  margin: 0 auto;
+.quest-type-tab {
+  padding: 0 12px 8px;
+  color: var(--xp-app-text);
 }
 
-.section-card {
-  background: rgba(var(--ion-color-step-50-rgb), 0.5);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-
-  .section-title {
-    font-family: "Press Start 2P";
-    font-size: 0.8rem;
-    color: var(--ion-color-medium);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-  }
-}
-
-.type-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.type-option {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid transparent;
-  border-radius: 12px;
-  padding: 16px 8px;
+// What the chosen kind means, in the cream of the app
+.kind-note {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
+  gap: 10px;
+  margin: 10px 4px 14px;
+  color: var(--xp-app-text);
+  font-size: 0.9rem;
+  line-height: 1.3;
 
-  .type-icon {
-    font-size: 1.8rem;
-    margin-bottom: 8px;
-    color: var(--ion-color-medium);
-  }
-
-  .type-name {
-    font-weight: 600;
-    font-size: 0.85rem;
-    margin-bottom: 4px;
-  }
-
-  .type-desc {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.5);
-    line-height: 1.2;
-    display: none; // Hide on small screens, show on larger?
-
-    @media (min-width: 400px) {
-      display: block;
-    }
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  &.selected {
-    background: rgba(var(--ion-color-primary-rgb), 0.15);
-    border-color: var(--ion-color-primary);
-
-    .type-icon,
-    .type-name {
-      color: var(--ion-color-primary);
-    }
-  }
-
-  .check-mark {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background: var(--background);
-    border-radius: 50%;
-    color: var(--ion-color-success);
-    font-size: 1.2rem;
+  i {
+    flex: 0 0 auto;
+    color: var(--xp-app-accent);
+    font-size: 1.3rem;
   }
 }
 
@@ -452,14 +382,14 @@ const generateBeastWithAI = async () => {
 
   h3 {
     margin: 0;
-    font-family: var(--xp-font-heading);
+    font-family: var(--xp-app-font-title);
     font-size: 1.1rem;
   }
 
   p {
     margin: 2px 0 0;
     font-size: 0.85rem;
-    color: var(--ion-color-medium);
+    color: var(--xp-app-text-dim);
   }
 }
 
@@ -532,7 +462,7 @@ const generateBeastWithAI = async () => {
   background: transparent;
 
   .chain-select-item {
-    --background: rgba(var(--ion-color-step-50-rgb), 0.5);
+    --background: var(--xp-app-surface);
     --border-radius: 12px;
     --padding-start: 16px;
     margin-bottom: 12px;
@@ -543,17 +473,17 @@ const generateBeastWithAI = async () => {
 /* Simple Errand */
 .empty-state {
   padding: 40px;
-  background: rgba(var(--ion-color-step-50-rgb), 0.3);
+  background: var(--xp-app-surface);
   border-radius: 20px;
   border: 2px dashed rgba(255, 255, 255, 0.1);
 
   h3 {
-    font-family: var(--xp-font-heading);
+    font-family: var(--xp-app-font-title);
     margin-bottom: 8px;
   }
 
   p {
-    color: var(--ion-color-medium);
+    color: var(--xp-app-text-dim);
   }
 }
 
@@ -618,14 +548,14 @@ const generateBeastWithAI = async () => {
   }
 
   .generate-label {
-    font-family: "Press Start 2P";
+    font-family: var(--xp-app-font-title);
     font-size: 0.6rem;
     text-transform: uppercase;
   }
 
   .generate-hint {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--xp-app-text-dim);
   }
 }
 
@@ -639,7 +569,7 @@ const generateBeastWithAI = async () => {
 /* Suggested beast */
 .suggestion-card {
   text-align: left;
-  background: rgba(var(--ion-color-step-50-rgb), 0.5);
+  background: var(--xp-app-surface);
   border-radius: 16px;
   border: 2px solid rgba(var(--ion-color-danger-rgb), 0.45);
   padding: 16px;
@@ -677,20 +607,20 @@ const generateBeastWithAI = async () => {
 }
 
 .suggestion-kicker {
-  font-family: "Press Start 2P";
+  font-family: var(--xp-app-font-title);
   font-size: 0.55rem;
   text-transform: uppercase;
-  color: var(--ion-color-medium);
+  color: var(--xp-app-text-dim);
 }
 
 .suggestion-name {
-  font-family: var(--xp-font-heading);
+  font-family: var(--xp-app-font-title);
   font-size: 1.2rem;
 }
 
 .suggestion-hint {
   font-size: 0.75rem;
-  color: var(--ion-color-medium);
+  color: var(--xp-app-text-dim);
   line-height: 1.25;
 }
 
@@ -731,7 +661,7 @@ const generateBeastWithAI = async () => {
   &:hover,
   &:focus-visible {
     background: rgba(255, 255, 255, 0.1);
-    border-color: var(--ion-color-primary);
+    border-color: var(--xp-app-accent);
   }
 
   i {
@@ -755,7 +685,7 @@ const generateBeastWithAI = async () => {
 
   span {
     font-size: 0.75rem;
-    color: var(--ion-color-medium);
+    color: var(--xp-app-text-dim);
   }
 }
 </style>

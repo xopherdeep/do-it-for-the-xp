@@ -473,9 +473,9 @@ const scheduleSummary = computed(() => {
   }
 
   .section-header {
-    font-family: "Press Start 2P";
-    font-size: 0.7rem;
-    color: var(--ion-color-medium);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.8rem;
+    color: var(--xp-app-text-dim);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
