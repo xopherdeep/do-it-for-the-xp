@@ -352,6 +352,67 @@ ion-app {
       }
     }
 
+    // Settings pages: titles in a readable mixed-case pixel font instead of
+    // the all-caps Twoson; the toolbar title keeps the branding font
+    .xp-settings-page ion-content {
+      // The card's border is a 16px box-shadow drawn outside it: size and space
+      // the cards so the gap between stacked cards equals the gap around them
+      // (the page's 16px ion-padding)
+      ion-card {
+        width: calc(100% - 32px);
+        margin: 16px auto;
+
+        & ~ ion-card {
+          margin-top: 48px;
+        }
+      }
+
+      // a page that lays its cards out in a grid keeps the same page edge
+      > ion-grid {
+        padding: 0;
+      }
+
+      ion-card-title,
+      ion-list-header,
+      ion-list-header ion-label,
+      ion-item-divider,
+      ion-item-divider ion-label,
+      ion-card ion-item ion-label,
+      ion-card ion-item ion-label h1,
+      ion-card ion-item ion-label h2,
+      ion-card ion-item ion-label h3 {
+        font-family: "Orange Kid", $eb-font-status, sans-serif;
+        text-transform: none;
+        letter-spacing: 0.5px;
+      }
+
+      ion-card-title {
+        font-size: 22px;
+      }
+
+      // Section headers inside a card: on the card's palette, not a white or black bar
+      ion-list-header,
+      ion-item-divider {
+        --background: #{$eb-color-medium-purple};
+        --color: #{$eb-color-pale-yellow};
+        font-size: 18px;
+        margin-top: 0;
+      }
+
+      ion-card ion-item ion-label {
+        h1,
+        h2 {
+          font-size: 20px;
+          color: $eb-color-pale-yellow;
+        }
+
+        h3 {
+          font-size: 18px;
+          color: $eb-color-pale-yellow;
+        }
+      }
+    }
+
     // Modal styling
     ion-modal {
       --background: transparent;
