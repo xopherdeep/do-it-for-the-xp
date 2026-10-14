@@ -12,7 +12,7 @@ export const useGameStore = defineStore('game', () => {
   
   // FAB Style: 'retro' (centered menu) or 'modern' (radial shortcuts)
   const fabStyle = ref<'retro' | 'modern'>(
-    (localStorage.getItem('fabStyle') as 'retro' | 'modern') || 'retro'
+    (localStorage.getItem('fabStyle') as 'retro' | 'modern') || 'modern'
   );
 
   // --- Entity Collections (Caching) ---

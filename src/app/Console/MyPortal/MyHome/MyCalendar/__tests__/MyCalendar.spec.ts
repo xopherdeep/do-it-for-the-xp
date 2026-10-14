@@ -219,10 +219,10 @@ describe("MyCalendar", () => {
     expect(wrapper.find(".xp-app-header__meta").exists()).toBe(false);
   });
 
-  it("wears the calendar accent and the retro skin by default", async () => {
+  it("wears the calendar accent and the modern skin by default", async () => {
     const wrapper = await mountCalendar();
 
-    expect(wrapper.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--retro"]));
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern"]));
     expect(wrapper.element.style.getPropertyValue("--xp-app-accent")).toBe("#3fbf5f");
   });
 

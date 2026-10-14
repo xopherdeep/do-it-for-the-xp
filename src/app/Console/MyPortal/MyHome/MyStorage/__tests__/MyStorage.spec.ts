@@ -98,15 +98,15 @@ beforeEach(() => {
 });
 
 describe("MyStorage on the XpApp kit", () => {
-  it("wears the storage accent and the retro skin class on the page root, the modern one when toggled", () => {
+  it("wears the storage accent and the modern skin class on the page root, the retro one when toggled", () => {
     const { wrapper } = mountPage();
 
     const root = wrapper.find(".ion-page");
-    expect(root.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--retro", "my-storage"]));
+    expect(root.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern", "my-storage"]));
     expect(root.attributes("style")).toContain("--xp-app-accent: #2fa9a0");
 
-    localStorage.setItem("fabStyle", "modern");
-    expect(mountPage().wrapper.find(".ion-page").classes()).toContain("xp-app--modern");
+    localStorage.setItem("fabStyle", "retro");
+    expect(mountPage().wrapper.find(".ion-page").classes()).toContain("xp-app--retro");
   });
 
   describe("locked storage", () => {
