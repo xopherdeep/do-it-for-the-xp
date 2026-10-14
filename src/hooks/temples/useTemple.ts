@@ -114,11 +114,30 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     markOpened = resolve;
   });
 
+  // The page is parked, not unmounted, when the hero pushes to another screen (Portal Home) and shown again on Back
+  let isOpening = false;
+  const open = (): Promise<boolean> => {
+    isOpening = true;
+    return openTemple().finally(() => {
+      isOpening = false;
+    });
+  };
+
   onMounted(() => {
     // A run already going shows at once; the layout is checked behind it
     syncLocalState();
-    void openTemple().then(markOpened);
+    void open().then(markOpened);
   });
+
+  /**
+   * For the page's "view will enter": a run put away while the page was parked (Portal Home, a blood moon raised at once,
+   * another hero taking the temple) is opened again, the way mounting does. A run still in memory is left alone, as is
+   * the first enter, which comes while the mount is still opening the temple.
+   */
+  const reopenIfGone = (): Promise<boolean> => {
+    const isRunGone = !templeSystem.getTempleState(templeId);
+    return isRunGone && !isOpening ? open() : Promise.resolve(false);
+  };
   
   // Allow components to register their own message display function
   const registerMessageDisplay = (displayFn: MessageDisplayFn) => {
@@ -557,6 +576,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   return {
     // State
     whenOpened,
+    reopenIfGone,
     currentPosition,
     hasMap,
     hasCompass,

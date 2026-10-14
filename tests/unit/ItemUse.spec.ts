@@ -18,10 +18,15 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveUsers: jest.fn().mockResolvedValue(undefined) },
 }));
+// A hero's saved temple progress, by `${userId}|${templeId}`: what is saved is what the next read finds
+const mockSavedProgress = new Map<string, any>();
 jest.mock("@/lib/databases/TempleProgressDb", () => ({
   getTempleProgressDb: () => ({
-    getProgress: () => Promise.resolve(null),
-    saveProgress: (progress: unknown) => Promise.resolve(progress),
+    getProgress: (userId: string, templeId: string) => Promise.resolve(mockSavedProgress.get(`${userId}|${templeId}`) ?? null),
+    saveProgress: (progress: any) => {
+      mockSavedProgress.set(`${progress.userId}|${progress.templeId}`, progress);
+      return Promise.resolve(progress);
+    },
   }),
 }));
 
@@ -172,6 +177,96 @@ describe("navigation items", () => {
     expect(outcome).toEqual({});
     expect(clicks[item.name]).toHaveBeenCalledTimes(1);
     expect(mp()).toBe(60);
+  });
+});
+
+describe("Portal Home in a temple", () => {
+  const savedRun = (id: string) => mockSavedProgress.get(`${HERO}|${id}`);
+
+  /**
+   * A tower the hero has worked in: past a locked door (opened with a key, two keys and the master key left), the
+   * map found, a room won and a chest emptied on the first floor, then up the stairs to the second.
+   */
+  const workedTower = async () => {
+    const id = makeTemple(
+      { E: { type: "entrance" }, H: { type: "empty", locked: { east: true } }, G: { type: "empty" }, C: { type: "loot" } },
+      { "1F": [["E", "H", "G", "C"]], "2F": [["G", "G", "G", "G"]] }
+    );
+    temples.initTemple(id, undefined, undefined, HERO);
+    await temples.whenProgressReady(id);
+    for (let key = 0; key < 3; key++) temples.addKey(id);
+    temples.grantMasterKey(id);
+    temples.grantMapAndCompass(id);
+    temples.moveToPosition(id, [0, 1], "east");
+    temples.unlockDoor(id, [0, 1], "east");
+    temples.moveToPosition(id, [0, 2], "east");
+    temples.markRoomCleared(id, "1F", [0, 2]);
+    temples.moveToPosition(id, [0, 3], "east");
+    temples.markChestOpened(id, "1F", [0, 3]);
+    temples.changeLevel(id, "2F", [0, 2]);
+    return id;
+  };
+
+  it("saves the run with the hero back at the entrance and everything else kept, and ends the run in memory", async () => {
+    const id = await workedTower();
+    await temples.flushProgress();
+    expect(savedRun(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 2] }); // saved where the hero stands
+
+    const outcome = useItem(PORTAL, itemContext(id, [0, 2]));
+    await temples.flushProgress();
+
+    expect(outcome).toEqual({ navigated: true });
+    expect(clicks["Portal Home"]).toHaveBeenCalledTimes(1);
+    expect(savedRun(id)).toMatchObject({
+      currentLevel: "1F",
+      currentPosition: [0, 0],
+      playerKeys: 2,
+      hasMasterKey: true,
+      hasMap: true,
+      hasCompass: true,
+      openedDoors: ["1F:0,1>east"],
+      openedChests: ["1F:0,3"],
+      clearedRooms: ["1F:0,2"],
+    });
+    expect(savedRun(id).visitedRooms).toEqual(expect.arrayContaining(["1F:0,0", "1F:0,1", "1F:0,2", "1F:0,3", "2F:0,2"]));
+    expect(temples.getTempleState(id)).toBeUndefined();
+    expect(temples.getHeroId(id)).toBeUndefined();
+    expect(mp()).toBe(60);
+  });
+
+  it("opens the next visit at the entrance, with the keys, the door, the chest and the won room as they were", async () => {
+    const id = await workedTower();
+    useItem(PORTAL, itemContext(id, [0, 2]));
+    await temples.flushProgress();
+
+    temples.initTemple(id, undefined, undefined, HERO); // the temple screen opens the temple again
+    await temples.whenProgressReady(id);
+
+    expect(temples.getTempleState(id)).toMatchObject({
+      currentLevel: "1F",
+      currentPosition: [0, 0],
+      playerKeys: 2,
+      hasMasterKey: true,
+      hasMap: true,
+      hasCompass: true,
+    });
+    expect(temples.isRoomCleared(id, "1F", [0, 2])).toBe(true);
+    expect(temples.getTempleState(id)!.openedChests).toEqual(new Set(["1F:0,3"]));
+    expect(temples.moveToPosition(id, [0, 1], "east")).toBe(true);
+    expect(temples.moveToPosition(id, [0, 2], "east")).toBe(true); // the door stays open
+  });
+
+  it("leaves a run in place when the portal is out of reach, and for every other way out of the screen", async () => {
+    const id = await workedTower();
+
+    const closed = useItem(PORTAL, itemContext(id, [0, 2], { catalog: [] }));
+    const goods = useItem(GOODS, itemContext(id, [0, 2]));
+    await temples.flushProgress();
+
+    expect(closed.sound).toBe("error");
+    expect(goods).toEqual({ navigated: true });
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 2] });
+    expect(savedRun(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 2] });
   });
 });
 

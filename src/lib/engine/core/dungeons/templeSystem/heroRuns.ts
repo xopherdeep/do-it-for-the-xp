@@ -195,6 +195,31 @@ export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): 
   runs.dungeonManager.resetDungeon(templeId);
 }
 
+/**
+ * The hero leaves the temple through the Portal Home item: the run is saved with the hero back at the entrance and put
+ * away, so the next visit starts there. It is the unstick for a hero who is stuck; the keys, opened doors and chests,
+ * rooms won, map and compass are all kept (every other way out leaves the hero where they stand).
+ * A save still being read is merged first, or the entrance would never reach what is stored.
+ */
+export function leaveByPortal(runs: TempleRuns, templeId: string): void {
+  if (runs.reads.has(templeId)) {
+    void whenProgressReady(runs, templeId).then(() => leaveByPortal(runs, templeId));
+    return;
+  }
+
+  const state = runs.templeStates[templeId];
+  const temple = runs.dungeonManager.getDungeon(templeId);
+  const hasNoRunToLeave = !state || !temple;
+  if (hasNoRunToLeave) return;
+
+  const entrance = standableStart(runs, templeId, temple, startAt(temple, temple.entrance || [0, 0]));
+  state.currentLevel = entrance.level;
+  state.currentPosition = entrance.position;
+  // The snapshot is a copy: it is written after the run is gone (forgetRun leaves a queued save alone)
+  runs.queueSave(templeId);
+  forgetRun(runs, templeId);
+}
+
 export function whenProgressReady(runs: TempleRuns, templeId: string): Promise<void> {
   return runs.reads.get(templeId) ?? Promise.resolve();
 }

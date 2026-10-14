@@ -577,6 +577,48 @@ describe("after a reload", () => {
     expect(second.dungeons.getRoom(id, [0, 1], "1F")!.isEmpty).toBeFalsy();
   });
 
+  it("starts a hero who left by Portal Home at the entrance, with what they found and won kept", async () => {
+    const id = nextId();
+    const first = await playFirstSession(id, "past the fight"); // standing at [0,4], map, compass, two keys, [0,3] won
+    first.temples.getTempleState(id)!.hasMasterKey = true;
+
+    void first.temples.leaveByPortal(id);
+    await first.temples.flushProgress();
+    expect(first.temples.getTempleState(id)).toBeUndefined();
+
+    const second = startSession();
+    await openTemple(second, id, HERO);
+
+    expect(second.temples.getTempleState(id)).toMatchObject({
+      currentLevel: "1F",
+      currentPosition: [0, 0],
+      hasMap: true,
+      hasCompass: true,
+      hasMasterKey: true,
+      playerKeys: 2,
+    });
+    expect(second.temples.isRoomCleared(id, "1F", [0, 3])).toBe(true);
+    expect(second.temples.hasVisited(id, [0, 4])).toBe(true);
+    expect(second.temples.moveToPosition(id, [0, 1], "east")).toBe(true);
+  });
+
+  it("puts the hero at the entrance once a save that is still being read is merged", async () => {
+    const id = nextId();
+    await playFirstSession(id, "past the fight");
+
+    const second = startSession();
+    second.dungeons.registerDungeon(second.hydrator.hydrate(RUN, id, id));
+    second.temples.initTemple(id, undefined, undefined, HERO);
+    void second.temples.leaveByPortal(id); // the read has not come back yet
+    await second.temples.whenProgressReady(id);
+    await second.temples.flushProgress();
+
+    expect(second.temples.getTempleState(id)).toBeUndefined();
+    const third = startSession();
+    await openTemple(third, id, HERO);
+    expect(third.temples.getTempleState(id)).toMatchObject({ currentPosition: [0, 0], hasMap: true, playerKeys: 2 });
+  });
+
   it("keeps the hero in a fight they left unfinished", async () => {
     const id = nextId();
     await playFirstSession(id, "the fight");

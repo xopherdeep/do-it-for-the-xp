@@ -61,7 +61,8 @@ export const shortItemName = (name: string, max: number = HAND_NAME_MAX): string
 export const handLabel = (item: { name?: string } | null | undefined, side: 'Left' | 'Right'): string =>
   item?.name ? shortItemName(item.name) : side;
 
-const NAVIGATION_ITEMS = ['My Quests', 'Book Of Spells', 'Goods', 'Wallet', 'Portal Home'];
+const PORTAL_HOME = 'Portal Home';
+const NAVIGATION_ITEMS = ['My Quests', 'Book Of Spells', 'Goods', 'Wallet', PORTAL_HOME];
 /** The Pegasus gifts: their click works on any screen (a menu style, the Pegasus modal) and the hero stays here */
 const PEGASUS_ITEMS = ['Pegasus Boots', 'Wind Whistle'];
 
@@ -273,7 +274,8 @@ const TEMPLE_USES: Record<TempleUseId, (ctx: ItemUseContext, cost: number) => It
 
 /**
  * Use an equipped item in a temple.
- * Navigation items and the Pegasus items run their click; a tool does its rule's temple use (the Lantern, the Bottles,
+ * Navigation items and the Pegasus items run their click (Portal Home first sends the hero's run back to the entrance,
+ * so the next visit starts there: TempleSystem.leaveByPortal); a tool does its rule's temple use (the Lantern, the Bottles,
  * the Bombs, Gaia's Quake, the Hook Shot, X's Invisibility, the Ice Wand, Night's Light) and anything else with a rule
  * is for fights. MP is charged only when the use works; the bill is the item's list price with the hero's class
  * discount (Mage 25%, Sage 50%) and trained intelligence taken.
@@ -287,6 +289,8 @@ export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): Item
   const runsItsClick = isNavigation || PEGASUS_ITEMS.includes(name);
   if (runsItsClick) {
     if (typeof definition?.click !== 'function') return refuse(`${name} is out of reach right now.`);
+    // The portal is the way out of a temple the hero is stuck in: they come back in through its entrance
+    if (name === PORTAL_HOME) void TempleSystem.getInstance().leaveByPortal(ctx.templeId);
     definition.click();
     return isNavigation ? { navigated: true } : {};
   }

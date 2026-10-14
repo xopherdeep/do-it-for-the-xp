@@ -16,7 +16,13 @@ import { HometownRoutes } from "@/router/Console/hometown.routes";
 // TempleGrounds pulls in the whole app shell (Ionic, stores, audio, IndexedDB); only its start-up wiring is under test
 const mockRegisterTemples = jest.fn();
 jest.mock("@/lib/mixins/ionic", () => ({ __esModule: true, default: {} }));
-jest.mock("@ionic/vue", () => ({ actionSheetController: {}, alertController: {} }));
+// What the screen asks Ionic to run when its page is entered again (a parked page comes back), kept for the specs to fire
+const mockViewEnters: Array<() => unknown> = [];
+jest.mock("@ionic/vue", () => ({
+  actionSheetController: {},
+  alertController: {},
+  onIonViewWillEnter: (hook: () => unknown) => mockViewEnters.push(hook),
+}));
 jest.mock("@/lib/engine/core/dungeons/TempleAdapter", () => ({
   registerAllTemples: () => mockRegisterTemples(),
   registerCustomTemples: () => Promise.resolve(),
@@ -477,5 +483,41 @@ describe("TempleGrounds start", () => {
 
     expect(vm.backgroundPosition.x).toBe(-window.innerWidth);
     wrapper.unmount();
+  });
+
+  // Ionic keeps the page parked after a push (Portal Home goes home that way) and shows it again on Back
+  describe("when the page is entered again", () => {
+    const enterAgain = () => mockViewEnters[mockViewEnters.length - 1]();
+
+    it("opens the temple again at the entrance when the run was put away (Portal Home)", async () => {
+      const id = nextId();
+      const wrapper = await openTempleScreen(id, `/temple/${id}/hero-1`, { userId: "hero-1", temple: id });
+      const vm = wrapper.vm as any;
+      await temples.whenProgressReady(id);
+      temples.moveToPosition(id, [0, 1], "east");
+      await temples.leaveByPortal(id);
+      expect(temples.getTempleState(id)).toBeUndefined();
+
+      await enterAgain();
+
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 0] });
+      expect(temples.getHeroId(id)).toBe("hero-1");
+      expect(vm.currentPosition).toEqual([0, 0]);
+      wrapper.unmount();
+    });
+
+    it("leaves a run that is still going alone", async () => {
+      const id = nextId();
+      const wrapper = await openTempleScreen(id, `/temple/${id}/hero-1`, { userId: "hero-1", temple: id });
+      await temples.whenProgressReady(id);
+      temples.moveToPosition(id, [0, 1], "east");
+      const running = temples.getTempleState(id);
+
+      await enterAgain();
+
+      expect(temples.getTempleState(id)).toBe(running);
+      expect(running).toMatchObject({ currentPosition: [0, 1] });
+      wrapper.unmount();
+    });
   });
 });

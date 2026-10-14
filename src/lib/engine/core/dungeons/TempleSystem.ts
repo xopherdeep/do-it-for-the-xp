@@ -255,6 +255,16 @@ export class TempleSystem {
   public forgetTempleRun(templeId: string): void {
     this.forgetRun(templeId, true);
   }
+
+  /**
+   * The hero leaves by the Portal Home item: their run is saved with the hero put back at the entrance, then put away,
+   * so the next visit opens there (heroRuns.leaveByPortal). Everything else the run holds is kept.
+   * Resolves once the save has reached storage.
+   */
+  public leaveByPortal(templeId: string): Promise<void> {
+    heroRuns.leaveByPortal(this.runs, templeId);
+    return this.flushSaves();
+  }
   
   private migrateVisitedRooms(templeId: string): void {
     floors.migrateVisitedRooms(this.runs, templeId);

@@ -1,4 +1,5 @@
 import { defineComponent, onMounted, computed, ref } from 'vue';
+import { onIonViewWillEnter } from '@ionic/vue';
 import ionic from '@/lib/mixins/ionic';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRoute, useRouter } from 'vue-router';
@@ -145,6 +146,7 @@ export default defineComponent({
       openMap,
       closeMap: closeMapQuietly,
       whenOpened,
+      reopenIfGone,
       // Map and compass utilities
       showRoomDetails,
       getRoomVisibility,
@@ -155,6 +157,9 @@ export default defineComponent({
     } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
 
     const router = useRouter();
+
+    // The page stays parked while the hero is on another screen, so a run put away meanwhile (Portal Home) is reopened on Back
+    onIonViewWillEnter(reopenIfGone);
 
     // Messages are RPG-box toasts in the center with an X to dismiss
     const { showToast } = useToast();
