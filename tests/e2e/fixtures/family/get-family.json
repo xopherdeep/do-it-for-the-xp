@@ -1,0 +1,24 @@
+{
+  "family_id": "e2e-family-1",
+  "heroes": [
+    {
+      "hero_id": "hero-1",
+      "nickname": "Max",
+      "age_group": "kid",
+      "card": {
+        "hero_id": "hero-1",
+        "nickname": "Max",
+        "level": 3,
+        "jobClass": "warrior",
+        "look": {
+          "gender": "male",
+          "skinColor": "fair",
+          "hairStyle": "spiky",
+          "hairColor": "brown",
+          "outfit": "apprentice"
+        },
+        "updated_at": "2026-10-13T00:00:00Z"
+      }
+    }
+  ]
+}
