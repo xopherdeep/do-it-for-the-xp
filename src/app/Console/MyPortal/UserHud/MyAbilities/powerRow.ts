@@ -1,6 +1,7 @@
 import type { Ability, AbilityStatus, TimePeriod } from "@/types/abilities";
 import type { HeroAbilitySnapshot, HeroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import { toFaClass } from "@/lib/utils/faIcon";
+import { durationLabel, timerMinutesOf } from "@/lib/services/abilities/PowerTimers";
 
 /**
  * What one Power says on its row of the Powers app: the kind, the AP it asks for and how far the hero has come, the
@@ -77,6 +78,10 @@ export interface PowerRow {
   mpCost: number;
   /** "once a day", "anytime" ... */
   frequencyLabel: string;
+  /** "30 min" for a timed privilege, empty when the Power has no timer */
+  timerLabel: string;
+  /** True while the Power's timer runs (it cannot be cast again until it ends) */
+  running: boolean;
   /** AP the Power asks for in its window (0 when it asks for none) */
   needed: number;
   earned: number;
@@ -95,6 +100,8 @@ export interface PowerRowOptions {
   groundedReason?: string | null;
   /** This Power is being cast right now, so a double tap cannot charge the MP twice */
   casting?: boolean;
+  /** The countdown of the Power's running timer ("24:13"); a running Power cannot be cast again until it ends */
+  timerLeft?: string | null;
 }
 
 export const buildPowerRow = (
@@ -103,7 +110,9 @@ export const buildPowerRow = (
   snapshot: HeroAbilitySnapshot,
   options: PowerRowOptions = {}
 ): PowerRow => {
-  const { groundedReason = null, casting = false } = options;
+  const { groundedReason = null, casting = false, timerLeft = null } = options;
+  const minutes = timerMinutesOf(ability);
+  const running = Boolean(timerLeft);
   const needed = Number(ability.apRequirement?.amount) || 0;
   const period: TimePeriod = ability.apRequirement?.period ?? "flat";
   const periodLabel = PERIOD_LABEL[period] ?? "in all";
@@ -111,7 +120,11 @@ export const buildPowerRow = (
   const ratio = needed > 0 ? Math.min(earned / needed, 1) : 1;
 
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
-  const stateLine = groundedReason && status === "available" ? groundedReason : stateLineOf(ability, status, earned, needed);
+  const stateLine = running
+    ? `Running · ${timerLeft} left`
+    : groundedReason && status === "available"
+      ? groundedReason
+      : stateLineOf(ability, status, earned, needed);
 
   return {
     id: ability.id,
@@ -122,12 +135,14 @@ export const buildPowerRow = (
     typeLabel: ability.type === "in-game" ? "Spell" : "Privilege",
     mpCost: Number(ability.mpCost) || 0,
     frequencyLabel: FREQUENCY_LABEL[ability.frequency] ?? FREQUENCY_LABEL.flat,
+    timerLabel: minutes > 0 ? durationLabel(minutes) : "",
+    running,
     needed,
     earned,
     apText: `${fmtAp(earned)}/${fmtAp(needed)} AP ${periodLabel}`,
     meterWidth: `${Math.round(ratio * 100)}%`,
     stateLine,
-    canCast: status === "available" && !groundedReason && !casting,
+    canCast: status === "available" && !groundedReason && !casting && !running,
     locked: status === "locked",
   };
 };

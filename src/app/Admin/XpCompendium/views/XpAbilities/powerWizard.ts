@@ -11,6 +11,7 @@ import type { Ability, ApRequirement } from "@/hooks/abilities/abilityConstants"
 import { BATTLE_EFFECTS } from "@/lib/services/battle/BattleEffects";
 import { battleEffectOf } from "@/lib/services/battle/BattlePowers";
 import { POWER_BOARD_EFFECTS, boardEffectOfPower } from "@/lib/services/abilities/PowerBoardEffects";
+import { DEFAULT_TIMER_MINUTES, durationLabel, timerMinutesOf } from "@/lib/services/abilities/PowerTimers";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
 /** The draft is the record: nothing is copied back and forth between form fields and the Ability on save. */
@@ -147,6 +148,8 @@ export const blankPower = (roll: () => number = Math.random): PowerDraft => ({
   icon: "hand-holding-magic",
   iconPrefix: "fad",
   isPreset: false,
+  // A new privilege runs on a 30 minute clock once cast; 0 is a privilege with no timer
+  timerMinutes: DEFAULT_TIMER_MINUTES,
   position: { x: Math.floor(roll() * 800), y: Math.floor(roll() * 600) },
 });
 
@@ -261,6 +264,7 @@ export const finishedPower = (draft: PowerDraft): PowerDraft => ({
   name: draft.name.trim(),
   description: draft.description.trim(),
   mpCost: Number(draft.mpCost),
+  timerMinutes: Math.max(0, Math.trunc(Number(draft.timerMinutes) || 0)),
   apRequirement: { ...draft.apRequirement, amount: Number(draft.apRequirement.amount) },
 });
 
@@ -333,6 +337,13 @@ export const powerSummary = (draft: PowerDraft): PowerSummaryRow[] => {
           icon: "calendar-alt",
           label: "On the quest board",
           value: boardEffect ? POWER_BOARD_EFFECTS[boardEffect].label : "Nothing on the quest board",
+        },
+        {
+          id: "timer",
+          step: "does",
+          icon: "stopwatch",
+          label: "Timer",
+          value: timerMinutesOf(draft) > 0 ? `${durationLabel(timerMinutesOf(draft))} once cast` : "No timer",
         },
       ];
 

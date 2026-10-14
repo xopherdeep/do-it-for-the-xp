@@ -18,6 +18,7 @@ import { startQuestWatch } from "@/lib/services/notifications/questWatch";
 import { canFly } from "@/lib/services/travel/flight";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
+import XpPowerTimerBar from "@/components/organisms/PowerTimers/XpPowerTimerBar.vue";
 import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
 
 // Define interface for equipment items
@@ -56,7 +57,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage, XpBottomNav },
+  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar },
   mixins: [ionic],
   name: "my-portal",
   data() {

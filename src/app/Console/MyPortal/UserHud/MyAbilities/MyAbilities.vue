@@ -13,6 +13,7 @@
     </ion-header>
 
     <ion-content class="my-abilities">
+      <xp-power-timer-bar v-if="heroId" :hero-id="heroId" />
       <XpLoading v-if="isLoading" />
       <xp-app-empty
         v-else-if="!groups.length"
@@ -52,6 +53,7 @@
               <xp-app-chip kind="tag" :value="row.typeLabel" />
               <xp-app-chip kind="mp" :value="row.mpCost" />
               <xp-app-chip kind="tag" :value="row.frequencyLabel" />
+              <xp-app-chip v-if="row.timerLabel" kind="tag" :value="row.timerLabel" />
               <p v-if="row.stateLine" class="power-state">{{ row.stateLine }}</p>
             </template>
             <template #trailing>

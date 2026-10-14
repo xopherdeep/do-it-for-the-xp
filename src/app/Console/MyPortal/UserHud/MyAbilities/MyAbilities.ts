@@ -23,6 +23,8 @@ import { play$fx } from "@/assets/fx";
 import debug from "@/lib/utils/debug";
 import { useQuestPicker } from "@/hooks/quests/useQuestPicker";
 import { castWithBoardEffect } from "./boardCast";
+import { usePowerTimers } from "@/hooks/abilities/usePowerTimers";
+import XpPowerTimerBar from "@/components/organisms/PowerTimers/XpPowerTimerBar.vue";
 import { buildPowerRow, type PowerRow } from "./powerRow";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
@@ -63,6 +65,7 @@ export default defineComponent({
   components: {
     XpLoading,
     XpAppBottomNav,
+    XpPowerTimerBar,
   },
   mixins: [ionic],
   setup(props) {
@@ -121,6 +124,11 @@ export default defineComponent({
 
     // The Power being cast right now, so a double tap cannot charge the MP twice
     const casting = ref("");
+    // Timed privileges that are running: their rows say how long is left and keep Cast off until time is up
+    const { timers } = usePowerTimers(heroId);
+    const timerLeftOf = computed<Record<string, string>>(() =>
+      Object.fromEntries(timers.value.map((timer) => [timer.abilityId, timer.left]))
+    );
 
     // One row per visible Power, grouped under Privileges and Spells (the list is already sorted that way)
     const groups = computed<PowerGroup[]>(() => {
@@ -129,6 +137,7 @@ export default defineComponent({
         const row = buildPowerRow(ability, statuses.value[ability.id] || "locked", snapshot.value, {
           groundedReason: groundedReason.value,
           casting: casting.value === ability.id,
+          timerLeft: timerLeftOf.value[ability.id] ?? null,
         });
         const last = result[result.length - 1];
         if (last && last.type === ability.type) last.rows.push(row);

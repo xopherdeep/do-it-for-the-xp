@@ -10,6 +10,8 @@
           <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" />
         </template>
       </xp-main-hud>
+      <!-- Timed privileges (30 minutes of games...): the countdown floats above the bottom nav on every screen -->
+      <xp-power-timer-bar v-if="user?.id && !battleState('active')" :hero-id="user.id" floating />
     </template>
 
     <!-- FABs: Retired 2026-10-10 now that 3D voxel models match navigation menus 1:1 across all plazas.

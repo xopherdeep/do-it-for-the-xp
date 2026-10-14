@@ -2,6 +2,8 @@
  * Casting a Power on the Powers page when the Power bends the quest board (Snooze, Extra Time, Quiet Day, Trusted
  * Hour): ask which quest first when the effect needs one, check the effect can land before anything is charged,
  * cast, then land it. The rules are PowerBoardEffects; this module only orders the steps, and the page stays thin.
+ * A timed privilege (PowerTimers: 30 minutes of video games) cannot be cast while its timer runs, and starts its
+ * timer once the cast has paid.
  *
  * Rule zero: no Power completes a chore or changes its rewards.
  */
@@ -13,6 +15,9 @@ import {
   boardEffectOfPower,
   powerBoardEffectBlocked,
 } from "@/lib/services/abilities/PowerBoardEffects";
+import { durationLabel, powerTimerBlocked, timerMinutesOf } from "@/lib/services/abilities/PowerTimers";
+import { startPowerTimer } from "@/lib/services/abilities/PowerTimerActions";
+import { useUserStore } from "@/lib/store/stores/user";
 
 /** What the page hands in: the hero's quest picker, the real cast (it charges the MP and toasts its own refusals). */
 export interface BoardCastDeps {
@@ -32,16 +37,28 @@ export interface BoardCastOutcome {
   sound?: string;
 }
 
+/** Start the timer of a timed privilege once its cast has paid; the line says how long it runs, else null */
+const startTimerOf = (ability: Ability, userId: string, now: Date): string | null => {
+  const timer = startPowerTimer(ability, userId, now);
+  return timer ? `${ability.name}: ${durationLabel(timerMinutesOf(ability))} on the clock.` : null;
+};
+
 /** Cast the Power; one that bends the board asks, checks and lands its effect around the cast. */
 export const castWithBoardEffect = async (
   ability: Ability,
   userId: string,
   deps: BoardCastDeps
 ): Promise<BoardCastOutcome> => {
+  // A timer still running refuses before anything is asked or charged
+  const timerRefusal = powerTimerBlocked(ability, useUserStore().users[userId], deps.now ?? new Date());
+  if (timerRefusal) return { status: "refused", line: timerRefusal, sound: "no" };
+
   const effect = boardEffectOfPower(ability);
   if (!effect) {
     const plain = await deps.cast(ability.id, userId);
-    return { status: plain.ok ? "cast" : "failed" };
+    if (!plain.ok) return { status: "failed" };
+    const timerLine = startTimerOf(ability, userId, deps.now ?? new Date());
+    return timerLine ? { status: "cast", line: timerLine, sound: "useMP" } : { status: "cast" };
   }
 
   let questId: string | undefined;
@@ -67,5 +84,6 @@ export const castWithBoardEffect = async (
   if (isCastRefused) return { status: "failed" };
 
   const landed = await applyPowerBoardEffect(effect, context);
-  return { status: "cast", line: landed.line, sound: landed.sound };
+  const timerLine = startTimerOf(ability, userId, context.now);
+  return { status: "cast", line: [landed.line, timerLine].filter(Boolean).join(" "), sound: landed.sound };
 };

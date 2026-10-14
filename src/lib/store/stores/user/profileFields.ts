@@ -202,6 +202,18 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   /**
+   * The hero's running timed privileges (services/abilities/PowerTimers.ts): Power id to its timer. Replaces the
+   * whole record; PowerTimers writes it on a cast, when a timer ends early and when time is up.
+   */
+  function setPowerTimers(userId: string, timers: object) {
+    const user = users[userId];
+    if (!user) return;
+    user.powerTimers = JSON.parse(JSON.stringify(timers));
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
    * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
    * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
    * Returns true when the item was newly unlocked.
@@ -337,6 +349,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setBenchRestAt,
     setBedRestAt,
     setQuestEffects,
+    setPowerTimers,
     unlockItem,
     setEquipment,
     setLook,
