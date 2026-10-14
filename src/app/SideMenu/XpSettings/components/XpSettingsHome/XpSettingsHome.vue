@@ -24,6 +24,7 @@
           <ion-col
             v-for="(item, index) in settingsItems"
             :size="isFullRow(index) ? '12' : '6'"
+            :class="{ 'full-row': isFullRow(index) }"
             :key="item.id"
           >
             <ion-card
