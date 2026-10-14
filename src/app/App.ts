@@ -136,6 +136,9 @@ export default defineComponent({
     const $fx = audioStore.bgm.$fx;
     const theme = gameStore.theme.rpg;
     
+    // The route guard has usually picked this route's music already (the intro's song): only start the title theme when it has not
+    if (audioStore.bgm.tracks?.length) return;
+
     // Use the new AudioEngine for the initial BGM
     changeBGMAdapter(audioStore, { 
       tracks: $fx.rpg[theme].BGM.startScreen,
