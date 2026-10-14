@@ -313,15 +313,15 @@ const closeBuilder = () => {
 </script>
 
 <style lang="scss" scoped>
+// The gap rule of the Settings grid: each card's border is a 16px box-shadow drawn outside it, so the page pads
+// 16px more and cards sit 48px apart; every visible gap (edges, between cards, around the heading) comes out 16px
 .packs {
-  &__intro {
-    margin-bottom: 32px !important;
-    line-height: 1.4;
-  }
+  padding: 16px;
+
 
   &__heading {
     display: inline-block;
-    margin: 32px 0 24px;
+    margin: 32px 0;
     padding: 4px 12px;
     font-size: 1.1rem;
     color: #fff;
@@ -332,8 +332,7 @@ const closeBuilder = () => {
   &__grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    // each card's border is drawn outside it, so the gap leaves room for two borders
-    gap: 32px;
+    gap: 48px;
 
     @media (min-width: 768px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -380,6 +379,11 @@ const closeBuilder = () => {
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
+  }
+
+  &.packs__intro {
+    margin-bottom: 48px !important;
+    line-height: 1.4;
   }
 
   ion-card-content {
