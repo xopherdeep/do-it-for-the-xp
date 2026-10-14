@@ -26,9 +26,12 @@ export interface VictoryCardState {
   subtitle: string;
   rewards: RewardTally;
   questName?: string;
-  /** How many chores the hero finished in this fight and how long it took, for the "4 chores in 6:12" line. */
-  choresDone: number;
-  elapsedMs: number;
+  /**
+   * How many chores the hero finished in this fight and how long it took, for the "4 chores in 6:12" line. Left out
+   * (a quest marked done from the Beast Log, not fought), the card has no such line.
+   */
+  choresDone?: number;
+  elapsedMs?: number;
   /** The Game Master approves this quest before the loot lands: tiles count up locked, no level-up lines. */
   held: boolean;
   levelUp?: { from: number; to: number };

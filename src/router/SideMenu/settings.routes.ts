@@ -22,6 +22,14 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
         ),
     },
     {
+      path: "packs",
+      name: "xp-settings-packs",
+      component: () =>
+        import(
+          "@/app/SideMenu/XpSettings/components/PacksSettings.vue"
+        ),
+    },
+    {
       path: "family",
       name: "xp-settings-family",
       component: () =>

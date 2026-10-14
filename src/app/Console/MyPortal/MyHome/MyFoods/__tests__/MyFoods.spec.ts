@@ -94,13 +94,13 @@ describe("MyFoods", () => {
 
   it("takes the skin and the kitchen accent from the profile toggle", async () => {
     const wrapper = mountKitchen();
-    expect(wrapper.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--retro"]));
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern"]));
     expect(wrapper.element.style.getPropertyValue("--xp-app-accent")).toBe("#c9971f");
 
-    useGameStore().setFabStyle("modern");
+    useGameStore().setFabStyle("retro");
     await nextTick();
 
-    expect(wrapper.classes()).toContain("xp-app--modern");
+    expect(wrapper.classes()).toContain("xp-app--retro");
   });
 
   it("narrows the list as the hero types in the search field above the dock", async () => {
