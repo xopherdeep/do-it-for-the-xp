@@ -15,6 +15,13 @@ const $fx = {
     finalFantasy: { ...earthboundSounds, ...finalFantasySounds },
     // No Zelda sound set yet: the Zelda game style plays the Earthbound sounds
     zelda: earthboundSounds,
+    // The XP Pro styles have no sound sets of their own yet
+    dragonQuest: earthboundSounds,
+    pokemon: earthboundSounds,
+    secretOfMana: earthboundSounds,
+    phantasyStar: earthboundSounds,
+    virtualBoy: earthboundSounds,
+    marioRpg: earthboundSounds,
   },
 };
 

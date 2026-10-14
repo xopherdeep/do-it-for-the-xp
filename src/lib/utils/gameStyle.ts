@@ -4,12 +4,44 @@ export interface ThemeChoice {
   rpg: string;
 }
 
-export const GAME_STYLES = ["earthbound", "chronoTrigger", "finalFantasy", "zelda"] as const;
+/** Free for everyone. */
+export const FREE_GAME_STYLES = ["earthbound", "chronoTrigger", "finalFantasy", "zelda"] as const;
+/** Part of XP Pro (the `gameStyles` gate). */
+export const PRO_GAME_STYLES = [
+  "dragonQuest",
+  "pokemon",
+  "secretOfMana",
+  "phantasyStar",
+  "virtualBoy",
+  "marioRpg",
+] as const;
+export const GAME_STYLES = [...FREE_GAME_STYLES, ...PRO_GAME_STYLES] as const;
+export type GameStyle = (typeof GAME_STYLES)[number];
+
+/** The names Theme Settings shows. */
+export const GAME_STYLE_NAMES: Record<GameStyle, string> = {
+  earthbound: "Earthbound",
+  chronoTrigger: "Chrono Trigger",
+  finalFantasy: "Final Fantasy",
+  zelda: "Legend of Zelda",
+  dragonQuest: "Dragon Quest",
+  pokemon: "Pokémon (Game Boy)",
+  secretOfMana: "Secret of Mana",
+  phantasyStar: "Phantasy Star",
+  virtualBoy: "Virtual Boy",
+  marioRpg: "Super Mario RPG",
+};
 // the UI sound sets in src/assets/fx/uiSounds.ts
 export const UI_STYLES = ["nintendo", "sony"] as const;
 
 const KEY = "xp.themeChoice";
 const DEFAULT_CHOICE: ThemeChoice = { ui: "nintendo", rpg: "earthbound" };
+
+export const isProGameStyle = (style: string): boolean => (PRO_GAME_STYLES as readonly string[]).includes(style);
+
+/** The style to show: a Pro style without Pro (never bought, or lapsed) falls back to Earthbound. */
+export const allowedGameStyle = (style: string, isPro: boolean): string =>
+  isProGameStyle(style) && !isPro ? DEFAULT_CHOICE.rpg : style;
 
 const isOneOf = (list: readonly string[], value: unknown): value is string =>
   typeof value === "string" && list.includes(value);
