@@ -80,6 +80,25 @@ describe("transitionFor", () => {
     expect(transitionFor(shop, other)).toBeNull();
   });
 
+  it("gives each building its own door, both ways", () => {
+    expect(transitionFor(town, shop)?.door).toBe("shop");
+    expect(transitionFor(town, at("hospital"))?.door).toBe("sliding");
+    expect(transitionFor(town, at("bank"))?.door).toBe("vault");
+    expect(transitionFor(town, at("town-hall"))?.door).toBe("stone");
+    expect(transitionFor(town, at("my-home"))?.door).toBe("plank");
+    expect(transitionFor(at("hospital"), town)?.door).toBe("sliding");
+  });
+
+  it("names a land shop after its merchant and uses its door", () => {
+    const tent = at("shop", { merchant: "hermits-tent" });
+    expect(tent).toMatchObject({ kind: "building", title: "Hermit's Tent", building: "hermits-tent" });
+    expect(transitionFor(forest, tent)).toMatchObject({ effect: "doors", door: "tent", title: "Hermit's Tent" });
+    expect(transitionFor(at("world-mountains"), at("shop", { merchant: "crystal-caverns" }))?.door).toBe("portal");
+    expect(transitionFor(tent, forest)).toMatchObject({ direction: "out", door: "tent" });
+    // An unknown merchant keeps the plain shop's name and door
+    expect(at("shop", { merchant: "nobody" })).toMatchObject({ title: "Item Shop", building: "shop" });
+  });
+
   it("irises into a temple with its name, region and element", () => {
     expect(transitionFor(plains, wind)).toMatchObject({
       effect: "iris",

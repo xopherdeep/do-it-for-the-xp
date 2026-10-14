@@ -16,6 +16,7 @@
 //    iris 'thud', clouds 'tick' x3, swirl 'slam') so effects add none unless they have a mid-animation beat.
 import { computed, reactive } from "vue";
 import type { TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
+import type { DoorFocus } from "./cameraPush";
 
 export type TransitionPhase = "idle" | "cover" | "covered" | "reveal";
 
@@ -31,11 +32,35 @@ export interface AreaCard {
   element?: string;
 }
 
-export const state = reactive<{ plan: TransitionPlan | null; phase: TransitionPhase; card: AreaCard | null }>({
+export const state = reactive<{
+  plan: TransitionPlan | null;
+  phase: TransitionPhase;
+  card: AreaCard | null;
+  /** Where on screen the hero tapped the building, for the doors' camera push; null to push into the middle. */
+  focus: DoorFocus | null;
+}>({
   plan: null,
   phase: "idle",
   card: null,
+  focus: null,
 });
+
+/** How long a tap on a building stays the place the next transition pushes into. */
+export const FOCUS_TTL_MS = 1500;
+
+let aimed: (DoorFocus & { at: number }) | null = null;
+
+/** Called by a building as it is tapped: the next cover pushes the camera into this point. */
+export const aimAt = (focus: DoorFocus): void => {
+  aimed = { ...focus, at: Date.now() };
+};
+
+/** The aimed point, if it is fresh; each aim is used once. */
+const takeFocus = (): DoorFocus | null => {
+  const fresh = aimed && Date.now() - aimed.at <= FOCUS_TTL_MS ? { x: aimed.x, y: aimed.y, size: aimed.size } : null;
+  aimed = null;
+  return fresh;
+};
 
 let cardTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -83,6 +108,7 @@ export const cover = (plan: TransitionPlan): Promise<void> => {
   settle(revealWaiter);
   revealWaiter = null;
   state.plan = plan;
+  state.focus = takeFocus();
   state.phase = "cover";
   let mine: Waiter | null = null;
   return wait((waiter) => {
@@ -114,6 +140,7 @@ export const reveal = (): Promise<void> => {
     revealWaiter = null;
     state.phase = "idle";
     state.plan = null;
+    state.focus = null;
   });
 };
 
@@ -123,5 +150,5 @@ export const notifyCovered = () => settle(coverWaiter);
 /** Called by XpSceneTransition when the effect emits 'revealed'. */
 export const notifyRevealed = () => settle(revealWaiter);
 
-export const sceneTransitionController = { state, isActive, cover, reveal, notifyCovered, notifyRevealed };
+export const sceneTransitionController = { state, isActive, aimAt, cover, reveal, notifyCovered, notifyRevealed };
 export default sceneTransitionController;

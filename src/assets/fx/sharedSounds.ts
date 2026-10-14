@@ -31,6 +31,17 @@ export const openDoor = new Audio(doorOpen);
 export const step = new Audio(earthbound.step);
 export const steps = new Audio(earthbound.steps);
 
+/** One sound per kind of building door (buildingDoors.ts), played as the door opens in the scene transition. */
+export const doorSounds = {
+  doorBell: new Audio(earthbound.bikebell),
+  doorSlide: new Audio(earthbound.eb_dooropen),
+  doorVault: new Audio(earthbound.bulldozerstop),
+  doorStone: new Audio(earthbound.bulldozermove),
+  doorGate: new Audio(earthbound.ropedown),
+  doorTent: new Audio(earthbound.dodge),
+  doorPortal: new Audio(earthbound.teleport),
+};
+
 
 coins.addEventListener(
   "ended",

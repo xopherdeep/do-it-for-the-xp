@@ -31,6 +31,7 @@ import { getShopMetadata } from "@/lib/engine/core/shopRegistry";
 import { getHotelByWorld } from "@/lib/engine/core/hotelRegistry";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useBuildingScene } from "./useBuildingScene";
+import { aimAt } from "@/components/organisms/SceneTransition/sceneTransitionController";
 import { play$fx } from "@/assets/fx";
 import debug from "@/lib/utils/debug";
 
@@ -248,7 +249,15 @@ export default defineComponent({
       height: `${props.size}px`,
     }));
 
+    /** The door sits low in the middle of the model: the scene transition pushes the camera in there. */
+    const aimAtDoor = () => {
+      const box = canvasRef.value?.getBoundingClientRect();
+      if (!box || !box.width) return;
+      aimAt({ x: box.left + box.width / 2, y: box.top + box.height * 0.68, size: box.width * 0.3 });
+    };
+
     const handleClick = () => {
+      aimAtDoor();
       try {
         play$fx("select");
       } catch (error) {

@@ -9,9 +9,9 @@ import { createGrid, gridRuns, outlineGrid, paint, type Grid, type PixelRun } fr
 export const LEAF_W = 48;
 export const LEAF_H = 96;
 
-const INK = "#140a0e";
-const WOOD = ["#2e1608", "#4c2812", "#6e3e1e", "#8e5a2e", "#b07a46"];
-const IRON = ["#1c1a22", "#3a3844", "#5a5868", "#807e90", "#aeacbe"];
+export const INK = "#140a0e";
+export const WOOD = ["#2e1608", "#4c2812", "#6e3e1e", "#8e5a2e", "#b07a46"];
+export const IRON = ["#1c1a22", "#3a3844", "#5a5868", "#807e90", "#aeacbe"];
 
 /** Trim ramps, darkest to brightest, one per kind of building */
 const TRIMS: Record<string, string[]> = {
@@ -20,6 +20,9 @@ const TRIMS: Record<string, string[]> = {
   hotel: ["#142a5c", "#24489a", "#4a78d0", "#7aa4ec", "#b4ccfa"],
   green: ["#10381a", "#1e6030", "#38954a", "#62c070", "#9ae6a2"],
   plain: ["#3a3450", "#625a7a", "#968caa", "#bcb2d0", "#dcd2f0"],
+  purple: ["#2a0e3a", "#4a1c66", "#7a36a0", "#a862cc", "#d49af0"],
+  sky: ["#1a4a6a", "#2a76a0", "#58a8d4", "#9ad4f0", "#d4f0ff"],
+  crystal: ["#1a1446", "#33288a", "#5a48d0", "#8c7cf4", "#c8bcff"],
 };
 
 /** Which trim a place gets: gold for the shop, bank and town hall, white and red for the hospital, and so on. */
@@ -34,14 +37,28 @@ export const trimFor = (title?: string): string[] => {
     case "Hotel":
       return TRIMS.hotel;
     case "My Home":
+    case "Hermit's Tent":
+    case "Pegasus Ranch":
       return TRIMS.green;
+    case "Hometown Market":
+    case "Pond of Life Oasis":
+    case "Theia City Emporium":
+      return TRIMS.gold;
+    case "Witch's Hut":
+      return TRIMS.purple;
+    case "Cloud Market":
+    case "Snow Shack":
+    case "The Wrecked Ship":
+      return TRIMS.sky;
+    case "Crystal Caverns":
+      return TRIMS.crystal;
     // Coming out, the plan names the town, not the building we leave
     default:
       return TRIMS.plain;
   }
 };
 
-const tone = (ramp: string[], index: number): string => ramp[Math.max(0, Math.min(ramp.length - 1, index))];
+export const tone = (ramp: string[], index: number): string => ramp[Math.max(0, Math.min(ramp.length - 1, index))];
 
 const BANDS = [14, 74];
 const RING = { x: LEAF_W - 9, y: 48 };
