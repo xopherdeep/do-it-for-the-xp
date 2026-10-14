@@ -22,3 +22,7 @@ export const familyNotice = (key: FamilyCopyKey, vars?: CopyVars, voice: Voice =
 /** "This family's home is another device. Make this one home?" Yes moves home here; No (or Escape) leaves it. */
 export const homeQuestionPrompt = (voice: Voice = "adventure"): RevealPromptOptions =>
   yesNoOf(CLERK, copyFor("family.homeElsewhere", voice), { yes: "Make it home", no: "Not now" }, CLERK_LOOK);
+
+/** "Unlink {label}? It stops working right away." Yes unlinks it; No leaves it. */
+export const removePhonePrompt = (label: string, voice: Voice = "adventure"): RevealPromptOptions =>
+  yesNoOf(CLERK, copyFor("family.removePhone", voice, { label }), { yes: "Unlink", no: "Keep" }, CLERK_LOOK);

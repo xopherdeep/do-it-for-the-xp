@@ -35,7 +35,7 @@
             <i class="fad fa-edit mr-2"></i>
             Edit
           </ion-button>
-          <ion-button v-else :disabled="!PHONES_MODAL_READY" data-cy="family-phones-open">
+          <ion-button v-else :disabled="!PHONES_MODAL_READY" data-cy="family-phones-open" @click="openPhonesModal(hero.id, hero.title)">
             <i class="fad fa-mobile-alt mr-2"></i>
             Phones
           </ion-button>
@@ -53,6 +53,7 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { IonButton, IonButtons, IonCard, IonCardHeader, IonCardTitle, IonItem, IonLabel, IonList, modalController } from "@ionic/vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
+import XpHeroPhonesModal from "./XpHeroPhonesModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useCopy, useVoice } from "@/hooks/useVoice";
@@ -75,8 +76,8 @@ const t = useCopy();
 const { voice } = useVoice();
 const { prompt, ask, respond } = useRevealPrompt();
 
-/** The Phones button stays dim until the Link a phone modal exists (MP15 opens it from here) */
-const PHONES_MODAL_READY = false;
+/** The Phones button opens the Link a phone modal (MP15) */
+const PHONES_MODAL_READY = true;
 
 const AGE_GROUP_CHOICES: { id: AgeGroup; label: string }[] = [
   { id: "child", label: "Under 13" },
@@ -109,6 +110,19 @@ const heroes = computed(() =>
 );
 
 const pickAgeGroup = (heroId: string, group: AgeGroup): Promise<void> => family.setAgeGroup(heroId, group);
+
+/** Opens the Link a phone modal for a hero */
+async function openPhonesModal(heroId: string, nickname: string): Promise<void> {
+  try {
+    const modal = await modalController.create({
+      component: XpHeroPhonesModal,
+      componentProps: { heroId, nickname },
+    });
+    await modal.present();
+  } catch (error) {
+    debug.error("Could not open hero phones modal:", error);
+  }
+}
 
 /** The profile form, so the Game Master can give a nickname; the site hears of the hero once it is saved */
 async function editProfile(profile: unknown): Promise<void> {

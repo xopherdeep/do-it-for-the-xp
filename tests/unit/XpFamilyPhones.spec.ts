@@ -8,6 +8,7 @@ jest.mock("vue-router", () => ({ ...jest.requireActual("vue-router"), useRouter:
 
 jest.mock("@ionic/vue", () => ({ ...jest.requireActual("@ionic/vue"), modalController: { create: jest.fn() } }));
 jest.mock("@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue", () => ({ __esModule: true, default: { name: "AddProfile", render: () => null } }));
+jest.mock("@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue", () => ({ __esModule: true, default: { name: "XpHeroPhonesModal", render: () => null } }));
 
 const mockFamily = reactive({
   enabled: true,
@@ -199,9 +200,19 @@ describe("XpFamilyPhones", () => {
   });
 
   describe("the Phones button", () => {
-    it("waits for the Link a phone modal", async () => {
+    it("opens the Link a phone modal", async () => {
+      const modal = { present: jest.fn(), onDidDismiss: jest.fn() };
+      (modalController.create as jest.Mock).mockResolvedValue(modal);
       const wrapper = await open();
-      expect((cy(wrapper, "family-phones-open").element as HTMLElement & { disabled?: boolean }).disabled).toBe(true);
+      expect((cy(wrapper, "family-phones-open").element as HTMLElement & { disabled?: boolean }).disabled).toBe(false);
+      await cy(wrapper, "family-phones-open").trigger("click");
+      await flushPromises();
+      expect(modalController.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          componentProps: { heroId: "h-1", nickname: "Mia" },
+        })
+      );
+      expect(modal.present).toHaveBeenCalled();
     });
   });
 
