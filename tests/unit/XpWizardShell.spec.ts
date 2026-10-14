@@ -289,7 +289,7 @@ describe("XpWizardShell index and accent", () => {
 
   it("wears the app's skin and accent when it is given one, and inherits the page's when not", () => {
     const skinned = mountShell({ accent: "goods" });
-    expect(skinned.get(".xp-wizard").classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--retro"]));
+    expect(skinned.get(".xp-wizard").classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern"]));
     expect(skinned.get(".xp-wizard").attributes("style")).toContain("--xp-app-accent: #d9483b");
     const inherited = mountShell();
     expect(inherited.get(".xp-wizard").classes()).not.toContain("xp-app");
