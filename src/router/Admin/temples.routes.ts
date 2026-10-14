@@ -88,9 +88,10 @@ export const TempleRoutes: RouteRecordRaw[] = [
             path: "general",
             name: "xp-temple-attributes-general",
             meta: { pro: "templeCreator" },
+            // General is the temple wizard (Name and theme, Check and open); Audit and Navigator stay the attributes page
             component: () =>
               import(
-                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
+                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributesWizard.vue"
               ),
             props: (route) => ({ templeId: route.params.templeId, tab: 'general' }),
           },

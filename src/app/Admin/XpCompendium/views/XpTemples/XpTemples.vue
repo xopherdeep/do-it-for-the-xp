@@ -112,12 +112,13 @@
     templeStorage,
   } from "@/lib/databases/TempleDb";
   import debug from "@/lib/utils/debug";
-  import { actionSheetController } from "@ionic/vue";
+  import { actionSheetController, toastController } from "@ionic/vue";
 
   import { createOutline, cloudDownloadOutline, diceOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
   import XpTempleGenerateModal from "./components/XpTempleGenerateModal.vue";
   import XpBloodMoonModal from "./components/XpBloodMoonModal.vue";
+  import { mintTempleId } from "./templeWizard";
   import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
   import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
   import { play$fx } from "@/assets/fx";
@@ -324,13 +325,26 @@
       };
 
       const goToTempleCreator = (templeId: string) => {
-        // Navigate to the creator page, passing 'new' or an existing templeId
+        // Navigate to the creator page with the id of the temple it will keep (see Create New Temple for a new one)
         $router.push({
           name: "xp-temple-settings",
           params: {
             templeId,
           },
         });
+      };
+
+      // Importing a temple is not built yet: say so instead of closing the sheet in silence
+      const sayImportIsComingSoon = async () => {
+        play$fx("no");
+        const toast = await toastController.create({
+          message: "Importing a temple is coming soon.",
+          duration: 2400,
+          position: "middle",
+          buttons: [{ text: "Close", role: "cancel" }],
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
       };
 
       const presentActionSheet = async () => {
@@ -345,7 +359,9 @@
               cssClass: "action-create",
               handler: async () => {
                 if (!(await pro.requirePro("templeCreator"))) return;
-                goToTempleCreator("new");
+                // A real id from the first tap: every save (the Creator's, the General card's) writes under the id of
+                // its route, and the old placeholder "new" was the same for every temple, so a second one overwrote the first
+                goToTempleCreator(mintTempleId());
               },
             },
             {
@@ -357,11 +373,11 @@
               },
             },
             {
-              text: "Import Temple",
+              text: "Import Temple (Coming soon)",
               icon: cloudDownloadOutline,
               cssClass: "action-import",
               handler: () => {
-                // Import temple functionality would go here
+                void sayImportIsComingSoon();
               },
             },
             {

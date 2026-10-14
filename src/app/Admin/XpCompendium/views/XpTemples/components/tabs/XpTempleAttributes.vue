@@ -8,61 +8,6 @@
 
       <div v-else class="content-wrapper">
         <div class="segment-content">
-          <!-- General Settings -->
-          <div v-show="activeTab === 'general'" class="glass-card basic-info">
-            <h3 class="section-title">Temple Metadata</h3>
-            
-            <div class="input-group">
-              <ion-label>Temple Name</ion-label>
-              <div class="custom-input">
-                <input v-model="temple.customName" placeholder="Enter custom name" />
-              </div>
-            </div>
-
-            <div class="input-group">
-              <ion-label>Description</ion-label>
-              <div class="custom-input">
-                <textarea v-model="temple.customDescription" placeholder="Enter description" rows="3"></textarea>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <ion-label>Associated Domains</ion-label>
-              <ion-select
-                v-model="temple.categoryIds"
-                placeholder="Select categories..."
-                interface="popover"
-                :multiple="true"
-                class="custom-select"
-              >
-                <ion-select-option
-                  v-for="cat in categories"
-                  :value="cat.id"
-                  :key="cat.id"
-                >
-                  {{ cat.name }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <div class="category-chips" v-if="temple.categoryIds && temple.categoryIds.length">
-              <ion-chip 
-                v-for="catId in temple.categoryIds" 
-                :key="catId"
-                :class="getCategoryColor(catId)"
-                outline
-              >
-                <ion-icon :icon="getCategoryIcon(catId)"></ion-icon>
-                <ion-label>{{ getCategoryName(catId) }}</ion-label>
-              </ion-chip>
-            </div>
-
-            <ion-button expand="block" color="primary" @click="saveTemple" class="save-btn">
-              <ion-icon :icon="saveOutline" slot="start"></ion-icon>
-              Save Configuration
-            </ion-button>
-          </div>
-
           <!-- Dungeon Audit -->
           <div v-show="activeTab === 'audit'" class="glass-card dungeon-audit-full">
             <h3 class="section-title">Dungeon Audit</h3>
@@ -157,34 +102,18 @@
 <script lang="ts">
 import { defineComponent, computed } from "vue";
 import { useRoute } from "vue-router";
-import { 
-  IonPage, IonContent, IonButton, IonIcon, IonLabel, IonSelect, IonSelectOption, IonChip
-} from "@ionic/vue";
-import { 
-  saveOutline, cloudOutline, leafOutline, waterOutline,
-  flameOutline, snowOutline, sunnyOutline, moonOutline,
-  homeOutline, diamondOutline, flashOutline, starOutline,
-  checkmarkCircle, closeCircle, warningOutline, informationCircleOutline
-} from 'ionicons/icons';
+import { IonPage, IonContent, IonIcon } from "@ionic/vue";
+import { checkmarkCircle, closeCircle, warningOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
-import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
+import { AUDIT_ICONS } from "../../templeWizard";
 import type { AuditCheckId } from "@/lib/services/temples/templeAudit";
 
-/** The icon each audit check wears: the room it asks for (the Master Room is the golden egg), or the item it asks for */
-const AUDIT_ICONS: Record<AuditCheckId, string> = {
-  entrance: ROOM_ICONS.entrance,
-  exit: ROOM_ICONS.gate,
-  boss: ROOM_ICONS.boss,
-  bossKey: "fa-key-skeleton",
-  masterRoom: ROOM_ICONS.master,
-  map: "fa-map",
-  compass: "fa-compass",
-  size: "fa-ruler-combined",
-  stairs: ROOM_ICONS["stairs-up"],
-};
-
+/**
+ * The Audit and Navigator tabs of Config. The General tab is the temple wizard (XpTempleAttributesWizard.vue); the
+ * audit icons it shares with this page live in templeWizard.ts.
+ */
 export default defineComponent({
   name: "xp-temple-attributes",
   props: {
@@ -194,26 +123,20 @@ export default defineComponent({
     },
     tab: {
       type: String,
-      default: 'general'
+      default: 'audit'
     }
   },
-  components: { 
-    IonPage, IonContent, IonButton, IonIcon, IonLabel, 
-    IonSelect, IonSelectOption, IonChip,
+  components: {
+    IonPage, IonContent, IonIcon,
     XpLoading
   },
   setup(props) {
     const route = useRoute();
-    
-    // Use the prop 'tab' if provided, otherwise check route params
-    const activeTab = computed(() => props.tab || (route.params.tab as string) || 'general');
 
-    const { 
-      temple, 
-      categories, 
-      saveTemple, 
-      getCategoryColor, 
-      getCategoryName,
+    // Use the prop 'tab' if provided, otherwise check route params
+    const activeTab = computed(() => props.tab || (route.params.tab as string) || 'audit');
+
+    const {
       dungeonAudit,
       itemMapData,
       getItemIcon,
@@ -222,42 +145,16 @@ export default defineComponent({
 
     const auditIcon = (id: AuditCheckId) => AUDIT_ICONS[id];
 
-    // TODO: move this mapping to a shared location or update useTempleData to return icons
-    const getCategoryIcon = (catId: string) => {
-      const iconMap: Record<string, string> = {
-        'combat': flashOutline,
-        'crafting': diamondOutline,
-        'magic': starOutline,
-        'dungeon': homeOutline,
-        'wind': cloudOutline,
-        'water': waterOutline,
-        'fire': flameOutline,
-        'earth': leafOutline,
-        'ice': snowOutline,
-        'light': sunnyOutline,
-        'shadow': moonOutline
-      };
-      return iconMap[catId] || starOutline;
-    };
-
     return {
-      temple,
-      categories,
-      saveTemple,
-      getCategoryColor,
-      getCategoryName,
-      getCategoryIcon,
       dungeonAudit,
       auditIcon,
       itemMapData,
       getItemIcon,
       activeTab,
       isLoading,
-      saveOutline,
       checkmarkCircle,
       closeCircle,
-      warningOutline,
-      informationCircleOutline
+      warningOutline
     };
   }
 });
@@ -487,28 +384,5 @@ export default defineComponent({
     .entrance-icon { font-size: 0.7rem; color: #fff; }
     .boss-icon { color: var(--ion-color-warning); font-size: 1.1rem; }
   }
-}
-
-/* Inputs */
-.input-group {
-  margin-bottom: 20px;
-  ion-label { font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; display: block; }
-  .custom-input, .custom-select { background: rgba(0, 0, 0, 0.3); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);
-    input, textarea { width: 100%; background: transparent; border: none; padding: 12px; color: white; font-family: inherit; resize: none; font-size: 1rem; }
-  }
-}
-
-.category-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.save-btn {
-  margin-top: 20px;
-  --border-radius: 12px;
-  height: 50px;
-  font-family: var(--xp-font-heading);
 }
 </style>
