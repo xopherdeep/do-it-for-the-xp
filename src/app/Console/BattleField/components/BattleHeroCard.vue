@@ -1,6 +1,6 @@
 <template>
   <div
-    class="hero-card"
+    class="hero-card battle-hero-card"
     :class="{
       'is-hit': isHit,
       'is-hit-b': isHit && hitFlip,
@@ -53,6 +53,24 @@
             </div>
           </div>
           <span class="mp-line">MP <span class="mp-value">{{ mpDisplay }}</span>/{{ mpMax }}</span>
+        </div>
+
+        <!-- Every Game Style but Earthbound draws HP and MP its own way from these (see the unscoped styles below).
+             Drawn only: the odometer rows above keep the accessible numbers. -->
+        <div class="gs-stats" :class="hpTone" aria-hidden="true">
+          <div class="gs-stat gs-hp">
+            <span class="gs-label"></span>
+            <span class="gs-num"><b>{{ hpDisplay }}</b><i>/{{ hpMax }}</i></span>
+            <span class="gs-meter"><span class="gs-fill" :style="{ width: barWidth(hpPercentage) }"></span></span>
+            <span class="gs-hearts">
+              <span v-for="(fill, i) in hearts" :key="i" class="gs-heart" :class="`is-${fill}`"></span>
+            </span>
+          </div>
+          <div class="gs-stat gs-mp">
+            <span class="gs-label"></span>
+            <span class="gs-num"><b>{{ mpDisplay }}</b><i>/{{ mpMax }}</i></span>
+            <span class="gs-meter"><span class="gs-fill" :style="{ width: barWidth(mpPercentage) }"></span></span>
+          </div>
         </div>
       </template>
     </div>
@@ -117,6 +135,16 @@ const barWidth = (percent: number) => `${Math.round(percent * 10) / 10}%`;
 const hpTone = computed(() => {
   if (hpPercentage.value > 50) return "";
   return hpPercentage.value >= 25 ? "is-mid" : "is-low";
+});
+
+/** Zelda draws HP as a row of hearts: 3 to 10 of them (one per 20 max HP), each full, half or empty. */
+const hearts = computed<("full" | "half" | "empty")[]>(() => {
+  const count = Math.min(10, Math.max(3, Math.ceil(hpMax.value / 20)));
+  const filled = (hpPercentage.value / 100) * count;
+  return Array.from({ length: count }, (_, i) => {
+    if (filled >= i + 1) return "full";
+    return filled >= i + 0.5 ? "half" : "empty";
+  });
 });
 
 // --- hit: each increment of hitSignal shakes the card once ---
@@ -359,6 +387,11 @@ $lavender-dark: #9080a8;
   height: 100%;
   background: var(--xp-color-mp);
   transition: width 0.3s ease-out;
+}
+
+// Shown by the other Game Styles only (src/styles/themes/battleHud.scss)
+.gs-stats {
+  display: none;
 }
 
 .defending-badge {
