@@ -33,7 +33,7 @@ export default defineComponent({
       {
         id: 'packs',
         title: 'Packs',
-        description: 'Load ready-made worlds of quests, beasts, rewards and house rules.',
+        description: 'Load ready-made worlds for a family, a class, a team and more.',
         icon: require('@/assets/icons/target.png'),
         route: '/xp-settings/packs'
       },
