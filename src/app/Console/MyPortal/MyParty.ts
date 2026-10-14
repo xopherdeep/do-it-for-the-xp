@@ -127,7 +127,7 @@ export default defineComponent({
     };
 
     const openPartySettings = () => {
-      void router.push("/xp-settings/party");
+      void router.push("/xp-settings/family");
     };
 
     const family = useFamilyStore();

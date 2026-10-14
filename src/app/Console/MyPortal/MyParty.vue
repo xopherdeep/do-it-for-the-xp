@@ -10,7 +10,7 @@
           My Party
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button aria-label="Party Settings" @click="openPartySettings">
+          <ion-button aria-label="Family settings" @click="openPartySettings">
             <ion-icon :icon="settingsOutline" slot="icon-only"></ion-icon>
           </ion-button>
         </ion-buttons>

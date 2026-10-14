@@ -8,9 +8,6 @@
         <i slot="start" class="fad fa-hand-holding-usd fa-2x" />
         <ion-title> Shops & Accessories </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="openSettings">
-            <i class="fad fa-cog fa-2x" />
-          </ion-button>
           <ion-button @click="toggleFilter">
             <ion-icon :icon="filterIcon" />
           </ion-button>
@@ -155,11 +152,6 @@
       };
     },
     methods: {
-      openSettings() {
-        this.$router.push({
-          name: "xp-settings-reward",
-        });
-      },
       async clickDiscover() {
         // Use the directly imported loadingController
         loadingController

@@ -177,10 +177,6 @@ export default defineComponent({
   },
 
   methods: {
-    clickSettings() {
-      this.$router.push({ name: "xp-settings-chore" });
-    },
-
     setViewMode(mode: "list" | "grid") {
       this.viewMode = mode;
     },

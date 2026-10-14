@@ -21,9 +21,6 @@
       >
         <i class="fal fa-th-large fa-lg" />
       </ion-button>
-      <ion-button @click="clickSettings">
-        <i class="fad fa-cog fa-2x" />
-      </ion-button>
       <ion-button id="popover-button">
         <i class="fad fa-eye fa-2x" />
       </ion-button>
