@@ -2,24 +2,10 @@ import { ref, computed, InjectionKey, Ref, onMounted } from "vue";
 import { toastController } from "@ionic/vue";
 import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
 import debug from "@/lib/utils/debug";
+import { normalWorld } from "../shopWizard";
 
 // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
 const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
-
-// The world art a shop can wear (a shop's `world` is one of these ids), in the order the Decorate tab lists it.
-export const SHOP_WORLD_CHOICES: { id: string; label: string }[] = [
-  { id: "hometown", label: "Hometown" },
-  { id: "plains", label: "Plains" },
-  { id: "forest", label: "Forest" },
-  { id: "islands", label: "Islands" },
-  { id: "mountains", label: "Mountains" },
-  { id: "desert", label: "Desert" },
-  { id: "swamps", label: "Swamps" },
-  { id: "ice", label: "Tundra" },
-  { id: "clouds", label: "Clouds" },
-  { id: "moon", label: "Moon" },
-  { id: "map", label: "World Map" },
-];
 
 const findBg = (file: string): string => {
   try {
@@ -29,9 +15,11 @@ const findBg = (file: string): string => {
   }
 };
 
-// The art for a world id; a world with no art of its own ("traveling", an old free-text value) gets the world map.
+// The art for a world id (the list of ids is SHOP_WORLD_CHOICES in ../shopWizard); an old name the create form used to
+// offer (mountain, snow) is read as the art it meant, and a world with no art of its own ("traveling", "volcano",
+// any other free-text value) gets the world map.
 export function shopWorldBackground(world?: string | null): string {
-  const id = world || "hometown";
+  const id = normalWorld(world) || "hometown";
   const file = id === "hometown" ? "./hometown.webp" : `./world-${id}.webp`;
   return findBg(file) || findBg("./world-map.webp") || findBg("./hometown.webp");
 }
