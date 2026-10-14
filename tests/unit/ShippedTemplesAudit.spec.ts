@@ -5,7 +5,9 @@
  * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver. The eight
  * temples written by the generator (tools/temples/regenerate.ts) must also keep to the shape they were made in:
  * two or three floors joined by stairs, a short critical path, every rule of the Temple Generation Contract.
- * The Wind Temple is authored by hand and only has to be finishable.
+ * The Wind Temple is authored by hand and only has to be finishable. It is the one temple that asks for a Bomb: its
+ * Boss Key lies past a cracked wall, and its own shop, in reach of the entrance without one, sells Bombs. It is read
+ * here with that wall blown (WindTemple.spec.ts checks the shop really comes first).
  *
  * Quest Rooms (docs/Quest-Rooms-Spec.md section 11): every combat room of the nine holds a quest template from the
  * chore library, bound to a beast of the temple's theme, and the templates add up to a full temple (21 or more).
@@ -132,11 +134,25 @@ const followsScheduleRules = (template: RoomQuestTemplate): boolean => {
   }
 };
 
-/** The temple as the engine holds it after registration */
+/** The temples whose cracked walls the hero is meant to blow with a Bomb bought in the temple's own shop */
+const BOMB_SHOP = ["wind-temple"];
+
+/** The rooms with every cracked wall blown open, as after a Bomb from the shop */
+const withWallsBlown = (rooms: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(rooms).map(([key, room]) => {
+      if (!room.barriers) return [key, room];
+      const barriers = Object.fromEntries(Object.entries(room.barriers).filter(([, barrier]) => barrier !== "bombable"));
+      return [key, { ...room, barriers: Object.keys(barriers).length ? barriers : undefined }];
+    })
+  );
+
+/** The temple as the engine holds it after registration (a bomb-shop temple with its cracked walls blown) */
 const registered = (id: string) => {
   registerTemple(id, shipped[id], { force: true });
   const dungeon = DungeonManager.getInstance().getDungeon(id)!;
-  return { id, entrance: dungeon.entrance, maze: dungeon.maze, rooms: dungeon.rooms };
+  const rooms = BOMB_SHOP.includes(id) ? withWallsBlown(dungeon.rooms) : dungeon.rooms;
+  return { id, entrance: dungeon.entrance, maze: dungeon.maze, rooms };
 };
 
 const roomsOn = (graph: TempleGraph, floor: string) => [...graph.rooms.values()].filter((room) => room.ref.floor === floor);
