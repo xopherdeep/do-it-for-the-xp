@@ -45,6 +45,16 @@
           <!-- Quick Actions -->
           <ion-buttons slot="end">
             <ion-button
+              v-if="canManage"
+              fill="clear"
+              color="primary"
+              aria-label="Link phone"
+              data-cy="party-link-phone"
+              @click.stop="emit('linkPhone', member)"
+            >
+              <i class="fad fa-mobile-alt"></i>
+            </ion-button>
+            <ion-button
               fill="clear"
               color="success"
               aria-label="Cheer member"
@@ -61,6 +71,21 @@
               <ion-icon :icon="handRightOutline"></ion-icon>
             </ion-button>
           </ion-buttons>
+        </ion-item>
+
+        <!-- Add Hero / Invite Family -->
+        <ion-item
+          button
+          lines="none"
+          class="add-member-item"
+          data-cy="party-add-member"
+          @click="emit('inviteMember')"
+        >
+          <ion-icon :icon="personAddOutline" slot="start" color="primary" class="text-xl" />
+          <ion-label color="primary">
+            <h2><strong>Add Hero / Invite Family</strong></h2>
+            <p>Create a hero profile or link a kid's phone</p>
+          </ion-label>
         </ion-item>
       </ion-item-group>
     </ion-list>
@@ -135,19 +160,28 @@ import {
   IonLabel,
   IonList,
 } from "@ionic/vue";
-import { heartOutline, handRightOutline } from "ionicons/icons";
+import { heartOutline, handRightOutline, personAddOutline } from "ionicons/icons";
 import appConfig from "@/app.config";
 import type { PartyMember } from "@/lib/services/party/partyStats";
 
-defineProps<{
+interface PartyRosterProps {
   members: PartyMember[];
-}>();
+  canManage?: boolean;
+}
 
-const emit = defineEmits<{
+interface PartyRosterEmits {
   (event: "cheer", member: PartyMember): void;
   (event: "poke", member: PartyMember): void;
   (event: "openProfile", member: PartyMember): void;
-}>();
+  (event: "inviteMember"): void;
+  (event: "linkPhone", member: PartyMember): void;
+}
+
+withDefaults(defineProps<PartyRosterProps>(), {
+  canManage: true,
+});
+
+const emit = defineEmits<PartyRosterEmits>();
 
 const isLeader = (member: PartyMember): boolean => member.role === "leader";
 

@@ -60,9 +60,12 @@
       <party-roster-tab
         v-if="activeTab === 'roster'"
         :members="partyMembers"
+        :can-manage="canManage"
         @cheer="cheerMember"
         @poke="pokeMember"
         @open-profile="openMemberProfile"
+        @invite-member="handleInviteMember"
+        @link-phone="handleLinkPhone"
       />
 
       <!-- ACTIVITY TAB -->

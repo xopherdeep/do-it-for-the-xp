@@ -46,12 +46,37 @@
     <!-- The clerk's dialog: the game's own prompt, not a native sheet or toast -->
     <xp-reveal-prompt :prompt="prompt" @respond="respond" />
   </ion-card>
+
+  <ion-card v-else-if="showUnlinkedPrompt" class="max-w-2xl xp-family-phones-connect" data-cy="family-phones-connect">
+    <ion-card-header>
+      <ion-card-title>Hero phones</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p class="ion-margin-bottom">
+        Connect to the Town Hall to link hero phones and enable multiplayer for your family.
+      </p>
+      <ion-button size="small" data-cy="connect-town-hall" @click="goToTownHall">
+        Go to the Town Hall
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { IonButton, IonButtons, IonCard, IonCardHeader, IonCardTitle, IonItem, IonLabel, IonList, modalController } from "@ionic/vue";
+import {
+  IonButton,
+  IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardTitle,
+  IonItem,
+  IonLabel,
+  IonList,
+  modalController,
+} from "@ionic/vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "./XpHeroPhonesModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
@@ -86,6 +111,7 @@ const AGE_GROUP_CHOICES: { id: AgeGroup; label: string }[] = [
 ];
 
 const visible = computed(() => family.enabled && family.parentAuth !== null);
+const showUnlinkedPrompt = computed(() => family.enabled && family.parentAuth === null);
 
 /** What the Game Master calls the hero in the clerk's line: the first name, else the first word of the full name */
 const firstNameOf = (profile: { name?: { first?: string; full?: string } }): string => {

@@ -110,6 +110,7 @@ describe("XpFamilyPhones", () => {
     it("shows nothing while the family is not linked", async () => {
       mockFamily.parentAuth = null;
       expect(cy(await open(), "family-phones").exists()).toBe(false);
+      expect(cy(await open(), "family-phones-connect").exists()).toBe(true);
     });
   });
 
