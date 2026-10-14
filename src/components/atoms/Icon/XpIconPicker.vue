@@ -3,12 +3,12 @@
     <ion-searchbar
       v-model="searchQuery"
       placeholder="Search icons..."
-      debounce="300"
+      :debounce="300"
       @ionChange="filterIcons"
     ></ion-searchbar>
     
     <div class="icon-categories">
-      <ion-segment v-model="currentCategory" @ionChange="filterIcons">
+      <ion-segment v-model="currentCategory" scrollable @ionChange="filterIcons">
         <ion-segment-button value="all">
           <ion-label>All</ion-label>
         </ion-segment-button>
@@ -30,10 +30,10 @@
     <div class="icons-grid" v-if="filteredIcons.length > 0">
       <div 
         v-for="icon in filteredIcons" 
-        :key="icon.name"
+        :key="`${icon.category}-${icon.prefix}-${icon.name}`"
         class="icon-item"
-        :class="{ 'selected': selectedIcon === icon.name }"
-        @click="selectIcon(icon.name)"
+        :class="{ 'selected': selectedIcon === icon.name && selectedIconPrefix === icon.prefix }"
+        @click="selectIcon(icon)"
       >
         <i :class="[icon.prefix, 'fa-' + icon.name]"></i>
         <div class="icon-name">{{ icon.name }}</div>
@@ -59,6 +59,7 @@
 
 <script>
 import { defineComponent, ref, computed } from 'vue';
+import ionic from '@/lib/mixins/ionic';
 
 // Icon categories with most commonly used icons per category
 // In a real implementation, you would import a more complete list
@@ -169,8 +170,15 @@ const ICONS = {
 
 export default defineComponent({
   name: 'XpIconPicker',
+  // The Ionic components this template draws (the searchbar and the segment need their Vue wrappers for v-model)
+  mixins: [ionic],
   props: {
     initialIcon: {
+      type: String,
+      default: ''
+    },
+    // The family the icon opens in (a Power saved as duotone); without it the first family that has the icon
+    initialPrefix: {
       type: String,
       default: ''
     },
@@ -183,7 +191,7 @@ export default defineComponent({
     const searchQuery = ref('');
     const currentCategory = ref(props.initialCategory || 'all');
     const selectedIcon = ref(props.initialIcon || '');
-    const selectedIconPrefix = ref('fas');
+    const selectedIconPrefix = ref(props.initialPrefix || 'fas');
     
     // Process icons for display format
     const processedIcons = computed(() => {
@@ -251,9 +259,17 @@ export default defineComponent({
     const filteredIcons = computed(() => {
       let filtered = processedIcons.value;
       
-      // Filter by category if not 'all'
+      // Filter by category if not 'all'; All shows each icon of each family once, though a name may sit in two lists
       if (currentCategory.value !== 'all') {
         filtered = filtered.filter(icon => icon.category === currentCategory.value);
+      } else {
+        const seen = new Set();
+        filtered = filtered.filter(icon => {
+          const key = `${icon.prefix}-${icon.name}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       }
       
       // Filter by search query
@@ -265,15 +281,10 @@ export default defineComponent({
       return filtered;
     });
     
-    // Select an icon
-    const selectIcon = (iconName) => {
-      selectedIcon.value = iconName;
-      
-      // Find the selected icon to get its prefix
-      const icon = processedIcons.value.find(i => i.name === iconName);
-      if (icon) {
-        selectedIconPrefix.value = icon.prefix;
-      }
+    // Select the tile that was tapped: the same name sits in several families, and the family is part of the pick
+    const selectIcon = (icon) => {
+      selectedIcon.value = icon.name;
+      selectedIconPrefix.value = icon.prefix;
     };
     
     // Filter icons based on search query and category
@@ -291,8 +302,8 @@ export default defineComponent({
       }
     };
     
-    // If an initial icon was provided, find its prefix
-    if (props.initialIcon) {
+    // If an initial icon was provided without its family, find the first family that has it
+    if (props.initialIcon && !props.initialPrefix) {
       const icon = processedIcons.value.find(i => i.name === props.initialIcon);
       if (icon) {
         selectedIconPrefix.value = icon.prefix;

@@ -66,10 +66,16 @@ export class BestiaryDb extends DbStorageApi {
     }
   }
 
+  /**
+   * Saves a beast, merged into the record stored under its id: the form sends only the fields it owns, and the rest
+   * (achievementIds, element, theme, variantAvatar) stays. A beast with no stored record starts from the defaults.
+   */
   public async setBeast(beast: Beast) {
     const id = beast.id ? beast.id : uuidv4()
+    const stored = beast.id ? await this.get(id) : null
     await this.set(id, {
       ...this.createBeast(),
+      ...stored,
       ...beast,
       id
     })

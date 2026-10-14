@@ -16,6 +16,7 @@ import {
   alertController,
   actionSheetController,
   toastController,
+  onIonViewWillEnter,
 } from "@ionic/vue";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
@@ -590,6 +591,21 @@ export default defineComponent({
         debug.error("Powers: could not load abilities or heroes", error);
       } finally {
         isLoading.value = false;
+      }
+    });
+
+    // Ionic keeps this page alive under the Power wizard, so a Power saved there is read in again when the list comes
+    // back into view (the first visit is already loaded by onMounted)
+    let hasEnteredOnce = false;
+    onIonViewWillEnter(async () => {
+      if (!hasEnteredOnce) {
+        hasEnteredOnce = true;
+        return;
+      }
+      try {
+        abilities.value = await abilitiesDb.getAbilities();
+      } catch (error) {
+        debug.error("Powers: could not read the abilities again", error);
       }
     });
 
