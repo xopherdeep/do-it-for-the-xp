@@ -9,12 +9,13 @@ import {
   readExits,
   resetVisitMemory,
   roomActions,
+  shopWares,
   type RoomContext,
   type RoomOutcome,
 } from "@/lib/services/temples/RoomInteractions";
 import { bombInPack, useItem } from "@/lib/services/temples/ItemUse";
 import { useUserStore } from "@/lib/store/stores/user";
-import { addHero, contextAt, dice, dungeons, enter, hero, hp, makeTemple, mp, temples, wallet } from "./templeFixtures";
+import { addHero, contextAt, dice, dungeons, enter, HERO, hero, hp, makeTemple, mp, temples, wallet } from "./templeFixtures";
 
 // The user store is real; only what it writes to disk is faked, so HP, MP and GP move exactly as in the app.
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -38,16 +39,22 @@ jest.mock("@/lib/store/stores/notifications", () => ({
   __esModule: true,
   useNotificationsStore: () => ({ push: jest.fn() }),
 }));
+// The disk a hero's temple progress goes to: kept here, so a test can close the app and open it again.
+const mockDisk = new Map<string, unknown>();
 jest.mock("@/lib/databases/TempleProgressDb", () => ({
   getTempleProgressDb: () => ({
-    getProgress: () => Promise.resolve(null),
-    saveProgress: (progress: unknown) => Promise.resolve(progress),
+    getProgress: (userId: string, templeId: string) => Promise.resolve(mockDisk.get(`${userId}:${templeId}`) ?? null),
+    saveProgress: (progress: { userId: string; templeId: string }) => {
+      mockDisk.set(`${progress.userId}:${progress.templeId}`, JSON.parse(JSON.stringify(progress)));
+      return Promise.resolve(progress);
+    },
   }),
 }));
 
 beforeEach(() => {
   setActivePinia(createPinia());
   resetVisitMemory();
+  mockDisk.clear();
   addHero();
 });
 
@@ -978,5 +985,134 @@ describe("secret chambers, saves and pick-ups", () => {
 
     const named = withRoom({ type: "key", content: { keyId: "master", keyName: "Trident Key" } });
     expect((await run(roomActions(named.room, named.ctx))).message).toBe("Trident Key: the Boss Key is yours.");
+  });
+});
+
+describe("what the hero takes stays taken after the app is closed", () => {
+  /** Open the temple for the hero, standing at [0,1], once their save has been read. */
+  const openFor = async (id: string) => {
+    temples.initTemple(id, [0, 1], undefined, HERO);
+    await temples.whenProgressReady(id);
+  };
+
+  /** The app closes and opens again: the run in memory and the session's memory are gone, the save is all there is. */
+  const reload = async (id: string) => {
+    await temples.flushProgress();
+    temples.forgetTempleRun(id);
+    resetVisitMemory();
+    await openFor(id);
+    return { room: dungeons.getRoom(id, [0, 1])!, ctx: contextAt(id, [0, 1]) };
+  };
+
+  /** A one-room temple after the entrance, opened for the hero. */
+  const hall = async (room: Room) => {
+    const id = makeTemple({ E: { type: "entrance" }, X: room }, [["E", "X"]]);
+    await openFor(id);
+    return { id, room: dungeons.getRoom(id, [0, 1])!, ctx: contextAt(id, [0, 1]) };
+  };
+
+  it("a pickup survives a reload: the key is not handed out twice", async () => {
+    const { id, room, ctx } = await hall({ type: "key", content: { keyId: "key1" } });
+    const staleSheet = roomActions(room, ctx);
+    expect((await run(staleSheet)).message).toBe("You take a small key.");
+    expect(temples.getTempleState(id)!.playerKeys).toBe(1);
+
+    const again = await reload(id);
+
+    expect(temples.getTempleState(id)!.playerKeys).toBe(1);
+    const sheet = roomActions(again.room, again.ctx);
+    expect(sheet.header).toBe("Nothing left here.");
+    expect(sheet.actions).toEqual([]);
+    expect((await run(staleSheet)).message).toBe("Nothing left here."); // a sheet drawn before the reload
+    expect(temples.getTempleState(id)!.playerKeys).toBe(1);
+  });
+
+  it("keeps the Boss Key room spent too", async () => {
+    const { id, room, ctx } = await hall({ type: "key", content: { keyId: "master" } });
+    await run(roomActions(room, ctx));
+    expect(temples.hasMasterKey(id)).toBe(true);
+
+    const again = await reload(id);
+
+    expect(roomActions(again.room, again.ctx).header).toBe("Nothing left here.");
+  });
+
+  it.each([
+    ["map", "hasMap"],
+    ["compass", "hasCompass"],
+  ])("keeps the %s room spent", async (type, flag) => {
+    const { id, room, ctx } = await hall({ type });
+    expect((await run(roomActions(room, ctx))).message).toBe(`You take the ${type}.`);
+
+    const again = await reload(id);
+
+    expect((temples.getTempleState(id) as unknown as Record<string, boolean>)[flag]).toBe(true);
+    expect(roomActions(again.room, again.ctx).header).toBe("Nothing left here.");
+  });
+
+  it("pays the secret chest once, not once a session", async () => {
+    const { id, room, ctx } = await hall({ type: "secret" });
+    await run(roomActions(room, ctx));
+    expect(wallet()).toBe(120);
+
+    const again = await reload(id);
+
+    const sheet = roomActions(again.room, again.ctx);
+    expect(sheet.header).toBe("The chamber is bare now.");
+    expect(sheet.actions).toEqual([]);
+    expect(wallet()).toBe(120);
+  });
+
+  it("lets a room be searched once, not once a session", async () => {
+    const { id, room, ctx } = await hall({ type: "empty" });
+    const found = await run(roomActions(room, { ...ctx, rng: dice(0, 0.5) })); // finds 3 GP
+    expect(found.message).toBe("You found 3 GP under a stone!");
+
+    const again = await reload(id);
+
+    expect(roomActions(again.room, again.ctx).actions).toEqual([]);
+    expect(wallet()).toBe(103);
+  });
+
+  it("keeps a riddle solved, and the doors it opened open", async () => {
+    const id = makeTemple(
+      {
+        E: { type: "entrance" },
+        P: { type: "puzzle", content: { puzzleType: "stonePillars" }, locked: { east: true } },
+        N: { type: "empty", locked: { west: true } },
+      },
+      [["E", "P", "N"]]
+    );
+    await openFor(id);
+    answerRiddle(dungeons.getRoom(id, [0, 1])!, contextAt(id, [0, 1]), 2); // a pillar
+
+    const again = await reload(id);
+
+    expect(roomActions(again.room, again.ctx).header).toBe("The glyphs have faded.");
+    expect(answerRiddle(again.room, again.ctx, 0).message).toBe("The glyphs have faded."); // no wall to burn the hero
+    expect(hp()).toBe(30);
+    expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(false);
+  });
+
+  it("sells the shop's special once, not once a session", async () => {
+    const { id, room, ctx } = await hall({ type: "shop", content: { specialItem: "EarthquakeScroll" } });
+    expect(buyWare(room, ctx, "special:EarthquakeScroll")).toMatchObject({ sound: "buyItem" });
+    expect(wallet()).toBe(50);
+
+    const again = await reload(id);
+
+    const special = shopWares(again.room, again.ctx).find((ware) => ware.id === "special:EarthquakeScroll");
+    expect(special?.soldOut).toBe(true);
+    expect(buyWare(again.room, again.ctx, "special:EarthquakeScroll")).toMatchObject({ message: expect.stringMatching(/Sold out/), sound: "error" });
+    expect(wallet()).toBe(50);
+  });
+
+  it("keeps a riddle solved where it opened no door", async () => {
+    const { id, room, ctx } = await hall({ type: "puzzle", content: { puzzleType: "stonePillars" } });
+    expect(answerRiddle(room, ctx, 2).message).toBe("The glyphs fade. Nothing here was locked.");
+
+    const again = await reload(id);
+
+    expect(roomActions(again.room, again.ctx).header).toBe("The glyphs have faded.");
   });
 });

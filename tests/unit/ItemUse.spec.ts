@@ -465,6 +465,55 @@ describe("Hook Shot", () => {
     expect(useItem(HOOK, itemContext(id, [0, 0])).message).toBe("Nothing to latch onto.");
   });
 
+  it("crosses a void the hero cannot walk onto", () => {
+    const id = makeTemple({ E: { type: "entrance" }, V: { type: "void" }, G: { type: "empty" } }, [["E", "V", "G"]]);
+    enter(id, [0, 0]);
+    expect(temples.moveToPosition(id, [0, 1], "east")).toBe(false); // on foot the void is a gap, not a floor
+
+    expect(useItem(HOOK, itemContext(id, [0, 0]))).toMatchObject({ moved: true });
+
+    expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 2]);
+  });
+
+  it("will not swing through a lock on the far side of the hazard", () => {
+    const id = makeTemple(
+      { E: { type: "entrance" }, P: { type: "pit", locked: { east: true } }, G: { type: "empty" } },
+      [["E", "P", "G"]]
+    );
+    enter(id, [0, 0]);
+
+    expect(useItem(HOOK, itemContext(id, [0, 0])).message).toBe("Nothing to latch onto.");
+    expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 0]);
+    expect(mp()).toBe(60);
+  });
+
+  it("will not swing over a pit into the boss room: the boss door stays shut", () => {
+    const id = makeTemple(
+      { E: { type: "entrance" }, P: { type: "pit" }, B: { type: "boss", content: { lockOnEnter: true } } },
+      [["E", "P", "B"]]
+    );
+    enter(id, [0, 0]);
+    temples.grantMasterKey(id); // the Boss Key opens that door by hand, never by a hook
+
+    expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
+    expect(useItem(HOOK, itemContext(id, [0, 0])).message).toBe("Nothing to latch onto.");
+    expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 0]);
+    expect(mp()).toBe(60);
+  });
+
+  it("seals a guard room the hero lands in, as a step into it would", () => {
+    const id = makeTemple(
+      { E: { type: "entrance" }, P: { type: "pit" }, M: { type: "monster", content: { lockOnEnter: true } } },
+      [["E", "P", "M"]]
+    );
+    enter(id, [0, 0]);
+
+    expect(useItem(HOOK, itemContext(id, [0, 0]))).toMatchObject({ moved: true });
+
+    expect(dungeons.getRoom(id, [0, 2])!.locked).toEqual({ north: true, south: true, east: true, west: true });
+    expect(temples.isRoomCleared(id, "1F", [0, 2])).toBe(false);
+  });
+
   it("is refused for lack of MP", () => {
     addHero({ mp: { now: 4, max: 80 } });
     const id = makeTemple({ E: { type: "entrance" }, P: { type: "pit" }, G: { type: "empty" } }, [["E", "P", "G"]]);

@@ -10,6 +10,7 @@ import { nextWeekly } from '../bloodMoonSchedule';
 import type { BloodMoonCadence } from '../bloodMoonSchedule';
 import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
 import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
+import { forgetVisits } from '@/lib/services/temples/roomInteractions/visitMemory';
 import debug from '@/lib/utils/debug';
 import { bloodMoonRisen } from './runState';
 import type { TempleRuns } from './runState';
@@ -67,6 +68,8 @@ export async function bloodMoon(runs: TempleRuns, templeId: string, userId: stri
     return null;
   }
 
+  // What the visit remembered goes with the run, whether or not the hero is in the temple right now
+  forgetVisits(templeId, userId);
   // The screen keeps its temple: the run starts over from the reset record, read back like any other
   if (open) openState(runs, templeId, userId, [reset.currentPosition[0], reset.currentPosition[1]], reset.currentLevel, true);
   // The hero hears of it when they next stand in the temple (the screen reads this flag on mount)

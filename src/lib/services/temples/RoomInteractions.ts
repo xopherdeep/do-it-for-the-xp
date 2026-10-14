@@ -7,8 +7,10 @@
  * Nothing in here touches the screen, so the whole thing is unit-testable: effects change the Pinia
  * user store (HP, MP, GP, XP, bag) and the TempleSystem (doors, floors, progress), nothing else.
  *
- * "Once" means once per hero per temple visit: the memory lives in this module for the length of the
- * session (see rememberOnce). A reload starts a new visit, as it does for chests and doors.
+ * "Once" means once per hero per run: what the hero takes from a room (a key, the map, the secret chest, a find,
+ * a solved riddle) is kept with their saved run like a chest or a door (see isRoomSpent), so a reload finds it
+ * taken and a blood moon gives it back. Springs, camps and traps are once per visit: the memory lives in
+ * roomInteractions/visitMemory.ts for the length of the session.
  *
  * This file is the entry point: it builds the sheet of every room kind (roomActions) and re-exports the rest
  * from roomInteractions/ (vocabulary, visitMemory, hero, travel, hazards, shop, puzzle, treasure).
@@ -22,8 +24,8 @@ import { hasHappened, pick, randomInt, rememberOnce, rngOf, roomKey } from './ro
 import { climb, temples } from './roomInteractions/travel';
 import { jumpTrap, springTrap } from './roomInteractions/hazards';
 import { shopWares } from './roomInteractions/shop';
-import { publicRiddle, riddleFor } from './roomInteractions/puzzle';
-import { isChestEmptyIn, openGate, pickUp } from './roomInteractions/treasure';
+import { isPuzzleSolved, publicRiddle, riddleFor } from './roomInteractions/puzzle';
+import { isChestEmptyIn, isPickupTaken, isRoomSpent, openGate, pickUp, spendRoom } from './roomInteractions/treasure';
 import { questRoomWordsFor } from './roomInteractions/questSheet';
 import { ENCOUNTER_LINES, roomKind, SFX } from './roomInteractions/vocabulary';
 import type { RoomAction, RoomContext, RoomOutcome, RoomSheet } from './roomInteractions/vocabulary';
@@ -48,7 +50,7 @@ export { doorActions, readExits } from './roomInteractions/travel';
 export type { Exit, Exits } from './roomInteractions/travel';
 export { onEnterRoom } from './roomInteractions/hazards';
 export { buyWare, shopWares } from './roomInteractions/shop';
-export { answerRiddle } from './roomInteractions/puzzle';
+export { answerRiddle, isPuzzleSolved } from './roomInteractions/puzzle';
 export { clearTemple, isChestEmptyIn } from './roomInteractions/treasure';
 
 // --- the sheets ------------------------------------------------------------------------------------
@@ -61,19 +63,18 @@ const EMPTY_FLAVOUR = [
 ];
 
 /**
- * Look or search once: a `chance` of finding `min`..`max` GP. Trained perception adds to the chance and
+ * Look or search the room once: a `chance` of finding `min`..`max` GP. Trained perception adds to the chance and
  * trained luck lifts the top of the range (docs/Stats-Contract.md); earnGold adds the class and awareness.
  */
 const hunt = (
   ctx: RoomContext,
-  topic: string,
   chance: number,
   min: number,
   max: number,
   found: (gp: number) => string,
   nothing: () => string
 ): RoomOutcome => {
-  if (!rememberOnce(roomKey(ctx, topic))) return { message: 'You already looked here.' };
+  if (!spendRoom(ctx)) return { message: 'You already looked here.' };
   const rng = rngOf(ctx);
   const hero = useUserStore().getUserById(ctx.userId);
   if (rng() >= chance + heroEffects(hero).findChanceBonus) return { message: nothing() };
@@ -116,11 +117,11 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     case 'empty':
       return sheet(
         'An empty room. Dust and echoes.',
-        spent(ctx, 'look')
+        isRoomSpent(ctx)
           ? []
           : [
               act('Look around', () => {
-                return hunt(ctx, 'look', 1 / 3, 1, 5, (gp) => `You found ${gp} GP under a stone!`, () => pick(EMPTY_FLAVOUR, rngOf(ctx)));
+                return hunt(ctx, 1 / 3, 1, 5, (gp) => `You found ${gp} GP under a stone!`, () => pick(EMPTY_FLAVOUR, rngOf(ctx)));
               }),
             ]
       );
@@ -187,7 +188,7 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     }
 
     case 'puzzle': {
-      if (spent(ctx, 'puzzle')) return sheet('The glyphs have faded.');
+      if (isPuzzleSolved(ctx)) return sheet('The glyphs have faded.');
       return sheet('Glyphs cover the wall.', [
         act('Study the glyphs', () => ({ intent: 'riddle', riddle: publicRiddle(riddleFor(room), spent(ctx, 'moonlit')) })),
       ]);
@@ -209,7 +210,7 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     case 'key':
     case 'map':
     case 'compass': {
-      const taken = spent(ctx, 'pickup');
+      const taken = isPickupTaken(kind, ctx);
       const names: Record<string, string> = { key: 'A key glints in the dust.', map: 'A rolled-up map.', compass: 'A compass, still ticking.' };
       return sheet(
         taken ? 'Nothing left here.' : names[kind],
@@ -221,9 +222,9 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     case 'miniboss':
     case 'boss': {
       const searchTheRoom = (): RoomAction[] =>
-        spent(ctx, 'search')
+        isRoomSpent(ctx)
           ? []
-          : [act('Search the room', () => hunt(ctx, 'search', 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))];
+          : [act('Search the room', () => hunt(ctx, 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))];
 
       // A room that holds a quest tells the truth about it (docs/Quest-Rooms-Spec.md 5.3): the quest's beast, the chore
       // and when it is due, or why there is no fight. A classic room, a dormant one and a run with no board yet fall through.
@@ -263,14 +264,14 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
       return sheet('Nothing but dark.');
 
     case 'secret': {
-      const opened = spent(ctx, 'secret');
+      const opened = isRoomSpent(ctx);
       return sheet(
         opened ? 'The chamber is bare now.' : 'A hidden chamber!',
         opened
           ? []
           : [
               act('Open the chest', () => {
-                rememberOnce(roomKey(ctx, 'secret'));
+                if (!spendRoom(ctx)) return { message: 'The chamber is bare now.' };
                 // The chest holds its gold, and trained luck can find a little more at the bottom
                 const gold = Number(room.content?.gold) || 20;
                 const gp = earnGold(ctx.userId, randomInt(gold, luckyTop(gold, useUserStore().getUserById(ctx.userId)), rngOf(ctx)));

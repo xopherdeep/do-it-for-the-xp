@@ -29,7 +29,7 @@ export interface TempleProgressEntry {
   hasMasterKey: boolean;
   /** Doors opened this run, as `${level}:${row},${col}>${direction}` of the room the hero stood in */
   openedDoors: string[];
-  /** Chests of consumables emptied this run, as `${level}:${row},${col}`; a blood moon refills them */
+  /** Rooms whose one thing was taken this run (a chest of consumables, a key, map or compass, the secret chest, a find, a riddle solved), as `${level}:${row},${col}`; a blood moon gives them back */
   openedChests: string[];
   /** Items taken from chests that still hold others, as `${level}:${row},${col}>${item}`; a blood moon refills them */
   takenFromChests?: string[];

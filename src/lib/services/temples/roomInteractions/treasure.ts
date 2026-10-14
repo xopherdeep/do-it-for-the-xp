@@ -1,15 +1,15 @@
 /**
  * What the hero takes from a temple: the gate's reward that clears it, keys, maps and compasses lying in a
- * room of their own, and the question of whether a chest still holds anything.
+ * room of their own, the question of whether a chest still holds anything, and the question of whether the one
+ * thing a room holds (a pickup, the secret chest, a find, a riddle) was already taken.
  */
-import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
+import { DungeonManager, roomPositionKey } from '@/lib/engine/core/dungeons/DungeonManager';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { asChestRoom } from '../ChestLoot';
 import { earnGold } from './hero';
 import { temples } from './travel';
-import { rememberOnce, roomKey } from './visitMemory';
 import { roomKind, SFX } from './vocabulary';
 import type { ClearedReward, RoomContext, RoomOutcome } from './vocabulary';
 
@@ -69,10 +69,36 @@ export const openGate = (room: Room, ctx: RoomContext): RoomOutcome => {
   };
 };
 
+/**
+ * Whether the hero already took what this room holds. The answer is part of their saved run, the same set a chest of
+ * consumables is filed in (TempleState.openedChests, `${level}:${row},${col}`): a reload finds the room spent, a
+ * blood moon gives it back, and each hero has their own because each has a run of their own.
+ */
+export const isRoomSpent = (ctx: RoomContext): boolean =>
+  Boolean(temples().getTempleState(ctx.templeId)?.openedChests?.has(roomPositionKey(ctx.level, ctx.position)));
+
+/** Take what this room holds: spend the room and save the run. Returns false if it was already spent. */
+export const spendRoom = (ctx: RoomContext): boolean => {
+  if (isRoomSpent(ctx)) return false;
+  temples().markChestOpened(ctx.templeId, ctx.level, ctx.position);
+  return true;
+};
+
+/**
+ * Whether a key, map or compass room has nothing left. A map or compass the hero holds stays taken through a
+ * blood moon (key items stay, docs/Temple-Generation-Contract.md 5), though the room is given back with the rest.
+ */
+export const isPickupTaken = (kind: string, ctx: RoomContext): boolean => {
+  const state = temples().getTempleState(ctx.templeId);
+  const holdsIt = (kind === 'map' && state?.hasMap) || (kind === 'compass' && state?.hasCompass);
+  return Boolean(holdsIt) || isRoomSpent(ctx);
+};
+
 /** A key, map or compass lying in a room of its own. */
 export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome => {
   const system = temples();
-  if (!rememberOnce(roomKey(ctx, 'pickup'))) return { message: 'Nothing left here.' };
+  if (isPickupTaken(kind, ctx)) return { message: 'Nothing left here.' };
+  spendRoom(ctx);
 
   if (kind === 'map') {
     const state = system.getTempleState(ctx.templeId);

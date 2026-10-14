@@ -16,6 +16,9 @@ export type DoorKind = 'open' | 'locked' | 'master';
 /** What the temple says when a small key is tried on the boss door */
 export const BOSS_DOOR_LINE = 'A big lock. This needs the Boss Key.';
 
+/** What the temple says when any door of a fight-sealed room is tried: no key leaves a fight */
+export const SEALED_DOOR_LINE = 'The beast bars the door. Win the fight first.';
+
 export interface DoorState {
   direction: 'north' | 'south' | 'east' | 'west';
   locked: boolean;
@@ -91,7 +94,12 @@ export function doorKind(
 }
 
 export function explainDoor(runs: TempleRuns, templeId: string, position: [number, number], direction: DoorState['direction']): string | null {
-  switch (doorKind(runs, templeId, position, direction)) {
+  const kind = doorKind(runs, templeId, position, direction);
+  // A beast bars every shut side of its room, whatever lock is on it
+  const isBarredByBeast = kind !== 'open' && isRoomBarred(runs, templeId, runs.templeStates[templeId]?.currentLevel ?? '1F', position);
+  if (isBarredByBeast) return SEALED_DOOR_LINE;
+
+  switch (kind) {
     case 'master':
       return hasMasterKey(runs, templeId) ? null : BOSS_DOOR_LINE;
     case 'locked':
@@ -122,6 +130,9 @@ export function unlockDoor(
   const templeState = runs.templeStates[templeId];
   if (!templeState) return false;
 
+  // No key, small or Boss, walks the hero out of a fight: refused before anything is spent
+  if (isRoomBarred(runs, templeId, templeState.currentLevel, position)) return false;
+
   switch (doorKind(runs, templeId, position, direction)) {
     case 'master':
       if (!templeState.hasMasterKey) return false;
@@ -150,8 +161,9 @@ export function openDoorSide(
 
   const floor = level ?? templeState.currentLevel;
   const room = runs.dungeonManager.getRoom(templeId, position, floor);
-  // The boss door is beyond a bomb or a riddle: only the master key opens it
-  const isSideUnopenable = !room?.locked?.[direction] || doorKind(runs, templeId, position, direction, floor) === 'master';
+  // The boss door is beyond a bomb or a riddle: only the master key opens it; a fight's seal is no door at all
+  const isBarred = isRoomBarred(runs, templeId, floor, position);
+  const isSideUnopenable = isBarred || !room?.locked?.[direction] || doorKind(runs, templeId, position, direction, floor) === 'master';
   if (isSideUnopenable) return false;
 
   openDoor(runs, templeId, floor, position, direction);
@@ -181,7 +193,16 @@ export function openDoorsAround(runs: TempleRuns, templeId: string, position: [n
   return opened;
 }
 
-/** A combat room that seals its doors on entry and has not been won yet. */
+/**
+ * The beast bars the doors of this room right now: the room is sealed in this run. sealRoom sets it; winning, a quest
+ * room falling asleep and X's Invisibility (slipOut) clear it, and a reload inside an unfinished fight seals again.
+ * Not the same as isSealedByFight: a hero who slipped out of an uncleared fight room has doors that are theirs to open.
+ */
+export function isRoomBarred(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
+  return runs.sealedRooms.has(sealKey(templeId, level, position));
+}
+
+/** A combat room that seals its doors on entry and has not been won yet (sealed or not: a room not entered yet counts). */
 export function isSealedByFight(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
   const room = runs.dungeonManager.getRoom(templeId, position, level);
   return Boolean(room?.content?.lockOnEnter) && !isRoomCleared(runs, templeId, level, position);

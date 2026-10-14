@@ -34,7 +34,11 @@ export interface TempleState {
   hasMasterKey?: boolean;
   /** Doors the hero opened (a key, the master key, a bomb, a riddle), as `${level}:${row},${col}>${direction}` of the room they stood in */
   openedDoors?: Set<string>;
-  /** Chests of consumables emptied this run, as `${level}:${row},${col}` */
+  /**
+   * Rooms whose one thing the hero took this run, as `${level}:${row},${col}`: a chest of consumables emptied, and
+   * the keys, maps and compasses lying in a room, the secret chest, a hunt's find and a riddle solved. A blood moon
+   * gives them all back (the map and compass the hero holds stay theirs).
+   */
   openedChests?: Set<string>;
   /** Items taken from chests that still hold others, as `${level}:${row},${col}>${item}` */
   takenFromChests?: Set<string>;

@@ -4,6 +4,7 @@
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import { SEALED_DOOR_LINE } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { roomKind, SFX } from './vocabulary';
 import type { Direction, RoomContext, RoomOutcome, RoomSheet } from './vocabulary';
@@ -36,7 +37,8 @@ export const readExits = (templeId: string, level: string, position: [number, nu
 
 /**
  * The sheet for a door the hero taps: a small lock asks for a key, the boss door asks for the Boss Key and
- * refuses everything else ("A big lock. This needs the Boss Key."), an open way has nothing to say.
+ * refuses everything else ("A big lock. This needs the Boss Key."), an open way has nothing to say. In a room a beast
+ * has sealed every shut side says so and offers nothing.
  */
 export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet => {
   const system = temples();
@@ -45,7 +47,12 @@ export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet =
       ? { message: done, sound: SFX.useKey }
       : { message: system.explainDoor(ctx.templeId, ctx.position, direction) ?? 'The door will not open.', sound: SFX.error };
 
-  switch (system.doorKind(ctx.templeId, ctx.position, direction, ctx.level)) {
+  const kind = system.doorKind(ctx.templeId, ctx.position, direction, ctx.level);
+  // The beast of a sealed room bars every shut side: no key is offered, whatever the lock
+  const isBarredByBeast = kind !== 'open' && system.isRoomBarred(ctx.templeId, ctx.level, ctx.position);
+  if (isBarredByBeast) return { header: kind === 'master' ? 'The Boss Door' : 'Locked Door', subHeader: SEALED_DOOR_LINE, actions: [] };
+
+  switch (kind) {
     case 'master':
       return system.hasMasterKey(ctx.templeId)
         ? { header: 'The Boss Door', subHeader: 'The Boss Key fits the big lock.', actions: [{ label: 'Open the door', run: () => open('The big lock falls away.') }] }

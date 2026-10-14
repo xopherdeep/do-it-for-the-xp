@@ -562,6 +562,21 @@ describe("after a reload", () => {
     expect(second.temples.getCurrentRoom(id)?.locked).toBeUndefined();
   });
 
+  it("keeps a room whose one thing the hero took (a key, a find, a riddle) with the chests, and leaves the room as it is", async () => {
+    const id = nextId();
+    const first = startSession();
+    await openTemple(first, id, HERO);
+    first.temples.markChestOpened(id, "1F", [0, 1]); // a room of its own, not a chest, spent
+    first.temples.saveProgress(id);
+    await first.temples.flushProgress();
+
+    const second = startSession();
+    await openTemple(second, id, HERO);
+
+    expect(second.temples.getTempleState(id)!.openedChests).toEqual(new Set(["1F:0,1"]));
+    expect(second.dungeons.getRoom(id, [0, 1], "1F")!.isEmpty).toBeFalsy();
+  });
+
   it("keeps the hero in a fight they left unfinished", async () => {
     const id = nextId();
     await playFirstSession(id, "the fight");

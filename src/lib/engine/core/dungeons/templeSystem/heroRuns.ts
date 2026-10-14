@@ -11,6 +11,7 @@ import { isBloodMoonDue, resetTempleProgress } from '../templeReset';
 import { nextWeekly } from '../bloodMoonSchedule';
 import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
 import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
+import { forgetVisits } from '@/lib/services/temples/roomInteractions/visitMemory';
 import debug from '@/lib/utils/debug';
 import { bloodMoonRisen, clearedRoomKey, createTempleState, isRoomCleared, parseRoomKey, visitRoom } from './runState';
 import type { TempleRuns, TempleState } from './runState';
@@ -114,12 +115,14 @@ export function releaseTemple(runs: TempleRuns, templeId: string): void {
 
 /**
  * Drop a temple's run from memory: the state, the seals and the dungeon as the hero left it.
- * @param unsaved Also drop a save of it still waiting for the end of the tick (the blood moon writes its own)
+ * @param unsaved Also drop a save of it still waiting for the end of the tick (the blood moon writes its own),
+ * and what the hero's visit remembered: the run is started over from what is stored
  */
 export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): void {
   const hero = runs.heroByTemple.get(templeId);
   const hasSaveToDrop = unsaved && hero;
   if (hasSaveToDrop) runs.pendingSaves.delete(`${hero}|${templeId}`);
+  if (unsaved) forgetVisits(templeId, hero);
 
   delete runs.templeStates[templeId];
   runs.heroByTemple.delete(templeId);
@@ -245,6 +248,8 @@ export function loadProgress(runs: TempleRuns, templeId: string, userId: string,
           runs.risen.set(templeId, userId);
           bloodMoonRisen.value = true;
           notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
+          // The springs and camps the hero used up before the moon are back with the chests
+          forgetVisits(templeId, userId);
         }
         applyProgress(runs, templeId, saved, resume ? start : undefined);
       } catch (error) {

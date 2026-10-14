@@ -25,6 +25,7 @@ import {
   DIRECTIONS,
   SFX,
   hasHappened,
+  isPuzzleSolved,
   readPoints,
   rememberOnce,
   roomKey,
@@ -197,7 +198,7 @@ const useQuake = (ctx: ItemUseContext, cost: number): ItemOutcome => {
 
 /** Night's Light: the riddle of this room shows one wrong answer less every time it opens this visit (publicRiddle). */
 const useNightsLight = (ctx: ItemUseContext, cost: number): ItemOutcome => {
-  const isUnsolvedPuzzle = roomKind(ctx.room) === 'puzzle' && !hasHappened(roomKey(ctx, 'puzzle'));
+  const isUnsolvedPuzzle = roomKind(ctx.room) === 'puzzle' && !isPuzzleSolved(ctx);
   if (!isUnsolvedPuzzle) return { message: 'No glyphs here to read.' };
   if (hasHappened(roomKey(ctx, 'moonlit'))) return { message: 'The moonlight already rests here.' };
 
@@ -244,9 +245,13 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
     const hasNoGroundBeyond = !beyond || SOLID_GROUND_NOT.includes(roomKind(beyond));
     if (hasNoGroundBeyond) continue;
 
+    // The door on the far side of the hazard holds too: a small lock, or the boss door of the room beyond (only the Boss Key opens that)
+    const isFarDoorShut = system.doorKind(ctx.templeId, near.position, direction, ctx.level) !== 'open';
+    if (isFarDoorShut) continue;
+
     const poor = shortOnMp(ctx, cost);
     if (poor) return poor;
-    // The hero lands beyond the hazard; the room between is skipped
+    // The hero lands beyond the hazard, and the landing is a step like any other: a guard room there seals. The room between is skipped
     if (!system.moveToPosition(ctx.templeId, far, direction)) continue;
     spendMp(ctx, cost);
     return { message: 'Thwip! You swing across to the other side.', sound: SFX.teleport, moved: true };

@@ -1,14 +1,15 @@
 /**
  * The shop room: the wares on offer and buying one. Prices are what this hero pays (trained charisma takes
- * 1% off a point, up to 20%, docs/Stats-Contract.md); a special item sells once per visit, Bombs as often as the
- * hero likes (the Bombs in a hand spend them, ItemUse).
+ * 1% off a point, up to 20%, docs/Stats-Contract.md); a special item sells once per run (kept with the hero's
+ * saved run, so a reload does not restock it and a blood moon does), Bombs as often as the hero likes (the Bombs
+ * in a hand spend them, ItemUse).
  */
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { canCarry } from '@/lib/services/inventory/Storage';
 import { shopPrice } from '@/lib/services/stats/StatEffects';
 import { healHero, readGold, readPoints } from './hero';
-import { hasHappened, rememberOnce, roomKey } from './visitMemory';
+import { isRoomSpent, spendRoom } from './treasure';
 import { SFX, titleWords } from './vocabulary';
 import type { RoomContext, RoomOutcome, Ware } from './vocabulary';
 
@@ -38,7 +39,7 @@ export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
       name: titleWords(special),
       price: shopPrice(Number(room.content?.specialItemPrice ?? room.content?.price) || SPECIAL_DEFAULT_PRICE, hero),
       blurb: 'a rare find',
-      soldOut: hasHappened(roomKey(ctx, `bought:${special}`)),
+      soldOut: isRoomSpent(ctx),
     });
   }
   return wares;
@@ -86,6 +87,6 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
     return { message: BAG_FULL, sound: SFX.error };
   }
   void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
-  rememberOnce(roomKey(ctx, `bought:${special}`));
+  spendRoom(ctx);
   return { message: `${ware.name} is in your bag.`, sound: SFX.buy };
 };

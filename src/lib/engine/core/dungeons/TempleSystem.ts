@@ -395,6 +395,11 @@ export class TempleSystem {
     return doors.isSealedByFight(this.runs, templeId, level, position);
   }
 
+  /** The live seal: the beast bars the doors of this room right now (isSealedByFight is the authored rule, a guard room not yet won). */
+  public isRoomBarred(templeId: string, level: string, position: [number, number]): boolean {
+    return doors.isRoomBarred(this.runs, templeId, level, position);
+  }
+
   /** Floors of a temple in the order the layout lists them ("1F" for a single grid). */
   public getFloors(templeId: string): string[] {
     return floors.getFloors(this.runs, templeId);

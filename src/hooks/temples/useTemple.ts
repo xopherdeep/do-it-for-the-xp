@@ -6,6 +6,7 @@ import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSy
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { ensureTempleFresh } from '@/lib/engine/core/dungeons/templeFreshness';
+import { isImpassable } from '@/lib/engine/core/dungeons/templeSystem/floors';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
@@ -188,14 +189,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     }
   });
   
-  // Movement capability checks
+  // Movement capability checks: an arrow lights over any room but a wall or a void (the engine refuses those steps)
   const canMoveUp = computed(() => {
     const isAtTopEdge = !currentPosition.value || currentPosition.value[0] <= 0;
     if (isAtTopEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row - 1]?.[col];
     if (!roomKey) return false;
-    return rooms.value[roomKey]?.type !== 'wall';
+    return !isImpassable(rooms.value[roomKey]);
   });
   
   const canMoveDown = computed(() => {
@@ -205,7 +206,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row + 1]?.[col];
     if (!roomKey) return false;
-    return rooms.value[roomKey]?.type !== 'wall';
+    return !isImpassable(rooms.value[roomKey]);
   });
   
   const canMoveLeft = computed(() => {
@@ -214,7 +215,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col - 1];
     if (!roomKey) return false;
-    return rooms.value[roomKey]?.type !== 'wall';
+    return !isImpassable(rooms.value[roomKey]);
   });
   
   const canMoveRight = computed(() => {
@@ -223,7 +224,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col + 1];
     if (!roomKey) return false;
-    return rooms.value[roomKey]?.type !== 'wall';
+    return !isImpassable(rooms.value[roomKey]);
   });
   
   // Helper to display messages - now uses the external display function if available

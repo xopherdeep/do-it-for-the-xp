@@ -1,11 +1,12 @@
 /**
  * The puzzle room: the riddles on the wall and answering one. A right answer unlocks the doors around the
- * room; a wrong one burns.
+ * room; a wrong one burns. A solved riddle is part of the hero's saved run, like the doors it opened: a reload
+ * finds it solved, a blood moon re-locks both.
  */
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { hurtHero } from './hero';
 import { temples } from './travel';
-import { hasHappened, rememberOnce, roomKey } from './visitMemory';
+import { isRoomSpent, spendRoom } from './treasure';
 import { SFX } from './vocabulary';
 import type { Riddle, RoomContext, RoomOutcome } from './vocabulary';
 
@@ -68,9 +69,12 @@ export const publicRiddle = ({ id, question, choices, answer }: RiddleDef, moonl
   return shown;
 };
 
+/** Whether the hero already solved the riddle of the room they stand in. */
+export const isPuzzleSolved = (ctx: RoomContext): boolean => isRoomSpent(ctx);
+
 /** Answer the room's riddle with the index of a choice. */
 export const answerRiddle = (room: Room, ctx: RoomContext, choice: number): RoomOutcome => {
-  if (hasHappened(roomKey(ctx, 'puzzle'))) return { message: 'The glyphs have faded.' };
+  if (isPuzzleSolved(ctx)) return { message: 'The glyphs have faded.' };
 
   if (choice !== riddleFor(room).answer) {
     const { defeated } = hurtHero(ctx.userId, 3);
@@ -82,7 +86,7 @@ export const answerRiddle = (room: Room, ctx: RoomContext, choice: number): Room
     };
   }
 
-  rememberOnce(roomKey(ctx, 'puzzle'));
+  spendRoom(ctx);
   const opened = temples().openDoorsAround(ctx.templeId, ctx.position, ctx.level);
   return {
     message: opened > 0 ? 'The glyphs fade. A door unlocks.' : 'The glyphs fade. Nothing here was locked.',

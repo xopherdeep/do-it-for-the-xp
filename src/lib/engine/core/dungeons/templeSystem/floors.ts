@@ -18,14 +18,22 @@ export function floorsOf(temple: Dungeon): string[] {
   return Array.isArray(temple.maze) ? ["1F"] : Object.keys(temple.maze);
 }
 
-/** True when the hero could stand there: the temple has that floor and the room is not a wall */
+/** Room types no hero stands in: a wall, and a void (a gap on the map; only the Hook Shot swings over it). A pit is not one: it drops the hero. */
+const IMPASSABLE_TYPES = ['wall', 'void'];
+
+/** Whether a room is no floor to stand on (the solver's templeGraph IMPASSABLE says the same). No room at all is not this: it is simply not there. */
+export function isImpassable(room: { type?: string } | undefined): boolean {
+  return IMPASSABLE_TYPES.includes(room?.type ?? '');
+}
+
+/** True when the hero could stand there: the temple has that floor and the room is not a wall or a void */
 export function canStandAt(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
   const temple = runs.dungeonManager.getDungeon(templeId);
   const hasNoSuchFloor = !temple || !floorsOf(temple).includes(level);
   if (hasNoSuchFloor) return false;
 
   const room = runs.dungeonManager.getRoom(templeId, position, level);
-  return Boolean(room) && room?.type !== 'wall';
+  return Boolean(room) && !isImpassable(room);
 }
 
 export function registerDungeonFromDSL(runs: TempleRuns, blueprint: string, dungeonId: string, dungeonName: string): boolean {
@@ -103,28 +111,38 @@ export function moveToPosition(
     return false;
   }
   
-  // Check if the destination is a wall
+  // Check if the destination is a wall or a void
   const destRoom = runs.dungeonManager.getRoom(templeId, newPosition, level);
-  const isNotARoom = !destRoom || destRoom.type === 'wall';
+  const isNotARoom = !destRoom || isImpassable(destRoom);
   if (isNotARoom) return false;
   
-  // Move to the new position
-  templeState.currentPosition = [...newPosition];
-  
-  // A lockOnEnter room seals while its beast is not beaten (docs/Quest-Rooms-Spec.md 7.2): a won or done room lets the
-  // hero through, and a beast that is back (its quest due again, a blood moon) seals it again on the next entry
-  const shouldSealOnEntry = destRoom.content?.lockOnEnter && !isRoomCleared(runs, templeId, level, newPosition);
-  if (shouldSealOnEntry) {
-    // Lock all 4 directions (markRoomCleared opens them again after the fight)
-    sealRoom(runs, templeId, level, newPosition, destRoom);
+  arrive(runs, templeId, level, newPosition);
+  return true;
+}
 
-    debug.log(`Room at ${newPosition} locked on enter!`);
+/**
+ * The one way into a room, whatever brought the hero (a step, stairs, a fall down a pit, a teleport circle): the hero
+ * stands there, a lockOnEnter room seals while its beast is not beaten (docs/Quest-Rooms-Spec.md 7.2), and the room
+ * counts as visited. A won or done room lets the hero through, and a beast that is back (its quest due again, a blood
+ * moon) seals it again on the next entry.
+ */
+function arrive(runs: TempleRuns, templeId: string, level: string, position: [number, number]): void {
+  const templeState = runs.templeStates[templeId];
+  if (!templeState) return;
+
+  templeState.currentLevel = level;
+  templeState.currentPosition = [position[0], position[1]];
+
+  const room = runs.dungeonManager.getRoom(templeId, position, level);
+  const shouldSealOnEntry = room?.content?.lockOnEnter && !isRoomCleared(runs, templeId, level, position);
+  if (room && shouldSealOnEntry) {
+    // Lock all 4 directions (markRoomCleared opens them again after the fight)
+    sealRoom(runs, templeId, level, position, room);
+
+    debug.log(`Room at ${position} locked on enter!`);
   }
 
-  // Mark the new room as visited
-  visitRoom(runs, templeId, newPosition);
-  
-  return true;
+  visitRoom(runs, templeId, position, level);
 }
 
 export function getFloors(runs: TempleRuns, templeId: string): string[] {
@@ -137,9 +155,7 @@ export function changeLevel(runs: TempleRuns, templeId: string, level: string, p
   const cannotChangeLevel = !templeState || !canStandAt(runs, templeId, level, position);
   if (cannotChangeLevel) return false;
 
-  templeState.currentLevel = level;
-  templeState.currentPosition = [position[0], position[1]];
-  visitRoom(runs, templeId, templeState.currentPosition, level);
+  arrive(runs, templeId, level, position);
   return true;
 }
 
