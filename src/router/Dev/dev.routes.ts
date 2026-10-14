@@ -38,6 +38,11 @@ const DevRoutes: Array<RouteRecordRaw> = [
     component: () => import("@/app/Dev/IntroSplashDemo.vue"),
   },
   {
+    path: "/dev/voxels",
+    name: "voxel-lab",
+    component: () => import("@/app/Dev/VoxelLab.vue"),
+  },
+  {
     path: "/dev/dungeon-background",
     name: "dungeon-background-designer",
     component: () =>

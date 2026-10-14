@@ -86,6 +86,53 @@ describe("box culling", () => {
     expect(visibleFaces(poking, [big, poking]).length).toBe(5);
   });
 
+  it("shades a face where a wall meets it and leaves an open face as one bright quad", () => {
+    const floor = box(0, 0, 0, 4, 1, 4, "#808080");
+    const open = buildMeshData([floor]);
+    expect(open.faceCount).toBe(6);
+    expect(Array.from(open.ao).every((a) => a === 1)).toBe(true);
+
+    // A wall standing on the floor's top: the top is cut into cells and darkens along the foot of the wall
+    const wall = box(0, 1, 0, 1, 3, 4, "#808080");
+    const data = buildMeshData([floor, wall]);
+    expect(data.ao.length).toBe(data.positions.length / 3);
+    let darkestAtWall = 1;
+    let darkestAway = 1;
+    for (let i = 0; i < data.ao.length; i++) {
+      const [x, y] = [data.positions[i * 3], data.positions[i * 3 + 1]];
+      const isFloorTop = y === 1 && data.normals[i * 3 + 1] === 1;
+      if (!isFloorTop) continue;
+      if (x <= 1) darkestAtWall = Math.min(darkestAtWall, data.ao[i]);
+      else if (x >= 3) darkestAway = Math.min(darkestAway, data.ao[i]);
+    }
+    expect(darkestAtWall).toBeLessThan(0.8);
+    expect(darkestAway).toBe(1);
+  });
+
+  it("marks only the convex edges of a face for the bevel", () => {
+    // Two boxes side by side make one flat top: the seam between them is not an edge, the outer rims are
+    const data = buildMeshData([box(0, 0, 0, 1, 1, 1, "#808080"), box(1, 0, 0, 2, 1, 1, "#808080")]);
+    for (let q = 0; q < data.faceCount; q++) {
+      const v = q * 4;
+      const isTop = data.normals[v * 3 + 1] === 1;
+      if (!isTop) continue;
+      const xs = [0, 1, 2, 3].map((k) => data.positions[(v + k) * 3]);
+      const isLeftBox = Math.max(...xs) < 1.5;
+      // edges: low-u, high-u, low-v, high-v; for a +Y face u is Z and v is X
+      const edges = Array.from(data.edges.slice(v * 4, v * 4 + 4));
+      expect(edges).toEqual(isLeftBox ? [1, 1, 1, 0] : [1, 1, 0, 1]);
+    }
+  });
+
+  it("lets a neighbouring part shade the contact without hiding any face", () => {
+    const torso = box(-2, 0, -1, 2, 4, 1, "#808080");
+    const head = box(-2, 4, -2, 2, 7, 2, "#808080");
+    const alone = buildMeshData([torso]);
+    const touched = buildMeshData([torso], [head]);
+    expect(Math.min(...Array.from(alone.ao))).toBe(1);
+    expect(Math.min(...Array.from(touched.ao))).toBeLessThan(1);
+  });
+
   it("produces outward counter-clockwise triangles", () => {
     const data = buildMeshData([box(0, 0, 0, 2, 3, 4, "#808080")]);
     for (let f = 0; f < data.faceCount; f++) {

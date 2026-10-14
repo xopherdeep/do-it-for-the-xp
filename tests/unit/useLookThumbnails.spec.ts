@@ -376,8 +376,8 @@ describe("createThreeDraw", () => {
       expect.objectContaining({ alpha: true, powerPreference: "low-power" }),
     );
     expect(renderer.readRenderTargetPixels).toHaveBeenCalledTimes(2);
-    // two lights, plus the hero only while it is being drawn
-    expect(sceneSizes).toEqual([3, 3]);
+    // three lights (sky, key, back), plus the hero only while it is being drawn
+    expect(sceneSizes).toEqual([4, 4]);
     headGeometries.forEach((geometry) => expect(geometry.dispose).toHaveBeenCalled());
 
     expect(renderer.dispose).not.toHaveBeenCalled();
