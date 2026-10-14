@@ -2,17 +2,17 @@
 import "./sharedSounds";
 import { uiSounds } from "./uiSounds";
 import { earthboundSounds, chronoTriggerSounds, finalFantasySounds } from "./rpgSounds";
+import { loadThemeChoice } from "@/lib/utils/gameStyle";
 
 const $fx = {
-  theme: {
-    ui: "nintendo",
-    rpg: "earthbound",
-  },
+  theme: loadThemeChoice(),
   ui: uiSounds,
   rpg: {
     earthbound: earthboundSounds,
     chronoTrigger: chronoTriggerSounds,
     finalFantasy: finalFantasySounds,
+    // No Zelda sound set yet: the Zelda game style plays the Earthbound sounds
+    zelda: earthboundSounds,
   },
 };
 

@@ -264,8 +264,8 @@ describe("XpRevealPrompt", () => {
       const source = readFileSync(join(__dirname, "../../src/components/organisms/RevealPrompt/XpRevealPrompt.vue"), "utf8");
       // the 10 px ring is the accent, with the fallback so a missing accent never kills the box
       expect(source).toContain("0 0 0 10px var(--xp-app-accent, #68d0b8)");
-      // the Earthbound rings around it are as eb-box has them
-      expect(source).toMatch(/0 0 0 5px \$eb-color-medium-purple,\s*0 0 0 10px var\(--xp-app-accent, #68d0b8\),\s*0 0 0 12px \$eb-color-pale-yellow,\s*0 0 0 16px \$eb-color-slate/);
+      // the Earthbound rings around it are as eb-box has them, behind the other game styles' own frame
+      expect(source).toMatch(/var\(\s*--gs-frame,\s*0 0 0 5px #\{\$eb-color-medium-purple\},\s*0 0 0 10px var\(--xp-app-accent, #68d0b8\),\s*0 0 0 12px #\{\$eb-color-pale-yellow\},\s*0 0 0 16px #\{\$eb-color-slate\}\s*\)/);
       // minty is never written without the accent in front of it
       const bareMinty = source.split("\n").filter((line) => line.includes("#68d0b8") && !line.includes("var(--xp-app-accent, #68d0b8)") && !line.trim().startsWith("//"));
       expect(bareMinty.filter((line) => !line.includes("*"))).toEqual([]);
