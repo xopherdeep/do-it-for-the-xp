@@ -5,6 +5,7 @@
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { SEALED_DOOR_LINE } from '@/lib/engine/core/dungeons/templeSystem/doors';
+import { neighbourFloorOf } from '@/lib/engine/core/dungeons/floorOrder';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { roomKind, SFX } from './vocabulary';
 import type { Direction, RoomContext, RoomOutcome, RoomSheet } from './vocabulary';
@@ -66,11 +67,9 @@ export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet =
   }
 };
 
-/** Floors a hero can climb to or fall to: the next one up or down the temple's own list. */
-export const neighbourFloor = (templeId: string, level: string, step: 1 | -1): string | undefined => {
-  const floors = temples().getFloors(templeId);
-  return floors[floors.indexOf(level) + step];
-};
+/** Floors a hero can climb to or fall to: the next one up or down in the order floors are climbed (a basement drawn last is still below 1F). */
+export const neighbourFloor = (templeId: string, level: string, step: 1 | -1): string | undefined =>
+  neighbourFloorOf(temples().getFloors(templeId), level, step);
 
 /** Put the hero on `floor`, trying each spot in turn. Returns true on the first one they can stand on. */
 export const arriveOn = (templeId: string, floor: string, spots: Array<[number, number] | undefined>): boolean => {

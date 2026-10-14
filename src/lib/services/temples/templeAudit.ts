@@ -19,6 +19,7 @@ import { asChestRoom } from '@/lib/services/temples/ChestLoot';
 import { chestDungeonItem, grantsBossKey } from '@/lib/services/temples/roomGrants';
 import { VOID } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
+import { neighbourFloorOf } from '@/lib/engine/core/dungeons/floorOrder';
 import { TEMPLE_FULL_SIZE, templeSize, type SizedRoom, type TempleSize } from '@/lib/services/temples/questRooms';
 
 export type AuditCheckId = 'entrance' | 'exit' | 'boss' | 'bossKey' | 'masterRoom' | 'map' | 'compass' | 'size' | 'stairs';
@@ -140,12 +141,12 @@ const sizeCheck = (rooms: AuditableRoom[], sizeOf: (room: AuditableRoom) => Size
   return { id: 'size', label: 'Size', ok: size.isFull, detail: describeTempleSize(size), optional: true };
 };
 
-/** Which way a stairs room climbs along the temple's list of floors (the engine reads both spellings) */
+/** Which way a stairs room climbs along the order floors are climbed in (the engine reads both spellings) */
 const STAIRS_STEP: Record<string, 1 | -1> = { 'stairs-up': 1, stairs_up: 1, 'stairs-down': -1, stairs_down: -1 };
 
 /**
  * The stairs check, or null for a temple with no stairs. Stairs lead where their `targetLevel` says, else to the
- * neighbouring floor in the temple's own list of floors (how play climbs them); a stairway to the floor it stands on,
+ * neighbouring floor in the order floors are climbed (how play climbs them); a stairway to the floor it stands on,
  * to a floor the temple lacks, or past the first or last floor is "blocked by rubble" and strands the hero. A cell is
  * written "floor (row,col)". Optional: a draft with its stairs half placed is not a mistake.
  */
@@ -169,7 +170,7 @@ const stairsCheck = (temple: AuditableTemple | null | undefined): AuditCheck | n
         if (!room || !step) return;
 
         stairsCount += 1;
-        const target = room.content?.targetLevel ?? floorNames[floorNames.indexOf(name) + step];
+        const target = room.content?.targetLevel ?? neighbourFloorOf(floorNames, name, step);
         const leadsToAnotherFloor = !!target && floorNames.includes(target) && target !== name;
         if (!leadsToAnotherFloor) stranded.push(`${name} (${rowIndex},${colIndex})`);
       })

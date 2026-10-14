@@ -4,6 +4,7 @@
  * one floor's grid, and what a loaded layout implies for the grid size and the shown floor.
  */
 import { ____ } from "@/lib/engine/dungeons/roomTypes";
+import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
 import {
   blankFloorLayer,
   blankGrid,
@@ -47,6 +48,21 @@ describe("floorKeysOf and sortedFloorKeys", () => {
 
   it("puts a floor with an unrecognised name at ground level, which sorts below 1F", () => {
     expect(sortedFloorKeys({ "1F": [], Attic: [], B1: [] })).toEqual(["B1", "Attic", "1F"]);
+  });
+
+  it("puts a basement added after the floors above it below them, and reads floor numbers as numbers (task #1380)", () => {
+    const drawn = { "1F": [], "2F": [], B1: [] }; // keys in the order the editor created the floors
+    expect(sortedFloorKeys(drawn)).toEqual(["B1", "1F", "2F"]);
+    expect(floorKeysOf(drawn)).toEqual(["1F", "2F", "B1"]); // the map's own order is what an entrance index counts in
+    expect(sortedFloorKeys({ "10F": [], "2F": [], "1F": [] })).toEqual(["1F", "2F", "10F"]);
+  });
+
+  it("is the same order stairs and pits climb in: the next floor up from 1F is 2F and the next down is B1", () => {
+    const floors = sortedFloorKeys({ "1F": [], "2F": [], B1: [] });
+    expect(floorsAbove(floors, "1F")).toEqual(["2F"]);
+    expect(floorsBelow(floors, "1F")).toEqual(["B1"]);
+    expect(neighbourFloorOf(floors, "1F", -1)).toBe("B1");
+    expect(neighbourFloorOf(floors, "B1", 1)).toBe("1F");
   });
 });
 

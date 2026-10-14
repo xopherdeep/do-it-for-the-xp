@@ -869,6 +869,81 @@ describe("stairs and pits", () => {
     expect(temples.getTempleState(upper)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
   });
 
+  describe("in a temple whose basement was drawn after its upper floors (maze keys 1F, 2F, B1; task #1380)", () => {
+    // Stairs with no target climb to the next floor in the order floors are climbed (B1, 1F, 2F), not in the map's
+    const withBasement = () =>
+      makeTemple(
+        { E: { type: "entrance" }, U: { type: "stairs-up" }, D: { type: "stairs-down" }, F: { type: "empty" }, P: { type: "pit" } },
+        { "1F": [["E", "U", "D"]], "2F": [["F", "D", "U"]], B1: [["F", "F", "U"]] }
+      );
+    const stairsOn = async (id: string, level: string, position: [number, number]) => {
+      enter(id, position, level);
+      const room = dungeons.getRoom(id, position, level)!;
+      return run(roomActions(room, contextAt(id, position)));
+    };
+
+    it("climbs down from 1F to the basement", async () => {
+      const id = withBasement();
+
+      const outcome = await stairsOn(id, "1F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You climb down to B1.", sound: "steps", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 2] });
+    });
+
+    it("climbs up from the basement to 1F", async () => {
+      const id = withBasement();
+
+      const outcome = await stairsOn(id, "B1", [0, 2]);
+
+      expect(outcome.message).toBe("You climb up to 1F.");
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+
+    it("still climbs from 1F to 2F and back down", async () => {
+      const id = withBasement();
+
+      expect((await stairsOn(id, "1F", [0, 1])).message).toBe("You climb up to 2F.");
+      expect((await stairsOn(id, "2F", [0, 1])).message).toBe("You climb down to 1F.");
+    });
+
+    it("finds rubble above the top floor, not the basement", async () => {
+      const id = withBasement();
+
+      const outcome = await stairsOn(id, "2F", [0, 2]);
+
+      expect(outcome).toEqual({ message: "The stairs are blocked by rubble.", sound: "error" });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 2] });
+    });
+
+    it("drops a hero through a pit on 1F into the basement", () => {
+      const id = makeTemple(
+        { E: { type: "entrance" }, P: { type: "pit" }, F: { type: "empty" } },
+        { "1F": [["E", "P"]], "2F": [["F", "F"]], B1: [["F", "F"]] }
+      );
+      enter(id, [0, 1], "1F");
+
+      const outcome = onEnterRoom(dungeons.getRoom(id, [0, 1], "1F"), contextAt(id, [0, 1]))!;
+
+      expect(outcome).toMatchObject({ message: "You fall to B1: -5 HP", sound: "damage", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 1] });
+    });
+
+    it("only bruises a hero on the basement's pit: there is no floor below it", () => {
+      const id = makeTemple(
+        { E: { type: "entrance" }, P: { type: "pit" }, F: { type: "empty" } },
+        { "1F": [["E", "F"]], "2F": [["F", "F"]], B1: [["F", "P"]] }
+      );
+      enter(id, [0, 1], "B1");
+
+      const outcome = onEnterRoom(dungeons.getRoom(id, [0, 1], "B1"), contextAt(id, [0, 1]))!;
+
+      expect(outcome).toMatchObject({ sound: "damage", shake: true });
+      expect(outcome.moved).toBeUndefined();
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 1] });
+    });
+  });
+
   it("only bruises a hero when there is no floor below, and only once", () => {
     const { id, room, ctx } = withRoom({ type: "pit" });
 

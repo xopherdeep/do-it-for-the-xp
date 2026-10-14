@@ -419,6 +419,32 @@ describe("the stairs check (#1360)", () => {
     expect(stairs(result).detail).toBe("Stairs on 1F (0,0), 1F (0,1) +2 more lead nowhere");
   });
 
+  describe("with a basement drawn after the floors above it (maze keys 1F, 2F, B1; task #1380)", () => {
+    // Stairs climb along the order floors are climbed in (B1, 1F, 2F), not along the order the map holds them
+    const withBasement = (first: string[][], second: string[][], basement: string[][]) =>
+      auditTemple(temple({ "1F": first, "2F": second, B1: basement }, rooms()));
+
+    it("is Placed when stairs lead down from 1F into the basement and up out of it", () => {
+      const result = withBasement([["E", "D"]], [["_", "_"]], [["_", "U"]]);
+      expect(stairs(result)).toMatchObject({ ok: true, detail: "Placed" });
+    });
+
+    it("is Placed for stairs up from 1F to 2F, as before", () => {
+      const result = withBasement([["E", "U"]], [["_", "_"]], [["_", "_"]]);
+      expect(stairs(result).ok).toBe(true);
+    });
+
+    it("fails stairs up on the top floor: the basement drawn last is not above it", () => {
+      const result = withBasement([["E", "_"]], [["_", "U"]], [["_", "_"]]);
+      expect(stairs(result)).toMatchObject({ ok: false, detail: "Stairs on 2F (0,1) lead nowhere" });
+    });
+
+    it("fails stairs down at the bottom of the basement", () => {
+      const result = withBasement([["E", "_"]], [["_", "_"]], [["D", "_"]]);
+      expect(stairs(result)).toMatchObject({ ok: false, detail: "Stairs on B1 (0,0) lead nowhere" });
+    });
+  });
+
   it("reads the underscore spelling of the stairs types too", () => {
     const result = auditTemple(tower([["E", "U"]], [["_", "_"]], { U: { type: "stairs_down" } }));
     expect(stairs(result).ok).toBe(false);

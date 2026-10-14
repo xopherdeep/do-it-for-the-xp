@@ -81,7 +81,8 @@
           <!-- Travel Configuration -->
           <!-- Circles pair themselves: the controls appear only when pairing cannot guess -->
           <RoomTravelConfig v-if="isTravelRoom && travel.controls" :circle-hint="travel.circle" :floors="floors"
-            :target-level="roomData?.content?.targetLevel || store.currentLevelId"
+            :target-level="roomData?.content?.targetLevel || (automaticFloor ? '' : store.currentLevelId)"
+            :automatic-floor="automaticFloor"
             :target-x="roomData?.content?.targetCoords?.x ?? 0" :target-y="roomData?.content?.targetCoords?.y ?? 0"
             @update:target-level="setTargetLevel" @update:target-x="(val) => setTargetCoord('x', val)"
             @update:target-y="(val) => setTargetCoord('y', val)" />
@@ -206,6 +207,14 @@ export default defineComponent({
       };
     });
 
+    // Stairs with no target climb to the neighbouring floor in play: say so, rather than showing the room's own floor
+    const automaticFloor = computed(() => {
+      const type = String(editor.roomData.value?.type ?? '');
+      if (/^stairs[-_]up$/.test(type)) return 'Next floor (automatic)';
+      if (/^stairs[-_]down$/.test(type)) return 'Previous floor (automatic)';
+      return '';
+    });
+
     // Room Navigation Hook
     const navigation = useTempleRoomNavigation({
       templeId: props.templeId,
@@ -277,6 +286,7 @@ export default defineComponent({
       isLootRoom: editor.isLootRoom,
       isTravelRoom: editor.isTravelRoom,
       travel,
+      automaticFloor,
       isShopRoom: editor.isShopRoom,
       isEggRoom: editor.isEggRoom, // NEW
       isQuestRoom: editor.isQuestRoom,

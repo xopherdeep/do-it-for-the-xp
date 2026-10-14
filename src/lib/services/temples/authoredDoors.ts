@@ -32,8 +32,9 @@ export const isBossRoom = (room: { type?: string } | null | undefined): boolean 
 /**
  * The room as the engine plays its doors: a side drawn 'locked' is a small lock on that side, a side drawn
  * 'masterlocked' carries the Boss Lock flag (`locked.master`, which the boss door rule does not need but the
- * generator's contract keeps). Doors the room already carries in `locked` stay. A room drawn without sides, or
- * with plain doors only, is returned as it is.
+ * generator's contract keeps). The sides are the truth: a `locked` flag the room still carries on a side drawn
+ * any other way (the Game Master opened that door in the editor) is not played. A room drawn without sides is
+ * returned as it is, and so is one whose `locked` already agrees with its sides.
  */
 export const lockedFromSides = <R extends DoorRoom>(room: R): R => {
   const sides = room?.sides;
@@ -42,8 +43,10 @@ export const lockedFromSides = <R extends DoorRoom>(room: R): R => {
   const locked: Record<string, boolean | undefined> = { ...room.locked };
   let changed = false;
   for (const side of SIDES) {
-    if (sides[side] === 'locked') {
-      locked[side] = true;
+    const isDrawnLocked = sides[side] === 'locked';
+    if (Boolean(locked[side]) !== isDrawnLocked) {
+      if (isDrawnLocked) locked[side] = true;
+      else delete locked[side];
       changed = true;
     }
     if (sides[side] === 'masterlocked') {

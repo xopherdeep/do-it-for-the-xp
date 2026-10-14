@@ -10,12 +10,12 @@
  *   steps into, not `locked.master`, which the generator keeps as a note); walking out is not barred;
  * - a room hands out keys only as play does (roomGrants): loot rooms with a Dungeon Item chest, their "key" rows, and
  *   Key rooms; a key written into a mini-boss room's chest is never handed out;
- * - stairs up lead to the next floor in the layout's order, stairs down to the previous one, landing on the
- *   requested coordinates, else the first matching stairs on that floor, else the same cell (R8 wants pairs at
- *   the same row and column);
+ * - stairs up lead to the next floor up in the climbing order (floorOrder: B1, 1F, 2F), stairs down to the next one
+ *   down, landing on the requested coordinates, else the first matching stairs on that floor, else the same cell
+ *   (R8 wants pairs at the same row and column);
  * - a teleport leads where `teleportTargetFor` sends the hero: the author's target, else the next circle on its
  *   floor (wrapping), else the temple's next circle; a circle with none leads nowhere (R8);
- * - a pit drops the hero to the previous floor (same cell, else that floor's first stairs up) when there is one,
+ * - a pit drops the hero to the floor below (same cell, else that floor's first stairs up) when there is one,
  *   and is an ordinary room otherwise.
  *
  * A `rooms` entry is shared by every cell that uses its token (the authored temples do this), so a lock on a
@@ -23,6 +23,7 @@
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
+import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
 import { isBossRoom } from "@/lib/services/temples/authoredDoors";
 import { grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
@@ -91,6 +92,7 @@ export interface GraphIssue {
 }
 
 export interface TempleGraph {
+  /** The floors in the order the maze map holds them (the entrance's floor index counts in it), not the climbing order */
   floors: string[];
   grids: Record<string, string[][]>;
   rooms: Map<string, GraphRoom>;
@@ -221,14 +223,13 @@ const stairsLanding = (graph: TempleGraph, stairs: GraphRoom, target: string, wa
   return requested ?? firstOfKind(graph, target, wantedKind) ?? graph.rooms.get(roomKey({ floor: target, row: stairs.ref.row, col: stairs.ref.col }));
 };
 
-/** Stairs: up goes to the next floor of the layout, down to the previous one. R8 wants the twin on the same cell. */
+/** Stairs: up goes to the next floor up in the climbing order (basements below 1F), down to the one below. R8 wants the twin on the same cell. */
 const linkStairs = (graph: TempleGraph): void => {
   for (const stairs of graph.rooms.values()) {
     const isNotStaircase = stairs.kind !== "stairs-up" && stairs.kind !== "stairs-down";
     if (isNotStaircase) continue;
     const up = stairs.kind === "stairs-up";
-    const index = graph.floors.indexOf(stairs.ref.floor);
-    const target = (stairs.room.content?.targetLevel as string | undefined) ?? graph.floors[index + (up ? 1 : -1)];
+    const target = (stairs.room.content?.targetLevel as string | undefined) ?? neighbourFloorOf(graph.floors, stairs.ref.floor, up ? 1 : -1);
     const twinKind = up ? "stairs-down" : "stairs-up";
     const isDeadEndStairs = !target || !graph.floors.includes(target) || target === stairs.ref.floor;
     if (isDeadEndStairs) {
@@ -267,7 +268,7 @@ const linkTeleports = (graph: TempleGraph, layout: TempleLayout): void => {
 const linkPits = (graph: TempleGraph): void => {
   for (const pit of graph.rooms.values()) {
     if (pit.kind !== "pit") continue;
-    const below = graph.floors[graph.floors.indexOf(pit.ref.floor) - 1];
+    const below = neighbourFloorOf(graph.floors, pit.ref.floor, -1);
     if (!below) continue;
     const sameCell = graph.rooms.get(roomKey({ floor: below, row: pit.ref.row, col: pit.ref.col }));
     if (!sameCell) graph.issues.push({ rule: "R8", text: `${describeRoom(pit)} drops onto a wall at ${below} (${pit.ref.row},${pit.ref.col})` });

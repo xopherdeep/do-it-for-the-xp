@@ -4,30 +4,19 @@
  * A temple maze is either one grid (a single-floor temple, always "1F") or a map of floor name to grid.
  */
 import { ____ } from "@/lib/engine/dungeons/roomTypes";
+import { climbOrder, floorHeight } from "@/lib/engine/core/dungeons/floorOrder";
 
 export type MazeData = string[][] | Record<string, string[][]>;
 
 /** "2F" is above "1F" and "B1" is below it; any other name sits at ground level */
-export const getFloorValue = (f: string): number => {
-  if (f.endsWith("F")) return parseInt(f);
-  if (f.startsWith("B")) return -parseInt(f.replace("B", ""));
-  return 0;
-};
+export const getFloorValue = floorHeight;
 
 /** The floor names as the maze holds them: a single grid is the one floor "1F" */
 export const floorKeysOf = (maze: MazeData): string[] =>
   Array.isArray(maze) ? ["1F"] : Object.keys(maze);
 
-/** Every floor, lowest (deepest basement) first */
-export const sortedFloorKeys = (maze: MazeData): string[] => {
-  let keys: string[] = [];
-  if (Array.isArray(maze)) {
-    keys = ["1F"];
-  } else {
-    keys = Object.keys(maze);
-  }
-  return keys.sort((a, b) => getFloorValue(a) - getFloorValue(b));
-};
+/** Every floor, lowest (deepest basement) first: the order play, the audit and the solver climb stairs in too */
+export const sortedFloorKeys = (maze: MazeData): string[] => climbOrder(floorKeysOf(maze));
 
 export const floorsAbove = (floors: string[], currentLevelId: string): string[] => {
   const currentVal = getFloorValue(currentLevelId);

@@ -453,16 +453,45 @@ describe("bossDoorSides and lockedFromSides", () => {
     expect(result.H.sides?.east).toBe("masterlocked");
   });
 
-  it("plays locks from sides and keeps what `locked` already says", () => {
+  it("plays locks from the sides a room is drawn with", () => {
     const played = (room: DoorRoom): DoorRoom => lockedFromSides(room);
 
     expect(played({ type: "empty" })).toEqual({ type: "empty" });
     expect(played({ type: "empty", sides: { east: "door" } }).locked).toBeUndefined();
-    expect(played({ type: "empty", sides: { east: "locked", north: "masterlocked" }, locked: { west: true } }).locked).toEqual({
-      west: true,
+    expect(played({ type: "empty", sides: { east: "locked", north: "masterlocked" } }).locked).toEqual({
       east: true,
       master: true,
     });
+  });
+
+  it("returns a room whose `locked` already agrees with its sides as it is", () => {
+    const agreeing: DoorRoom = { type: "empty", sides: { north: "locked", east: "door" }, locked: { north: true } };
+
+    expect(lockedFromSides(agreeing)).toBe(agreeing);
+  });
+
+  it("trusts the sides over a `locked` flag left on a side drawn open (a door opened in the editor stays open in play)", () => {
+    // The wind temple's m0504 after the Game Master opens its north door
+    const opened: DoorRoom = { type: "miniboss", sides: { north: "door", east: "door", south: "door", west: "door" }, locked: { north: true } };
+
+    expect(lockedFromSides(opened).locked?.north).toBeFalsy();
+    expect(opened.locked).toEqual({ north: true }); // the stored room is not written into
+  });
+
+  it("keeps a lock the sides draw and drops one they draw as a wall or a bombable side", () => {
+    const room: DoorRoom = {
+      type: "empty",
+      sides: { north: "locked", east: "wall", south: "bombable", west: "door" },
+      locked: { north: true, east: true, south: true, west: true },
+    };
+
+    expect(lockedFromSides(room).locked).toEqual({ north: true });
+  });
+
+  it("leaves a room drawn without sides to its `locked` flags", () => {
+    const flagged: DoorRoom = { type: "empty", locked: { west: true } };
+
+    expect(lockedFromSides(flagged)).toBe(flagged);
   });
 });
 
@@ -540,7 +569,9 @@ describe("the phone's wind temple layout (task #926)", () => {
     const beyondRoom = dungeons.getRoom(id, beyondPos, "1F");
 
     expect(heroRoom?.type).toBe("miniboss");
-    expect(heroRoom?.locked).toEqual({ north: true, master: true });
+    // The sides are the truth: the Boss Lock side plays as the Boss Lock flag; the small `locked.north` the layout also
+    // carries is not played (the boss room makes the door the Boss door whatever the flags say)
+    expect(heroRoom?.locked).toEqual({ master: true });
     expect(beyondRoom?.type).toBe("boss");
     expect(beyondRoom?.locked).toEqual({ master: true });
 

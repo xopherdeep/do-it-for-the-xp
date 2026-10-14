@@ -176,6 +176,46 @@ describe("TempleSolver", () => {
     expect(solveTemple(pit).reasons).toEqual(["R8: 2F (0,3) pit drops onto a wall at 1F (0,3)"]);
   });
 
+  describe("R8 Floors follow the climbing order, not the order the maze map holds them (#1380)", () => {
+    // The map's keys are 1F, 2F, B1 (the basement was drawn last), so B1 lies below 1F. The entrance's floor index
+    // still counts in the map's own order: 0 is 1F.
+    const rooms: Record<string, Room> = { ...ROOMS, U001: { type: "stairs-up" }, D001: { type: "stairs-down" }, V001: { type: "pit" } };
+    const basementLast = (changes: { second?: string[][]; ground?: string[][] } = {}): TempleLayout => ({
+      entrance: [0, 1, 0],
+      maze: {
+        "1F": changes.ground ?? [[_, "K001", _, "U001"], ["E001", "R001", "R002", "D001"], [_, _, _, _]],
+        "2F": changes.second ?? [[_, _, _, "D001"]],
+        B1: [[_, _, "MK01", _], ["B001", "R004", "b001", "U001"], ["P001", _, _, _]],
+      },
+      rooms,
+    });
+
+    it("pairs stairs down from 1F with the stairs up in the basement, and stairs up with 2F", () => {
+      const sound = basementLast();
+
+      expect(solveTemple(sound).reasons).toEqual([]);
+      expect(buildTempleGraph(sound).floors).toEqual(["1F", "2F", "B1"]);
+    });
+
+    it("finds the missing twin on 2F for stairs up from 1F, not on the basement", () => {
+      const twinless = basementLast({ second: [[_, _, _, _]] });
+
+      expect(reasonsUnder("R8", twinless)).toEqual(["R8: 1F (0,3) stairs-up has no stairs-down at 2F (0,3)"]);
+    });
+
+    it("sends stairs up on the top floor nowhere, not down into the basement", () => {
+      const roof = basementLast({ second: [[_, _, "U001", "D001"]] });
+
+      expect(reasonsUnder("R8", roof)).toEqual(["R8: 2F (0,2) stairs-up leads to no floor"]);
+    });
+
+    it("drops a pit on 1F into the basement", () => {
+      const pit = basementLast({ ground: [[_, "K001", _, "U001"], ["E001", "R001", "R002", "D001"], [_, "V001", _, _]] });
+
+      expect(reasonsUnder("R8", pit)).toEqual(["R8: 1F (2,1) pit drops onto a wall at B1 (2,1)"]);
+    });
+  });
+
   describe("R8 Teleports go where the engine sends them (teleportTargetFor)", () => {
     const circle = (id: string, content?: Room["content"]): Record<string, Room> => ({ [id]: { type: "teleport", ...(content ? { content } : {}) } });
     const T = { ...circle("T1"), ...circle("T2"), ...circle("T3") };

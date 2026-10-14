@@ -6,8 +6,9 @@
     <div class="target-floor-select mt-10">
       <div class="low-label">Target Floor</div>
       <ion-select 
-        :modelValue="targetLevel"
-        @ionChange="$emit('update:targetLevel', $event.detail.value)"
+        :modelValue="targetLevel || undefined"
+        :placeholder="automaticFloor"
+        @ionChange="$event.detail.value && $emit('update:targetLevel', $event.detail.value)"
         interface="popover"
         class="glass-select"
       >
@@ -62,9 +63,15 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => ['1F']
     },
+    /** The floor picked; empty when none is (stairs then go to the neighbouring floor and show `automaticFloor`) */
     targetLevel: {
       type: String,
       default: '1F'
+    },
+    /** What an unpicked stairs target reads, e.g. "Next floor (automatic)" */
+    automaticFloor: {
+      type: String,
+      default: ''
     },
     targetX: {
       type: Number,

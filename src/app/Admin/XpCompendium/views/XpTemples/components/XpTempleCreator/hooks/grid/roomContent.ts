@@ -60,8 +60,8 @@ const autoSelectChestType = (currentRoom: Room): void => {
 
 /**
  * Brings a stored room up to what the editor expects, in place: legacy top-level fields move into `content`,
- * `content.beasts` exists, the old `locked` flags become `sides`, `sides` exists, and a loot room's chest type
- * follows what it holds.
+ * `content.beasts` exists, the old `locked` flags become `sides` (and a room that has sides sheds them), `sides`
+ * exists, and a loot room's chest type follows what it holds.
  */
 export const prepareRoomForEditing = (currentRoom: Room): void => {
   const content = ensureContent(currentRoom);
@@ -75,6 +75,10 @@ export const prepareRoomForEditing = (currentRoom: Room): void => {
     currentRoom.sides = legacyLockedToSides(currentRoom.locked);
     delete currentRoom.locked;
   }
+
+  // With sides, the sides are the truth (play locks doors from them, see lockedFromSides): a `locked` flag kept
+  // beside them would keep a door the Game Master opens here locked in play
+  if (currentRoom.sides) delete currentRoom.locked;
 
   if (!currentRoom.sides) {
     currentRoom.sides = defaultSides();

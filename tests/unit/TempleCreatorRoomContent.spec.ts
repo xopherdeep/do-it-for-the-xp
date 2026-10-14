@@ -89,11 +89,19 @@ describe("prepareRoomForEditing", () => {
     expect(room.locked).toBeUndefined();
   });
 
-  it("leaves the locked flags alone when the room already has sides", () => {
-    const room: Room = { type: "monster", sides: doors(), locked: { north: true } };
+  it("trusts the sides over the locked flags when a room has both, and removes the flags", () => {
+    // The wind temple's m0504: a small lock on the north side, written twice
+    const room: Room = { type: "miniboss", sides: { ...doors(), north: "locked" }, locked: { north: true } };
+    prepareRoomForEditing(room);
+    expect(room.sides).toEqual({ ...doors(), north: "locked" });
+    expect(room.locked).toBeUndefined();
+  });
+
+  it("does not bring a door the Game Master opened back: sides that say door beat a stale locked flag", () => {
+    const room: Room = { type: "miniboss", sides: doors(), locked: { north: true, east: true } };
     prepareRoomForEditing(room);
     expect(room.sides).toEqual(doors());
-    expect(room.locked).toEqual({ north: true });
+    expect(room.locked).toBeUndefined();
   });
 
   describe("a loot room's chest type", () => {
