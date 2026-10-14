@@ -1,7 +1,7 @@
 import { song, tune } from "./audioSources";
 
 export const earthboundBGM = {
-  intro: [song("cinematic-story-intro", "intro")],
+  intro: [song("sacred-sigil-instrumental", "intro")],
   introOnline: [
     "https://starmen.net/mother2/music/018-%20Earthbound%20-%20Buzz%20Buzz_s%20Prophecy.mp3",
   ],
