@@ -104,20 +104,19 @@
     </div>
 
     <!-- Run confirmation layout -->
-    <div v-else class="radial-cluster cluster-confirm" :class="{ 'is-open': isOpen, 'has-bribe': Boolean(bribeFullAction) }">
-      <!-- TOP: Full Bribe -->
-      <div class="radial-slot slot-top" v-if="bribeFullAction">
+    <div v-else class="radial-cluster cluster-confirm" :class="{ 'is-open': isOpen }">
+      <!-- TOP: Run -->
+      <div class="radial-slot slot-top" v-if="confirmRunAction">
         <ion-button
           shape="round"
-          color="warning"
-          class="battle-pill pill-bribe-full"
-          id="bribe-full"
-          data-cy="action-bribe-full"
+          color="danger"
+          class="battle-pill pill-run-confirm"
+          data-cy="action-confirm-run"
           :disabled="disabled"
-          @click="onActionClick(bribeFullAction)"
+          @click="onActionClick(confirmRunAction)"
         >
-          <xp-icon icon="coins" size="lg" class="pill-icon" />
-          <ion-label class="pill-label">{{ bribeFullAction.label }}</ion-label>
+          <ion-label class="pill-label">{{ confirmRunAction.label }}</ion-label>
+          <xp-icon :icon="confirmRunAction.faIcon || 'running'" size="lg" class="pill-icon pill-icon--end" />
         </ion-button>
       </div>
 
@@ -148,7 +147,22 @@
         </ion-fab-button>
       </div>
 
+      <!-- RIGHT: Bribes -->
       <div class="radial-slot slot-right">
+        <ion-button
+          v-if="bribeFullAction"
+          shape="round"
+          color="warning"
+          class="battle-pill pill-bribe-full"
+          id="bribe-full"
+          data-cy="action-bribe-full"
+          :disabled="disabled"
+          @click="onActionClick(bribeFullAction)"
+        >
+          <xp-icon icon="coins" size="lg" class="pill-icon" />
+          <ion-label class="pill-label">{{ bribeFullAction.label }}</ion-label>
+        </ion-button>
+
         <ion-button
           v-if="bribeLowAction"
           shape="round"
@@ -162,21 +176,9 @@
           <xp-icon icon="badge-percent" size="lg" class="pill-icon" />
           <ion-label class="pill-label">{{ bribeLowAction.label }}</ion-label>
         </ion-button>
-
-        <ion-button
-          v-if="confirmRunAction"
-          shape="round"
-          color="danger"
-          class="battle-pill pill-run-confirm"
-          data-cy="action-confirm-run"
-          :disabled="disabled"
-          @click="onActionClick(confirmRunAction)"
-        >
-          <ion-label class="pill-label">{{ confirmRunAction.label }}</ion-label>
-          <xp-icon :icon="confirmRunAction.faIcon || 'running'" size="lg" class="pill-icon pill-icon--end" />
-        </ion-button>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -325,11 +327,7 @@ const onCenterTap = () => {
 
 .cluster-confirm {
   justify-content: center;
-  padding-top: 14px;
-
-  &.has-bribe {
-    padding-top: 38px;
-  }
+  padding-top: 38px;
 
   .slot-left {
     flex: 0 1 auto;

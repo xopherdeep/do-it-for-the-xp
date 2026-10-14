@@ -1,17 +1,35 @@
-.xp-pro-return {
-  ion-content {
-    --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-  }
+@use "@/styles/themes/earthbound.scss" as *;
 
+.xp-pro-return {
   .return-box {
+    @include eb-box();
     max-width: 420px;
     margin: 20vh auto 0;
-    padding: 24px 16px;
+    padding: 28px 20px;
     text-align: center;
-    color: #fff;
+    font-family: $eb-font-primary;
+    color: var(--ion-color-rpg, $eb-color-cream);
   }
 
   .return-text {
+    font-size: 1.45rem;
+    line-height: 1.4;
     margin: 0 0 16px;
+  }
+
+  ion-spinner {
+    --color: #{$eb-color-pale-yellow};
+  }
+
+  ion-button {
+    --background: #{$eb-color-slate};
+    --color: #{$eb-color-pale-yellow};
+    --border-color: #{$eb-color-minty-blue};
+    --border-style: solid;
+    --border-width: 2px;
+    --border-radius: 4px;
+    font-family: $eb-font-primary;
+    font-size: 1.25rem;
+    margin-top: 8px;
   }
 }
