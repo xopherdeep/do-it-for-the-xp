@@ -45,7 +45,7 @@ import shopsDb, {
   customIcon,
   customWorld,
 } from "@/lib/databases/ShopsDb";
-import { isShopOpen, opensAtLabel } from "@/lib/services/shops/shopHours";
+import { hoursSummary, isShopOpen, opensAtLabel } from "@/lib/services/shops/shopHours";
 import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
 import {
   buyItem as purchaseItem,
@@ -487,6 +487,7 @@ export default defineComponent({
     onBeforeUnmount(() => clearInterval(clockTimer));
     const isOpen = computed(() => isShopOpen(shopRecord.value?.hours, now.value));
     const opensAt = computed(() => opensAtLabel(shopRecord.value?.hours, now.value));
+    const hoursLine = computed(() => hoursSummary(shopRecord.value?.hours));
 
     // What the Game Master stocked in this shop (Compendium > Accessories > Shops).
     // Only the newest load may write the shelf, so a slow earlier read can't overwrite a fresh one.
@@ -567,6 +568,7 @@ export default defineComponent({
       shopRecord,
       isOpen,
       opensAt,
+      hoursLine,
       gold,
       charismaDiscount,
       shelf,
