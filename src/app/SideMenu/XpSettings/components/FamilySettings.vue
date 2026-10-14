@@ -55,10 +55,10 @@
       <xp-family-phones v-if="canManage" />
 
       <ion-card v-if="canManage" class="max-w-2xl family-items">
-        <ion-card-header>
-          <ion-card-title>Item rules</ion-card-title>
-        </ion-card-header>
         <ion-list>
+          <ion-item-divider>
+            <ion-label>Item rules</ion-label>
+          </ion-item-divider>
           <ion-item>
             <ion-label>
               <h2>Trusted Hour</h2>
