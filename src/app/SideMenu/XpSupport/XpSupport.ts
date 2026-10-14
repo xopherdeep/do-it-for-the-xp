@@ -39,33 +39,27 @@ export default defineComponent({
   data() {
     const tiles: Array<{ src: string; title: string; desc: string; icon: string; version?: string }> = [
       {
-        src: '/support/faq',
-        title: 'F.A.Q.s',
-        desc: 'Answers to some of the frequently asked questions.',
-        icon: 'fa-question'
-      },
-      {
-        src: '/support/help-videos',
-        title: 'Help Videos',
-        desc: 'A good collection of video tutorials.',
-        icon: 'fa-video'
-      },
-      {
         src: '/support/user-manual',
         title: 'User Manual',
-        desc: 'A quick guide on how to use the app.',
+        desc: 'How quests, battles, powers and shops work.',
         icon: 'fa-book'
       },
       {
+        src: '/support/faq',
+        title: 'F.A.Q.',
+        desc: 'Quick answers for Game Masters and heroes.',
+        icon: 'fa-question'
+      },
+      {
         src: '/support/feature-request',
-        title: 'Feature Request',
-        desc: 'Your opinions matter! Vote or leave a comment.',
+        title: 'Feature Requests',
+        desc: 'Ask for what you want next on the Town Hall board.',
         icon: 'fa-tasks'
       },
       {
         src: '/support/contact',
-        title: 'Ask the developers',
-        desc: 'Ask a question or post a suggestion. We listen to our parents!',
+        title: 'Ask the Developers',
+        desc: 'Questions, bugs and feedback.',
         icon: 'fa-comments',
         version: packageInfo.version
       }
@@ -123,8 +117,8 @@ export default defineComponent({
       this.tiles.push({
         src: '/support/dev-tools',
         title: 'Developer Tools',
-        desc: 'Access developer tools and demos for testing.',
-        icon: 'fa-construction'
+        desc: 'Developer tools and demos for testing.',
+        icon: 'fa-tools'
       });
     }
   },
@@ -170,7 +164,7 @@ export default defineComponent({
                 this.tiles = [...this.tiles, {
                   src: '/support/dev-tools',
                   title: 'Developer Tools',
-                  desc: 'Access developer tools and demos for testing.',
+                  desc: 'Developer tools and demos for testing.',
                   icon: 'fa-tools'
                 }];
               } else {

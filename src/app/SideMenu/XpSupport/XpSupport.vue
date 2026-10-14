@@ -17,13 +17,13 @@
           </ion-button>
         </ion-buttons>
         <ion-title>
-          Support
+          Help Desk
         </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
       :fullscreen="true"
-      class="bg-slide ion-padding"
+      class="rpg-box bg-slide ion-padding"
     >
       <ion-grid class="max-w-5xl">
         <ion-row>
@@ -34,6 +34,7 @@
             :key="tile.title"
           >
             <ion-card
+              button
               @click="navigateTo(tile.src)"
               class="support-card"
             >
