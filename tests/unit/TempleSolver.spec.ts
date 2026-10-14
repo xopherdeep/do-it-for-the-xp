@@ -267,6 +267,51 @@ describe("TempleSolver", () => {
     expect(locked).toEqual(["1F:1,1>1F:1,2", "1F:3,0>1F:3,1"]);
   });
 
+  describe("walls and bombable sides are walls to the solver (a temple must be finishable without Bombs)", () => {
+    const doorIds = (layout: TempleLayout): string[] => buildTempleGraph(layout).doors.map((door) => door.id);
+
+    it("joins no two rooms across a wall side or a bombable side, either way", () => {
+      for (const barrier of ["wall", "bombable"] as const) {
+        const ids = doorIds(fixture({}, { R002: { type: "empty", barriers: { east: barrier } } }));
+
+        expect(ids).not.toContain("1F:1,2>1F:1,3");
+        expect(ids).not.toContain("1F:1,3>1F:1,2"); // a wall is a wall from the other room too
+        expect(ids).toContain("1F:1,1>1F:1,2"); // the sides it does not bar stay doors
+      }
+    });
+
+    it("reads the barrier from the room beyond as well: the engine does, so a wall drawn on one end bars both", () => {
+      const ids = doorIds(fixture({}, { b001: { type: "miniboss", content: { lockOnEnter: true }, barriers: { west: "bombable" } } }));
+
+      expect(ids).not.toContain("1F:1,2>1F:1,3");
+      expect(ids).not.toContain("1F:1,3>1F:1,2");
+    });
+
+    it("finds a temple whose only way on is a cracked wall unsolvable: no Bomb is counted on", () => {
+      for (const barrier of ["wall", "bombable"] as const) {
+        const result = solveTemple(fixture({}, { R002: { type: "empty", barriers: { east: barrier } } }));
+
+        expect(result.solvable).toBe(false);
+      }
+    });
+
+    it("leaves a cracked wall between two rooms the hero reaches another way as a shortcut that changes nothing", () => {
+      const rooms: Record<string, Room> = { X1: { type: "empty", barriers: { east: "bombable" } }, X2: { type: "empty" } };
+      const layout = fixture({ "2,1": "X1", "2,2": "X2" }, rooms);
+
+      expect(doorIds(layout)).not.toContain("1F:2,1>1F:2,2");
+      const result = solveTemple(layout);
+      expect(result.reasons).toEqual([]);
+      expect(result.solvable).toBe(true);
+    });
+
+    it("plays the editor's sides: a wall or a bombable side drawn in the creator is a barrier when registered", () => {
+      const drawn: Record<string, Room> = { R002: lockedFromSides({ type: "empty", sides: { north: "door", east: "bombable", south: "door", west: "door" } }) };
+
+      expect(doorIds(fixture({}, drawn))).not.toContain("1F:1,2>1F:1,3");
+    });
+  });
+
   it("a 2-part entrance is on the first floor of the layout's order, as the engine starts the hero, even when a floor is named 1F", () => {
     const rooms: Record<string, Room> = { ...ROOMS };
     const maze = { B1: [["E001", "R001"]], "1F": [["R001", "E001"]] };

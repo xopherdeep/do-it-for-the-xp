@@ -3,7 +3,8 @@
  *
  * This is the shape the solver and the generator share (docs/Temple-Generation-Contract.md). It follows the
  * engine's rules of movement, not an idealised version of them:
- * - two orthogonally adjacent non-wall cells on a floor are joined by a door;
+ * - two orthogonally adjacent non-wall cells on a floor are joined by a door, unless a room draws a wall or a cracked wall
+ *   (`room.barriers`, either end) on the side between them: that side is no door at all;
  * - `room.locked[direction]` locks the door in that direction only (the engine checks the room the hero stands
  *   in), so a door is a directed edge and a key opens one direction;
  * - every door into a boss room is the boss door and needs the master key (the engine's `doorKind` reads the room it
@@ -24,7 +25,7 @@
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
 import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
-import { isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { barrierBetween, isBossRoom } from "@/lib/services/temples/authoredDoors";
 import { grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
@@ -204,13 +205,18 @@ const lockBetween = (from: GraphRoom, to: GraphRoom, direction: Direction): Lock
   return from.room.locked?.[direction] ? "small" : "none";
 };
 
-/** Walking doors: each room to each standable neighbour, one directed door per way. */
+/**
+ * Walking doors: each room to each standable neighbour, one directed door per way. A side drawn as a wall is no door,
+ * and neither is a side drawn bombable: a temple must be finishable without Bombs, so a cracked wall is a wall here
+ * (a shortcut or a secret in play, never a way the solver counts on). The engine's doorKind asks the same barrierBetween.
+ */
 const linkNeighbours = (graph: TempleGraph): void => {
   for (const from of graph.rooms.values()) {
     for (const direction of DIRECTIONS) {
       const [dr, dc] = STEP[direction];
       const to = graph.rooms.get(roomKey({ floor: from.ref.floor, row: from.ref.row + dr, col: from.ref.col + dc }));
       if (!to) continue;
+      if (barrierBetween(from.room, to.room, direction)) continue;
       addDoor(graph, { from: from.key, to: to.key, kind: "door", lock: lockBetween(from, to, direction), direction });
     }
   }

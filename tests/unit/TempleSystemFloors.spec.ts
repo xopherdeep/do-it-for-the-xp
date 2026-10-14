@@ -3,7 +3,7 @@
  * what they return today, so the split keeps it. Where the hero may stand: a wall and a void are not floor
  * (the solver agrees: templeGraph IMPASSABLE), a pit is (it drops the hero).
  */
-import { canStandAt, floorsOf, isImpassable } from "@/lib/engine/core/dungeons/templeSystem/floors";
+import { canEnter, canStandAt, floorsOf, isImpassable } from "@/lib/engine/core/dungeons/templeSystem/floors";
 import type { TempleRuns } from "@/lib/engine/core/dungeons/templeSystem/runState";
 import type { Dungeon } from "@/lib/engine/core/dungeons/types";
 import { defineComponent } from "vue";
@@ -76,6 +76,18 @@ describe("isImpassable", () => {
   });
 });
 
+describe("canEnter", () => {
+  it("is true for a room a hero can step into: a floor, a pit included", () => {
+    for (const type of ["empty", "entrance", "pit", "monster", "boss", "stairs-up"]) expect(canEnter({ type })).toBe(true);
+  });
+
+  it("is false for a wall, a void, and for a token that has no room record at all", () => {
+    expect(canEnter({ type: "wall" })).toBe(false);
+    expect(canEnter({ type: "void" })).toBe(false);
+    expect(canEnter(undefined)).toBe(false);
+  });
+});
+
 describe("where the hero can stand", () => {
   // Entrance, a void record, floor, a pit, floor, a wall: the shape a Temple Creator void moat has
   const moat = () =>
@@ -105,6 +117,16 @@ describe("where the hero can stand", () => {
 
     expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 0]);
     expect(temples.hasVisited(id, [0, 1])).toBe(false);
+  });
+
+  it("a step into a cell whose token has no room record is refused, and the hero stays put", () => {
+    const id = makeTemple({ E: { type: "entrance" } }, [["E", "R9999"]]);
+    enter(id, [0, 0]);
+
+    expect(temples.moveToPosition(id, [0, 1], "east")).toBe(false);
+
+    expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 0]);
+    expect(canStandAt({ dungeonManager: dungeons } as unknown as TempleRuns, id, "1F", [0, 1])).toBe(false);
   });
 
   it("stairs, a fall or a teleport cannot land on a void either, but can land on a pit", () => {
@@ -149,6 +171,69 @@ describe("the arrows of the temple screen", () => {
     const onFloor = moatScreen([0, 2]);
     expect(onFloor.vm.canMoveLeft).toBe(false);
     onFloor.unmount();
+  });
+
+  it("stay dark over a token that has no room record, where the engine refuses the step", () => {
+    const gap = (at: [number, number]) => {
+      const id = makeTemple({ E: { type: "entrance" }, G: { type: "empty" } }, [["R9999", "E", "G", "R9999"]]);
+      enter(id, at);
+      return screen(id, at);
+    };
+
+    const atEntrance = gap([0, 1]);
+    expect(atEntrance.vm.canMoveLeft).toBe(false);
+    expect(atEntrance.vm.canMoveRight).toBe(true);
+    expect(atEntrance.vm.move("west")).toBe(false);
+    atEntrance.unmount();
+
+    const onFloor = gap([0, 2]);
+    expect(onFloor.vm.canMoveRight).toBe(false);
+    onFloor.unmount();
+  });
+
+  describe("at a wall side or a cracked wall", () => {
+    /** Entrance and floor in a row; the entrance draws its east side as `barrier` */
+    const barred = (barrier: "wall" | "bombable", at: [number, number] = [0, 0]) => {
+      const id = makeTemple({ E: { type: "entrance", barriers: { east: barrier } }, G: { type: "empty" } }, [["E", "G"]]);
+      enter(id, at);
+      return { id, ...screen(id, at) };
+    };
+
+    it("stay dark over a wall side, as over a wall", () => {
+      const { vm, unmount } = barred("wall");
+
+      expect(vm.canMoveRight).toBe(false);
+      unmount();
+    });
+
+    it("light over a cracked wall, and say it is cracked when tapped, without moving", () => {
+      const { id, vm, unmount } = barred("bombable");
+
+      expect(vm.canMoveRight).toBe(true);
+      expect(vm.move("east")).toBe(false);
+
+      expect(vm.currentMessage).toBe("The wall is cracked. Bombs might do it.");
+      expect(vm.showMessage).toBe(true);
+      expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 0]);
+      unmount();
+    });
+
+    it("light over the room where a cracked wall was blown open, and let the hero through", () => {
+      const { id, vm, unmount } = barred("bombable");
+
+      expect(temples.blowBombableSide(id, [0, 0], "east")).toBe(true);
+
+      expect(vm.canMoveRight).toBe(true);
+      expect(vm.move("east")).toBe(true);
+      unmount();
+    });
+
+    it("see the wall from the other room too", () => {
+      const beyond = barred("wall", [0, 1]);
+
+      expect(beyond.vm.canMoveLeft).toBe(false);
+      beyond.unmount();
+    });
   });
 
   it("light over a pit, and stay dark over a wall", () => {

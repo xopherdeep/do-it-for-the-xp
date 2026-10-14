@@ -100,6 +100,8 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
       const isSolidStone = !there || there.type === 'wall';
       if (isSolidStone) return 'wall';
       const door = templeSystem.doorKind(props.temple, [row, col], side);
+      // What the Game Master drew instead of a door: a wall, or a cracked wall a Bomb opens
+      if (door === 'wall' || door === 'bombable') return door;
       if (door === 'master') return 'master';
       // The way into the boss room is the Boss door or an open one: the boss room's fight seal is no small lock on it
       if (isBossRoom(there)) return door === 'locked' ? 'locked' : 'door';

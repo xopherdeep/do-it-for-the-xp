@@ -10,7 +10,7 @@ import { teleportTargetFor } from '../teleportPairing';
 import debug from '@/lib/utils/debug';
 import { getCurrentRoom, isRoomCleared, visitRoom } from './runState';
 import type { TempleRuns } from './runState';
-import { doorKind, sealRoom } from './doors';
+import { doorKind, isBarrierKind, sealRoom } from './doors';
 
 /** Floor names of a temple; a single grid is just "1F" */
 export function floorsOf(temple: Dungeon): string[] {
@@ -25,14 +25,21 @@ export function isImpassable(room: { type?: string } | undefined): boolean {
   return IMPASSABLE_TYPES.includes(room?.type ?? '');
 }
 
+/**
+ * Whether a hero could step into a room: there is a room (a maze token with no record in the rooms table is no room) and
+ * it is not a wall or a void. The one rule the engine's steps and the temple screen's arrows share.
+ */
+export function canEnter(room: { type?: string } | undefined): boolean {
+  return Boolean(room) && !isImpassable(room);
+}
+
 /** True when the hero could stand there: the temple has that floor and the room is not a wall or a void */
 export function canStandAt(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
   const temple = runs.dungeonManager.getDungeon(templeId);
   const hasNoSuchFloor = !temple || !floorsOf(temple).includes(level);
   if (hasNoSuchFloor) return false;
 
-  const room = runs.dungeonManager.getRoom(templeId, position, level);
-  return Boolean(room) && !isImpassable(room);
+  return canEnter(runs.dungeonManager.getRoom(templeId, position, level));
 }
 
 /**
@@ -93,15 +100,16 @@ export function moveToPosition(
   const currentRoom = getCurrentRoom(runs, templeId);
   if (!currentRoom) return false;
   
-  // Check if the door is locked in the direction of movement; the boss door counts as locked until it is opened
-  const isDoorBlocked = currentRoom.locked?.[direction] || doorKind(runs, templeId, templeState.currentPosition, direction) === 'master';
+  // Check if the door is locked in the direction of movement; the boss door counts as locked until it is opened, and a
+  // wall or a cracked wall (until a Bomb blows it open) is no way through at all
+  const kind = doorKind(runs, templeId, templeState.currentPosition, direction);
+  const isDoorBlocked = currentRoom.locked?.[direction] || kind === 'master' || isBarrierKind(kind);
   if (isDoorBlocked) {
     return false;
   }
   
-  // Check if the destination is a wall or a void
-  const destRoom = runs.dungeonManager.getRoom(templeId, newPosition, level);
-  const isNotARoom = !destRoom || isImpassable(destRoom);
+  // Check if the destination is a room at all, and not a wall or a void
+  const isNotARoom = !canEnter(runs.dungeonManager.getRoom(templeId, newPosition, level));
   if (isNotARoom) return false;
   
   arrive(runs, templeId, level, newPosition);

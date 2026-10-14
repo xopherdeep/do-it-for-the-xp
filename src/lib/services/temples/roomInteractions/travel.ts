@@ -4,7 +4,8 @@
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
-import { SEALED_DOOR_LINE } from '@/lib/engine/core/dungeons/templeSystem/doors';
+import type { DoorKind } from '@/lib/engine/core/dungeons/TempleSystem';
+import { CRACKED_WALL_LINE, SEALED_DOOR_LINE, SOLID_WALL_LINE } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { neighbourFloorOf } from '@/lib/engine/core/dungeons/floorOrder';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { roomKind, SFX } from './vocabulary';
@@ -19,11 +20,15 @@ const STEP: Record<Direction, [number, number]> = {
 
 export const temples = () => TempleSystem.getInstance();
 
-/** What lies in each direction of a room: the room there (if any), and whether this side has a small lock (the boss door has its own). */
+/**
+ * What lies in each direction of a room: the room there (if any), whether this side has a small lock (the boss door
+ * has its own), and what stands on the side (a wall and a cracked wall are no way through either).
+ */
 export interface Exit {
   position: [number, number];
   room?: Room;
   locked: boolean;
+  kind: DoorKind;
 }
 export type Exits = Record<Direction, Exit>;
 
@@ -31,15 +36,20 @@ export const readExits = (templeId: string, level: string, position: [number, nu
   const manager = DungeonManager.getInstance();
   const exit = (direction: Direction): Exit => {
     const next: [number, number] = [position[0] + STEP[direction][0], position[1] + STEP[direction][1]];
-    return { position: next, room: manager.getRoom(templeId, next, level), locked: temples().doorKind(templeId, position, direction, level) === 'locked' };
+    const kind = temples().doorKind(templeId, position, direction, level);
+    return { position: next, room: manager.getRoom(templeId, next, level), locked: kind === 'locked', kind };
   };
   return { north: exit('north'), east: exit('east'), south: exit('south'), west: exit('west') };
 };
 
+/** What the sheet of a beast-sealed side is headed, for the sides that are not a plain lock */
+const SEALED_HEADERS: Partial<Record<DoorKind, string>> = { master: 'The Boss Door', bombable: 'Cracked Wall' };
+
 /**
  * The sheet for a door the hero taps: a small lock asks for a key, the boss door asks for the Boss Key and
- * refuses everything else ("A big lock. This needs the Boss Key."), an open way has nothing to say. In a room a beast
- * has sealed every shut side says so and offers nothing.
+ * refuses everything else ("A big lock. This needs the Boss Key."), a wall and a cracked wall say what they are and offer
+ * nothing (a cracked wall waits for a Bomb), an open way has nothing to say. In a room a beast has sealed every shut
+ * side says so and offers nothing.
  */
 export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet => {
   const system = temples();
@@ -50,10 +60,14 @@ export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet =
 
   const kind = system.doorKind(ctx.templeId, ctx.position, direction, ctx.level);
   // The beast of a sealed room bars every shut side: no key is offered, whatever the lock
-  const isBarredByBeast = kind !== 'open' && system.isRoomBarred(ctx.templeId, ctx.level, ctx.position);
-  if (isBarredByBeast) return { header: kind === 'master' ? 'The Boss Door' : 'Locked Door', subHeader: SEALED_DOOR_LINE, actions: [] };
+  const isBarredByBeast = kind !== 'open' && kind !== 'wall' && system.isRoomBarred(ctx.templeId, ctx.level, ctx.position);
+  if (isBarredByBeast) return { header: SEALED_HEADERS[kind] ?? 'Locked Door', subHeader: SEALED_DOOR_LINE, actions: [] };
 
   switch (kind) {
+    case 'wall':
+      return { header: 'Solid Wall', subHeader: SOLID_WALL_LINE, actions: [] };
+    case 'bombable':
+      return { header: 'Cracked Wall', subHeader: CRACKED_WALL_LINE, actions: [] };
     case 'master':
       return system.hasMasterKey(ctx.templeId)
         ? { header: 'The Boss Door', subHeader: 'The Boss Key fits the big lock.', actions: [{ label: 'Open the door', run: () => open('The big lock falls away.') }] }

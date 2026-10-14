@@ -3,7 +3,9 @@
  * `sides: { north, east, south, west }` ('door', 'locked', 'masterlocked', 'bombable', 'wall'); the engine plays
  * `locked: { north, ... }`. Pure rules, shared by the editor and by registration:
  *
- * - `lockedFromSides`: what the engine plays from the sides the editor drew (registration uses it).
+ * - `lockedFromSides`: what the engine plays from the sides the editor drew (registration uses it): small locks as
+ *   `locked`, walls and cracked walls ('wall', 'bombable') as `barriers`.
+ * - `barrierBetween`: what bars the way between two rooms (the engine's doorKind and the solver's graph both ask it).
  * - `facingSide` / `effectiveSide`: any door into a boss room is the Boss door, so the editor shows that side as
  *   the Boss Lock ('masterlocked', the skull) from both ends, whatever the stored value is.
  * - `bossDoorSides`: the same rule written into the saved sides, so older temples come right when they are saved.
@@ -15,11 +17,21 @@ export const SIDES: readonly Side[] = ['north', 'east', 'south', 'west'];
 
 const STEP: Record<Side, readonly [number, number]> = { north: [-1, 0], east: [0, 1], south: [1, 0], west: [0, -1] };
 
+const OPPOSITE: Record<Side, Side> = { north: 'south', east: 'west', south: 'north', west: 'east' };
+
+/** A side that is no door: a wall no one passes, or a cracked wall only a Bomb opens */
+export type Barrier = 'wall' | 'bombable';
+
+export type Barriers = Partial<Record<Side, Barrier>>;
+
+const isBarrier = (drawn: string | undefined): drawn is Barrier => drawn === 'wall' || drawn === 'bombable';
+
 /** The part of a room these rules read; an engine room and the editor's room both fit */
 export interface DoorRoom {
   type?: string;
   sides?: Record<string, string>;
   locked?: Record<string, boolean | undefined>;
+  barriers?: Barriers;
   [key: string]: any;
 }
 
@@ -32,29 +44,54 @@ export const isBossRoom = (room: { type?: string } | null | undefined): boolean 
 /**
  * The room as the engine plays its doors: a side drawn 'locked' is a small lock on that side, a side drawn
  * 'masterlocked' carries the Boss Lock flag (`locked.master`, which the boss door rule does not need but the
- * generator's contract keeps). The sides are the truth: a `locked` flag the room still carries on a side drawn
- * any other way (the Game Master opened that door in the editor) is not played. A room drawn without sides is
- * returned as it is, and so is one whose `locked` already agrees with its sides.
+ * generator's contract keeps), a side drawn 'wall' or 'bombable' is a barrier on it (`barriers`: not a door, so no lock
+ * and no walking through; only a Bomb opens a cracked wall). The sides are the truth: a `locked` flag or a barrier the
+ * room still carries on a side drawn any other way (the Game Master opened that door in the editor) is not played. A
+ * room drawn without sides is returned as it is, and so is one whose `locked` and `barriers` already agree with its sides.
  */
 export const lockedFromSides = <R extends DoorRoom>(room: R): R => {
   const sides = room?.sides;
   if (!sides) return room;
 
   const locked: Record<string, boolean | undefined> = { ...room.locked };
-  let changed = false;
+  const barriers: Barriers = {};
+  let lockedChanged = false;
+  let barriersChanged = false;
   for (const side of SIDES) {
     const isDrawnLocked = sides[side] === 'locked';
     if (Boolean(locked[side]) !== isDrawnLocked) {
       if (isDrawnLocked) locked[side] = true;
       else delete locked[side];
-      changed = true;
+      lockedChanged = true;
     }
     if (sides[side] === 'masterlocked') {
       locked.master = true;
-      changed = true;
+      lockedChanged = true;
     }
+
+    const drawn = sides[side];
+    if (isBarrier(drawn)) barriers[side] = drawn;
+    if (room.barriers?.[side] !== barriers[side]) barriersChanged = true;
   }
-  return changed ? { ...room, locked } : room;
+  if (!lockedChanged && !barriersChanged) return room;
+
+  const played: DoorRoom = { ...room };
+  if (lockedChanged) played.locked = locked;
+  if (Object.keys(barriers).length) played.barriers = barriers;
+  else delete played.barriers;
+  return played as R;
+};
+
+/**
+ * What bars the way through `side` of `here` to `there`: a wall, a cracked wall, or nothing (a way a hero may try, locked
+ * or not). The editor draws one wall on both rooms, but a wall on either end is a wall, and it wins over a cracked wall
+ * on the other. The engine (doorKind) and the solver (templeGraph) both ask this, so they cannot disagree.
+ */
+export const barrierBetween = (here: DoorRoom | null | undefined, there: DoorRoom | null | undefined, side: Side): Barrier | undefined => {
+  const ends = [here?.barriers?.[side], there?.barriers?.[OPPOSITE[side]]];
+  if (ends.includes('wall')) return 'wall';
+  if (ends.includes('bombable')) return 'bombable';
+  return undefined;
 };
 
 /** The sides a Boss Lock may stand for: a plain door, a small lock, or the Boss Lock itself. A wall or a bombable side is not a door. */

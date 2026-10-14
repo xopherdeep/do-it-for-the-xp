@@ -13,6 +13,9 @@
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import type { DoorKind } from '@/lib/engine/core/dungeons/TempleSystem';
+import { isBarrierKind } from '@/lib/engine/core/dungeons/templeSystem/doors';
+import { canEnter } from '@/lib/engine/core/dungeons/templeSystem/floors';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
@@ -41,6 +44,8 @@ export interface ItemUseContext extends RoomContext {
   room: Room;
   /** What lies on each side of it (see readExits) */
   exits: Exits;
+  /** The side the hero tapped, when the tap named one: a Bomb tries it first */
+  side?: Direction;
   /** The live item definitions: the stored copy of an item has no `click` */
   catalog: EquipmentItem[];
 }
@@ -103,6 +108,9 @@ const spendMp = (ctx: ItemUseContext, cost: number): void => {
 
 // --- the items -------------------------------------------------------------------------------------
 
+/** A side the hero cannot go through now: a small lock, a wall or a cracked wall (the boss door has its own, and is not shut here) */
+const isSideShut = (exit: Exits[Direction]): boolean => exit.locked || isBarrierKind(exit.kind);
+
 const useLantern = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   const system = TempleSystem.getInstance();
   const state = system.getTempleState(ctx.templeId);
@@ -140,11 +148,16 @@ const useBombs = (ctx: ItemUseContext): ItemOutcome => {
   if (!bomb) return refuse(REASON_NO_BOMBS);
 
   const system = TempleSystem.getInstance();
-  // The first small lock, clockwise from north: the one openDoorSide opens. The boss door is the Boss Key's alone,
+  // A Bomb opens a side only when a room lies beyond it (a wall, a void or the edge of the floor is a Bomb wasted on a
+  // way that leads nowhere), and only a side the temple's own doors call that: the boss door is the Boss Key's alone,
   // so it is skipped whatever the exits handed in say about it
-  const isSmallLock = (direction: Direction): boolean =>
-    system.doorKind(ctx.templeId, ctx.position, direction, ctx.level) === 'locked';
-  const side = DIRECTIONS.find(isSmallLock);
+  const canOpen = (direction: Direction, kind: DoorKind): boolean =>
+    canEnter(ctx.exits[direction].room) && system.doorKind(ctx.templeId, ctx.position, direction, ctx.level) === kind;
+  // The side the hero tapped first, then clockwise from north
+  const firstToOpen = (kind: DoorKind): Direction | undefined => [ctx.side, ...DIRECTIONS].find((direction) => direction && canOpen(direction, kind));
+  // A cracked wall is what a Bomb is for; a small lock is the fallback (the first one openDoorSide opens)
+  const crackedSide = firstToOpen('bombable');
+  const side = crackedSide ?? firstToOpen('locked');
   if (!side) return { message: 'Nothing to blow up here.' };
 
   // A fight's seal is not a door: no walking out of a battle through the wall
@@ -153,9 +166,12 @@ const useBombs = (ctx: ItemUseContext): ItemOutcome => {
     return refuse('The seal holds. Bombs will not help until the fight is won.');
   }
 
-  if (!system.openDoorSide(ctx.templeId, ctx.position, side, ctx.level)) return { message: 'Nothing to blow up here.' };
+  const isOpen = crackedSide
+    ? system.blowBombableSide(ctx.templeId, ctx.position, side, ctx.level)
+    : system.openDoorSide(ctx.templeId, ctx.position, side, ctx.level);
+  if (!isOpen) return { message: 'Nothing to blow up here.' };
   useUserStore().spendInventoryItem(ctx.userId, bomb.id);
-  return { message: `Boom! The ${side} door blows open.`, sound: SFX.damage, shake: true };
+  return { message: `Boom! The ${side} ${crackedSide ? 'wall' : 'door'} blows open.`, sound: SFX.damage, shake: true };
 };
 
 /** Traps bite the moment the hero walks in, so the wand reaches into the rooms next door: every open side's live trap. */
@@ -163,7 +179,7 @@ const useIceWand = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   const traps = DIRECTIONS.flatMap((direction) => {
     const near = ctx.exits[direction];
     const key = roomKey({ ...ctx, position: near.position }, 'trap');
-    const isTrapNextDoor = !near.locked && roomKind(near.room) === 'trap';
+    const isTrapNextDoor = !isSideShut(near) && roomKind(near.room) === 'trap';
     const isLiveTrapNextDoor = isTrapNextDoor && !hasHappened(key);
     return isLiveTrapNextDoor ? [key] : [];
   });
@@ -238,7 +254,7 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
 
   for (const direction of DIRECTIONS) {
     const near = ctx.exits[direction];
-    const hasNoHazardToCross = near.locked || !HAZARDS.includes(roomKind(near.room));
+    const hasNoHazardToCross = isSideShut(near) || !HAZARDS.includes(roomKind(near.room));
     if (hasNoHazardToCross) continue;
 
     const far: [number, number] = [near.position[0] + steps[direction][0], near.position[1] + steps[direction][1]];

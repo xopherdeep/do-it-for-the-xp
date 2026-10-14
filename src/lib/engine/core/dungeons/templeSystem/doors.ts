@@ -1,17 +1,31 @@
 /**
- * The doors of a temple run: what stands between two rooms (an open way, a small lock, the boss door), opening
- * them with keys, bombs and riddles, the keys the hero carries, and the seal a lockOnEnter fight puts on a room.
+ * The doors of a temple run: what stands between two rooms (an open way, a small lock, the boss door, a wall, a
+ * cracked wall), opening them with keys, bombs and riddles, the keys the hero carries, and the seal a lockOnEnter
+ * fight puts on a room.
  * TempleSystem's door methods delegate here; each public method documents its contract.
  */
 
 import { roomPositionKey } from '../DungeonManager';
 import type { Room } from '../types';
-import { isBossRoom } from '@/lib/services/temples/authoredDoors';
+import { barrierBetween, isBossRoom } from '@/lib/services/temples/authoredDoors';
 import { clearedRoomKey, isRoomCleared } from './runState';
 import type { TempleRuns } from './runState';
 
-/** What stands between two rooms: nothing, a small lock, or the boss door (the big lock only the master key opens) */
-export type DoorKind = 'open' | 'locked' | 'master';
+/**
+ * What stands between two rooms: nothing, a small lock, the boss door (the big lock only the master key opens), a wall
+ * no one passes, or a cracked wall only a Bomb opens (blowBombableSide). A wall and a cracked wall are no doors: no key
+ * and no riddle opens them.
+ */
+export type DoorKind = 'open' | 'locked' | 'master' | 'wall' | 'bombable';
+
+/** What the temple says of a wall side */
+export const SOLID_WALL_LINE = 'Solid rock.';
+
+/** What the temple says of a cracked wall */
+export const CRACKED_WALL_LINE = 'The wall is cracked. Bombs might do it.';
+
+/** Whether a side is barred by what the Game Master drew (a wall, a cracked wall) rather than by a lock */
+export const isBarrierKind = (kind: DoorKind): boolean => kind === 'wall' || kind === 'bombable';
 
 /** What the temple says when a small key is tried on the boss door */
 export const BOSS_DOOR_LINE = 'A big lock. This needs the Boss Key.';
@@ -29,6 +43,8 @@ export interface DoorState {
 export const DOOR_DIRECTIONS: DoorState['direction'][] = ['north', 'south', 'east', 'west'];
 
 const STEP: Record<DoorState['direction'], [number, number]> = { north: [-1, 0], south: [1, 0], east: [0, 1], west: [0, -1] };
+
+const OPPOSITE: Record<DoorState['direction'], DoorState['direction']> = { north: 'south', south: 'north', east: 'west', west: 'east' };
 
 /** The room one step away */
 const stepFrom = (position: [number, number], direction: DoorState['direction']): [number, number] =>
@@ -75,6 +91,10 @@ export function isBossDoor(there: Room | undefined): boolean {
   return isBossRoom(there);
 }
 
+/**
+ * What stands between the room at `position` and the room in `direction` (see DoorKind). A wall room or the edge of
+ * the floor beyond is no door at all and reads as open, unless the room draws a wall or a cracked wall on that side.
+ */
 export function doorKind(
   runs: TempleRuns,
   templeId: string,
@@ -87,7 +107,17 @@ export function doorKind(
   const here = runs.dungeonManager.getRoom(templeId, position, floor);
   if (!here) return 'open';
 
-  const there = runs.dungeonManager.getRoom(templeId, stepFrom(position, direction), floor);
+  const beyond = stepFrom(position, direction);
+  const there = runs.dungeonManager.getRoom(templeId, beyond, floor);
+
+  // What the Game Master drew first: a wall is a wall (not the boss door either), a cracked wall is one until a Bomb
+  // blew it open (both ends are remembered, so a reload finds it open)
+  const barrier = barrierBetween(here, there, direction);
+  if (barrier === 'wall') return 'wall';
+  const hasOpened = (key: string): boolean => Boolean(templeState?.openedDoors?.has(key));
+  const isBlownOpen = hasOpened(doorKey(floor, position, direction)) || hasOpened(doorKey(floor, beyond, OPPOSITE[direction]));
+  if (barrier === 'bombable' && !isBlownOpen) return 'bombable';
+
   const isUnopenedBossDoor = isBossDoor(there) && !templeState?.openedDoors?.has(doorKey(floor, position, direction));
   if (isUnopenedBossDoor) return 'master';
   return here.locked?.[direction] ? 'locked' : 'open';
@@ -95,11 +125,15 @@ export function doorKind(
 
 export function explainDoor(runs: TempleRuns, templeId: string, position: [number, number], direction: DoorState['direction']): string | null {
   const kind = doorKind(runs, templeId, position, direction);
-  // A beast bars every shut side of its room, whatever lock is on it
-  const isBarredByBeast = kind !== 'open' && isRoomBarred(runs, templeId, runs.templeStates[templeId]?.currentLevel ?? '1F', position);
+  // A beast bars every shut side of its room, whatever lock is on it; a wall is no side of its doing
+  const isBarredByBeast = kind !== 'open' && kind !== 'wall' && isRoomBarred(runs, templeId, runs.templeStates[templeId]?.currentLevel ?? '1F', position);
   if (isBarredByBeast) return SEALED_DOOR_LINE;
 
   switch (kind) {
+    case 'wall':
+      return SOLID_WALL_LINE;
+    case 'bombable':
+      return CRACKED_WALL_LINE;
     case 'master':
       return hasMasterKey(runs, templeId) ? null : BOSS_DOOR_LINE;
     case 'locked':
@@ -142,6 +176,7 @@ export function unlockDoor(
       templeState.playerKeys -= 1;
       break;
     default:
+      // An open way has nothing to unlock; a wall and a cracked wall are no doors, so no key fits them
       return false;
   }
 
@@ -161,12 +196,42 @@ export function openDoorSide(
 
   const floor = level ?? templeState.currentLevel;
   const room = runs.dungeonManager.getRoom(templeId, position, floor);
-  // The boss door is beyond a bomb or a riddle: only the master key opens it; a fight's seal is no door at all
+  // The boss door is beyond a bomb or a riddle: only the master key opens it; a fight's seal is no door at all, and
+  // neither is a wall or a cracked wall (only blowBombableSide opens that one)
   const isBarred = isRoomBarred(runs, templeId, floor, position);
-  const isSideUnopenable = isBarred || !room?.locked?.[direction] || doorKind(runs, templeId, position, direction, floor) === 'master';
+  const kind = doorKind(runs, templeId, position, direction, floor);
+  const isSideUnopenable = isBarred || !room?.locked?.[direction] || kind === 'master' || isBarrierKind(kind);
   if (isSideUnopenable) return false;
 
   openDoor(runs, templeId, floor, position, direction);
+  return true;
+}
+
+/**
+ * Blow open the cracked wall on one side of a room: it is one wall, so it opens from both rooms, and both ends are
+ * remembered with the hero's progress (a reload finds it open). Only a cracked wall with a room beyond it opens, never
+ * from inside a fight the beast has sealed. A key and a riddle do not do this (unlockDoor, openDoorSide refuse it).
+ * @returns True if a cracked wall was there and is open now
+ */
+export function blowBombableSide(
+  runs: TempleRuns,
+  templeId: string,
+  position: [number, number],
+  direction: DoorState['direction'],
+  level?: string
+): boolean {
+  const templeState = runs.templeStates[templeId];
+  if (!templeState) return false;
+
+  const floor = level ?? templeState.currentLevel;
+  if (isRoomBarred(runs, templeId, floor, position)) return false;
+  if (doorKind(runs, templeId, position, direction, floor) !== 'bombable') return false;
+
+  const beyond = stepFrom(position, direction);
+  if (!runs.dungeonManager.getRoom(templeId, beyond, floor)) return false;
+
+  openDoor(runs, templeId, floor, position, direction);
+  openDoor(runs, templeId, floor, beyond, OPPOSITE[direction]);
   return true;
 }
 

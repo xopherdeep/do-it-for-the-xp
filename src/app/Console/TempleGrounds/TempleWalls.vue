@@ -8,6 +8,8 @@
       <div v-if="exits[side] === 'wall'" class="sconce">
         <i class="fad fa-fire-alt"></i>
       </div>
+      <!-- A cracked wall is solid, with a fissure through it that a Bomb could open -->
+      <div v-else-if="exits[side] === 'bombable'" class="crack"></div>
       <!-- An archway the hero can walk through, lit from beyond -->
       <div v-else class="doorway">
         <div class="doorway__glow"></div>
@@ -28,7 +30,7 @@ import type { ExitKind, WallSide } from "./templeWalls";
 
 withDefaults(
   defineProps<{
-    /** What each side of the room is, from the maze: a solid wall, an open door, a locked one or the boss door */
+    /** What each side of the room is, from the maze: a solid wall, a cracked one, an open door, a locked one or the boss door */
     exits: Record<WallSide, ExitKind>;
     /** The temple's element picks the stone and metal colours */
     element?: string;
@@ -147,6 +149,27 @@ const CORNERS = ["nw", "ne", "sw", "se"];
 .wall--south .sconce { left: 50%; bottom: calc(50% - 15px); transform: translateX(-50%); }
 .wall--west .sconce  { top: 50%; left: calc(50% - 15px); transform: translateY(-50%); }
 .wall--east .sconce  { top: 50%; right: calc(50% - 15px); transform: translateY(-50%); }
+
+// A cracked wall: a jagged fissure through the stone, lit from behind, where a Bomb would open the way
+.crack {
+  position: absolute;
+  filter: drop-shadow(0 0 4px var(--glow));
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #0c080a;
+  }
+}
+.wall--north .crack, .wall--south .crack { left: 50%; transform: translateX(-50%); width: 34px; top: 0; bottom: 0; }
+.wall--west .crack, .wall--east .crack   { top: 50%; transform: translateY(-50%); height: 34px; left: 0; right: 0; }
+.wall--north .crack::before, .wall--south .crack::before {
+  clip-path: polygon(46% 0, 62% 14%, 40% 30%, 66% 48%, 36% 64%, 60% 82%, 48% 100%, 38% 100%, 50% 82%, 28% 64%, 56% 48%, 30% 30%, 52% 14%, 36% 0);
+}
+.wall--west .crack::before, .wall--east .crack::before {
+  clip-path: polygon(0 46%, 14% 62%, 30% 40%, 48% 66%, 64% 36%, 82% 60%, 100% 48%, 100% 38%, 82% 50%, 64% 28%, 48% 56%, 30% 30%, 14% 52%, 0 36%);
+}
 
 // The opening through the wall
 .doorway {

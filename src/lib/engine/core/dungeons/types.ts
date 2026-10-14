@@ -68,6 +68,11 @@ export interface Room {
     west?: boolean;
     [key: string]: boolean | undefined;
   };
+  /**
+   * What the Game Master drew on a side that is not a door (authoredDoors.lockedFromSides): a wall no one passes, or a
+   * cracked wall only a Bomb opens. A side with neither is a way (open, or locked by `locked`).
+   */
+  barriers?: Partial<Record<'north' | 'east' | 'south' | 'west', 'wall' | 'bombable'>>;
   isEmpty?: boolean;
   visited?: boolean;
   sides?: Record<string, string>;

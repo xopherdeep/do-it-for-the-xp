@@ -6,7 +6,8 @@ import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSy
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { ensureTempleFresh } from '@/lib/engine/core/dungeons/templeFreshness';
-import { isImpassable } from '@/lib/engine/core/dungeons/templeSystem/floors';
+import { canEnter } from '@/lib/engine/core/dungeons/templeSystem/floors';
+import { isBarrierKind } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
@@ -208,14 +209,20 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     }
   });
   
-  // Movement capability checks: an arrow lights over any room but a wall or a void (the engine refuses those steps)
+  // Whether the side of the room the hero stands in is a wall the Game Master drew: no arrow, as over a wall room. A cracked
+  // wall keeps its arrow (the tap says it is cracked), as a locked door does
+  const isWallSide = (direction: 'north' | 'south' | 'east' | 'west'): boolean =>
+    templeSystem.doorKind(templeId, currentPosition.value, direction, currentLevel.value) === 'wall';
+
+  // Movement capability checks: an arrow lights over any room the engine lets the hero step into (not a wall, a void or a
+  // token with no room record) unless that side is a wall
   const canMoveUp = computed(() => {
     const isAtTopEdge = !currentPosition.value || currentPosition.value[0] <= 0;
     if (isAtTopEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row - 1]?.[col];
     if (!roomKey) return false;
-    return !isImpassable(rooms.value[roomKey]);
+    return canEnter(rooms.value[roomKey]) && !isWallSide('north');
   });
   
   const canMoveDown = computed(() => {
@@ -225,7 +232,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row + 1]?.[col];
     if (!roomKey) return false;
-    return !isImpassable(rooms.value[roomKey]);
+    return canEnter(rooms.value[roomKey]) && !isWallSide('south');
   });
   
   const canMoveLeft = computed(() => {
@@ -234,7 +241,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col - 1];
     if (!roomKey) return false;
-    return !isImpassable(rooms.value[roomKey]);
+    return canEnter(rooms.value[roomKey]) && !isWallSide('west');
   });
   
   const canMoveRight = computed(() => {
@@ -243,7 +250,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col + 1];
     if (!roomKey) return false;
-    return !isImpassable(rooms.value[roomKey]);
+    return canEnter(rooms.value[roomKey]) && !isWallSide('east');
   });
   
   // Helper to display messages - now uses the external display function if available
@@ -289,6 +296,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     
     // Try to move to the new position
     const result = templeSystem.moveToPosition(templeId, [newRow, newCol], direction);
+
+    // A cracked wall is no door to open: say what stands there (a wall has no arrow, and a locked door has its sheet)
+    const wasStoppedByBarrier = !result && isBarrierKind(templeSystem.doorKind(templeId, [row, col], direction, currentLevel.value));
+    if (wasStoppedByBarrier) {
+      const line = templeSystem.explainDoor(templeId, [row, col], direction);
+      if (line) displayMessage(line);
+      return false;
+    }
     
     // If movement wasn't successful, check if it was due to a locked door
     const wasStoppedByLockedDoor = !result && isDoorLocked(newRow, newCol);

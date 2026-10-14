@@ -331,9 +331,10 @@ export class TempleSystem {
   }
 
   /**
-   * What stands between the room at `position` and the room in `direction`: an open way, a small lock, or
-   * the boss door. A boss door stays `master` until it is opened with the Boss Key, bar or no bar on the
-   * room in front of it; a wall or the edge of the floor is no door at all and reads as open.
+   * What stands between the room at `position` and the room in `direction`: an open way, a small lock, the
+   * boss door, or what the Game Master drew instead of a door: a `wall` no one passes, a `bombable` cracked wall only
+   * a Bomb opens (blowBombableSide). A boss door stays `master` until it is opened with the Boss Key, bar or no bar on
+   * the room in front of it; a wall room or the edge of the floor is no door at all and reads as open.
    * @param level Floor the room is on; the floor the hero stands on when left out
    */
   public doorKind(
@@ -383,6 +384,21 @@ export class TempleSystem {
     level?: string
   ): boolean {
     return doors.openDoorSide(this.runs, templeId, position, direction, level);
+  }
+
+  /**
+   * Blow open the cracked wall on one side of a room, from both rooms, remembered with the hero's progress. A key and
+   * a riddle never open it (unlockDoor and openDoorSide refuse), and neither does a fight's seal let a Bomb through.
+   * @param level Floor the room is on; the floor the hero stands on when left out
+   * @returns True if a cracked wall with a room beyond it was there and is open now
+   */
+  public blowBombableSide(
+    templeId: string,
+    position: [number, number],
+    direction: 'north' | 'south' | 'east' | 'west',
+    level?: string
+  ): boolean {
+    return doors.blowBombableSide(this.runs, templeId, position, direction, level);
   }
 
   /**

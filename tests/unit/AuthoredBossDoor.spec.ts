@@ -346,10 +346,31 @@ describe("the doors the editor drew, as the engine registers them", () => {
     expect(temples.doorKind(id, [0, 1], "east")).toBe("open"); // the flag alone is no door: the room beyond decides
   });
 
-  it("plays a 'door' side, a wall and a bombable side as no lock", () => {
-    const id = registered({ A: { type: "empty", sides: { north: "wall", east: "door", south: "bombable", west: "door" } } });
+  it("plays a 'door' side as no lock and no barrier", () => {
+    const id = registered({ A: { type: "empty", sides: { north: "door", east: "door", south: "door", west: "door" } } });
 
     expect(dungeons.getRoom(id, [0, 1])?.locked).toBeUndefined();
+    expect(dungeons.getRoom(id, [0, 1])?.barriers).toBeUndefined();
+  });
+
+  it("plays a wall and a bombable side as barriers, never as a door: no lock, no walking through", () => {
+    const id = registered({ A: { type: "empty", sides: { north: "wall", east: "bombable", south: "door", west: "wall" } } });
+    temples.initTemple(id, [0, 1]);
+
+    expect(dungeons.getRoom(id, [0, 1])?.locked).toBeUndefined();
+    expect(dungeons.getRoom(id, [0, 1])?.barriers).toEqual({ north: "wall", east: "bombable", west: "wall" });
+    expect(temples.doorKind(id, [0, 1], "east")).toBe("bombable");
+    expect(temples.doorKind(id, [0, 1], "west")).toBe("wall");
+    expect(temples.moveToPosition(id, [0, 2], "east")).toBe(false);
+    expect(temples.moveToPosition(id, [0, 0], "west")).toBe(false);
+    expect(temples.explainDoor(id, [0, 1], "east")).toBe("The wall is cracked. Bombs might do it.");
+    expect(readExits(id, "1F", [0, 1]).east.locked).toBe(false); // a cracked wall is no small lock
+    expect(readExits(id, "1F", [0, 1]).east.kind).toBe("bombable");
+
+    const sheet = doorActions(contextAt(id, [0, 1]), "east");
+    expect(sheet.subHeader).toBe("The wall is cracked. Bombs might do it.");
+    expect(sheet.actions).toEqual([]);
+    expect(doorActions(contextAt(id, [0, 1]), "west").subHeader).toBe("Solid rock.");
   });
 
   it("still reads a plain 'locked' side into a boss room as the Boss door", () => {
@@ -486,6 +507,30 @@ describe("bossDoorSides and lockedFromSides", () => {
     };
 
     expect(lockedFromSides(room).locked).toEqual({ north: true });
+  });
+
+  it("plays the walls and bombable sides a room is drawn with as its barriers, and no lock", () => {
+    const room: DoorRoom = { type: "empty", sides: { north: "wall", east: "bombable", south: "door", west: "locked" } };
+
+    expect(lockedFromSides(room).barriers).toEqual({ north: "wall", east: "bombable" });
+    expect(lockedFromSides(room).locked).toEqual({ west: true });
+    expect(room.barriers).toBeUndefined(); // the stored room is not written into
+  });
+
+  it("trusts the sides over a barrier left on a side drawn open, and drops the barriers when none is drawn", () => {
+    const opened: DoorRoom = { type: "empty", sides: { north: "door", east: "door", south: "door", west: "door" }, barriers: { east: "wall" } };
+
+    expect(lockedFromSides(opened).barriers).toBeUndefined();
+    expect(opened.barriers).toEqual({ east: "wall" });
+
+    const swapped: DoorRoom = { type: "empty", sides: { north: "door", east: "bombable", south: "door", west: "door" }, barriers: { east: "wall" } };
+    expect(lockedFromSides(swapped).barriers).toEqual({ east: "bombable" });
+  });
+
+  it("returns a room whose barriers already agree with its sides as it is", () => {
+    const agreeing: DoorRoom = { type: "empty", sides: { north: "wall", east: "door" }, barriers: { north: "wall" } };
+
+    expect(lockedFromSides(agreeing)).toBe(agreeing);
   });
 
   it("leaves a room drawn without sides to its `locked` flags", () => {
