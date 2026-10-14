@@ -69,8 +69,22 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
           "@/app/SideMenu/XpSettings/components/ProSettings.vue"
         ),
     },
-    // Chore, Reward and Party were mock pages whose switches saved nothing; old links land on Settings
-    ...["chore", "reward", "party"].map((path) => ({ path, redirect: { name: "xp-settings-home" } })),
+    // Chore, Reward and Party list planned settings only (greyed out, Coming soon)
+    {
+      path: "chore",
+      name: "xp-settings-chore",
+      component: () => import("@/app/SideMenu/XpSettings/components/ChoreSettings.vue"),
+    },
+    {
+      path: "reward",
+      name: "xp-settings-reward",
+      component: () => import("@/app/SideMenu/XpSettings/components/RewardSettings.vue"),
+    },
+    {
+      path: "party",
+      name: "xp-settings-party",
+      component: () => import("@/app/SideMenu/XpSettings/components/PartySettings.vue"),
+    },
   ],
 }];
 

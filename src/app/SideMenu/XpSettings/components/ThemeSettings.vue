@@ -61,6 +61,8 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <xp-coming-soon-card title="Display" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
@@ -86,6 +88,8 @@
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
   import { useProStore } from "@/lib/store/stores/pro";
+  import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import { THEME_COMING_SOON } from "./comingSoon";
   import {
     GAME_STYLES,
     GAME_STYLE_NAMES,
@@ -110,6 +114,7 @@
       IonSelectOption,
       IonItemGroup,
       IonItemDivider,
+      XpComingSoonCard,
     },
     mixins: [ionic],
     computed: {
@@ -126,6 +131,7 @@
         gameStore,
         pro,
         gameStyles: GAME_STYLES,
+        comingSoon: THEME_COMING_SOON,
       };
     },
     methods: {

@@ -912,6 +912,7 @@ const OTHER_PAGES = [
   ["95-settings-packs", "/xp-settings/packs"],
   ["96-settings-pro", "/xp-settings/pro"],
   ["97-settings-theme", "/xp-settings/theme"],
+  ["98-settings-chore", "/xp-settings/chore"],
   ["99-support", "/xp-support"],
   ["100-support-faq", "/support/faq"],
   ["101-about", "/about-xp"],

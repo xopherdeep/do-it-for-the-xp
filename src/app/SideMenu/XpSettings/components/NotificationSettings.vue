@@ -30,6 +30,8 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <xp-coming-soon-card title="For the family" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
@@ -54,6 +56,8 @@
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
   import { rpgToastOptions } from "@/hooks/useToast";
+  import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import { ALERTS_COMING_SOON } from "./comingSoon";
   import {
     alertPermission,
     requestAlertPermission,
@@ -77,6 +81,7 @@
       IonToggle,
       IonCard,
       IonButtons,
+      XpComingSoonCard,
     },
     mixins: [ionic],
     setup() {
@@ -123,6 +128,7 @@
         ambushAlertsDisabled,
         ambushAlertsMessage,
         handleAmbushAlertsChange,
+        comingSoon: ALERTS_COMING_SOON,
       };
     },
   });

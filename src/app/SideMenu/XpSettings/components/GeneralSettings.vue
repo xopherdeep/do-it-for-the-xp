@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title>Backup</ion-title>
+        <ion-title>General</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -56,6 +56,8 @@
           </p>
         </ion-card-content>
       </ion-card>
+
+      <xp-coming-soon-card title="App preferences" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
@@ -70,6 +72,8 @@
   import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
   import { dialogMessage } from "@/lib/utils/dialogMessage";
+  import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import { GENERAL_COMING_SOON } from "./comingSoon";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
 
@@ -97,6 +101,7 @@
 
   export default defineComponent({
     name: "general-settings",
+    components: { XpComingSoonCard },
 
     mixins: [ionic],
     methods: {
@@ -289,6 +294,7 @@
 
       return {
         isBackupBusy,
+        comingSoon: GENERAL_COMING_SOON,
         canRestore: () => canManageFamily(),
         cloudDownloadOutline,
         cloudUploadOutline,

@@ -14,6 +14,8 @@ interface SettingsItem {
   description: string;
   icon: string;
   route: string;
+  /** Nothing on the page works yet: the tile wears a Soon badge */
+  soon?: boolean;
 }
 
 export default defineComponent({
@@ -22,7 +24,7 @@ export default defineComponent({
   setup() {
     // code
 
-    // In the order a Game Master sets things up: who plays, what to play, then how the app behaves
+    // In the order a Game Master sets things up (who plays, what to play, how the app behaves), then what's coming
     const settingsItems: SettingsItem[] = [
       {
         id: 'family',
@@ -61,8 +63,8 @@ export default defineComponent({
       },
       {
         id: 'general',
-        title: 'Backup',
-        description: 'Save everything to a file, or restore from one.',
+        title: 'General',
+        description: 'Back up everything to a file, or restore from one.',
         icon: require('@/assets/icons/settings.png'),
         route: '/xp-settings/general'
       },
@@ -72,6 +74,30 @@ export default defineComponent({
         description: 'Your plan and key, or restore Pro on this device.',
         icon: require('@/assets/icons/new.png'),
         route: '/xp-settings/pro'
+      },
+      {
+        id: 'chore',
+        title: 'Chores',
+        description: 'Family-wide chore rules, like late penalties and photo proof.',
+        icon: require('@/assets/icons/innovation.png'),
+        route: '/xp-settings/chore',
+        soon: true
+      },
+      {
+        id: 'reward',
+        title: 'Rewards',
+        description: 'Cash out GP and more reward rules.',
+        icon: require('@/assets/icons/target.png'),
+        route: '/xp-settings/reward',
+        soon: true
+      },
+      {
+        id: 'party',
+        title: 'Party',
+        description: 'Play together with other families.',
+        icon: require('@/assets/icons/collaboration.png'),
+        route: '/xp-settings/party',
+        soon: true
       }
     ];
 
