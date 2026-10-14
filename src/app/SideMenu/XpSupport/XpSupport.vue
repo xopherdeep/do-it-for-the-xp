@@ -50,6 +50,12 @@
               <hr />
               <ion-card-content>
                 {{ tile.desc }}
+                <div
+                  v-if="tile.version"
+                  class="version-info"
+                >
+                  v{{ tile.version }}
+                </div>
               </ion-card-content>
             </ion-card>
           </ion-col>

@@ -22,9 +22,8 @@
       <ion-grid class="max-w-5xl rpg-box">
         <ion-row>
           <ion-col
-            size="12"
-            size-md="4"
-            v-for="item in settingsItems"
+            v-for="(item, index) in settingsItems"
+            :size="isFullRow(index) ? '12' : '6'"
             :key="item.id"
           >
             <ion-card

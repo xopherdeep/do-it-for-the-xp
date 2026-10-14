@@ -3,7 +3,12 @@
     --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
   }
   
+  ion-col {
+    display: flex;
+  }
+
   .settings-card {
+    width: 100%;
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -37,6 +42,7 @@
         font-weight: bold;
         margin-top: 0.5rem;
         color: var(--ion-color-rpg);
+        overflow-wrap: anywhere;
       }
     }
     

@@ -88,12 +88,17 @@ export default defineComponent({
       }
     ];
 
+    // Two cards per row; an odd card out at the end takes the whole row.
+    const isFullRow = (index: number) =>
+      index === settingsItems.length - 1 && settingsItems.length % 2 === 1;
+
     return {
       arrowBack,
       requireIconImg,
       pizzaOutline,
       pizzaSharp,
-      settingsItems
+      settingsItems,
+      isFullRow
     };
   },
 })
