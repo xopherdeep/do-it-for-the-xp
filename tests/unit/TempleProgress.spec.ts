@@ -12,7 +12,7 @@ import { getTempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { ChestSystem } from "@/lib/engine/core/dungeons/ChestSystem";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { registerAllTemples, registerCustomTemples } from "@/lib/engine/core/dungeons/TempleAdapter";
-import { TempleHydrator } from "@/lib/engine/core/dungeons/TempleHydrator";
+import { TempleHydrator } from "./helpers/dslTemple";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { useTemple } from "@/hooks/temples/useTemple";
 
@@ -502,7 +502,7 @@ const startSession = (): Session => {
     session = {
       dungeons: require("@/lib/engine/core/dungeons/DungeonManager").DungeonManager.getInstance(),
       temples: require("@/lib/engine/core/dungeons/TempleSystem").TempleSystem.getInstance(),
-      hydrator: require("@/lib/engine/core/dungeons/TempleHydrator").TempleHydrator,
+      hydrator: TempleHydrator,
       db: require("@/lib/databases/TempleProgressDb").getTempleProgressDb(),
     };
   });

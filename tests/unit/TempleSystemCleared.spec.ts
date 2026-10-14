@@ -8,7 +8,7 @@ import {
   type BattleContext,
 } from "@/app/Console/BattleField/battle/battleContext";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
-import { TempleHydrator } from "@/lib/engine/core/dungeons/TempleHydrator";
+import { TempleHydrator } from "./helpers/dslTemple";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { useTemple } from "@/hooks/temples/useTemple";
 import { HometownRoutes } from "@/router/Console/hometown.routes";
@@ -68,7 +68,7 @@ const nextId = () => `cleared-temple-${++counter}`;
 
 /** One floor: the entrance, an empty hall, then a hard monster (M01!) whose room seals its doors on entry. */
 const registerHall = (id: string) => {
-  expect(temples.registerDungeonFromDSL("EXIT R000 M01!", id, id)).toBe(true);
+  dungeons.registerDungeon(TempleHydrator.hydrate("EXIT R000 M01!", id, id));
   return id;
 };
 

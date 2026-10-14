@@ -1,5 +1,5 @@
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
-import { TempleHydrator } from "@/lib/engine/core/dungeons/TempleHydrator";
+import { TempleHydrator } from "./helpers/dslTemple";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { Dungeon, Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph } from "@/lib/engine/dungeons/generator";

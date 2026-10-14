@@ -1,6 +1,6 @@
-import { TempleHydrator } from '@/lib/engine/core/dungeons/TempleHydrator';
+import { TempleHydrator } from './helpers/dslTemple';
 
-describe('TempleHydrator', () => {
+describe('TempleHydrator (DSL test helper)', () => {
   const testBlueprint = `
     EXIT  ____  M01_
     ____  BOSS  ____

@@ -1,12 +1,11 @@
 /**
- * Where the hero can go in a temple: its floors, registering a layout, walking from room to room, stairs and
+ * Where the hero can go in a temple: its floors, walking from room to room, stairs and
  * teleport circles, and rooms marked visited by the old system carried into the coordinate-based record.
  * TempleSystem's movement methods delegate here; each public method documents its contract.
  */
 
 import { roomPositionKey } from '../DungeonManager';
 import type { Dungeon } from '../types';
-import { TempleHydrator } from '../TempleHydrator';
 import { teleportTargetFor } from '../teleportPairing';
 import debug from '@/lib/utils/debug';
 import { getCurrentRoom, isRoomCleared, visitRoom } from './runState';
@@ -34,17 +33,6 @@ export function canStandAt(runs: TempleRuns, templeId: string, level: string, po
 
   const room = runs.dungeonManager.getRoom(templeId, position, level);
   return Boolean(room) && !isImpassable(room);
-}
-
-export function registerDungeonFromDSL(runs: TempleRuns, blueprint: string, dungeonId: string, dungeonName: string): boolean {
-  try {
-    const dungeon = TempleHydrator.hydrate(blueprint, dungeonId, dungeonName);
-    runs.dungeonManager.registerDungeon(dungeon);
-    return true;
-  } catch (error) {
-    debug.error(`Failed to register dungeon from DSL: ${error}`);
-    return false;
-  }
 }
 
 /**

@@ -8,7 +8,7 @@
  */
 import { getTempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
-import { TempleHydrator } from "@/lib/engine/core/dungeons/TempleHydrator";
+import { TempleHydrator } from "./helpers/dslTemple";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { nextWeekly } from "@/lib/engine/core/dungeons/bloodMoonSchedule";
 

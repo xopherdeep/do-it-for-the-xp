@@ -192,13 +192,6 @@ export class TempleSystem {
   }
 
   /**
-   * Register a dungeon from a DSL blueprint
-   */
-  public registerDungeonFromDSL(blueprint: string, dungeonId: string, dungeonName: string): boolean {
-    return floors.registerDungeonFromDSL(this.runs, blueprint, dungeonId, dungeonName);
-  }
-  
-  /**
    * Initialize a temple
    * @param templeId The ID of the temple to initialize
    * @param startPosition Starting position [row, col] or [floorIndex, row, col]
