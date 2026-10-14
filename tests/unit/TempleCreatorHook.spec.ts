@@ -545,6 +545,168 @@ describe("a temple another screen already marked loaded", () => {
   });
 });
 
+// --- #1391: floor names ---------------------------------------------------------------------------------------------------
+
+describe("adding a floor", () => {
+  const toastMessages = () => (toastController.create as jest.Mock).mock.calls.map(([options]) => options.message);
+
+  it("refuses a digits-only name: nothing is added and the entrance stays on its floor", () => {
+    const { creator } = startFloors(["2F"], "0,1,2", { levelId: "1F", row: 1, col: 2 });
+    const before = clone(floorMap(creator));
+
+    creator.addFloor("3");
+    creator.addFloor(" 10 ");
+
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
+    expect(floorMap(creator)).toEqual(before);
+    expect(creator.floors.value).toEqual(["1F", "2F"]);
+    expect(creator.entrancePosition.value).toBe("0,1,2");
+    expect(entranceTokens(creator)).toEqual(["1F:1,2"]);
+    expect(creator.currentLevelId.value).toBe("1F");
+    expect(toastMessages()).toEqual(["A floor name can't be only digits: try 3F", "A floor name can't be only digits: try 10F"]);
+  });
+
+  it("keeps a single-grid temple a single grid when the name is refused", () => {
+    const creator = startTemple(nextId(), "3x4", "0,1,2");
+    creator.addFloor("3");
+    expect(Array.isArray(creator.templeMaze.value)).toBe(true);
+    expect(creator.currentLevelId.value).toBe("1F");
+  });
+
+  it("refuses a name that is only spaces", () => {
+    const { creator } = startFloors(["2F"], "0,1,2");
+    creator.addFloor("   ");
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
+    expect(toastMessages()).toEqual(["A floor needs a name"]);
+  });
+
+  it("refuses a floor that is there already, whatever the case", () => {
+    const { creator } = startFloors(["2F"], "0,1,2");
+    creator.addFloor("2f");
+    creator.addFloor("1F");
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
+    expect(toastMessages()).toEqual(["Floor 2f is there already", "Floor 1F is there already"]);
+  });
+
+  it("adds a name that is not only digits, trimmed, and shows that floor", () => {
+    const { creator } = startFloors(["2F"], "0,1,2");
+    creator.addFloor(" 3F ");
+    creator.addFloor("Attic");
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F", "3F", "Attic"]);
+    expect(creator.currentLevelId.value).toBe("Attic");
+    expect(creator.entrancePosition.value).toBe("0,1,2");
+    expect(toastMessages()).toEqual([]);
+  });
+
+  it("converts a single-grid temple to floors when the first new floor is added", () => {
+    const creator = startTemple(nextId(), "3x4", "0,1,2");
+    creator.addFloor("B1");
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "B1"]);
+  });
+});
+
+// --- #1389: a temple with nothing saved opens with the new-temple defaults ----------------------------------------------
+
+describe("a temple with no stored record", () => {
+  it("opens on the new-temple grid and entrance, not the store's reset defaults", async () => {
+    const id = nextId();
+    const creator = useTempleCreator({ templeId: id });
+    creator.store.reset();
+    expect(creator.gridSize.value).toBe("6x6"); // what store.reset() puts back
+
+    await creator.loadTempleLayout();
+
+    expect(creator.gridSize.value).toBe("10x10");
+    expect(creator.entrancePosition.value).toBe("5,5");
+    expect(creator.store.templeId).toBe(id);
+    expect(creator.store.isLoaded(id)).toBe(true);
+  });
+
+  it("builds a grid of that size with the entrance token on the entrance cell", async () => {
+    const creator = useTempleCreator({ templeId: nextId() });
+    await creator.loadTempleLayout();
+
+    creator.initializeGrid();
+
+    const grid = creator.templeMaze.value as string[][];
+    expect(grid).toHaveLength(10);
+    expect(grid.every((row) => row.length === 10)).toBe(true);
+    expect(entranceCells(grid)).toEqual([[5, 5]]);
+  });
+
+  it("starts from a clean store: nothing of the temple shown before stays", async () => {
+    const creator = useTempleCreator({ templeId: nextId() });
+    creator.store.templeName = "Left over";
+    creator.store.roomsData.M0101 = { type: "monster" };
+    await creator.loadTempleLayout();
+    expect(creator.store.templeName).toBe("Temple");
+    expect(creator.store.roomsData.M0101).toBeUndefined();
+  });
+});
+
+// --- #1387: the symbols a loaded temple already holds ---------------------------------------------------------------------
+
+/** A stored temple whose maze and rooms hold R-tokens a Game Master made with 'Unique Config' (saved without migrateTokens) */
+const uniqueConfigTemple = (id: string) => ({
+  id,
+  categoryIds: ["dungeon"],
+  customName: "Unique",
+  dungeonLayout: {
+    entrance: [0, 0],
+    maze: [
+      ["_00__", "R001", "R005"],
+      ["_____", "R002", "_____"],
+    ],
+    rooms: {
+      _____: { type: "wall" },
+      _00__: { type: "entrance", visited: true },
+      R001: { type: "monster", content: { beasts: ["b1"] } },
+      R005: { type: "loot" },
+    },
+  },
+});
+
+describe("minting a symbol on a temple loaded from the database", () => {
+  const load = async () => {
+    const record = uniqueConfigTemple(nextId());
+    await new TempleDb(templeStorage).setTemple(record as never);
+    const creator = useTempleCreator({ templeId: record.id });
+    creator.store.reset();
+    await creator.loadTempleLayout();
+    return creator;
+  };
+
+  it("counts every symbol the maze and the rooms hold as used, and the counter from the highest R###", async () => {
+    const { store } = await load();
+    ["R001", "R002", "R005", "_____", "_00__"].forEach((symbol) => expect(store.usedSymbols.has(symbol)).toBe(true));
+    expect(store.symbolCounter).toBe(5);
+  });
+
+  it("never issues a symbol a stored room holds, so 'Unique Config' cannot overwrite its record", async () => {
+    const { store } = await load();
+    const issued = [store.generateUniqueSymbol(), store.generateUniqueSymbol()];
+    expect(issued).toEqual(["R006", "R007"]);
+    expect(store.roomsData.R001).toEqual({ type: "monster", content: { beasts: ["b1"] } });
+  });
+
+  it("skips a symbol with a room record even when the used set does not list it", async () => {
+    const { store } = await load();
+    store.roomsData.R006 = { type: "trap" };
+    expect(store.generateUniqueSymbol()).toBe("R007");
+  });
+
+  it("is the same store counter for the hook's own generateUniqueSymbol", async () => {
+    const creator = await load();
+    expect(creator.generateUniqueSymbol()).toBe("R006");
+    expect(creator.store.generateUniqueSymbol()).toBe("R007");
+  });
+
+  it("starts at R001 on a temple with no R-tokens", async () => {
+    const creator = startTemple(nextId(), "2x2", "0,0");
+    expect(creator.store.generateUniqueSymbol()).toBe("R001");
+  });
+});
+
 describe("initializeGrid on a temple with floors", () => {
   it("never replaces the floors when the floor on show is not one of them", async () => {
     const creator = await startOnHalfLoadedStore(earthTemple(nextId()));

@@ -249,6 +249,7 @@ import {
   IonInput,
   IonSelect,
   IonSelectOption,
+  alertController,
   toastController,
 } from "@ionic/vue";
 import {
@@ -261,8 +262,10 @@ import {
   generatedTempleId,
   randomSeed,
   nextSeed,
+  recordToSave,
   type GeneratedTemple,
   type SolveResult,
+  type TakenIdAnswer,
   type TempleSize,
   type TempleSummary,
 } from "@/lib/engine/dungeons/generator";
@@ -353,11 +356,32 @@ function reroll() {
   generate();
 }
 
+/** The id holds a temple already: the Game Master picks Replace, Save as a copy or Cancel (the backdrop is Cancel) */
+async function askAboutTakenId(takenId: string): Promise<TakenIdAnswer> {
+  play$fx("openMenu");
+  const alert = await alertController.create({
+    header: "Temple already saved",
+    message: `<p><b>${takenId}</b> is already a temple, and the Temple Creator may have changed it since. Replace it with this fresh one, or keep both?</p>`,
+    mode: "ios",
+    backdropDismiss: false,
+    buttons: [
+      { text: "Cancel", role: "cancel" },
+      { text: "Save as a copy", role: "copy" },
+      { text: "Replace", role: "destructive" },
+    ],
+  });
+  await alert.present();
+  const { role } = await alert.onDidDismiss();
+  if (role === "destructive") return "replace";
+  return role === "copy" ? "copy" : "cancel";
+}
+
 async function save() {
   if (!temple.value || !verdict.value?.solvable) return;
   saving.value = true;
   try {
-    const record = toTempleRecord(temple.value);
+    const record = await recordToSave(toTempleRecord(temple.value), templeDb, askAboutTakenId);
+    if (!record) return;
     await templeDb.setTemple(record);
     play$fx("openMenu");
     const toast = await toastController.create({

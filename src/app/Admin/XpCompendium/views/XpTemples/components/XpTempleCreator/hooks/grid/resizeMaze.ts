@@ -4,6 +4,7 @@
  */
 import { _00_ } from "@/lib/engine/dungeons/roomTypes";
 import { blankGrid, floorKeysOf, type MazeData } from "./floorLayers";
+import { isWholeNumberAtLeastOne, readGridSize, STARTING_GRID } from "./gridSize";
 import { roomSymbols } from "./roomSymbols";
 
 export const isInsideGrid = (row: number, col: number, rows: number, cols: number): boolean =>
@@ -60,7 +61,7 @@ export const buildInitialMaze = (
   maze: MazeData,
   currentLevelId: string
 ): string[][] => {
-  const [rows, cols] = gridSize.split("x").map(Number);
+  const { rows, cols } = readGridSize(gridSize) ?? STARTING_GRID;
   const newGrid = blankGrid(rows, cols);
 
   const cell = entranceCellOnFloor(entrancePosition, maze, currentLevelId);
@@ -84,7 +85,8 @@ export interface ResizedMaze {
  * symbol, the rest are walls. An old entrance symbol that is not on the entrance cell becomes an empty room, and the
  * entrance cell itself is placed (or reset to 0,0 when it fell outside the new grid). An entrance that is on another
  * floor places nothing here, and a "row,col" one is on the first floor only. `maze` is the whole temple, to tell which
- * floor a position names.
+ * floor a position names. A size that is not a grid (no rows or columns, a negative, NaN) changes nothing: the copy
+ * comes back as it was.
  */
 export const resizeMaze = (
   mazeData: string[][],
@@ -97,6 +99,11 @@ export const resizeMaze = (
   const oldMaze: string[][] = JSON.parse(JSON.stringify(mazeData));
   const oldRows = oldMaze.length;
   const oldCols = oldMaze[0]?.length || 0;
+
+  const isSizeThatIsNotAGrid = !isWholeNumberAtLeastOne(newRows) || !isWholeNumberAtLeastOne(newCols);
+  if (isSizeThatIsNotAGrid) {
+    return { maze: oldMaze, entranceOutsideGrid: false, entrancePosition };
+  }
 
   const position = readEntrancePosition(entrancePosition);
   const isOnOtherFloor = position !== null && !isOnFloor(position, maze, currentLevelId);

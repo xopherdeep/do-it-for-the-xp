@@ -82,6 +82,9 @@ jest.mock("@/lib/utils/debug", () => ({
 }));
 
 const W = "____";
+// What a JSON Apply writes for them: the creator store's own spellings of the wall and entrance (temple-creator.ts)
+const WALL = "_____";
+const ENTRANCE = "_00__";
 
 // 6 x 5 floor: every kind of cell the tallies look at, a void ".", a token without a room record and a blank cell
 const grid1F = () => [
@@ -655,6 +658,43 @@ describe("keeping the temple in step with the creator store", () => {
   });
 });
 
+// #1387: the loader rebuilds the creator store's symbols, so a later 'Unique Config' cannot reissue one a stored room holds
+describe("symbols of a loaded temple", () => {
+  const stored = (id: string) => {
+    const maze = [[WALL, "R001", "R002"], [WALL, ENTRANCE, WALL]];
+    const rooms = { [WALL]: { type: "wall" }, [ENTRANCE]: { type: "entrance" }, R001: { type: "monster", marker: "first" } };
+    return templeRecord(id, maze, rooms);
+  };
+
+  it("loadTemple lists the maze tokens and the room keys as used and sets the counter to the highest R###", async () => {
+    const { store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    ["R001", "R002", WALL, ENTRANCE].forEach((symbol) => expect(store.usedSymbols.has(symbol)).toBe(true));
+    expect(store.symbolCounter).toBe(2);
+    expect(store.generateUniqueSymbol()).toBe("R003");
+    expect(plain(store.roomsData.R001)).toEqual({ type: "monster", marker: "first" });
+  });
+
+  it("applyRawJson rebuilds them from the pasted layout, not the one the store held", async () => {
+    const { api, store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    expect(store.symbolCounter).toBe(2);
+    const layout = { entrance: [0, 1], maze: [[WALL, "M0101"]], rooms: { M0101: { type: "monster" } } };
+    await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: layout }));
+    expect(store.usedSymbols.has("M0101")).toBe(true);
+    expect(store.usedSymbols.has("R001")).toBe(false);
+    expect(store.symbolCounter).toBe(0);
+    expect(store.generateUniqueSymbol()).toBe("R001");
+  });
+
+  it("a later load of another temple starts from that temple's symbols, not the first one's", async () => {
+    const { api, store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    expect(store.usedSymbols.has("R001")).toBe(true);
+    mockDb.temples["fire-temple"] = templeRecord("fire-temple", [[WALL, "M0101"]], { M0101: { type: "monster" } });
+    await api.loadTemple("fire-temple", true);
+    expect(store.usedSymbols.has("R001")).toBe(false);
+    expect(store.symbolCounter).toBe(0);
+  });
+});
+
 describe("saveTemple", () => {
   it("writes the temple with the creator store's maze and rooms and says so in a toast", async () => {
     const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
@@ -794,17 +834,17 @@ describe("applyRawJson", () => {
     expect(result).toEqual({ success: true });
 
     const migratedMaze = [
-      [W, W, W, "_00_"],
+      [WALL, WALL, WALL, ENTRANCE],
       ["L12", "L0101", "M12", "H0301"],
       ["A0002", "V0102", "K0202", "R0302"],
-      ["R0003", "R0103", "R0203", W],
-      ["A1234", "R0104", "R0204", W],
+      ["R0003", "R0103", "R0203", WALL],
+      ["A1234", "R0104", "R0204", WALL],
     ];
     expect(plain(store.templeMaze)).toEqual(migratedMaze);
     // the shared R000 record goes to every cell that held it (R0003 and R0103), each with its own copy (changed with #1217:
     // it used to follow only the last cell, leaving R0003 with no record)
     expect(plain(store.roomsData)).toEqual({
-      [W]: { type: "wall" },
+      [WALL]: { type: "wall" },
       L0101: { type: "loot" },
       H0301: { type: "health" },
       A0002: { type: "mana" },
@@ -830,7 +870,7 @@ describe("applyRawJson", () => {
     expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 0], maze, rooms } }))).toEqual({
       success: true,
     });
-    expect(plain(store.templeMaze)).toEqual({ "1F": [[W, "O1234", "T0200"]], "2F": [["_00_", W, W]] });
+    expect(plain(store.templeMaze)).toEqual({ "1F": [[WALL, "O1234", "T0200"]], "2F": [[ENTRANCE, WALL, WALL]] });
     expect(plain(store.roomsData)).toEqual({ T0200: { type: "teleport" }, O1234: { type: "empty" } });
     expect(debug.log).toHaveBeenCalledWith("Normalized 1 room tokens in layout import.");
   });
@@ -840,8 +880,46 @@ describe("applyRawJson", () => {
     const maze = [[W, "M0101"]];
     const rooms = { M0101: { type: "monster" }, [W]: { type: "wall", x: 1 } };
     await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 0], maze, rooms } }));
-    expect(plain(store.templeMaze)).toEqual(maze);
-    expect(plain(store.roomsData)).toEqual({ M0101: { type: "monster" }, [W]: { type: "wall" } });
+    expect(plain(store.templeMaze)).toEqual([[WALL, "M0101"]]);
+    expect(plain(store.roomsData)).toEqual({ M0101: { type: "monster" }, [WALL]: { type: "wall" } });
     expect(debug.log).not.toHaveBeenCalledWith(expect.stringContaining("Normalized"));
+  });
+
+  // #1384: Apply without editing a layout the GM just painted ('E' = the editor's entrance, '_' = a blank cell)
+  it("keeps an entrance the creator painted as 'E' an entrance, and the blank cells walls", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    const maze = [["_", "_", "_"], ["_", "E", "M0101"], ["_", "_", "_"]];
+    await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [1, 1], maze, rooms: { M0101: { type: "monster" } } } }));
+    expect(plain(store.templeMaze)).toEqual([[WALL, WALL, WALL], [WALL, ENTRANCE, "M0101"], [WALL, WALL, WALL]]);
+    expect(mockDb.saved[0].dungeonLayout.maze[1][1]).toBe(ENTRANCE);
+  });
+
+  // #1386: the next creator Save runs store.migrateTokens; it must read what Apply wrote as walls and an entrance, not as rooms
+  describe("then the next creator Save (store.migrateTokens)", () => {
+    const savedMaze = (store: ReturnType<typeof useTempleCreatorStore>) => plain(store.templeMaze) as string[][];
+
+    it.each([
+      ["blank cells '_'", "_", "E"],
+      ["DSL names", "WALL", "EXIT"],
+      ["4-character tokens", "____", "_00_"],
+    ])("keeps every wall and the entrance for a layout with %s", async (_label, wall, door) => {
+      const { api, store } = await mountTempleData("wind-temple");
+      const maze = [[wall, wall, wall, wall], [wall, door, "M0101", wall], [wall, wall, wall, wall]];
+      await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [1, 1], maze, rooms: { M0101: { type: "monster" } } } }));
+      store.migrateTokens();
+      expect(savedMaze(store)).toEqual([[WALL, WALL, WALL, WALL], [WALL, ENTRANCE, "M0101", WALL], [WALL, WALL, WALL, WALL]]);
+      expect(Object.keys(plain(store.roomsData)).sort()).toEqual([ENTRANCE, WALL, "M0101"].sort());
+      expect(savedMaze(store).flat().filter((token) => /^R\d+$/.test(token))).toEqual([]);
+    });
+
+    it("keeps the wall and entrance records the pasted rooms held under the 4-character names", async () => {
+      const { api, store } = await mountTempleData("wind-temple");
+      const maze = [[W, "_00_"]];
+      const rooms = { [W]: { type: "wall" }, _00_: { type: "entrance", visited: true } };
+      await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 1], maze, rooms } }));
+      store.migrateTokens();
+      expect(savedMaze(store)).toEqual([[WALL, ENTRANCE]]);
+      expect(plain(store.roomsData)).toEqual({ [WALL]: { type: "wall" }, [ENTRANCE]: { type: "entrance", visited: true } });
+    });
   });
 });

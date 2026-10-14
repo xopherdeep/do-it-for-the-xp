@@ -238,10 +238,6 @@ export function useTempleData(templeId: string) {
 
       // Sync to creator store (the entrance, grid size and floor too: the save below writes the store's)
       if (parsedData.dungeonLayout) {
-        // Sanitize wall token definition if present
-        if (parsedData.dungeonLayout.rooms?.['____']) {
-          parsedData.dungeonLayout.rooms['____'] = { type: 'wall' };
-        }
         adoptStoredLayout(creatorStore, templeId, parsedData);
       }
 

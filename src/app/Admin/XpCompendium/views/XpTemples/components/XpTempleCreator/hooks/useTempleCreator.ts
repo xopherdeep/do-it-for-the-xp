@@ -29,10 +29,13 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 import { copyTextToClipboard } from "@/lib/utils/clipboard";
 import {
   blankFloorLayer,
+  floorKeysOf,
+  floorNameProblem,
   floorSlice,
   floorsAbove,
   floorsBelow,
   getEntranceFloor,
+  hasFloorNamed,
   levelIdAfterLoad,
   nextFloorOptions as nextFloorOptionsFor,
   sortedFloorKeys,
@@ -44,6 +47,7 @@ import {
   describeEntrance,
   mazeHasEntrance,
 } from "./grid/mazeReadouts";
+import { readGridSize } from "./grid/gridSize";
 import { buildInitialMaze, entranceCellOnFloor, resizeMaze } from "./grid/resizeMaze";
 import { defaultSides } from "./grid/doorSides";
 import { contentAfterTypeChange } from "./grid/roomContent";
@@ -54,6 +58,10 @@ import {
   isClearableRoomSymbol,
   isUniqueRoomSymbol,
 } from "./grid/roomSymbols";
+
+/** What a temple with nothing saved opens with: a 10x10 floor and the entrance at row 5, column 5 */
+const NEW_TEMPLE_GRID_SIZE = "10x10";
+const NEW_TEMPLE_ENTRANCE = "5,5";
 
 // Side type information for UI
 export const SIDE_TYPE_INFO: Record<
@@ -272,10 +280,6 @@ export function useTempleCreator(
     get: () => store.selectedCell,
     set: (val) => (store.selectedCell = val),
   });
-  const symbolCounter = computed({
-    get: () => store.symbolCounter,
-    set: (val) => (store.symbolCounter = val),
-  });
   const usedSymbols = computed({
     get: () => store.usedSymbols,
     set: (val) => (store.usedSymbols = val),
@@ -371,17 +375,26 @@ export function useTempleCreator(
     await customAlert.present();
   };
 
-  const addFloor = (levelId: string) => {
+  const addFloor = (name: string) => {
+    // Checked before the maze changes, so a refused name leaves the temple exactly as it was
+    const levelId = name.trim();
+    const problem = floorNameProblem(levelId);
+    if (problem) {
+      showToast(problem);
+      return;
+    }
+    if (hasFloorNamed(floorKeysOf(templeMaze.value), levelId)) {
+      showToast(`Floor ${levelId} is there already`);
+      return;
+    }
+
     if (Array.isArray(templeMaze.value)) {
       const firstFloor = JSON.parse(JSON.stringify(templeMaze.value));
       templeMaze.value = { "1F": firstFloor };
     }
 
-    if (!(templeMaze.value as Record<string, string[][]>)[levelId]) {
-      const newLayer = blankFloorLayer(gridSize.value);
-      (templeMaze.value as Record<string, string[][]>)[levelId] = newLayer;
-      currentLevelId.value = levelId;
-    }
+    (templeMaze.value as Record<string, string[][]>)[levelId] = blankFloorLayer(gridSize.value);
+    currentLevelId.value = levelId;
   };
 
   /** The temple as the entrance moves read and change it, in place: painting the entrance, or removing a floor */
@@ -438,22 +451,16 @@ export function useTempleCreator(
     }
   };
 
-  const generateUniqueSymbol = (): string => {
-    let newSymbol = "";
-    do {
-      symbolCounter.value++;
-      newSymbol = `R${symbolCounter.value.toString().padStart(3, "0")}`;
-    } while (usedSymbols.value.has(newSymbol));
-    usedSymbols.value.add(newSymbol);
-    return newSymbol;
-  };
+  // The store's counter and used set are the only ones, and it skips every symbol a room record already holds
+  const generateUniqueSymbol = (): string => store.generateUniqueSymbol();
 
   const resizeGrid = () => {
-    const [newRows, newCols] = gridSize.value.split("x").map(Number);
+    const newSize = readGridSize(gridSize.value);
+    if (!newSize) return; // not a grid: the floor stays as it is
     const resized = resizeMaze(
       currentMazeSlice.value,
-      newRows,
-      newCols,
+      newSize.rows,
+      newSize.cols,
       entrancePosition.value,
       templeMaze.value,
       currentLevelId.value
@@ -796,10 +803,7 @@ export function useTempleCreator(
           handler: () => {
             if (isPrimaryFloor) {
               // Just clear the 1F grid
-              const [rows, cols] = gridSize.value.split("x").map(Number);
-              const newSlice = Array(rows)
-                .fill(null)
-                .map(() => Array(cols).fill(____));
+              const newSlice = blankFloorLayer(gridSize.value);
               if (Array.isArray(store.templeMaze)) {
                 store.templeMaze = newSlice;
               } else {
@@ -861,10 +865,10 @@ export function useTempleCreator(
         debug.log(
           "useTempleCreator: New temple or no layout found, creating defaults"
         );
-        // New temple or no layout - force defaults
-        gridSize.value = "10x10";
-        entrancePosition.value = "5,5";
+        // New temple or no layout: start from a clean store, then the new-temple defaults (reset puts back its own 6x6 / 5,2)
         store.reset();
+        gridSize.value = NEW_TEMPLE_GRID_SIZE;
+        entrancePosition.value = NEW_TEMPLE_ENTRANCE;
         store.templeId = props.templeId;
         store.markAsLoaded(props.templeId);
       }

@@ -380,6 +380,10 @@ describe("mazeContents", () => {
   });
 });
 
+// The creator store's own spellings of the shared tokens (temple-creator.ts): what the import writes
+const WALL = "_____";
+const ENTRANCE = "_00__";
+
 describe("tokenMigration", () => {
   describe("parseTempleJson", () => {
     it("returns the parsed temple", () => {
@@ -413,10 +417,18 @@ describe("tokenMigration", () => {
       expect(run("m0101", 2, 2)).toEqual({ result: "m0101", mapping: {} });
     });
 
-    it("turns the wall and entrance names into the shared tokens and never migrates them", () => {
-      expect(["WALL", "_", W, ""].map((token) => run(token, 1, 1).result)).toEqual([W, W, W, W]);
-      expect(["EXIT", "_00_"].map((token) => run(token, 1, 1).result)).toEqual(["_00_", "_00_"]);
+    it("turns every wall spelling into the store's wall token and never migrates it", () => {
+      expect(["WALL", "_", W, WALL, ""].map((token) => run(token, 1, 1).result)).toEqual([WALL, WALL, WALL, WALL, WALL]);
       expect(run("WALL", 1, 1).mapping).toEqual({});
+      expect(run(W, 1, 1).mapping).toEqual({});
+    });
+
+    // #1384: the editor's own entrance token 'E' is not in the static table; it used to fall to the last resort and become a wall
+    it("turns every entrance spelling, the editor's 'E' included, into the store's entrance token and never migrates it", () => {
+      expect(["E", "EXIT", "_00_", ENTRANCE].map((token) => run(token, 1, 1).result)).toEqual([ENTRANCE, ENTRANCE, ENTRANCE, ENTRANCE]);
+      expect(run("E", 1, 1).result).not.toBe(WALL);
+      expect(run("E", 1, 1).mapping).toEqual({});
+      expect(run("EXIT", 1, 1).mapping).toEqual({});
     });
 
     it("reads a $ loot token as L", () => {
@@ -439,7 +451,7 @@ describe("tokenMigration", () => {
     it("keeps a short or long unknown token as it is and turns a 2 or 3 character one into the wall", () => {
       expect(run("M12", 1, 1)).toEqual({ result: "M12", mapping: {} });
       expect(run("12345", 0, 0)).toEqual({ result: "12345", mapping: {} });
-      expect(run("xyz", 3, 3)).toEqual({ result: W, mapping: {} });
+      expect(run("xyz", 3, 3)).toEqual({ result: WALL, mapping: {} });
     });
 
     it("renames but does not migrate a token when the cell is not known", () => {
@@ -486,8 +498,8 @@ describe("tokenMigration", () => {
         dungeonLayout: { maze: [["WALL", "L123"], ["H", "xyz"]], rooms: { L123: { type: "loot" }, HEAL: { type: "health" }, [W]: { type: "wall" } } },
       };
       normalizeImportedLayout(parsed);
-      expect(parsed.dungeonLayout.maze).toEqual([[W, "L0100"], ["H0001", W]]);
-      expect(parsed.dungeonLayout.rooms).toEqual({ L0100: { type: "loot" }, H0001: { type: "health" }, [W]: { type: "wall" } });
+      expect(parsed.dungeonLayout.maze).toEqual([[WALL, "L0100"], ["H0001", WALL]]);
+      expect(parsed.dungeonLayout.rooms).toEqual({ L0100: { type: "loot" }, H0001: { type: "health" }, [WALL]: { type: "wall" } });
       expect(debug.log).toHaveBeenCalledWith("Normalized 2 room tokens in layout import.");
     });
 
@@ -496,15 +508,42 @@ describe("tokenMigration", () => {
       const floors = parsed.dungeonLayout.maze;
       normalizeImportedLayout(parsed);
       expect(parsed.dungeonLayout.maze).toBe(floors);
-      expect(floors).toEqual({ "1F": [["_00_", "R0100"]], "2F": [[W, "R0100"]] });
+      expect(floors).toEqual({ "1F": [[ENTRANCE, "R0100"]], "2F": [[WALL, "R0100"]] });
     });
 
     it("keeps the room records and says nothing when no token was renamed", () => {
       const rooms = { M0101: { type: "monster" } };
-      const parsed = { id: "x", dungeonLayout: { maze: [[W, "M0101"]], rooms } };
+      const parsed = { id: "x", dungeonLayout: { maze: [[WALL, "M0101"]], rooms } };
       normalizeImportedLayout(parsed);
       expect(parsed.dungeonLayout.rooms).toBe(rooms);
+      expect(rooms).toEqual({ M0101: { type: "monster" } });
       expect(debug.log).not.toHaveBeenCalled();
+    });
+
+    // #1386: a wall cell written as '_____' with its record left under '____' (or the other way round) is a room nobody can find
+    it("moves the wall record to the store's wall token and keeps only its type, whichever spelling it came under", () => {
+      for (const spelling of [W, "_", "WALL", WALL]) {
+        const parsed = { id: "x", dungeonLayout: { maze: [[spelling, "M0101"]], rooms: { [spelling]: { type: "wall", note: "x" }, M0101: { type: "monster" } } } };
+        normalizeImportedLayout(parsed);
+        expect(parsed.dungeonLayout.maze).toEqual([[WALL, "M0101"]]);
+        expect(parsed.dungeonLayout.rooms).toEqual({ [WALL]: { type: "wall" }, M0101: { type: "monster" } });
+      }
+    });
+
+    it("moves the entrance record to the store's entrance token and keeps its fields", () => {
+      for (const spelling of ["_00_", "E", "EXIT", ENTRANCE]) {
+        const parsed = { id: "x", dungeonLayout: { maze: [[spelling]], rooms: { [spelling]: { type: "entrance", visited: true } } } };
+        normalizeImportedLayout(parsed);
+        expect(parsed.dungeonLayout.maze).toEqual([[ENTRANCE]]);
+        expect(parsed.dungeonLayout.rooms).toEqual({ [ENTRANCE]: { type: "entrance", visited: true } });
+      }
+    });
+
+    it("adds no wall or entrance record to rooms that held none", () => {
+      const parsed = { id: "x", dungeonLayout: { maze: [["_", "E", "M0101"]], rooms: { M0101: { type: "monster" } } } };
+      normalizeImportedLayout(parsed);
+      expect(parsed.dungeonLayout.maze).toEqual([[WALL, ENTRANCE, "M0101"]]);
+      expect(parsed.dungeonLayout.rooms).toEqual({ M0101: { type: "monster" } });
     });
 
     // Changed with #1217: the record used to be renamed to the last cell's token only (the earlier cell lost it)

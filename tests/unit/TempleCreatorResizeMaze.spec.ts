@@ -14,6 +14,7 @@ import {
   readEntrancePosition,
   resizeMaze,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/resizeMaze";
+import { readGridSide, readGridSize } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/gridSize";
 
 describe("isInsideGrid", () => {
   it("accepts every cell of the grid and nothing past an edge", () => {
@@ -380,8 +381,76 @@ describe("resizeMaze", () => {
     expect(entranceOutsideGrid).toBe(false);
   });
 
-  it("throws for a grid with no rows because the entrance has no cell to go back to", () => {
-    expect(() => resizeMaze([["R001"]], 0, 0, "0,0")).toThrow(TypeError);
+  // Changed with #1388: a cleared or 0 size field gave 0 rows, and the entrance reset indexed newMaze[0][0] of nothing
+  it.each([
+    [0, 0],
+    [0, 3],
+    [3, 0],
+    [-3, 3],
+    [3, NaN],
+    [2.5, 3],
+  ])("returns the grid unchanged, with the entrance where it was, for the size %s x %s", (rows, cols) => {
+    const old = [
+      [_00_, "R001"],
+      ["R002", "R003"],
+    ];
+    const result = resizeMaze(old, rows, cols, "0,0");
+    expect(result.maze).toEqual(old);
+    expect(result.maze).not.toBe(old);
+    expect(result.entranceOutsideGrid).toBe(false);
+    expect(result.entrancePosition).toBe("0,0");
+  });
+
+  it("keeps a floor's 'floor,row,col' entrance position when the size is unusable", () => {
+    const floors = { "1F": [], "2F": [] };
+    const old = [["R001", _00_]];
+    expect(resizeMaze(old, 0, 2, "1,0,1", floors, "2F")).toEqual({
+      maze: old,
+      entranceOutsideGrid: false,
+      entrancePosition: "1,0,1",
+    });
+  });
+});
+
+describe("readGridSide", () => {
+  it("reads a whole number from 1 to 50", () => {
+    expect(readGridSide("1")).toBe(1);
+    expect(readGridSide("10")).toBe(10);
+    expect(readGridSide("50")).toBe(50);
+  });
+
+  it("reads nothing from an empty field, 0, a negative, a fraction, text or a number past the max", () => {
+    for (const typed of ["", "  ", "0", "-3", "2.5", "abc", "51", "99", "Infinity"]) {
+      expect(readGridSide(typed)).toBeNull();
+    }
+  });
+});
+
+describe("readGridSize", () => {
+  it("reads the rows and columns of an 'RxC' size", () => {
+    expect(readGridSize("6x6")).toEqual({ rows: 6, cols: 6 });
+    expect(readGridSize("3x12")).toEqual({ rows: 3, cols: 12 });
+  });
+
+  it("does not cap a side: a temple drawn past the header's max still reads", () => {
+    expect(readGridSize("60x40")).toEqual({ rows: 60, cols: 40 });
+  });
+
+  it("reads nothing from a size with a side that is empty, 0, negative, a fraction or text, or with more or fewer than two", () => {
+    for (const size of ["x10", "10x", "0x10", "10x0", "-3x10", "2.5x4", "axb", "6", "", "6x6x6"]) {
+      expect(readGridSize(size)).toBeNull();
+    }
+  });
+});
+
+describe("buildInitialMaze with a size that cannot be a grid", () => {
+  it("builds the editor's starting 6x6 instead of a grid with no rows", () => {
+    for (const size of ["x10", "0x10", "-3x10", "10x"]) {
+      const grid = buildInitialMaze(size, "0,0", [], "1F");
+      expect(grid).toHaveLength(6);
+      expect(grid.every((row) => row.length === 6)).toBe(true);
+      expect(grid[0][0]).toBe(_00_);
+    }
   });
 });
 

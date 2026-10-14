@@ -91,6 +91,7 @@ import {
 import { play$fx } from '@/assets/fx';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { auditTemple, missingNames, shortList } from '@/lib/services/temples/templeAudit';
+import { readGridSide } from './hooks/grid/gridSize';
 
 export default defineComponent({
   name: 'XpTempleCreatorHeader',
@@ -130,15 +131,26 @@ export default defineComponent({
     const gridHeight = computed(() => props.gridSize.split('x')[0]);
     const gridWidth = computed(() => props.gridSize.split('x')[1]);
 
+    // A side that is not a whole number from 1 to 50 (cleared field, 0, -3, 99) keeps the last good size: the field
+    // goes back to it by hand, as the bound value did not change and Vue will not redraw it
+    const typedSide = (event: Event, lastGoodSide: string): number | null => {
+      const input = event.target as HTMLInputElement;
+      const side = readGridSide(input.value);
+      if (side === null) input.value = lastGoodSide;
+      return side;
+    };
+
     const updateHeight = (event: Event) => {
-      const val = (event.target as HTMLInputElement).value;
-      emit('update:gridSize', `${val}x${gridWidth.value}`);
+      const side = typedSide(event, gridHeight.value);
+      if (side === null) return;
+      emit('update:gridSize', `${side}x${gridWidth.value}`);
       emit('resize');
     };
 
     const updateWidth = (event: Event) => {
-      const val = (event.target as HTMLInputElement).value;
-      emit('update:gridSize', `${gridHeight.value}x${val}`);
+      const side = typedSide(event, gridWidth.value);
+      if (side === null) return;
+      emit('update:gridSize', `${gridHeight.value}x${side}`);
       emit('resize');
     };
 

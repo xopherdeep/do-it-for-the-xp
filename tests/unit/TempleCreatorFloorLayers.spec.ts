@@ -13,7 +13,10 @@ import {
   floorsAbove,
   floorsBelow,
   getEntranceFloor,
+  floorNameProblem,
   getFloorValue,
+  hasFloorNamed,
+  isValidFloorName,
   levelIdAfterLoad,
   measureGridSize,
   nextFloorOptions,
@@ -147,6 +150,48 @@ describe("blankGrid and blankFloorLayer", () => {
     expect(layer).toHaveLength(2);
     expect(layer[0]).toHaveLength(4);
     expect(layer.every((row) => row.every((cell) => cell === ____))).toBe(true);
+  });
+
+  // With readGridSize (#1388): a size that is not a grid never builds a floor with no rows or columns, or a NaN-sided one
+  it.each(["0x5", "5x0", "x10", "10x", "-3x4", "2.5x4", "abc", "", "3x3x3"])(
+    "builds the 6x6 starting grid for the unreadable size %p",
+    (size) => {
+      const layer = blankFloorLayer(size);
+      expect(layer).toHaveLength(6);
+      expect(layer.every((row) => row.length === 6 && row.every((cell) => cell === ____))).toBe(true);
+    }
+  );
+});
+
+// #1391: a name of only digits is an array-index key of a JS object, so Object.keys lists it first whatever the order
+// the floors were drawn in, and the entrance's floor index (which counts Object.keys) would land on the new floor
+describe("floor names", () => {
+  it("lists a digits-only name first, which is why such a name is refused", () => {
+    expect(Object.keys({ "1F": 1, "2F": 2, "3": 3 })).toEqual(["3", "1F", "2F"]);
+  });
+
+  it("refuses a name of only digits, with or without spaces around it", () => {
+    expect(["3", "10", "007", " 4 "].map(isValidFloorName)).toEqual([false, false, false, false]);
+    expect(floorNameProblem("3")).toBe("A floor name can't be only digits: try 3F");
+    expect(floorNameProblem(" 10 ")).toBe("A floor name can't be only digits: try 10F");
+  });
+
+  it("refuses a name with nothing in it", () => {
+    expect(["", " ", "\t"].map(isValidFloorName)).toEqual([false, false, false]);
+    expect(floorNameProblem("  ")).toBe("A floor needs a name");
+  });
+
+  it("accepts a name that is not only digits", () => {
+    expect(["3F", "B1", "Attic", "Roof 2", "-3", "1e3", " 2F "].map(isValidFloorName)).toEqual([true, true, true, true, true, true, true]);
+    expect(floorNameProblem("3F")).toBeNull();
+  });
+
+  it("finds a floor of the same name whatever the case: '2f' would stand at ground level next to '2F'", () => {
+    expect(hasFloorNamed(["1F", "2F"], "2F")).toBe(true);
+    expect(hasFloorNamed(["1F", "2F"], "2f")).toBe(true);
+    expect(hasFloorNamed(["1F", "Attic"], "ATTIC")).toBe(true);
+    expect(hasFloorNamed(["1F", "2F"], "3F")).toBe(false);
+    expect(hasFloorNamed([], "1F")).toBe(false);
   });
 });
 

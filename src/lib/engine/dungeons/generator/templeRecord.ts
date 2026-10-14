@@ -47,3 +47,36 @@ export const toTempleRecord = (temple: GeneratedTemple): TempleInterface => ({
     rooms: JSON.parse(JSON.stringify(temple.rooms)),
   },
 });
+
+/** The first free id for a copy of a generated temple: `base` as it is when free, else `base-2`, `base-3` ... */
+export const uniqueGeneratedTempleId = (existingIds: Iterable<string>, base: string): string => {
+  const taken = new Set(existingIds);
+  if (!taken.has(base)) return base;
+  let copyNumber = 2;
+  while (taken.has(`${base}-${copyNumber}`)) copyNumber++;
+  return `${base}-${copyNumber}`;
+};
+
+/** What the Game Master answers when the id of a generated temple already holds a temple */
+export type TakenIdAnswer = "replace" | "copy" | "cancel";
+
+/**
+ * What to write for a freshly generated `record`, or null for nothing. The id is the seed's slug and ignores the
+ * options, so saving a seed again can land on a temple the Game Master has since edited in the Temple Creator: that
+ * one is never written over without `ask` saying so. A free id, or one that already holds exactly this generation
+ * (a second press of Save), needs no answer. "copy" saves under the first free `gen-<seed>-2`, `-3` ...
+ */
+export const recordToSave = async (
+  record: TempleInterface,
+  store: { getTempleById(id: string): Promise<TempleInterface | null>; keys(): Promise<string[]> },
+  ask: (takenId: string) => Promise<TakenIdAnswer>
+): Promise<TempleInterface | null> => {
+  const stored = await store.getTempleById(record.id);
+  const isFreeOrUnchanged = !stored || JSON.stringify(stored) === JSON.stringify(record);
+  if (isFreeOrUnchanged) return record;
+
+  const answer = await ask(record.id);
+  if (answer === "replace") return record;
+  if (answer === "copy") return { ...record, id: uniqueGeneratedTempleId(await store.keys(), record.id) };
+  return null;
+};

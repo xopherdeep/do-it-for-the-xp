@@ -20,8 +20,8 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 /**
  * Copies a stored temple into the store: name and icon, the entrance (with its floor, "floor,row,col"), the maze with
- * the grid size it measures, the rooms, and a floor to show that the maze has. Every loader goes through here, so the
- * working copy never keeps the defaults of an entrance, grid size or floor the record names.
+ * the grid size it measures, the rooms, the symbols they use, and a floor to show that the maze has. Every loader goes
+ * through here, so the working copy never keeps the defaults of an entrance, grid size, floor or symbol set the record names.
  */
 export const adoptStoredLayout = (store: CreatorStore, id: string, record: StoredTemple): void => {
   const layout = record.dungeonLayout;
@@ -48,6 +48,9 @@ export const adoptStoredLayout = (store: CreatorStore, id: string, record: Store
   if (layout.rooms) {
     store.roomsData = clone(layout.rooms);
   }
+
+  // The symbols the stored rooms already hold, so a new room never reissues one (and overwrites its record)
+  store.rebuildSymbols();
 
   // A floor the maze lacks would read as a blank grid, and the editor would offer to start the maze over
   store.currentLevelId = levelIdAfterLoad(store.templeMaze, store.currentLevelId);

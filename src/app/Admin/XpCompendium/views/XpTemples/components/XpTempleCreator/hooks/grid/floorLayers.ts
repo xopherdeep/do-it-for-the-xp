@@ -5,6 +5,7 @@
  */
 import { ____ } from "@/lib/engine/dungeons/roomTypes";
 import { climbOrder, floorHeight } from "@/lib/engine/core/dungeons/floorOrder";
+import { readGridSize, STARTING_GRID } from "./gridSize";
 
 export type MazeData = string[][] | Record<string, string[][]>;
 
@@ -17,6 +18,24 @@ export const floorKeysOf = (maze: MazeData): string[] =>
 
 /** Every floor, lowest (deepest basement) first: the order play, the audit and the solver climb stairs in too */
 export const sortedFloorKeys = (maze: MazeData): string[] => climbOrder(floorKeysOf(maze));
+
+/**
+ * Why a floor cannot take this name, worded for the toast; null when it can. A name of only digits ("3", "10") is an
+ * array-index key of a JS object, which Object.keys lists first whatever the order the floors were drawn in, and the
+ * entrance's floor index counts Object.keys: such a floor would take the entrance's place.
+ */
+export const floorNameProblem = (name: string): string | null => {
+  const trimmed = name.trim();
+  if (trimmed === "") return "A floor needs a name";
+  if (/^\d+$/.test(trimmed)) return `A floor name can't be only digits: try ${trimmed}F`;
+  return null;
+};
+
+export const isValidFloorName = (name: string): boolean => floorNameProblem(name) === null;
+
+/** Whether a floor of this name is there already, whatever the case ("2f" would stand at ground level next to "2F") */
+export const hasFloorNamed = (floors: readonly string[], name: string): boolean =>
+  floors.some((floor) => floor.toLowerCase() === name.trim().toLowerCase());
 
 export const floorsAbove = (floors: string[], currentLevelId: string): string[] => {
   const currentVal = getFloorValue(currentLevelId);
@@ -77,9 +96,9 @@ export const blankGrid = (rows: number, cols: number): string[][] => {
   return grid;
 };
 
-/** A blank grid for a "RxC" grid size */
+/** A blank grid for a "RxC" grid size; a size that is not a grid never builds a floor with no rows or columns */
 export const blankFloorLayer = (gridSize: string): string[][] => {
-  const [rows, cols] = gridSize.split("x").map(Number);
+  const { rows, cols } = readGridSize(gridSize) ?? STARTING_GRID;
   return blankGrid(rows, cols);
 };
 

@@ -4,6 +4,8 @@
  * the room records renamed to match.
  */
 import debug from "@/lib/utils/debug";
+import { isEntranceToken, isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { ENTRANCE_TOKEN, WALL_TOKEN } from "@/lib/store/stores/temple-creator";
 
 export const parseTempleJson = (jsonStr: string) => {
   const parsedData = JSON.parse(jsonStr);
@@ -25,11 +27,12 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
 
     let result = token;
 
-    // 2. Map legacy/short tokens to standard formats
-    if (['____', '_', 'WALL'].includes(token)) {
-      result = '____';
-    } else if (token === '_00_' || token === 'EXIT') {
-      result = '_00_';
+    // 2. Map legacy/short tokens to standard formats. The shared wall and entrance take the creator store's own
+    // spellings (the editor's 'E' and '_' too), the ones its migrateTokens and every token predicate know
+    if (isWallToken(token)) {
+      result = WALL_TOKEN;
+    } else if (isEntranceToken(token)) {
+      result = ENTRANCE_TOKEN;
     } else if (/^[L$]\d{2,4}$/.test(token)) {
       // Loot
       result = token.startsWith('$') ? token.replace('$', 'L') : token;
@@ -53,15 +56,15 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
         'COMP': 'COMP', '$MAP': '$MAP'
       };
       result = mapping[token] || (
-        // Last resort: If 4 or 5 chars, keep it. Otherwise map to Wall (____)
-        (token.length === 4 || token.length === 5) ? token : '____'
+        // Last resort: If 4 or 5 chars, keep it. Otherwise map to the wall
+        (token.length === 4 || token.length === 5) ? token : WALL_TOKEN
       );
     }
 
     // 4. Force migrate R-style or legacy tokens to coordinate format if possible (Standardization)
     // This ensures the current maze matches the TXXYY format we are moving towards.
     const isLegacyToken = result.startsWith('R') || result.length === 4;
-    const isSharedToken = result === '____' || result === '_00_';
+    const isSharedToken = isWallToken(result) || isEntranceToken(result);
     const shouldMigrateToCoordToken = isLegacyToken && rowIdx !== undefined && colIdx !== undefined && !isSharedToken;
     if (shouldMigrateToCoordToken) {
       const type = parsedData.dungeonLayout?.rooms?.[result]?.type || 'empty';
@@ -87,6 +90,21 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
 
     return result;
   };
+};
+
+/**
+ * Moves the wall and entrance records (if the rooms hold any) under the store's tokens, which the maze now spells them
+ * with. A wall is only ever { type: 'wall' }, so its record is rebuilt; the entrance record keeps its fields. Rooms
+ * that held neither stay without, as the store's migrateTokens adds them on the next Save.
+ */
+const rekeySharedRecords = (rooms: Record<string, any>) => {
+  const wallKeys = Object.keys(rooms).filter(isWallToken);
+  const entranceKeys = Object.keys(rooms).filter(isEntranceToken);
+  const entranceRecord = rooms[ENTRANCE_TOKEN] ?? rooms[entranceKeys[0]];
+
+  [...wallKeys, ...entranceKeys].forEach((key) => delete rooms[key]);
+  if (wallKeys.length > 0) rooms[WALL_TOKEN] = { type: 'wall' };
+  if (entranceKeys.length > 0) rooms[ENTRANCE_TOKEN] = entranceRecord;
 };
 
 /** Rewrites the maze tokens of the parsed temple in place and renames its room records to the new tokens */
@@ -133,4 +151,6 @@ export const normalizeImportedLayout = (parsedData: any) => {
     parsedData.dungeonLayout.rooms = newRooms;
     debug.log(`Normalized ${tokenMapping.size} room tokens in layout import.`);
   }
+
+  if (parsedData.dungeonLayout?.rooms) rekeySharedRecords(parsedData.dungeonLayout.rooms);
 };

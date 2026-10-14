@@ -4,7 +4,7 @@
  */
 import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { TempleState } from "@/lib/engine/core/dungeons/TempleSystem";
-import { chestDungeonItem, grantsBossKey } from "@/lib/services/temples/roomGrants";
+import { chestDungeonItem, grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 import { getItemIcon } from "./templeLookups";
 import { isRoom, type DungeonLayout } from "./mazeFloors";
 
@@ -153,14 +153,17 @@ export const filterMonstersByTier = (monsters: { size: string, count: number }[]
   }
 };
 
-/** Key chests and locked doors among the room records; a locked door shows on both rooms that share the edge, so the lock count is halved */
+/**
+ * Small keys play hands out (roomGrants.smallKeysGranted: key chests, Key rooms, a loot room's "key" rows) and locked
+ * doors among the room records; a locked door shows on both rooms that share the edge, so the lock count is halved.
+ * A record drawn by several cells counts once.
+ */
 export const countKeysAndLocks = (rooms: Record<string, any>) => {
   let totalKeys = 0;
   let totalLockedDoors = 0;
 
   Object.values(rooms).forEach((room: any) => {
-    const isKeyChest = chestDungeonItem(room) === 'key';
-    if (isKeyChest) totalKeys++;
+    totalKeys += smallKeysGranted(room);
 
     // Check locked doors
     if (room.sides) {
