@@ -1,0 +1,62 @@
+@use "gameStyle" as *;
+
+// Super Mario RPG: bubbly rounded windows in warm pastel cream with a white and red border,
+// a gold star for the cursor; menus under a bright cloudy sky.
+ion-app#marioRpg {
+  --gs-font: "Jersey 15", "StatusPlz", sans-serif;
+  --gs-font-title: "Jersey 15", "StatusPlz", sans-serif;
+  --gs-text: #3a2414;
+  --gs-text-dim: #7a5a3a;
+  --gs-accent: #d03838;
+  --gs-text-shadow: none;
+  --gs-font-adjust: 0.58;
+
+  --gs-page-color: #78c8f8;
+  --gs-page:
+    radial-gradient(ellipse 60px 22px at 20% 30%, #ffffff 60%, transparent 62%) 0 0 / 360px 320px,
+    radial-gradient(ellipse 80px 26px at 75% 70%, #ffffff 60%, transparent 62%) 0 0 / 360px 320px,
+    radial-gradient(ellipse 40px 14px at 50% 50%, rgba(255, 255, 255, 0.85) 60%, transparent 62%) 120px 60px / 280px 260px,
+    linear-gradient(180deg, #58b0f0 0%, #98d8f8 70%, #c8f0ff 100%);
+
+  --gs-window-color: #fff0c0;
+  --gs-window: linear-gradient(180deg, #fffae0 0%, #fff0c0 55%, #ffd890 100%);
+  --gs-radius: 16px;
+  // white rim, red ring, dark outline
+  --gs-frame: 0 0 0 3px #ffffff, 0 0 0 6px #e05050, 0 0 0 8px #602020, 0 4px 0 8px rgba(96, 32, 32, 0.35);
+
+  --gs-bar: linear-gradient(180deg, #fffae0 0%, #ffe0a0 100%);
+  --gs-bar-frame: 0 3px 0 0 #ffffff, 0 6px 0 0 #e05050, 0 8px 0 0 #602020;
+
+  --gs-divider: rgba(122, 90, 58, 0.25);
+  --gs-select: rgba(240, 152, 24, 0.18);
+  --gs-cursor: #{$gs-star-cursor};
+  --gs-cursor-w: 14px;
+  --gs-cursor-h: 14px;
+
+  --ion-color-primary: #e05050;
+  --ion-color-primary-rgb: 224, 80, 80;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #c54646;
+  --ion-color-primary-tint: #e36262;
+
+  @include game-style-surfaces;
+
+  ion-toolbar.rpg-box ion-title {
+    color: var(--gs-accent);
+    font-size: 25px;
+  }
+
+  // The star spins instead of bobbing
+  ion-card ion-item:hover::before,
+  ion-card ion-item.ion-focused::before,
+  .action-sheet-button:hover::before {
+    animation: mario-star 1s steps(4, end) infinite;
+  }
+}
+
+@keyframes mario-star {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}

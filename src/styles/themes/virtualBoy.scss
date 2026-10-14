@@ -1,0 +1,62 @@
+@use "gameStyle" as *;
+
+// Virtual Boy: red on black and nothing else, the handheld's four reds, a scanline glow and a
+// thin double red frame.
+ion-app#virtualBoy {
+  --gs-font: "Tiny5", "StatusPlz", sans-serif;
+  --gs-font-title: "Silkscreen", "Tiny5", sans-serif;
+  --gs-title-case: uppercase;
+  --gs-text: #ff2a2a;
+  --gs-text-dim: #b00000;
+  --gs-accent: #ff5050;
+  --gs-text-shadow: 0 0 3px rgba(255, 0, 0, 0.6);
+  --gs-font-adjust: 0.56;
+
+  --gs-page-color: #000000;
+  --gs-page:
+    linear-gradient(90deg, rgba(255, 0, 0, 0.07) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(rgba(255, 0, 0, 0.07) 1px, transparent 1px) 0 0 / 32px 32px,
+    #000000;
+
+  --gs-window-color: #000000;
+  --gs-window:
+    repeating-linear-gradient(180deg, rgba(85, 0, 0, 0.35) 0 1px, transparent 1px 3px),
+    #000000;
+  --gs-radius: 2px;
+  --gs-frame: 0 0 0 2px #ff0000, 0 0 0 4px #000000, 0 0 0 5px #aa0000, 0 0 10px 4px rgba(255, 0, 0, 0.25);
+
+  --gs-bar: #000000;
+  --gs-bar-frame: 0 2px 0 0 #ff0000, 0 4px 0 0 #000000, 0 5px 0 0 #aa0000;
+
+  --gs-divider: rgba(170, 0, 0, 0.5);
+  --gs-select: rgba(255, 0, 0, 0.12);
+  --gs-cursor: #{gs-arrow-cursor("ff0000")};
+  --gs-cursor-w: 8px;
+  --gs-cursor-h: 14px;
+
+  --ion-color-primary: #ff0000;
+  --ion-color-primary-rgb: 255, 0, 0;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #e00000;
+  --ion-color-primary-tint: #ff1a1a;
+
+  @include game-style-surfaces;
+
+  ion-toolbar.rpg-box ion-title {
+    color: var(--gs-accent);
+    font-size: 18px;
+  }
+
+  .settings-card ion-card-title {
+    font-size: 12px !important;
+    letter-spacing: 0;
+  }
+
+  // Pictures go red too, like everything on the headset's screen
+  ion-thumbnail img,
+  ion-avatar img,
+  ion-card img {
+    filter: grayscale(1) sepia(1) saturate(6) hue-rotate(-50deg) brightness(0.8);
+  }
+}

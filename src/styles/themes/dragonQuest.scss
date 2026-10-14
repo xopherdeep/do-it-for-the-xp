@@ -1,0 +1,52 @@
+@use "gameStyle" as *;
+
+// Dragon Quest: plain black windows inside a thick rounded white border, white text and
+// nothing else, a blinking triangle for the cursor; menus over a black field.
+ion-app#dragonQuest {
+  --gs-font: "DotGothic16", "StatusPlz", sans-serif;
+  --gs-font-title: "DotGothic16", "StatusPlz", sans-serif;
+  --gs-text: #f8f8f8;
+  --gs-text-dim: #b0b0b0;
+  --gs-accent: #f8f8f8;
+  --gs-text-shadow: none;
+
+  --gs-page-color: #000000;
+  --gs-page: #000000;
+
+  --gs-window-color: #000000;
+  --gs-window: #000000;
+  --gs-radius: 9px;
+  // a black gap, the thick white line, a black rim
+  --gs-frame: 0 0 0 3px #000000, 0 0 0 7px #f8f8f8, 0 0 0 9px #000000;
+
+  --gs-bar: #000000;
+  --gs-bar-frame: 0 3px 0 0 #000000, 0 7px 0 0 #f8f8f8, 0 9px 0 0 #000000;
+
+  --gs-divider: rgba(248, 248, 248, 0.25);
+  --gs-select: transparent;
+  --gs-cursor: #{gs-arrow-cursor("f8f8f8")};
+  --gs-cursor-w: 9px;
+  --gs-cursor-h: 15px;
+
+  --ion-color-primary: #f8f8f8;
+  --ion-color-primary-rgb: 248, 248, 248;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #dadada;
+  --ion-color-primary-tint: #f9f9f9;
+
+  @include game-style-surfaces;
+
+  // The cursor blinks in place instead of bobbing
+  ion-card ion-item:hover::before,
+  ion-card ion-item.ion-focused::before,
+  .action-sheet-button:hover::before {
+    animation: dq-blink 0.8s steps(1, end) infinite;
+  }
+}
+
+@keyframes dq-blink {
+  50% {
+    opacity: 0;
+  }
+}
