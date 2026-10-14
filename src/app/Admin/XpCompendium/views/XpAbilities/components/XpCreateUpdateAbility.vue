@@ -70,6 +70,18 @@
             @update:model-value="setBoardEffect"
           />
           <p class="pw-note">None is a privilege you grant yourself, like a movie night.</p>
+
+          <h2 class="pw-sub">Timer</h2>
+          <xp-power-counter
+            label="Minutes once cast"
+            hint="A countdown shows and says when time is up. 0 means no timer."
+            unit="min"
+            :step="15"
+            :max="MAX_TIMER_MINUTES"
+            :model-value="ability.timerMinutes ?? 0"
+            data-test="timer-minutes"
+            @update:model-value="setTimerMinutes"
+          />
         </section>
 
         <section v-else class="pw-section" data-test="step-does">
@@ -269,6 +281,7 @@
   import { BATTLE_EFFECT_OPTIONS, battleEffectOf } from "@/lib/services/battle/BattlePowers";
   import { POWER_BOARD_EFFECT_OPTIONS, boardEffectOfPower } from "@/lib/services/abilities/PowerBoardEffects";
   import { lastIndex } from "@/lib/services/wizard/wizardSteps";
+  import { MAX_TIMER_MINUTES } from "@/lib/services/abilities/PowerTimers";
   import debug from "@/lib/utils/debug";
   import XpPowerChoices from "./XpPowerChoices.vue";
   import XpPowerCounter from "./XpPowerCounter.vue";
@@ -372,6 +385,7 @@
 
       // ---- Step 2 ----------------------------------------------------------------------------------------------
       const setBoardEffect = (value: string) => patch({ boardEffect: value as PowerBoardEffectId | "none" });
+      const setTimerMinutes = (timerMinutes: number) => patch({ timerMinutes });
       const setBattleEffect = (value: string) => patch({ battleEffect: value as BattleEffectId | "none" });
       const setClass = (name: string) => {
         ability.value = withClassRequirement(ability.value, name, classPick.value?.level ?? 1);
@@ -491,6 +505,7 @@
         rootClass,
         rootStyle,
         KIND_CHOICES,
+        MAX_TIMER_MINUTES,
         AP_PERIOD_CHOICES,
         FREQUENCY_CHOICES,
         closeOutline,
@@ -498,6 +513,7 @@
         openIconPicker,
         closeIconPicker,
         onIconPicked,
+        setTimerMinutes,
         dropKeyboard,
         setBoardEffect,
         setBattleEffect,

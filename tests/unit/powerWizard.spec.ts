@@ -448,7 +448,7 @@ describe("the summary", () => {
         frequency: TimePeriod.Daily,
       })
     );
-    expect(rows.map((row) => row.id)).toEqual(["name", "kind", "board", "mp", "ap", "frequency"]);
+    expect(rows.map((row) => row.id)).toEqual(["name", "kind", "board", "timer", "mp", "ap", "frequency"]);
     expect(rowOf(rows, "name")).toMatchObject({ step: "what", value: "Snooze" });
     expect(rowOf(rows, "kind")).toMatchObject({ step: "what", value: "Real Life" });
     expect(rowOf(rows, "board")).toMatchObject({ step: "does", value: "Move one quest to tomorrow" });

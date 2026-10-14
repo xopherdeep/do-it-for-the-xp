@@ -1,5 +1,5 @@
 export type ProPlanId = "monthly" | "yearly" | "lifetime";
-export type ProGate = "templeCreator" | "advancedSchedule" | "aiHelpers";
+export type ProGate = "templeCreator" | "advancedSchedule" | "aiHelpers" | "gameStyles";
 
 export const PRO_PLANS: Record<
   ProPlanId,
@@ -19,4 +19,5 @@ export const PRO_GATE_NAMES: Record<ProGate, string> = {
   templeCreator: "Temple Creator",
   advancedSchedule: "Advanced scheduling",
   aiHelpers: "AI helpers",
+  gameStyles: "More Game Styles",
 };

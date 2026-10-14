@@ -1,6 +1,7 @@
 import {
   computed,
   defineComponent,
+  ref,
 } from "vue";
 import {
   IonApp,
@@ -60,6 +61,8 @@ import { useFamilyStore } from "@/lib/store/stores/family";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
 import { play$fx } from "@/assets/fx";
+import { useProStore } from "@/lib/store/stores/pro";
+import { allowedGameStyle } from "@/lib/utils/gameStyle";
 
 const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
   const isBelowMinimum = requestedTrack < 0;
@@ -129,7 +132,9 @@ export default defineComponent({
       return this.theme.ui;
     },
     rpgTheme() {
-      return this.theme.rpg;
+      // A Pro game style shows only while the family has Pro; the saved license is read first so a Pro family never flashes Earthbound
+      const { proStore, proChecked } = this as any;
+      return proChecked ? allowedGameStyle(this.theme.rpg, proStore.isPro) : this.theme.rpg;
     },
   },
   mounted() {
@@ -317,6 +322,13 @@ export default defineComponent({
 
     const bgm = computed(() => audioStore.bgm);
 
+    const proStore = useProStore();
+    const proChecked = ref(false);
+    proStore
+      .init()
+      .catch(() => undefined)
+      .finally(() => (proChecked.value = true));
+
     return {
       // Ionic's own page slide stays off while a scene transition plays over it
       sceneTransitionActive,
@@ -324,6 +336,8 @@ export default defineComponent({
       userStore,
       gameStore,
       battleStore,
+      proStore,
+      proChecked,
       archiveOutline,
       archiveSharp,
       bgm,

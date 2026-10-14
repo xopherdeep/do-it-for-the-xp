@@ -38,6 +38,15 @@ jest.mock("@/lib/databases/FamilySettingsDb", () => ({
   getFamilySettingsDb: () => ({ getSettings: () => mockSettings() }),
 }));
 
+// Timed privileges book an OS alert for when time is up; nothing rings here.
+jest.mock("@/lib/services/notifications/alertBridge", () => ({
+  __esModule: true,
+  isNativeApp: () => false,
+  showAlert: jest.fn(async () => ({ shown: true })),
+  scheduleAlert: jest.fn(async () => ({ shown: false, reason: "web" })),
+  cancelAlert: jest.fn(async () => undefined),
+}));
+
 const HERO = "hero-1";
 // Calendar facts: 2026-10-08 is a Thursday.
 const now = new Date("2026-10-08T12:00:00");
@@ -224,5 +233,37 @@ describe("castWithBoardEffect", () => {
     const deps = fakeDeps({ castOk: false });
     expect(await castWithBoardEffect(snooze, HERO, deps)).toEqual({ status: "failed" });
     expect(useUserStore().users[HERO].questEffects).toBeUndefined();
+  });
+
+  it("starts the timer of a timed privilege once the cast has paid, and says how long it runs", async () => {
+    const gameOn = power({ id: "game-on", name: "Game On", timerMinutes: 30 });
+    const deps = fakeDeps();
+    expect(await castWithBoardEffect(gameOn, HERO, deps)).toEqual({
+      status: "cast",
+      line: "Game On: 30 min on the clock.",
+      sound: "useMP",
+    });
+    expect(useUserStore().users[HERO].powerTimers["game-on"].endsAt).toBe(new Date(now.getTime() + 30 * 60_000).toISOString());
+  });
+
+  it("charges nothing while the Power's timer is still running", async () => {
+    const gameOn = power({ id: "game-on", name: "Game On", timerMinutes: 30 });
+    await castWithBoardEffect(gameOn, HERO, fakeDeps());
+    const deps = fakeDeps();
+    const again = await castWithBoardEffect(gameOn, HERO, deps);
+    expect(again).toEqual({ status: "refused", line: "Game On is already running · 30:00 left.", sound: "no" });
+    expect(deps.cast).not.toHaveBeenCalled();
+  });
+
+  it("starts no timer when the cast itself is refused", async () => {
+    const gameOn = power({ id: "game-on", name: "Game On", timerMinutes: 30 });
+    expect((await castWithBoardEffect(gameOn, HERO, fakeDeps({ castOk: false }))).status).toBe("failed");
+    expect(useUserStore().users[HERO].powerTimers).toBeUndefined();
+  });
+
+  it("lands a board effect and starts the timer of a Power that has both", async () => {
+    const timedQuiet = power({ id: "quiet-id", name: "Quiet Day", timerMinutes: 60 });
+    const outcome = await castWithBoardEffect(timedQuiet, HERO, fakeDeps());
+    expect(outcome.line).toMatch(/^Unseen by beasts until .+\. Quiet Day: 1 hr on the clock\.$/);
   });
 });

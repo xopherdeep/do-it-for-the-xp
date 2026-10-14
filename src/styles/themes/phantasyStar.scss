@@ -1,0 +1,58 @@
+@use "gameStyle" as *;
+
+// Phantasy Star: dark glass panels with a neon cyan edge and a faint grid, square corners,
+// capital headings; menus over deep space.
+ion-app#phantasyStar {
+  --gs-font: "Tiny5", "StatusPlz", sans-serif;
+  --gs-font-title: "Silkscreen", "Tiny5", sans-serif;
+  --gs-title-case: uppercase;
+  --gs-text: #d8f8ff;
+  --gs-text-dim: #78b8c8;
+  --gs-accent: #40f0ff;
+  --gs-text-shadow: 0 0 4px rgba(64, 240, 255, 0.45);
+  --gs-font-adjust: 0.56;
+
+  --gs-page-color: #070418;
+  --gs-page:
+    radial-gradient(1px 1px at 20% 30%, #ffffff 50%, transparent 51%) 0 0 / 140px 140px,
+    radial-gradient(1px 1px at 70% 80%, #a8e8ff 50%, transparent 51%) 0 0 / 190px 190px,
+    radial-gradient(ellipse at 80% 10%, rgba(140, 40, 200, 0.35) 0%, transparent 55%),
+    linear-gradient(180deg, #120830 0%, #070418 100%);
+
+  --gs-window-color: #061428;
+  --gs-window:
+    linear-gradient(90deg, rgba(64, 240, 255, 0.06) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(rgba(64, 240, 255, 0.06) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(180deg, rgba(10, 36, 72, 0.96) 0%, rgba(4, 12, 32, 0.96) 100%);
+  --gs-radius: 0;
+  // the neon line and its glow, over a dark steel rim
+  --gs-frame: 0 0 0 1px #40f0ff, 0 0 0 3px #0a3050, 0 0 12px 3px rgba(64, 240, 255, 0.35);
+
+  --gs-bar: linear-gradient(180deg, rgba(10, 36, 72, 0.98) 0%, rgba(4, 12, 32, 0.98) 100%);
+  --gs-bar-frame: 0 1px 0 0 #40f0ff, 0 3px 0 0 #0a3050, 0 6px 12px 0 rgba(64, 240, 255, 0.3);
+
+  --gs-divider: rgba(64, 240, 255, 0.25);
+  --gs-select: rgba(64, 240, 255, 0.12);
+  --gs-cursor: #{gs-arrow-cursor("40f0ff")};
+  --gs-cursor-w: 8px;
+  --gs-cursor-h: 14px;
+
+  --ion-color-primary: #40f0ff;
+  --ion-color-primary-rgb: 64, 240, 255;
+  --ion-color-primary-contrast: #061428;
+  --ion-color-primary-contrast-rgb: 6, 20, 40;
+  --ion-color-primary-shade: #38d3e0;
+  --ion-color-primary-tint: #53f2ff;
+
+  @include game-style-surfaces;
+
+  ion-toolbar.rpg-box ion-title {
+    color: var(--gs-accent);
+    font-size: 18px;
+  }
+
+  .settings-card ion-card-title {
+    font-size: 12px !important;
+    letter-spacing: 0;
+  }
+}
