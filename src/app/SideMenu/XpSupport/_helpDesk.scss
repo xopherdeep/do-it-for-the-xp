@@ -1,0 +1,59 @@
+// Shared by the Help Desk pages. The cards, titles and section bars come from the settings page look
+// (.xp-settings-page in the theme); this adds the pieces only the help pages have.
+
+.help-answer,
+.help-chapter {
+  padding: 4px 16px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.help-chapter {
+  p {
+    margin: 0 0 8px;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 22px;
+
+    li {
+      list-style: decimal;
+      margin-bottom: 6px;
+    }
+  }
+}
+
+.help-icon {
+  width: 32px;
+  margin-right: 12px;
+  text-align: center;
+}
+
+.help-audience {
+  margin-left: 8px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.help-more p {
+  margin: 0;
+}
+
+// Ionic paints an accordion's opened panel white: keep it on the card's own dark panel and text colour
+ion-accordion,
+ion-accordion::part(content) {
+  background: transparent;
+}
+
+.help-answer,
+.help-chapter {
+  color: var(--ion-text-color);
+}

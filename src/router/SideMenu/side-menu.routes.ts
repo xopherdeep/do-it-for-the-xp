@@ -49,9 +49,9 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
       import("@/app/SideMenu/XpMembership/XpMembership.vue"),
   },
   {
+    // The Help Desk lives at /xp-support (support.routes.ts); this older address leads there
     path: "/support",
-    name: "support",
-    component: () => import("@/app/SideMenu/XpSupport/XpSupport.vue"),
+    redirect: "/xp-support",
   },
   {
     path: "/tell-a-friend",

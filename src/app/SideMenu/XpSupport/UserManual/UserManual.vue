@@ -1,76 +1,43 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title>
-          User Manual
-        </ion-title>
+        <ion-title>User Manual</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide">
-      <ion-grid class="max-w-2xl">
-        <ion-row>
-          <ion-col size="12">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>Getting Started</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <p>Welcome to the app! This guide will help you understand the basic features and how to use them effectively.</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-
-          <ion-col size="12" v-for="(section, index) in sections" :key="index">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>{{ section.title }}</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <p>{{ section.content }}</p>
-                <div v-if="section.steps && section.steps.length > 0">
-                  <ion-list>
-                    <ion-item v-for="(step, stepIndex) in section.steps" :key="stepIndex">
-                      <ion-label>
-                        <h3>Step {{ stepIndex + 1 }}</h3>
-                        <p>{{ step }}</p>
-                      </ion-label>
-                    </ion-item>
-                  </ion-list>
-                </div>
-                <div v-if="section.image" class="ion-text-center">
-                  <img :src="section.image" :alt="section.title" class="manual-image" />
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-
-          <!-- Developer Section -->
-          <ion-col size="12">
-            <ion-card color="medium"> <!-- Use a different color to distinguish -->
-              <ion-card-header>
-                <ion-card-title>Developer Tools</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-list>
-                  <ion-item lines="none">
-                     <!-- Use named route for router-link -->
-                     <ion-button :router-link="{ name: 'component-showcase' }" fill="outline">
-                       View Component Showcase
-                     </ion-button>
-                  </ion-item>
-                </ion-list>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <!-- End Developer Section -->
-
-        </ion-row>
-      </ion-grid>
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+      <ion-card class="max-w-2xl help-card">
+        <ion-list>
+          <ion-accordion-group :value="openChapter">
+            <ion-accordion
+              v-for="chapter in chapters"
+              :key="chapter.id"
+              :value="chapter.id"
+              :data-cy="`manual-${chapter.id}`"
+            >
+              <ion-item slot="header">
+                <i :class="['fad', `fa-${chapter.icon}`, 'fa-lg', 'icon-colors', 'help-icon']" slot="start"></i>
+                <ion-label class="ion-text-wrap">
+                  <h2>
+                    {{ chapter.title }}
+                    <ion-badge color="medium" class="help-audience">{{ chapter.audience }}</ion-badge>
+                  </h2>
+                </ion-label>
+              </ion-item>
+              <div slot="content" class="help-chapter">
+                <p>{{ chapter.intro }}</p>
+                <ol>
+                  <li v-for="step in chapter.steps" :key="step">{{ step }}</li>
+                </ol>
+              </div>
+            </ion-accordion>
+          </ion-accordion-group>
+        </ion-list>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
