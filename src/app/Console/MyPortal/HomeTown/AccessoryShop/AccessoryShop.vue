@@ -19,9 +19,16 @@
     <ion-content class="shop-content" :scroll-y="false" :style="dynamicShopBackground">
       <xp-loading v-if="isLoading" />
       <div v-else class="shop-floor">
-        <div v-if="!isOpen" class="shop-sign rpg-box">
-          <i class="fad fa-door-closed" />
-          Closed. {{ opensAt }}.
+        <!-- A shut door: the picture dims behind a store-hours sign -->
+        <div v-if="!isOpen" class="shop-closed">
+          <div class="closed-sign rpg-box" role="status">
+            <div class="closed-title"><i class="fad fa-door-closed" />Closed</div>
+            <div class="closed-next">{{ opensAt }}</div>
+            <div class="closed-hours">
+              <span class="hours-label">Store hours</span>
+              <span class="hours-range">{{ hoursLine }}</span>
+            </div>
+          </div>
         </div>
         <div v-else-if="!visibleItems.length && !walletWare" class="shop-sign rpg-box">
           <i class="fad fa-box-open" />

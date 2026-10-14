@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
@@ -11,7 +11,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" id="container" class="bg-slide rpg-box">
+    <ion-content :fullscreen="true" id="container" class="bg-slide rpg-box ion-padding">
       <AudioSettings />
     </ion-content>
   </ion-page>

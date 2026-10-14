@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
@@ -9,7 +9,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide">
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
       <ion-card class="max-w-2xl">
         <ion-list>
           <ion-item-group>
@@ -45,6 +45,9 @@
                 interface="action-sheet"
                 @ionChange="changeRPGSound"
               >
+                <ion-select-option value="earthbound"
+                  >Earthbound</ion-select-option
+                >
                 <ion-select-option value="chronoTrigger"
                   >Chrono Trigger</ion-select-option
                 >
