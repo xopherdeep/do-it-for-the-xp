@@ -118,7 +118,7 @@ describe("parentOf: heroes' pages", () => {
 
 describe("parentOf: the side menu", () => {
   it("sends each Settings page to the Settings index, and the index to the hero's home", () => {
-    ["general", "family", "sound", "notifications", "reward", "party", "theme", "pro", "chore"].forEach((page) => {
+    ["general", "packs", "family", "sound", "notifications", "theme", "pro", "chore", "reward", "party"].forEach((page) => {
       expect(parentOf({ name: `xp-settings-${page}`, path: `/xp-settings/${page}` }, { heroId: HERO })).toBe("/xp-settings");
     });
     expect(parentOf({ name: "xp-settings-home", path: "/xp-settings" }, { heroId: HERO })).toBe(`/my-portal/${HERO}/my-home`);

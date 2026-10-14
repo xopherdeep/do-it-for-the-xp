@@ -16,7 +16,7 @@ export const FAMILY_PACK: XpPack = {
   formatVersion: PACK_FORMAT_VERSION,
   id: "family",
   name: "Family",
-  version: "1.0.0",
+  version: "1.1.0",
   audience: "Families with kids",
   description: "The starter world: everyday chores as beasts to tame, family time, boss fights, house rules and real rewards.",
   icon: "home-heart",

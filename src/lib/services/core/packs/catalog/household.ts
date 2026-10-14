@@ -5,7 +5,7 @@ export const HOUSEHOLD_PACK = definePack(
   {
     id: "household",
     name: "Roommates & household",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Roommates and couples",
     description: "The shared kitchen, bathroom and common rooms, plus supplies and bills, split fairly as quests.",
     icon: "couch",
@@ -49,6 +49,14 @@ export const HOUSEHOLD_PACK = definePack(
       reward("house-reward-takeout", "Takeout Night", "The house orders in, and you pick the place.", 300, "pizza-slice"),
       reward("house-reward-thermostat", "Thermostat Control", "Set the temperature your way for a weekend.", 150, "thermometer-half"),
     ],
-    powers: ["irl-snooze", "irl-extra-time", "irl-day-off"],
+    powers: [
+      "irl-snooze",
+      "irl-extra-time",
+      "irl-day-off",
+      "irl-timed-remote-control",
+      "irl-timed-aux-cord",
+      "irl-timed-living-room",
+      "irl-timed-first-shower",
+    ],
   }
 );

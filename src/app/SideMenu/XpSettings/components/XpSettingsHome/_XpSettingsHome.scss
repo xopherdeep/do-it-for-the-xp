@@ -85,3 +85,18 @@
     }
   }
 }
+
+.xp-settings-home {
+  // Planned pages: dimmed so the working ones lead
+  .settings-card--soon {
+    ion-thumbnail,
+    ion-card-content {
+      opacity: 0.55;
+    }
+  }
+
+  .soon-badge {
+    margin-top: 6px;
+    font-size: 10px;
+  }
+}

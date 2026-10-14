@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, watch, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   IonPage,
   IonHeader,
@@ -109,13 +109,16 @@ export default defineComponent({
   },
   setup(props) {
     const router = useRouter();
-    const selectedTab = ref<TabId>("news");
+    const route = useRoute();
+    // ?tab=board&board=feature-requests opens a tab (and a board) directly: the Help Desk links here
+    const linkedTab = TABS.find((tab) => tab.id === route.query.tab)?.id;
+    const selectedTab = ref<TabId>(linkedTab ?? "news");
     const userStore = useUserStore();
     const townHall = useTownHallStore();
     const questEngine = getQuestEngine();
 
     // A tab loads the first time it is opened and is kept after that
-    const opened = ref<TabId[]>(["news"]);
+    const opened = ref<TabId[]>([selectedTab.value]);
     const isOpened = (id: TabId) => opened.value.includes(id);
     watch(selectedTab, (id) => {
       if (!isOpened(id)) opened.value = [...opened.value, id];
@@ -123,7 +126,8 @@ export default defineComponent({
 
     // The Board: the picker in the footer lists the boards the site has, the Board tab shows the one picked
     const boards = ref<BoardInfo[]>([]);
-    const boardSlug = ref<TownHallBoardSlug>(TOWN_HALL_BOARDS[0]);
+    const linkedBoard = TOWN_HALL_BOARDS.find((slug) => slug === route.query.board);
+    const boardSlug = ref<TownHallBoardSlug>(linkedBoard ?? TOWN_HALL_BOARDS[0]);
     const onBoards = (found: BoardInfo[]) => {
       boards.value = found;
       const pickedBoardIsMissing = found.length > 0 && !found.some((board) => board.slug === boardSlug.value);

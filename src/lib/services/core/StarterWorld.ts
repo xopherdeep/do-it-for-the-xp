@@ -18,6 +18,7 @@ import { ShopItemType } from "@/lib/databases/ShopsDb";
 import type { ShopInterface } from "@/lib/databases/ShopsDb";
 import type { Ability } from "@/types/abilities";
 import { HYBRID_PRESETS, REAL_LIFE_PRESETS, TECH_MAGE_PRESETS, TIME_MAGE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
+import { FAMILY_PRIVILEGES } from "@/lib/services/abilities/privilegePresets";
 import {
   BASIC_CONSUMABLE_PRESETS,
   REAL_REWARD_PRESETS,
@@ -136,6 +137,7 @@ export const STARTER_ABILITIES: Ability[] = [
   ...TIME_MAGE_PRESETS,
   ...TECH_MAGE_PRESETS,
   ...HYBRID_PRESETS,
+  ...FAMILY_PRIVILEGES,
 ].map((preset) => ({ ...preset, isPreset: true }));
 
 const DO_DONT_SEEDS: DoDontSeed[] = [

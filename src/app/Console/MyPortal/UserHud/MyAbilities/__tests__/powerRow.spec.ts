@@ -33,7 +33,7 @@ const row = (
   status: AbilityStatus,
   ability: Ability = makeAbility(),
   snapshot: HeroAbilitySnapshot = makeSnapshot(),
-  options: { groundedReason?: string | null; casting?: boolean } = {}
+  options: { groundedReason?: string | null; casting?: boolean; timerLeft?: string | null } = {}
 ) => buildPowerRow(ability, status, snapshot, options);
 
 describe("buildPowerRow", () => {
@@ -107,5 +107,17 @@ describe("buildPowerRow", () => {
   it("marks a locked Power so the row can sit dimmer", () => {
     expect(row("locked").locked).toBe(true);
     expect(row("available").locked).toBe(false);
+  });
+
+  it("names a timed privilege's minutes, and has no timer chip for one without", () => {
+    expect(row("available", makeAbility({ timerMinutes: 30 })).timerLabel).toBe("30 min");
+    expect(row("available").timerLabel).toBe("");
+  });
+
+  it("says how long is left while the timer runs, and keeps Cast off until it ends", () => {
+    const running = row("available", makeAbility({ timerMinutes: 30 }), makeSnapshot(), { timerLeft: "24:13" });
+    expect(running.running).toBe(true);
+    expect(running.stateLine).toBe("Running · 24:13 left");
+    expect(running.canCast).toBe(false);
   });
 });

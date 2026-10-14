@@ -1,5 +1,4 @@
 import { computed, defineComponent, onMounted, ref } from "vue";
-import { arrowBack } from "ionicons/icons";
 import ionic from "@/lib/mixins/ionic";
 import { useProStore } from "@/lib/store/stores/pro";
 import { proToast } from "@/lib/services/pro/proUi";
@@ -24,6 +23,9 @@ export default defineComponent({
       return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString() : "";
     });
 
+    const PLAN_NAMES: Record<string, string> = { monthly: "Monthly", yearly: "Yearly", lifetime: "Lifetime" };
+    const planLabel = computed(() => (pro.plan ? PLAN_NAMES[pro.plan] ?? pro.plan : ""));
+
     async function copyKey() {
       try {
         await navigator.clipboard.writeText(pro.licenseKey);
@@ -38,6 +40,6 @@ export default defineComponent({
       if (pro.isPro) keyInput.value = "";
     }
 
-    return { pro, keyInput, emailInput, maskedKey, dateLabel, copyKey, restore, arrowBack };
+    return { pro, keyInput, emailInput, maskedKey, dateLabel, planLabel, copyKey, restore };
   },
 });
