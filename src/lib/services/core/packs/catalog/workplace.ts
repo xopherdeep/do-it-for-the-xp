@@ -5,7 +5,7 @@ export const WORKPLACE_PACK = definePack(
   {
     id: "workplace",
     name: "Workplace",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Teams at work",
     description: "Standups, reviews, shipping and tech debt as quests, with team rituals and rewards the whole team can enjoy.",
     icon: "briefcase",
@@ -51,6 +51,16 @@ export const WORKPLACE_PACK = definePack(
       reward("work-reward-late-start", "Late Start", "Start an hour later one morning.", 250, "clock"),
       reward("work-reward-lunch", "Pick the Team Lunch", "Choose where the team goes for lunch.", 400, "utensils"),
     ],
-    powers: ["irl-snooze", "irl-extra-time", "irl-quiet-day", "irl-trusted-hour"],
+    powers: [
+      "irl-snooze",
+      "irl-extra-time",
+      "irl-quiet-day",
+      "irl-trusted-hour",
+      "irl-timed-focus-shield",
+      "irl-timed-long-lunch",
+      "irl-timed-coffee-run",
+      "irl-timed-learning-hour",
+      "irl-timed-early-out",
+    ],
   }
 );

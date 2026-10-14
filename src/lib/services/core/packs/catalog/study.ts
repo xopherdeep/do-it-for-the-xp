@@ -5,7 +5,7 @@ export const STUDY_PACK = definePack(
   {
     id: "study",
     name: "Study & exam prep",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Teens and college students",
     description: "Daily study blocks, flashcards, practice tests and good sleep, so exam week is a boss fight you are ready for.",
     icon: "book-reader",
@@ -45,6 +45,13 @@ export const STUDY_PACK = definePack(
       reward("study-reward-game", "Guilt-free Game Night", "An evening of games once the week's study is done.", 200, "gamepad"),
       reward("study-reward-movie", "After-exam Movie", "A trip to the movies when the exam is over.", 300, "film"),
     ],
-    powers: ["irl-extra-time", "irl-quiet-day"],
+    powers: [
+      "irl-extra-time",
+      "irl-quiet-day",
+      "irl-timed-game-break",
+      "irl-timed-scroll-break",
+      "irl-timed-episode-break",
+      "irl-timed-power-nap",
+    ],
   }
 );

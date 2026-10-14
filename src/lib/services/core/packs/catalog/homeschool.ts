@@ -5,7 +5,7 @@ export const HOMESCHOOL_PACK = definePack(
   {
     id: "homeschool",
     name: "Homeschool",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Homeschooling families",
     description: "Core lessons, science and art projects, life skills and a school-day routine for kids learning at home.",
     icon: "school",
@@ -47,6 +47,14 @@ export const HOMESCHOOL_PACK = definePack(
       reward("hs-reward-order", "Choose the Subject Order", "Decide the order of tomorrow's lessons.", 120, "list-ol"),
       reward("hs-reward-field-trip", "Pick the Field Trip", "Choose the next field trip: museum, zoo, park or farm.", 400, "map-marked-alt"),
     ],
-    powers: ["irl-extra-time", "irl-bards-pick"],
+    powers: [
+      "irl-extra-time",
+      "irl-bards-pick",
+      "irl-timed-recess-plus",
+      "irl-timed-learning-games",
+      "irl-timed-headphones",
+      "irl-timed-free-choice",
+      "irl-timed-game-on",
+    ],
   }
 );

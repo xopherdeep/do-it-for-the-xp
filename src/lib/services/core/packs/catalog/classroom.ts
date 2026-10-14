@@ -5,7 +5,7 @@ export const CLASSROOM_PACK = definePack(
   {
     id: "classroom",
     name: "Classroom",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Teachers and their class",
     description: "Homework streaks, reading time, class jobs and kindness quests, with class rules as Dos and Don'ts.",
     icon: "chalkboard-teacher",
@@ -52,6 +52,15 @@ export const CLASSROOM_PACK = definePack(
       reward("class-reward-class-game", "Pick the Class Game", "Choose the game the class plays at the end of the week.", 200, "dice"),
       reward("class-reward-lunch", "Lunch with the Teacher", "Eat lunch in the classroom with the teacher and a friend.", 300, "utensils"),
     ],
-    powers: ["irl-extra-time", "irl-snooze"],
+    powers: [
+      "irl-extra-time",
+      "irl-snooze",
+      "irl-timed-free-choice",
+      "irl-timed-learning-games",
+      "irl-timed-headphones",
+      "irl-timed-sit-anywhere",
+      "irl-timed-extra-recess",
+      "irl-timed-teachers-chair",
+    ],
   }
 );
