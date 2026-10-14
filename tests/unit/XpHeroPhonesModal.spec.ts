@@ -20,6 +20,7 @@ jest.mock("@/router/historyMode", () => ({
 
 const mockFamily = reactive({
   phones: [] as any[],
+  parentAuth: { kind: "basic" } as any,
   linkCode: jest.fn(),
   loadPhones: jest.fn(),
   removePhone: jest.fn(),
@@ -76,6 +77,7 @@ describe("XpHeroPhonesModal", () => {
     mockFamily.linkCode.mockReset();
     mockFamily.loadPhones.mockReset();
     mockFamily.removePhone.mockReset();
+    mockFamily.parentAuth = { kind: "basic" };
     mockFamily.loadPhones.mockResolvedValue(undefined);
     mockFamily.removePhone.mockResolvedValue(undefined);
     (QRCode.toDataURL as jest.Mock).mockResolvedValue("data:image/png;base64,mockqr");
@@ -86,6 +88,21 @@ describe("XpHeroPhonesModal", () => {
   });
 
   describe("linking a phone", () => {
+    it("shows town hall required when parentAuth is null", async () => {
+      mockFamily.parentAuth = null;
+      const wrapper = await open();
+      expect(cy(wrapper, "town-hall-required").exists()).toBe(true);
+      expect(cy(wrapper, "link-phone").exists()).toBe(false);
+    });
+
+    it("displays error message if linkCode fails", async () => {
+      mockFamily.linkCode.mockRejectedValue(new Error("Network failure"));
+      const wrapper = await open();
+      await cy(wrapper, "link-phone").trigger("click");
+      await flushPromises();
+      expect(cy(wrapper, "link-code-error").text()).toContain("Network failure");
+    });
+
     it("Link a phone shows the formatted code and an <img> from toDataURL with the hash-mode link", async () => {
       const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
       mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });

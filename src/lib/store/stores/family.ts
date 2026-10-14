@@ -550,7 +550,15 @@ export const useFamilyStore = defineStore("family", () => {
   /** Generates a new link code for a hero */
   async function linkCode(heroId: string): Promise<LinkCode> {
     const auth = parentAuth.value;
-    if (!auth) throw new Error("family: cannot make a link code without parent auth");
+    if (!auth) throw new Error("Town Hall connection required. Connect to Town Hall to link hero phones.");
+    const profile = useUserStore().users[heroId];
+    const card = cardOf(profile);
+    if (card) {
+      const group = ageGroupOf(profile, ageGroupPicks.value[heroId]);
+      await saveHero(auth, heroId, card.nickname, group).catch((e) =>
+        debug.warn("family: saveHero before linkCode failed", e)
+      );
+    }
     return await makeLinkCode(auth, heroId);
   }
 

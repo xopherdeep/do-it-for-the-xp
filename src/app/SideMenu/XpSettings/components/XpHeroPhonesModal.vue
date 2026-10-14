@@ -16,23 +16,50 @@
         <ion-card-title>Link a phone</ion-card-title>
       </ion-card-header>
       <ion-card-content class="ion-text-center">
-        <ion-button v-if="!currentCode" size="default" data-cy="link-phone" @click="createCode">
-          Link a phone
-        </ion-button>
-
-        <div v-if="hasActiveCode" class="active-code-box">
-          <div class="qr-container">
-            <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" data-cy="qr-image" class="qr-img mx-auto" />
-          </div>
-          <p class="link-code-text" data-cy="link-code">{{ formattedCode }}</p>
-          <p class="countdown-text" data-cy="countdown">{{ countdownText }}</p>
+        <!-- When unlinked: prompt to connect to Town Hall -->
+        <div v-if="needsTownHall" class="town-hall-notice ion-padding" data-cy="town-hall-required">
+          <p class="text-sm text-yellow-600 ion-margin-bottom">
+            Town Hall connection required. Connect to Town Hall first to link hero phones across devices.
+          </p>
+          <ion-button size="default" color="warning" data-cy="connect-town-hall-btn" @click="goToTownHall">
+            Connect to Town Hall
+          </ion-button>
         </div>
 
-        <div v-if="isExpired" class="expired-box">
-          <p class="expired-notice">Code expired</p>
-          <ion-button data-cy="new-code" @click="createCode">
-            New code
+        <div v-else>
+          <ion-button
+            v-if="!currentCode"
+            size="default"
+            :disabled="isGenerating"
+            data-cy="link-phone"
+            @click="createCode"
+          >
+            <ion-spinner v-if="isGenerating" slot="start" name="crescent" />
+            Link a phone
           </ion-button>
+
+          <div v-if="errorMessage" class="error-notice ion-margin-top" data-cy="link-code-error">
+            <p class="text-danger text-sm font-semibold">{{ errorMessage }}</p>
+            <ion-button v-if="needsTownHall" size="small" color="warning" class="ion-margin-top" @click="goToTownHall">
+              Connect to Town Hall
+            </ion-button>
+          </div>
+
+          <div v-if="hasActiveCode" class="active-code-box">
+            <div class="qr-container">
+              <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" data-cy="qr-image" class="qr-img mx-auto" />
+            </div>
+            <p class="link-code-text" data-cy="link-code">{{ formattedCode }}</p>
+            <p class="countdown-text" data-cy="countdown">{{ countdownText }}</p>
+          </div>
+
+          <div v-if="isExpired" class="expired-box">
+            <p class="expired-notice">Code expired</p>
+            <ion-button :disabled="isGenerating" data-cy="new-code" @click="createCode">
+              <ion-spinner v-if="isGenerating" slot="start" name="crescent" />
+              New code
+            </ion-button>
+          </div>
         </div>
       </ion-card-content>
     </ion-card>
@@ -70,6 +97,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   IonButton,
   IonButtons,
@@ -82,6 +110,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonSpinner,
   IonTitle,
   IonToolbar,
   modalController,
@@ -104,6 +133,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const router = useRouter();
 const family = useFamilyStore();
 const { voice } = useVoice();
 const { prompt, ask, respond } = useRevealPrompt();
@@ -112,11 +142,22 @@ const currentCode = ref<string | null>(null);
 const expiresAtMs = ref<number | null>(null);
 const qrDataUrl = ref<string | null>(null);
 const secondsLeft = ref<number>(0);
+const isGenerating = ref(false);
+const errorMessage = ref<string | null>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
 
+const needsTownHall = computed(() => family.parentAuth === null);
 const heroPhones = computed(() => family.phones.filter((p) => p.heroId === props.heroId));
 const isExpired = computed(() => currentCode.value !== null && secondsLeft.value <= 0);
 const hasActiveCode = computed(() => currentCode.value !== null && secondsLeft.value > 0);
+
+const goToTownHall = async (): Promise<void> => {
+  await modalController.dismiss();
+  const canPushRoute = Boolean(router?.push);
+  if (canPushRoute) {
+    void router.push("/town-hall");
+  }
+};
 
 const formattedCode = computed(() => {
   const code = currentCode.value;
@@ -145,6 +186,8 @@ function updateCountdown(): void {
 }
 
 async function createCode(): Promise<void> {
+  errorMessage.value = null;
+  isGenerating.value = true;
   try {
     const link = await family.linkCode(props.heroId);
     currentCode.value = link.code;
@@ -156,10 +199,21 @@ async function createCode(): Promise<void> {
     qrDataUrl.value = await QRCode.toDataURL(url, { margin: 1, width: 240 });
 
     updateCountdown();
-    if (timer) clearInterval(timer);
+    const hasTimer = Boolean(timer);
+    if (hasTimer) clearInterval(timer as ReturnType<typeof setInterval>);
     timer = setInterval(updateCountdown, 1000);
   } catch (error) {
     debug.error("Could not generate link code:", error);
+    const auth = family.parentAuth;
+    const isUnlinked = auth === null;
+    if (isUnlinked) {
+      errorMessage.value = "Town Hall connection required. Connect to Town Hall first to link hero phones.";
+    } else {
+      const message = error instanceof Error ? error.message : "Could not generate link code. Please check your connection.";
+      errorMessage.value = message;
+    }
+  } finally {
+    isGenerating.value = false;
   }
 }
 
