@@ -28,6 +28,30 @@
 
   // The kit rows are children of this page's sections: their own markup is reached through :deep.
   .quest-log-row {
+    --quest-beast-size: 80px;
+
+    // Modern rows inset their divider past the tile: past the bigger one here (retro rows run it full width)
+    .xp-app--modern &.xp-app-row--tile {
+      --xp-app-divider-inset: calc(var(--xp-app-row-pad-x) + var(--quest-beast-size) + 12px);
+    }
+
+    // The beast is the row's star: a big portrait standing on the row itself, no dark box around it.
+    // The scroll stand-in (a quest with no beast art yet) is unboxed and sized to match.
+    :deep(.xp-app-row__tile) {
+      flex: 0 0 var(--quest-beast-size);
+      width: var(--quest-beast-size);
+      height: var(--quest-beast-size);
+      overflow: visible;
+      background: none;
+      border: 0;
+      border-radius: 0;
+      font-size: 2.6rem;
+    }
+
+    :deep(.xp-app-row__image) {
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+    }
+
     // A long quest name wraps onto a second line instead of losing its end behind the Done button
     :deep(.xp-app-row__title) {
       display: -webkit-box;
@@ -59,6 +83,66 @@
 
     &.is-tamed :deep(.xp-app-row__title) {
       text-decoration: line-through;
+    }
+  }
+
+  // The Tamed tab: three to a row, the art standing free like the rows' beasts, its name under it
+  .tamed-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px 10px;
+    margin: 0;
+    padding: 16px 12px;
+    list-style: none;
+  }
+
+  .tamed-beast {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    text-align: center;
+
+    &__art {
+      position: relative;
+      display: grid;
+      width: 100%;
+      aspect-ratio: 1;
+      place-items: center;
+      color: var(--xp-app-accent);
+      font-size: 3.2rem;
+      --fa-primary-color: var(--xp-app-accent);
+      --fa-secondary-color: var(--xp-app-accent);
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+      }
+    }
+
+    &__count {
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--xp-app-accent);
+      color: var(--xp-app-on-accent, #fff);
+      font-family: var(--xp-app-font-title);
+      font-size: 0.72rem;
+    }
+
+    &__name {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--xp-app-text);
+      font-size: 0.8rem;
+      line-height: 1.2;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
   }
 

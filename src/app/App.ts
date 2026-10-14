@@ -49,6 +49,7 @@ import XpSceneTransition from "@/components/organisms/SceneTransition/XpSceneTra
 import { isActive as sceneTransitionActive } from "@/components/organisms/SceneTransition/sceneTransitionController";
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
+import XpRewardsOverlay from "@/components/organisms/RewardsOverlay/XpRewardsOverlay.vue";
 import debug from "@/lib/utils/debug";
 import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
@@ -94,6 +95,7 @@ export default defineComponent({
     XpAudioPermissionModal,
     XpStudioSplash,
     XpGlobalDialog,
+    XpRewardsOverlay,
     XpSceneTransition,
   },
   data() {

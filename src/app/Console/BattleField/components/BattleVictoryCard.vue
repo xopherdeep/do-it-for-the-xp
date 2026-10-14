@@ -39,7 +39,7 @@
       <div v-if="card.levelUp" class="victory-levelup">LEVEL UP! Lv {{ card.levelUp.from }} → {{ card.levelUp.to }}</div>
       <div class="victory-subtitle">{{ card.subtitle }}</div>
       <div v-if="card.questName" class="victory-quest">Quest tamed: {{ card.questName }}</div>
-      <div class="victory-work">{{ workLine }}</div>
+      <div v-if="workLine" class="victory-work">{{ workLine }}</div>
 
       <div class="reward-tiles">
         <div
@@ -148,8 +148,9 @@ const tiles = computed(() =>
 /** True while any tile still shows less than it is going to. A tile that has reached its number never blocks a tap. */
 const counting = computed(() => TILES.some(({ stat }) => shown[stat] !== targetOf(stat)));
 
-/** "2 chores in 2:05", "1 chore in 0:07". */
+/** "2 chores in 2:05", "1 chore in 0:07"; nothing for a card that was not a fight. */
 const workLine = computed(() => {
+  if (props.card.choresDone === undefined) return "";
   const chores = Math.max(0, Math.floor(Number(props.card.choresDone) || 0));
   const seconds = Math.max(0, Math.floor((Number(props.card.elapsedMs) || 0) / 1000));
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;

@@ -35,10 +35,16 @@ import debug from "@/lib/utils/debug";
 import { useTimers } from "@/hooks/useTimers";
 import { useCopy } from "@/hooks/useVoice";
 import { sectionsByWindow, toLogRow } from "./questLogRows";
+import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
+import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 import type { QuestLogRow } from "./questLogRows";
+import { filterTamed, tamedBeastsOf } from "./tamedBeasts";
+import type { TamedBeast } from "./tamedBeasts";
+import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
 
-// The quest log has two faces: the card board (the RPG view) and the plain to-do list
-type QuestLogView = "board" | "list";
+// The quest log has three faces: the card board (the RPG view), the plain to-do list, and the beasts already tamed
+type QuestLogView = "board" | "list" | "tamed";
+const VIEWS: readonly QuestLogView[] = ["board", "list", "tamed"];
 const VIEW_KEY = "xp.questLogView";
 // How long a finished row wears its stamp before the board reloads, and how long it flashes in its new section
 const CELEBRATE_MS = 750;
@@ -50,7 +56,8 @@ const prefersReducedMotion = (): boolean =>
 
 const savedView = (): QuestLogView => {
   try {
-    return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "board";
+    const saved = localStorage.getItem(VIEW_KEY) as QuestLogView;
+    return VIEWS.includes(saved) ? saved : "board";
   } catch {
     return "board";
   }
@@ -115,11 +122,17 @@ export default defineComponent({
       return [
         { id: "board", label: "Board", faIcon: "th-large" },
         { id: "list", label: "List", faIcon: "tasks", badge: this.todoCount },
+        { id: "tamed", label: "Tamed", faIcon: "dragon" },
       ];
     },
-    // The app bar's meta: what still needs doing
+    // The app bar's meta: what still needs doing (on the Tamed tab, how many beasts are in the collection)
     headerMeta(): string {
-      return this.isLoading ? "" : `${this.todoCount} due`;
+      if (this.isLoading) return "";
+      return this.view === "tamed" ? `${this.tamedBeasts.length} tamed` : `${this.todoCount} due`;
+    },
+    // The Tamed tab's grid: one tile per beast the hero has tamed, newest first, narrowed by the search
+    tamedTiles(): TamedBeast[] {
+      return filterTamed(this.tamedBeasts, this.params.search);
     },
     // The rows as the app draws them: the Board in due windows, the List as one flat group
     sections(): { key: string; label: string; rows: QuestLogRow[] }[] {
@@ -141,6 +154,7 @@ export default defineComponent({
     },
     emptyLine(): string {
       if (this.params.search) return this.t("quests.empty.search");
+      if (this.view === "tamed") return "No beasts tamed yet. Finish a quest to add its beast here.";
       return this.view === "list" ? this.t("quests.empty.list") : this.t("quests.empty.board");
     },
   },
@@ -158,6 +172,7 @@ export default defineComponent({
       this.activeModal = 0;
       this.activeRow = null;
       void this.loadBoard();
+      void this.loadTamed();
     },
     isModalOpen(id: any) {
       return this.activeModal == id;
@@ -200,7 +215,7 @@ export default defineComponent({
       }
     },
     viewChanged(ev: CustomEvent) {
-      const view: QuestLogView = ev.detail.value === "list" ? "list" : "board";
+      const view: QuestLogView = VIEWS.includes(ev.detail.value) ? ev.detail.value : "board";
       if (view === this.view) return;
       this.view = view;
       this.$fx.ui[this.$fx.theme.ui].select.play();
@@ -257,6 +272,7 @@ export default defineComponent({
         const result = await completeQuest(row.quest, heroId, "claim");
         await this.celebrate(row, result.awaitingApproval);
         await this.loadBoard();
+        void this.loadTamed();
         this.land(row);
         this.announceDone(row, result);
       } catch {
@@ -283,21 +299,12 @@ export default defineComponent({
         this.landed = "";
       });
     },
+    // Paid: the battle's loot card counts it up. Held: the same card, its tiles locked until the Game Master says yes
     announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid }: CompletionResult) {
       const nick = (this as any).userStore.getUserById(this.userId)?.name?.nick || "The hero";
-      if (awaitingApproval) {
-        this.say(this.t("quests.toast.pending"), this.t("quests.toast.pendingBody", { nick, quest: row.title }), 2200);
-        return;
-      }
-      this.$fx.ui[this.$fx.theme.ui].select.play();
-      const { xp, gp, ap } = paid ?? row.rewards;
-      this.say(this.t("beastCard.toast.tamed", { nick, quest: row.title }), this.t("beastCard.toast.loot", { xp, gp, ap }));
-      if (!levelUp?.didLevelUp) return;
-      const { newLevel } = levelUp;
-      this.timers.startTimeout(2000, () => {
-        this.$fx.rpg[this.$fx.theme.rpg].levelUp.play();
-        this.say(this.t("beastCard.toast.levelUp", { level: newLevel }), nick, 2400);
-      }); // let the rewards toast clear first
+      void showRewards(
+        questRewardsCard({ nick, questName: row.title, rewards: paid ?? row.rewards, held: awaitingApproval, levelUp }),
+      );
     },
     async say(header: string, message?: string, duration = 2000) {
       const toast = await toastController.create({
@@ -379,6 +386,24 @@ export default defineComponent({
       }
     };
 
+    // The Tamed tab: the quest log is the record of what the hero has tamed, every quest names its beast
+    const tamedBeasts = ref<TamedBeast[]>([]);
+    const loadTamed = async () => {
+      try {
+        const [entries, quests] = await Promise.all([
+          getQuestLogDb().getEntries(),
+          new AchievementDb(achievementStorage).getTasks(),
+        ]);
+        tamedBeasts.value = tamedBeastsOf(entries, String(props.userId), {
+          quests,
+          beasts: familyBeasts.value,
+          portraitUrl: beastPortraitUrl,
+        });
+      } catch (error) {
+        debug.warn("[MyQuests] could not read the tamed beasts", error);
+      }
+    };
+
     const loadBeasts = async () => {
       try {
         familyBeasts.value = await new BestiaryDb(beastStorage).getBeasts();
@@ -389,7 +414,7 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      void loadBeasts();
+      void loadBeasts().then(loadTamed);
       return loadBoard();
     });
     watch(() => params.search, loadBoard);
@@ -404,6 +429,8 @@ export default defineComponent({
       loadBoard,
       isLoading,
       familyBeasts,
+      tamedBeasts,
+      loadTamed,
       rootClass,
       rootStyle,
       arrowBack,

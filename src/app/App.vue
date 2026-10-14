@@ -11,6 +11,7 @@
       <ion-router-outlet id="main-content" :animated="!sceneTransitionActive" />
     </ion-split-pane>
     <xp-global-dialog />
+    <xp-rewards-overlay />
     <xp-scene-transition />
   </ion-app>
 </template>

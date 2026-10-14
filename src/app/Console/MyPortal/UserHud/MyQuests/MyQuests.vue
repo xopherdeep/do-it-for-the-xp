@@ -19,6 +19,20 @@
         One row per quest. The Board groups them by when they are due (Overdue, Today, This week, Later, Done) and a
         tap opens the quest; the List keeps them flat, overdue first, with a Done button on every open one.
       -->
+      <!-- Tamed: the hero's collection, three beasts to a row, each as big as the art allows -->
+      <template v-else-if="view === 'tamed'">
+        <ul v-if="tamedTiles.length" class="tamed-grid" aria-label="Tamed beasts">
+          <li v-for="beast in tamedTiles" :key="beast.id" class="tamed-beast" :title="beast.name">
+            <span class="tamed-beast__art">
+              <img v-if="beast.image" :src="beast.image" alt="" loading="lazy" draggable="false" />
+              <i v-else class="fad fa-scroll" aria-hidden="true"></i>
+              <span v-if="beast.count > 1" class="tamed-beast__count" :aria-label="`tamed ${beast.count} times`">x{{ beast.count }}</span>
+            </span>
+            <span class="tamed-beast__name">{{ beast.name }}</span>
+          </li>
+        </ul>
+        <xp-app-empty v-else icon="dragon" :text="emptyLine" class="quest-empty" />
+      </template>
       <div v-else-if="sections.length" class="quest-sections">
         <xp-app-section v-for="section in sections" :key="section.key" :label="section.label"
           :class="`quest-section quest-section--${section.key}`">
