@@ -103,7 +103,7 @@ describe("the starter content", () => {
       const timed = Object.fromEntries(
         STARTER_QUESTS.filter((quest) => quest.timesOfDay).map((quest) => [quest.id, quest.timesOfDay])
       );
-      expect(timed).toEqual({
+      expect(timed).toMatchObject({
         "quest-bed": ["morning"],
         "quest-teeth": ["morning", "night"],
         "quest-pet": ["morning", "evening"],

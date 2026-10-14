@@ -417,6 +417,57 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     isPreset: true,
     boardEffect: 'trusted-hour',
     position: { x: 400, y: 600 }
+  },
+  {
+    id: 'irl-car-dj',
+    name: 'Car DJ Privilege',
+    description: '15 minutes DJing in car.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Daily,
+    mpCost: 5,
+    apRequirement: {
+      amount: 50,
+      period: TimePeriod.Daily
+    },
+    icon: 'music',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 500, y: 600 }
+  },
+  {
+    id: 'irl-app-extension',
+    name: 'App Extension Time',
+    description: '30 minutes bonus device time.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 100,
+      period: TimePeriod.Weekly
+    },
+    icon: 'hourglass-half',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 600, y: 600 }
+  },
+  {
+    id: 'irl-yes-day',
+    name: "The King's Decree",
+    description: 'YES Day privilege.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Monthly,
+    mpCost: 50,
+    apRequirement: {
+      amount: 2500,
+      period: TimePeriod.Monthly
+    },
+    icon: 'crown',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 700, y: 600 }
   }
 ];
 
