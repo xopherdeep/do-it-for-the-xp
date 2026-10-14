@@ -13,11 +13,7 @@ import {
   alertController,
 } from "@ionic/vue";
 import { ROOM_ICONS, ____ } from "@/lib/engine/dungeons/roomTypes";
-import {
-  TempleDb,
-  templeStorage,
-  type TempleInterface,
-} from "@/lib/databases/TempleDb";
+import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
@@ -26,6 +22,7 @@ import { getTempleIconClass } from "../../../hooks/useTempleIcon";
 import debug from "@/lib/utils/debug";
 import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
 import { bossDoorSides } from "@/lib/services/temples/authoredDoors";
+import { adoptStoredLayout, storedLayout } from "../../../hooks/templeData/storedLayout";
 
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
 import { copyTextToClipboard } from "@/lib/utils/clipboard";
@@ -36,7 +33,6 @@ import {
   floorsBelow,
   getEntranceFloor,
   levelIdAfterLoad,
-  measureGridSize,
   nextFloorOptions as nextFloorOptionsFor,
   sortedFloorKeys,
 } from "./grid/floorLayers";
@@ -46,7 +42,6 @@ import {
   collectUniqueRooms,
   describeEntrance,
   mazeHasEntrance,
-  resolveEntranceCoordinates,
 } from "./grid/mazeReadouts";
 import { buildInitialMaze, entranceCellOnFloor, resizeMaze } from "./grid/resizeMaze";
 import {
@@ -419,12 +414,24 @@ export function useTempleCreator(
 
   // --- Grid Management ---
   const initializeGrid = () => {
-    templeMaze.value = buildInitialMaze(
+    const hasFloors =
+      !Array.isArray(templeMaze.value) && Object.keys(templeMaze.value).length > 0;
+    if (hasFloors) {
+      // Only the floor on show starts over, and never a floor the maze lacks: the other floors stay
+      currentLevelId.value = levelIdAfterLoad(templeMaze.value, currentLevelId.value);
+    }
+    const blankGridWithEntrance = buildInitialMaze(
       gridSize.value,
       entrancePosition.value,
       templeMaze.value,
       currentLevelId.value
     );
+    if (hasFloors) {
+      (templeMaze.value as Record<string, string[][]>)[currentLevelId.value] =
+        blankGridWithEntrance;
+    } else {
+      templeMaze.value = blankGridWithEntrance;
+    }
   };
 
   const generateUniqueSymbol = (): string => {
@@ -715,7 +722,6 @@ export function useTempleCreator(
   const saveTemple = async () => {
     try {
       debug.log("Saving temple to database...", props.templeId);
-      const parts = entrancePosition.value.split(",").map(Number);
 
       // Standardize tokens on save (TXXYY format)
       store.migrateTokens();
@@ -724,11 +730,7 @@ export function useTempleCreator(
       store.roomsData = bossDoorSides(store.templeMaze, store.roomsData);
 
       // Get current data from store (Layer 1) after migration
-      const layoutToSave = {
-        entrance: resolveEntranceCoordinates(parts, store.templeMaze),
-        maze: JSON.parse(JSON.stringify(store.templeMaze)), // Deep clone to be safe
-        rooms: JSON.parse(JSON.stringify(store.roomsData)),
-      };
+      const layoutToSave = storedLayout(store);
 
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
@@ -808,52 +810,6 @@ export function useTempleCreator(
     await alert.present();
   };
 
-  // Copies a stored temple (name, icon, entrance, maze, rooms) into the store
-  const adoptStoredLayout = (
-    existingTemple: TempleInterface,
-    layout: NonNullable<TempleInterface["dungeonLayout"]>
-  ) => {
-    // Load temple name and icon from DB
-    if (existingTemple.customName) {
-      templeName.value = existingTemple.customName;
-    } else if (existingTemple.name) {
-      templeName.value = existingTemple.name;
-    }
-    if (existingTemple.customIcon) {
-      templeIcon.value = existingTemple.customIcon;
-    }
-
-    // Load properties
-    if (layout.entrance) {
-      entrancePosition.value = layout.entrance.join(",");
-    }
-
-    store.templeId = props.templeId;
-    store.markAsLoaded(props.templeId);
-
-    // Load maze
-    if (layout.maze) {
-      templeMaze.value = JSON.parse(JSON.stringify(layout.maze));
-
-      // Calculate grid size from maze
-      const measuredSize = measureGridSize(templeMaze.value);
-      if (measuredSize !== null) {
-        gridSize.value = measuredSize;
-      }
-    }
-
-    // Load rooms data
-    if (layout.rooms) {
-      roomsData.value = JSON.parse(JSON.stringify(layout.rooms));
-    }
-
-    // Correct level ID
-    currentLevelId.value = levelIdAfterLoad(
-      templeMaze.value,
-      currentLevelId.value
-    );
-  };
-
   /**
    * Loads temple layout from database or store
    */
@@ -869,17 +825,16 @@ export function useTempleCreator(
 
     try {
       // TWO-LAYERED APPROACH:
-      // If this temple is already loaded in the store, don't reload from DB.
-      if (store.isLoaded(props.templeId)) {
+      // A temple the store holds and this creator already tracks (it has a DB snapshot) is not reloaded from the DB,
+      // so edits not saved yet survive a trip to the room editor. A temple another loader marked loaded, with no
+      // snapshot yet, is read below like any other: the store may only hold the defaults of its entrance and grid.
+      const isTrackedInStore =
+        store.isLoaded(props.templeId) && store.dbStateSnapshot !== null;
+      if (isTrackedInStore) {
         debug.log(
           "useTempleCreator: Temple already loaded in store, preserving temp data"
         );
         store.templeId = props.templeId;
-
-        // Snapshot current state for change detection if not already set
-        if (!store.dbStateSnapshot) {
-          store.updateDbSnapshot();
-        }
         isLoading.value = false;
         return;
       }
@@ -889,7 +844,10 @@ export function useTempleCreator(
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
       if (existingTemple?.dungeonLayout) {
-        adoptStoredLayout(existingTemple, existingTemple.dungeonLayout);
+        adoptStoredLayout(store, props.templeId, {
+          ...existingTemple,
+          dungeonLayout: existingTemple.dungeonLayout,
+        });
       } else {
         debug.log(
           "useTempleCreator: New temple or no layout found, creating defaults"

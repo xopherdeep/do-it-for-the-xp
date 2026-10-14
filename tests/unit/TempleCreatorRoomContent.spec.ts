@@ -149,17 +149,21 @@ describe("stepForRoomType", () => {
 });
 
 describe("seedTravelTargets", () => {
-  it("points a travel room at the current floor and cell 0,0", () => {
+  // Changed with #1360: a new travel room was seeded with its own floor and cell 0,0. Stairs read that as "blocked by
+  // rubble" (a stairway to the floor you stand on), and cell 0,0 beat the paired stairs for the landing. With no target
+  // the engine climbs to the neighbouring floor and lands on the paired stairs.
+  it("gives a new travel room no target: the engine's neighbour floor and paired landing are the defaults", () => {
     const content: RoomContent = {};
     seedTravelTargets(content, "stairs-up", "2F");
-    expect(content).toEqual({ targetLevel: "2F", targetCoords: { x: 0, y: 0 } });
+    expect(content).toEqual({});
   });
 
   it("covers every travel type", () => {
     for (const type of ["stairs-up", "stairs-down", "pit", "void", "teleport"]) {
       const content: RoomContent = {};
       seedTravelTargets(content, type, "1F");
-      expect(content.targetLevel).toBe("1F");
+      expect(content.targetLevel).toBeUndefined();
+      expect(content.targetCoords).toBeUndefined();
     }
   });
 
@@ -167,6 +171,32 @@ describe("seedTravelTargets", () => {
     const content: RoomContent = { targetLevel: "B1", targetCoords: { x: 3, y: 4 } };
     seedTravelTargets(content, "pit", "1F");
     expect(content).toEqual({ targetLevel: "B1", targetCoords: { x: 3, y: 4 } });
+  });
+
+  it("clears the old seed of a stairs room: its own floor and cell 0,0 are rubble", () => {
+    for (const type of ["stairs-up", "stairs-down"]) {
+      const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 0, y: 0 } };
+      seedTravelTargets(content, type, "1F");
+      expect(content).toEqual({});
+    }
+  });
+
+  it("keeps the cell a Game Master picked when it clears the own-floor target of a stairs room", () => {
+    const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 2, y: 1 } };
+    seedTravelTargets(content, "stairs-up", "1F");
+    expect(content).toEqual({ targetCoords: { x: 2, y: 1 } });
+  });
+
+  it("leaves another floor's target on a stairs room alone, zeros included: the Game Master picked the floor", () => {
+    const content: RoomContent = { targetLevel: "2F", targetCoords: { x: 0, y: 0 } };
+    seedTravelTargets(content, "stairs-up", "1F");
+    expect(content).toEqual({ targetLevel: "2F", targetCoords: { x: 0, y: 0 } });
+  });
+
+  it("leaves a teleport circle's own-floor target alone: a circle may lead to another circle on its floor", () => {
+    const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 2, y: 2 } };
+    seedTravelTargets(content, "teleport", "1F");
+    expect(content).toEqual({ targetLevel: "1F", targetCoords: { x: 2, y: 2 } });
   });
 
   it("does nothing for a room that does not travel", () => {

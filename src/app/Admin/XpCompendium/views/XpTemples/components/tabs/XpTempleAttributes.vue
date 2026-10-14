@@ -182,6 +182,7 @@ const AUDIT_ICONS: Record<AuditCheckId, string> = {
   map: "fa-map",
   compass: "fa-compass",
   size: "fa-ruler-combined",
+  stairs: ROOM_ICONS["stairs-up"],
 };
 
 export default defineComponent({

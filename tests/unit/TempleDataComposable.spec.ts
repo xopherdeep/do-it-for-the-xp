@@ -593,6 +593,32 @@ describe("loadTemple", () => {
     expect(Object.keys(store.roomsData)).not.toContain("extra");
   });
 
+  // Added with #1358: the load copied the maze and the rooms only, so the creator opened on the store's default entrance
+  // (5,2) and grid (6x6) and its Save moved the hero's start off the grid
+  it("adopts the entrance with its floor, the grid size and the floor of the record into the creator store", async () => {
+    const record = templeRecord("wind-temple", { "1F": grid2F(), "2F": grid2F() });
+    record.dungeonLayout.entrance = [0, 1, 1];
+    const { store } = await mountTempleData("wind-temple", record);
+    expect(store.entrancePosition).toBe("0,1,1");
+    expect(store.gridSize).toBe("5x3");
+    expect(store.currentLevelId).toBe("1F");
+    expect(store.templeName).toBe("Custom");
+  });
+
+  it("puts a floor the maze does not have back on one it has", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", { "1F": grid1F(), "2F": grid2F() }));
+    store.currentLevelId = "9F";
+    await api.loadTemple("wind-temple", true);
+    expect(store.currentLevelId).toBe("1F");
+  });
+
+  it("leaves the store matching the database, so the creator does not see edits", async () => {
+    const { store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    expect(store.dbStateSnapshot).toBe(
+      JSON.stringify({ maze: store.templeMaze, rooms: store.roomsData, gridSize: store.gridSize, entrance: store.entrancePosition })
+    );
+  });
+
   it("merges a record without a layout and does not mark it loaded", async () => {
     const { api, store } = await mountTempleData("wind-temple", { id: "wind-temple", categoryIds: ["c1"], customName: "Bare" });
     expect(api.temple.value.customName).toBe("Bare");
@@ -649,6 +675,36 @@ describe("saveTemple", () => {
     });
   });
 
+  // Added with #1358: the save wrote the entrance of its own copy of the record, undoing an entrance moved in the creator
+  it("writes the entrance the creator store holds, not the record's own copy", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.entrancePosition = "3,2";
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([3, 2]);
+  });
+
+  it("writes the floor of the entrance when the maze has floors", async () => {
+    const record = templeRecord("wind-temple", { "1F": grid1F(), "2F": grid2F() });
+    record.dungeonLayout.entrance = [1, 2, 1];
+    const { api } = await mountTempleData("wind-temple", record);
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([1, 2, 1]);
+  });
+
+  it("keeps the record's own entrance for a temple the store does not hold", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    api.temple.value.dungeonLayout = { entrance: [2, 4], maze: [], rooms: {} };
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([2, 4]);
+  });
+
+  it("brings the store's snapshot up to what it wrote", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.entrancePosition = "3,2";
+    await api.saveTemple();
+    expect(store.dbStateSnapshot).toContain('"entrance":"3,2"');
+  });
+
   it("saves the entrance as [0, 0] for a temple without a layout", async () => {
     const { api } = await mountTempleData("wind-temple");
     await api.saveTemple();
@@ -698,6 +754,19 @@ describe("applyRawJson", () => {
     expect(mockDb.saved).toHaveLength(1);
     expect(mockDb.saved[0].customName).toBe("Hello");
     expect(debug.log).not.toHaveBeenCalledWith(expect.stringContaining("Normalized"));
+  });
+
+  it("adopts the entrance, grid size and floors of the JSON into the creator store, and saves that entrance", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    const maze = { "1F": [[W, "M0101", W], [W, W, W]], "2F": [[W, W, W], [W, W, W]] };
+    const rooms = { M0101: { type: "monster" } };
+    expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 1, 0], maze, rooms } }))).toEqual({
+      success: true,
+    });
+    expect(store.entrancePosition).toBe("0,1,0");
+    expect(store.gridSize).toBe("2x3");
+    expect(store.currentLevelId).toBe("1F");
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([0, 1, 0]);
   });
 
   it("moves legacy tokens to coordinate tokens and renames the room records to match", async () => {

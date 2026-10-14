@@ -357,3 +357,95 @@ describe("describeTempleSize", () => {
     expect(describeTempleSize({ total: 0, dormant: 0 })).toBe("Size 0 of 21");
   });
 });
+
+describe("the stairs check (#1360)", () => {
+  // Stairs read their target floor off the room, else climb to the neighbouring floor of the temple's own list: a
+  // stairway to no other floor is "blocked by rubble" and strands the hero
+  const UP = { type: "stairs-up" };
+  const DOWN = { type: "stairs-down" };
+  const rooms = (extra: Record<string, AuditableRoom> = {}): Record<string, AuditableRoom> => ({ ...ROOMS, U: UP, D: DOWN, ...extra });
+  const tower = (first: string[][], second: string[][], extra: Record<string, AuditableRoom> = {}) =>
+    temple({ "1F": first, "2F": second }, rooms(extra));
+  const stairs = (result: AuditResult) => check(result, "stairs");
+
+  it("is not part of the audit for a temple without stairs: the seven checks stay seven", () => {
+    expect(auditTemple(temple()).checks.map((c) => c.id)).not.toContain("stairs");
+    expect(auditTemple(temple()).checks).toHaveLength(7);
+  });
+
+  it("is an optional check after the seven, and Placed when every stairway has a floor to lead to", () => {
+    const result = auditTemple(tower([["E", "U"]], [["D", "_"]]));
+    expect(result.checks.map((c) => c.id)).toEqual(["entrance", "exit", "boss", "bossKey", "masterRoom", "map", "compass", "stairs"]);
+    expect(stairs(result)).toMatchObject({ label: "Stairs", ok: true, detail: "Placed", optional: true });
+  });
+
+  it("is Placed for a target on another floor the temple has, even where no neighbouring floor would do", () => {
+    const toGround = { type: "stairs-up", content: { targetLevel: "1F" } }; // up on the top floor, to the floor below
+    const result = auditTemple(temple({ "1F": [["E", "U"]], "2F": [["_", "V"]] }, rooms({ V: toGround })));
+    expect(stairs(result).ok).toBe(true);
+  });
+
+  it("says where stairs lead nowhere: up on the top floor", () => {
+    const result = auditTemple(tower([["E", "_"]], [["_", "_", "_", "_"], ["_", "_", "_", "U"]]));
+    expect(stairs(result)).toMatchObject({ ok: false, detail: "Stairs on 2F (1,3) lead nowhere" });
+  });
+
+  it("fails stairs going down on the first floor of the list", () => {
+    const result = auditTemple(tower([["E", "D"]], [["_", "_"]]));
+    expect(stairs(result)).toMatchObject({ ok: false, detail: "Stairs on 1F (0,1) lead nowhere" });
+  });
+
+  it("fails stairs aimed at their own floor: the seed the editor used to leave behind", () => {
+    const seeded = { type: "stairs-up", content: { targetLevel: "1F", targetCoords: { x: 0, y: 0 } } };
+    const result = auditTemple(tower([["E", "U"]], [["_", "_"]], { U: seeded }));
+    expect(stairs(result).detail).toBe("Stairs on 1F (0,1) lead nowhere");
+  });
+
+  it("fails stairs aimed at a floor the temple does not have", () => {
+    const lost = { type: "stairs-up", content: { targetLevel: "7F" } };
+    const result = auditTemple(tower([["E", "U"]], [["_", "_"]], { U: lost }));
+    expect(stairs(result).ok).toBe(false);
+  });
+
+  it("fails the stairs of a temple with one floor: there is nowhere to go", () => {
+    const result = auditTemple(temple([["E", "U", "D"]], rooms()));
+    expect(stairs(result)).toMatchObject({ ok: false, detail: "Stairs on 1F (0,1), 1F (0,2) lead nowhere" });
+  });
+
+  it("names the first two and counts the rest", () => {
+    const result = auditTemple(temple([["U", "U", "U", "U"]], rooms()));
+    expect(stairs(result).detail).toBe("Stairs on 1F (0,0), 1F (0,1) +2 more lead nowhere");
+  });
+
+  it("reads the underscore spelling of the stairs types too", () => {
+    const result = auditTemple(tower([["E", "U"]], [["_", "_"]], { U: { type: "stairs_down" } }));
+    expect(stairs(result).ok).toBe(false);
+  });
+
+  it("never stops a temple from being finished, and stays out of the names of what is missing", () => {
+    const result = auditTemple(tower([["E", "G", "B", "M"], ["K", "P", "C", "D"]], [["_", "_"]]));
+    expect(stairs(result).ok).toBe(false);
+    expect(result.passed).toBe(true);
+    expect(missingNames(result)).not.toContain("Stairs");
+    expect(auditSummary(result)).toBe("7 of 8 checks passed");
+  });
+
+  it("goes after the size check when there is one", () => {
+    const result = auditTemple(tower([["E", "U"]], [["D", "_"]]), { sizeOf: () => null });
+    expect(result.checks.map((c) => c.id).slice(-2)).toEqual(["size", "stairs"]);
+  });
+
+  it("reads a temple that keeps its maze and rooms at the top, and copes with one that has no layout", () => {
+    expect(stairs(auditTemple({ maze: { "1F": [["U"]], "2F": [["_"]] }, rooms: rooms() })).ok).toBe(true);
+    expect(auditTemple(undefined).checks.map((c) => c.id)).not.toContain("stairs");
+  });
+
+  it("is Placed for every temple that ships with the app", () => {
+    for (const id of Object.keys(temples)) {
+      const t = (temples as Record<string, any>)[id];
+      const result = auditTemple({ dungeonLayout: { maze: t.maze, rooms: t.rooms } });
+      const found = result.checks.find((c) => c.id === "stairs");
+      if (found) expect({ id, detail: found.detail }).toEqual({ id, detail: "Placed" });
+    }
+  });
+});

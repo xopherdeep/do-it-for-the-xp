@@ -156,7 +156,15 @@ describe("the shipped temples", () => {
     it("passes the audit, map and compass included", () => {
       expect(missingNames(audit)).toEqual([]);
       expect(audit.passed).toBe(true);
-      expect(auditSummary(audit)).toBe("7 of 7 checks passed");
+      // the optional stairs check (#1360) joins the seven for a temple with stairs
+      expect(auditSummary(audit)).toBe(`${audit.checks.length} of ${audit.checks.length} checks passed`);
+    });
+
+    it("leads every stairway to another floor", () => {
+      const hasStairs = rooms.some((room) => room.kind === "stairs-up" || room.kind === "stairs-down");
+      const stairs = audit.checks.find((check) => check.id === "stairs");
+      expect(Boolean(stairs)).toBe(hasStairs);
+      if (stairs) expect(stairs).toMatchObject({ ok: true, detail: "Placed" });
     });
 
     it("has one entrance, one boss, one Master Room and a Boss Key chest", () => {
@@ -268,7 +276,7 @@ describe("the shipped temples as quest rooms", () => {
     it("passes the audit with its size check too, every template counted as asleep", () => {
       const sized = auditTemple(layout, { sizeOf: templateSize });
       expect(sized.passed).toBe(true);
-      expect(auditSummary(sized)).toBe("8 of 8 checks passed");
+      expect(auditSummary(sized)).toBe(`${sized.checks.length} of ${sized.checks.length} checks passed`);
       expect(sized.checks.find((check) => check.id === "size")).toMatchObject({ ok: true, detail: `Size ${TEMPLE_SIZE[id]} of ${TEMPLE_FULL_SIZE} · ${TEMPLE_SIZE[id]} if woken` });
     });
 

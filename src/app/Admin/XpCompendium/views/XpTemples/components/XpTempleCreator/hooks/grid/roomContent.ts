@@ -97,15 +97,23 @@ export const stepForRoomType = (type: string): TypeStep => {
   return "close";
 };
 
-/** A travel room (stairs, pit, void, teleport) starts out pointing at the current floor and cell 0,0 */
+/**
+ * A new travel room (stairs, pit, void, teleport) starts with no target at all: stairs then climb to the neighbouring
+ * floor and land on the paired stairs, and teleport circles pair themselves. A target seeded here (the room's own floor
+ * and cell 0,0) made stairs "blocked by rubble", or landed the hero on cell 0,0 instead of the paired stairs. A target
+ * the Game Master picked is kept; the old seed on a stairs room (its own floor, cell 0,0) is cleared.
+ */
 export const seedTravelTargets = (
   content: RoomContent,
   type: string,
   currentLevelId: string
 ): void => {
-  if (TRAVEL_ROOM_TYPES.includes(type)) {
-    if (!content.targetLevel) content.targetLevel = currentLevelId;
-    if (!content.targetCoords) content.targetCoords = { x: 0, y: 0 };
+  const isStairs = type === "stairs-up" || type === "stairs-down";
+  const pointsAtOwnFloor = content.targetLevel === currentLevelId;
+  if (isStairs && pointsAtOwnFloor) {
+    delete content.targetLevel;
+    const isDefaultCell = content.targetCoords?.x === 0 && content.targetCoords?.y === 0;
+    if (isDefaultCell) delete content.targetCoords;
   }
 };
 

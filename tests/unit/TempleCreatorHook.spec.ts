@@ -8,7 +8,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { toastController } from "@ionic/vue";
 import { useTempleCreator } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleCreator";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
-import { _00_ } from "@/lib/engine/dungeons/roomTypes";
+import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
 import { writeMazeCell } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/floorLayers";
 
 jest.mock("@ionic/storage", () => {
@@ -47,6 +47,10 @@ jest.mock("@ionic/vue", () => ({
   useIonRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
 jest.mock("vue-router", () => ({ useRoute: () => ({ params: {}, query: {} }) }));
+jest.mock("@/lib/engine/core/dungeons/importAllTemples", () => ({
+  __esModule: true,
+  ensureBuiltInTemples: async () => undefined,
+}));
 jest.mock("@/lib/databases/ProfileDb", () => {
   class MockProfileDb {
     setProfile = jest.fn();
@@ -411,5 +415,113 @@ describe("removing a floor", () => {
     creator.removeFloor("1F");
     expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
     expect(creator.entrancePosition.value).toBe("1,1,2");
+  });
+});
+
+// --- #1358: a temple another screen already loaded into the store -------------------------------------------------
+
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+/** A stored temple of two 5x4 floors with the entrance on 1F, cell 2,1: the shape of earth-temple's [0, 2, 1] */
+const earthTemple = (id: string) => {
+  const floor = () => Array.from({ length: 5 }, () => Array(4).fill(____));
+  const first = floor();
+  first[2][1] = _00_;
+  return {
+    id,
+    categoryIds: ["dungeon"],
+    customName: "Earth",
+    dungeonLayout: {
+      entrance: [0, 2, 1],
+      maze: { "1F": first, "2F": floor() },
+      rooms: { [____]: { type: "wall" }, [_00_]: { type: "entrance", visited: true } },
+    },
+  };
+};
+
+/** The creator on a store that useTempleData.loadTemple filled the way it once did: the maze and the rooms, nothing else */
+const startOnHalfLoadedStore = async (record: ReturnType<typeof earthTemple>) => {
+  await new TempleDb(templeStorage).setTemple(record as never);
+  const creator = useTempleCreator({ templeId: record.id });
+  creator.store.reset();
+  creator.store.templeMaze = clone(record.dungeonLayout.maze);
+  creator.store.roomsData = clone(record.dungeonLayout.rooms);
+  creator.store.markAsLoaded(record.id);
+  return creator;
+};
+
+describe("a temple another screen already marked loaded", () => {
+  it("adopts the stored entrance when useTempleData already marked the temple loaded", async () => {
+    const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
+    expect(creator.entrancePosition.value).toBe("5,2"); // the store default, until the creator looks at the record
+
+    await creator.loadTempleLayout();
+
+    expect(creator.entrancePosition.value).toBe("0,2,1");
+    expect(creator.gridSize.value).toBe("5x4");
+    expect(creator.currentLevelId.value).toBe("1F");
+  });
+
+  it("keeps the stored entrance through an edit and a save", async () => {
+    const record = earthTemple(nextId());
+    const creator = await startOnHalfLoadedStore(record);
+    await creator.loadTempleLayout();
+
+    paint(creator, "monster", 0, 0);
+    await creator.saveTemple();
+
+    expect(await savedEntrance(record.id)).toEqual([0, 2, 1]);
+    const stored = await new TempleDb(templeStorage).getTempleById(record.id);
+    const maze = stored?.dungeonLayout?.maze as Record<string, string[][]>;
+    expect(Object.keys(maze)).toEqual(["1F", "2F"]);
+    expect(maze["1F"]).toHaveLength(5); // the entrance row 2 sits inside a 5-row grid, not off it
+  });
+
+  it("puts a floor the maze does not have back on one it has", async () => {
+    const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
+    creator.store.currentLevelId = "9F";
+    await creator.loadTempleLayout();
+    expect(creator.currentLevelId.value).toBe("1F");
+  });
+
+  it("keeps what the Game Master changed since: a temple the creator already tracks is not read again", async () => {
+    const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
+    await creator.loadTempleLayout();
+
+    paint(creator, "entrance", 4, 3);
+    expect(creator.entrancePosition.value).toBe("0,4,3");
+    await creator.loadTempleLayout(); // coming back from the room editor
+
+    expect(creator.entrancePosition.value).toBe("0,4,3");
+    expect(creator.hasUnsavedChanges.value).toBe(true);
+  });
+
+  it("reads the entrance, grid and floor of a temple the store does not hold yet", async () => {
+    const record = earthTemple(nextId());
+    await new TempleDb(templeStorage).setTemple(record as never);
+    const creator = useTempleCreator({ templeId: record.id });
+    await creator.loadTempleLayout();
+    expect(creator.entrancePosition.value).toBe("0,2,1");
+    expect(creator.gridSize.value).toBe("5x4");
+    expect(creator.hasUnsavedChanges.value).toBe(false);
+  });
+});
+
+describe("initializeGrid on a temple with floors", () => {
+  it("never replaces the floors when the floor on show is not one of them", async () => {
+    const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
+    creator.currentLevelId.value = "9F";
+    creator.initializeGrid();
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
+    expect(creator.currentLevelId.value).toBe("1F");
+  });
+
+  it("starts over only the floor on show", async () => {
+    const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
+    creator.gridSize.value = "3x3";
+    creator.currentLevelId.value = "2F";
+    creator.initializeGrid();
+    expect(floorMap(creator)["2F"]).toHaveLength(3);
+    expect(floorMap(creator)["1F"]).toHaveLength(5);
   });
 });

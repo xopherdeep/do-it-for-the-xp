@@ -38,6 +38,7 @@ import {
 import { listTempleBeasts, buildItemMapData } from "./templeData/mazeContents";
 import type { TempleBeast } from "./templeData/mazeContents";
 import { parseTempleJson, normalizeImportedLayout } from "./templeData/tokenMigration";
+import { adoptStoredLayout, storedLayout } from "./templeData/storedLayout";
 
 export type { TempleBeast } from "./templeData/mazeContents";
 
@@ -177,17 +178,13 @@ export function useTempleData(templeId: string) {
       if (templeData) {
         temple.value = { ...temple.value, ...templeData };
 
-        // Sync to creator store (Layer 2)
+        // Sync to creator store (Layer 2): the whole record, so the creator never starts from the store's default entrance and grid
         if (templeData.dungeonLayout) {
-          creatorStore.templeMaze = JSON.parse(JSON.stringify(templeData.dungeonLayout.maze));
-
-          if (templeData.dungeonLayout.rooms) {
-            if (templeData.dungeonLayout.rooms['____']) {
-              templeData.dungeonLayout.rooms['____'] = { type: 'wall' };
-            }
-            creatorStore.roomsData = JSON.parse(JSON.stringify(templeData.dungeonLayout.rooms));
+          if (templeData.dungeonLayout.rooms?.['____']) {
+            templeData.dungeonLayout.rooms['____'] = { type: 'wall' };
           }
-          creatorStore.markAsLoaded(id);
+          adoptStoredLayout(creatorStore, id, { ...templeData, dungeonLayout: templeData.dungeonLayout });
+          creatorStore.updateDbSnapshot();
         }
 
         calculateDungeonStats();
@@ -198,12 +195,12 @@ export function useTempleData(templeId: string) {
   };
 
   const saveTemple = async () => {
-    // Collect layout from creatorStore for ultimate consistency
-    const layoutToSave = {
-      entrance: temple.value.dungeonLayout?.entrance || [0, 0],
-      maze: JSON.parse(JSON.stringify(creatorStore.templeMaze)),
-      rooms: JSON.parse(JSON.stringify(creatorStore.roomsData))
-    };
+    // Collect layout from creatorStore for ultimate consistency; its entrance is the live one, so a moved entrance survives
+    // this save. A temple the store does not hold yet keeps the record's own entrance.
+    const layoutToSave = storedLayout(creatorStore);
+    if (!creatorStore.isLoaded(templeId)) {
+      layoutToSave.entrance = temple.value.dungeonLayout?.entrance || [0, 0];
+    }
 
     const templeDataToSave: ExtendedTempleInterface = {
       ...temple.value,
@@ -215,6 +212,7 @@ export function useTempleData(templeId: string) {
 
     // Update local snapshot in store if needed (for change detection)
     creatorStore.markAsLoaded(templeId);
+    creatorStore.updateDbSnapshot();
 
     const toast = await toastController.create({
       message: 'Temple settings saved!',
@@ -238,18 +236,13 @@ export function useTempleData(templeId: string) {
       // Update local state
       temple.value = { ...temple.value, ...parsedData };
 
-      // Sync to creator store
+      // Sync to creator store (the entrance, grid size and floor too: the save below writes the store's)
       if (parsedData.dungeonLayout) {
-        if (parsedData.dungeonLayout.maze) {
-          creatorStore.templeMaze = JSON.parse(JSON.stringify(parsedData.dungeonLayout.maze));
+        // Sanitize wall token definition if present
+        if (parsedData.dungeonLayout.rooms?.['____']) {
+          parsedData.dungeonLayout.rooms['____'] = { type: 'wall' };
         }
-        if (parsedData.dungeonLayout.rooms) {
-          // Sanitize wall token definition if present
-          if (parsedData.dungeonLayout.rooms['____']) {
-            parsedData.dungeonLayout.rooms['____'] = { type: 'wall' };
-          }
-          creatorStore.roomsData = JSON.parse(JSON.stringify(parsedData.dungeonLayout.rooms));
-        }
+        adoptStoredLayout(creatorStore, templeId, parsedData);
       }
 
       // Save to database

@@ -7,7 +7,8 @@
  * five are what a temple needs to be finished; the map and the compass are nice to have, so they are listed and
  * counted in the summary but never fail `passed`. A caller that knows the quests behind the rooms can hand over a
  * difficulty lookup (`options.sizeOf`) and the audit adds an eighth, just as optional, check: the temple's size
- * ("Size 17 of 21", docs/Quest-Rooms-Spec.md section 9).
+ * ("Size 17 of 21", docs/Quest-Rooms-Spec.md section 9). A temple with stairs gets one more optional check, last: every
+ * stairway leads to another floor ("Stairs on 2F (1,3) lead nowhere" otherwise).
  *
  * Rooms are read the way the editor draws them: every cell of every floor of the maze, looked up in the room
  * definitions (a token a hundred cells share counts a hundred times; a definition no cell uses counts for nothing).
@@ -19,7 +20,7 @@ import { VOID } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { TEMPLE_FULL_SIZE, templeSize, type SizedRoom, type TempleSize } from '@/lib/services/temples/questRooms';
 
-export type AuditCheckId = 'entrance' | 'exit' | 'boss' | 'bossKey' | 'masterRoom' | 'map' | 'compass' | 'size';
+export type AuditCheckId = 'entrance' | 'exit' | 'boss' | 'bossKey' | 'masterRoom' | 'map' | 'compass' | 'size' | 'stairs';
 
 export interface AuditCheck {
   id: AuditCheckId;
@@ -161,6 +162,47 @@ const sizeCheck = (rooms: AuditableRoom[], sizeOf: (room: AuditableRoom) => Size
   return { id: 'size', label: 'Size', ok: size.isFull, detail: describeTempleSize(size), optional: true };
 };
 
+/** Which way a stairs room climbs along the temple's list of floors (the engine reads both spellings) */
+const STAIRS_STEP: Record<string, 1 | -1> = { 'stairs-up': 1, stairs_up: 1, 'stairs-down': -1, stairs_down: -1 };
+
+/**
+ * The stairs check, or null for a temple with no stairs. Stairs lead where their `targetLevel` says, else to the
+ * neighbouring floor in the temple's own list of floors (how play climbs them); a stairway to the floor it stands on,
+ * to a floor the temple lacks, or past the first or last floor is "blocked by rubble" and strands the hero. A cell is
+ * written "floor (row,col)". Optional: a draft with its stairs half placed is not a mistake.
+ */
+const stairsCheck = (temple: AuditableTemple | null | undefined): AuditCheck | null => {
+  const layout: AuditableLayout | null | undefined = temple?.dungeonLayout ?? temple;
+  const definitions = layout?.rooms;
+  const maze = layout?.maze;
+  if (!definitions || !maze) return null;
+
+  const floors: Array<[string, string[][]]> = Array.isArray(maze) ? [['1F', maze]] : Object.entries(maze).filter(([, grid]) => Array.isArray(grid));
+  const floorNames = floors.map(([name]) => name);
+  let stairsCount = 0;
+  const stranded: string[] = [];
+
+  for (const [name, grid] of floors) {
+    grid.forEach((row, rowIndex) =>
+      (row ?? []).forEach((token, colIndex) => {
+        const isRoomlessCell = !token || isWallToken(token) || token === VOID;
+        const room = isRoomlessCell ? undefined : definitions[token];
+        const step = room ? STAIRS_STEP[typeOf(room)] : undefined;
+        if (!room || !step) return;
+
+        stairsCount += 1;
+        const target = room.content?.targetLevel ?? floorNames[floorNames.indexOf(name) + step];
+        const leadsToAnotherFloor = !!target && floorNames.includes(target) && target !== name;
+        if (!leadsToAnotherFloor) stranded.push(`${name} (${rowIndex},${colIndex})`);
+      })
+    );
+  }
+
+  if (stairsCount === 0) return null;
+  const detail = stranded.length === 0 ? 'Placed' : `Stairs on ${shortList(stranded)} lead nowhere`;
+  return { id: 'stairs', label: 'Stairs', ok: stranded.length === 0, detail, optional: true };
+};
+
 /**
  * Can this temple be finished? Runs the seven checks over the layout the temple holds, and the size check as an
  * eighth when `options.sizeOf` is given.
@@ -201,6 +243,8 @@ export const auditTemple = (temple: AuditableTemple | null | undefined, options:
     { id: 'compass', label: 'Compass', ok: compasses > 0, detail: compasses > 0 ? 'Placed' : 'Missing', optional: true },
   ];
   if (options.sizeOf) checks.push(sizeCheck(rooms, options.sizeOf));
+  const stairs = stairsCheck(temple);
+  if (stairs) checks.push(stairs);
 
   return { checks, passed: checks.every((check) => check.ok || check.optional === true) };
 };
