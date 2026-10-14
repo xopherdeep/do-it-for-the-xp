@@ -7,259 +7,255 @@
     :backdrop-dismiss="false"
     @didDismiss="emit('close')"
   >
-    <ion-header>
-      <ion-toolbar>
-        <xp-app-header title="New Quest" icon="scroll" :meta="`${position + 1} / ${steps.length}`">
-          <template #end>
-            <xp-close-button size="lg" color="light" aria-label="Close" data-test="wizard-close" @click="emit('close')" />
-          </template>
-        </xp-app-header>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content ref="content" class="qw-content" :scroll-y="true">
-      <!-- Where we are: one dot per question -->
-      <ol class="qw-dots" :aria-label="`Question ${position + 1} of ${steps.length}`">
-        <li
-          v-for="(id, index) in steps"
-          :key="id"
-          class="qw-dot"
-          :class="{ 'is-done': index < position, 'is-here': index === position }"
-        ></li>
-      </ol>
-
-      <!-- The guide asks one question per screen -->
-      <p class="qw-guide" data-test="guide">
-        <i :class="['fad', `fa-${STEP_ICON[step]}`]" aria-hidden="true"></i>
-        <span>{{ guideLine }}</span>
-        <xp-speak-button :text="guideLine" />
-      </p>
-
+    <xp-wizard-shell
+      ref="shell"
+      v-model:index="position"
+      :steps="steps"
+      :draft="draft"
+      title="New Quest"
+      icon="scroll"
+      :verb="t('questWizard.summon')"
+      verb-icon="magic"
+      :busy="saving"
+      :jumpable="false"
+      @close="emit('close')"
+      @submit="summon"
+    >
       <!-- 1. WHAT: a picture for every chore -->
-      <section v-if="step === 'what'" class="qw-section" data-test="step-what">
-        <div v-if="draft.name.trim()" class="qw-chosen" data-test="chosen">
-          <img v-if="chosenPortrait" :src="chosenPortrait" alt="" class="qw-chosen__art" />
-          <i v-else class="fad fa-paw-claws qw-chosen__art" aria-hidden="true"></i>
-          <span class="qw-chosen__name">{{ draft.name }}</span>
-          <i class="fad fa-check-circle qw-chosen__check" aria-hidden="true"></i>
-        </div>
+      <template #what>
+        <section class="qw-section" data-test="step-what">
+          <div v-if="draft.name.trim()" class="qw-chosen" data-test="chosen">
+            <img v-if="chosenPortrait" :src="chosenPortrait" alt="" class="qw-chosen__art" />
+            <i v-else class="fad fa-paw-claws qw-chosen__art" aria-hidden="true"></i>
+            <span class="qw-chosen__name">{{ draft.name }}</span>
+            <i class="fad fa-check-circle qw-chosen__check" aria-hidden="true"></i>
+          </div>
 
-        <div class="qw-grid qw-grid--chores">
-          <button
-            type="button"
-            class="qw-tile qw-tile--own"
-            :class="{ 'is-picked': draft.isOwn && !!draft.name.trim() }"
-            data-test="tile-own"
-            @click="onOwnTile"
-          >
-            <span class="qw-tile__art">
-              <img v-if="ownPortrait" :src="ownPortrait" alt="" />
-              <i v-else class="fad fa-pencil" aria-hidden="true"></i>
-              <i v-if="ownPortrait" class="fad fa-pencil qw-tile__pen" aria-hidden="true"></i>
-            </span>
-            <span class="qw-tile__label">{{ ownLabel }}</span>
-          </button>
+          <div class="qw-grid qw-grid--chores">
+            <button
+              type="button"
+              class="qw-tile qw-tile--own"
+              :class="{ 'is-picked': draft.isOwn && !!draft.name.trim() }"
+              data-test="tile-own"
+              @click="onOwnTile"
+            >
+              <span class="qw-tile__art">
+                <img v-if="ownPortrait" :src="ownPortrait" alt="" />
+                <i v-else class="fad fa-pencil" aria-hidden="true"></i>
+                <i v-if="ownPortrait" class="fad fa-pencil qw-tile__pen" aria-hidden="true"></i>
+              </span>
+              <span class="qw-tile__label">{{ ownLabel }}</span>
+            </button>
 
-          <button
-            v-for="entry in tiles"
-            :key="String(entry.id)"
-            type="button"
-            class="qw-tile"
-            :class="{ 'is-picked': isPicked(entry) }"
-            :aria-pressed="isPicked(entry)"
-            :aria-label="`${choreName(entry)} (${entry.name})`"
-            data-test="tile-chore"
-            :data-beast="String(entry.id)"
-            @click="pick(entry)"
-          >
-            <span class="qw-tile__art">
-              <img v-if="portrait(entry)" :src="portrait(entry) ?? ''" alt="" loading="lazy" />
-              <i v-else class="fad fa-dragon" aria-hidden="true"></i>
-            </span>
-            <span class="qw-tile__label">{{ choreName(entry) }}</span>
-            <i v-if="isPicked(entry)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
-          </button>
+            <button
+              v-for="entry in tiles"
+              :key="String(entry.id)"
+              type="button"
+              class="qw-tile"
+              :class="{ 'is-picked': isPicked(entry) }"
+              :aria-pressed="isPicked(entry)"
+              :aria-label="`${choreName(entry)} (${entry.name})`"
+              data-test="tile-chore"
+              :data-beast="String(entry.id)"
+              @click="pick(entry)"
+            >
+              <span class="qw-tile__art">
+                <img v-if="portrait(entry)" :src="portrait(entry) ?? ''" alt="" loading="lazy" />
+                <i v-else class="fad fa-dragon" aria-hidden="true"></i>
+              </span>
+              <span class="qw-tile__label">{{ choreName(entry) }}</span>
+              <i v-if="isPicked(entry)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
+            </button>
 
-          <button v-if="canShowMore" type="button" class="qw-tile qw-tile--more" data-test="tile-more" @click="showAll = true">
-            <span class="qw-tile__art"><i class="fad fa-ellipsis-h" aria-hidden="true"></i></span>
-            <span class="qw-tile__label">More</span>
-          </button>
-        </div>
-        <p v-if="isSearching && !tiles.length" class="qw-note" data-test="no-match">
-          {{ t("questWizard.what.noMatch") }}
-        </p>
-      </section>
+            <button v-if="canShowMore" type="button" class="qw-tile qw-tile--more" data-test="tile-more" @click="showAll = true">
+              <span class="qw-tile__art"><i class="fad fa-ellipsis-h" aria-hidden="true"></i></span>
+              <span class="qw-tile__label">More</span>
+            </button>
+          </div>
+          <p v-if="isSearching && !tiles.length" class="qw-note" data-test="no-match">
+            {{ t("questWizard.what.noMatch") }}
+          </p>
+        </section>
+      </template>
 
       <!-- 2. STEPS: the checklist, skippable -->
-      <section v-else-if="step === 'steps'" class="qw-section" data-test="step-steps">
-        <ol v-if="draft.steps.length" class="qw-steps">
-          <li v-for="(text, index) in draft.steps" :key="`${index}-${text}`" class="qw-step" data-test="step-row">
-            <span class="qw-step__n" aria-hidden="true">{{ index + 1 }}</span>
-            <span class="qw-step__text">{{ text }}</span>
-            <button type="button" class="qw-step__x" :aria-label="`Drop ${text}`" data-test="step-drop" @click="drop(index)">
-              <i class="fad fa-times" aria-hidden="true"></i>
-            </button>
-          </li>
-        </ol>
-        <p v-else class="qw-empty" data-test="no-steps">
-          <i class="fad fa-tasks" aria-hidden="true"></i>
-          <span>{{ t("questWizard.steps.none") }}</span>
-        </p>
-      </section>
+      <template #steps>
+        <section class="qw-section" data-test="step-steps">
+          <ol v-if="draft.steps.length" class="qw-steps">
+            <li v-for="(text, index) in draft.steps" :key="`${index}-${text}`" class="qw-step" data-test="step-row">
+              <span class="qw-step__n" aria-hidden="true">{{ index + 1 }}</span>
+              <span class="qw-step__text">{{ text }}</span>
+              <button type="button" class="qw-step__x" :aria-label="`Drop ${text}`" data-test="step-drop" @click="drop(index)">
+                <i class="fad fa-times" aria-hidden="true"></i>
+              </button>
+            </li>
+          </ol>
+          <p v-else class="qw-empty" data-test="no-steps">
+            <i class="fad fa-tasks" aria-hidden="true"></i>
+            <span>{{ t("questWizard.steps.none") }}</span>
+          </p>
+        </section>
+      </template>
 
       <!-- 3. WHEN -->
-      <section v-else-if="step === 'when'" class="qw-section" data-test="step-when">
-        <div class="qw-grid qw-grid--3">
-          <button
-            v-for="choice in WHEN_CHOICES"
-            :key="choice.id"
-            type="button"
-            class="qw-tile qw-tile--big"
-            :class="{ 'is-picked': draft.when === choice.id }"
-            :aria-pressed="draft.when === choice.id"
-            :data-test="`when-${choice.id}`"
-            @click="chooseWhen(choice.id)"
-          >
-            <i :class="['fad', `fa-${choice.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
-            <span class="qw-tile__label">{{ whenLabel(choice) }}</span>
-          </button>
-        </div>
+      <template #when>
+        <section class="qw-section" data-test="step-when">
+          <div class="qw-grid qw-grid--3">
+            <button
+              v-for="choice in WHEN_CHOICES"
+              :key="choice.id"
+              type="button"
+              class="qw-tile qw-tile--big"
+              :class="{ 'is-picked': draft.when === choice.id }"
+              :aria-pressed="draft.when === choice.id"
+              :data-test="`when-${choice.id}`"
+              @click="chooseWhen(choice.id)"
+            >
+              <i :class="['fad', `fa-${choice.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
+              <span class="qw-tile__label">{{ whenLabel(choice) }}</span>
+            </button>
+          </div>
 
-        <div v-if="draft.when === 'days'" class="qw-days" role="group" aria-label="Which days">
-          <button
-            v-for="token in DAY_TOKENS"
-            :key="token"
-            type="button"
-            class="qw-day"
-            :class="{ 'is-picked': draft.days.includes(token) }"
-            :aria-pressed="draft.days.includes(token)"
-            :data-test="`day-${token}`"
-            @click="chooseDay(token)"
-          >
-            {{ DAY_LABELS[token] }}
-          </button>
-        </div>
+          <div v-if="draft.when === 'days'" class="qw-days" role="group" aria-label="Which days">
+            <button
+              v-for="token in DAY_TOKENS"
+              :key="token"
+              type="button"
+              class="qw-day"
+              :class="{ 'is-picked': draft.days.includes(token) }"
+              :aria-pressed="draft.days.includes(token)"
+              :data-test="`day-${token}`"
+              @click="chooseDay(token)"
+            >
+              {{ DAY_LABELS[token] }}
+            </button>
+          </div>
 
-        <h2 class="qw-sub">{{ t("questWizard.when.time") }}</h2>
-        <div class="qw-grid qw-grid--3">
-          <button
-            v-for="choice in TIME_CHOICES"
-            :key="choice.id"
-            type="button"
-            class="qw-tile qw-tile--big"
-            :class="{ 'is-picked': draft.time === choice.id }"
-            :aria-pressed="draft.time === choice.id"
-            :data-test="`time-${choice.id}`"
-            @click="chooseTime(choice.id)"
-          >
-            <i :class="['fad', `fa-${choice.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
-            <span class="qw-tile__label">{{ choice.label }}</span>
-          </button>
-        </div>
-      </section>
+          <h2 class="qw-sub">{{ t("questWizard.when.time") }}</h2>
+          <div class="qw-grid qw-grid--3">
+            <button
+              v-for="choice in TIME_CHOICES"
+              :key="choice.id"
+              type="button"
+              class="qw-tile qw-tile--big"
+              :class="{ 'is-picked': draft.time === choice.id }"
+              :aria-pressed="draft.time === choice.id"
+              :data-test="`time-${choice.id}`"
+              @click="chooseTime(choice.id)"
+            >
+              <i :class="['fad', `fa-${choice.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
+              <span class="qw-tile__label">{{ choice.label }}</span>
+            </button>
+          </div>
+        </section>
+      </template>
 
       <!-- 4. HOW BIG: the size sets the rewards -->
-      <section v-else-if="step === 'size'" class="qw-section" data-test="step-size">
-        <div class="qw-grid" :class="sizes.length > 4 ? 'qw-grid--3' : 'qw-grid--2'">
-          <button
-            v-for="size in sizes"
-            :key="size.id"
-            type="button"
-            class="qw-tile qw-tile--big"
-            :class="{ 'is-picked': difficulty === size.id }"
-            :aria-pressed="difficulty === size.id"
-            :data-test="`size-${size.label.toLowerCase()}`"
-            @click="chooseSize(size.id)"
-          >
-            <i :class="['fad', `fa-${size.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
-            <span class="qw-tile__label">{{ size.label }}</span>
-          </button>
-        </div>
-        <div class="qw-rewards" data-test="rewards">
-          <span class="qw-rewards__label">{{ t("questWizard.size.earn") }}</span>
-          <xp-app-chip kind="xp" :value="rewards.xp" />
-          <xp-app-chip kind="gp" :value="rewards.gp" />
-          <xp-app-chip kind="ap" :value="rewards.ap" />
-        </div>
-      </section>
-
-      <!-- 5. WHO (a Game Master only): hero tiles -->
-      <section v-else-if="step === 'who'" class="qw-section" data-test="step-who">
-        <div class="qw-grid qw-grid--3">
-          <button
-            v-for="hero in heroes"
-            :key="hero.id"
-            type="button"
-            class="qw-tile qw-tile--hero"
-            :class="{ 'is-picked': draft.heroIds.includes(hero.id) }"
-            :aria-pressed="draft.heroIds.includes(hero.id)"
-            :data-test="`hero-${hero.id}`"
-            @click="chooseHero(hero.id)"
-          >
-            <span class="qw-tile__art qw-tile__art--round"><img :src="avatarOf(hero)" alt="" /></span>
-            <span class="qw-tile__label">{{ nameOf(hero) }}</span>
-            <i v-if="draft.heroIds.includes(hero.id)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
-          </button>
-        </div>
-      </section>
-
-      <!-- 6. READY: the beast card, then Summon -->
-      <section v-else class="qw-section" data-test="step-ready">
-        <article class="qw-card" :class="`qw-card--${tier.tier}`" :aria-label="`${draft.name}, ${tier.label}`">
-          <div class="qw-card__beast">
-            <img v-if="chosenPortrait" :src="chosenPortrait" :alt="beastName" class="qw-card__portrait" />
-            <i v-else class="fad fa-dragon qw-card__portrait" aria-hidden="true"></i>
-            <span class="qw-card__tier" :data-tier="tier.tier">
-              <i :class="['fad', `fa-${tier.icon}`]" aria-hidden="true"></i>
-              {{ tier.label }}
-            </span>
+      <template #size>
+        <section class="qw-section" data-test="step-size">
+          <div class="qw-grid" :class="sizes.length > 4 ? 'qw-grid--3' : 'qw-grid--2'">
+            <button
+              v-for="size in sizes"
+              :key="size.id"
+              type="button"
+              class="qw-tile qw-tile--big"
+              :class="{ 'is-picked': difficulty === size.id }"
+              :aria-pressed="difficulty === size.id"
+              :data-test="`size-${size.label.toLowerCase()}`"
+              @click="chooseSize(size.id)"
+            >
+              <i :class="['fad', `fa-${size.icon}`, 'qw-tile__icon']" aria-hidden="true"></i>
+              <span class="qw-tile__label">{{ size.label }}</span>
+            </button>
           </div>
-          <h2 class="qw-card__name" data-test="ready-name">{{ questName }}</h2>
-          <p class="qw-card__sub">{{ beastName }}</p>
-          <ul class="qw-card__facts">
-            <li><i class="fad fa-calendar-day" aria-hidden="true"></i><span data-test="ready-when">{{ whenText }}</span></li>
-            <li>
-              <i class="fad fa-tasks" aria-hidden="true"></i>
-              <span>{{ draft.steps.length ? `${draft.steps.length} steps` : "1 step" }}</span>
-            </li>
-            <li v-if="isGm" class="qw-card__party">
-              <i class="fad fa-users" aria-hidden="true"></i>
-              <span>{{ partyNames }}</span>
-            </li>
-          </ul>
-          <div class="qw-card__rewards">
+          <div class="qw-rewards" data-test="rewards">
+            <span class="qw-rewards__label">{{ t("questWizard.size.earn") }}</span>
             <xp-app-chip kind="xp" :value="rewards.xp" />
             <xp-app-chip kind="gp" :value="rewards.gp" />
             <xp-app-chip kind="ap" :value="rewards.ap" />
-            <xp-app-chip v-if="needsApproval" kind="tag" value="GM approves" />
           </div>
-        </article>
+        </section>
+      </template>
 
-        <!-- A hero's quest always waits for the Game Master; a Game Master chooses -->
-        <button
-          v-if="isGm"
-          type="button"
-          class="qw-toggle"
-          :class="{ 'is-on': draft.requiresApproval }"
-          role="switch"
-          :aria-checked="draft.requiresApproval"
-          data-test="approval-toggle"
-          @click="toggleApproval"
-        >
-          <i :class="['fad', draft.requiresApproval ? 'fa-check-square' : 'fa-square']" aria-hidden="true"></i>
-          <span>Needs approval</span>
-        </button>
-        <p v-else class="qw-note" data-test="kid-note">
-          <i class="fad fa-shield-check" aria-hidden="true"></i>
-          {{ t("questWizard.ready.kidNote") }}
-        </p>
-      </section>
-    </ion-content>
+      <!-- 5. WHO (a Game Master only): hero tiles -->
+      <template #who>
+        <section class="qw-section" data-test="step-who">
+          <div class="qw-grid qw-grid--3">
+            <button
+              v-for="hero in heroes"
+              :key="hero.id"
+              type="button"
+              class="qw-tile qw-tile--hero"
+              :class="{ 'is-picked': draft.heroIds.includes(hero.id) }"
+              :aria-pressed="draft.heroIds.includes(hero.id)"
+              :data-test="`hero-${hero.id}`"
+              @click="chooseHero(hero.id)"
+            >
+              <span class="qw-tile__art qw-tile__art--round"><img :src="avatarOf(hero)" alt="" /></span>
+              <span class="qw-tile__label">{{ nameOf(hero) }}</span>
+              <i v-if="draft.heroIds.includes(hero.id)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
+            </button>
+          </div>
+        </section>
+      </template>
 
-    <!-- Search, the step field and Back / Next sit at the bottom, in thumb reach -->
-    <ion-footer class="qw-footer">
-      <div class="qw-bar">
-        <label v-if="step === 'what'" class="xp-app-search">
+      <!-- 6. READY: the beast card, then Summon -->
+      <template #ready>
+        <section class="qw-section" data-test="step-ready">
+          <article class="qw-card" :class="`qw-card--${tier.tier}`" :aria-label="`${draft.name}, ${tier.label}`">
+            <div class="qw-card__beast">
+              <img v-if="chosenPortrait" :src="chosenPortrait" :alt="beastName" class="qw-card__portrait" />
+              <i v-else class="fad fa-dragon qw-card__portrait" aria-hidden="true"></i>
+              <span class="qw-card__tier" :data-tier="tier.tier">
+                <i :class="['fad', `fa-${tier.icon}`]" aria-hidden="true"></i>
+                {{ tier.label }}
+              </span>
+            </div>
+            <h2 class="qw-card__name" data-test="ready-name">{{ questName }}</h2>
+            <p class="qw-card__sub">{{ beastName }}</p>
+            <ul class="qw-card__facts">
+              <li><i class="fad fa-calendar-day" aria-hidden="true"></i><span data-test="ready-when">{{ whenText }}</span></li>
+              <li>
+                <i class="fad fa-tasks" aria-hidden="true"></i>
+                <span>{{ draft.steps.length ? `${draft.steps.length} steps` : "1 step" }}</span>
+              </li>
+              <li v-if="isGm" class="qw-card__party">
+                <i class="fad fa-users" aria-hidden="true"></i>
+                <span>{{ partyNames }}</span>
+              </li>
+            </ul>
+            <div class="qw-card__rewards">
+              <xp-app-chip kind="xp" :value="rewards.xp" />
+              <xp-app-chip kind="gp" :value="rewards.gp" />
+              <xp-app-chip kind="ap" :value="rewards.ap" />
+              <xp-app-chip v-if="needsApproval" kind="tag" value="GM approves" />
+            </div>
+          </article>
+
+          <!-- A hero's quest always waits for the Game Master; a Game Master chooses -->
+          <button
+            v-if="isGm"
+            type="button"
+            class="qw-toggle"
+            :class="{ 'is-on': draft.requiresApproval }"
+            role="switch"
+            :aria-checked="draft.requiresApproval"
+            data-test="approval-toggle"
+            @click="toggleApproval"
+          >
+            <i :class="['fad', draft.requiresApproval ? 'fa-check-square' : 'fa-square']" aria-hidden="true"></i>
+            <span>Needs approval</span>
+          </button>
+          <p v-else class="qw-note" data-test="kid-note">
+            <i class="fad fa-shield-check" aria-hidden="true"></i>
+            {{ t("questWizard.ready.kidNote") }}
+          </p>
+        </section>
+      </template>
+
+      <!-- The step's field (search, new step) sits at the bottom, above Back / Next, in thumb reach -->
+      <template #above-nav="{ step: asked }">
+        <label v-if="asked.id === 'what'" class="xp-app-search">
           <i class="fad fa-search" aria-hidden="true"></i>
           <input
             ref="searchInput"
@@ -274,7 +270,7 @@
             @keyup.enter="onEnterSearch"
           />
         </label>
-        <label v-else-if="step === 'steps'" class="xp-app-search">
+        <label v-else-if="asked.id === 'steps'" class="xp-app-search">
           <i class="fad fa-plus" aria-hidden="true"></i>
           <input
             v-model="stepText"
@@ -297,37 +293,8 @@
             + step
           </button>
         </label>
-
-        <div class="qw-nav">
-          <button type="button" class="xp-app-btn xp-app-btn--ghost qw-btn qw-btn--back" data-test="back" @click="back">
-            <i :class="['fad', position === 0 ? 'fa-door-open' : 'fa-arrow-left']" aria-hidden="true"></i>
-            {{ position === 0 ? "Close" : "Back" }}
-          </button>
-          <button
-            v-if="step !== 'ready'"
-            type="button"
-            class="xp-app-btn qw-btn qw-btn--next"
-            :disabled="!canNext"
-            data-test="next"
-            @click="next"
-          >
-            Next
-            <i class="fad fa-arrow-right" aria-hidden="true"></i>
-          </button>
-          <button
-            v-else
-            type="button"
-            class="xp-app-btn qw-btn qw-btn--next qw-btn--summon"
-            :disabled="saving"
-            data-test="summon"
-            @click="summon"
-          >
-            <i class="fad fa-magic" aria-hidden="true"></i>
-            {{ t("questWizard.summon") }}
-          </button>
-        </div>
-      </div>
-    </ion-footer>
+      </template>
+    </xp-wizard-shell>
 
     <!-- Fanfare reveal when a new quest is summoned: staged over the wizard modal -->
     <xp-hero-fanfare
@@ -345,14 +312,12 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
-import { IonContent, IonFooter, IonHeader, IonModal, IonToolbar, toastController } from "@ionic/vue";
+import { IonModal, toastController } from "@ionic/vue";
 import { format, isToday } from "date-fns";
 import { play$fx } from "@/assets/fx";
-import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
-import XpSpeakButton from "@/components/atoms/SpeakButton/XpSpeakButton.vue";
 import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
-import XpAppHeader from "@/components/organisms/XpApp/XpAppHeader.vue";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
 import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { DAY_TOKENS } from "@/lib/engine/quests/QuestSchedule";
@@ -362,7 +327,6 @@ import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import {
   addStep,
   bandOf,
-  canAdvance,
   choreName,
   choreTiles,
   clampDifficulty,
@@ -372,12 +336,11 @@ import {
   dropStep,
   newDraft,
   pickChore,
+  questWizardSteps,
   rewardsOf,
   searchChores,
   setWhen,
   sizesFor,
-  stepGuide,
-  STEP_ICON,
   suggestChore,
   TIME_CHOICES,
   toggleDay,
@@ -385,7 +348,6 @@ import {
   typeChore,
   WHEN_CHOICES,
   whenLine,
-  wizardSteps,
 } from "@/lib/services/quests/questWizard";
 import type { WizardChoice, WizardDraft, WizardTime, WizardWhen } from "@/lib/services/quests/questWizard";
 import { saveWizardQuest } from "@/lib/services/quests/questWizardSave";
@@ -403,8 +365,9 @@ import { tierBadge } from "../beastCard";
 
 /**
  * The Quest Wizard (docs: board #1288): a full-screen, one-question-per-screen way for any player to add a quest from the
- * Calendar or the Beast Log. Big picture tiles, short words, Back / Next at the bottom. The rules (what a hero may make,
- * how the quest is built and saved) live in questWizard.ts; this file only holds the draft and draws it.
+ * Calendar or the Beast Log. Big picture tiles, short words, Back / Next at the bottom. The chrome (header, dots, guide,
+ * Back / Next / Summon) is the shared XpWizardShell and the rules (what a hero may make, how the quest is built and
+ * saved, the screens as steps) live in questWizard.ts; this file only holds the draft and the body of each screen.
  */
 const props = defineProps<{
   open: boolean;
@@ -463,12 +426,12 @@ const avatarOf = (hero: Profile): string => {
 const blankDraft = (): WizardDraft => newDraft({ isGm: isGm.value, heroId: me.value, prefill: props.prefill });
 
 const draft = ref<WizardDraft>(blankDraft());
-const steps = computed(() => wizardSteps(isGm.value));
+// The screens are the steps of the shared wizard shell (the header, dots, guide and Back / Next are the shell's)
+const steps = computed(() => questWizardSteps(isGm.value, voice.value));
 const position = ref(0);
-const step = computed(() => steps.value[position.value]);
 const saving = ref(false);
 
-const content = ref<{ $el?: { scrollToTop?: (ms?: number) => Promise<void> } } | null>(null);
+const shell = ref<InstanceType<typeof XpWizardShell> | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 const search = ref("");
 const stepText = ref("");
@@ -494,15 +457,9 @@ watch(
   { immediate: true }
 );
 
-watch(position, () => {
-  void content.value?.$el?.scrollToTop?.(0);
-});
-
-const canNext = computed(() => canAdvance(step.value, draft.value));
-
 // The guide's question in the hero's voice; the simple voice reads each one aloud as it appears (the speaker button
 // reads it for everyone), and closing the wizard cuts the voice off
-const guideLine = computed(() => stepGuide(step.value, voice.value));
+const guideLine = computed(() => steps.value[position.value]?.guide ?? "");
 watch(
   [() => props.open, guideLine],
   ([isOpen, line]) => {
@@ -542,7 +499,7 @@ const pick = (entry: LibraryEntry) => {
   play$fx("cursor");
   draft.value = pickChore(draft.value, entry);
   search.value = "";
-  void content.value?.$el?.scrollToTop?.(200);
+  shell.value?.scrollToTop(200);
 };
 
 // Typing names the quest as the letters come, so Next wakes up as soon as there is a name
@@ -635,26 +592,7 @@ const toggleApproval = () => {
   draft.value = { ...draft.value, requiresApproval: !draft.value.requiresApproval };
 };
 
-// ---- Back, Next and Summon -----------------------------------------------------------------------------------------
-
-const back = () => {
-  play$fx("cursor");
-  if (position.value === 0) {
-    emit("close");
-    return;
-  }
-  position.value -= 1;
-};
-
-const next = () => {
-  if (!canNext.value) {
-    play$fx("no");
-    return;
-  }
-  play$fx("select");
-  searchInput.value?.blur();
-  position.value = Math.min(position.value + 1, steps.value.length - 1);
-};
+// ---- Summon (Back and Next are the shell's) ------------------------------------------------------------------------
 
 const say = async (header: string, message?: string) => {
   try {
@@ -743,55 +681,6 @@ const finishQuestFanfare = async () => {
     max-width: 700px;
     margin: 0 auto;
     background: var(--xp-app-bg);
-  }
-}
-
-// ---- Progress dots and the guide -----------------------------------------------------------------------------------
-
-.qw-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.qw-dot {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--xp-app-accent);
-  border-radius: var(--xp-app-radius-chip);
-  background: transparent;
-  transition: background 0.15s, transform 0.15s;
-
-  &.is-done {
-    background: var(--xp-app-accent);
-    opacity: 0.6;
-  }
-
-  &.is-here {
-    background: var(--xp-app-accent);
-    transform: scale(1.3);
-  }
-}
-
-.qw-guide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 12px 14px 8px;
-  color: var(--xp-app-text);
-  font-family: var(--xp-app-font-title);
-  font-size: 1.15rem;
-  line-height: 1.2;
-  text-align: center;
-  text-transform: var(--xp-app-title-transform);
-
-  i {
-    color: var(--xp-app-accent);
-    font-size: 1.5rem;
   }
 }
 
@@ -1216,53 +1105,10 @@ const finishQuestFanfare = async () => {
   }
 }
 
-// ---- Bottom: field, Back and Next ----------------------------------------------------------------------------------
-
-.qw-footer::before {
-  display: none;
-}
-
-.qw-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 12px calc(10px + var(--ion-safe-area-bottom, 0px));
-  background: var(--xp-app-bar-bg);
-  border-top: 1px solid var(--xp-app-line);
-
-  .xp-app-search {
-    height: 46px;
-  }
-}
+// ---- The step field (the bar around it and Back / Next are the shell's) -----------------------------------------------
 
 .qw-add {
   flex: 0 0 auto;
   min-height: 34px;
-}
-
-.qw-nav {
-  display: flex;
-  gap: 10px;
-}
-
-.qw-btn {
-  min-height: 56px;
-  font-size: 1.05rem;
-
-  i {
-    font-size: 1.2rem;
-  }
-
-  &--back {
-    flex: 1 1 0;
-  }
-
-  &--next {
-    flex: 1.7 1 0;
-  }
-
-  &--summon {
-    font-size: 1.2rem;
-  }
 }
 </style>
