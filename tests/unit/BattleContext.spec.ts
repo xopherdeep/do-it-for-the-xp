@@ -103,8 +103,13 @@ describe("battleContext", () => {
       name: "battle-temple",
       params: { userId: "h", templeId: "t", level: "1F", x: "3", y: "4" },
     });
-    expect(freeBattleRoute("h")).toEqual({ name: "battle-free", params: { userId: "h" } });
-    expect(freeBattleRoute("h", ["a", "b"])).toEqual({ name: "battle-free", params: { userId: "h", beastIds: "a,b" } });
+    // A free-fight link always carries a query (empty until a region or an encounter is named)
+    expect(freeBattleRoute("h")).toEqual({ name: "battle-free", params: { userId: "h" }, query: {} });
+    expect(freeBattleRoute("h", ["a", "b"])).toEqual({
+      name: "battle-free",
+      params: { userId: "h", beastIds: "a,b" },
+      query: {},
+    });
   });
 });
 

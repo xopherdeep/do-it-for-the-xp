@@ -1,5 +1,5 @@
 import { AccessoryType } from "@/lib/databases/AccessoriesDb";
-import { REAL_REWARD_PRESETS, presetsNotIn, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
+import { ALL_REWARD_PRESETS, BASIC_CONSUMABLE_PRESETS, REAL_REWARD_PRESETS, presetsNotIn, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
 import { WALLET_TIERS } from "@/lib/services/gp/wallet";
 import { REAL_LIFE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
 
@@ -39,7 +39,9 @@ describe("real-life reward presets", () => {
     const left = presetsNotIn([{ id: first.id }, { id: "something-else" }]);
     expect(left.map((preset) => preset.id)).not.toContain(first.id);
     expect(left.map((preset) => preset.id)).toContain(second.id);
-    expect(presetsNotIn([])).toHaveLength(REAL_REWARD_PRESETS.length);
+    // The catalogue's presets are the in-game consumables and the real-life rewards together
+    expect(ALL_REWARD_PRESETS).toHaveLength(BASIC_CONSUMABLE_PRESETS.length + REAL_REWARD_PRESETS.length);
+    expect(presetsNotIn([])).toHaveLength(ALL_REWARD_PRESETS.length);
   });
 });
 

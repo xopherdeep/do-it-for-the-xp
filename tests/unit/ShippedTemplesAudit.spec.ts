@@ -84,18 +84,19 @@ const TEMPLE_SIZE: Record<string, number> = {
 };
 
 /**
- * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two more fill a room through the
- * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold) and Study the
- * Ancient Tomes (Bookwyrm).
+ * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
+ * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold, Earth) and
+ * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none.
  */
 const STARTER_MATCHES: Record<string, string[]> = {
-  "wind-temple": ["quest-dust"],
-  "shadow-temple": ["quest-dishes", "quest-crumbs"],
-  "ice-temple": ["quest-socks", "quest-laundry"],
-  "earth-temple": ["quest-weeds", "quest-pet"],
-  "light-temple": ["quest-homework", "quest-reading"],
-  "moon-temple": ["quest-teeth"],
-  "storm-temple": ["quest-bed"],
+  "wind-temple": ["quest-dust", "quest-vacuum"],
+  "fire-temple": ["quest-breakfast", "quest-cook"],
+  "earth-temple": ["quest-weeds", "quest-pet", "quest-plants", "quest-walk-dog", "quest-poop"],
+  "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear", "quest-mop"],
+  "ice-temple": ["quest-socks", "quest-fridge", "quest-laundry"],
+  "light-temple": ["quest-backpack", "quest-homework", "quest-reading"],
+  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep"],
+  "storm-temple": ["quest-bed", "quest-shoes", "quest-toys"],
 };
 
 const FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
