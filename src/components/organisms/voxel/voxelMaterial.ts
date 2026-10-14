@@ -9,6 +9,7 @@ import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
  *   little, so contacts read without real shadows.
  * - Convex edges get a thin bevel highlight, a pixel or two wide whatever the zoom: the blocks read as blocks, like a
  *   painted SNES sprite, instead of flat cut-outs.
+ * - Each unit cell is tinted a touch lighter or darker, warmer or cooler, so big faces read as textured blocks.
  * - Side faces seen almost edge on pick up a soft cool rim, so a silhouette separates from a dark background.
  *
  * It costs a few ALU ops per pixel and no extra passes, render targets or textures, so it is safe on a phone. With
@@ -28,6 +29,9 @@ const AO_DIRECT = 0.6;
 const EDGE_WIDTH = 0.09;
 /** How much lighter the bevel is than the face */
 const EDGE_LIGHT = 0.22;
+/** How far a cell's brightness strays either way, and how far its hue leans warm or cool */
+const CELL_LIFT = 0.06;
+const CELL_WARMTH = 0.035;
 const RIM_COLOR = new THREE.Color(0xbfd6ff);
 const RIM_STRENGTH = 0.15;
 
@@ -38,12 +42,29 @@ attribute vec4 voxelEdges;
 varying float vVoxelAo;
 varying vec4 vVoxelUv;
 varying vec4 vVoxelEdges;
+varying vec3 vVoxelCell;
 `;
 
 const FRAGMENT_PARS = /* glsl */ `
+varying vec3 vVoxelCell;
 varying float vVoxelAo;
 varying vec4 vVoxelUv;
 varying vec4 vVoxelEdges;
+`;
+
+/**
+ * Every unit cell of a face gets its own slight lift or dip in brightness and a nudge warmer or cooler, picked by a hash
+ * of where the cell is, so a big flat face reads as many hand-placed blocks instead of one slab of paint. The same cell
+ * always gets the same tint, so nothing shimmers as the model turns.
+ */
+const TINT_FRAGMENT = /* glsl */ `
+{
+  vec3 cell = floor(vVoxelCell + 0.001);
+  float lift = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;
+  float warmth = fract(sin(dot(cell, vec3(39.346, 11.135, 83.155))) * 24634.6345) - 0.5;
+  diffuseColor.rgb *= 1.0 + lift * ${(CELL_LIFT * 2).toFixed(3)};
+  diffuseColor.rgb *= vec3(1.0 + warmth * ${(CELL_WARMTH * 2).toFixed(3)}, 1.0, 1.0 - warmth * ${(CELL_WARMTH * 2).toFixed(3)});
+}
 `;
 
 const AO_FRAGMENT = /* glsl */ `
@@ -84,10 +105,11 @@ export const createVoxelMaterial = (options: VoxelMaterialOptions = {}): THREE.M
       .replace("#include <common>", `#include <common>\n${VERTEX_PARS}`)
       .replace(
         "#include <begin_vertex>",
-        "#include <begin_vertex>\nvVoxelAo = voxelAo;\nvVoxelUv = voxelUv;\nvVoxelEdges = voxelEdges;",
+        "#include <begin_vertex>\nvVoxelAo = voxelAo;\nvVoxelUv = voxelUv;\nvVoxelEdges = voxelEdges;\nvVoxelCell = position - normal * 0.5;",
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${FRAGMENT_PARS}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>\n${TINT_FRAGMENT}`)
       .replace("#include <aomap_fragment>", `#include <aomap_fragment>\n${AO_FRAGMENT}`);
     if (withBevel) {
       shader.fragmentShader = shader.fragmentShader.replace(
