@@ -58,7 +58,7 @@ describe("$fx", () => {
     expect($fx.theme).toEqual({ ui: "nintendo", rpg: "earthbound" });
     expect(Object.keys($fx)).toEqual(["theme", "ui", "rpg"]);
     expect(Object.keys($fx.ui)).toEqual(["nintendo", "sony"]);
-    expect(Object.keys($fx.rpg)).toEqual(["earthbound", "chronoTrigger", "finalFantasy"]);
+    expect(Object.keys($fx.rpg)).toEqual(["earthbound", "chronoTrigger", "finalFantasy", "zelda"]);
   });
 
   it("gives the nintendo UI set its sounds", () => {
