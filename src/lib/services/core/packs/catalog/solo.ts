@@ -5,7 +5,7 @@ export const SOLO_PACK = definePack(
   {
     id: "solo",
     name: "Solo adult habits",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Adults on their own",
     description: "Morning routine, home upkeep, health, money and growth habits for one adventurer playing solo.",
     icon: "hiking",
@@ -51,6 +51,14 @@ export const SOLO_PACK = definePack(
       reward("solo-reward-movie", "Night at the Movies", "A movie at the theater, snacks included.", 300, "film"),
       reward("solo-reward-treat", "Treat Yourself", "Something you've had your eye on.", 600, "gift"),
     ],
-    powers: ["irl-day-off", "irl-snooze", "irl-extra-time"],
+    powers: [
+      "irl-day-off",
+      "irl-snooze",
+      "irl-extra-time",
+      "irl-timed-guilt-free-gaming",
+      "irl-timed-scroll-break",
+      "irl-timed-episode-break",
+      "irl-timed-power-nap",
+    ],
   }
 );

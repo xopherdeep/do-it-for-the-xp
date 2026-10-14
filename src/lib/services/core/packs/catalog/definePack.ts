@@ -4,6 +4,7 @@
  * id, so a pack file stays short and reads like a list of chores.
  */
 import { HYBRID_PRESETS, REAL_LIFE_PRESETS, TECH_MAGE_PRESETS, TIME_MAGE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
+import { PRIVILEGE_PRESETS } from "@/lib/services/abilities/privilegePresets";
 import { rewardFromPreset } from "@/lib/services/shops/rewardPresets";
 import type { RewardPreset } from "@/lib/services/shops/rewardPresets";
 import type { AchievementCategoryInterface } from "@/lib/databases/AchievementDb";
@@ -13,14 +14,14 @@ import type { DoDontSeed, QuestSeed } from "../packSeeds";
 import { PACK_FORMAT, PACK_FORMAT_VERSION } from "../packFormat";
 import type { XpPack } from "../packFormat";
 
-const ALL_POWERS = [...REAL_LIFE_PRESETS, ...TIME_MAGE_PRESETS, ...TECH_MAGE_PRESETS, ...HYBRID_PRESETS];
+const ALL_POWERS = [...REAL_LIFE_PRESETS, ...TIME_MAGE_PRESETS, ...TECH_MAGE_PRESETS, ...HYBRID_PRESETS, ...PRIVILEGE_PRESETS];
 
 export interface PackSeeds {
   categories: AchievementCategoryInterface[];
   quests: QuestSeed[];
   dosDonts?: DoDontSeed[];
   rewards?: RewardPreset[];
-  /** Preset Power ids (AbilityPresets.ts) */
+  /** Preset Power ids (AbilityPresets.ts, and the timed privileges in privilegePresets.ts) */
   powers?: string[];
 }
 

@@ -5,7 +5,7 @@ export const FITNESS_PACK = definePack(
   {
     id: "fitness",
     name: "Fitness",
-    version: "1.0.0",
+    version: "1.1.0",
     audience: "Anyone getting active",
     description: "Steps, workouts, stretching, water and sleep as quests, with gear and treats to save up for.",
     icon: "dumbbell",
@@ -46,6 +46,12 @@ export const FITNESS_PACK = definePack(
       reward("fit-reward-gear", "New Workout Gear", "A shirt, shorts or a water bottle of your choice.", 450, "tshirt"),
       reward("fit-reward-massage", "Massage", "A massage to recover.", 600, "spa"),
     ],
-    powers: ["irl-day-off", "irl-snooze"],
+    powers: [
+      "irl-day-off",
+      "irl-snooze",
+      "irl-timed-couch-quest",
+      "irl-timed-recovery-soak",
+      "irl-timed-power-nap",
+    ],
   }
 );

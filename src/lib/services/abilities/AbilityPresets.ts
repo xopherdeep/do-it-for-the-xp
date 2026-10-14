@@ -258,6 +258,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
+    timerMinutes: 30,
     position: { x: 200, y: 400 }
   },
   {
@@ -275,6 +276,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
+    timerMinutes: 60,
     position: { x: 300, y: 400 }
   },
   {
@@ -433,6 +435,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
+    timerMinutes: 15,
     position: { x: 500, y: 600 }
   },
   {
@@ -450,6 +453,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
+    timerMinutes: 30,
     position: { x: 600, y: 600 }
   },
   {
