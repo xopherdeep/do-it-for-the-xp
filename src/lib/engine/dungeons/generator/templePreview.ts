@@ -3,6 +3,7 @@
  * a spec can compare without a DOM. Pure functions over the `Dungeon` shape (contract section 1).
  */
 import type { Dungeon } from "@/lib/engine/core/dungeons/types";
+import { grantsBossKey, smallKeysGranted, chestDungeonItem } from "@/lib/services/temples/roomGrants";
 import { floorsOf, kindOf, type RoomRef } from "./templeGraph";
 
 /** One character per room kind; a wall is a space so the maze reads as corridors. */
@@ -65,7 +66,8 @@ export const previewChar = (dungeon: Pick<Dungeon, "rooms">, token: string): str
   const kind = kindOf(room);
   if (kind === "master") return "*";
   if (kind === "loot") {
-    const item = String(room?.content?.dungeon ?? "").toLowerCase();
+    // A chest draws as its item only when play would hand it out (roomGrants): a Dungeon Item chest
+    const item = chestDungeonItem(room).toLowerCase();
     if (item === "key") return PREVIEW_CHARS.key;
     if (item === "master-key") return PREVIEW_CHARS.master;
     if (isPegasusChest(item, room)) return "*";
@@ -127,11 +129,12 @@ export const summarize = (dungeon: Pick<Dungeon, "maze" | "rooms">): TempleSumma
             if (isSmallKeyLock) summary.locks++;
           }
         }
+        // Keys are counted as play hands them out (roomGrants), so a key written into a mini-boss room is no key
+        summary.keys += smallKeysGranted(room);
+        if (grantsBossKey(room)) summary.hasMasterKey = true;
         if (room?.content?.chest) {
           summary.chests++;
           const item = String(room.content.dungeon ?? "").toLowerCase();
-          if (item === "key") summary.keys++;
-          if (item === "master-key") summary.hasMasterKey = true;
           if (isPegasusChest(item, room)) summary.hasPegasus = true;
         }
       }

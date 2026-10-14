@@ -129,11 +129,13 @@ describe("auditTemple", () => {
       expect(check(auditTemple(temple(FULL, rooms)), "bossKey").ok).toBe(false);
     });
 
-    it("counts a chest of any chest type", () => {
-      for (const type of ["loot", "chest", "treasure"]) {
-        const rooms = { ...ROOMS, K: { type, content: { dungeon: "master-key" } } };
-        expect(check(auditTemple(temple(FULL, rooms)), "bossKey").ok).toBe(true);
-      }
+    it("counts only what play hands out: a loot room whose chest is a Dungeon Item chest (roomGrants)", () => {
+      const bossKey = (room: AuditableRoom) => check(auditTemple(temple(FULL, { ...ROOMS, K: room })), "bossKey").ok;
+      expect(bossKey({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" } })).toBe(true);
+      // The engine makes chests for loot rooms, and a dungeon item only under chest "dungeon"
+      expect(bossKey({ type: "loot", content: { dungeon: "master-key" } })).toBe(false);
+      expect(bossKey({ type: "loot", content: { chest: "treasure", dungeon: "master-key" } })).toBe(false);
+      for (const type of ["chest", "treasure", "miniboss"]) expect(bossKey({ type, content: { chest: "dungeon", dungeon: "master-key" } })).toBe(false);
     });
 
     it("is not a Master Room left holding the key it was edited from", () => {

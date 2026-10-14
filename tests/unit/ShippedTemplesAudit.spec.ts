@@ -389,20 +389,22 @@ describe("the generator defaults the shipped temples are made with", () => {
     }
   });
 
-  it("still allow the older Boss Key in the mini-boss room, which the audit now finds too", () => {
-    const older = Array.from({ length: 12 }, (_, i) => generateTemple(`older-${i + 1}`, { ...options, bossKeyChest: false, masterRoom: false }));
-    expect(older.some(keyInMiniboss)).toBe(true);
-    for (const temple of older) expect(auditTemple(temple).passed).toBe(true);
+  it("never put the Boss Key in the mini-boss room, whatever the ignored bossKeyChest option says (play gives no chest there)", () => {
+    const seeds = Array.from({ length: 12 }, (_, i) => generateTemple(`older-${i + 1}`, { ...options, bossKeyChest: false, masterRoom: false }));
+    expect(seeds.some(keyInMiniboss)).toBe(false);
+    for (const temple of seeds) expect(auditTemple(temple).passed).toBe(true);
   });
 
-  it("find the Boss Key in a mini-boss room's chest, and nowhere else but a chest or a key room", () => {
+  it("find the Boss Key in a loot chest or a master Key room, and nowhere else: a mini-boss room's chest is not one", () => {
     const rooms = (extra: Record<string, any>) => ({
       maze: [["E", "m", "B", "M"]],
       rooms: { E: { type: "entrance" }, B: { type: "boss" }, M: { type: "master" }, m: { type: "miniboss", content: { lockOnEnter: true } }, ...extra },
     });
     const bossKey = (temple: ReturnType<typeof rooms>) => auditTemple(temple).checks.find((check) => check.id === "bossKey")!.ok;
     expect(bossKey(rooms({}))).toBe(false);
-    expect(bossKey(rooms({ m: { type: "miniboss", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(true);
+    expect(bossKey(rooms({ m: { type: "miniboss", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(false);
+    expect(bossKey(rooms({ m: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(true);
+    expect(bossKey(rooms({ m: { type: "key", content: { keyId: "master" } } }))).toBe(true);
     expect(bossKey(rooms({ m: { type: "miniboss", content: { chest: "dungeon", dungeon: "key" } } }))).toBe(false);
     expect(bossKey(rooms({ B: { type: "boss", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(false);
   });

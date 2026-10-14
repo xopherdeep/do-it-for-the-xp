@@ -15,7 +15,8 @@
  * Each room goes through `asChestRoom` first, the step play takes, so a Master Room (or its older name, the Dragon
  * Egg) is the Pegasus chest and the editor's "dungeon-map" is the map. Pure: no Vue, no storage.
  */
-import { asChestRoom, dungeonItemId } from '@/lib/services/temples/ChestLoot';
+import { asChestRoom } from '@/lib/services/temples/ChestLoot';
+import { chestDungeonItem, grantsBossKey } from '@/lib/services/temples/roomGrants';
 import { VOID } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { TEMPLE_FULL_SIZE, templeSize, type SizedRoom, type TempleSize } from '@/lib/services/temples/questRooms';
@@ -74,12 +75,6 @@ export interface AuditableRoom {
   [key: string]: any;
 }
 
-/** The room types that hold a chest */
-const CHEST_ROOM_TYPES: readonly string[] = ['loot', 'chest', 'treasure'];
-
-/** The id the take path knows for the key that opens the boss door (the Boss Key to the player) */
-const BOSS_KEY_ID = 'master-key';
-
 const typeOf = (room: AuditableRoom): string => String(room?.type ?? '').trim().toLowerCase();
 
 /** "Two bosses: keep one", "3 bosses: keep one" */
@@ -115,23 +110,6 @@ const placedRooms = (temple: AuditableTemple | null | undefined): AuditableRoom[
   }
   return rooms;
 };
-
-/** The dungeon item a chest holds, by the id the take path knows ("dungeon-map" is "map"), or '' for any other room */
-const chestItem = (room: AuditableRoom): string => {
-  if (!CHEST_ROOM_TYPES.includes(typeOf(room))) return '';
-  const held = room.content?.dungeon;
-  return typeof held === 'string' ? dungeonItemId(held) : '';
-};
-
-/**
- * Whether a room hands the hero the Boss Key: a chest holding it, a mini-boss room whose own chest holds it (the
- * generator's older temples kept it there), or the older Key room whose key is the master key (the Water Temple
- * still had one; play gives the Boss Key for it just the same).
- */
-const holdsBossKey = (room: AuditableRoom): boolean =>
-  chestItem(room) === BOSS_KEY_ID ||
-  (typeOf(room) === 'miniboss' && room.content?.chest === 'dungeon' && dungeonItemId(String(room.content.dungeon ?? '')) === BOSS_KEY_ID) ||
-  (typeOf(room) === 'key' && room.content?.keyId === 'master');
 
 /** Whether a room is the Master Room: the Pegasus Egg chamber, which play turns into the Pegasus chest whatever name the layout gave it */
 const isMasterRoom = (room: AuditableRoom): boolean => typeOf(room) === 'loot' && room.content?.pegasus === true;
@@ -213,10 +191,10 @@ export const auditTemple = (temple: AuditableTemple | null | undefined, options:
   const entrances = countOf(rooms, (room) => typeOf(room) === 'entrance');
   const gates = countOf(rooms, (room) => typeOf(room) === 'gate');
   const bosses = countOf(rooms, (room) => typeOf(room) === 'boss');
-  const bossKeys = countOf(rooms, holdsBossKey);
+  const bossKeys = countOf(rooms, grantsBossKey);
   const masters = countOf(rooms, isMasterRoom);
-  const maps = countOf(rooms, (room) => chestItem(room) === 'map');
-  const compasses = countOf(rooms, (room) => chestItem(room) === 'compass');
+  const maps = countOf(rooms, (room) => chestDungeonItem(room) === 'map');
+  const compasses = countOf(rooms, (room) => chestDungeonItem(room) === 'compass');
 
   // A temple without a gate ends where it began: the entrance is also the way out (how the generator builds them)
   let exitDetail = 'Missing';

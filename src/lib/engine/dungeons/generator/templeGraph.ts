@@ -6,11 +6,15 @@
  * - two orthogonally adjacent non-wall cells on a floor are joined by a door;
  * - `room.locked[direction]` locks the door in that direction only (the engine checks the room the hero stands
  *   in), so a door is a directed edge and a key opens one direction;
- * - every door into a boss room that carries `locked.master` is the boss door and needs the master key;
+ * - every door into a boss room is the boss door and needs the master key (the engine's `doorKind` reads the room it
+ *   steps into, not `locked.master`, which the generator keeps as a note); walking out is not barred;
+ * - a room hands out keys only as play does (roomGrants): loot rooms with a Dungeon Item chest, their "key" rows, and
+ *   Key rooms; a key written into a mini-boss room's chest is never handed out;
  * - stairs up lead to the next floor in the layout's order, stairs down to the previous one, landing on the
  *   requested coordinates, else the first matching stairs on that floor, else the same cell (R8 wants pairs at
  *   the same row and column);
- * - teleports pair up in reading order (floors, rows, columns);
+ * - a teleport leads where `teleportTargetFor` sends the hero: the author's target, else the next circle on its
+ *   floor (wrapping), else the temple's next circle; a circle with none leads nowhere (R8);
  * - a pit drops the hero to the previous floor (same cell, else that floor's first stairs up) when there is one,
  *   and is an ordinary room otherwise.
  *
@@ -18,6 +22,9 @@
  * token locks every room spelled with it. Generated temples give each room a token of its own.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
+import { isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
 
@@ -32,7 +39,7 @@ export const STEP: Record<Direction, [number, number]> = { north: [-1, 0], south
 export interface TempleLayout {
   id?: string;
   name?: string;
-  /** `[row, col]` on the first floor, or `[floorIndex, row, col]` */
+  /** `[row, col]` on the first floor of the layout's order, or `[floorIndex, row, col]` */
   entrance?: number[];
   maze: string[][] | Record<string, string[][]>;
   rooms: Record<string, Room>;
@@ -121,23 +128,8 @@ export const kindOf = (room: Room | undefined): string => {
 export const floorsOf = (maze: TempleLayout["maze"]): Record<string, string[][]> =>
   Array.isArray(maze) ? { "1F": maze } : maze;
 
-/** How many small keys a room hands out: key chests, key rooms, and `items` holding keys. */
-const smallKeysIn = (room: Room, kind: string): number => {
-  const content = room.content ?? {};
-  if (kind === "key") return content.keyId === "master" ? 0 : 1;
-  if (content.dungeon === "key") return 1;
-  const items: unknown[] = Array.isArray(content.items) ? content.items : [];
-  return items.filter((item) => item === "key").length;
-};
-
 /** The Master Room (`master`, or its older name the Dragon Egg) is the Pegasus chamber, whatever it was edited from. */
 const MASTER_ROOM_KINDS = new Set(["master", "dragon-egg", "dragon_egg"]);
-
-const hasMasterKey = (room: Room, kind: string): boolean => {
-  const content = room.content ?? {};
-  if (MASTER_ROOM_KINDS.has(kind)) return false;
-  return content.dungeon === "master-key" || (kind === "key" && content.keyId === "master");
-};
 
 /** The Pegasus chest: a Master Room, a room flagged `content.pegasus`, or a chest whose prize is named after the Pegasus. */
 const isPrize = (room: Room, kind: string): boolean => {
@@ -153,8 +145,9 @@ const makeRoom = (ref: RoomRef, token: string, room: Room): GraphRoom => {
     token,
     room,
     kind,
-    smallKeys: smallKeysIn(room, kind),
-    masterKey: hasMasterKey(room, kind),
+    // What play hands out (roomGrants), not what the layout says: a key in a mini-boss room never reaches the hero
+    smallKeys: smallKeysGranted(room),
+    masterKey: grantsBossKey(room),
     prize: isPrize(room, kind),
   };
 };
@@ -199,9 +192,12 @@ const addDoor = (graph: TempleGraph, door: Omit<Door, "id">): void => {
   else graph.out.set(door.from, [full]);
 };
 
-/** The lock on walking from `from` to `to`: the boss door needs the master key, a locked side a small key. */
+/**
+ * The lock on walking from `from` to `to`: any door into a boss room needs the master key (the engine's rule, so
+ * a boss room drawn without `locked.master` is just as barred), a locked side a small key.
+ */
 const lockBetween = (from: GraphRoom, to: GraphRoom, direction: Direction): LockKind => {
-  const isMasterDoor = to.kind === "boss" && (to.room.locked?.master || from.room.locked?.master);
+  const isMasterDoor = isBossRoom(to.room);
   if (isMasterDoor) return "master";
   return from.room.locked?.[direction] ? "small" : "none";
 };
@@ -246,14 +242,22 @@ const linkStairs = (graph: TempleGraph): void => {
   }
 };
 
-/** Teleports pair up in reading order; an odd one out goes nowhere. */
-const linkTeleports = (graph: TempleGraph): void => {
-  const pads = [...graph.rooms.values()].filter((room) => room.kind === "teleport");
-  for (let i = 0; i + 1 < pads.length; i += 2) {
-    addDoor(graph, { from: pads[i].key, to: pads[i + 1].key, kind: "teleport", lock: "none" });
-    addDoor(graph, { from: pads[i + 1].key, to: pads[i].key, kind: "teleport", lock: "none" });
+/**
+ * Teleports: each circle leads where the engine sends the hero (teleportTargetFor: the author's target, else the
+ * next circle on its floor wrapping, else the temple's next circle). Circles are not pairs, so a ride one way
+ * need not come back; a circle the engine finds no target for leads nowhere.
+ */
+const linkTeleports = (graph: TempleGraph, layout: TempleLayout): void => {
+  for (const pad of graph.rooms.values()) {
+    if (pad.kind !== "teleport") continue;
+    const destination = teleportTargetFor(layout, pad.ref.floor, [pad.ref.row, pad.ref.col]);
+    const landing = destination && graph.rooms.get(roomKey({ floor: destination.level, row: destination.position[0], col: destination.position[1] }));
+    if (!landing) {
+      graph.issues.push({ rule: "R8", text: `${describeRoom(pad)} leads nowhere` });
+      continue;
+    }
+    addDoor(graph, { from: pad.key, to: landing.key, kind: "teleport", lock: "none" });
   }
-  if (pads.length % 2 === 1) graph.issues.push({ rule: "R8", text: `${describeRoom(pads[pads.length - 1])} has no partner` });
 };
 
 /**
@@ -276,14 +280,11 @@ const linkPits = (graph: TempleGraph): void => {
   }
 };
 
+/** The floor an entrance names, as the engine starts the hero (startAt): [floorIndex, row, col] picks by place in the order, [row, col] is the first floor. */
 const resolveEntranceFloor = (given: number[], graph: TempleGraph): string => {
-  const hasFloorIndex = given.length >= 3;
+  const hasFloorIndex = given.length === 3;
   if (hasFloorIndex) {
     return graph.floors[given[0]] ?? graph.floors[0];
-  }
-  const hasFirstFloor = graph.floors.includes("1F");
-  if (hasFirstFloor) {
-    return "1F";
   }
   return graph.floors[0];
 };
@@ -294,7 +295,7 @@ const findEntrance = (layout: TempleLayout, graph: TempleGraph): string | undefi
   const hasEntranceCoords = given && given.length >= 2;
   if (hasEntranceCoords) {
     const floor = resolveEntranceFloor(given, graph);
-    const [row, col] = given.length >= 3 ? [given[1], given[2]] : [given[0], given[1]];
+    const [row, col] = given.length === 3 ? [given[1], given[2]] : [given[0], given[1]];
     const room = graph.rooms.get(roomKey({ floor, row, col }));
     if (room) return room.key;
     graph.issues.push({ rule: "R1", text: `the entrance [${given.join(",")}] is not a room` });
@@ -311,7 +312,7 @@ export const buildTempleGraph = (layout: TempleLayout): TempleGraph => {
   const graph: TempleGraph = { floors, grids, rooms: collectRooms(layout, floors, grids, issues), doors: [], out: new Map(), issues };
   linkNeighbours(graph);
   linkStairs(graph);
-  linkTeleports(graph);
+  linkTeleports(graph, layout);
   linkPits(graph);
   graph.entrance = findEntrance(layout, graph);
   return graph;

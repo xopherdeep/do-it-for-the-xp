@@ -148,10 +148,10 @@ describe("dungeonCounts", () => {
         M2: { type: "monster" },
         B1: { type: "boss" },
         m1: { type: "miniboss" },
-        L1: { type: "loot", content: { dungeon: "map" } },
-        L2: { type: "loot", content: { dungeon: "map" } },
-        L3: { type: "loot", content: { dungeon: "master-key" } },
-        L4: { type: "loot", content: { dungeon: "pegasus whistle" } },
+        L1: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
+        L2: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
+        L3: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } },
+        L4: { type: "loot", content: { chest: "dungeon", dungeon: "pegasus whistle" } },
         L5: { type: "loot", content: { gold: 5 } },
         E1: { type: "empty" },
         W1: { type: "wall" },
@@ -196,6 +196,13 @@ describe("dungeonCounts", () => {
         ["Boss Key", false],
         ["Pegasus whistle", true],
       ]);
+    });
+
+    it("lists only the keys play hands out: a Boss Key in a mini-boss room's chest is not one", () => {
+      const rooms = { m1: { type: "miniboss", content: { chest: "dungeon", dungeon: "master-key" } }, L1: { type: "loot", content: { dungeon: "master-key" } } };
+      expect(buildComposition({ entrance, maze: [["m1", "L1"]], rooms }, () => undefined).keyItems).toEqual([]);
+      const key = { K1: { type: "key", content: { keyId: "master" } } };
+      expect(buildComposition({ entrance, maze: [["K1"]], rooms: key }, () => undefined).keyItems).toEqual([{ name: "Boss Key", icon: "fa-key-skeleton", found: false }]);
     });
 
     it("reads every floor of a floor map and skips a floor that is not a grid", () => {
@@ -283,7 +290,7 @@ describe("dungeonCounts", () => {
 
     it("counts key chests (loot holding a key) and halves the locked sides, rounding up", () => {
       const rooms = {
-        a: { type: "loot", content: { dungeon: "key" }, sides: { south: "locked" } },
+        a: { type: "loot", content: { chest: "dungeon", dungeon: "key" }, sides: { south: "locked" } },
         b: { type: "loot", content: { dungeon: "map" } },
         c: { type: "chest", content: { dungeon: "key" } },
         d: { type: "empty", sides: { north: "locked", east: "locked", west: "door" } },

@@ -336,7 +336,7 @@ describe("pegasusOfKeyItem", () => {
 
 describe("what a generated temple emits for its Pegasus and its master key", () => {
   const temple = generateTemple(7, { theme: "Kitchen", size: "medium" });
-  const older = generateTemple(7, { theme: "Kitchen", size: "medium", masterRoom: false, bossKeyChest: false });
+  const older = generateTemple(7, { theme: "Kitchen", size: "medium", masterRoom: false });
 
   it("names the Pegasus chamber a Master Room and keeps the master key in a loot chest", () => {
     const rooms = Object.values(temple.rooms);

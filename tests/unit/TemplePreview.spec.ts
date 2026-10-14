@@ -59,6 +59,19 @@ describe("templePreview", () => {
     expect(["a", "b", "c", "d", "e"].map((token) => previewChar({ rooms }, token))).toEqual([PREVIEW_CHARS.loot, "k", "K", "*", "?"]);
   });
 
+  it("counts the keys play hands out: a key written into a mini-boss room's chest is no key and draws as a mini-boss", () => {
+    const rooms: Dungeon["rooms"] = {
+      m: { type: "miniboss", content: { chest: "dungeon", dungeon: "master-key" } },
+      n: { type: "miniboss", content: { chest: "dungeon", dungeon: "key" } },
+      b: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } },
+      k: { type: "key", content: { keyId: "master" } },
+    };
+    expect(["m", "n"].map((token) => previewChar({ rooms }, token))).toEqual([PREVIEW_CHARS.miniboss, PREVIEW_CHARS.miniboss]);
+    expect(summarize({ maze: [["m", "n"]], rooms })).toMatchObject({ hasMasterKey: false, keys: 0 });
+    expect(summarize({ maze: [["m", "b"]], rooms }).hasMasterKey).toBe(true);
+    expect(summarize({ maze: [["k"]], rooms }).hasMasterKey).toBe(true);
+  });
+
   it("summarize counts rooms, kinds, monsters, keys, small locks and chests", () => {
     expect(summarize(tiny)).toEqual({
       floors: 1,

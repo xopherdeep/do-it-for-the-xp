@@ -8,6 +8,7 @@
 import { ChestSystem, ChestContent } from './ChestSystem';
 import { Room, Dungeon } from './types';
 import { asChestRoom } from '@/lib/services/temples/ChestLoot';
+import { chestDungeonItem } from '@/lib/services/temples/roomGrants';
 import { reactive } from 'vue';
 import debug from '@/lib/utils/debug';
 
@@ -114,9 +115,10 @@ export class DungeonManager {
             if (room.content.items?.length) {
               chestContent.items = [...room.content.items];
             }
-            const hasDungeonItem = room.content.chest === 'dungeon' && room.content.dungeon;
-            if (hasDungeonItem) {
-              chestContent.dungeon = room.content.dungeon;
+            // The dungeon item is the one the audit and the solver count too (roomGrants): only a Dungeon Item chest holds one
+            const dungeonItem = chestDungeonItem(room);
+            if (dungeonItem) {
+              chestContent.dungeon = dungeonItem;
             }
             const gold = Math.floor(Number(room.content.gold) || 0);
             if (gold > 0) {

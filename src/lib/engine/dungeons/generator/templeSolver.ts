@@ -249,7 +249,7 @@ const doorsIntoFromOutside = (graph: TempleGraph, room: GraphRoom): Door[] => {
   return graph.doors.filter((door) => door.to === room.key && door.kind === "door" && beyond.has(door.from) && without.has(door.from));
 };
 
-/** R6: one boss room, one door into it, locked with the master key. */
+/** R6: one boss room, one door into it. Every door into a boss room needs the master key (templeGraph.lockBetween), so the lock itself is not checked. */
 const checkBossDoor = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
   if (goal.bosses.length !== 1) {
     reasons.push(goal.bosses.length ? `R6: ${goal.bosses.length} boss rooms` : "R6: no boss room");
@@ -258,8 +258,6 @@ const checkBossDoor = (graph: TempleGraph, goal: Goal, reasons: string[]): void 
   const boss = graph.rooms.get(goal.bosses[0])!;
   const doors = doorsIntoFromOutside(graph, boss);
   if (doors.length !== 1) reasons.push(`R6: the boss room at ${describeRoom(boss)} has ${doors.length} doors from the temple (needs exactly one)`);
-  const unlocked = doors.filter((door) => door.lock !== "master");
-  if (unlocked.length) reasons.push(`R6: the boss door at ${describeRoom(boss)} is not locked with locked.master`);
 };
 
 /** R7: one Pegasus chest, and only the boss's defeat opens the way to it. */

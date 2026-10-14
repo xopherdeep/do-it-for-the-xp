@@ -2,6 +2,7 @@ import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { TempleHydrator } from "@/lib/engine/core/dungeons/TempleHydrator";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { Dungeon, Room } from "@/lib/engine/core/dungeons/types";
+import { buildTempleGraph } from "@/lib/engine/dungeons/generator";
 import {
   needsTravelControls,
   pairingNote,
@@ -124,6 +125,40 @@ describe("teleportTargetFor", () => {
 
     expect(teleportTargetFor(tower, "1F", [0, 1])).toEqual({ level: "2F", position: [0, 2] });
     expect(teleportTargetFor(tower, "2F", [0, 2])).toEqual({ level: "1F", position: [0, 1] });
+  });
+});
+
+describe("the solver's graph", () => {
+  /** Every circle's teleport door in the graph, by room key, against where teleportTargetFor sends the hero */
+  const graphTargets = (dungeon: Dungeon): Record<string, string | null> => {
+    const graph = buildTempleGraph(dungeon);
+    const doors = graph.doors.filter((door) => door.kind === "teleport");
+    return Object.fromEntries([...graph.rooms.values()].filter((room) => room.kind === "teleport").map((room) => [room.key, doors.find((door) => door.from === room.key)?.to ?? null]));
+  };
+
+  const engineTargets = (dungeon: Dungeon): Record<string, string | null> =>
+    Object.fromEntries(
+      Object.keys(dungeon.maze as object).flatMap((level) =>
+        teleportsOn(dungeon, level).map(([row, col]) => {
+          const to = teleportTargetFor(dungeon, level, [row, col]);
+          return [`${level}:${row},${col}`, to ? `${to.level}:${to.position[0]},${to.position[1]}` : null];
+        })
+      )
+    );
+
+  it("sends every circle where the engine does: the floor's cycle, the lone circle onward, the author's pick", () => {
+    const layouts = [
+      temple({ "1F": "EXIT TELE TELE TELE" }),
+      temple({ "1F": "EXIT TELE TELE", "2F": "TELE R000" }),
+      temple({ "1F": "EXIT TELE", "2F": "TELE R000 TELE" }),
+      temple({ "1F": "EXIT TELE", "2F": "TELE" }),
+      temple({ "1F": "EXIT TELE" }),
+    ];
+    const picked = temple({ "1F": "EXIT TELE TELE", "2F": "R000 TELE TELE" });
+    target(picked, "1F", 0, 1, { targetLevel: "2F", targetCoords: { x: 2, y: 0 } });
+    layouts.push(picked);
+
+    for (const layout of layouts) expect(graphTargets(layout)).toEqual(engineTargets(layout));
   });
 });
 

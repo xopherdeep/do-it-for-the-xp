@@ -106,9 +106,26 @@ describe("TempleSolver", () => {
   });
 
   it("R6 Boss door: one boss room, one door, locked with the master key", () => {
-    expect(reasonsUnder("R6", fixture({}, { B001: { type: "boss", content: { lockOnEnter: true } } }))).toEqual(["R6: the boss door at 1F (1,5) boss is not locked with locked.master"]);
+    // The engine bars every door into a boss room, so a boss room without locked.master still has its master door
+    expect(reasonsUnder("R6", fixture({}, { B001: { type: "boss", content: { lockOnEnter: true } } }))).toEqual([]);
     expect(reasonsUnder("R6", fixture({ "0,5": "R004", "0,4": "R004" }))).toEqual(["R6: the boss room at 1F (1,5) boss has 2 doors from the temple (needs exactly one)"]);
     expect(reasonsUnder("R6", fixture({ "3,0": "B001" }))).toEqual(["R6: 2 boss rooms"]);
+  });
+
+  it("R2 Boss door: every door into a boss room needs the master key, locked.master or not", () => {
+    const plainBoss: Record<string, Room> = { B001: { type: "boss", content: { lockOnEnter: true } } };
+
+    // Every way in is a master door; walking out of the boss room is not barred (the engine's doorKind reads the room it steps into)
+    const graph = buildTempleGraph(fixture({}, plainBoss));
+    expect(graph.doors.filter((door) => door.lock === "master").map((door) => door.id)).toEqual(["1F:1,4>1F:1,5", "1F:2,5>1F:1,5"]);
+
+    // The master key is out of reach and the boss sits behind plain doors: stuck, as in play
+    const unreachable = fixture({ "0,3": _, "3,0": "MK01" }, plainBoss);
+    expect(solveTemple(unreachable).solvable).toBe(false);
+    expect(reasonsUnder("R2", unreachable)).toEqual([expect.stringMatching(/^R2: the master key is out of reach/)]);
+
+    // With the key reachable the same plain-door boss room is fine
+    expect(solveTemple(fixture({}, plainBoss))).toMatchObject({ solvable: true, reasons: [] });
   });
 
   it("R7 Pegasus: one chest, only past the boss", () => {
@@ -153,10 +170,51 @@ describe("TempleSolver", () => {
     expect(solveTemple(twinless).solvable).toBe(true);
 
     const odd = tower([[_, "Y001", "MK01", _], ["B001", "R004", "b001", "D001"], ["P001", _, _, _]]);
-    expect(reasonsUnder("R8", odd)).toEqual(["R8: 2F (0,1) teleport has no partner"]);
+    expect(reasonsUnder("R8", odd)).toEqual(["R8: 2F (0,1) teleport leads nowhere"]);
 
     const pit = tower([[_, _, "MK01", "V001"], ["B001", "R004", "b001", "D001"], ["P001", _, _, _]]);
     expect(solveTemple(pit).reasons).toEqual(["R8: 2F (0,3) pit drops onto a wall at 1F (0,3)"]);
+  });
+
+  describe("R8 Teleports go where the engine sends them (teleportTargetFor)", () => {
+    const circle = (id: string, content?: Room["content"]): Record<string, Room> => ({ [id]: { type: "teleport", ...(content ? { content } : {}) } });
+    const T = { ...circle("T1"), ...circle("T2"), ...circle("T3") };
+
+    /** Where each circle leads, as "from>to" pairs in reading order, and what R8 says about them */
+    const wiring = (maze: Record<string, string[][]>, rooms: Record<string, Room> = T) => {
+      const graph = buildTempleGraph({ maze, rooms: { [_]: { type: "wall" }, ...rooms } });
+      return { doors: graph.doors.filter((door) => door.kind === "teleport").map((door) => door.id), issues: graph.issues.map((issue) => issue.text) };
+    };
+
+    it("cycles three circles on a floor: 0 -> 1 -> 2 -> 0, nothing without a partner", () => {
+      expect(wiring({ "1F": [["T1", _, "T2", _, "T3"]] })).toEqual({ doors: ["1F:0,0>1F:0,2", "1F:0,2>1F:0,4", "1F:0,4>1F:0,0"], issues: [] });
+    });
+
+    it("sends a circle alone on its floor to the temple's next one: two on 1F and one on 2F", () => {
+      const result = wiring({ "1F": [["T1", "T2"]], "2F": [["T3"]] });
+      expect(result.doors).toEqual(["1F:0,0>1F:0,1", "1F:0,1>1F:0,0", "2F:0,0>1F:0,0"]);
+      expect(result.issues).toEqual([]);
+    });
+
+    it("does not pair back: one on 1F and two on 2F, the way up is a one-way ride onto the first of the pair", () => {
+      const result = wiring({ "1F": [["T1"]], "2F": [["T2", "T3"]] });
+      expect(result.doors).toEqual(["1F:0,0>2F:0,0", "2F:0,0>2F:0,1", "2F:0,1>2F:0,0"]);
+      expect(result.issues).toEqual([]);
+    });
+
+    it("honours the author's targetLevel and targetCoords (x is the column, y the row)", () => {
+      const rooms = { ...circle("T1", { targetLevel: "2F", targetCoords: { x: 2, y: 0 } }), ...circle("T2"), ...circle("T3") };
+      expect(wiring({ "1F": [["T1", "T2"]], "2F": [["T2", _, "T3"]] }, rooms).doors).toEqual(["1F:0,0>2F:0,2", "1F:0,1>1F:0,0", "2F:0,0>2F:0,2", "2F:0,2>2F:0,0"]);
+    });
+
+    it("sends a hero who names only a floor to that floor's first circle", () => {
+      const rooms = { ...circle("T1", { targetLevel: "2F" }), ...circle("T2"), ...circle("T3") };
+      expect(wiring({ "1F": [["T1", "T2", "T3"]], "2F": [["T3", "T2"]] }, rooms).doors[0]).toBe("1F:0,0>2F:0,0");
+    });
+
+    it("a circle with no other anywhere leads nowhere", () => {
+      expect(wiring({ "1F": [["T1"]] })).toEqual({ doors: [], issues: ["1F (0,0) teleport leads nowhere"] });
+    });
   });
 
   it("R9 No dead keys: a small key behind the boss door", () => {
@@ -167,6 +225,14 @@ describe("TempleSolver", () => {
     const graph = buildTempleGraph(fixture({ "3,0": "R001", "3,1": "R002" }));
     const locked = graph.doors.filter((door) => door.lock === "small").map((door) => door.id);
     expect(locked).toEqual(["1F:1,1>1F:1,2", "1F:3,0>1F:3,1"]);
+  });
+
+  it("a 2-part entrance is on the first floor of the layout's order, as the engine starts the hero, even when a floor is named 1F", () => {
+    const rooms: Record<string, Room> = { ...ROOMS };
+    const maze = { B1: [["E001", "R001"]], "1F": [["R001", "E001"]] };
+    expect(buildTempleGraph({ entrance: [0, 0], maze, rooms }).entrance).toBe("B1:0,0");
+    // A 3-part entrance names the floor by its place in the order
+    expect(buildTempleGraph({ entrance: [1, 0, 1], maze, rooms }).entrance).toBe("1F:0,1");
   });
 
   it("tells the compass which doors the hero can open now", () => {

@@ -4,6 +4,7 @@
  */
 import { generateTemple, solveTemple, floorsOf, kindOf, type GeneratedTemple, type TempleSize } from "@/lib/engine/dungeons/generator";
 import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
+import { grantsBossKey } from "@/lib/services/temples/roomGrants";
 
 const SEEDS = 200;
 const SIZES: TempleSize[] = ["small", "medium", "large"];
@@ -114,6 +115,21 @@ describe("TempleGenerator", () => {
     expect(boss.locked).toEqual({ master: true });
     expect(boss.content?.lockOnEnter).toBe(true);
     expect(boss.content?.element).toBe("fire");
+  });
+
+  it("keeps the Boss Key in a loot chest past the mini-boss, never in the mini-boss room, whatever bossKeyChest says", () => {
+    for (const size of SIZES) {
+      for (let seed = 1; seed <= 30; seed++) {
+        for (const bossKeyChest of [undefined, false]) {
+          const temple = generateTemple(`key-${seed}`, { theme: THEME, size, bossKeyChest });
+          const rooms = Object.values(temple.rooms);
+          expect({ size, seed, bossKeyChest, inMiniboss: rooms.filter((room) => room.type === "miniboss" && room.content?.dungeon).length }).toEqual({ size, seed, bossKeyChest, inMiniboss: 0 });
+          const holders = rooms.filter(grantsBossKey);
+          expect(holders.length).toBeGreaterThanOrEqual(1);
+          for (const room of holders) expect(room.type).toBe("loot");
+        }
+      }
+    }
   });
 
   it("is accepted by registerTemple as it is", () => {
