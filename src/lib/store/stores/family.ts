@@ -1,17 +1,32 @@
+import { Capacitor } from "@capacitor/core";
 import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, watch } from "vue";
 import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
 import { getFamilyEventsDb, type FamilyEventsState, type HomeStatus } from "@/lib/databases/FamilyEventsDb";
+import { getHeroDeviceDb, type HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
+import { normalizeCode, phoneLabel } from "@/lib/services/multiplayer/deviceLink";
 import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 import { questDoneEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
-import { bindFamily, familyProblem, getFamily, moveHome, removeHero, saveHero } from "@/lib/services/multiplayer/familyServer";
-import type { BindAnswer, FamilyProblem, ServerHero } from "@/lib/services/multiplayer/familyServer";
+import {
+  bindFamily,
+  claimDevice,
+  familyProblem,
+  getFamily,
+  listPhones,
+  makeLinkCode,
+  moveHome,
+  removeHero,
+  removePhone as serverRemovePhone,
+  saveHero,
+} from "@/lib/services/multiplayer/familyServer";
+import type { BindAnswer, FamilyProblem, HeroPhone, LinkCode, ServerHero } from "@/lib/services/multiplayer/familyServer";
 import { onHeroRemoved, onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
-import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
+import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
+import { townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -81,8 +96,14 @@ export const useFamilyStore = defineStore("family", () => {
   const problem = ref<FamilyProblem | null>(null);
   /** heroId -> the age group the Game Master picked, for heroes whose profile has no birthday */
   const ageGroupPicks = ref<Record<string, AgeGroup>>({});
+  /** The hero device record when this device is a kid phone */
+  const device = ref<HeroDevice | null>(null);
+  /** The linked phones for this family (Game Master only) */
+  const phones = ref<HeroPhone[]>([]);
 
   const enabled = computed(() => multiplayerEnabled());
+  /** Whether this device is in kid mode (linked as a hero phone) */
+  const isKidMode = computed(() => device.value !== null);
   /** The Town Hall's sign-in while the family is linked (or the website hosts the app); no parent powers without it */
   const parentAuth = computed<TownHallAuth | null>(() => (townHall.isLinked ? townHall.auth : null));
 
@@ -350,6 +371,108 @@ export const useFamilyStore = defineStore("family", () => {
     await cards.queueCards();
   }
 
+  // --- Kid mode and phone linking (MP14) ---
+
+  /** Trades a link code for a hero key, keeps the device, and adopts the family */
+  async function claim(code: string): Promise<"linked" | FamilyProblem> {
+    const clean = normalizeCode(code);
+    if (!clean) {
+      problem.value = "code-invalid";
+      return "code-invalid";
+    }
+    const { deviceId } = await ensureIdentity();
+    const platform = Capacitor.getPlatform();
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const initialLabel = phoneLabel("", userAgent, platform);
+    try {
+      const claimed = await claimDevice(clean, deviceId, initialLabel);
+      const siteUrl = townHallSiteUrl();
+      const label = phoneLabel(claimed.card?.nickname ?? "", userAgent, platform);
+      const heroDevice: HeroDevice = {
+        siteUrl,
+        familyId: claimed.familyId,
+        heroId: claimed.heroId,
+        deviceId,
+        key: claimed.key,
+        label,
+        linkedAt: Date.now(),
+        card: claimed.card,
+      };
+      await getHeroDeviceDb().saveDevice(heroDevice);
+      await adoptFamily(claimed.familyId);
+      device.value = heroDevice;
+      problem.value = null;
+      return "linked";
+    } catch (error) {
+      const found = familyProblem(error);
+      problem.value = found;
+      return found;
+    }
+  }
+
+  /** Refreshes this hero phone's card with the hero key; a revoked key marks the phone unlinked */
+  async function refreshCard(): Promise<void> {
+    const current = device.value;
+    const hasDevice = current !== null;
+    if (!hasDevice) return;
+    const auth: TownHallAuth = { kind: "hero", key: current.key };
+    try {
+      const answer = await getFamily(auth);
+      const matched = answer.heroes.find((h) => h.heroId === current.heroId);
+      const hasCard = Boolean(matched?.card);
+      if (hasCard) {
+        const updated = { ...current, card: matched!.card };
+        device.value = updated;
+        await getHeroDeviceDb().saveDevice(updated);
+      }
+    } catch (error) {
+      const found = familyProblem(error);
+      problem.value = found;
+      const isKeyRevoked = found === "key-revoked" || found === "unlinked";
+      if (isKeyRevoked) {
+        const marked = { ...current, unlinked: true };
+        device.value = marked;
+        await getHeroDeviceDb().saveDevice(marked);
+      }
+    }
+  }
+
+  /** Clears the device record and leaves kid mode */
+  async function forgetDevice(): Promise<void> {
+    await getHeroDeviceDb().clearDevice();
+    device.value = null;
+  }
+
+  /** Generates a new link code for a hero */
+  async function linkCode(heroId: string): Promise<LinkCode> {
+    const auth = parentAuth.value;
+    if (!auth) throw new Error("family: cannot make a link code without parent auth");
+    return await makeLinkCode(auth, heroId);
+  }
+
+  /** Loads the list of linked phones */
+  async function loadPhones(): Promise<void> {
+    const auth = parentAuth.value;
+    if (!auth) return;
+    try {
+      phones.value = await listPhones(auth);
+    } catch (error) {
+      await noteFailure(error);
+    }
+  }
+
+  /** Unlinks a phone by device row id */
+  async function removePhone(id: number): Promise<void> {
+    const auth = parentAuth.value;
+    if (!auth) return;
+    try {
+      await serverRemovePhone(auth, id);
+      phones.value = phones.value.filter((p) => p.id !== id);
+    } catch (error) {
+      await noteFailure(error);
+    }
+  }
+
   // --- Starting ---
 
   /** Everything init started listening to, stopped when the store goes */
@@ -407,12 +530,19 @@ export const useFamilyStore = defineStore("family", () => {
   /**
    * Loads what this device kept, starts listening (deleted profiles, paid quests, profile changes, the send moments)
    * and starts the bind, then a send. Once; a second call is the same promise. With the flag off it does nothing. It
-   * does not wait for the site (see the note on the store).
+   * does not wait for the site (see the note on the store). In kid mode, loads the device and refreshes the card.
    */
   function init(): Promise<void> {
     if (!initPromise) {
       initPromise = (async () => {
         if (!enabled.value) return;
+        const stored = await getHeroDeviceDb().getDevice();
+        device.value = stored;
+        const isKidDevice = stored !== null;
+        if (isKidDevice) {
+          await refreshCard().catch((error) => debug.warn("family: could not refresh card", error));
+          return;
+        }
         await townHall.init();
         await load();
         listen();
@@ -444,5 +574,28 @@ export const useFamilyStore = defineStore("family", () => {
     clearTimeout(cardsTimer);
   });
 
-  return { home, heroes, problem, ageGroupPicks, enabled, parentAuth, init, bind, makeHome, registerHeroes, setAgeGroup, queueCards, flush };
+  return {
+    home,
+    heroes,
+    problem,
+    ageGroupPicks,
+    device,
+    phones,
+    isKidMode,
+    enabled,
+    parentAuth,
+    init,
+    bind,
+    makeHome,
+    registerHeroes,
+    setAgeGroup,
+    queueCards,
+    flush,
+    claim,
+    refreshCard,
+    forgetDevice,
+    linkCode,
+    loadPhones,
+    removePhone,
+  };
 });

@@ -6,6 +6,7 @@ import { emitHeroRemoved, emitQuestPaid } from "@/lib/services/multiplayer/gameS
 import * as server from "@/lib/services/multiplayer/familyServer";
 import { cardKey, cardOf } from "@/lib/services/multiplayer/heroCard";
 import type { FamilyEventsState } from "@/lib/databases/FamilyEventsDb";
+import type { HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import type { QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 import debug from "@/lib/utils/debug";
 
@@ -27,11 +28,37 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
     getFamily: jest.fn(),
     saveHero: jest.fn(),
     removeHero: jest.fn(),
+    removePhone: jest.fn(),
     sendEvents: jest.fn(),
+    claimDevice: jest.fn(),
+    makeLinkCode: jest.fn(),
+    listPhones: jest.fn(),
   };
 });
 
-jest.mock("@/lib/services/pro/familyIdentity", () => ({ __esModule: true, ensureIdentity: jest.fn() }));
+jest.mock("@/lib/services/pro/familyIdentity", () => ({
+  __esModule: true,
+  ensureIdentity: jest.fn(),
+  adoptFamily: jest.fn(),
+}));
+
+let mockHeroDevice: HeroDevice | null = null;
+const mockSaveDevice = jest.fn();
+const mockClearDevice = jest.fn();
+jest.mock("@/lib/databases/HeroDeviceDb", () => ({
+  __esModule: true,
+  getHeroDeviceDb: () => ({
+    getDevice: async () => (mockHeroDevice ? JSON.parse(JSON.stringify(mockHeroDevice)) : null),
+    saveDevice: async (device: HeroDevice) => {
+      mockSaveDevice(device);
+      mockHeroDevice = JSON.parse(JSON.stringify(device));
+    },
+    clearDevice: async () => {
+      mockClearDevice();
+      mockHeroDevice = null;
+    },
+  }),
+}));
 
 /** The quests on this device, by id (only `difficulty` is read) */
 let mockQuests: Record<string, unknown> = {};
@@ -75,6 +102,11 @@ const getFamily = server.getFamily as jest.Mock;
 const saveHero = server.saveHero as jest.Mock;
 const removeHero = server.removeHero as jest.Mock;
 const sendEvents = server.sendEvents as jest.Mock;
+const claimDevice = server.claimDevice as jest.Mock;
+const makeLinkCode = server.makeLinkCode as jest.Mock;
+const listPhones = server.listPhones as jest.Mock;
+const serverRemovePhone = server.removePhone as jest.Mock;
+const { adoptFamily } = require("@/lib/services/pro/familyIdentity") as { adoptFamily: jest.Mock };
 
 const emptyState = (): FamilyEventsState => ({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown" });
 /** Lets every promise the mocks settle run to the end */
@@ -133,6 +165,16 @@ const held = () => {
   return { promise, release };
 };
 const paidQuest = (over: Partial<{ heroId: string; questId: string; xp: number; fight: boolean }> = {}) => ({ heroId: "h-1", questId: "q-1", xp: 40, fight: false, ...over });
+const sampleDevice = (): HeroDevice => ({
+  siteUrl: "https://townhall.example.com",
+  familyId: FAMILY,
+  heroId: "h-1",
+  deviceId: DEVICE,
+  key: "xph_samplekey12345",
+  label: "Mia's iPhone",
+  linkedAt: 1770000000000,
+  card: cardOf(mia()),
+});
 
 describe("family store", () => {
   beforeEach(() => {
@@ -140,6 +182,16 @@ describe("family store", () => {
     jest.resetAllMocks();
     mockEnabled = true;
     mockState = emptyState();
+    mockHeroDevice = null;
+    mockSaveDevice.mockClear();
+    mockClearDevice.mockClear();
+    claimDevice.mockReset();
+    makeLinkCode.mockReset();
+    listPhones.mockReset();
+    serverRemovePhone.mockReset();
+    serverRemovePhone.mockResolvedValue(undefined);
+    adoptFamily.mockReset();
+    adoptFamily.mockResolvedValue(undefined);
     mockTownHall.isLinked = true;
     mockTownHall.auth = PARENT;
     mockTownHall.init.mockResolvedValue(undefined);
@@ -831,6 +883,108 @@ describe("family store", () => {
       window.dispatchEvent(new Event("online"));
       await settle();
       expect(sendEvents).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("kid mode and phone linking (MP14)", () => {
+    it("in kid mode init loads the device, calls refreshCard, and binds nothing", async () => {
+      mockHeroDevice = sampleDevice();
+      const updatedCard = { ...cardOf(mia())!, level: 5 };
+      getFamily.mockResolvedValue({
+        familyId: FAMILY,
+        heroes: [{ heroId: "h-1", nickname: "Mia", card: updatedCard }],
+      });
+      const store = useFamilyStore();
+      await store.init();
+      expect(store.isKidMode).toBe(true);
+      expect(store.device?.card?.level).toBe(5);
+      expect(bindFamily).not.toHaveBeenCalled();
+      expect(saveHero).not.toHaveBeenCalled();
+    });
+
+    it("claim saves the device, calls adoptFamily, sets isKidMode and device", async () => {
+      const card = cardOf(mia())!;
+      claimDevice.mockResolvedValue({
+        key: "xph_key123",
+        familyId: FAMILY,
+        heroId: "h-1",
+        card,
+      });
+      const store = useFamilyStore();
+      const result = await store.claim("abcd-efgh");
+      expect(result).toBe("linked");
+      expect(claimDevice).toHaveBeenCalledWith("ABCDEFGH", DEVICE, expect.any(String));
+      expect(mockSaveDevice).toHaveBeenCalledTimes(1);
+      expect(adoptFamily).toHaveBeenCalledWith(FAMILY);
+      expect(store.isKidMode).toBe(true);
+      expect(store.device).toMatchObject({ key: "xph_key123", heroId: "h-1" });
+    });
+
+    it("a code-invalid rejection saves nothing", async () => {
+      claimDevice.mockRejectedValue(failWith(404, "xp_family_code_invalid"));
+      const store = useFamilyStore();
+      const result = await store.claim("bad-code");
+      expect(result).toBe("code-invalid");
+      expect(mockSaveDevice).not.toHaveBeenCalled();
+      expect(adoptFamily).not.toHaveBeenCalled();
+      expect(store.isKidMode).toBe(false);
+      expect(store.device).toBeNull();
+    });
+
+    it("refreshCard updates the card", async () => {
+      mockHeroDevice = sampleDevice();
+      const updatedCard = { ...cardOf(mia())!, level: 7 };
+      getFamily.mockResolvedValue({
+        familyId: FAMILY,
+        heroes: [{ heroId: "h-1", nickname: "Mia", card: updatedCard }],
+      });
+      const store = useFamilyStore();
+      store.device = mockHeroDevice;
+      await store.refreshCard();
+      expect(getFamily).toHaveBeenCalledWith({ kind: "hero", key: mockHeroDevice.key });
+      expect(store.device?.card?.level).toBe(7);
+      expect(mockSaveDevice).toHaveBeenCalledWith(expect.objectContaining({ card: expect.objectContaining({ level: 7 }) }));
+    });
+
+    it("a key-revoked sets unlinked: true", async () => {
+      mockHeroDevice = { ...sampleDevice(), unlinked: false };
+      getFamily.mockRejectedValue(failWith(401, "xp_family_key_revoked"));
+      const store = useFamilyStore();
+      store.device = mockHeroDevice;
+      await store.refreshCard();
+      expect(store.device?.unlinked).toBe(true);
+      expect(store.problem).toBe("key-revoked");
+      expect(mockSaveDevice).toHaveBeenCalledWith(expect.objectContaining({ unlinked: true }));
+    });
+
+    it("forgetDevice clears the device", async () => {
+      mockHeroDevice = sampleDevice();
+      const store = useFamilyStore();
+      store.device = mockHeroDevice;
+      await store.forgetDevice();
+      expect(mockClearDevice).toHaveBeenCalledTimes(1);
+      expect(store.device).toBeNull();
+      expect(store.isKidMode).toBe(false);
+    });
+
+    it("linkCode asks makeLinkCode with parent auth", async () => {
+      makeLinkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt: "2026-10-13T12:10:00Z" });
+      const store = await started();
+      const code = await store.linkCode("h-1");
+      expect(makeLinkCode).toHaveBeenCalledWith(PARENT, "h-1");
+      expect(code).toEqual({ code: "ABCDEFGH", expiresAt: "2026-10-13T12:10:00Z" });
+    });
+
+    it("loadPhones and removePhone manage the phones list", async () => {
+      const phones = [{ id: 1, heroId: "h-1", label: "Mia's iPhone", createdAt: "2026-10-13", lastSeenAt: null }];
+      listPhones.mockResolvedValue(phones);
+      const store = await started();
+      await store.loadPhones();
+      expect(listPhones).toHaveBeenCalledWith(PARENT);
+      expect(store.phones).toEqual(phones);
+      await store.removePhone(1);
+      expect(serverRemovePhone).toHaveBeenCalledWith(PARENT, 1);
+      expect(store.phones).toEqual([]);
     });
   });
 });
