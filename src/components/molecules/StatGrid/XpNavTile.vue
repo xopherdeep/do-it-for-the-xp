@@ -2,7 +2,9 @@
   <div
     class="nav-box clickable text-center"
     @click="handleClick"
+    :style="accent ? { '--nav-tile-accent': accent } : undefined"
     :class="{ 
+      'has-accent': !!accent,
       'border-primary': color === 'primary',
       'border-secondary': color === 'secondary',
       'border-tertiary': color === 'tertiary',
@@ -39,6 +41,11 @@
         required: true
       },
       color: {
+        type: String,
+        default: ""
+      },
+      // A CSS color for the border when the icon's own color (often its icon-colors duotone) differs from `color`
+      accent: {
         type: String,
         default: ""
       },
@@ -123,6 +130,9 @@
   .border-danger { border-color: rgba(var(--ion-color-danger-rgb), 0.5); }
   .border-tardis { border-color: rgba(0, 59, 111, 0.8); }
   .border-medium { border-color: rgba(var(--ion-color-medium-rgb), 0.5); }
+  .nav-box.has-accent {
+    border-color: var(--nav-tile-accent);
+  }
 
   /* Theme Text */
   .text-primary { color: var(--ion-color-primary); }
