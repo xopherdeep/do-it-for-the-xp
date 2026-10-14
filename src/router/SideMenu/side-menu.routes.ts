@@ -21,6 +21,16 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
       requiresAuth: false,
     },
   },
+  // Hero phone link route
+  {
+    path: "/link",
+    name: "link-phone",
+    component: () =>
+      import("@/app/SideMenu/HeroPhone/LinkPhone.vue"),
+    meta: {
+      requiresAuth: false,
+    },
+  },
   // Game Master route - imported from separate file
   {
     path: "/xp-membership",

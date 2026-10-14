@@ -73,5 +73,7 @@
     <string>30</string>
     <key>IonApi</key>
     <string>https://api.ionicjs.com</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Scan a family link QR code to connect your hero phone.</string>
   </dict>
 </plist>

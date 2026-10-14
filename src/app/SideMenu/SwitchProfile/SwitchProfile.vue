@@ -51,6 +51,32 @@
                 <i class="fad fa-chevron-right eb-new-arrow"></i>
               </div>
             </div>
+
+            <!-- Link Kid Phone Slot (when multiplayer enabled) -->
+            <div
+              v-if="isMultiplayerEnabled"
+              class="eb-file-slot eb-link-slot"
+              role="button"
+              tabindex="0"
+              data-cy="link-phone-slot"
+              @click="openLinkPhone"
+              @keydown.enter="openLinkPhone"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag"><i class="fad fa-mobile-alt"></i></div>
+              <div class="eb-slot-avatar-frame eb-link-avatar">
+                <i class="fad fa-qrcode"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-hero-name">I'm a hero with a family code</div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-desc">Link this phone with a code or QR</span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <i class="fad fa-chevron-right eb-new-arrow"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -260,6 +286,7 @@ import debug from "@/lib/utils/debug";
 import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import { useFamilyStore } from "@/lib/store/stores/family";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -283,8 +310,14 @@ export default defineComponent({
     const isLoading = ref(false); // For initial list loading
     const userStore = useUserStore();
     const audioStore = useAudioStore();
+    const familyStore = useFamilyStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
+
+    const isMultiplayerEnabled = computed(() => familyStore.enabled);
+    const openLinkPhone = () => {
+      ionRouter.push("/link");
+    };
 
     // Restore notification state
     // Restore notification state
@@ -669,6 +702,8 @@ export default defineComponent({
       listOutline,
       retroMenuActions,
       handleRetroAction,
+      isMultiplayerEnabled,
+      openLinkPhone,
     };
   },
 });

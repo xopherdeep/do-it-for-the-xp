@@ -22,5 +22,6 @@
         <meta-data android:name="google_analytics_automatic_screen_reporting_enabled" android:value="false" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 </manifest>
