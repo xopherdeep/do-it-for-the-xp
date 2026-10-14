@@ -72,7 +72,7 @@ describe("MyCrafts on the XpApp kit", () => {
     const wrapper = mountPage();
 
     const root = wrapper.find(".ion-page");
-    expect(root.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--retro", "my-crafts"]));
+    expect(root.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern", "my-crafts"]));
     expect(root.attributes("style")).toContain("--xp-app-accent: #e08a2e");
 
     const rows = wrapper.findAll(".xp-app-row");

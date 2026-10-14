@@ -140,6 +140,8 @@ describe("BattleField: a free fight", () => {
     jest.useFakeTimers();
     mockPlaySound.mockClear();
     localStorage.clear();
+    // These fights drive the retro battle layout; Modern is the default skin now.
+    localStorage.setItem("fabStyle", "retro");
     mockViewHooks.didEnter = undefined;
     mockViewHooks.willLeave = undefined;
     mockViewHooks.back = undefined;
