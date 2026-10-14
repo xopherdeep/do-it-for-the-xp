@@ -4,6 +4,7 @@ import { useFamilyStore } from "@/lib/store/stores/family";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
 import { emitHeroRemoved, emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import * as server from "@/lib/services/multiplayer/familyServer";
+import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import { cardKey, cardOf } from "@/lib/services/multiplayer/heroCard";
 import type { FamilyEventsState } from "@/lib/databases/FamilyEventsDb";
 import type { HeroDevice } from "@/lib/databases/HeroDeviceDb";
@@ -30,6 +31,7 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
     removeHero: jest.fn(),
     removePhone: jest.fn(),
     sendEvents: jest.fn(),
+    fetchEvents: jest.fn(),
     claimDevice: jest.fn(),
     makeLinkCode: jest.fn(),
     listPhones: jest.fn(),
@@ -85,6 +87,47 @@ jest.mock("@/lib/databases/FamilyEventsDb", () => ({
   }),
 }));
 
+const mockApplyQuestRewards = jest.fn();
+jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
+  __esModule: true,
+  applyQuestRewards: (...args: any[]) => mockApplyQuestRewards(...args),
+}));
+
+let mockQuestLog: any[] = [];
+const mockLogCompletion = jest.fn();
+const mockUpdateEntry = jest.fn();
+jest.mock("@/lib/databases/QuestLogDb", () => {
+  const actual = jest.requireActual("@/lib/databases/QuestLogDb");
+  return {
+    __esModule: true,
+    ...actual,
+    getQuestLogDb: () => ({
+      logCompletion: async (input: any) => {
+        mockLogCompletion(input);
+        const entry = {
+          id: `log-${mockQuestLog.length + 1}`,
+          completedAt: new Date().toISOString(),
+          dayKey: "2026-10-13",
+          rewardsApplied: false,
+          ...input,
+        };
+        mockQuestLog.push(entry);
+        return entry;
+      },
+      updateEntry: async (id: string, patch: any) => {
+        mockUpdateEntry(id, patch);
+        const entry = mockQuestLog.find((candidate) => candidate.id === id);
+        const isFound = Boolean(entry);
+        if (!isFound) return null;
+        Object.assign(entry, patch);
+        return entry;
+      },
+      getEntries: async () => [...mockQuestLog],
+      getAll: async () => [...mockQuestLog],
+    }),
+  };
+});
+
 const mockTownHall = reactive({
   isLinked: true,
   auth: PARENT as Record<string, unknown>,
@@ -102,6 +145,7 @@ const getFamily = server.getFamily as jest.Mock;
 const saveHero = server.saveHero as jest.Mock;
 const removeHero = server.removeHero as jest.Mock;
 const sendEvents = server.sendEvents as jest.Mock;
+const fetchEvents = server.fetchEvents as jest.Mock;
 const claimDevice = server.claimDevice as jest.Mock;
 const makeLinkCode = server.makeLinkCode as jest.Mock;
 const listPhones = server.listPhones as jest.Mock;
@@ -175,6 +219,18 @@ const sampleDevice = (): HeroDevice => ({
   linkedAt: 1770000000000,
   card: cardOf(mia()),
 });
+const sampleRewardEvent = (over: Partial<ReceivedEvent> = {}): ReceivedEvent => ({
+  seq: 1,
+  id: "evt-rew-1",
+  heroId: "h-1",
+  deviceId: "srv",
+  kind: "reward.granted",
+  scope: "family",
+  at: "2026-10-13T12:00:00.000Z",
+  receivedAt: "2026-10-13 12:00:00",
+  data: { xp: 50, ap: 3, reason: "Quest Together bonus" },
+  ...over,
+});
 
 describe("family store", () => {
   beforeEach(() => {
@@ -203,6 +259,12 @@ describe("family store", () => {
     saveHero.mockResolvedValue(undefined);
     removeHero.mockResolvedValue(undefined);
     sendEvents.mockImplementation(acceptAll);
+    fetchEvents.mockReset();
+    fetchEvents.mockResolvedValue([]);
+    mockApplyQuestRewards.mockReset();
+    mockLogCompletion.mockReset();
+    mockUpdateEntry.mockReset();
+    mockQuestLog = [];
     mockQuests = {};
     fillUsers(mia(), mom(), noNickname());
   });
@@ -985,6 +1047,179 @@ describe("family store", () => {
       await store.removePhone(1);
       expect(serverRemovePhone).toHaveBeenCalledWith(PARENT, 1);
       expect(store.phones).toEqual([]);
+    });
+  });
+
+  describe("downloading rewards (MP18)", () => {
+    it("a reward pays XP and AP once and writes a Party bonus log line", async () => {
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      const store = await started();
+      await store.download();
+      expect(mockLogCompletion).toHaveBeenCalledTimes(1);
+      expect(mockLogCompletion).toHaveBeenCalledWith({
+        questId: "party:evt-rew-1",
+        questName: "Party bonus",
+        userId: "h-1",
+        status: "approved",
+        source: "party",
+        rewards: { xp: 50, gp: 0, ap: 3 },
+      });
+      expect(mockApplyQuestRewards).toHaveBeenCalledTimes(1);
+      expect(mockApplyQuestRewards).toHaveBeenCalledWith(
+        "h-1",
+        { xp: 50, gp: 0, ap: 3 },
+        "party:evt-rew-1"
+      );
+      expect(mockUpdateEntry).toHaveBeenCalledWith("log-1", { rewardsApplied: true });
+      expect(mockState.paidRewards).toEqual([
+        { id: "evt-rew-1", at: expect.any(String) },
+      ]);
+      expect(mockState.lastSeq).toBe(1);
+    });
+
+    it("downloading the same event again pays nothing", async () => {
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      const store = await started();
+      await store.download();
+      mockApplyQuestRewards.mockClear();
+      mockLogCompletion.mockClear();
+      mockUpdateEntry.mockClear();
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      await store.download();
+      expect(mockApplyQuestRewards).not.toHaveBeenCalled();
+      expect(mockLogCompletion).not.toHaveBeenCalled();
+      expect(mockUpdateEntry).not.toHaveBeenCalled();
+    });
+
+    it("a lost lastSeq (0) with the id in paidRewards pays nothing", async () => {
+      mockState.lastSeq = 0;
+      mockState.paidRewards = [{ id: "evt-rew-1", at: "2026-10-13T12:00:00.000Z" }];
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      const store = await started();
+      await store.download();
+      expect(mockApplyQuestRewards).not.toHaveBeenCalled();
+      expect(mockLogCompletion).not.toHaveBeenCalled();
+      expect(mockState.lastSeq).toBe(1);
+    });
+
+    it("a log entry already marked rewardsApplied pays nothing", async () => {
+      mockState.lastSeq = 0;
+      mockState.paidRewards = [];
+      mockQuestLog.push({
+        id: "existing-log-1",
+        questId: "party:evt-rew-1",
+        questName: "Party bonus",
+        userId: "h-1",
+        completedAt: "2026-10-13T12:00:00.000Z",
+        dayKey: "2026-10-13",
+        status: "approved",
+        source: "party",
+        rewards: { xp: 50, gp: 0, ap: 3 },
+        rewardsApplied: true,
+      });
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      const store = await started();
+      await store.download();
+      expect(mockApplyQuestRewards).not.toHaveBeenCalled();
+      expect(mockLogCompletion).not.toHaveBeenCalled();
+      expect(mockState.paidRewards).toEqual([
+        { id: "evt-rew-1", at: expect.any(String) },
+      ]);
+    });
+
+    it("one with rewardsApplied: false is paid once (Review Focus 4)", async () => {
+      mockState.lastSeq = 0;
+      mockState.paidRewards = [];
+      mockQuestLog.push({
+        id: "existing-log-1",
+        questId: "party:evt-rew-1",
+        questName: "Party bonus",
+        userId: "h-1",
+        completedAt: "2026-10-13T12:00:00.000Z",
+        dayKey: "2026-10-13",
+        status: "approved",
+        source: "party",
+        rewards: { xp: 50, gp: 0, ap: 3 },
+        rewardsApplied: false,
+      });
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      const store = await started();
+      await store.download();
+      expect(mockLogCompletion).not.toHaveBeenCalled();
+      expect(mockApplyQuestRewards).toHaveBeenCalledTimes(1);
+      expect(mockApplyQuestRewards).toHaveBeenCalledWith(
+        "h-1",
+        { xp: 50, gp: 0, ap: 3 },
+        "party:evt-rew-1"
+      );
+      expect(mockUpdateEntry).toHaveBeenCalledWith("existing-log-1", { rewardsApplied: true });
+      expect(mockState.paidRewards).toEqual([
+        { id: "evt-rew-1", at: expect.any(String) },
+      ]);
+    });
+
+    it("GP is never paid even if present in event data", async () => {
+      fetchEvents.mockResolvedValueOnce([
+        sampleRewardEvent({ data: { xp: 50, ap: 3, gp: 100 } }),
+      ]);
+      const store = await started();
+      await store.download();
+      expect(mockApplyQuestRewards).toHaveBeenCalledWith(
+        "h-1",
+        { xp: 50, gp: 0, ap: 3 },
+        "party:evt-rew-1"
+      );
+      expect(mockLogCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rewards: { xp: 50, gp: 0, ap: 3 },
+        })
+      );
+    });
+
+    it("pages through events when 100 events are returned in a batch", async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => ({
+        seq: i + 1,
+        id: `evt-${i + 1}`,
+        heroId: "h-1",
+        deviceId: "srv",
+        kind: "hero.leveled" as const,
+        scope: "public" as const,
+        at: "2026-10-13T12:00:00.000Z",
+        receivedAt: "2026-10-13 12:00:00",
+        data: { level: 2 },
+      }));
+      const page2 = [sampleRewardEvent({ seq: 101, id: "evt-rew-101" })];
+      fetchEvents.mockResolvedValueOnce(page1).mockResolvedValueOnce(page2);
+      const store = await started();
+      await store.download();
+      expect(fetchEvents).toHaveBeenCalledWith(PARENT, 0, 100);
+      expect(fetchEvents).toHaveBeenCalledWith(PARENT, 100, 100);
+      expect(mockState.lastSeq).toBe(101);
+      expect(mockApplyQuestRewards).toHaveBeenCalledTimes(1);
+    });
+
+    it("the app coming back to the front triggers download", async () => {
+      const store = await started();
+      fetchEvents.mockClear();
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
+      Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      await settle();
+      expect(fetchEvents).toHaveBeenCalled();
+    });
+
+    it("triggers download periodically every 5 minutes", async () => {
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      fetchEvents.mockClear();
+      await tick(299_999);
+      expect(fetchEvents).not.toHaveBeenCalled();
+      await tick(1);
+      expect(fetchEvents).toHaveBeenCalled();
     });
   });
 });

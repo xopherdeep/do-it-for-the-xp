@@ -4,14 +4,17 @@ import { computed, onScopeDispose, ref, watch } from "vue";
 import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
 import { getFamilyEventsDb, type FamilyEventsState, type HomeStatus } from "@/lib/databases/FamilyEventsDb";
 import { getHeroDeviceDb, type HeroDevice } from "@/lib/databases/HeroDeviceDb";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
 import { normalizeCode, phoneLabel } from "@/lib/services/multiplayer/deviceLink";
+import { markPaid, newestSeq, rewardsToPay, trimPaid } from "@/lib/services/multiplayer/eventInbox";
 import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 import { questDoneEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import {
   bindFamily,
   claimDevice,
   familyProblem,
+  fetchEvents,
   getFamily,
   listPhones,
   makeLinkCode,
@@ -25,6 +28,7 @@ import { onHeroRemoved, onQuestPaid, type QuestPaid } from "@/lib/services/multi
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
+import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
@@ -56,6 +60,8 @@ interface RegistrableHero {
 const SEND_DELAY_MS = 5_000;
 /** A profile change queues its card this long after the last change */
 const CARDS_DELAY_MS = 2_000;
+/** Download runs every 5 minutes while the store is open */
+const DOWNLOAD_INTERVAL_MS = 300_000;
 
 /** The quest's difficulty for quest.done; 0 when the quest is gone or has none */
 const difficultyOf = async (questId: string): Promise<number> => {
@@ -227,8 +233,106 @@ export const useFamilyStore = defineStore("family", () => {
     await queueEvents([questDoneEvent(paid.heroId, deviceId, { difficulty, xp: paid.xp, fight: paid.fight })]);
   }
 
-  /** Sends what waits, one request at a time: a call while a send runs joins it */
-  const flush = (): Promise<void> => sender.flush();
+  let downloading: Promise<void> | null = null;
+
+  async function runDownload(): Promise<void> {
+    const auth = parentAuth.value;
+    const isHome = home.value === "home";
+    const hasAuth = auth !== null;
+    const isStoreEnabled = enabled.value;
+    const mayDownload = isStoreEnabled && isHome && hasAuth;
+    if (!mayDownload) return;
+
+    try {
+      await load();
+      let currentSeq = (await loaded()).lastSeq;
+      const questLogDb = getQuestLogDb();
+
+      for (;;) {
+        const stillHome = home.value === "home";
+        const stillHasAuth = parentAuth.value !== null;
+        const stillEnabled = enabled.value;
+        const mayContinue = stillEnabled && stillHome && stillHasAuth;
+        if (!mayContinue) return;
+
+        const events = await fetchEvents(auth!, currentSeq, 100);
+        const hasNoEvents = events.length === 0;
+        if (hasNoEvents) break;
+
+        const currentState = await loaded();
+        const rewards = rewardsToPay(events, currentState.paidRewards);
+        const entries = await questLogDb.getEntries();
+        const newlyPaidIds: string[] = [];
+
+        for (const reward of rewards) {
+          const questId = `party:${reward.id}`;
+          const receipt = entries.find((entry) => entry.questId === questId);
+          const hasReceipt = Boolean(receipt);
+
+          if (!hasReceipt) {
+            const created = await questLogDb.logCompletion({
+              questId,
+              questName: "Party bonus",
+              userId: reward.heroId,
+              status: "approved",
+              source: "party",
+              rewards: { xp: reward.xp, gp: 0, ap: reward.ap },
+            });
+            applyQuestRewards(reward.heroId, { xp: reward.xp, gp: 0, ap: reward.ap }, questId);
+            await questLogDb.updateEntry(created.id, { rewardsApplied: true });
+            entries.push({ ...created, rewardsApplied: true });
+          } else {
+            const needsReward = !receipt!.rewardsApplied;
+            if (needsReward) {
+              applyQuestRewards(reward.heroId, { xp: reward.xp, gp: 0, ap: reward.ap }, receipt!.questId);
+              await questLogDb.updateEntry(receipt!.id, { rewardsApplied: true });
+              receipt!.rewardsApplied = true;
+            }
+          }
+          newlyPaidIds.push(reward.id);
+        }
+
+        const nextSeq = newestSeq(events, currentSeq);
+        const now = new Date();
+        await update((current) => {
+          const marked = markPaid(current.paidRewards, newlyPaidIds, now);
+          const trimmed = trimPaid(marked, now);
+          return {
+            ...current,
+            paidRewards: trimmed,
+            lastSeq: nextSeq,
+          };
+        });
+
+        const hasNoAdvance = nextSeq <= currentSeq;
+        const isLastPage = events.length < 100;
+        const shouldStop = hasNoAdvance || isLastPage;
+        if (shouldStop) break;
+        currentSeq = nextSeq;
+      }
+    } catch (error) {
+      await noteFailure(error);
+    }
+  }
+
+  /**
+   * Downloads events from the server and pays server rewards once (MP18).
+   * Runs only while this device is home, paging through fetchEvents from lastSeq.
+   */
+  function download(): Promise<void> {
+    if (!downloading) {
+      downloading = runDownload().finally(() => {
+        downloading = null;
+      });
+    }
+    return downloading;
+  }
+
+  /** Sends what waits, one request at a time: a call while a send runs joins it; then downloads */
+  const flush = async (): Promise<void> => {
+    await sender.flush();
+    await download().catch((error) => debug.warn("family: download after flush failed", error));
+  };
 
   // --- Heroes ---
 
@@ -499,7 +603,10 @@ export const useFamilyStore = defineStore("family", () => {
 
   function onVisibilityChange(): void {
     const isInFront = document.visibilityState === "visible";
-    if (isInFront) sendEverythingNow();
+    if (isInFront) {
+      sendEverythingNow();
+      download().catch((error) => debug.warn("family: could not download on visibility change", error));
+    }
   }
 
   function listen(): void {
@@ -525,6 +632,10 @@ export const useFamilyStore = defineStore("family", () => {
       document.addEventListener("visibilitychange", onVisibilityChange);
       stops.push(() => document.removeEventListener("visibilitychange", onVisibilityChange));
     }
+    const interval = setInterval(() => {
+      download().catch((error) => debug.warn("family: periodic download failed", error));
+    }, DOWNLOAD_INTERVAL_MS);
+    stops.push(() => clearInterval(interval));
   }
 
   /**
@@ -591,6 +702,7 @@ export const useFamilyStore = defineStore("family", () => {
     setAgeGroup,
     queueCards,
     flush,
+    download,
     claim,
     refreshCard,
     forgetDevice,

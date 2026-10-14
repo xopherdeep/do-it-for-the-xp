@@ -12,7 +12,7 @@ export const questLogStorage = new Storage({
 });
 
 export type QuestLogStatus = "pending" | "approved" | "rejected";
-export type QuestLogSource = "claim" | "battle" | "gm";
+export type QuestLogSource = "claim" | "battle" | "gm" | "party";
 
 export interface QuestRewards {
   xp: number;
