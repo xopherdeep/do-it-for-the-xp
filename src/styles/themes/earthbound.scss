@@ -391,25 +391,106 @@ ion-app {
         font-size: 22px;
       }
 
-      // Section headers inside a card: on the card's palette, not a white or black bar
+      // Section headers inside a card: a light caption with a hairline under it,
+      // not a solid bar
       ion-list-header,
       ion-item-divider {
-        --background: #{$eb-color-medium-purple};
-        --color: #{$eb-color-pale-yellow};
-        font-size: 18px;
+        --background: transparent;
+        --color: #{$eb-color-minty-blue};
+        --padding-start: 16px;
+        --inner-padding-end: 16px;
+        min-height: 0;
         margin-top: 0;
+        padding-top: 0;
+        font-size: 18px;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba($eb-color-minty-blue, 0.35);
+
+        ion-label {
+          margin: 10px 0 8px;
+        }
+      }
+
+      ion-card > ion-list {
+        padding-top: 0;
+      }
+
+      ion-item-group + ion-item-group ion-item-divider {
+        margin-top: 8px;
+      }
+
+      // One setting per row: title and description stacked on the left, the
+      // control on the right, centred on the row
+      ion-card ion-item {
+        --background: transparent;
+        --padding-start: 16px;
+        --inner-padding-end: 16px;
+        --padding-top: 10px;
+        --padding-bottom: 10px;
+        --min-height: 64px;
+        --border-color: #{rgba($eb-color-cream, 0.12)};
+        align-items: center;
+
+        > ion-label {
+          flex: 1 1 auto;
+          min-width: 0;
+          margin: 0;
+          white-space: normal;
+        }
+
+        > ion-select,
+        > ion-toggle,
+        > ion-badge,
+        > ion-button {
+          flex: 0 0 auto;
+          align-self: center;
+          margin: 0 0 0 16px;
+        }
+
+        > ion-select {
+          width: auto;
+          max-width: 45%;
+          font-family: "Orange Kid", $eb-font-status, sans-serif;
+          font-size: 20px;
+          color: $eb-color-pale-yellow;
+          --placeholder-color: #{$eb-color-pale-yellow};
+        }
+
+        // an off switch still shows its track on the dark window
+        > ion-toggle {
+          --track-background: #{rgba($eb-color-cream, 0.28)};
+        }
+
+        // a slider spans the rest of the row beside its short label
+        > ion-range {
+          flex: 1 1 60%;
+          margin-left: 16px;
+        }
       }
 
       ion-card ion-item ion-label {
         h1,
         h2 {
+          margin: 0;
           font-size: 20px;
+          line-height: 1.1;
           color: $eb-color-pale-yellow;
         }
 
         h3 {
           font-size: 18px;
           color: $eb-color-pale-yellow;
+        }
+
+        // descriptions: a clean, compact font (the pixel body font is hard to read small)
+        p {
+          margin-top: 4px;
+          font-family: "Orange Kid", $eb-font-status, sans-serif;
+          font-size: 17px;
+          line-height: 1.2;
+          letter-spacing: 0.3px;
+          color: rgba($eb-color-cream, 0.82);
+          white-space: normal;
         }
       }
     }

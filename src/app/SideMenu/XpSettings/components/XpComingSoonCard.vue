@@ -15,23 +15,30 @@
           <h2>{{ item.title }}</h2>
           <p>{{ item.description }}</p>
         </ion-label>
-        <ion-toggle disabled></ion-toggle>
+        <i class="fad fa-hourglass-half xp-coming-soon__icon" slot="end" aria-hidden="true"></i>
       </ion-item>
     </ion-list>
   </ion-card>
 </template>
 
 <script setup lang="ts">
-import { IonBadge, IonCard, IonItem, IonItemDivider, IonLabel, IonList, IonToggle } from "@ionic/vue";
+import { IonBadge, IonCard, IonItem, IonItemDivider, IonLabel, IonList } from "@ionic/vue";
 import type { ComingSoonItem } from "./comingSoon";
 
-/** Settings that are planned but not built: shown greyed out so nobody mistakes them for working switches */
+/** Settings that are planned but not built: listed with an hourglass, not a switch, so nobody mistakes them for working ones */
 withDefaults(defineProps<{ items: ComingSoonItem[]; title?: string }>(), { title: "Planned" });
 </script>
 
 <style scoped lang="scss">
+// dimmed but still easy to read
 .xp-coming-soon__item {
-  opacity: 0.7;
+  opacity: 0.8;
+}
+
+.xp-coming-soon__icon {
+  margin-left: 16px;
+  font-size: 18px;
+  opacity: 0.6;
 }
 
 .xp-coming-soon__badge {
