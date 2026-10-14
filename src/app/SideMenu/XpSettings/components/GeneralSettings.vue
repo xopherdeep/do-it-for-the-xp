@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
