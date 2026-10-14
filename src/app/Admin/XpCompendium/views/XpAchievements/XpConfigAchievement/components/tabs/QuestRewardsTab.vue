@@ -141,8 +141,12 @@ const showMinutes = (event: Event) => {
   padding: 24px;
 }
 
+// A column as tall as the screen, so the form below the header fills it
 .content-wrapper {
   width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .tier-icon {
