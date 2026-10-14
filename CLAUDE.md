@@ -26,6 +26,7 @@ pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec test
 pnpm build                       # ionic build (production uses hash routing and relative publicPath)
 pnpm build:compass               # same build into ../Xophz-COMPASS/wp-content/plugins/xophz-compass-xp/public/dist (override with XP_OUTPUT_DIR)
 python3 tools/chiptune/render_all.py [song...]   # re-render the chiptune soundtrack into src/assets/audio/chiptune
+python3 tools/sfx/door_sfx.py [vault] [stone]   # re-render the bank vault and town hall door foley into src/assets/audio/doors
 python3 tools/art/temple_floors.py               # regenerate the procedural temple floor tiles
 python3 tools/art/beast_portraits.py -n 2 --style a socktopus   # paint chore beasts from tools/art/beast_roster.json via Gemini (GEMINI_API_KEY);
                                  # --sheet to review, --assign + --install auto|slug=d2 to number them into src/assets/images/beasts, --emit-ts for the library

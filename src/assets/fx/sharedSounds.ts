@@ -13,6 +13,9 @@ import item from "@/assets/audio/item.mp3";
 import chestOpen from "@/assets/audio/chest-open.mp3";
 import takeItemMP3 from "@/assets/audio/take_item.mp3";
 import doorOpen from "@/assets/audio/door-open.mp3";
+// Foley rendered by tools/sfx/door_sfx.py
+import vaultOpen from "@/assets/audio/doors/vault-open.mp3";
+import hallOpen from "@/assets/audio/doors/hall-open.mp3";
 
 export const coins = new Audio(Coins);
 
@@ -35,8 +38,8 @@ export const steps = new Audio(earthbound.steps);
 export const doorSounds = {
   doorBell: new Audio(earthbound.bikebell),
   doorSlide: new Audio(earthbound.eb_dooropen),
-  doorVault: new Audio(earthbound.bulldozerstop),
-  doorStone: new Audio(earthbound.bulldozermove),
+  doorVault: new Audio(vaultOpen),
+  doorStone: new Audio(hallOpen),
   doorGate: new Audio(earthbound.ropedown),
   doorTent: new Audio(earthbound.dodge),
   doorPortal: new Audio(earthbound.teleport),
