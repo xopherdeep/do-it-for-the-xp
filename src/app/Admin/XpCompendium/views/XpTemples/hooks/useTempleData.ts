@@ -195,12 +195,12 @@ export function useTempleData(templeId: string) {
   };
 
   const saveTemple = async () => {
-    // Collect layout from creatorStore for ultimate consistency; its entrance is the live one, so a moved entrance survives
-    // this save. A temple the store does not hold yet keeps the record's own entrance.
-    const layoutToSave = storedLayout(creatorStore);
-    if (!creatorStore.isLoaded(templeId)) {
-      layoutToSave.entrance = temple.value.dungeonLayout?.entrance || [0, 0];
-    }
+    // The store's maze and rooms are this temple's only while the store holds it (its entrance is the live one, so a moved
+    // entrance survives this save). Otherwise they are another temple's last edit: saving a new temple's attributes before
+    // opening its Layout would copy them in. Such a temple keeps the record's own layout (none for a new one), and the store
+    // stays as it is, neither claimed for this temple nor re-snapshotted.
+    const storeHoldsThisTemple = creatorStore.isLoaded(templeId);
+    const layoutToSave = storeHoldsThisTemple ? storedLayout(creatorStore) : temple.value.dungeonLayout;
 
     const templeDataToSave: ExtendedTempleInterface = {
       ...temple.value,
@@ -210,9 +210,10 @@ export function useTempleData(templeId: string) {
 
     await templeDb.setTemple(templeDataToSave);
 
-    // Update local snapshot in store if needed (for change detection)
-    creatorStore.markAsLoaded(templeId);
-    creatorStore.updateDbSnapshot();
+    // Update local snapshot in store (for change detection)
+    if (storeHoldsThisTemple) {
+      creatorStore.updateDbSnapshot();
+    }
 
     const toast = await toastController.create({
       message: 'Temple settings saved!',

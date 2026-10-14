@@ -745,19 +745,63 @@ describe("saveTemple", () => {
     expect(store.dbStateSnapshot).toContain('"entrance":"3,2"');
   });
 
-  it("saves the entrance as [0, 0] for a temple without a layout", async () => {
+  // Changed with #1411: a temple the store does not hold has no layout of its own to take from it, so a new temple is saved without one
+  // (the creator then starts it from the new-temple defaults) instead of with the store's maze and rooms
+  it("saves a temple without a layout without one", async () => {
     const { api } = await mountTempleData("wind-temple");
     await api.saveTemple();
-    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([0, 0]);
-    expect(mockDb.saved[0].dungeonLayout.maze).toEqual([]);
+    expect(mockDb.saved[0].dungeonLayout).toBeUndefined();
   });
 
-  it("marks the temple loaded and counts the rooms again", async () => {
+  // Changed with #1411: claiming the store for a temple it never loaded would make the creator keep the store's data as this temple's
+  it("counts the rooms again and leaves a creator store that holds no temple alone", async () => {
     const { api, store } = await mountTempleData("wind-temple");
     api.temple.value.dungeonLayout = { entrance: [0, 0], maze: [["O__O", W]], rooms: { O__O: { type: "empty", visited: true } } };
     await api.saveTemple();
-    expect(store.loadedTempleId).toBe("wind-temple");
+    expect(store.loadedTempleId).toBeNull();
     expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 1, visitedRooms: 1, totalTreasures: 0, foundTreasures: 0 });
+  });
+
+  // #1411: the Game Master edited the Fire Temple's layout, then saved another temple's attributes before opening its Layout tab
+  describe("while the creator store holds another temple", () => {
+    const holdFireTemple = (store: ReturnType<typeof useTempleCreatorStore>) => {
+      store.templeMaze = grid1F();
+      store.roomsData = roomDefs();
+      store.entrancePosition = "3,2";
+      store.markAsLoaded("fire-temple");
+    };
+
+    it("saves a new temple without the other temple's maze and rooms", async () => {
+      const { api, store } = await mountTempleData("new-temple", { id: "new-temple", categoryIds: ["c1"], customName: "Fresh" });
+      holdFireTemple(store);
+      api.temple.value.customName = "Frost Keep";
+      await api.saveTemple();
+      expect(mockDb.saved).toHaveLength(1);
+      expect(mockDb.saved[0].id).toBe("new-temple");
+      expect(mockDb.saved[0].customName).toBe("Frost Keep");
+      expect(mockDb.saved[0].dungeonLayout).toBeUndefined();
+    });
+
+    it("saves a temple that has a layout with its own, not the other temple's", async () => {
+      const own = templeRecord("ice-temple", { "1F": grid2F(), "2F": grid2F() });
+      own.dungeonLayout.entrance = [1, 2, 1];
+      const { api, store } = await mountTempleData("ice-temple", own);
+      holdFireTemple(store);
+      await api.saveTemple();
+      expect(mockDb.saved[0].dungeonLayout).toEqual(plain(own.dungeonLayout));
+    });
+
+    it("leaves the other temple's working copy and its claim on the store as they were", async () => {
+      const { api, store } = await mountTempleData("new-temple", { id: "new-temple", categoryIds: ["c1"] });
+      holdFireTemple(store);
+      store.updateDbSnapshot();
+      const snapshot = store.dbStateSnapshot;
+      await api.saveTemple();
+      expect(store.loadedTempleId).toBe("fire-temple");
+      expect(store.templeMaze).toEqual(grid1F());
+      expect(store.entrancePosition).toBe("3,2");
+      expect(store.dbStateSnapshot).toBe(snapshot);
+    });
   });
 });
 
