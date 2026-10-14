@@ -255,7 +255,22 @@
         cover no-repeat;
     }
 
+    // The settings pages' spacing: the card's frame is a 16px shadow drawn outside it, so the gap between cards equals
+    // the gap around them (the page's 16px ion-padding). The game style's card rule is keyed by the app's id, hence
+    // the weight.
+    ion-grid,
+    ion-col {
+      padding: 0;
+    }
+
     ion-card {
+      width: calc(100% - 32px) !important;
+      margin: 16px auto !important;
+
+      & ~ ion-card {
+        margin-top: 48px !important;
+      }
+
       ion-card-header {
         border-bottom: 1px solid rgba(231, 230, 179, 0.25);
       }
