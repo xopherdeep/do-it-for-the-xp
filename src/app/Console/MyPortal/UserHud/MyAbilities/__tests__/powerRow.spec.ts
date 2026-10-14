@@ -45,10 +45,12 @@ describe("buildPowerRow", () => {
     expect(r.frequencyLabel).toBe("once a week");
   });
 
-  it("keeps a Font Awesome icon and falls back to sparkles", () => {
+  it("draws the icon in either spelling and falls back to sparkles only when there is none", () => {
     expect(row("available").icon).toBe("fa-film");
+    expect(row("available", makeAbility({ icon: "bolt" })).icon).toBe("fa-bolt");
+    expect(row("available", makeAbility({ icon: "hand-holding-magic" })).icon).toBe("fa-hand-holding-magic");
     expect(row("available", makeAbility({ icon: "" })).icon).toBe("fa-sparkles");
-    expect(row("available", makeAbility({ icon: "star" })).icon).toBe("fa-sparkles");
+    expect(row("available", makeAbility({ icon: undefined })).icon).toBe("fa-sparkles");
   });
 
   it("reads the AP window of the requirement and fills the meter", () => {

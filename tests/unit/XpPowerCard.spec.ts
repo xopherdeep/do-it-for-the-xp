@@ -139,7 +139,8 @@ describe("XpPowerCard", () => {
 
   it("shows the name, description, the Privilege or Spell chip, and an icon", () => {
     const privilege = show();
-    const spell = show({ ability: makeAbility({ type: "in-game", icon: "not-a-fa-class", frequency: "flat" }) });
+    const spell = show({ ability: makeAbility({ type: "in-game", icon: "", frequency: "flat" }) });
+    const bare = show({ ability: makeAbility({ icon: "bolt" }) });
 
     expect(privilege.text()).toContain("Movie Night");
     expect(privilege.text()).toContain("Pick the family movie.");
@@ -148,6 +149,9 @@ describe("XpPowerCard", () => {
     expect(spell.get(".power-chip").text()).toBe("Spell");
     expect(spell.get("i.power-icon").classes()).toEqual(expect.arrayContaining(["fad", "fa-sparkles"]));
     expect(spell.text()).toContain("5 MP · anytime");
+    // The Game Master's form stores a bare name; the card draws it all the same
+    expect(bare.get("i.power-icon").classes()).toEqual(expect.arrayContaining(["fad", "fa-bolt"]));
+    expect(bare.get("i.power-icon").classes()).not.toContain("fa-sparkles");
   });
 
   it("battle prop hides the AP meter and shows MP and effect", async () => {

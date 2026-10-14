@@ -100,6 +100,7 @@
 
 <script setup lang="ts">
 import { handLabel } from "@/lib/services/temples/ItemUse";
+import { toFaClass } from "@/lib/utils/faIcon";
 
 /** One item in a hand, as stored on the profile */
 export interface NavHandItem {
@@ -127,11 +128,6 @@ defineEmits<{
   (e: "open-party"): void;
   (e: "use-hand", item: NavHandItem): void;
 }>();
-
-const toFaClass = (icon?: string): string => {
-  if (!icon) return "";
-  return icon.startsWith("fa-") ? icon : `fa-${icon}`;
-};
 </script>
 
 <style lang="scss">

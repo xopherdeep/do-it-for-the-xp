@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { Ability, AbilityStatus, TimePeriod } from "@/types/abilities";
 import type { HeroAbilitySnapshot, HeroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import type { BattlePowerCard } from "@/lib/services/battle/BattlePowers";
+import { toFaClass } from "@/lib/utils/faIcon";
 import { stateLineOf } from "../powerRow";
 
 /**
@@ -61,10 +62,7 @@ const FREQUENCY_LABEL: Record<TimePeriod, string> = {
 /** Whole numbers stay whole; a fraction of AP shows one decimal */
 const fmt = (n: number): string => String(Math.round(n * 10) / 10);
 
-const iconClass = computed(() => {
-  const icon = props.ability.icon ?? "";
-  return icon.startsWith("fa-") ? `fad ${icon}` : "fad fa-sparkles";
-});
+const iconClass = computed(() => `fad ${toFaClass(props.ability.icon, "fa-sparkles")}`);
 
 const typeLabel = computed(() => (props.ability.type === "in-game" ? "Spell" : "Privilege"));
 
