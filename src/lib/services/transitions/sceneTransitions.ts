@@ -2,6 +2,8 @@
 // so the router guard stays thin and every rule has a jest spec. The effects themselves live in
 // src/components/organisms/SceneTransition (see sceneTransitionController.ts for the contract).
 import { metadataFor } from "@/lib/engine/temples/templeRegistry";
+import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
+import { doorTypeFor, type DoorType } from "./buildingDoors";
 
 export type SceneKind = "town" | "building" | "region" | "world-map" | "temple" | "battle" | "portal" | "other";
 
@@ -13,6 +15,8 @@ export interface Scene {
   title?: string;
   /** Temple or region element: wind, fire, ice, water, earth, light, shadow, storm, moon. */
   element?: string;
+  /** A building's own id (the merchant for a land shop), which picks its door. */
+  building?: string;
 }
 
 export type EffectId = "fade" | "iris" | "doors" | "clouds" | "swirl";
@@ -28,6 +32,8 @@ export interface TransitionPlan {
   variant?: string;
   /** play$fx key, played when the cover starts. */
   sound?: string;
+  /** The building's kind of door, for the doors effect. */
+  door?: DoorType;
 }
 
 interface RouteLike {
@@ -95,7 +101,17 @@ export const sceneOf = (route: RouteLike): Scene => {
   const name = typeof route.name === "string" ? route.name : "";
 
   const building = BUILDING_BY_ROUTE[name];
-  if (building) return { kind: "building", key: `building:${building.id}`, title: building.title };
+  if (building) {
+    // A land shop is the shop route with its merchant: the Hermit's Tent has its own name and its own door
+    const merchant = name === "shop" ? String(route.params?.merchant ?? "") : "";
+    const shop = merchant ? SHOP_METADATA[merchant] : undefined;
+    return {
+      kind: "building",
+      key: `building:${building.id}`,
+      title: shop?.name ?? building.title,
+      building: shop ? merchant : building.id,
+    };
+  }
 
   if (name === "home-town") return { kind: "town", key: "town", title: "Home Town" };
   if (name === "world-map") return { kind: "world-map", key: "world-map", title: "World Map" };
@@ -148,11 +164,11 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
   // Through a building's door
   if (to.kind === "building") {
     // The variant names the building whose doors these are (the effect paints its trim); the doors play their own creak
-    return { effect: "doors", direction: "in", title: to.title, variant: to.title };
+    return { effect: "doors", direction: "in", title: to.title, variant: to.title, door: doorTypeFor(to.building) };
   }
   if (from.kind === "building") {
     if (to.kind === "other") return null;
-    return { effect: "doors", direction: "out", title: to.title, variant: from.title };
+    return { effect: "doors", direction: "out", title: to.title, variant: from.title, door: doorTypeFor(from.building) };
   }
 
   // Into and out of a temple

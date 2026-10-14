@@ -2,7 +2,7 @@ import chronoTrigger from "./chronoTrigger.fx";
 import earthbound from "./earthbound.fx";
 import { earthboundBGM } from "./bgmSlots";
 import { sting } from "./audioSources";
-import { coins, gp, shhh, openMenu, closeMenu, message, newItem, openChest, takeItem, fairy, finish, openDoor, step, steps } from "./sharedSounds";
+import { coins, gp, shhh, openMenu, closeMenu, message, newItem, openChest, takeItem, fairy, finish, openDoor, step, steps, doorSounds } from "./sharedSounds";
 
 import purchaseWAV from "@/assets/audio/Purchase.wav";
 import pointsMP3 from "@/assets/audio/points.mp3";
@@ -32,6 +32,7 @@ export const earthboundSounds = {
   fairy,
   finish,
   openDoor,
+  ...doorSounds,
   message: message,
   error: new Audio(earthbound.error),
   enterBattle: new Audio(sting("encounter")),
@@ -97,6 +98,7 @@ export const chronoTriggerSounds = {
   fairy,
   finish,
   openDoor,
+  ...doorSounds,
 
   key: new Audio(key),
   useKey: new Audio(useKey),
@@ -153,6 +155,7 @@ export const finalFantasySounds = {
   fairy,
   finish,
   openDoor,
+  ...doorSounds,
 
   key: new Audio(key),
   useKey: new Audio(useKey),
