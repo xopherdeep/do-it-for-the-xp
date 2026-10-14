@@ -27,6 +27,8 @@ import {
   helpSharp
 } from 'ionicons/icons'
 import Ionic from '@/lib/mixins/ionic'
+// The auto-bump workflow rewrites package.json's version on every push to master.
+import packageInfo from '@/../package.json'
 
 // Developer tools are only available outside production builds
 const devToolsAvailable = process.env.NODE_ENV !== 'production';
@@ -35,7 +37,7 @@ export default defineComponent({
   name: 'xp-support',
   mixins: [Ionic],
   data() {
-    const tiles = [
+    const tiles: Array<{ src: string; title: string; desc: string; icon: string; version?: string }> = [
       {
         src: '/support/faq',
         title: 'F.A.Q.s',
@@ -64,7 +66,8 @@ export default defineComponent({
         src: '/support/contact',
         title: 'Ask the developers',
         desc: 'Ask a question or post a suggestion. We listen to our parents!',
-        icon: 'fa-comments'
+        icon: 'fa-comments',
+        version: packageInfo.version
       }
     ];
 
