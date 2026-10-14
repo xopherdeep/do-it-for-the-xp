@@ -32,7 +32,6 @@ npm-debug.log*
 /www
 .aider*
 
-
 src/assets/images/backgrounds/ai/*
 src/assets/images/backgrounds/old/*
 src/assets/images/backgrounds/gaia/*
@@ -50,3 +49,4 @@ __pycache__/
 
 # tools/art generators: review output (world_backgrounds.py)
 tools/art/out/
+tools/For the xp/

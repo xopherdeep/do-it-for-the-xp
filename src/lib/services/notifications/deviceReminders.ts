@@ -66,6 +66,7 @@ export const scheduleDueReminders = async (
         id: reminderIdOf(reminder.questId),
         title: reminder.title,
         body: reminder.body,
+        channelId: "chore-reminders",
         schedule: { at, allowWhileIdle: true },
         extra: { questId: reminder.questId },
       })),

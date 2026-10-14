@@ -334,7 +334,7 @@ describe("alertBridge in the packaged app", () => {
     expect(await bridge.showAlert(ambush)).toEqual({ shown: true });
     const call = mockPlugin.current.schedule.mock.calls[0][0];
     expect(call).toEqual({
-      notifications: [{ id: 7001, title: "A beast ambushes you!", body: "Come back and fight.", extra: { kind: "battle-alert" } }],
+      notifications: [{ id: 7001, title: "A beast ambushes you!", body: "Come back and fight.", channelId: "battle-alerts", extra: { kind: "battle-alert" } }],
     });
     expect(call.notifications[0]).not.toHaveProperty("schedule");
   });
@@ -344,7 +344,7 @@ describe("alertBridge in the packaged app", () => {
     const at = new Date(2026, 9, 10, 12, 0, 0);
     expect(await bridge.scheduleAlert({ ...ambush, at })).toEqual({ shown: true });
     expect(mockPlugin.current.schedule).toHaveBeenCalledWith({
-      notifications: [expect.objectContaining({ id: 7001, schedule: { at, allowWhileIdle: true }, extra: { kind: "battle-alert" } })],
+      notifications: [expect.objectContaining({ id: 7001, channelId: "battle-alerts", schedule: { at, allowWhileIdle: true }, extra: { kind: "battle-alert" } })],
     });
   });
 

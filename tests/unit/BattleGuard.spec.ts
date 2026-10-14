@@ -61,6 +61,10 @@ jest.mock("@ionic/vue", () => ({
 jest.mock("@capacitor/app", () => ({
   App: { addListener: (...args: unknown[]) => mockCapacitorApp.addListener(...args) },
 }));
+jest.mock("@/lib/services/battle/thiefEncounter", () => ({
+  ...jest.requireActual("@/lib/services/battle/thiefEncounter"),
+  isThiefRoll: () => false,
+}));
 jest.mock("@/lib/engine/quests/QuestEngine", () => ({
   getQuestEngine: () => ({ getQuestBoardForUser: (...args: unknown[]) => mockBoard(...args) }),
 }));

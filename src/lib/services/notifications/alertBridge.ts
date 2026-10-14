@@ -172,12 +172,29 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
   const plugin = await loadLocalNotifications();
   if (!plugin) return { shown: false, reason: "unsupported" };
   if (nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted") return { shown: false, reason: "denied" };
+  try {
+    await plugin.createChannel({
+      id: "battle-alerts",
+      name: "Battle Alerts",
+      description: "Ambush and battle alerts",
+      importance: 4,
+    });
+    await plugin.createChannel({
+      id: "chore-reminders",
+      name: "Chore Reminders",
+      description: "Upcoming chore deadlines",
+      importance: 3,
+    });
+  } catch {
+    // channels may already exist or plugin method not available in mocks/web
+  }
   await plugin.schedule({
     notifications: [
       {
         id: alert.id,
         title: alert.title,
         body: alert.body,
+        channelId: "battle-alerts",
         ...(at ? { schedule: { at, allowWhileIdle: true } } : {}),
         extra: { kind: "battle-alert" },
       },
