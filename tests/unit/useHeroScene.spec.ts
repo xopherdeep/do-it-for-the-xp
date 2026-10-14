@@ -1,8 +1,9 @@
 import { mount } from "@vue/test-utils";
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
-import { FRAME_WIDTH, placeCamera, type Frame } from "@/components/organisms/HeroModel/heroCamera";
+import { FRAME_WIDTH, placeCamera, stageFrame, type Frame } from "@/components/organisms/HeroModel/heroCamera";
 import { buildHero } from "@/components/organisms/HeroModel/voxel/build";
 import { DEFAULT_LOOK } from "@/lib/hero-look/types";
+import type { HeroLook } from "@/lib/hero-look/types";
 
 /**
  * The live hero's scene in jsdom: when it rebuilds the hero and how the camera moves between the whole body and the
@@ -42,8 +43,16 @@ jest.mock("@/components/organisms/HeroModel/voxel/build", () => {
 const mockPlaceCamera = placeCamera as unknown as jest.Mock;
 const mockBuildHero = buildHero as unknown as jest.Mock;
 
-/** The close-up squeezes the view to this width (heroCamera's BUST_STAGE_WIDTH); the whole body keeps FRAME_WIDTH */
-const BUST_WIDTH = 11;
+/**
+ * The close-up squeezes the view to the head's width: heroCamera's BUST_STAGE_WIDTH, or wider for a head that sweeps more
+ * (a crown, a wizard's brim) so the whole head stays in view; the whole body keeps FRAME_WIDTH. Read off a hero of the same
+ * look built outside the mocked builder, so the build counts below stay the scene's own.
+ */
+const bustWidthOf = (look: HeroLook): number => {
+  const { buildHero: realBuildHero } = jest.requireActual("@/components/organisms/HeroModel/voxel/build");
+  return stageFrame(realBuildHero(look), "bust").width as number;
+};
+const BUST_WIDTH = bustWidthOf(DEFAULT_LOOK);
 
 describe("useHeroScene", () => {
   let clock = 1000;
@@ -118,7 +127,7 @@ describe("useHeroScene", () => {
     expect(early.width).toBeGreaterThan(BUST_WIDTH);
 
     frame(300);
-    expect(aimedAt().width).toBe(BUST_WIDTH);
+    expect(aimedAt().width).toBe(bustWidthOf({ ...DEFAULT_LOOK, hat: "crown" }));
 
     wrapper.unmount();
   });
@@ -138,7 +147,35 @@ describe("useHeroScene", () => {
     expect(aimedAt().width).toBeGreaterThan(BUST_WIDTH);
 
     frame(400);
-    expect(aimedAt().width).toBe(BUST_WIDTH);
+    expect(aimedAt().width).toBe(bustWidthOf({ ...DEFAULT_LOOK, hat: "wizard" }));
+
+    wrapper.unmount();
+  });
+
+  it("eases out to a taller frame for an animation that reaches higher, and back; the builder's hop keeps the frame", async () => {
+    const wrapper = show();
+    const standing = aimedAt();
+
+    await wrapper.setProps({ animation: "victory" });
+    mockPlaceCamera.mockClear();
+    frame(100);
+    const early = aimedAt();
+    expect(early.height).toBeGreaterThan(standing.height);
+    frame(300);
+    const cheering = aimedAt();
+    expect(cheering.height).toBeGreaterThan(standing.height + 1);
+    expect(cheering.height).toBeGreaterThan(early.height);
+
+    await wrapper.setProps({ animation: "idle" });
+    frame(400);
+    expect(aimedAt().height).toBeCloseTo(standing.height, 6);
+
+    // A hop is a bounce on the spot: the camera does not move for it
+    await wrapper.setProps({ animation: "hop" });
+    mockPlaceCamera.mockClear();
+    frame(100);
+    frame(400);
+    expect(mockPlaceCamera).not.toHaveBeenCalled();
 
     wrapper.unmount();
   });

@@ -74,7 +74,8 @@ import type { VictoryCardState } from "../battle/battleView";
 /**
  * The victory card: the loot counts up in three tiles (XP, GP, AP), one after another, under a rain of sparkles.
  * Purely presentational. The page decides when it shows (`visible`), what it says (`card`) and what a tap means once
- * the numbers have landed (`continue`); a tap while they still roll finishes them first.
+ * the numbers have landed (`continue`); a tap while they still roll finishes them first. It plays no sound itself: the
+ * page does, from `rolling` (the count started or ended) and `land` (a number reached its exact value).
  */
 const props = defineProps<{
   visible: boolean;
@@ -86,11 +87,15 @@ const isYouWon = computed(() => {
   return title === "YOU WON!" || title === "YOU WON !" || title === "YOU WON" || title === "VICTORY!";
 });
 
+type Stat = "xp" | "gp" | "ap";
+
 const emit = defineEmits<{
   (e: "continue"): void;
+  /** True once when the numbers start counting, false once when they are done (landed, or finished by a tap). */
+  (e: "rolling", on: boolean): void;
+  /** A number reached its exact value. A tap that finishes the count early sends one `land`, not one per tile. */
+  (e: "land", stat: Stat): void;
 }>();
-
-type Stat = "xp" | "gp" | "ap";
 
 /** A tile starts rolling `delay` ms after the card appears, so the three numbers land one after another. */
 const TILES: readonly { stat: Stat; label: string; icon: string; delay: number }[] = [
@@ -156,6 +161,18 @@ const clearTimers = () => {
   timers.clear();
 };
 
+/** Only a tile with loot to count makes the page's roll sound; an empty tile (no AP, say) rolls in silence. */
+const hasLoot = (stat: Stat): boolean => targetOf(stat) > 0;
+
+let isRolling = false;
+/** Tells the page when the counting starts and stops, however it stops: landed, tapped, hidden or unmounted. */
+const syncRolling = () => {
+  const shouldRoll = TILES.some(({ stat }) => timers.has(stat) && hasLoot(stat));
+  if (shouldRoll === isRolling) return;
+  isRolling = shouldRoll;
+  emit("rolling", shouldRoll);
+};
+
 const land = (stat: Stat) => {
   shown[stat] = targetOf(stat);
   landed[stat] = true;
@@ -168,6 +185,8 @@ const rollTile = (stat: Stat, step: number) => {
       if (step >= COUNT_STEPS) {
         timers.delete(stat);
         land(stat);
+        if (hasLoot(stat)) emit("land", stat);
+        syncRolling();
         return;
       }
       shown[stat] = Math.round(targetOf(stat) * easeOut(step / COUNT_STEPS));
@@ -176,15 +195,24 @@ const rollTile = (stat: Stat, step: number) => {
   );
 };
 
-/** Every number lands right now (the first tap while the tiles are still rolling). */
-const completeAll = () => {
+/** Every number lands right now: written, the chains cancelled, the page told the roll is over. */
+const landAll = () => {
   clearTimers();
   TILES.forEach(({ stat }) => land(stat));
+  syncRolling();
+};
+
+/** The first tap while the tiles are still rolling: everything lands, with one chime for the tiles it finished. */
+const completeAll = () => {
+  const unlanded = TILES.find(({ stat }) => !landed[stat] && hasLoot(stat));
+  landAll();
+  if (unlanded) emit("land", unlanded.stat);
 };
 
 /** Back to zero, then (when the card is showing) roll the three tiles one after another. */
 const start = () => {
   clearTimers();
+  syncRolling();
   TILES.forEach(({ stat }) => {
     shown[stat] = 0;
     landed[stat] = false;
@@ -193,7 +221,10 @@ const start = () => {
   TILES.forEach(({ stat, delay }) => {
     timers.set(
       stat,
-      setTimeout(() => rollTile(stat, 1), delay),
+      setTimeout(() => {
+        rollTile(stat, 1);
+        syncRolling();
+      }, delay),
     );
   });
 };
@@ -205,8 +236,13 @@ const focusCard = () => {
 
 const onTap = () => {
   if (!props.visible) return;
-  if (counting.value) completeAll();
-  else emit("continue");
+  if (counting.value) {
+    completeAll();
+    return;
+  }
+  // The digits can all show a beat before the last tile lands: the tap ends that tail quietly, so the roll stops too.
+  landAll();
+  emit("continue");
 };
 
 watch(
@@ -226,7 +262,10 @@ watch(
   },
 );
 
-onBeforeUnmount(clearTimers);
+onBeforeUnmount(() => {
+  clearTimers();
+  syncRolling();
+});
 </script>
 
 <style lang="scss" scoped>

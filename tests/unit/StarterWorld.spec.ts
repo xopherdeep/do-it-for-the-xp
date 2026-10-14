@@ -4,6 +4,7 @@ import {
   STARTER_ACCESSORIES,
   STARTER_BEASTS,
   STARTER_CATEGORIES,
+  STARTER_DOS_DONTS,
   STARTER_QUESTS,
   STARTER_WORLD_STORES,
   buildStarterWorld,
@@ -61,7 +62,7 @@ describe("buildStarterWorld", () => {
     expect(world.stores.__profiles).toBeUndefined();
     expect(summary.ignored).toEqual([]);
     expect(summary.untouched).toEqual(
-      expect.arrayContaining(["Profiles", "Quest log", "Purchase log", "Chat", "Temples", "Temple progress", "Dos and Don'ts"])
+      expect.arrayContaining(["Profiles", "Quest log", "Purchase log", "Chat", "Temples", "Temple progress"])
     );
   });
 
@@ -160,6 +161,21 @@ describe("the starter content", () => {
     }
   });
 
+  it("seeds the Do This, Not That board with both dos that pay GP and don'ts that cost it", () => {
+    const dos = STARTER_DOS_DONTS.filter((rule) => rule.type === "do");
+    const donts = STARTER_DOS_DONTS.filter((rule) => rule.type === "dont");
+    expect(dos.length).toBeGreaterThanOrEqual(6);
+    expect(donts.length).toBeGreaterThanOrEqual(6);
+    expect(unique(ids(STARTER_DOS_DONTS))).toBe(true);
+    for (const rule of STARTER_DOS_DONTS) {
+      expect(rule.whatFor).toBeTruthy();
+      expect(rule.awardPoints).toEqual({ xp: false, gp: true, ap: false });
+      expect(rule.points.xp).toBe(0);
+      expect(rule.points.ap).toBe(0);
+      expect(Math.sign(rule.points.gp)).toBe(rule.type === "do" ? 1 : -1);
+    }
+  });
+
   it("marks every Power as a preset and keeps their ids distinct", () => {
     expect(STARTER_ABILITIES.length).toBeGreaterThan(10);
     expect(STARTER_ABILITIES.every((ability) => ability.isPreset)).toBe(true);
@@ -212,6 +228,7 @@ describe("loading the starter world over a family's own content", () => {
     __abilities: { "my-power": { id: "my-power", name: "Movie Night Pass" } },
     __accessories: { "my-reward": { id: "my-reward", name: "Ice Cream Trip" } },
     __shops: { "my-shop": { id: "my-shop", name: "Grandma's Stall", items: [] } },
+    __dosDonts: { "my-rule": { id: "my-rule", type: "do", whatFor: "Feeding the cat unasked" } },
   };
 
   const load = async () => {
@@ -224,7 +241,7 @@ describe("loading the starter world over a family's own content", () => {
     return { stores, service, result };
   };
 
-  it("keeps every beast, quest, category, Power, reward and shop the family made", async () => {
+  it("keeps every beast, quest, category, Power, reward, shop and house rule the family made", async () => {
     const { stores } = await load();
     const kept = (store: keyof typeof family, id: string) => stores[store].data.get(id);
     expect(kept("__beasts", "beast-made-by-the-kids")).toEqual(family.__beasts["beast-made-by-the-kids"]);
@@ -233,6 +250,7 @@ describe("loading the starter world over a family's own content", () => {
     expect(kept("__abilities", "my-power")).toEqual(family.__abilities["my-power"]);
     expect(kept("__accessories", "my-reward")).toEqual(family.__accessories["my-reward"]);
     expect(kept("__shops", "my-shop")).toEqual(family.__shops["my-shop"]);
+    expect(kept("__dosDonts", "my-rule")).toEqual(family.__dosDonts["my-rule"]);
   });
 
   it("adds the whole starter world, classic beasts included, and resets only the ids it owns", async () => {

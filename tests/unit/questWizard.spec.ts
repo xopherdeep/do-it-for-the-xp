@@ -15,10 +15,13 @@ import {
   KID_MAX_DIFFICULTY,
   newDraft,
   pickChore,
+  questWizardSteps,
   rewardsOf,
   searchChores,
   setWhen,
   sizesFor,
+  stepGuide,
+  STEP_ICON,
   toggleDay,
   toggleHero,
   typeChore,
@@ -65,6 +68,37 @@ describe("the wizard's screens", () => {
     expect(canAdvance("what", { name: "  " })).toBe(false);
     expect(canAdvance("what", { name: "Make the bed" })).toBe(true);
     for (const step of ["steps", "when", "size", "who", "ready"] as const) expect(canAdvance(step, { name: "" })).toBe(true);
+  });
+});
+
+describe("the wizard's screens as shell steps", () => {
+  it("gives a Game Master six steps and a hero five, in the order of the screens", () => {
+    expect(questWizardSteps(true).map((step) => step.id)).toEqual(["what", "steps", "when", "size", "who", "ready"]);
+    expect(questWizardSteps(false).map((step) => step.id)).toEqual(["what", "steps", "when", "size", "ready"]);
+  });
+
+  it("carries each screen's guide line in the hero's voice and its picture", () => {
+    for (const voice of ["simple", "adventure", "classic"] as const) {
+      for (const step of questWizardSteps(true, voice)) {
+        expect(step.guide).toBe(stepGuide(step.id as Parameters<typeof stepGuide>[0], voice));
+        expect(step.guide).not.toBe("");
+      }
+    }
+    for (const step of questWizardSteps(true)) {
+      expect(step.icon).toBe(STEP_ICON[step.id as keyof typeof STEP_ICON]);
+      expect(step.title).not.toBe("");
+    }
+  });
+
+  it("asks only for the name, and gives no reason line (the guide's question already asks for it)", () => {
+    const [what, ...others] = questWizardSteps(true);
+    expect(what.isValid({ ...newDraft({ isGm: true, heroId: "gm-1", today: TODAY }), name: "" })).toBe(false);
+    expect(what.isValid({ ...newDraft({ isGm: true, heroId: "gm-1", today: TODAY }), name: "Make the bed" })).toBe(true);
+    for (const step of others) expect(step.isValid(newDraft({ isGm: true, heroId: "gm-1", today: TODAY }))).toBe(true);
+  });
+
+  it("skips nothing: a hero's missing Who is left out of the list, not skipped", () => {
+    for (const step of questWizardSteps(true)) expect(step.isSkipped).toBeUndefined();
   });
 });
 

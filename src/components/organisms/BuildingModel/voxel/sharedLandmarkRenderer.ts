@@ -1,13 +1,17 @@
 import * as THREE from "three";
 import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { isOrganizeMode } from "@/components/organisms/DraggableSpot/spotState";
+import { fitCamera, fitPosition, measurePositions } from "@/components/organisms/voxel/fitCamera";
+import type { Bounds, Ring } from "@/components/organisms/voxel/fitCamera";
 
 export interface LandmarkOptions {
   getMeshData: () => MeshData;
   interactive?: boolean;
   fov?: number;
   elevation?: number;
+  /** How far the camera stands at the least: the tuned scale of this viewer. A model that would be cut off there backs away. */
   cameraDistance?: number;
+  /** The height the camera looks at until the mesh is measured (the fit centres the model after that) */
   cameraTargetY?: number;
   spinSpeed?: number;
   initialYaw?: number;
@@ -30,6 +34,12 @@ interface LandmarkClient {
   camera: THREE.PerspectiveCamera;
   group: THREE.Group;
   mesh: THREE.Mesh | null;
+  /** The floor shadow, sized to the model so it never reaches past it */
+  shadow: THREE.Mesh | null;
+  /** What the mesh measures: null while there is none. The camera is fitted to it (see frameClient). */
+  bounds: Bounds | null;
+  /** How far the mesh sweeps from the vertical axis at each height when it turns */
+  rings: Ring[];
   getMeshData: () => MeshData;
   interactive: boolean;
   fov: number;
@@ -61,6 +71,11 @@ let rafId = 0;
 let isLoopRunning = false;
 let lastRenderTime = 0;
 const getNowSeconds = (): number => performance.now() / 1000;
+
+/** The floor shadow's radius at rest; a smaller model gets a shadow no wider than itself */
+const SHADOW_RADIUS = 7.5;
+/** The floor shadow sits a hair under the floor, and the camera must see it as well as the model */
+const SHADOW_Y = -0.05;
 
 const initSharedRenderer = (): THREE.WebGLRenderer | null => {
   if (webGlCheckAttempted) {
@@ -152,7 +167,60 @@ const buildClientMesh = (client: LandmarkClient): void => {
   client.mesh = new THREE.Mesh(geometry, material);
   client.mesh.position.y = 0;
   client.group.add(client.mesh);
+  measureClient(client, data.positions);
+  frameClient(client);
   client.dirty = true;
+};
+
+const reachOf = (rings: Ring[]): number => rings.reduce((reach, ring) => Math.max(reach, ring.radius), 0);
+
+/** What the mesh occupies, and a shadow that stays under it: the camera is fitted to this, not to a guess */
+const measureClient = (client: LandmarkClient, positions: ArrayLike<number>): void => {
+  const measured = measurePositions(positions);
+  if (!measured) {
+    client.bounds = null;
+    client.rings = [];
+    return;
+  }
+  // The widest the model reaches, floor included: a smaller model gets a shadow no wider than itself
+  const shadowRadius = Math.min(SHADOW_RADIUS, reachOf(measured.rings));
+  client.shadow?.scale.setScalar(shadowRadius > 0 ? shadowRadius / SHADOW_RADIUS : 1);
+  // The shadow lies on the floor under the model: the view must hold it too, or its rim is cut off at the bottom
+  client.bounds = {
+    min: { ...measured.bounds.min, y: Math.min(measured.bounds.min.y, SHADOW_Y) },
+    max: measured.bounds.max,
+  };
+  client.rings = shadowRadius > 0 ? [{ y: SHADOW_Y, radius: shadowRadius }, ...measured.rings] : measured.rings;
+};
+
+/**
+ * Stand the camera where the whole model fits its canvas with air all round: the model turns (it spins, and a finger
+ * drags it round), so the fit holds in every yaw. Keeps the client's lens and elevation; only distance and target change.
+ * Fit first, never enlarge: a model that already fits keeps the scale its viewer was tuned to (the town's buildings, a
+ * chest and a key keep their sizes next to each other), and is centred; only one that would be cut off backs away.
+ * Runs once the mesh is built and again whenever the canvas changes shape.
+ */
+const frameClient = (client: LandmarkClient): void => {
+  const camera = client.camera;
+  let distance = client.cameraDistance;
+  let target = { x: 0, y: client.cameraTargetY, z: 0 };
+  if (client.bounds) {
+    const fit = fitCamera({
+      bounds: client.bounds,
+      aspect: camera.aspect,
+      fov: client.fov,
+      elevation: client.elevation,
+      turns: client.rings,
+    });
+    distance = Math.max(fit.distance, client.cameraDistance);
+    target = fit.target;
+  }
+  const at = fitPosition({ distance, target }, client.elevation);
+  camera.fov = client.fov;
+  camera.position.set(at.x, at.y, at.z);
+  camera.lookAt(target.x, target.y, target.z);
+  camera.far = distance + Math.max(reachOf(client.rings), 10) * 2 + 20;
+  camera.updateProjectionMatrix();
 };
 
 const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIntensity = 1.3): void => {
@@ -165,7 +233,7 @@ const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIn
   const fillLight = new THREE.DirectionalLight(0xb0d8ff, 0.48);
   fillLight.position.set(-18, 12, -18);
   scene.add(fillLight);
-  const shadowGeo = new THREE.CircleGeometry(7.5, 16);
+  const shadowGeo = new THREE.CircleGeometry(SHADOW_RADIUS, 16);
   const shadowMat = new THREE.MeshBasicMaterial({
     color: 0x000000,
     transparent: true,
@@ -173,7 +241,7 @@ const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIn
   });
   const shadow = new THREE.Mesh(shadowGeo, shadowMat);
   shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = -0.05;
+  shadow.position.y = SHADOW_Y;
   scene.add(shadow);
 
   const group = new THREE.Group();
@@ -181,6 +249,7 @@ const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIn
 
   client.scene = scene;
   client.group = group;
+  client.shadow = shadow;
 
   buildClientMesh(client);
 };
@@ -203,16 +272,8 @@ const resizeClient = (client: LandmarkClient): void => {
   client.pixelWidth = pixelWidth;
   client.pixelHeight = pixelHeight;
 
-  client.camera.fov = client.fov;
   client.camera.aspect = width / height;
-  const dist = client.cameraDistance;
-  client.camera.position.set(
-    0,
-    client.cameraTargetY + 1 + Math.sin(client.elevation) * dist,
-    Math.cos(client.elevation) * dist
-  );
-  client.camera.lookAt(0, client.cameraTargetY, 0);
-  client.camera.updateProjectionMatrix();
+  frameClient(client);
   client.dirty = true;
 };
 
@@ -409,6 +470,9 @@ export const registerLandmark = (
     camera,
     group: new THREE.Group(),
     mesh: null,
+    shadow: null,
+    bounds: null,
+    rings: [],
     getMeshData: options.getMeshData,
     interactive: options.interactive ?? true,
     fov,

@@ -4,8 +4,8 @@
  *
  * It is shaped as a backup file (BackupService) that names only the game-content stores. Load it with
  * restoreBackup(world, { mode: "merge" }): it adds its quest categories, beasts, quests, abilities,
- * accessories and shops, replaces only records whose id it owns, and keeps every other record the family
- * made. Profiles, logs, temples and chat are not in it at all. Every quest is an open bounty, so it shows
+ * accessories, shops and Do This, Not That rules, replaces only records whose id it owns, and keeps every
+ * other record the family made. Profiles, logs, temples and chat are not in it at all. Every quest is an open bounty, so it shows
  * for any hero the family already has.
  */
 import { BACKUP_VERSION } from "./BackupService";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/services/shops/rewardPresets";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
+import type { DosDont } from "@/lib/databases/DosDontsDb";
 
 /** The stores the starter world fills; everything else in BACKUP_STORES is left untouched by a restore */
 export const STARTER_WORLD_STORES = [
@@ -35,6 +36,7 @@ export const STARTER_WORLD_STORES = [
   "__abilities",
   "__accessories",
   "__shops",
+  "__dosDonts",
 ] as const;
 
 /** A fixed day in the past, so every repeating quest is already running */
@@ -191,6 +193,55 @@ export const STARTER_ABILITIES: Ability[] = [
   ...HYBRID_PRESETS,
 ].map((preset) => ({ ...preset, isPreset: true }));
 
+interface DoDontSeed {
+  id: string;
+  type: DosDont["type"];
+  whatFor: string;
+  /** The Add Do form's Fibonacci effort scale (1, 2, 3, 5, 8, 13) */
+  difficulty: 1 | 2 | 3 | 5;
+  notes?: string;
+}
+
+/** GP per point of effort, as the Add Do form prices it (a do pays it, a don't takes it away) */
+const DO_DONT_GP_PER_EFFORT = 20;
+
+const DO_DONT_SEEDS: DoDontSeed[] = [
+  { id: "do-kind-words", type: "do", whatFor: "Using kind words with a sibling", difficulty: 1 },
+  { id: "do-help-unasked", type: "do", whatFor: "Helping out without being asked", difficulty: 2 },
+  { id: "do-first-ask", type: "do", whatFor: "Listening the first time you're asked", difficulty: 1 },
+  { id: "do-share", type: "do", whatFor: "Sharing toys or games without a fight", difficulty: 2 },
+  { id: "do-truth", type: "do", whatFor: "Telling the truth, even when it's hard", difficulty: 3 },
+  { id: "do-thank-you", type: "do", whatFor: "Saying please and thank you", difficulty: 1 },
+  { id: "do-apologize", type: "do", whatFor: "Saying sorry and making it right", difficulty: 2 },
+  { id: "dont-hit", type: "dont", whatFor: "Hitting, kicking or pushing", difficulty: 5 },
+  { id: "dont-backtalk", type: "dont", whatFor: "Talking back or name-calling", difficulty: 2 },
+  { id: "dont-whine", type: "dont", whatFor: "Whining after the answer is no", difficulty: 1 },
+  { id: "dont-lie", type: "dont", whatFor: "Lying or hiding what happened", difficulty: 3 },
+  { id: "dont-screens", type: "dont", whatFor: "Sneaking screen time", difficulty: 3 },
+  { id: "dont-mess", type: "dont", whatFor: "Leaving a mess for someone else", difficulty: 1 },
+  { id: "dont-tantrum", type: "dont", whatFor: "Throwing a tantrum", difficulty: 2 },
+];
+
+const doDontFromSeed = (seed: DoDontSeed): DosDont => ({
+  id: seed.id,
+  type: seed.type,
+  whatFor: seed.whatFor,
+  difficulty: seed.difficulty,
+  // GP only, the Add Do form's default: a do rewards gold, a don't costs it
+  awardPoints: { xp: false, gp: true, ap: false },
+  points: {
+    xp: 0,
+    gp: seed.difficulty * DO_DONT_GP_PER_EFFORT * (seed.type === "do" ? 1 : -1),
+    ap: 0,
+  },
+  notes: seed.notes ?? "",
+  createdAt: Date.parse(STARTED_ON),
+  updatedAt: Date.parse(STARTED_ON),
+});
+
+/** A starter set of house rules for the Do This, Not That board: everyday good deeds and the slips that cost gold */
+export const STARTER_DOS_DONTS: DosDont[] = DO_DONT_SEEDS.map(doDontFromSeed);
+
 /** Ready-made consumables (in-game items) and real-life rewards, stocked in the shops below */
 export const STARTER_CONSUMABLES = BASIC_CONSUMABLE_PRESETS.map(consumableFromPreset);
 export const STARTER_REAL_REWARDS = REAL_REWARD_PRESETS.map(rewardFromPreset);
@@ -241,5 +292,6 @@ export const buildStarterWorld = (now: Date = new Date()): BackupFile => ({
     __abilities: entries(STARTER_ABILITIES),
     __accessories: entries(STARTER_ACCESSORIES),
     __shops: entries(starterShops()),
+    __dosDonts: entries(STARTER_DOS_DONTS),
   },
 });

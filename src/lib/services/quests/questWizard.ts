@@ -29,6 +29,7 @@ import { activeSuggestion, beastQuestPatch, beastToAdopt } from "@/lib/services/
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
 import { formatQuestName } from "@/lib/utils/format";
+import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The steps of the wizard
@@ -57,6 +58,30 @@ export const STEP_ICON: Record<WizardStepId, string> = {
 /** Only the name is required: every other screen can be passed over. */
 export const canAdvance = (step: WizardStepId, draft: Pick<WizardDraft, "name">): boolean =>
   step !== "what" || draft.name.trim().length > 0;
+
+/** The name of each screen: the label of its dot (the header says New Quest on every screen). */
+const STEP_TITLE: Record<WizardStepId, string> = {
+  what: "The chore",
+  steps: "Its steps",
+  when: "When",
+  size: "How big",
+  who: "Who",
+  ready: "Ready",
+};
+
+/**
+ * The screens as steps of the shared wizard shell (XpWizardShell): the guide's line in the hero's voice, the picture and
+ * the one rule. Only the name is required and it gives no reason line on purpose: the guide's question already asks for
+ * it. Nothing is skipped; a hero's missing Who is simply not in the list.
+ */
+export const questWizardSteps = (isGm: boolean, voice: Voice = "adventure"): WizardStep<WizardDraft>[] =>
+  wizardSteps(isGm).map((id) => ({
+    id,
+    title: STEP_TITLE[id],
+    guide: stepGuide(id, voice),
+    icon: STEP_ICON[id],
+    isValid: (draft) => canAdvance(id, draft),
+  }));
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The picture choices

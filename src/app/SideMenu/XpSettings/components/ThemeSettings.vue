@@ -45,6 +45,9 @@
                 interface="action-sheet"
                 @ionChange="changeRPGSound"
               >
+                <ion-select-option value="earthbound"
+                  >Earthbound</ion-select-option
+                >
                 <ion-select-option value="chronoTrigger"
                   >Chrono Trigger</ion-select-option
                 >

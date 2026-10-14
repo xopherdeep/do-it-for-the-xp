@@ -13,7 +13,6 @@
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
-import type { DoorKind } from '@/lib/engine/core/dungeons/TempleSystem';
 import { isBarrierKind } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { canEnter } from '@/lib/engine/core/dungeons/templeSystem/floors';
 import type { Room } from '@/lib/engine/core/dungeons/types';
@@ -53,6 +52,8 @@ export interface ItemUseContext extends RoomContext {
 export interface ItemOutcome extends RoomOutcome {
   /** A navigation item ran its click: the hero is leaving the temple screen */
   navigated?: boolean;
+  /** A Bomb blew this side's cracked wall open: the cracked wall's sheet plays the crumble before it hands back */
+  blownSide?: Direction;
 }
 
 /** The footer shows names this long at most. */
@@ -95,6 +96,10 @@ export const REASON_NO_BOMBS = 'Out of bombs.';
 /** What the Bombs spend: the pack's Bomb stack (merged by inventoryOf), or null when the pack holds none. */
 export const bombInPack = (userId: string): InventoryEntry | null =>
   inventoryOf(useUserStore().getUserById(userId)).find((entry) => entry.name === 'Bomb') ?? null;
+
+/** Whether an item is the Bombs: the rules table gives it the blast (found as useItem finds it: by icon, then by name). */
+export const isBombsItem = (item: Partial<EquipmentItem> | null | undefined, catalog: EquipmentItem[]): boolean =>
+  Boolean(item) && itemRule(definitionOf(item as Partial<EquipmentItem>, catalog)?.name ?? item?.name)?.temple === 'blast-door';
 
 const refuse = (message: string): ItemOutcome => ({ message, sound: SFX.error });
 
@@ -148,16 +153,13 @@ const useBombs = (ctx: ItemUseContext): ItemOutcome => {
   if (!bomb) return refuse(REASON_NO_BOMBS);
 
   const system = TempleSystem.getInstance();
-  // A Bomb opens a side only when a room lies beyond it (a wall, a void or the edge of the floor is a Bomb wasted on a
-  // way that leads nowhere), and only a side the temple's own doors call that: the boss door is the Boss Key's alone,
-  // so it is skipped whatever the exits handed in say about it
-  const canOpen = (direction: Direction, kind: DoorKind): boolean =>
-    canEnter(ctx.exits[direction].room) && system.doorKind(ctx.templeId, ctx.position, direction, ctx.level) === kind;
+  // A Bomb is for a cracked wall and nothing else: never a small lock, never the boss door (only the Boss Key). It opens a
+  // side only when a room lies beyond it (a wall, a void or the edge of the floor is a Bomb wasted on a way that leads
+  // nowhere), and only a side the temple's own doors call cracked, whatever the exits handed in say about it
+  const isCrackedWithRoomBeyond = (direction: Direction): boolean =>
+    canEnter(ctx.exits[direction].room) && system.doorKind(ctx.templeId, ctx.position, direction, ctx.level) === 'bombable';
   // The side the hero tapped first, then clockwise from north
-  const firstToOpen = (kind: DoorKind): Direction | undefined => [ctx.side, ...DIRECTIONS].find((direction) => direction && canOpen(direction, kind));
-  // A cracked wall is what a Bomb is for; a small lock is the fallback (the first one openDoorSide opens)
-  const crackedSide = firstToOpen('bombable');
-  const side = crackedSide ?? firstToOpen('locked');
+  const side = [ctx.side, ...DIRECTIONS].find((direction) => direction && isCrackedWithRoomBeyond(direction));
   if (!side) return { message: 'Nothing to blow up here.' };
 
   // A fight's seal is not a door: no walking out of a battle through the wall
@@ -166,12 +168,10 @@ const useBombs = (ctx: ItemUseContext): ItemOutcome => {
     return refuse('The seal holds. Bombs will not help until the fight is won.');
   }
 
-  const isOpen = crackedSide
-    ? system.blowBombableSide(ctx.templeId, ctx.position, side, ctx.level)
-    : system.openDoorSide(ctx.templeId, ctx.position, side, ctx.level);
+  const isOpen = system.blowBombableSide(ctx.templeId, ctx.position, side, ctx.level);
   if (!isOpen) return { message: 'Nothing to blow up here.' };
   useUserStore().spendInventoryItem(ctx.userId, bomb.id);
-  return { message: `Boom! The ${side} ${crackedSide ? 'wall' : 'door'} blows open.`, sound: SFX.damage, shake: true };
+  return { message: `Boom! The ${side} wall blows open.`, sound: SFX.damage, shake: true, blownSide: side };
 };
 
 /** Traps bite the moment the hero walks in, so the wand reaches into the rooms next door: every open side's live trap. */

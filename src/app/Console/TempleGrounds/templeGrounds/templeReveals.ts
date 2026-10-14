@@ -2,10 +2,14 @@ import { ref } from 'vue';
 import { play$fx } from '@/assets/fx';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { ChestLoot } from '@/lib/services/temples/ChestLoot';
-import { clearTemple, doorActions, SFX, type RoomAction, type RoomOutcome } from '@/lib/services/temples/RoomInteractions';
+import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
+import { clearTemple, doorActions, readExits, SFX, type RoomAction, type RoomOutcome } from '@/lib/services/temples/RoomInteractions';
+import { bombInPack, isBombsItem, useItem as useEquippedItem, type ItemOutcome } from '@/lib/services/temples/ItemUse';
 import { pegasusView, type PegasusView } from '@/lib/services/temples/TemplePegasus';
 import type { PixelRun } from '../components/pixelGrid';
 import type { DoorView } from '../components/doorView';
+import { bombView, type BombResult, type BombView } from '../components/bombView';
+import type { WallSide } from '../templeWalls';
 import type { useRoomOutcomes } from './useRoomOutcomes';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
 
@@ -234,5 +238,77 @@ export const useDoorReveal = (deps: DoorRevealDeps) => {
     showLockedDoor,
     unlockShownDoor,
     completeShownDoor: finishShownDoor
+  };
+};
+
+export interface WallRevealDeps {
+  liveContext: ReturnType<typeof useRoomOutcomes>['getLiveContext'];
+  applyOutcome: ReturnType<typeof useRoomOutcomes>['applyOutcome'];
+  /** What the hero holds in the two hands: the Bombs among them are what the sheet offers */
+  heldItems: () => Array<EquipmentItem | null>;
+  /** The live item definitions (the stored copy of an item has no click, and a renamed one is found by its icon) */
+  catalog: () => EquipmentItem[];
+}
+
+export const useWallReveal = (deps: WallRevealDeps) => {
+  const { liveContext, applyOutcome, heldItems, catalog } = deps;
+
+  // The cracked wall the hero tapped a bomb over: the wall close up, what it says, and the Bomb if the hero holds one
+  const isWallOpen = ref(false);
+  const wallShown = ref<BombView | null>(null);
+  const wallResult = ref<BombResult | null>(null);
+  // What the Bomb said, kept until the sheet has played the crumble: only then does the room shake and the toast speak
+  let wallOutcome: ItemOutcome | null = null;
+
+  const bombsInHand = (): EquipmentItem | null => heldItems().find((item) => isBombsItem(item, catalog())) ?? null;
+
+  const showCrackedWall = (direction: WallSide) => {
+    const live = liveContext();
+    if (!live) return;
+    wallOutcome = null;
+    wallResult.value = null;
+    wallShown.value = bombView(direction, { holdsBombs: Boolean(bombsInHand()), bombs: bombInPack(live.ctx.userId)?.qty ?? 0 });
+    isWallOpen.value = true;
+  };
+
+  // The Bomb is lit: the temple blows the wall now (the tapped side first), the sheet crumbles it and hands back on `done`
+  const blowShownWall = async () => {
+    const view = wallShown.value;
+    const bombs = bombsInHand();
+    const live = liveContext();
+    if (!view?.canBomb || !bombs || !live) return;
+    const { ctx, room } = live;
+    const exits = readExits(ctx.templeId, ctx.level, ctx.position);
+    const outcome = useEquippedItem(bombs, { ...ctx, room, exits, side: view.side, catalog: catalog() });
+    if (!outcome.blownSide) {
+      // A fight's seal, a Bomb run out: nothing blew, the sheet goes and the refusal speaks
+      wallResult.value = 'refused';
+      isWallOpen.value = false;
+      await applyOutcome(outcome);
+      return;
+    }
+    wallOutcome = outcome;
+    // The Bomb is spent: the count on the sheet goes down with it
+    wallShown.value = { ...view, bombs: bombInPack(ctx.userId)?.qty ?? 0 };
+    wallResult.value = 'blown';
+  };
+
+  // The sheet already played the blast, so the outcome only has its words and the room's shake left to give
+  const finishShownWall = async () => {
+    isWallOpen.value = false;
+    if (wallOutcome) await applyOutcome({ ...wallOutcome, sound: undefined });
+    wallOutcome = null;
+  };
+
+  const leaveShownWall = () => {
+    isWallOpen.value = false;
+  };
+
+  return {
+    wall: { isWallOpen, wallShown, wallResult },
+    showCrackedWall,
+    blowShownWall,
+    completeShownWall: finishShownWall,
+    leaveShownWall
   };
 };

@@ -7,7 +7,7 @@ const mockStopMusic = jest.fn();
 jest.mock("@/assets/fx", () => ({
   __esModule: true,
   default: { rpg: { earthbound: { BGM: mockBGM } } },
-  play$fx: (name: string) => mockPlayFx(name),
+  play$fx: (name: string, ...options: unknown[]) => mockPlayFx(name, ...options),
 }));
 jest.mock("@/lib/store/stores/audio", () => ({ useAudioStore: () => ({ bgm: mockBgmState }) }));
 jest.mock("@/lib/engine/audio/routeMusic", () => ({ changeBGM: (...args: unknown[]) => mockChangeBGM(...args) }));
@@ -57,6 +57,24 @@ describe("useBattleAudio", () => {
     useBattleAudio().playVictory(true, false);
     expect(mockChangeBGM).not.toHaveBeenCalled();
     expect(mockPlayFx).toHaveBeenCalledWith("win");
+  });
+
+  describe("the loot tally", () => {
+    it("starts the points roll once and stops it with the stop option", () => {
+      const audio = useBattleAudio();
+      audio.startTally();
+      expect(mockPlayFx).toHaveBeenCalledWith("fillPoints");
+      audio.stopTally();
+      expect(mockPlayFx).toHaveBeenLastCalledWith("fillPoints", { stop: true });
+    });
+
+    it("rings the rupee chime when GP lands and the plain select for XP and AP", () => {
+      const audio = useBattleAudio();
+      audio.playLanding("xp");
+      audio.playLanding("gp");
+      audio.playLanding("ap");
+      expect(mockPlayFx.mock.calls).toEqual([["select"], ["gp"], ["select"]]);
+    });
   });
 
   it("swaps in the boss theme", () => {

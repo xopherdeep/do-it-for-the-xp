@@ -209,10 +209,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     }
   });
   
-  // Whether the side of the room the hero stands in is a wall the Game Master drew: no arrow, as over a wall room. A cracked
-  // wall keeps its arrow (the tap says it is cracked), as a locked door does
+  // Whether the side of the room the hero stands in is a wall the Game Master drew: no control, as over a wall room. A cracked
+  // wall keeps its control (a bomb: the tap asks about a Bomb), as a locked door does (a lock)
   const isWallSide = (direction: 'north' | 'south' | 'east' | 'west'): boolean =>
     templeSystem.doorKind(templeId, currentPosition.value, direction, currentLevel.value) === 'wall';
+
+  // Whether that side is a cracked wall a Bomb has not opened yet
+  const isCrackedSide = (direction: 'north' | 'south' | 'east' | 'west'): boolean =>
+    templeSystem.doorKind(templeId, currentPosition.value, direction, currentLevel.value) === 'bombable';
 
   // Movement capability checks: an arrow lights over any room the engine lets the hero step into (not a wall, a void or a
   // token with no room record) unless that side is a wall
@@ -339,6 +343,23 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     return currentRoom.locked && currentRoom.locked[direction];
   };
   
+  // What each movement control wears: a bomb over a cracked wall (it comes first: a crack hides any lock behind it), a lock
+  // over a locked door, else the arrow. The sides the hero cannot step through have no control at all (canMove*).
+  const MOVE_ARROWS = { north: 'fa-arrow-alt-up', south: 'fa-arrow-alt-down', west: 'fa-arrow-alt-left', east: 'fa-arrow-alt-right' } as const;
+  const moveIcons = computed(() => {
+    const [row, col] = currentPosition.value ?? [0, 0];
+    const iconFor = (direction: keyof typeof MOVE_ARROWS, newRow: number, newCol: number): string => {
+      if (isCrackedSide(direction)) return 'fa-bomb';
+      return isDoorLocked(newRow, newCol) ? 'fa-lock' : MOVE_ARROWS[direction];
+    };
+    return {
+      north: iconFor('north', row - 1, col),
+      south: iconFor('south', row + 1, col),
+      west: iconFor('west', row, col - 1),
+      east: iconFor('east', row, col + 1),
+    };
+  });
+
   // Unlock a door in a specific direction
   const unlockDoor = (direction: 'north' | 'south' | 'east' | 'west') => {
     if (!currentPosition.value) return false;
@@ -616,6 +637,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     canMoveDown,
     canMoveLeft,
     canMoveRight,
+    moveIcons,
     
     // Actions
     move,
