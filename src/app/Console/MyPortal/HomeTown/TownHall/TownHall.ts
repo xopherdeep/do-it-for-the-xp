@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, watch, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import {
   IonPage,
   IonHeader,
@@ -109,7 +109,7 @@ export default defineComponent({
   },
   setup(props) {
     const router = useRouter();
-    const route = useRoute();
+    const route = router.currentRoute.value;
     // ?tab=board&board=feature-requests opens a tab (and a board) directly: the Help Desk links here
     const linkedTab = TABS.find((tab) => tab.id === route.query.tab)?.id;
     const selectedTab = ref<TabId>(linkedTab ?? "news");

@@ -36,9 +36,7 @@ import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useTimers } from "@/hooks/useTimers";
 import AnimatedNumber from "@/components/atoms/AnimatedNumber/XpAnimatedNumber.vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
-import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper/modules";
 import { formatQuestName } from "@/lib/utils/format";
@@ -646,9 +644,7 @@ export default defineComponent({
     } = useItemFetcher("xp_achievement", { per_page: 4 }, (props as any).userId);
 
     const userStore = useUserStore();
-    const gameStore = useGameStore();
     const battleStore = useBattleStore();
-    const audioStore = useAudioStore();
     const router = useRouter();
     const timers = useTimers();
     const controlledSwiper = ref<SwiperType | null>(null);
@@ -657,9 +653,7 @@ export default defineComponent({
     };
     return {
       userStore,
-      gameStore,
       battleStore,
-      audioStore,
       timers,
       controlledSwiper,
       setControlledSwiper,

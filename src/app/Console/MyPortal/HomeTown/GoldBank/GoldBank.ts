@@ -39,7 +39,7 @@ import { BANKER, amountAsk, bankMenuPrompt, noticePrompt, type BankMenuId } from
 import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import { useCopy, useVoice } from "@/hooks/useVoice";
+import { copyIn, useVoice } from "@/hooks/useVoice";
 import ATMModal from "./components/ATMModal.vue";
 import { walletLimitOf } from "@/lib/services/gp/wallet";
 import { shopHintFor } from "@/lib/services/gp/walletShops";
@@ -271,8 +271,8 @@ export default defineComponent({
     // The banker talks, offers and answers in the game's own dialog, not in native alerts
     const reveal = useRevealPrompt();
     // The banker's words follow the hero's voice (simple, adventure or classic)
-    const t = useCopy();
     const { voice: words } = useVoice();
+    const t = copyIn(words);
 
     return {
       t,

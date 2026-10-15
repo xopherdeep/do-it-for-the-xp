@@ -128,35 +128,21 @@ import {
   IonItem,
   IonLabel,
   IonFooter,
-  useIonRouter,
   onIonViewDidEnter,
 } from "@ionic/vue";
 import { skullOutline } from "ionicons/icons";
 import { TempleBeast } from "../../hooks/useTempleData";
 import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
-import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
-import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
-import { useTimers } from "@/hooks/useTimers";
-import { isSharedConfigToken, withPickedBeast } from "../XpTempleCreator/hooks/grid/roomSymbols";
 import type { QuestTier } from "@/lib/services/temples/questRooms";
 import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
 import { useTempleQuests } from "../../hooks/useTempleQuests";
+import { useBeastRoomActions, usePendingBeastScroll } from "../../hooks/useTempleBeastsTab";
 import TempleQuestsHeader from "../quests/TempleQuestsHeader.vue";
 import TempleQuestRowCard from "../quests/TempleQuestRowCard.vue";
 import TempleWakeSheet from "../quests/TempleWakeSheet.vue";
-
-const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" => {
-  if (tier === "monster") {
-    return "monster";
-  }
-  if (tier === "miniboss") {
-    return "miniboss";
-  }
-  return "boss";
-};
 
 /** The three tiers, boss first: how each is titled, drawn, and how wide its classic cards are */
 const TIERS: Array<{
@@ -196,9 +182,7 @@ export default defineComponent({
     TempleWakeSheet,
   },
   setup() {
-    const timers = useTimers();
     const route = useRoute();
-    const ionRouter = useIonRouter();
     const templeId = route.params.templeId as string;
 
     // Inject shared temple data from XpTempleSettings
@@ -206,8 +190,7 @@ export default defineComponent({
       TempleDataInjectionKey
     )!;
 
-    const selectionStore = useBestiarySelectionStore();
-    const creatorStore = useTempleCreatorStore();
+    const { openRoom: navigateToRoom, openBeastSelector } = useBeastRoomActions(templeId, temple, saveTemple);
 
     // The quest rooms: rows, size, status dots, and Wake quests
     const layout = computed(() => temple.value.dungeonLayout as QuestLayout | undefined);
@@ -246,78 +229,10 @@ export default defineComponent({
         : [ev.detail.value].filter(Boolean);
     };
 
-    // The address names the room's floor, so the editor opens the cell on that floor
-    const navigateToRoom = (entry: { floor: string; row: number; col: number }) => {
-      ionRouter.push({
-        name: "xp-temple-room-editor",
-        params: {
-          templeId,
-          floor: entry.floor,
-          row: entry.row.toString(),
-          col: entry.col.toString(),
-        },
-      });
-    };
-
-    // Auto-scroll logic when returning to the tab
-    const performScrollToTarget = (attempt = 0) => {
-      const hash = window.location.hash;
-      const targetId =
-        creatorStore.pendingScrollId ||
-        (hash.startsWith("#beast-card-") ? hash.substring(12) : null);
-
-      if (!targetId) {
-        if (activeTiers.value.length === 0) updateDefaultTiers();
-        return;
-      }
-
-      // Find the beast entry to determine its tier
-      // We might need to wait if data is still loading/syncing
-      const entry = templeBeastsWithDetails.value.find(
-        (b) => b.roomSymbol === targetId
-      );
-
-      const shouldRetryLookup = !entry && attempt < 5;
-      if (shouldRetryLookup) {
-        timers.startTimeout(100, () => performScrollToTarget(attempt + 1));
-        return;
-      }
-
-      if (entry) {
-        // FORCE the accordion to open ONLY this tier
-        activeTiers.value = [entry.tier];
-
-        // Use a slightly longer timeout to ensure Ionic's internals have registered the value change
-        // and the transition has at least started.
-        timers.startTimeout(300, () => {
-          const elementId = `beast-card-${targetId}`;
-          const element = document.getElementById(elementId);
-
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            element.classList.add("beast-card-highlight");
-            timers.startTimeout(2000, () =>
-              element.classList.remove("beast-card-highlight")
-            );
-          }
-
-          // Final cleanup
-          creatorStore.pendingScrollId = null;
-          if (hash) {
-            window.history.replaceState(
-              null,
-              "",
-              window.location.pathname + window.location.search
-            );
-          }
-        });
-      } else {
-        updateDefaultTiers();
-      }
-    };
+    const { showPendingRoom } = usePendingBeastScroll({ activeTiers, templeBeastsWithDetails, updateDefaultTiers });
 
     onIonViewDidEnter(() => {
-      performScrollToTarget();
+      showPendingRoom();
       // A quest edited in the Compendium since the tab last showed changes its row and its dots
       void quests.load();
     });
@@ -328,60 +243,6 @@ export default defineComponent({
       }
       void quests.load();
     });
-
-    const openBeastSelector = (entry: TempleBeast) => {
-      // Get current beasts for this room
-      const currentBeasts = entry.beast ? [entry.beastId] : [];
-
-      // Start selection with callback to update room data
-      selectionStore.startSelection(
-        currentBeasts,
-        "temple-beasts-tab",
-        (selectedIds) => {
-          const layout = temple.value.dungeonLayout;
-          if (!layout) return;
-
-          const heldRoom = layout.rooms[entry.roomSymbol];
-          let targetSymbol = entry.roomSymbol;
-
-          // PROMOTION LOGIC:
-          // A symbol many cells share (a config token like MINI, or the wall) cannot hold one cell's own beasts, so the
-          // cell takes a symbol of its own. A room's own symbol (R001, M0201) is already its own and is edited in place.
-          if (isSharedConfigToken(targetSymbol)) {
-            const newSymbol = creatorStore.generateUniqueSymbol(entry.row, entry.col, heldRoom?.type ?? entry.tier);
-            const maze = layout.maze;
-
-            // Update the maze grid
-            if (Array.isArray(maze)) {
-              maze[entry.row][entry.col] = newSymbol;
-            } else {
-              const floorGrid = maze[entry.floor] as string[][];
-              if (floorGrid) {
-                floorGrid[entry.row][entry.col] = newSymbol;
-              }
-            }
-
-            // Use the new symbol
-            targetSymbol = newSymbol;
-          }
-
-          // The room keeps what it had (sides, lockOnEnter, difficulty); only the beast tapped is replaced
-          const room = withPickedBeast(heldRoom, resolveRoomTypeFromTier(entry.tier), entry.beastId, selectedIds);
-          layout.rooms[targetSymbol] = room;
-
-          // Sync with creator store
-          creatorStore.roomsData[targetSymbol] = JSON.parse(JSON.stringify(room));
-
-          // Persist the change to DB
-          saveTemple();
-
-          // Set pending scroll target for return navigation
-          creatorStore.pendingScrollId = targetSymbol;
-        }
-      );
-
-      ionRouter.push({ name: "xp-bestiary-select" });
-    };
 
     return {
       quests,
