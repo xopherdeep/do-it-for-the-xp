@@ -51,12 +51,17 @@ const parseDate = (value?: string): Date | null => {
 const momentOf = (row: QuestListRow, now: Date): Date =>
   row.due ?? (row.status === "later" ? parseDate(row.quest.startsOn) : null) ?? now;
 
+/** A quest already used up for its window: tamed, or claimed and waiting on the Game Master. */
+const isUsedUp = (status: QuestListStatus): boolean => status === "pending" || status === "done";
+
 /** The due window a row belongs to on the Board. */
 export function windowOf(row: QuestListRow, now: Date): QuestWindow {
-  if (row.status === "overdue") return "overdue";
-  if (row.status === "pending" || row.status === "done") return "done";
+  const isOverdue = row.status === "overdue";
+  if (isOverdue) return "overdue";
+  if (isUsedUp(row.status)) return "done";
   const daysAhead = differenceInCalendarDays(momentOf(row, now), now);
-  if (daysAhead <= 0) return "today";
+  const isDueToday = daysAhead <= 0;
+  if (isDueToday) return "today";
   return daysAhead < WEEK_DAYS ? "week" : "later";
 }
 
@@ -82,7 +87,7 @@ export function sectionsByWindow(rows: readonly QuestListRow[], now: Date): Ques
 
 /** The status MyTask reads: used-up quests are done, quests that are not due yet are notDue. */
 export function boardStatusOf(status: QuestListStatus): "open" | "done" | "notDue" {
-  if (status === "pending" || status === "done") return "done";
+  if (isUsedUp(status)) return "done";
   return status === "later" ? "notDue" : "open";
 }
 
@@ -95,8 +100,10 @@ export function stepsLabel(quest: Pick<Achievement, "subAchievementIds">): strin
 
 /** When the row is due, in words: "due 6:00pm", "due Tomorrow 6:00pm"; empty when it has no time or is already used up. */
 export function dueText(row: QuestListRow): string {
-  if (row.status === "pending" || row.status === "done") return "";
-  if (row.status === "open" && !row.due) return "";
+  if (isUsedUp(row.status)) return "";
+  const isOpenAnytime = row.status === "open" && !row.due;
+  if (isOpenAnytime) return "";
+
   return `due ${row.dueLabel}`;
 }
 

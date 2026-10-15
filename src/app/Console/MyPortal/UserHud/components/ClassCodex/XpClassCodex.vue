@@ -249,8 +249,10 @@
   };
 
   const tierLabel = (tier: ClassCodexEntry["tier"]) => {
-    if (tier === 3) return "Crown class";
-    if (tier === 2) return "Advanced class";
+    const isCrown = tier === 3;
+    if (isCrown) return "Crown class";
+    const isAdvanced = tier === 2;
+    if (isAdvanced) return "Advanced class";
     return "Base class";
   };
 
@@ -288,9 +290,11 @@
   );
 
   const pick = (entry: ClassCodexEntry) => {
-    if (entry.sealed) play$fx("no");
-    else if (entry.name !== shown.value?.name) play$fx("cursor");
-    if (entry.name === shown.value?.name) return;
+    const isSealed = entry.sealed;
+    const isShown = entry.name === shown.value?.name;
+    if (isSealed) play$fx("no");
+    else if (!isShown) play$fx("cursor");
+    if (isShown) return;
     selectedName.value = entry.name;
     content.value?.$el?.scrollToTop?.(0);
     void centerRail(true);
@@ -298,13 +302,17 @@
 
   const confirmDisabled = computed(() => !shown.value || shown.value.sealed || isCurrent.value);
   const confirmLabel = computed(() => {
-    if (!shown.value) return "";
-    if (shown.value.sealed) return `Sealed · ${shown.value.requirement}`;
+    const entry = shown.value;
+    if (!entry) return "";
+    const isSealed = entry.sealed;
+    if (isSealed) return `Sealed · ${entry.requirement}`;
     if (isCurrent.value) return "This is your class";
-    return `Become a ${shown.value.name}`;
+    return `Become a ${entry.name}`;
   });
   const confirmIcon = computed(() => {
-    if (shown.value?.sealed) return "fa-lock";
+    const isSealed = shown.value?.sealed;
+    if (isSealed) return "fa-lock";
+
     return isCurrent.value ? "fa-check-circle" : "fa-sparkles";
   });
 

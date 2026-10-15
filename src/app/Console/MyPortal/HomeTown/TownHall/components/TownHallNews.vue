@@ -124,7 +124,9 @@ const toggleComments = async (postId: number) => {
     return;
   }
   openIds.value = [...openIds.value, postId];
-  if (commentsOf[postId]?.status === "ready") return;
+  const hasComments = commentsOf[postId]?.status === "ready";
+  if (hasComments) return;
+
   commentsOf[postId] = { status: "loading", items: [] };
   try {
     commentsOf[postId] = { status: "ready", items: await fetchComments(postId) };

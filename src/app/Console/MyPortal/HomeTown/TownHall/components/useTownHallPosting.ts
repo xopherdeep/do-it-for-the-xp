@@ -110,9 +110,12 @@ export function useTownHallPosting(deps: PostingDeps) {
   /** The clerk asks what to do at the board: post (on the board the hero is looking at), report a bug, or see to the registration */
   const openClerkMenu = async (): Promise<void> => {
     const pick = await reveal.ask(clerkMenuPrompt(deps.isGameMaster(), voice.value));
-    if (pick === "registration") await deps.registerFamily();
-    if (pick === "board") openTopic(deps.currentBoard());
-    if (pick === "bug") openBug();
+    const wantsRegistration = pick === "registration";
+    if (wantsRegistration) await deps.registerFamily();
+    const wantsBoard = pick === "board";
+    if (wantsBoard) openTopic(deps.currentBoard());
+    const wantsBugReport = pick === "bug";
+    if (wantsBugReport) openBug();
   };
 
   // --- Sending the queue --------------------------------------------------------------------------------------
@@ -143,12 +146,14 @@ export function useTownHallPosting(deps: PostingDeps) {
     if (!hasNews(result)) return;
     toldAbout = result;
     try {
-      if (result.unlinked) {
+      const isUnlinked = result.unlinked;
+      if (isUnlinked) {
         await reveal.ask(registerAgainPrompt());
         return;
       }
       const pick = await reveal.ask(forbiddenPrompt(deps.isGameMaster()));
-      if (pick === "redo") await deps.redoRegistration();
+      const wantsRedo = pick === "redo";
+      if (wantsRedo) await deps.redoRegistration();
     } catch (error) {
       debug.error("Town Hall could not finish telling about the registration:", error);
     }
@@ -193,10 +198,13 @@ export function useTownHallPosting(deps: PostingDeps) {
   /** A new post goes in the outbox; an edited one replaces the failed post it came from */
   const keep = async (spec: ComposeSpec, draft: PostDraft): Promise<{ problem: string | null; post?: TownHallPost }> => {
     const isGameMaster = deps.isGameMaster();
-    if (spec.editingId === undefined) {
+    const editingId = spec.editingId;
+    const isNewPost = editingId === undefined;
+    if (isNewPost) {
       return store.submit(draft, { id: deps.userId(), name: deps.heroName() }, isGameMaster, deps.route());
     }
-    const problem = await store.resubmit(spec.editingId, draft, isGameMaster);
+    const problem = await store.resubmit(editingId, draft, isGameMaster);
+
     return { problem, post: store.posts.find((post) => post.id === spec.editingId) };
   };
 
@@ -221,14 +229,17 @@ export function useTownHallPosting(deps: PostingDeps) {
     } finally {
       sending.value = false;
     }
-    if (kept.problem) {
-      trouble.value = kept.problem;
+    const problem = kept.problem;
+    if (problem) {
+      trouble.value = problem;
       return;
     }
     composeOpen.value = false;
-    if (!kept.post) return;
+    const post = kept.post;
+    if (!post) return;
     const flushed = flushNow();
-    await reveal.ask(postedNotice(postedOutcome(kept.post, store.isLinked, deps.isGameMaster())));
+    await reveal.ask(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster())));
+
     await deliver(await flushed);
   };
 

@@ -254,14 +254,16 @@ const questTitle = (quest: Achievement): string => {
 };
 
 const dueLine = (quest: Achievement): string => {
-  if (!quest.dueByTime) return "";
-  const due = dueTimeOn(quest.dueByTime, selectedDate.value);
-  return `Due ${due ? format(due, "h:mm a") : quest.dueByTime}`;
+  const dueByTime = quest.dueByTime;
+  if (!dueByTime) return "";
+  const due = dueTimeOn(dueByTime, selectedDate.value);
+  return `Due ${due ? format(due, "h:mm a") : dueByTime}`;
 };
 
 // Tamed and pending quests wear a status icon; an open one wears the sun or moon of its part of the day
 const rowIcon = ({ status, pending }: AgendaEntry, groupId: AgendaGroupId): string => {
-  if (status === "done") return pending ? "hourglass-half" : "check-circle";
+  const isTamed = status === "done";
+  if (isTamed) return pending ? "hourglass-half" : "check-circle";
   return AGENDA_GROUPS.find(({ id }) => id === groupId)?.icon ?? "scroll";
 };
 
@@ -275,7 +277,8 @@ const fetchBoard = async () => {
   const effects = userStore.getUserById(heroId.value)?.questEffects;
   const items = await getQuestEngine().getQuestBoardForUser(heroId.value, date, undefined, effects);
   // Ignore the answer if the hero has already moved on to another day
-  if (date === selectedDate.value) board.value = items;
+  const isStillSelected = date === selectedDate.value;
+  if (isStillSelected) board.value = items;
 };
 
 const loadLocalQuests = async (event?: any) => {
@@ -337,8 +340,11 @@ const onQuestSaved = () => {
 };
 
 const runAction = (id: CalendarActionId) => {
-  if (id === "new-quest") return openAddQuest();
-  if (id === "today") {
+  const isNewQuest = id === "new-quest";
+  if (isNewQuest) return openAddQuest();
+  const isJumpToToday = id === "today";
+  if (isJumpToToday) {
+
     selectedDate.value = new Date();
     return;
   }

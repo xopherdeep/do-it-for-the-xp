@@ -197,9 +197,11 @@ export default defineComponent({
       }
 
       const hasClickHandler = typeof item.click === "function";
+      const hasMpCost = Boolean(item.mpCost);
       if (hasClickHandler) {
         item.click();
-      } else if (item.mpCost) {
+      } else if (hasMpCost) {
+
         this.play$fx("useMP");
       }
     },

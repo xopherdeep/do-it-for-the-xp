@@ -108,8 +108,10 @@ const next = () => swiperRef.value?.slideNext();
 defineExpose({ prev, next });
 
 const pick = (index: number) => {
-  if (index !== activeIndex.value) {
+  const isOffCenter = index !== activeIndex.value;
+  if (isOffCenter) {
     swiperRef.value?.slideTo(index);
+
     return;
   }
   const isWalletSlot = Boolean(props.walletWare) && index === 0;

@@ -56,7 +56,9 @@ export const castWithBoardEffect = async (
   const effect = boardEffectOfPower(ability);
   if (!effect) {
     const plain = await deps.cast(ability.id, userId);
-    if (!plain.ok) return { status: "failed" };
+    const isCast = plain.ok;
+    if (!isCast) return { status: "failed" };
+
     const timerLine = startTimerOf(ability, userId, deps.now ?? new Date());
     return timerLine ? { status: "cast", line: timerLine, sound: "useMP" } : { status: "cast" };
   }

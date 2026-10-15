@@ -77,7 +77,8 @@ export default defineComponent({
 
     clickDeposit(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
@@ -91,7 +92,8 @@ export default defineComponent({
 
     clickWithdraw(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
@@ -105,7 +107,8 @@ export default defineComponent({
 
     clickPayDebt(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
@@ -131,8 +134,10 @@ export default defineComponent({
           const pick = (await this.reveal.ask(
             conciergeMenuPrompt(lines, this.clerkName)
           )) as ConciergeMenuId | "stay";
-          if (pick === "stay") return;
-          if (pick !== "room") {
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick !== "room";
+          if (isWalkingAway) {
             await this.walkAway(pick);
             return;
           }
@@ -146,7 +151,8 @@ export default defineComponent({
 
     /** Leave the desk: out of the hotel, or on to the Town Hall's notice board. */
     async walkAway(pick: "leave" | "events") {
-      if (pick === "leave") this.goBack();
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
       else await this.handleCommunityEvents();
     },
 
@@ -166,7 +172,8 @@ export default defineComponent({
       const pick = await this.reveal.ask(
         roomConfirmPrompt(this.words, quote.cost, this.clerkName)
       );
-      if (pick !== "yes") return;
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
       await this.rentRoom(quote);
     },
 
@@ -175,7 +182,9 @@ export default defineComponent({
       try {
         await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
         this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
-        if (quote.mpGain > 0) {
+        const hasMpGain = quote.mpGain > 0;
+        if (hasMpGain) {
+
           this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
         }
         this.play$fx("restoreAll");

@@ -98,20 +98,23 @@ export default defineComponent({
       let foods = this.mockFoods;
 
       // Filter by Category
-      if (this.selectedCategory === 'favorites') {
-        if (this.userFavoriteFood) {
-          const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
+      const isFavorites = this.selectedCategory === 'favorites';
+      const isOneCategory = this.selectedCategory !== 'all';
+      if (isFavorites) {
+        const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
+        if (favFood) {
           foods = foods.filter(food => food.name.toLowerCase() === favFood.toLowerCase());
         } else {
           foods = []; // No favorite food set or found
         }
-      } else if (this.selectedCategory !== 'all') {
+      } else if (isOneCategory) {
         foods = foods.filter(food => food.category === this.selectedCategory);
       }
 
       // Filter by Search Term
-      if (this.searchTerm) {
-        const lowerSearchTerm = this.searchTerm.toLowerCase();
+      const searchTerm = this.searchTerm;
+      if (searchTerm) {
+        const lowerSearchTerm = searchTerm.toLowerCase();
         foods = foods.filter(food =>
           food.name.toLowerCase().includes(lowerSearchTerm) ||
           food.description.toLowerCase().includes(lowerSearchTerm)
@@ -139,7 +142,9 @@ export default defineComponent({
       return `${count} ${count === 1 ? 'item' : 'items'}`;
     },
     emptyText(): string {
-      if (this.selectedCategory === 'favorites' && !this.userFavoriteFood) {
+      const isMissingFavorite = this.selectedCategory === 'favorites' && !this.userFavoriteFood;
+      if (isMissingFavorite) {
+
         return this.t('kitchen.empty.noFavorite');
       }
       return this.t('kitchen.empty.none');

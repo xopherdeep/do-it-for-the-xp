@@ -90,19 +90,23 @@ export default defineComponent({
     /** The savings counter: deposit or withdraw, then how much on the stepper. */
     async clickAddSavings() {
       const pick = await this.reveal.ask(savingsMenuPrompt(this.user.stats.gp, this.words))
-      if (pick === "deposit" || pick === "withdraw") await this.moneyErrand(pick)
+      const isSavingsErrand = pick === "deposit" || pick === "withdraw"
+      if (isSavingsErrand) await this.moneyErrand(pick)
     },
 
     /** A money move in the game's own dialog, by the bank's rules: the stepper reaches what the move can take. */
     async moneyErrand(action: BankAction) {
       const ask = amountAsk(action, this.user.stats.gp, GOLD_APP, this.words)
-      if ("refusal" in ask) {
+      const isRefused = "refusal" in ask
+      if (isRefused) {
         this.play$fx("no")
         await this.reveal.ask(noticePrompt(ask.refusal, undefined, GOLD_APP))
         return
       }
       const { id, amount } = await this.reveal.askAmount(ask.prompt)
-      if (id !== "ok" || !amount) return
+      const isCancelled = id !== "ok" || !amount
+      if (isCancelled) return
+
       const gp = this.user.stats.gp
       const move = action === "withdraw" ? withdrawFromSavings(gp, amount) : action === "deposit" ? depositToSavings(gp, amount) : payDownBills(gp, amount)
       await this.applyMove(action, move)

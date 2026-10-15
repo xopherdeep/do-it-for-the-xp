@@ -163,8 +163,10 @@ const t = useCopy();
 const activeTab = ref<Tab>("all");
 
 const targetUser = computed(() => {
-  if (props.user) return props.user;
-  if (props.userId) return userStore.getUserById(props.userId);
+  const user = props.user;
+  if (user) return user;
+  const userId = props.userId;
+  if (userId) return userStore.getUserById(userId);
   return userStore.currentUser;
 });
 
@@ -198,8 +200,10 @@ const allEntries = computed<InventoryItemWithRaw[]>(() => {
     const existing = merged.get(key);
     if (existing) {
       existing.rawItem = entry.rawItem;
-      if (!existing.faIcon && entry.faIcon) existing.faIcon = entry.faIcon;
-      if (!existing.description && entry.description) existing.description = entry.description;
+      const isMissingIcon = !existing.faIcon && Boolean(entry.faIcon);
+      if (isMissingIcon) existing.faIcon = entry.faIcon;
+      const isMissingBlurb = !existing.description && Boolean(entry.description);
+      if (isMissingBlurb) existing.description = entry.description;
     } else {
       merged.set(key, entry);
     }
@@ -209,7 +213,8 @@ const allEntries = computed<InventoryItemWithRaw[]>(() => {
 });
 
 const shownEntries = computed<InventoryItemWithRaw[]>(() => {
-  if (activeTab.value === "all") return allEntries.value;
+  const isAllTab = activeTab.value === "all";
+  if (isAllTab) return allEntries.value;
   return allEntries.value.filter((entry) => entry.kind === activeTab.value);
 });
 
@@ -248,9 +253,10 @@ const navTabs = computed<AppNavTab[]>(() =>
 const emptyMessage = computed(() => t(EMPTY_KEYS[activeTab.value]));
 
 const resolveBattleCard = (entry: InventoryItemWithRaw): BattleItemCard | null => {
-  if (props.mode !== "battle" || !props.battleCard) return null;
+  const battleCard = props.mode === "battle" ? props.battleCard : undefined;
+  if (!battleCard) return null;
   const itemToEvaluate = entry.rawItem || entry;
-  return props.battleCard(itemToEvaluate);
+  return battleCard(itemToEvaluate);
 };
 
 const getBattleEffectText = (entry: InventoryItemWithRaw): string => {
@@ -275,7 +281,8 @@ const subtitleOf = (entry: InventoryItemWithRaw): string =>
   getBattleEffectText(entry) || entry.description || KIND_LABELS[entry.kind].one;
 
 const isItemDisabled = (entry: InventoryItemWithRaw): boolean => {
-  if (props.mode !== "battle") return false;
+  const isInBattle = props.mode === "battle";
+  if (!isInBattle) return false;
   const card = resolveBattleCard(entry);
   if (!card) return false;
   return Boolean(card.reason);
@@ -316,8 +323,10 @@ const storeEntry = (entry: InventoryItemWithRaw) => {
 
 const handleEntryClick = (entry: InventoryItemWithRaw) => {
   const itemToPass = entry.rawItem || entry;
-  if (props.mode === "battle") {
+  const isInBattle = props.mode === "battle";
+  if (isInBattle) {
     if (isItemDisabled(entry)) return;
+
     emit("use-item", itemToPass);
   } else {
     emit("select-item", itemToPass);

@@ -219,7 +219,8 @@ export default defineComponent({
       registerFamily: () => registerFamily(),
       // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
       profilesReady: async () => {
-        if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
+        const hasNoProfiles = Object.keys(userStore.users).length === 0;
+        if (hasNoProfiles) await userStore.loadUsers();
       },
     });
 
@@ -231,9 +232,11 @@ export default defineComponent({
     const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, events: eventsTab, updates: updatesTab };
 
     const onTrouble = async (id: TabId) => {
-      if (reveal.prompt.value) return;
+      const isClerkBusy = Boolean(reveal.prompt.value);
+      if (isClerkBusy) return;
       const pick = await reveal.ask(courierLatePrompt());
-      if (pick === "retry") await tabRefs[id].value?.reload();
+      const isRetrying = pick === "retry";
+      if (isRetrying) await tabRefs[id].value?.reload();
     };
 
     /** The device's saved link is read once; a storage failure leaves the family unregistered here and the page working */
@@ -247,8 +250,10 @@ export default defineComponent({
 
     /** The clerk says how the registration went; posts kept before the family was registered go out while she talks */
     const announceLink = async (result: LinkResult) => {
-      if (result === "none") return;
-      if (result === "linked") void posting.sendQueue();
+      const isUnchanged = result === "none";
+      if (isUnchanged) return;
+      const isLinked = result === "linked";
+      if (isLinked) void posting.sendQueue();
       await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
     };
 
@@ -262,7 +267,8 @@ export default defineComponent({
       const search = takeLinkReturn();
       await loadLink();
       void posting.sendQueue();
-      if (search === null) {
+      const isOrdinaryVisit = search === null;
+      if (isOrdinaryVisit) {
         await offerRegistration();
         return;
       }
@@ -319,7 +325,8 @@ export default defineComponent({
       const link = townHall.activeLink;
       if (link) {
         const pick = await reveal.ask(linkedStatusPrompt(link.displayName));
-        if (pick !== "unlink") return;
+        const isKeepingLink = pick !== "unlink";
+        if (isKeepingLink) return;
         try {
           await reveal.ask(unlinkResultNotice(await townHall.unlink()));
         } catch (err) {
@@ -328,8 +335,11 @@ export default defineComponent({
         return;
       }
       const pick = (await reveal.ask(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
-      if (pick === "create") window.open(SIGNUP_URL, "_blank", "noopener");
-      if (pick === "have") await goToAuthorizePage();
+      const isCreatingAccount = pick === "create";
+      if (isCreatingAccount) window.open(SIGNUP_URL, "_blank", "noopener");
+      const hasAccount = pick === "have";
+      if (hasAccount) await goToAuthorizePage();
+
     };
 
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });

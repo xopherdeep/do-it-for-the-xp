@@ -99,7 +99,9 @@ export default defineComponent({
       play$fx("select");
       const text = recapShareText(nickname.value, insights.value);
       try {
-        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+        if (canShare) {
+
           await navigator.share({ title: `${nickname.value}'s week`, text });
           return;
         }

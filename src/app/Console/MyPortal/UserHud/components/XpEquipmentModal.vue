@@ -301,29 +301,31 @@
             await refuseLocked(item);
             return;
           }
-          if (equippedItems.value.has(item.faIcon)) {
+          const isEquipped = equippedItems.value.has(item.faIcon);
+          if (isEquipped) {
             // Already equipped - unequip it
-            const leftIndex = leftHandSlots.value.findIndex(
-              (slot) => slot?.faIcon === item.faIcon
-            );
-            const rightIndex = rightHandSlots.value.findIndex(
-              (slot) => slot?.faIcon === item.faIcon
-            );
-            if (leftIndex !== -1) await performUnequip("left", leftIndex);
-            if (rightIndex !== -1) await performUnequip("right", rightIndex);
+            const leftIndex = leftHandSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+            const rightIndex = rightHandSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+            const isInLeftHand = leftIndex !== -1;
+            if (isInLeftHand) await performUnequip("left", leftIndex);
+            const isInRightHand = rightIndex !== -1;
+            if (isInRightHand) await performUnequip("right", rightIndex);
             return;
           }
 
           const isHandSlotChosen = hand !== undefined && index !== undefined;
           if (isHandSlotChosen) {
-            if (index === 0) {
+            const isPrimarySlot = index === 0;
+            if (isPrimarySlot) {
               await performEquip(item, hand, index);
             }
           } else {
             // Auto-equip logic: find first available primary slot
-            if (leftHandSlots.value[0] === null) {
+            const isLeftFree = leftHandSlots.value[0] === null;
+            const isRightFree = rightHandSlots.value[0] === null;
+            if (isLeftFree) {
               await performEquip(item, "left", 0);
-            } else if (rightHandSlots.value[0] === null) {
+            } else if (isRightFree) {
               await performEquip(item, "right", 0);
             } else {
               await performEquip(item, "left", 0); // Replace left by default
@@ -341,13 +343,14 @@
         let replacedItemName: string | null = null;
 
         // Check if already equipped elsewhere
-        if (equippedItems.value.has(item.faIcon)) {
+        const isEquippedElsewhere = equippedItems.value.has(item.faIcon);
+        if (isEquippedElsewhere) {
           const otherHand = hand === "left" ? "right" : "left";
           const otherSlots = hand === "left" ? rightHandSlots : leftHandSlots;
-          const otherIndex = otherSlots.value.findIndex(
-            (slot) => slot?.faIcon === item.faIcon
-          );
-          if (otherIndex !== -1) {
+          const otherIndex = otherSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+
+          const isInOtherHand = otherIndex !== -1;
+          if (isInOtherHand) {
             await performUnequip(otherHand, otherIndex, false);
           }
         }
@@ -422,7 +425,9 @@
 
       // The store refuses a sealed class and saves the hero
       const onClassSelect = (val: string) => {
-        if (props.user?.id) userStore.setJobClass(props.user.id, val);
+        const heroId = props.user?.id;
+        if (heroId) userStore.setJobClass(heroId, val);
+
         classSelectorOpen.value = false;
       };
 

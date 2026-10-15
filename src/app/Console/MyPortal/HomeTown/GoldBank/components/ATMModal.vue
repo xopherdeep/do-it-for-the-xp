@@ -247,13 +247,15 @@
 
       const errand = async (action: BankAction) => {
         const ask = amountAsk(action, props.user?.stats?.gp, "ATM", voice.value);
-        if ("refusal" in ask) {
+        const isRefused = "refusal" in ask;
+        if (isRefused) {
           play$fx("no");
           await reveal.ask(noticePrompt(ask.refusal, undefined, "ATM"));
           return;
         }
         const { id, amount } = await reveal.askAmount(ask.prompt);
-        if (id !== "ok" || !amount) return;
+        const isCancelled = id !== "ok" || !amount;
+        if (isCancelled) return;
         emit(action, { gp: amount });
       };
 
@@ -264,8 +266,11 @@
         isMenuOpen.value = true;
         try {
           const pick = await reveal.ask(atmMenuPrompt(props.user?.stats?.gp, voice.value));
-          if (pick === "leave") await dismiss();
-          else if (pick === "deposit" || pick === "withdraw" || pick === "payDebt") await errand(pick);
+          const isLeaving = pick === "leave";
+          const isBankErrand = pick === "deposit" || pick === "withdraw" || pick === "payDebt";
+          if (isLeaving) await dismiss();
+          else if (isBankErrand) await errand(pick);
+
         } finally {
           isMenuOpen.value = false;
         }

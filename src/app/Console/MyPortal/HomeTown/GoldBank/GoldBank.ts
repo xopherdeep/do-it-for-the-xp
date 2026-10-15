@@ -113,8 +113,10 @@ export default defineComponent({
         let lines = this.dialogBlocks;
         for (;;) {
           const pick = (await this.reveal.ask(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
-          if (pick === "stay") return;
-          if (pick === "leave" || pick === "atm") {
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick === "leave" || pick === "atm";
+          if (isWalkingAway) {
             this.walkAway(pick);
             return;
           }
@@ -128,26 +130,30 @@ export default defineComponent({
 
     /** Leave the counter: out of the bank, or over to the ATM. */
     walkAway(pick: "leave" | "atm") {
-      if (pick === "leave") this.goBack();
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
       else this.openATM();
     },
 
     /** One errand from the menu. */
     async runErrand(pick: Exclude<BankMenuId, "atm" | "leave">) {
-      if (pick === "storage") return this.storageCounter();
+      const isStorageErrand = pick === "storage";
+      if (isStorageErrand) return this.storageCounter();
       return this.moneyErrand(pick);
     },
 
     /** A deposit, a withdrawal or a payment: how much (on the stepper), then the move and its receipt. */
     async moneyErrand(action: BankAction) {
       const ask = amountAsk(action, this.user.stats.gp, undefined, this.words);
-      if ("refusal" in ask) {
+      const isRefused = "refusal" in ask;
+      if (isRefused) {
         this.play$fx("no");
         await this.reveal.ask(noticePrompt(ask.refusal));
         return;
       }
       const { id, amount } = await this.reveal.askAmount(ask.prompt);
-      if (id !== "ok" || !amount) return;
+      const isCancelled = id !== "ok" || !amount;
+      if (isCancelled) return;
       const gp = this.user.stats.gp;
       const move = action === "withdraw" ? withdrawFromSavings(gp, amount) : action === "deposit" ? depositToSavings(gp, amount) : payDownBills(gp, amount);
       await this.applyMove(action, move);
@@ -169,7 +175,8 @@ export default defineComponent({
         return;
       }
       const question = storageQuestion(next, this.words);
-      if (!sale.ok && sale.reason === "gp" && !sale.canTopUp) {
+      const isTooPoor = !sale.ok && sale.reason === "gp" && !sale.canTopUp;
+      if (isTooPoor) {
         this.play$fx("no");
         await this.reveal.ask(noticePrompt(`${question} ${storageRefusal(sale, this.words)}`, "chest"));
         return;
@@ -189,13 +196,16 @@ export default defineComponent({
         ],
         cancelId: "no"
       });
-      if (pick === "yes") await this.sellStorage(needsSavings);
+      const isAccepted = pick === "yes";
+      if (isAccepted) await this.sellStorage(needsSavings);
     },
 
     /** The sale itself: the store re-checks the purse, so a refusal here is read out the same way. */
     async sellStorage(useSavings: boolean) {
       const sale = this.userStore.buyStorageTier(this.user.id, useSavings);
-      if (!sale.ok) {
+      const isRefused = !sale.ok;
+      if (isRefused) {
+
         this.play$fx("no");
         await this.reveal.ask(noticePrompt(storageRefusal(sale, this.words) ?? storageMaxed(this.words), "chest"));
         return;

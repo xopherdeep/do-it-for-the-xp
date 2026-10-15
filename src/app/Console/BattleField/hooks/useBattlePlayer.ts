@@ -73,15 +73,18 @@ const useRollingNumber = (target: () => number) => {
   let timer: number | undefined;
 
   const stop = () => {
-    if (timer === undefined) return;
+    const isIdle = timer === undefined;
+    if (isIdle) return;
     window.clearInterval(timer);
     timer = undefined;
   };
 
   const step = () => {
     const goal = target();
-    if (shown.value !== goal) shown.value += shown.value < goal ? 1 : -1;
-    if (shown.value === goal) stop();
+    const isAwayFromGoal = shown.value !== goal;
+    if (isAwayFromGoal) shown.value += shown.value < goal ? 1 : -1;
+    const isAtGoal = shown.value === goal;
+    if (isAtGoal) stop();
   };
 
   // Sync flush: the first tick is scheduled in the same breath as the damage, not a microtask later.
@@ -100,7 +103,9 @@ const useRollingNumber = (target: () => number) => {
     shown.value = target();
   };
 
-  if (getCurrentScope()) onScopeDispose(stop);
+  const isInScope = !!getCurrentScope();
+  if (isInScope) onScopeDispose(stop);
+
 
   return { shown, snap };
 };
