@@ -182,7 +182,7 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
     return { effect: "doors", direction: "out", title: to.title, variant: from.title, door: doorTypeFor(from.building) };
   }
 
-  // Into and out of a temple: in through its great stone gate, out through the iris
+  // Into and out of a temple: through its great stone gate both ways (on the way out, daylight is behind the doors)
   const isEnteringTemple = to.kind === "temple";
   if (isEnteringTemple) {
     return {
@@ -197,7 +197,7 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
   if (isLeavingTemple) {
     const hasNoSceneToEnter = to.kind === "other" || to.kind === "portal";
     if (hasNoSceneToEnter) return null;
-    return { effect: "iris", direction: "out", title: to.title, element: to.element };
+    return { effect: "gate", direction: "out", title: to.title, element: from.element };
   }
 
   // Travel: the hero rides the clouds between town, world map and regions

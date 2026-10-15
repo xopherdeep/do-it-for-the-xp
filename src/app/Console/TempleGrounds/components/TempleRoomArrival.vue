@@ -3,7 +3,8 @@
     v-if="arrival"
     :key="arrival.key"
     class="room-arrival"
-    :style="{ '--glow': glow, '--dx': arrival.dx, '--dy': arrival.dy }"
+    :class="`room-arrival--${heading}`"
+    :style="{ '--glow': glow }"
     aria-hidden="true"
   >
     <div class="room-arrival__flash" />
@@ -20,12 +21,21 @@ const props = defineProps<{ arrival: RoomArrival | null; element?: string }>();
 
 const glow = computed(() => templeGlow(props.element));
 
-/** Fixed spots, sizes and delays, so every step looks alike and nothing is random in a test */
+/** The way the dust streams: against the way the hero walked */
+const heading = computed(() => {
+  const { dx = 0, dy = 0 } = props.arrival ?? {};
+  const isAcross = dx !== 0;
+  if (isAcross) return dx > 0 ? "west" : "east";
+  return dy > 0 ? "north" : "south";
+});
+
+/**
+ * Fixed spots, sizes and delays, so every step looks alike and nothing is random in a test. Kept few and cheap: each
+ * mote only moves and fades (both run on the compositor), with a hard rim instead of a blurred glow.
+ */
 const MOTES = [
-  [10, 20, 0, 8], [24, 62, 50, 6], [40, 32, 25, 10], [58, 76, 80, 8],
-  [74, 40, 10, 6], [88, 68, 65, 10], [18, 86, 40, 8], [50, 14, 95, 6],
-  [34, 48, 15, 8], [68, 22, 45, 10], [82, 88, 30, 6], [6, 44, 70, 10],
-  [46, 66, 55, 8], [92, 30, 20, 6], [62, 54, 85, 8], [28, 8, 35, 6],
+  [12, 22, 0, 8], [30, 64, 50, 10], [46, 34, 25, 8], [62, 78, 80, 10], [78, 42, 10, 8],
+  [90, 70, 65, 10], [20, 86, 40, 8], [54, 14, 95, 10], [38, 50, 15, 8], [70, 24, 45, 10],
 ].map(([x, y, delay, size], id) => ({
   id,
   style: { "--x": `${x}%`, "--y": `${y}%`, "--delay": `${delay}ms`, "--size": `${size}px` },
@@ -46,6 +56,7 @@ const MOTES = [
     inset: 0;
     background: radial-gradient(circle at 50% 50%, transparent 40%, var(--glow) 140%);
     opacity: 0;
+    will-change: opacity;
     animation: room-arrival-flash 650ms steps(6, end) both;
   }
 
@@ -57,10 +68,28 @@ const MOTES = [
     width: var(--size);
     height: var(--size);
     background: var(--glow);
-    /* A dark rim so the dust reads on a pale floor as well as a dark one */
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45), 0 0 8px var(--glow);
+    /* A dark rim so the dust reads on a pale floor as well as a dark one (a border: no blur to repaint) */
+    border: 2px solid rgba(0, 0, 0, 0.45);
     opacity: 0;
-    animation: room-arrival-mote 850ms steps(10, end) var(--delay) both;
+    will-change: transform, opacity;
+    animation: 850ms steps(10, end) var(--delay) both;
+  }
+
+  /* One set of keyframes per heading: keyframes built from CSS variables cannot run on the compositor */
+  &--west &__mote {
+    animation-name: room-arrival-west;
+  }
+
+  &--east &__mote {
+    animation-name: room-arrival-east;
+  }
+
+  &--north &__mote {
+    animation-name: room-arrival-north;
+  }
+
+  &--south &__mote {
+    animation-name: room-arrival-south;
   }
 }
 
@@ -70,11 +99,32 @@ const MOTES = [
   100% { opacity: 0; }
 }
 
-@keyframes room-arrival-mote {
-  0% { opacity: 0; transform: translate(0, 0); }
+@keyframes room-arrival-west {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
   15% { opacity: 1; }
   70% { opacity: 0.8; }
-  100% { opacity: 0; transform: translate(calc(var(--dx) * -220px), calc(var(--dy) * -220px)); }
+  100% { opacity: 0; transform: translate3d(-220px, 0, 0); }
+}
+
+@keyframes room-arrival-east {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  15% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate3d(220px, 0, 0); }
+}
+
+@keyframes room-arrival-north {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  15% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate3d(0, -220px, 0); }
+}
+
+@keyframes room-arrival-south {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  15% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate3d(0, 220px, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
