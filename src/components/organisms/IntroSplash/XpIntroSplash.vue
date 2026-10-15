@@ -115,10 +115,8 @@ export default defineComponent({
       imagesReady.value = false;
 
       // Clean up any timers
-      if (fallbackTimeout !== null) {
-        window.clearTimeout(fallbackTimeout);
-        fallbackTimeout = null;
-      }
+      window.clearTimeout(fallbackTimeout ?? undefined);
+      fallbackTimeout = null;
 
       // Remove event listeners to prevent duplication
       document.removeEventListener('keydown', handleKeyDown);
@@ -137,7 +135,8 @@ export default defineComponent({
     // Image preloading handler
     const onImagePreloaded = () => {
       preloadedImages.value++;
-      if (preloadedImages.value >= totalImages.value) {
+      const areAllImagesLoaded = preloadedImages.value >= totalImages.value;
+      if (areAllImagesLoaded) {
         imagesReady.value = true;
         const shouldAutoStart = props.autoPlay && currentIndex.value === -1;
         if (shouldAutoStart) {
@@ -151,8 +150,10 @@ export default defineComponent({
       if (!canSkipIntro()) return;
 
       // If typing is in progress, complete it immediately
-      if (showText.value && !typingComplete.value && typingText.value) {
-        typingText.value.completeTyping();
+      const typer = typingText.value;
+      const isTypingMidway = showText.value && !typingComplete.value && typer !== null;
+      if (isTypingMidway) {
+        typer.completeTyping();
         typingComplete.value = true;
         return;
       }
@@ -181,7 +182,8 @@ export default defineComponent({
         if (hasDirectSound) {
           const soundAudio = window.$fx.ui[soundPath[0]][soundPath[1]];
           const playPromise = soundAudio.play();
-          if (playPromise && typeof playPromise.catch === 'function') {
+          const canCatchPlay = playPromise && typeof playPromise.catch === 'function';
+          if (canCatchPlay) {
             playPromise.catch((err: unknown) => {
               debug.warn('Intro sound playback was prevented:', err);
             });
@@ -230,7 +232,8 @@ export default defineComponent({
     // Advance to next splash screen
     const nextSplash = async () => {
       // Handle fade out of current splash
-      if (currentIndex.value >= 0) {
+      const isShowingSplash = currentIndex.value >= 0;
+      if (isShowingSplash) {
         fadeOut.value = true;
         showText.value = false;
 
@@ -241,7 +244,8 @@ export default defineComponent({
 
       // Advance to next splash or finish
       currentIndex.value++;
-      if (currentIndex.value >= props.splashScreens.length) {
+      const isPastLastSplash = currentIndex.value >= props.splashScreens.length;
+      if (isPastLastSplash) {
         finishIntro();
         return;
       }
@@ -253,14 +257,14 @@ export default defineComponent({
       emit('splash-change', currentIndex.value);
 
       // Play sound effect if available
-      if (currentSplash.value.soundEffect) {
-        playSound(currentSplash.value.soundEffect);
-      }
+      const soundEffect = currentSplash.value.soundEffect;
+      if (soundEffect) playSound(soundEffect);
 
       // After transition, show text if available
       timers.startTimeout(props.transitionDuration, () => {
         fadeIn.value = false;
-        if (currentSplash.value?.text) {
+        const hasText = Boolean(currentSplash.value?.text);
+        if (hasText) {
           showText.value = true;
         } else {
           // No text to show, move to next splash after duration
@@ -274,7 +278,8 @@ export default defineComponent({
     const onTypingComplete = () => {
       typingComplete.value = true;
       // Auto-advance after a delay if text is shown
-      if (props.autoPlay) {
+      const shouldAutoAdvance = props.autoPlay;
+      if (shouldAutoAdvance) {
         const duration = currentSplash.value?.duration || props.defaultDuration;
         timers.startTimeout(duration, nextSplash);
       }
@@ -292,17 +297,16 @@ export default defineComponent({
       resetState();
 
       // If no images to preload, start immediately
-      if (props.splashScreens.length === 0) {
+      const hasNoSplashes = props.splashScreens.length === 0;
+      if (hasNoSplashes) {
         imagesReady.value = true;
-        if (props.autoPlay) {
-          startIntro();
-        }
+        const shouldAutoPlay = props.autoPlay;
+        if (shouldAutoPlay) startIntro();
       }
 
       // Play intro sound if enabled
-      if (props.playIntroSound) {
-        playSound('splash.intro');
-      }
+      const shouldPlayIntroSound = props.playIntroSound;
+      if (shouldPlayIntroSound) playSound('splash.intro');
 
       // If all images are already cached, they might not trigger load events
       // In this case, we need to start the intro manually after a short delay
@@ -329,7 +333,8 @@ export default defineComponent({
       // Browsers typically cache images, so we can skip the loading phase on restart
       imagesReady.value = true;
 
-      if (props.autoPlay) {
+      const shouldAutoPlay = props.autoPlay;
+      if (shouldAutoPlay) {
         // Ensure DOM is ready before starting intro
         nextTick(() => {
           startIntro();

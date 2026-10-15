@@ -187,7 +187,7 @@ describe("taking the Pegasus out of the chamber, the way the temple screen does"
     );
     const vm = wrapper.vm as any;
     const loot = vm.chestContents.map((item: { value: string }) => item.value);
-    vm.processChestItems(items);
+    vm.claimChestItems(items);
     wrapper.unmount();
     return { messages, loot };
   };

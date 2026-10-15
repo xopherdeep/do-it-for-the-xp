@@ -105,11 +105,9 @@ export default defineComponent({
   },
   methods: {
     handleRefresh(event: CustomEvent) {
-      if (this.onRefresh) {
-        this.onRefresh(() => {
-          (event.target as any).complete();
-        });
-      }
+      this.onRefresh?.(() => {
+        (event.target as any).complete();
+      });
     }
   }
 });

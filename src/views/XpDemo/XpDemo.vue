@@ -169,7 +169,8 @@
         }
 
         // Change background music based on world category - special case for credits
-        if (index === splashScreens.value.length - 1) {
+        const isCreditsScreen = index === splashScreens.value.length - 1;
+        if (isCreditsScreen) {
           playCreditsMusic();
         } else {
           changeBackgroundMusic(index);

@@ -97,6 +97,28 @@ import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { useWizardSteps } from "@/hooks/useWizardSteps";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
+interface WizardShellProps {
+  /** The form's steps in order (WizardStep<YourDraft>[] fits) */
+  steps: readonly WizardStep<object>[];
+  /** The form's draft: every step's validator and skip rule reads it */
+  draft: object;
+  /** The step being asked; bind it with v-model:index to open an edit on its summary. Unbound, the shell keeps its own. */
+  index?: number;
+  /** The header's title; the step's own title when left out ("New Quest" stays the same on every step) */
+  title?: string;
+  /** The header's icon, and the guide's on a step with no icon of its own (Font Awesome duotone, no prefix) */
+  icon?: string;
+  /** An app name (`goods`) or CSS colour: the shell then wears that app's skin itself. Left out, it inherits the holder's. */
+  accent?: string;
+  /** The last step's button: Summon, Save, Open */
+  verb?: string;
+  verbIcon?: string;
+  /** The form is saving: the verb is shut so a second tap cannot save twice */
+  busy?: boolean;
+  /** False where the dots are a progress mark only (the Quest Wizard asks its questions in order) */
+  jumpable?: boolean;
+}
+
 /**
  * The shell every wizard stands in (docs: compendium-wizards-design, section 1): the header with the step and "n / N",
  * progress dots, the guide's line with the speak button, the step's content in a scrolling body, and Back / Next in the
@@ -109,27 +131,7 @@ import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
  * The bottom nav is never touched: the stepper lives inside the page.
  */
 const props = withDefaults(
-  defineProps<{
-    /** The form's steps in order (WizardStep<YourDraft>[] fits) */
-    steps: readonly WizardStep<object>[];
-    /** The form's draft: every step's validator and skip rule reads it */
-    draft: object;
-    /** The step being asked; bind it with v-model:index to open an edit on its summary. Unbound, the shell keeps its own. */
-    index?: number;
-    /** The header's title; the step's own title when left out ("New Quest" stays the same on every step) */
-    title?: string;
-    /** The header's icon, and the guide's on a step with no icon of its own (Font Awesome duotone, no prefix) */
-    icon?: string;
-    /** An app name (`goods`) or CSS colour: the shell then wears that app's skin itself. Left out, it inherits the holder's. */
-    accent?: string;
-    /** The last step's button: Summon, Save, Open */
-    verb?: string;
-    verbIcon?: string;
-    /** The form is saving: the verb is shut so a second tap cannot save twice */
-    busy?: boolean;
-    /** False where the dots are a progress mark only (the Quest Wizard asks its questions in order) */
-    jumpable?: boolean;
-  }>(),
+  defineProps<WizardShellProps>(),
   { index: undefined, title: undefined, icon: "scroll", accent: undefined, verb: "Save", verbIcon: "check", busy: false, jumpable: true }
 );
 
@@ -154,7 +156,7 @@ const skin = props.accent ? useAppSkin(props.accent) : undefined;
 const rootClass = computed(() => skin?.rootClass.value ?? []);
 const rootStyle = computed(() => skin?.rootStyle.value);
 
-const { step, progress, isFirst, isLast, canNext, blockedBy, dots, next, back, jumpTo } = useWizardSteps(
+const { step, progress, isFirst, isLast, canNext, blockedBy, dots, next, prev, selectStep } = useWizardSteps(
   () => props.steps,
   () => props.draft,
   place
@@ -175,12 +177,14 @@ defineExpose({ scrollToTop });
 // Close the phone's keyboard when a step is left, so the next step opens on a clear screen
 const dropKeyboard = () => {
   const active = document.activeElement;
-  if (active instanceof HTMLElement && root.value?.contains(active)) active.blur();
+  const isInsideShell = active instanceof HTMLElement && root.value?.contains(active);
+  if (isInsideShell) active.blur();
 };
 
 const onBack = () => {
   play$fx("cursor");
-  if (!back()) emit("close");
+  const didStepBack = prev();
+  if (!didStepBack) emit("close");
 };
 
 const onNext = () => {
@@ -190,7 +194,8 @@ const onNext = () => {
   }
   if (isLast.value) {
     // The form plays its own fanfare, or its own "no" when the save fails
-    if (!props.busy) emit("submit");
+    const isBusy = props.busy;
+    if (!isBusy) emit("submit");
     return;
   }
   play$fx("select");
@@ -199,10 +204,11 @@ const onNext = () => {
 };
 
 const onDot = (target: number) => {
-  if (!props.jumpable) return;
+  const canJump = props.jumpable;
+  if (!canJump) return;
   play$fx("cursor");
   dropKeyboard();
-  jumpTo(target);
+  selectStep(target);
 };
 </script>
 

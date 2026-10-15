@@ -9,8 +9,10 @@
 export const floorHeight = (name: string): number => {
   const isSurface = name.endsWith('F');
   const isBasement = name.startsWith('B');
-  const height = isSurface ? parseInt(name, 10) : isBasement ? -parseInt(name.slice(1), 10) : 0;
-  return height || 0; // a name with no number ("F", "B"), or "B0", stands at ground level
+  // A name with no number ("F", "B"), or "B0", stands at ground level
+  if (isSurface) return parseInt(name, 10) || 0;
+  if (isBasement) return -parseInt(name.slice(1), 10) || 0;
+  return 0;
 };
 
 /**

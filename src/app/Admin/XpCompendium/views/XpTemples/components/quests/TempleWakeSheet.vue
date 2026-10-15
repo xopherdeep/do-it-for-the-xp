@@ -121,12 +121,7 @@ import type { WakeChoice } from "@/lib/services/temples/wakeTempleQuests";
 import type { HeroOption, WakeReport } from "../../hooks/useTempleQuests";
 import { portraitOf } from "./portraitUrl";
 
-/**
- * The Wake quests sheet: the temple's sleeping quest templates to tick, the beasts a family quest already fills
- * ("uses your quest"), and under the thumb the heroes to wake them for and the Wake button. After the wake it says what
- * was made and what was skipped. It holds no state of its own: useTempleQuests does, and this reports the taps.
- */
-defineProps<{
+interface WakeSheetProps {
   isOpen: boolean;
   /** Templates nobody has a quest for yet: tickable */
   sleeping: WakeChoice[];
@@ -142,15 +137,24 @@ defineProps<{
   waking: boolean;
   /** "Wake 4 quests for Max" */
   confirmText: string;
-}>();
+}
 
-const emit = defineEmits<{
+interface WakeSheetEmits {
   (e: "close"): void;
   (e: "toggleHero", id: string): void;
   (e: "toggleTick", beastId: string): void;
   (e: "tickAll", on: boolean): void;
   (e: "wake"): void;
-}>();
+}
+
+/**
+ * The Wake quests sheet: the temple's sleeping quest templates to tick, the beasts a family quest already fills
+ * ("uses your quest"), and under the thumb the heroes to wake them for and the Wake button. After the wake it says what
+ * was made and what was skipped. It holds no state of its own: useTempleQuests does, and this reports the taps.
+ */
+defineProps<WakeSheetProps>();
+
+const emit = defineEmits<WakeSheetEmits>();
 </script>
 
 <style lang="scss" scoped>

@@ -42,7 +42,8 @@ function isTownHallSite(candidate: string): boolean {
 
 /** The site's text, trimmed, or nothing when it sent something else or an empty string. */
 function textOrUndefined(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  const isText = typeof value === "string";
+  if (!isText) return undefined;
   return value.trim() || undefined;
 }
 
@@ -68,7 +69,8 @@ interface FlushRun {
 
 /** What a send that did not come back with a post: the site's refusal as it is (with WordPress's code), anything else as a server error. */
 function failureOf(error: unknown): SendResult {
-  if (!(error instanceof TownHallError)) return { ok: false, code: "server" };
+  const isSiteRefusal = error instanceof TownHallError;
+  if (!isSiteRefusal) return { ok: false, code: "server" };
   return { ok: false, code: error.code, message: error.message, ...(error.siteCode ? { siteCode: error.siteCode } : {}) };
 }
 
@@ -80,7 +82,8 @@ function resultOfReply(data: unknown): SendResult {
 
 /** Where a bug report was found and what device sent it; the other kinds carry none. */
 function bugDetails(draft: PostDraft, route: string, at: number): { route: string; environment: string } | undefined {
-  if (draft.kind !== "bug") return undefined;
+  const isBug = draft.kind === "bug";
+  if (!isBug) return undefined;
   const environment = bugEnvironment({ version: appVersion(), route, platform: Capacitor.getPlatform(), userAgent: navigator.userAgent, at });
   return { route, environment };
 }
@@ -158,7 +161,8 @@ export const useTownHallStore = defineStore("townHall", () => {
       const { data } = await townHallFetch<{ uuid?: unknown }>("wp/v2/users/me/application-passwords/introspect", { auth: withAuth });
       return textOrUndefined(data?.uuid);
     } catch (e) {
-      if (!(e instanceof TownHallError)) throw e;
+      const isSiteError = e instanceof TownHallError;
+      if (!isSiteError) throw e;
       return undefined;
     }
   }
@@ -177,7 +181,8 @@ export const useTownHallStore = defineStore("townHall", () => {
       const me = await townHallFetch<{ name?: unknown } | null>("wp/v2/users/me", { auth: withAuth, query: { context: "edit" } });
       name = me.data?.name;
     } catch (e) {
-      if (e instanceof TownHallError) return "failed";
+      const isSiteError = e instanceof TownHallError;
+      if (isSiteError) return "failed";
       throw e;
     }
     const uuid = await connectionId(withAuth);
@@ -192,7 +197,8 @@ export const useTownHallStore = defineStore("townHall", () => {
     await getTownHallDb().saveLink(next);
     link.value = next;
     const replacesConnection = previous?.appPasswordUuid !== undefined && previous.appPasswordUuid !== uuid;
-    if (previous && replacesConnection) await removeFromSite(previous);
+    const shouldRemoveOld = !!previous && replacesConnection;
+    if (shouldRemoveOld) await removeFromSite(previous);
     return "linked";
   }
 
@@ -212,11 +218,13 @@ export const useTownHallStore = defineStore("townHall", () => {
    */
   async function completeLink(search: string): Promise<LinkResult> {
     const ret = readLinkReturn(search);
-    if (ret.kind === "none") return "none";
+    const isNotLinkReturn = ret.kind === "none";
+    if (isNotLinkReturn) return "none";
     const asked = await claimLinkState(ret.state);
     if (!asked) return "none";
     let result: LinkResult = "rejected";
-    if (ret.kind === "linked") {
+    const isLinked = ret.kind === "linked";
+    if (isLinked) {
       await init();
       result = await checkAndStore(ret);
     }
@@ -236,9 +244,10 @@ export const useTownHallStore = defineStore("townHall", () => {
    * the connection is not known to be gone, so the answer is false and the parent removes it on the site.
    */
   async function removeFromSite(current: TownHallLink): Promise<boolean> {
-    if (!current.appPasswordUuid) return false;
+    const connectionUuid = current.appPasswordUuid;
+    if (!connectionUuid) return false;
     try {
-      await townHallFetch(`wp/v2/users/me/application-passwords/${encodeURIComponent(current.appPasswordUuid)}`, {
+      await townHallFetch(`wp/v2/users/me/application-passwords/${encodeURIComponent(connectionUuid)}`, {
         auth: basicAuthOf(current),
         method: "DELETE",
       });
@@ -272,7 +281,8 @@ export const useTownHallStore = defineStore("townHall", () => {
     const current = posts.value.find((post) => post.id === id);
     if (!current) return;
     const next = change(current);
-    if (next === current) return;
+    const isUnchanged = next === current;
+    if (isUnchanged) return;
     replacePost(next);
     await persistPosts();
   }
@@ -344,8 +354,10 @@ export const useTownHallStore = defineStore("townHall", () => {
       return true;
     } catch (e) {
       const code = e instanceof TownHallError ? e.code : "server";
-      if (code === "unauthorized") run.result.unlinked = await giveUpOnRefusedLink(withAuth);
-      if (code === "forbidden") run.result.forbidden = true;
+      const isRefused = code === "unauthorized";
+      if (isRefused) run.result.unlinked = await giveUpOnRefusedLink(withAuth);
+      const isForbidden = code === "forbidden";
+      if (isForbidden) run.result.forbidden = true;
       return false;
     }
   }
@@ -381,10 +393,14 @@ export const useTownHallStore = defineStore("townHall", () => {
     replacePost(settled.post);
     await persistPosts();
 
-    if (settled.post.status === "sent") run.result.sent += 1;
-    if (refusesAccount(result)) run.result.forbidden = true;
-    if (holdsComments(result)) run.commentsHeld = true;
-    if (settled.unlink) run.result.unlinked = await giveUpOnRefusedLink(withAuth);
+    const isSent = settled.post.status === "sent";
+    if (isSent) run.result.sent += 1;
+    const isAccountRefused = refusesAccount(result);
+    if (isAccountRefused) run.result.forbidden = true;
+    const areCommentsHeld = holdsComments(result);
+    if (areCommentsHeld) run.commentsHeld = true;
+    const shouldUnlink = settled.unlink;
+    if (shouldUnlink) run.result.unlinked = await giveUpOnRefusedLink(withAuth);
     const isOffline = !result.ok && result.code === "offline";
     return settled.unlink || isOffline;
   }

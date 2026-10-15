@@ -13,13 +13,16 @@ export function handleAuthGuard(to: RouteLocationNormalized): AuthGuardResult {
   const userStore = useUserStore();
 
   // Block navigation during active battle
-  if (battleStore.active) return false;
+  const isInBattle = battleStore.active;
+  if (isInBattle) return false;
 
   // Allow login route
-  if (to.name === "log-in") return;
+  const isLoginRoute = to.name === "log-in";
+  if (isLoginRoute) return;
 
   // Allow routes that don't require auth
-  if (to.meta?.requiresAuth === false) return;
+  const isPublicRoute = to.meta?.requiresAuth === false;
+  if (isPublicRoute) return;
 
   // Allow authenticated users
   if (userStore.currentUser.isAuthenticated) return;

@@ -11,7 +11,8 @@ const MyPortalRoutes = [{
     const userId = to.params.userId as string;
 
     // Check if user is already loaded
-    if (userStore.getUserById(userId)) {
+    const isKnownUser = Boolean(userStore.getUserById(userId));
+    if (isKnownUser) {
       next();
       return;
     }
@@ -19,7 +20,8 @@ const MyPortalRoutes = [{
     // Try to load users if not found (e.g. hard refresh)
     await userStore.loadUsers();
 
-    if (userStore.getUserById(userId)) {
+    const isFoundAfterLoad = Boolean(userStore.getUserById(userId));
+    if (isFoundAfterLoad) {
       next();
     } else {
       // If still not found, redirect to profile selection

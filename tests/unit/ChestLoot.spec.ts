@@ -1,6 +1,6 @@
 /**
  * The chest reveal's view of a chest: every stored item comes out with a name, an icon and a tier, and its
- * value is the token processChestItems takes back.
+ * value is the token claimChestItems takes back.
  */
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";

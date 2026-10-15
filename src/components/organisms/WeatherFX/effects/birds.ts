@@ -1,15 +1,18 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng } from "./util";
+
+interface Bird { x: number; y: number; v: number; ph: number }
 
 /** Two to five tiny flapping V shapes crossing the sky every 8-15 s. */
 export const birds: EffectFactory = () => {
   const rng = makeRng(67);
-  const flock: { x: number; y: number; v: number; ph: number }[] = [];
+  const flock: Bird[] = [];
   let nextAt = 0, active = false;
-  const effect: WeatherEffect = {
+  return {
     init(f) { nextAt = f.time + 2 + rng() * 6; active = false; flock.length = 0; },
     update(f) {
-      if (f.reducedMotion) return;
+      const isMotionReduced = f.reducedMotion;
+      if (isMotionReduced) return;
       const shouldLaunchFlock = !active && f.time >= nextAt;
       if (shouldLaunchFlock) {
         active = true;
@@ -44,5 +47,4 @@ export const birds: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

@@ -50,11 +50,13 @@ const rgbToHex = (r: number, g: number, b: number): string =>
 /** "rgb(190, 92, 0)" / "rgba(...)" / "#be5c00" to #rrggbb; anything else gives the fallback. */
 export const cssColorToHex = (css: string, fallback = DEFAULT_ICON_COLOR): string => {
   const value = (css || "").trim();
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) return rgbToHex(...hexToRgb(value));
+  const isHexColor = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
+  if (isHexColor) return rgbToHex(...hexToRgb(value));
   const match = value.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)$/i);
   if (!match) return fallback;
   const alpha = match[4] === undefined ? 1 : Number(match[4]);
-  if (alpha === 0) return fallback;
+  const isTransparent = alpha === 0;
+  if (isTransparent) return fallback;
   return rgbToHex(Number(match[1]), Number(match[2]), Number(match[3]));
 };
 
@@ -80,7 +82,8 @@ export const layerToBoxes = (
   const [r, g, b] = hexToRgb(color);
   const solid = new Uint8ClampedArray(pixels.length);
   for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i + 3] < ALPHA_CUTOFF) continue;
+    const isSeeThrough = pixels[i + 3] < ALPHA_CUTOFF;
+    if (isSeeThrough) continue;
     solid[i] = r;
     solid[i + 1] = g;
     solid[i + 2] = b;
@@ -91,7 +94,8 @@ export const layerToBoxes = (
 
 /** Stands the model on the floor (its lowest voxel `gap` above y = 0) so it sits on the renderer's shadow. */
 export const standOnFloor = (boxes: Box[], gap = 1): Box[] => {
-  if (!boxes.length) return boxes;
+  const hasNoBoxes = !boxes.length;
+  if (hasNoBoxes) return boxes;
   const lowest = Math.min(...boxes.map((box) => box.y));
   return boxes.map((box) => ({ ...box, y: box.y - lowest + gap }));
 };
@@ -142,7 +146,8 @@ export const readIconGlyph = (iconClass: string): IconGlyph | null => {
 
 const waitForFont = async (font: string, sample: string): Promise<void> => {
   const fonts = typeof document !== "undefined" ? document.fonts : undefined;
-  if (!fonts?.load) return;
+  const canLoadFonts = typeof fonts?.load === "function";
+  if (!canLoadFonts) return;
   await Promise.race([fonts.load(font, sample).catch(() => []), new Promise((done) => setTimeout(done, 1500))]);
 };
 
@@ -207,7 +212,8 @@ export const iconToVoxelMesh = async (icon: string, resolution = 24): Promise<Me
             : []),
           ...layerToBoxes(primaryPixels, resolution, resolution, glyph.primary.color, PRIMARY_DEPTH),
         ];
-        if (boxes.length) mesh = buildMeshData(standOnFloor(boxes));
+        const hasBoxes = boxes.length > 0;
+        if (hasBoxes) mesh = buildMeshData(standOnFloor(boxes));
       }
     }
   } catch {

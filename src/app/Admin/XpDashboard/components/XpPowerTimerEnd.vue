@@ -16,10 +16,10 @@ const props = defineProps<{ user: { id: string; name?: { nick?: string; first?: 
 const userStore = useUserStore();
 const heroId = computed(() => String(props.user?.id ?? ""));
 const heroName = computed(() => props.user?.name?.nick || props.user?.name?.first || "this hero");
-const { timers, endEarly } = usePowerTimers(heroId, { quiet: true });
+const { timers, stopEarly } = usePowerTimers(heroId, { quiet: true });
 
 const end = async (abilityId: string, name: string) => {
-  const ended = endEarly(abilityId, userStore.currentUser?.id ?? "");
+  const ended = stopEarly(abilityId, userStore.currentUser?.id ?? "");
   if (!ended) return;
   const toast = await toastController.create({
     message: `Ended ${heroName.value}'s ${name}.`,

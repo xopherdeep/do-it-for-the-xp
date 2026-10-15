@@ -66,8 +66,10 @@ const webNotification = (): typeof Notification | null => (typeof Notification =
 
 /** The plugin's permission answer in the bridge's words. */
 const nativePermissionOf = (display: unknown): AlertPermission => {
-  if (display === "granted") return "granted";
-  if (display === "denied") return "denied";
+  const isGranted = display === "granted";
+  if (isGranted) return "granted";
+  const isDenied = display === "denied";
+  if (isDenied) return "denied";
   const isAskable = display === "prompt" || display === "prompt-with-rationale";
   if (isAskable) return "prompt";
   return "unsupported";
@@ -75,9 +77,12 @@ const nativePermissionOf = (display: unknown): AlertPermission => {
 
 /** The browser's permission answer in the bridge's words ("default" means nobody has asked yet). */
 const webPermissionOf = (permission: unknown): AlertPermission => {
-  if (permission === "granted") return "granted";
-  if (permission === "denied") return "denied";
-  if (permission === "default") return "prompt";
+  const isGranted = permission === "granted";
+  if (isGranted) return "granted";
+  const isDenied = permission === "denied";
+  if (isDenied) return "denied";
+  const isUnasked = permission === "default";
+  if (isUnasked) return "prompt";
   return "unsupported";
 };
 
@@ -160,7 +165,8 @@ export const requestAlertPermission = async (): Promise<AlertPermission> => {
     const answer = (await web.requestPermission()) ?? web.permission;
     const permission = webPermissionOf(answer);
     // Warm the worker now that alerts are allowed, so the first ambush alert does not wait for it.
-    if (permission === "granted") prepareAlerts().catch(() => undefined);
+    const isGranted = permission === "granted";
+    if (isGranted) prepareAlerts().catch(() => undefined);
     return permission;
   } catch {
     return "unsupported";
@@ -171,7 +177,8 @@ export const requestAlertPermission = async (): Promise<AlertPermission> => {
 const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => {
   const plugin = await loadLocalNotifications();
   if (!plugin) return { shown: false, reason: "unsupported" };
-  if (nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted") return { shown: false, reason: "denied" };
+  const isDenied = nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted";
+  if (isDenied) return { shown: false, reason: "denied" };
   try {
     await plugin.createChannel({
       id: "battle-alerts",
@@ -186,7 +193,7 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
       importance: 3,
     });
   } catch {
-    // channels may already exist or plugin method not available in mocks/web
+    // chemx-allow: best-effort the channel may already exist, or the plugin lacks the method in mocks and on the web
   }
   await plugin.schedule({
     notifications: [
@@ -210,7 +217,8 @@ export const showAlert = async (alert: HeroAlert): Promise<AlertResult> => {
 
     const web = webNotification();
     if (!web) return { shown: false, reason: "unsupported" };
-    if (web.permission !== "granted") return { shown: false, reason: "denied" };
+    const isDenied = web.permission !== "granted";
+    if (isDenied) return { shown: false, reason: "denied" };
 
     const registration = await prepareAlerts();
     if (registration) {

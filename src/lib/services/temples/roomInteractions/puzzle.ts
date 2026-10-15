@@ -76,7 +76,8 @@ export const isPuzzleSolved = (ctx: RoomContext): boolean => isRoomSpent(ctx);
 export const answerRiddle = (room: Room, ctx: RoomContext, choice: number): RoomOutcome => {
   if (isPuzzleSolved(ctx)) return { message: 'The glyphs have faded.' };
 
-  if (choice !== riddleFor(room).answer) {
+  const isWrongAnswer = choice !== riddleFor(room).answer;
+  if (isWrongAnswer) {
     const { defeated } = hurtHero(ctx.userId, 3);
     return {
       message: defeated ? 'Wrong. The wall glows hot. You black out.' : 'Wrong. The wall glows hot.',

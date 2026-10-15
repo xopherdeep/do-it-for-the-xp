@@ -23,6 +23,24 @@ import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { POWER_CAST_ALERT_ID, showAlert } from "@/lib/services/notifications/alertBridge";
 import debug from "@/lib/utils/debug";
 
+/** The criteria `getFilteredAbilities` narrows by */
+interface AbilityFilters {
+  type?: AbilityType;
+  class?: string;
+  frequency?: TimePeriod;
+  isPreset?: boolean;
+}
+
+/** The hero's AP, overall and per period, for an unlock check */
+interface HeroApTotals {
+  total: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  quarterly?: number;
+  yearly?: number;
+}
+
 /**
  * What a cast came to: `grounded` when the hero owes the Hospital (checked first), `mp` when the hero could not afford
  * it, `unknown` when there is no such ability or hero.
@@ -33,7 +51,8 @@ export type UseAbilityResult = { ok: true; entry?: CastLogEntry } | { ok: false;
 /** The hero's MP right now, whether stats keep it as `{ now, max }` or a bare number. */
 const currentMp = (stats: { mp?: { now?: number } | number } | undefined): number => {
   const mp = stats?.mp;
-  if (typeof mp === "number") return mp;
+  const isBareNumber = typeof mp === "number";
+  if (isBareNumber) return mp;
   return typeof mp?.now === "number" ? mp.now : 0;
 };
 /**
@@ -50,14 +69,16 @@ export class AbilityService {
   }
 
   public static initialize(db: AbilitiesDb): AbilityService {
-    if (!AbilityService.instance) {
+    const isInitialized = Boolean(AbilityService.instance);
+    if (!isInitialized) {
       AbilityService.instance = new AbilityService(db);
     }
     return AbilityService.instance;
   }
 
   public static getInstance(): AbilityService {
-    if (!AbilityService.instance) {
+    const isInitialized = Boolean(AbilityService.instance);
+    if (!isInitialized) {
       throw new Error(
         "AbilityService not initialized. Call initialize() first."
       );
@@ -184,12 +205,7 @@ export class AbilityService {
   /**
    * Gets filtered abilities based on various criteria
    */
-  async getFilteredAbilities(filters: {
-    type?: AbilityType;
-    class?: string;
-    frequency?: TimePeriod;
-    isPreset?: boolean;
-  }): Promise<Ability[]> {
+  async getFilteredAbilities(filters: AbilityFilters): Promise<Ability[]> {
     return await this.db.getFilteredAbilities(filters);
   }
 
@@ -198,14 +214,7 @@ export class AbilityService {
    */
   async checkAbilityUnlock(
     ability: Ability,
-    userAp: {
-      total: number;
-      daily: number;
-      weekly: number;
-      monthly: number;
-      quarterly?: number;
-      yearly?: number;
-    },
+    userAp: HeroApTotals,
     characterLevel: number,
     characterClasses: { [className: string]: number },
     unlockedAbilityIds: string[]
@@ -246,12 +255,14 @@ export class AbilityService {
     }
 
     // Check character class requirements
-    if (ability.characterRequirement?.class) {
+    const classRequirements = ability.characterRequirement?.class;
+    if (classRequirements) {
       for (const [className, requiredLevel] of Object.entries(
-        ability.characterRequirement.class
+        classRequirements
       )) {
         const userClassLevel = characterClasses[className] || 0;
-        if (userClassLevel < requiredLevel) {
+        const isUnderClassLevel = userClassLevel < requiredLevel;
+        if (isUnderClassLevel) {
           return false;
         }
       }
@@ -262,7 +273,8 @@ export class AbilityService {
     const hasPrerequisites = prerequisites && prerequisites.length > 0;
     if (hasPrerequisites) {
       for (const prereqId of prerequisites) {
-        if (!unlockedAbilityIds.includes(prereqId)) {
+        const isPrereqUnlocked = unlockedAbilityIds.includes(prereqId);
+        if (!isPrereqUnlocked) {
           return false;
         }
       }
@@ -284,7 +296,8 @@ export class AbilityService {
       return AbilityStatus.Locked;
     }
 
-    if (mpAvailable < ability.mpCost) {
+    const isShortOfMp = mpAvailable < ability.mpCost;
+    if (isShortOfMp) {
       return AbilityStatus.Unlocked; // Unlocked but not enough MP to use
     }
 
@@ -355,12 +368,13 @@ export class AbilityService {
     ability: Ability,
     characterStats: { [stat: string]: number }
   ): number {
-    if (!ability.scaling) {
+    const { scaling } = ability;
+    if (!scaling) {
       return 1; // No scaling, return base value
     }
 
-    const attributeValue = characterStats[ability.scaling.attribute] || 0;
-    return 1 + attributeValue * ability.scaling.rate;
+    const attributeValue = characterStats[scaling.attribute] || 0;
+    return 1 + attributeValue * scaling.rate;
   }
 
   /**
@@ -381,9 +395,11 @@ export class AbilityService {
     const cost = Math.max(0, Number(ability.mpCost) || 0);
     if (!hero) return { ok: false, reason: "unknown" };
 
-    if (currentMp(hero.stats) < cost) return { ok: false, reason: "mp" };
+    const isShortOfMp = currentMp(hero.stats) < cost;
+    if (isShortOfMp) return { ok: false, reason: "mp" };
 
-    if (cost > 0) userStore.updateUserMP({ userId, amount: -cost });
+    const hasCost = cost > 0;
+    if (hasCost) userStore.updateUserMP({ userId, amount: -cost });
 
     ability.lastUsed = new Date().toISOString();
     await this.saveAbility(ability);

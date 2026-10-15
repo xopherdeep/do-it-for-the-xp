@@ -124,7 +124,8 @@ export function useAudio() {
    */
   const playMusicCategory = (category: string, index = 0, fadeInTime = 1000): void => {
     const tracks = getMusicByCategory(category);
-    if (tracks.length === 0) {
+    const isEmptyCategory = tracks.length === 0;
+    if (isEmptyCategory) {
       debug.warn(`No music tracks found for category: ${category}`);
       return;
     }
@@ -153,7 +154,7 @@ export function useAudio() {
    * Preload a list of sounds
    * @param soundIds Array of sound IDs to preload
    */
-  const preloadSounds = async (soundIds: string[]): Promise<void> => {
+  const loadSounds = async (soundIds: string[]): Promise<void> => {
     // Get current themes
     const uiTheme = engine.state.currentTheme.ui;
     const rpgTheme = engine.state.currentTheme.rpg;
@@ -199,7 +200,7 @@ export function useAudio() {
     stopMusic,
     
     // Asset loading
-    preloadSounds,
+    loadSounds,
     
     // Volume controls
     setMasterVolume: (vol: number) => engine.setVolume('master', vol),

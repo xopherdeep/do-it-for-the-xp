@@ -247,9 +247,10 @@ const templateSchedule = (template: RoomQuestTemplate): string =>
 
 /** A hero's dot for a room, from their board. A quest the rules cannot read leaves the dot out. */
 const dotOf = (cell: QuestRoomCell, hero: QuestHero, liveQuests: readonly Achievement[], now: Date) => {
-  if (!hero.board) return null;
+  const board = hero.board;
+  if (!board) return null;
   try {
-    const state = roomQuestState(cell.room, hero.id, hero.board.board, now, { effects: hero.board.effects, liveQuests });
+    const state = roomQuestState(cell.room, hero.id, board.board, now, { effects: board.effects, liveQuests });
     const dot: HeroDot = { heroId: hero.id, name: hero.nick, status: state.status, label: `${hero.nick}: ${DOT_WORDS[state.status]}` };
     return { dot, quest: state.quest };
   } catch (error) {
@@ -275,7 +276,8 @@ const rowOf = (cell: QuestRoomCell, input: TempleQuestsInput, liveQuests: readon
     mismatch: null as string | null,
   };
 
-  if (resolution.kind === "dormant") {
+  const isDormant = resolution.kind === "dormant";
+  if (isDormant) {
     const { template } = resolution;
     const face = faceOf(String(template.beastId), beasts, "a beast");
     const difficulty = Number(template.difficulty) || 0;
@@ -300,7 +302,8 @@ const rowOf = (cell: QuestRoomCell, input: TempleQuestsInput, liveQuests: readon
     return { row, resolution };
   }
 
-  if (resolution.kind !== "quest") {
+  const isLiveQuest = resolution.kind === "quest";
+  if (!isLiveQuest) {
     const row: TempleQuestRow = {
       ...base,
       kind: "emptyLair",

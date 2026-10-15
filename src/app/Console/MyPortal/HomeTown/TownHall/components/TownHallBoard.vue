@@ -3,7 +3,7 @@
     <!-- The hero's own posts the site does not have yet come first, whether or not the Board has arrived -->
     <town-hall-waiting :posts="waiting" @dismiss="emit('dismiss', $event)" @edit="emit('edit', $event)" />
 
-    <xp-loading v-if="loading && !topics.length" />
+    <xp-loading v-if="isLoading && !topics.length" />
 
     <ion-card v-else-if="failed && !topics.length" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
@@ -24,7 +24,7 @@
         </ion-card-header>
       </ion-card>
 
-      <ion-card v-if="!topics.length && !loading" data-cy="th-board-empty">
+      <ion-card v-if="!topics.length && !isLoading" data-cy="th-board-empty">
         <ion-card-content class="ion-text-center">Nothing posted here yet</ion-card-content>
       </ion-card>
 
@@ -50,7 +50,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
+      <ion-button v-if="hasMore && !isLoading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
         Older topics
       </ion-button>
     </template>
@@ -95,7 +95,7 @@ const topics = ref<TopicItem[]>([]);
 const page = ref(1);
 const hasMore = ref(false);
 const board = computed(() => boards.value.find((candidate) => candidate.slug === props.boardSlug));
-const { loading, failed, run } = useTownHallLoad(() => emit("trouble"));
+const { isLoading, failed, run } = useTownHallLoad(() => emit("trouble"));
 
 /** Only the newest request may fill the list: a hero flipping between boards must not see the slow one land last. */
 let ticket = 0;
@@ -109,7 +109,8 @@ const loadTopics = async (next: number) => {
   }
   const mine = ++ticket;
   const result = await fetchTopics(current.id, next);
-  if (mine !== ticket) return;
+  const isStale = mine !== ticket;
+  if (isStale) return;
   topics.value = next === 1 ? result.items : [...topics.value, ...result.items];
   page.value = next;
   hasMore.value = next < result.totalPages;
@@ -128,7 +129,9 @@ watch(
   () => props.boardSlug,
   () => {
     topics.value = [];
-    if (boards.value.length) run(() => loadTopics(1));
+    const hasBoards = boards.value.length > 0;
+    if (hasBoards) run(() => loadTopics(1));
+
   }
 );
 

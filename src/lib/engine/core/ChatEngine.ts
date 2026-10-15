@@ -11,9 +11,7 @@ export class ChatEngine {
     private constructor() { }
 
     public static getInstance(): ChatEngine {
-        if (!ChatEngine.instance) {
-            ChatEngine.instance = new ChatEngine();
-        }
+        ChatEngine.instance ??= new ChatEngine();
         return ChatEngine.instance;
     }
 

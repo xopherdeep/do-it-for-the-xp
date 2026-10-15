@@ -99,26 +99,12 @@
                       class="room-coords"
                     />
                   </div>
-                  <div class="room-details">
-                    <span
-                      v-if="room.beasts && room.beasts.length"
-                      class="detail-badge beasts"
-                    >
-                      <i class="fad fa-skull"></i> {{ room.beasts.length }}
-                    </span>
-                    <span
-                      v-if="room.hasLoot"
-                      class="detail-badge loot"
-                    >
-                      <i class="fad fa-treasure-chest"></i>
-                    </span>
-                    <span
-                      v-if="room.isLocked"
-                      class="detail-badge locked"
-                    >
-                      <i class="fas fa-lock"></i>
-                    </span>
-                  </div>
+                  <XpTempleRoomBadges
+                    class="room-details"
+                    :beasts="room.beasts?.length ?? 0"
+                    :has-loot="room.hasLoot"
+                    :is-locked="room.isLocked"
+                  />
                 </div>
 
                 <div class="room-arrow">
@@ -153,6 +139,7 @@ import { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem,
 import { homeOutline } from 'ionicons/icons';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
+import XpTempleRoomBadges from "./XpTempleRoomBadges.vue";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
 import { VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
@@ -173,7 +160,7 @@ interface RoomListItem {
 
 export default defineComponent({
   name: "xp-temple-rooms",
-  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading, XpCoordBadge },
+  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading, XpCoordBadge, XpTempleRoomBadges },
   setup() {
     const route = useRoute();
     const ionRouter = useIonRouter();
@@ -198,12 +185,12 @@ export default defineComponent({
     const roomList = computed((): RoomListItem[] => {
       const rooms: RoomListItem[] = [];
       
-      if (!temple.value.dungeonLayout?.maze || !temple.value.dungeonLayout?.rooms) {
+      const maze = temple.value.dungeonLayout?.maze;
+      const roomDefs = temple.value.dungeonLayout?.rooms;
+      const isMissingLayout = !maze || !roomDefs;
+      if (isMissingLayout) {
         return rooms;
       }
-
-      const maze = temple.value.dungeonLayout.maze;
-      const roomDefs = temple.value.dungeonLayout.rooms;
 
       const processFloor = (grid: string[][], floorId: string) => {
         grid.forEach((row, rowIndex) => {
@@ -257,9 +244,7 @@ export default defineComponent({
       return rooms.sort((a, b) => {
         const aPriority = typePriority[a.type] || 99;
         const bPriority = typePriority[b.type] || 99;
-        if (aPriority !== bPriority) return aPriority - bPriority;
-        if (a.row !== b.row) return a.row - b.row;
-        return a.col - b.col;
+        return aPriority - bPriority || a.row - b.row || a.col - b.col;
       });
     });
 
@@ -269,8 +254,10 @@ export default defineComponent({
       
       // Get floor order (surface floors ascending, then basement floors descending)
       const getFloorValue = (f: string): number => {
-        if (f.endsWith('F')) return parseInt(f);
-        if (f.startsWith('B')) return -parseInt(f.replace('B', ''));
+        const isUpperFloor = f.endsWith('F');
+        const isBasement = f.startsWith('B');
+        if (isUpperFloor) return parseInt(f);
+        if (isBasement) return -parseInt(f.replace('B', ''));
         return 0;
       };
 
@@ -315,12 +302,15 @@ export default defineComponent({
     };
 
     const formatFloorName = (floorId: string): string => {
-      if (floorId.endsWith('F')) {
+      const isUpperFloor = floorId.endsWith('F');
+      const isBasement = floorId.startsWith('B');
+      if (isUpperFloor) {
         const num = parseInt(floorId);
-        if (num === 1) return 'Ground Floor';
+        const isGroundFloor = num === 1;
+        if (isGroundFloor) return 'Ground Floor';
         return `Floor ${num}`;
       }
-      if (floorId.startsWith('B')) {
+      if (isBasement) {
         const num = parseInt(floorId.replace('B', ''));
         return `Basement ${num}`;
       }
@@ -328,8 +318,10 @@ export default defineComponent({
     };
 
     const getFloorIcon = (floorId: string): string => {
-      if (floorId.startsWith('B')) return 'fa-dungeon';
-      if (floorId === '1F') return 'fa-dungeon-door';
+      const isBasement = floorId.startsWith('B');
+      const isGroundFloor = floorId === '1F';
+      if (isBasement) return 'fa-dungeon';
+      if (isGroundFloor) return 'fa-dungeon-door';
       return 'fa-clouds';
     };
 
@@ -359,356 +351,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-  .xp-temple-rooms {
-    --background: transparent;
-  }
-
-  .transparent-content {
-    --background: transparent;
-  }
-
-  .loading-wrapper-centered {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100%;
-    padding: 40px;
-  }
-
-  .content-wrapper {
-    padding: 0 16px 40px;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  /* Summary Header */
-  .summary-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-
-  .stat-pills {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .sort-toggle {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    i {
-      font-size: 1.2rem;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-
-  .stat-pills {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.8);
-
-    i {
-      font-size: 1rem;
-    }
-  }
-
-  /* Floor Accordion */
-  .floor-accordion {
-    margin-bottom: 12px;
-    border-radius: 16px;
-    overflow: hidden;
-    background: transparent;
-
-    &::part(header) {
-      background: rgba(25, 27, 46, 0.6);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-    }
-
-    &::part(content) {
-      background: transparent;
-      padding: 0;
-    }
-
-    &.accordion-expanded::part(header) {
-      border-radius: 16px 16px 0 0;
-    }
-  }
-
-  .floor-header {
-    --background: transparent;
-    --color: white;
-    --padding-start: 16px;
-    --inner-padding-end: 16px;
-
-    .floor-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      margin-right: 14px;
-
-      i {
-        font-size: 1.2rem;
-        color: var(--ion-color-tertiary);
-      }
-    }
-
-    ion-label {
-      h2 {
-        font-family: var(--xp-font-heading);
-        font-size: 1rem;
-        color: white;
-        margin: 0 0 2px;
-      }
-
-      p {
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
-        margin: 0;
-      }
-    }
-  }
-
-  /* Room List */
-  .room-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(15, 17, 30, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-top: none;
-    border-radius: 0 0 16px 16px;
-  }
-
-  .room-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
-    background: rgba(25, 27, 46, 0.6);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(35, 37, 56, 0.8);
-      border-color: rgba(255, 255, 255, 0.15);
-      transform: translateX(4px);
-    }
-
-    &:active {
-      transform: scale(0.98);
-    }
-  }
-
-  .room-icon-wrapper {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
-
-    i {
-      font-size: 1.3rem;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    &.type-boss {
-      background: rgba(255, 69, 58, 0.2);
-      border-color: rgba(255, 69, 58, 0.4);
-
-      i {
-        color: #ff453a;
-      }
-    }
-
-    &.type-miniboss {
-      background: rgba(255, 159, 10, 0.2);
-      border-color: rgba(255, 159, 10, 0.4);
-
-      i {
-        color: #ff9f0a;
-      }
-    }
-
-    &.type-monster {
-      background: rgba(175, 82, 222, 0.2);
-      border-color: rgba(175, 82, 222, 0.4);
-
-      i {
-        color: #af52de;
-      }
-    }
-
-    &.type-loot {
-      background: rgba(255, 214, 10, 0.2);
-      border-color: rgba(255, 214, 10, 0.4);
-
-      i {
-        color: #ffd60a;
-      }
-    }
-
-    &.type-shop {
-      background: rgba(48, 209, 88, 0.2);
-      border-color: rgba(48, 209, 88, 0.4);
-
-      i {
-        color: #30d158;
-      }
-    }
-
-    &.type-teleport {
-      background: rgba(10, 132, 255, 0.2);
-      border-color: rgba(10, 132, 255, 0.4);
-
-      i {
-        color: #0a84ff;
-      }
-    }
-  }
-
-  .room-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .room-title {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .room-type {
-    font-family: var(--xp-font-heading);
-    font-size: 0.9rem;
-    color: white;
-  }
-
-  .room-coords {
-    font-family: "StatusPlz";
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  .room-details {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .detail-badge {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.65rem;
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
-
-    i {
-      font-size: 0.65rem;
-    }
-
-    &.beasts {
-      background: rgba(175, 82, 222, 0.2);
-      color: #af52de;
-    }
-
-    &.loot {
-      background: rgba(255, 214, 10, 0.2);
-      color: #ffd60a;
-    }
-
-    &.locked {
-      background: rgba(255, 159, 10, 0.2);
-      color: #ff9f0a;
-    }
-  }
-
-  .room-arrow {
-    color: rgba(255, 255, 255, 0.3);
-    transition: transform 0.2s ease;
-
-    .room-card:hover & {
-      transform: translateX(4px);
-      color: rgba(255, 255, 255, 0.6);
-    }
-  }
-
-  /* Empty State */
-  .glass-card {
-    background: rgba(25, 27, 46, 0.6);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-    text-align: center;
-
-    &.empty-state {
-      .empty-icon {
-        font-size: 3rem;
-        color: rgba(255, 255, 255, 0.3);
-        margin-bottom: 16px;
-      }
-
-      h2 {
-        font-family: var(--xp-font-heading);
-        font-size: 1.1rem;
-        color: white;
-        margin: 0 0 8px;
-      }
-
-      p {
-        margin: 0;
-        color: rgba(255, 255, 255, 0.5);
-        line-height: 1.5;
-      }
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpTempleRooms.scss" />

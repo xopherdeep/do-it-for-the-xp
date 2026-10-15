@@ -332,7 +332,9 @@ const pickBackground = () => {
 const onBackgroundChanged = (picked: { bg1: number; bg2: number; aspectRatio?: number }) => {
   draft.value.bg1 = picked.bg1;
   draft.value.bg2 = picked.bg2;
-  if (picked.aspectRatio !== undefined) draft.value.aspectRatio = picked.aspectRatio;
+  const aspectRatio = picked.aspectRatio;
+  const hasAspectRatio = aspectRatio !== undefined;
+  if (hasAspectRatio) draft.value.aspectRatio = aspectRatio;
   backgroundManager.updateBackground({
     bg1: draft.value.bg1,
     bg2: draft.value.bg2,
@@ -349,7 +351,8 @@ onMounted(async () => {
 
 onActivated(() => {
   // Another page may have the engine now (a kept-alive page comes back to a canvas that is dark)
-  if (isLoaded.value && !backgroundManager.isActiveFor(PAGE_ID)) void reclaimBackdrop();
+  const hasLostBackdrop = isLoaded.value && !backgroundManager.isActiveFor(PAGE_ID);
+  if (hasLostBackdrop) void reclaimBackdrop();
 });
 
 onUnmounted(() => {
@@ -371,7 +374,8 @@ const pickBeast = async () => {
     const { data } = await modal.onDidDismiss<number>();
     // The picker took the canvas over, whether it was cancelled or not
     await reclaimBackdrop();
-    if (typeof data === "number" && data > 0) draft.value.avatar = data;
+    const isAvatarPicked = typeof data === "number" && data > 0;
+    if (isAvatarPicked) draft.value.avatar = data;
   } catch (error) {
     debug.warn("[BeastWizard] the beast picker could not be opened", error);
   }
@@ -390,7 +394,8 @@ const choreInput = ref<HTMLInputElement | null>(null);
 
 // Enter and the "+ chore" button add it; leaving the field with a chore typed adds it too, so Next never loses it
 const addNewChore = () => {
-  if (!choreText.value.trim()) return;
+  const hasChoreText = Boolean(choreText.value.trim());
+  if (!hasChoreText) return;
   play$fx("select");
   draft.value.checklist = addChore(draft.value.checklist, choreText.value);
   choreText.value = "";
@@ -429,7 +434,9 @@ const openDetailsModal = async () => {
     await modal.present();
     const { data } = await modal.onWillDismiss<{ beast?: { name?: string; checklist?: string[] } }>();
     const suggested = data?.beast;
-    if (typeof suggested?.name === "string") draft.value.name = suggested.name;
+    const suggestedName = suggested?.name;
+    const hasSuggestedName = typeof suggestedName === "string";
+    if (hasSuggestedName) draft.value.name = suggestedName;
     if (Array.isArray(suggested?.checklist)) draft.value.checklist = [...suggested.checklist];
     await reclaimBackdrop();
   } catch (error) {
@@ -442,7 +449,8 @@ const openDetailsModal = async () => {
 // A tap on a summary line goes back to the step that owns it (always allowed, even to a step still unanswered)
 const goTo = (stepId: BeastStepId) => {
   const at = steps.findIndex((step) => step.id === stepId);
-  if (at < 0) return;
+  const isUnknownStep = at < 0;
+  if (isUnknownStep) return;
   play$fx("cursor");
   position.value = at;
 };
@@ -475,7 +483,8 @@ const dismiss = () => {
 
 const summon = async () => {
   // The fanfare is up: the beast is already saved, a second tap must not make a second one
-  if (isSaving.value || showFanfare.value) return;
+  const isBusy = isSaving.value || showFanfare.value;
+  if (isBusy) return;
   const problem = beastProblem(draft.value);
   if (problem) {
     play$fx("no");
@@ -512,374 +521,4 @@ const finishFanfare = () => {
 };
 </script>
 
-<style lang="scss" scoped>
-// The page wears the Beast Log's accent through the XpApp kit (useAppSkin); the live battle backdrop shows through the
-// body, so the content is transparent and the pieces that must be read sit on plates of the kit's surface.
-.battle-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-  background: black;
-  pointer-events: none;
-  animation: bw-fade-in 1s ease-in-out;
-}
-
-@keyframes bw-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-.beast-wizard.xp-app :deep(ion-content) {
-  --background: transparent;
-}
-
-// The shell's dots and guide line sit straight on the backdrop: give them a plate so they read
-.beast-wizard :deep(.xp-wiz-dots) {
-  width: fit-content;
-  margin: 10px auto 0;
-  padding: 6px 12px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-}
-
-.beast-wizard :deep(.xp-wiz-guide) {
-  padding: 8px 12px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-}
-
-// The background sheet's own icon button is hidden; the Background button in the bar opens it. Its modal stays.
-.bw-selector {
-  display: contents;
-
-  :deep(.bg-selector-button) {
-    display: none;
-  }
-}
-
-// ---- Look, name and summary: the beast stands on the backdrop ---------------------------------------------------
-
-.bw-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  min-height: 46vh;
-  padding: 8px 12px 16px;
-}
-
-.bw-beast {
-  display: block;
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-
-  &__art {
-    display: block;
-    width: min(62vw, 280px);
-    max-height: 40vh;
-    height: auto;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.55));
-
-    &--small {
-      width: min(40vw, 170px);
-      max-height: 24vh;
-    }
-
-    // The summary keeps its lines in view: the beast is only a badge there
-    &--tiny {
-      width: min(30vw, 120px);
-      max-height: 15vh;
-    }
-  }
-
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: min(56vw, 240px);
-    aspect-ratio: 1;
-    background: var(--xp-app-surface);
-    border: 2px dashed var(--xp-app-accent);
-    border-radius: var(--xp-app-radius-tile);
-    color: var(--xp-app-text);
-    font-family: var(--xp-app-font-title);
-    font-size: 0.95rem;
-    text-align: center;
-    text-transform: var(--xp-app-title-transform);
-
-    i {
-      color: var(--xp-app-accent);
-      font-size: 2.6rem;
-    }
-  }
-}
-
-.bw-nameplate {
-  max-width: 100%;
-  margin: 0;
-  padding: 8px 16px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-  box-shadow: 0 0 0 2px var(--xp-app-accent);
-  color: var(--xp-app-text);
-  font-family: var(--xp-app-font-title);
-  font-size: 1.3rem;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  text-align: center;
-  text-transform: var(--xp-app-title-transform);
-
-  &.is-empty {
-    color: var(--xp-app-text-dim);
-  }
-}
-
-// ---- Pickers in the bar (thumb reach) ---------------------------------------------------------------------------
-
-.bw-picks {
-  display: flex;
-  gap: 10px;
-}
-
-.bw-pick {
-  flex: 1 1 0;
-  min-height: 48px;
-  font-size: 0.95rem;
-}
-
-.bw-add {
-  flex: 0 0 auto;
-  min-height: 34px;
-}
-
-// ---- Chores ------------------------------------------------------------------------------------------------------
-
-.bw-window {
-  margin: 8px 12px 12px;
-  padding: 12px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-section);
-  box-shadow: 0 0 0 2px var(--xp-app-accent);
-  color: var(--xp-app-text);
-}
-
-.bw-ai {
-  width: 100%;
-  min-height: 40px;
-  margin-bottom: 10px;
-}
-
-.bw-chores {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.bw-chore {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 2px 2px 8px;
-  background: var(--xp-app-surface-2);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-
-  &__n {
-    flex: 0 0 auto;
-    width: 26px;
-    height: 26px;
-    background: var(--xp-app-accent);
-    border-radius: var(--xp-app-radius-chip);
-    color: var(--xp-app-on-accent);
-    font-family: var(--xp-app-font-title);
-    font-size: 0.85rem;
-    line-height: 26px;
-    text-align: center;
-  }
-
-  &__text {
-    --background: transparent;
-    --color: var(--xp-app-text);
-    --placeholder-color: var(--xp-app-text-dim);
-    --placeholder-opacity: 1;
-    --padding-start: 6px;
-    --padding-end: 6px;
-    --padding-top: 10px;
-    --padding-bottom: 10px;
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 44px;
-    font-family: var(--xp-app-font-body);
-    font-size: 0.95rem;
-  }
-
-  &__btn {
-    flex: 0 0 auto;
-    width: 38px;
-    height: 44px;
-    background: transparent;
-    border: 0;
-    color: var(--xp-app-text);
-    cursor: pointer;
-    font-size: 1.1rem;
-    -webkit-tap-highlight-color: transparent;
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.3;
-    }
-
-    &:active:not(:disabled) {
-      background: var(--xp-app-press);
-    }
-
-    &--drop {
-      color: var(--xp-app-text-dim);
-    }
-  }
-}
-
-.bw-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 4px;
-  color: var(--xp-app-text-dim);
-  font-size: 0.95rem;
-  text-align: center;
-
-  i {
-    color: var(--xp-app-accent);
-    font-size: 2.2rem;
-  }
-}
-
-// ---- Summary -----------------------------------------------------------------------------------------------------
-
-.bw-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 8px 12px 12px;
-}
-
-.bw-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.bw-card__name {
-  max-width: 100%;
-  margin: 0;
-  padding: 6px 14px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-  box-shadow: 0 0 0 2px var(--xp-app-accent);
-  color: var(--xp-app-text);
-  font-family: var(--xp-app-font-title);
-  font-size: 1.15rem;
-  overflow-wrap: anywhere;
-  text-align: center;
-  text-transform: var(--xp-app-title-transform);
-}
-
-.bw-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.bw-line {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 6px 12px;
-  background: var(--xp-app-surface);
-  border: var(--xp-app-section-border);
-  border-radius: var(--xp-app-radius-tile);
-  color: var(--xp-app-text);
-  cursor: pointer;
-  font-family: var(--xp-app-font-body);
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
-
-  &:active {
-    background: var(--xp-app-surface-2);
-  }
-
-  &__label {
-    flex: 0 0 auto;
-    min-width: 64px;
-    color: var(--xp-app-text-dim);
-    font-family: var(--xp-app-font-title);
-    font-size: 0.8rem;
-    text-transform: var(--xp-app-title-transform);
-  }
-
-  &__value {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 1rem;
-    overflow-wrap: anywhere;
-  }
-
-  i {
-    flex: 0 0 auto;
-    color: var(--xp-app-accent);
-  }
-
-  // Something still wanted: the line is ringed in the accent
-  &.is-missing {
-    border-color: var(--xp-app-accent);
-    box-shadow: 0 0 0 1px var(--xp-app-accent);
-  }
-
-  &__chores {
-    margin: 6px 0 0;
-    padding: 8px 12px 8px 34px;
-    background: var(--xp-app-surface);
-    border: var(--xp-app-section-border);
-    border-radius: var(--xp-app-radius-tile);
-    color: var(--xp-app-text);
-    font-size: 0.95rem;
-    line-height: 1.3;
-
-    li {
-      padding: 2px 0;
-      overflow-wrap: anywhere;
-    }
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpAddBeast.scss" />

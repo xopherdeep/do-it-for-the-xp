@@ -11,7 +11,8 @@ export function getDoorIcon(
   sideConfig: any, 
   lockOnEnter: boolean = false
 ): string {
-  if (!adjacentRooms[direction]) {
+  const isWall = !adjacentRooms[direction];
+  if (isWall) {
     return 'fas fa-square-full';
   }
 
@@ -33,7 +34,8 @@ export function getDoorClass(
   sideConfig: any, 
   lockOnEnter: boolean = false
 ): string {
-  if (!adjacentRooms[direction]) {
+  const isWall = !adjacentRooms[direction];
+  if (isWall) {
     return 'state-wall';
   }
 

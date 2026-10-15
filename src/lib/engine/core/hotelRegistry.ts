@@ -120,7 +120,8 @@ export const getHotelByWorld = (worldId: string | null | undefined): HotelMetada
 
 export const getHotelMetadata = (hotelIdOrWorld: string | null | undefined): HotelMetadata => {
   if (!hotelIdOrWorld) return DEFAULT_HOTEL;
-  if (HOTEL_METADATA[hotelIdOrWorld]) return HOTEL_METADATA[hotelIdOrWorld];
+  const registered = HOTEL_METADATA[hotelIdOrWorld];
+  if (registered) return registered;
   const byWorld = getHotelByWorld(hotelIdOrWorld);
   return byWorld || DEFAULT_HOTEL;
 };

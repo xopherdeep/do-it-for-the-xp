@@ -115,17 +115,13 @@ export default defineComponent({
     );
 
     watch(facingYaw, (newYaw) => {
-      if (handle?.setYaw) {
-        handle.setYaw(newYaw);
-      }
+      handle?.setYaw?.(newYaw);
     });
 
     watch(
       () => props.spinSpeed,
       (newSpeed) => {
-        if (handle?.setSpinSpeed) {
-          handle.setSpinSpeed(newSpeed);
-        }
+        handle?.setSpinSpeed?.(newSpeed);
       }
     );
 
@@ -142,7 +138,8 @@ export default defineComponent({
     }));
 
     const computedWrapperStyle = computed(() => {
-      if (!props.roam) {
+      const isRoaming = props.roam;
+      if (!isRoaming) {
         return {
           position: "relative" as const,
           zIndex: 90,
@@ -152,7 +149,8 @@ export default defineComponent({
     });
 
     const handleClick = () => {
-      if (typeof play$fx === "function") {
+      const canPlayFx = typeof play$fx === "function";
+      if (canPlayFx) {
         play$fx("select");
       }
       emit("click");

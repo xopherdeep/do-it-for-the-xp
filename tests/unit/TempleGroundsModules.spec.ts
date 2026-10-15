@@ -60,7 +60,7 @@ describe("useTempleMovement: what a tap or a swipe toward each kind of side does
       canMoveLeft: ref(true),
       canMoveRight: ref(true),
       isDoorLocked: jest.fn(() => locked),
-      move: jest.fn(() => true),
+      stepTo: jest.fn(() => true),
       fx: jest.fn(),
       updateBg: jest.fn(),
       showLockedDoor: jest.fn(),
@@ -86,7 +86,7 @@ describe("useTempleMovement: what a tap or a swipe toward each kind of side does
     movement.handleMove("north");
 
     expect(deps.showCrackedWall).toHaveBeenCalledWith("north");
-    expect(deps.move).not.toHaveBeenCalled();
+    expect(deps.stepTo).not.toHaveBeenCalled();
     expect(deps.updateBg).not.toHaveBeenCalled();
     expect(deps.showLockedDoor).not.toHaveBeenCalled();
   });
@@ -107,7 +107,7 @@ describe("useTempleMovement: what a tap or a swipe toward each kind of side does
     movement.handleTouchEnd({ changedTouches: [{ clientX: 100, clientY: 300 }] } as never); // a swipe left goes east
 
     expect(deps.showCrackedWall).toHaveBeenCalledWith("east");
-    expect(deps.move).not.toHaveBeenCalled();
+    expect(deps.stepTo).not.toHaveBeenCalled();
   });
 
   it("steps through an open side", () => {
@@ -116,7 +116,7 @@ describe("useTempleMovement: what a tap or a swipe toward each kind of side does
     movement.handleMove("south");
 
     expect(deps.showCrackedWall).not.toHaveBeenCalled();
-    expect(deps.move).toHaveBeenCalledWith("south");
+    expect(deps.stepTo).toHaveBeenCalledWith("south");
     expect(deps.fx).toHaveBeenCalledWith("step");
   });
 

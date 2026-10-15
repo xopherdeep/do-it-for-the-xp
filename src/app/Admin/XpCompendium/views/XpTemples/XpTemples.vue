@@ -124,6 +124,14 @@
   import { play$fx } from "@/assets/fx";
   import { useProStore } from "@/lib/store/stores/pro";
 
+  /** The parts of a temple its card label reads */
+  interface TempleLabelSource {
+    id: string;
+    world?: string;
+    customName?: string;
+    name?: string;
+  }
+
   // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
   const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
@@ -226,9 +234,11 @@
         const keys = await templeStorage.keys();
         const found: TempleInterface[] = [];
         for (const key of keys) {
-          if (shipped.has(key)) continue;
+          const isShipped = shipped.has(key);
+          if (isShipped) continue;
           const data = await templeDb.getTempleById(key);
-          if (data?.dungeonLayout) found.push(data);
+          const isCustomTemple = !!data?.dungeonLayout;
+          if (isCustomTemple) found.push(data);
         }
         customTemples.value = found.sort((a, b) => (a.customName || a.name || a.id).localeCompare(b.customName || b.name || b.id));
       };
@@ -303,7 +313,8 @@
 
       // Temple Creator is XP Pro: making a temple (by hand or from a seed) opens the upsell for a free family
       const openGenerator = async () => {
-        if (!(await pro.requirePro("templeCreator"))) return;
+        const hasPro = await pro.requirePro("templeCreator");
+        if (!hasPro) return;
         play$fx("openMenu");
         generatorOpen.value = true;
       };
@@ -358,7 +369,8 @@
               icon: createOutline,
               cssClass: "action-create",
               handler: async () => {
-                if (!(await pro.requirePro("templeCreator"))) return;
+                const hasPro = await pro.requirePro("templeCreator");
+                if (!hasPro) return;
                 // A real id from the first tap: every save (the Creator's, the General card's) writes under the id of
                 // its route, and the old placeholder "new" was the same for every temple, so a second one overwrote the first
                 goToTempleCreator(mintTempleId());
@@ -394,7 +406,7 @@
       };
 
       // The world's name is painted into the card art; say it for screen readers
-      const templeLabel = (temple: { id: string; world?: string; customName?: string; name?: string }) => {
+      const templeLabel = (temple: TempleLabelSource) => {
         const name = TEMPLE_METADATA[temple.id]?.name || temple.customName || temple.name || temple.id;
         return temple.world ? `${name}, ${temple.world}` : name;
       };
@@ -425,88 +437,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  .xp-temples {
-
-    // Global page styles
-    ion-toolbar {
-      ion-title {
-        font-family: var(--xp-font-fantasy, "Fantasy");
-        font-size: 1.5rem;
-      }
-    }
-
-    // Card styles
-    .temple-card {
-      margin: 8px;
-      border-radius: 12px;
-      overflow: hidden;
-      // Loading placeholder - dark background so it has 'weight' before image loads
-      background: #1a1a2e;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      position: relative;
-      border: 2px solid rgba(255, 255, 255, 0.05);
-
-      &.portrait-card {
-        aspect-ratio: 1 / 1.3;
-        display: flex;
-        flex-direction: column;
-      }
-
-      &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.5);
-        border-color: rgba(255, 255, 255, 0.3);
-
-        .temple-bg-image {
-          transform: scale(1.05);
-          opacity: 1;
-        }
-      }
-
-      .img-wrapper {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        position: relative;
-      }
-
-      .temple-bg-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: 0.9;
-        transition: transform 0.5s ease, opacity 0.3s ease;
-      }
-
-      // A generated temple names itself on its card: it has no portrait of its own
-      .generated-banner {
-        position: absolute;
-        left: 6px;
-        right: 6px;
-        bottom: 6px;
-        padding: 4px 8px;
-        display: flex;
-        flex-direction: column;
-        font-size: 0.8rem;
-        line-height: 1.2;
-
-        .generated-name {
-          font-weight: bold;
-        }
-
-        .generated-seed {
-          font-family: monospace;
-          font-size: 0.7rem;
-          opacity: 0.75;
-        }
-      }
-    }
-
-    // Floating button
-    ion-fab-button {
-      --box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpTemples.scss" />

@@ -33,8 +33,9 @@ export default defineComponent({
     // Display name: DB customName > registry name > templeId
     const displayName = computed(() => {
       // Use injected data if available
-      if (templeData?.temple?.value?.customName) {
-        return templeData.temple.value.customName;
+      const customName = templeData?.temple?.value?.customName;
+      if (customName) {
+        return customName;
       }
       return registryMetadata.value.name;
     });

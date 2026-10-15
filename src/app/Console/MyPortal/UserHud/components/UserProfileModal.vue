@@ -322,8 +322,9 @@ export default defineComponent({
 
     // Parse current avatar index from user
     const getCurrentAvatarIndex = () => {
-      if (!props.user?.avatar) return 1;
-      const match = props.user.avatar.match(/(\d+)/);
+      const avatar = props.user?.avatar;
+      if (!avatar) return 1;
+      const match = avatar.match(/(\d+)/);
       return match ? parseInt(match[1], 10) : 1;
     };
 
@@ -532,9 +533,10 @@ export default defineComponent({
     // Calculate progress within current level
     const xpValues = computed(() => {
       const stats = props.user?.stats;
-      if (!stats?.xp) return { inLevel: 0, needed: 100 };
+      const xp = stats?.xp;
+      if (!xp) return { inLevel: 0, needed: 100 };
 
-      const totalXp = stats.xp.now || stats.xp.current || 0;
+      const totalXp = xp.now || xp.current || 0;
       const level = currentLevel.value;
       const xpForCurrent = getXpForLevel(level);
       const xpForNext = getXpForLevel(level + 1);
@@ -550,7 +552,9 @@ export default defineComponent({
     // Experience Progress calculation
     const xpProgress = computed(() => {
       const { inLevel, needed } = xpValues.value;
-      if (needed <= 0) return 1; // maxed out
+      const isMaxedOut = needed <= 0;
+      if (isMaxedOut) return 1; // maxed out
+
       return Math.min(Math.max(inLevel / needed, 0), 1);
     });
 
@@ -578,8 +582,9 @@ export default defineComponent({
 
     // Check if a pillar is boosted by the user's current class
     const isPillarBoosted = (pillarName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
       if (!jobClass) return false;
       return (
         jobClass.primaryPillar === pillarName ||
@@ -589,8 +594,9 @@ export default defineComponent({
     };
 
     const isStatBoosted = (statName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
       const hasNoStatBoosts = !jobClass || !jobClass.statBoosts;
       if (hasNoStatBoosts) return false;
       return jobClass.statBoosts.some(boost => boost.stat === statName);
@@ -727,145 +733,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss">
-// Styles are in earthbound.scss for the .user-profile-modal class
-.user-profile-modal {
-  .records-button {
-    margin: 0.75rem 1rem 0.25rem;
-    font-family: "StatusPlz", sans-serif;
-  }
-
-  .mastery-dice-row {
-    display: flex !important;
-    justify-content: space-between;
-    gap: 0.5rem;
-
-    .dice-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.25rem;
-      padding: 0.5rem;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      min-height: 80px;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-
-      // Colors
-      &.red i {
-        color: #ff5252;
-      }
-
-      &.orange i {
-        color: #ffa726;
-      }
-
-      &.yellow i {
-        color: #ffd740;
-      }
-
-      &.green i {
-        color: #69f0ae;
-      }
-
-      &.blue i {
-        color: #40c4ff;
-      }
-
-      &.purple i {
-        color: #b388ff;
-      }
-
-      .dice-inner {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-
-        i {
-          font-size: 2rem;
-          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
-        }
-
-        .lock-overlay {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 1rem;
-          z-index: 2;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-        }
-      }
-
-      .dice-label {
-        font-family: "Apple Kid", sans-serif;
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.9);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        z-index: 2;
-
-        .lock-label {
-          font-size: 0.6rem;
-          opacity: 0.6;
-          font-family: "StatusPlz", serif;
-        }
-      }
-
-      // Locked State
-      &.is-locked {
-        background: rgba(0, 0, 0, 0.2);
-        border-style: dashed;
-        opacity: 0.7;
-
-        i {
-          color: #555 !important; // Grayscale base
-          filter: grayscale(100%) !important;
-          opacity: 0.3;
-          transform: scale(0.9);
-        }
-      }
-
-      // Hover Effect (Unlocked)
-      &:not(.is-locked):hover {
-        background: rgba(255, 255, 255, 0.1);
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-
-        i {
-          transform: scale(1.15) rotate(5deg);
-          filter: drop-shadow(0 0 8px currentColor); // Glow in its own color
-        }
-      }
-    }
-  }
-}
-
-.user-profile-modal .stat-item .stat-now {
-  margin-top: 2px;
-  font-style: italic;
-  opacity: 0.8;
-}
-
-.avatar-box .my-look-label {
-  display: block;
-  margin-top: 4px;
-  font-family: "StatusPlz", monospace;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  text-align: center;
-  color: #e7e6b3;
-  opacity: 0.85;
-}
-</style>
+<style lang="scss" src="./_UserProfileModal.scss" />

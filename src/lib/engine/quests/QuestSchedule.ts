@@ -77,7 +77,8 @@ export const timeOfDayOfHour = (hour: number): TimeOfDay => {
   if (isMorning) return "morning";
   const isNoon = h >= 12 && h < 18;
   if (isNoon) return "noon";
-  if (h >= 18) return "evening";
+  const isEvening = h >= 18;
+  if (isEvening) return "evening";
   return "night";
 };
 
@@ -93,7 +94,8 @@ const listedTimesOfDay = (quest: Pick<Achievement, "timesOfDay">): TimeOfDay[] =
  */
 export const questTimesOfDay = (quest: Pick<Achievement, "timesOfDay" | "dueByTime">): TimeOfDay[] => {
   const listed = listedTimesOfDay(quest);
-  if (listed.length) return listed;
+  const hasListedTimes = listed.length > 0;
+  if (hasListedTimes) return listed;
   const due = dueTimeOn(quest.dueByTime, new Date(0));
   return due ? [timeOfDayOf(due)] : [];
 };
@@ -221,7 +223,8 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
  */
 export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffects | undefined, date: Date): Date => {
   const day = startOfDay(date);
-  if (quest.basicSchedule === "once") {
+  const isOneOff = quest.basicSchedule === "once";
+  if (isOneOff) {
     const starts = parseDate(quest.startsOn);
     const dueDay = starts ? startOfDay(starts) : day;
     const isSnoozedOnDueDay = effects?.snoozedOn?.[quest.id] === dayKeyOf(dueDay);
@@ -283,8 +286,10 @@ export const isQuestActiveOn = (quest: QuestScheduleInput, date: Date): boolean 
 };
 
 const calculateUnitDiff = (unit: "day" | "month" | "year", day: Date, anchor: Date): number => {
-  if (unit === "day") return differenceInCalendarDays(day, anchor);
-  if (unit === "month") return differenceInCalendarMonths(day, anchor);
+  const isInDays = unit === "day";
+  if (isInDays) return differenceInCalendarDays(day, anchor);
+  const isInMonths = unit === "month";
+  if (isInMonths) return differenceInCalendarMonths(day, anchor);
   return differenceInCalendarYears(day, anchor);
 };
 
@@ -369,7 +374,8 @@ export const getEffectiveWindow = (
   date: Date
 ): QuestWindow | null => {
   const key = dayKeyOf(date);
-  if (effects?.snoozedOn?.[quest.id] === key) return null;
+  const isSnoozedToday = effects?.snoozedOn?.[quest.id] === key;
+  if (isSnoozedToday) return null;
   const window = getQuestWindow(quest, date);
   if (window) return window;
   return effects?.pulledInOn?.[quest.id] === key && isQuestActiveOn(quest, date) ? dayWindowOf(date) : null;

@@ -65,6 +65,8 @@ export type StorageBuyResult = StoragePurchase | { ok: false; reason: 'hero' };
  */
 export function createProfileSetters(deps: ProfileFieldsDeps) {
   const { users, currentUser, persistUser, syncCurrentUser, updateUserGP } = deps;
+  /** Whether this is the hero signed in now, whose copy has to follow the roster's. */
+  const isCurrentHero = (userId: string): boolean => currentUser.id === userId;
 
   /**
    * Put an item with the hero: in the bag, or in storage when the bag has no room for a new stack and storage is bought
@@ -76,9 +78,10 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (!user) return false;
     const place = canCarry(user, item);
     if (!place) return false;
-    if (place === 'storage') user.storage = storageWithItem(user, item);
+    const isForStorage = place === 'storage';
+    if (isForStorage) user.storage = storageWithItem(user, item);
     else user.inventory = inventoryWithItem(user, item);
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -95,7 +98,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const next = inventoryAfterSpend(user.inventory, entryId, qty);
     if (!next) return false;
     user.inventory = next;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -104,7 +107,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   function saveMove(userId: string, user: any, moved: BagAndStorage) {
     user.inventory = moved.inventory;
     user.storage = moved.storage;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -148,11 +151,12 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (!user) return { ok: false, reason: 'hero' };
     const purse = user.stats?.gp;
     const sale = storagePurchase(user, Number(purse?.wallet) || 0, Number(purse?.savings) || 0, useSavings);
-    if (!sale.ok) return sale;
+    const isSold = sale.ok;
+    if (!isSold) return sale;
     // The purse moves before updateUserGP's first await; the save is not waited for
     void updateUserGP({ userId, wallet: -sale.fromWallet, ...(sale.fromSavings ? { savings: -sale.fromSavings } : {}) });
     user.storageTier = sale.tier;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return sale;
   }
@@ -165,7 +169,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.itemCooldowns = cooldownsWith(user, itemName, readyAt);
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -174,7 +178,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.benchRestAt = benchRestAt;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -183,7 +187,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.bedRestAt = bedRestAt;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -197,7 +201,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.questEffects = JSON.parse(JSON.stringify(effects));
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -209,7 +213,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.powerTimers = JSON.parse(JSON.stringify(timers));
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -221,8 +225,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.streakChests = { runStart: ledger.runStart, paid: [...ledger.paid] };
-    const isSignedIn = currentUser.id === userId;
-    if (isSignedIn) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -235,9 +238,10 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     const hasNoUnlockList = !user || !Array.isArray(user.unlockedItems);
     if (hasNoUnlockList) return false;
-    if (user.unlockedItems.includes(itemName)) return false;
+    const isAlreadyUnlocked = user.unlockedItems.includes(itemName);
+    if (isAlreadyUnlocked) return false;
     user.unlockedItems = [...user.unlockedItems, itemName];
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -250,7 +254,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.equipment = equipmentWith(user, equipment);
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -264,7 +268,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (!user) return;
     user.look = JSON.parse(JSON.stringify(look));
     if (avatarImage) user.avatarImage = avatarImage;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -278,7 +282,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (hasNoClassToSet) return false;
     if (!isClassUnlocked(jobClass, classLevelsOf(user.stats?.classes))) return false;
     user.jobClass = jobClass;
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -297,7 +301,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     // Every run counts toward Hero Records' "dodged most" (services/insights), uncapped and never cleared
     const flees = { ...(user.questFlees || {}) };
     user.questFlees = { ...flees, [questId]: (Number(flees[questId]) || 0) + 1 };
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return marksFor(user.questGrudges, questId);
   }
@@ -311,7 +315,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const hadNoMarks = !user || marksFor(user.questGrudges, questId) === 0;
     if (hadNoMarks) return false;
     user.questGrudges = clearGrudgeMarks(user.questGrudges, questId);
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -324,7 +328,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.questGrudges = JSON.parse(JSON.stringify(questGrudges));
-    if (currentUser.id === userId) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -339,8 +343,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (isUnknownChoice) return false;
     // Auto clears the field to undefined (not deleted) so syncCurrentUser's assign clears it on currentUser too
     user.voice = voice === null ? undefined : voice;
-    const isCurrentHero = currentUser.id === userId;
-    if (isCurrentHero) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -351,8 +354,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const hasNoHero = !user;
     if (hasNoHero) return;
     user.autoRead = autoRead === true;
-    const isCurrentHero = currentUser.id === userId;
-    if (isCurrentHero) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 

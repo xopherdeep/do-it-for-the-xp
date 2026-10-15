@@ -56,13 +56,15 @@ export const AddProfile = defineComponent({
     },
     async clickSaveProfile() {
       // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
-      if (this.gameMasterEditLocked) return;
+      const isGameMasterEditLocked = this.gameMasterEditLocked;
+      if (isGameMasterEditLocked) return;
 
       // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
-      if (this.passcodeError) {
+      const passcodeError = this.passcodeError;
+      if (passcodeError) {
         this.activeSegment = "account";
         const toast = await toastController.create({
-          message: this.passcodeError,
+          message: passcodeError,
           duration: 2500,
           position: "top",
           color: "warning",
@@ -213,19 +215,22 @@ export const AddProfile = defineComponent({
     };
 
     const previousAvatar = () => {
-      if (avatarIndex.value > 1) {
+      const hasPreviousAvatar = avatarIndex.value > 1;
+      if (hasPreviousAvatar) {
         avatarIndex.value--;
       }
     };
 
     const nextAvatar = () => {
-      if (avatarIndex.value < maxAvatarIndex) {
+      const hasNextAvatar = avatarIndex.value < maxAvatarIndex;
+      if (hasNextAvatar) {
         avatarIndex.value++;
       }
     };
 
     const setProfile = (profile) => {
-      if (!profile.name) return;
+      const name = profile.name;
+      if (!name) return;
       passcode.value = profile.passcode || '';
       email.value = profile.email;
       fullName.value = profile.name.full;
@@ -252,7 +257,8 @@ export const AddProfile = defineComponent({
     // caught up yet), the same load the Game Master route guard does before it decides.
     const loadProfilesForGameMasterCheck = async () => {
       try {
-        if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
+        const hasNoProfilesLoaded = Object.keys(userStore.users).length === 0;
+        if (hasNoProfilesLoaded) await userStore.loadUsers();
         profilesLoaded.value = true;
       } catch (error) {
         // Could not tell who is a Game Master, so the toggle stays locked

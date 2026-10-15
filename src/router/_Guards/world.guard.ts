@@ -41,7 +41,8 @@ export async function handleWorldGuard(to: RouteLocationNormalized): Promise<Wor
     const userStore = useUserStore();
     // A hard refresh or deep link gets here before App.ts has loaded the profiles (the my-portal route's own
     // guard runs after this one), so load them first.
-    if (Object.keys(userStore.users ?? {}).length === 0) {
+    const hasNoProfilesLoaded = Object.keys(userStore.users ?? {}).length === 0;
+    if (hasNoProfilesLoaded) {
       await userStore.loadUsers();
     }
 

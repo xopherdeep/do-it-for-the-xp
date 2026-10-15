@@ -134,7 +134,8 @@ export function amountAsk(
   const refusal = bankRefusal(action, gp, probe, voice);
   if (refusal) return { refusal };
   const isAtm = speaker === 'ATM';
-  const resolvedSprite = sprite !== undefined ? sprite : (isAtm ? undefined : 'coins');
+  const bankSprite = isAtm ? undefined : 'coins';
+  const resolvedSprite = sprite !== undefined ? sprite : bankSprite;
   const accent = isAtm ? 'atm' : 'bank';
   return {
     prompt: {

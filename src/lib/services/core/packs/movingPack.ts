@@ -44,8 +44,10 @@ export type MovingRoomId =
   | "bedroom" | "bathroom" | "kitchen" | "living" | "dining" | "laundry"
   | "storage" | "garage" | "guest" | "office" | "yard" | "pets";
 
+interface MovingRoom { id: MovingRoomId; label: string; counted?: boolean; max?: number }
+
 /** The rooms the setup asks about; `counted` ones take a number (bedrooms, bathrooms, spare rooms). */
-export const MOVING_ROOMS: readonly { id: MovingRoomId; label: string; counted?: boolean; max?: number }[] = [
+export const MOVING_ROOMS: readonly MovingRoom[] = [
   { id: "bedroom", label: "Bedrooms", counted: true, max: 8 },
   { id: "bathroom", label: "Bathrooms", counted: true, max: 5 },
   { id: "kitchen", label: "Kitchen" },
@@ -321,7 +323,7 @@ const MAX_MINUTES = 180;
 
 const roundMinutes = (minutes: number): number => Math.min(MAX_MINUTES, Math.max(5, Math.round(minutes / 5) * 5));
 
-const questRecord = (fields: {
+interface QuestRecordFields {
   id: string;
   name: string;
   phase: PhaseId;
@@ -335,7 +337,9 @@ const questRecord = (fields: {
   approval: boolean;
   times?: TimeOfDay[];
   daily?: boolean;
-}): Achievement => ({
+}
+
+const questRecord = (fields: QuestRecordFields): Achievement => ({
   id: fields.id,
   achievementName: fields.name,
   categoryId: categoryIdOf(fields.phase),
@@ -399,7 +403,8 @@ export const buildMovingPack = (answers: MovingAnswers): MovingPack => {
     const extraRooms = template.scale ? Math.max(0, roomCount(template.scale.room) - 1) : 0;
     const minutes = roundMinutes(template.minutes + (template.scale ? template.scale.perRoom * extraRooms : 0));
     const band = template.who === "team" ? heroes : heroes.filter((hero) => hero.band === template.who);
-    if (!band.length) continue;
+    const isBandEmpty = !band.length;
+    if (isBandEmpty) continue;
 
     const groups: { suffix: string; label: string; assignee: string[] }[] =
       template.hero && template.who !== "team"
@@ -429,7 +434,8 @@ export const buildMovingPack = (answers: MovingAnswers): MovingPack => {
 
   const camp = PHASE_BY_ID.camp;
   for (const daily of MOVING_DAILIES) {
-    if (!hasRooms(daily.rooms) || !heroes.length) continue;
+    const isDailySkipped = !hasRooms(daily.rooms) || !heroes.length;
+    if (isDailySkipped) continue;
     const beastId = addBeast(`daily-${daily.slug}`, daily.beast, daily.avatar, daily.steps, daily.minutes);
     const isAll = daily.who === "all";
     const id = `move-daily-${daily.slug}`;
@@ -461,7 +467,8 @@ export const movingPackSummary = (pack: MovingPack): string => {
     `Added ${plural(pack.quests.length, "quest")} and ${plural(pack.beasts.length, "beast")} for ${pack.heroCount} ${pack.heroCount === 1 ? "hero" : "heroes"}.`,
   ];
   if (first) parts.push(`First up: ${first}.`);
-  if (pack.daysToMove < 21 && pack.daysToMove >= 0) {
+  const isMoveSoon = pack.daysToMove < 21 && pack.daysToMove >= 0;
+  if (isMoveSoon) {
     parts.push(`The move is ${plural(pack.daysToMove, "day")} away, so the early phases are squeezed together.`);
   }
   return parts.join(" ");
@@ -473,7 +480,8 @@ export const movingPackList = (pack: MovingPack): string => {
   let phase = "";
   const phaseOrder = (row: MovingPackRow): number => MOVING_PHASES.findIndex((candidate) => candidate.name === row.phase);
   for (const row of pack.rows.slice().sort((a, b) => phaseOrder(a) - phaseOrder(b) || a.dueOffset - b.dueOffset)) {
-    if (row.phase !== phase) {
+    const isNewPhase = row.phase !== phase;
+    if (isNewPhase) {
       phase = row.phase;
       lines.push("", `## ${phase}`, "", "| Quest | Who | Diff | Min | Due | Beast |", "|---|---|---|---|---|---|");
     }

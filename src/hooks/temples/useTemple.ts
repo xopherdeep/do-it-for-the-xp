@@ -38,7 +38,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   // The small keys in hand, read straight from the temple's state (reactive), so a key spent or picked up shows at
   // once whichever door, chest or reload changed it; nothing copies the count and can fall behind
   const playerKeys = computed(() => templeSystem.getTempleState(templeId)?.playerKeys ?? 0);
-  // Which way the count moved last, and a tick that moves on every change (and on `replayKeyPulse`): the header's number
+  // Which way the count moved last, and a tick that moves on every change (and on `playKeyPulse`): the header's number
   // rolls on it
   const keyChange = ref<'up' | 'down' | null>(null);
   const keyPulse = ref(0);
@@ -51,7 +51,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     { flush: 'sync' }
   );
   /** Roll the number again (the door reveal covered the header while the key went in) */
-  const replayKeyPulse = () => {
+  const playKeyPulse = () => {
     keyPulse.value++;
   };
   const currentLevel = ref("1F");
@@ -95,7 +95,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   const openTemple = async (): Promise<boolean> => {
     await ensureTempleFresh(templeId);
     if (isUnmounted) return false;
-    if (initTemple()) return true;
+    const isTempleReady = initTemple();
+    if (isTempleReady) return true;
 
     try {
       await registerCustomTemples();
@@ -135,7 +136,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
    * another hero taking the temple) is opened again, the way mounting does. A run still in memory is left alone, as is
    * the first enter, which comes while the mount is still opening the temple.
    */
-  const reopenIfGone = (): Promise<boolean> => {
+  const restoreIfGone = (): Promise<boolean> => {
     const isRunGone = !templeSystem.getTempleState(templeId);
     return isRunGone && !isOpening ? open() : Promise.resolve(false);
   };
@@ -258,7 +259,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   });
   
   // Helper to display messages - now uses the external display function if available
-  const displayMessage = (message: string, duration = 2000) => {
+  const showTempleMessage = (message: string, duration = 2000) => {
     // If an external display function is registered, use it
     if (externalDisplayMessage) {
       externalDisplayMessage(message, duration);
@@ -274,7 +275,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     });
   };
   
-  const move = (direction: 'north' | 'south' | 'east' | 'west') => {
+  const stepTo = (direction: 'north' | 'south' | 'east' | 'west') => {
     if (!currentPosition.value) return false;
     
     const [row, col] = currentPosition.value;
@@ -282,20 +283,27 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     let newCol = col;
     
     switch (direction) {
-      case 'north':
-        if (row > 0) newRow = row - 1;
-        break;
-      case 'south': {
-        const mazeData = maze.value;
-        if (row < mazeData.length - 1) newRow = row + 1;
+      case 'north': {
+        const canGoNorth = row > 0;
+        if (canGoNorth) newRow = row - 1;
         break;
       }
-      case 'west':
-        if (col > 0) newCol = col - 1;
+      case 'south': {
+        const mazeData = maze.value;
+        const canGoSouth = row < mazeData.length - 1;
+        if (canGoSouth) newRow = row + 1;
         break;
-      case 'east':
-        if (col < (maze.value[0]?.length || 0) - 1) newCol = col + 1;
+      }
+      case 'west': {
+        const canGoWest = col > 0;
+        if (canGoWest) newCol = col - 1;
         break;
+      }
+      case 'east': {
+        const canGoEast = col < (maze.value[0]?.length || 0) - 1;
+        if (canGoEast) newCol = col + 1;
+        break;
+      }
     }
     
     // Try to move to the new position
@@ -305,7 +313,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const wasStoppedByBarrier = !result && isBarrierKind(templeSystem.doorKind(templeId, [row, col], direction, currentLevel.value));
     if (wasStoppedByBarrier) {
       const line = templeSystem.explainDoor(templeId, [row, col], direction);
-      if (line) displayMessage(line);
+      if (line) showTempleMessage(line);
       return false;
     }
     
@@ -371,7 +379,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     );
     
     if (result) {
-      displayMessage('Door Unlocked', 2000);
+      showTempleMessage('Door Unlocked', 2000);
     }
     
     return result;
@@ -382,7 +390,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     Boolean(room.isEmpty || (room.content?.chestId && ChestSystem.getInstance().getChest(room.content.chestId)?.isEmpty));
 
   // Process selected chest items
-  const processChestItems = (selectedItems: string[]) => {
+  const claimChestItems = (selectedItems: string[]) => {
     const isNotInARoom = !currentRoom.value || !currentPosition.value;
     if (isNotInARoom) return;
     
@@ -394,13 +402,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
 
     // A chest emptied before (even in an earlier visit) hands out nothing a second time
     if (isChestLooted(currentRoom.value)) {
-      displayMessage('The chest is empty.', 2000);
+      showTempleMessage('The chest is empty.', 2000);
       return;
     }
 
     // Only what the hero chose is taken: a take that names nothing takes nothing and leaves the chest as it was
-    if (!selectedItems.length) {
-      displayMessage('You took nothing.', 2000);
+    const hasSelection = selectedItems.length > 0;
+    if (!hasSelection) {
+      showTempleMessage('You took nothing.', 2000);
       return;
     }
     
@@ -412,7 +421,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     // Process each selected item
     selectedItems.forEach(item => {
       // Handle special gold item format
-      if (item.startsWith('gold:')) {
+      const isGold = item.startsWith('gold:');
+      if (isGold) {
         const goldAmount = parseInt(item.split(':')[1], 10);
         // Paid with the hero's class and awareness bonus, like any other temple gold
         const canPayGold = !isNaN(goldAmount) && userId;
@@ -422,7 +432,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       
       // Restoratives go in the bag as consumables (My Goods files them under Consumables), or in storage when the bag
       // is full; with neither having room, the chest keeps them
-      if (userId && /^(potion|ether)$|elixir/i.test(item)) {
+      const canBagRestorative = userId && /^(potion|ether)$|elixir/i.test(item);
+      if (canBagRestorative) {
         const isInBag = useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
         if (isInBag) collected.push(lootFace(item).name);
         else leftBehind.push(item);
@@ -467,17 +478,19 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     
     // Out of the chest: it is empty (and stays so) only once nothing is left in it; the rest waits for the next visit
     const taken = selectedItems.filter((item) => !leftBehind.includes(item));
-    if (taken.length) templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, taken);
+    const hasTaken = taken.length > 0;
+    if (hasTaken) templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, taken);
     
     // Generate a message about what was collected; a freed Pegasus is the news
-    if (leftBehind.length) {
+    const hasLeftBehind = leftBehind.length > 0;
+    if (hasLeftBehind) {
       const left = leftBehind.map((item) => lootFace(item).name).join(', ');
       const gathered = collected.length ? `Collected: ${collected.join(', ')}. ` : '';
       const stays = leftBehind.length > 1 ? 'stay' : 'stays';
-      displayMessage(freed ?? `${gathered}Your bag is full. ${left} ${stays} in the chest. Store something at home first.`, 3500);
+      showTempleMessage(freed ?? `${gathered}Your bag is full. ${left} ${stays} in the chest. Store something at home first.`, 3500);
       return;
     }
-    displayMessage(freed ?? `Collected: ${collected.join(', ')}`, 3000);
+    showTempleMessage(freed ?? `Collected: ${collected.join(', ')}`, 3000);
   };
   
   // Check if the chest in the current room is empty
@@ -493,13 +506,15 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     }
     
     // Then check if the chest actually exists and has contents
-    if (!currentRoom.value.content) {
+    const content = currentRoom.value.content;
+    if (!content) {
       return true;
     }
     
     // If the room has a chestId, check the actual chest state in the ChestSystem
-    if (currentRoom.value.content.chestId) {
-      const chest = ChestSystem.getInstance().getChest(currentRoom.value.content.chestId);
+    const chestId = content.chestId;
+    if (chestId) {
+      const chest = ChestSystem.getInstance().getChest(chestId);
       const isEmptiedInChestSystem = chest && chest.isEmpty;
       if (isEmptiedInChestSystem) {
         // Synchronize the room state with chest state
@@ -516,7 +531,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const newPosition = templeSystem.handleTeleport(templeId);
     
     if (newPosition) {
-      displayMessage('Teleported!', 2000);
+      showTempleMessage('Teleported!', 2000);
       return true;
     }
     
@@ -567,7 +582,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const isCurrent = isCurrentRoom(row, col);
     
     // Base display - determine if the cell should be visible at all
-    if (visibility === MapVisibility.NONE) {
+    const isHidden = visibility === MapVisibility.NONE;
+    if (isHidden) {
       classes.push('hidden-cell');
       return classes;
     }
@@ -583,18 +599,21 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     if (isCurrent) classes.push('current-position');
     
     // Handle wall, which is always visible if the map is unlocked
-    if (room.type === 'wall') {
+    const isWall = room.type === 'wall';
+    if (isWall) {
       classes.push('wall-cell');
       return classes;
     }
     
     // Handle based on visibility level
-    if (visibility === MapVisibility.FULL_DETAILS) {
+    const isDetailed = visibility === MapVisibility.FULL_DETAILS;
+    if (isDetailed) {
       classes.push('detailed-cell');
       
       // Add room-specific classes
       if (templeSystem.hasVisited(templeId, [row, col])) classes.push('visited-cell');
-      if (room.type) classes.push(`room-type-${room.type}`);
+      const hasRoomType = Boolean(room.type);
+      if (hasRoomType) classes.push(`room-type-${room.type}`);
       if (templeSystem.isRoomCleared(templeId, currentLevel.value, [row, col])) classes.push('cleared-cell');
     } else {
       // Just layout without details
@@ -612,14 +631,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   return {
     // State
     whenOpened,
-    reopenIfGone,
+    restoreIfGone,
     currentPosition,
     hasMap,
     hasCompass,
     playerKeys,
     keyChange,
     keyPulse,
-    replayKeyPulse,
+    playKeyPulse,
     currentLevel,
     isMapOpen,
     currentRoom,
@@ -640,15 +659,15 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     moveIcons,
     
     // Actions
-    move,
+    stepTo,
     isDoorLocked,
     unlockDoor,
-    processChestItems,
+    claimChestItems,
     handleTeleport,
     toggleMap,
     openMap,
     closeMap,
-    displayMessage,
+    showTempleMessage,
     registerMessageDisplay,
     
     // Map and compass utilities

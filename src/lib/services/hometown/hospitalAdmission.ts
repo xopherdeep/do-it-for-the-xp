@@ -125,8 +125,10 @@ export function admitToHospital(userId: string, cause: AdmissionCause = "battle"
 
   // Treatment first, so a reload never finds the hero at 0
   const treatment = quoteCare("revive", hero.stats);
-  if (treatment.hpGain > 0) store.updateUserHP({ userId, amount: treatment.hpGain });
-  if (treatment.mpGain > 0) store.updateUserMP({ userId, amount: treatment.mpGain });
+  const hasHpGain = treatment.hpGain > 0;
+  if (hasHpGain) store.updateUserHP({ userId, amount: treatment.hpGain });
+  const hasMpGain = treatment.mpGain > 0;
+  if (hasMpGain) store.updateUserMP({ userId, amount: treatment.mpGain });
 
   const charge = chargeHospitalBill(hero.stats?.gp);
   store.setWallet(userId, charge.gp);
@@ -166,7 +168,8 @@ export function forgiveBill(userId: string, gmId: string, now: Date = new Date()
   const hero = store.users[userId];
   if (!hero) return 0;
   const { gp, forgiven } = forgiveHospitalBill(hero.stats?.gp);
-  if (forgiven <= 0) return 0;
+  const isNothingForgiven = forgiven <= 0;
+  if (isNothingForgiven) return 0;
 
   store.setWallet(userId, gp);
   const notes = forgiveNotes(nameOf(store.users[gmId], "A Game Master"), nameOf(hero), forgiven);

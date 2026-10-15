@@ -46,7 +46,8 @@ export const resetTempleProgress = <P extends NewTempleProgress>(progress: P): P
 
 /** True when a blood moon was scheduled for a time that has come. */
 export const isBloodMoonDue = (progress: Pick<NewTempleProgress, 'bloodMoonAt'>, now: Date = new Date()): boolean => {
-  if (!progress.bloodMoonAt) return false;
-  const at = Date.parse(progress.bloodMoonAt);
+  const bloodMoonAt = progress.bloodMoonAt;
+  if (!bloodMoonAt) return false;
+  const at = Date.parse(bloodMoonAt);
   return !Number.isNaN(at) && at <= now.getTime();
 };

@@ -18,7 +18,8 @@ const MINUTES_PER_DAY = 24 * 60;
 
 /** Minutes after midnight for "HH:MM", or null when the text is not a clock time. */
 export function clockToMinutes(clock: unknown): number | null {
-  if (typeof clock !== "string") return null;
+  const isText = typeof clock === "string";
+  if (!isText) return null;
   const match = /^(\d{1,2}):(\d{2})$/.exec(clock.trim());
   if (!match) return null;
   const hours = Number(match[1]);
@@ -31,7 +32,8 @@ export function clockToMinutes(clock: unknown): number | null {
 /** "07:00" -> "7:00 AM", "00:00" -> "12:00 AM", "12:30" -> "12:30 PM". Unreadable text comes back as given. */
 export function formatClock(clock: string): string {
   const total = clockToMinutes(clock);
-  if (total === null) return String(clock ?? "");
+  const isUnreadable = total === null;
+  if (isUnreadable) return String(clock ?? "");
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   const suffix = hours < 12 ? "AM" : "PM";
@@ -47,7 +49,8 @@ function readHours(hours: ShopHours | null | undefined): { open: number; close: 
   const isMissingAnEnd = open === null || close === null;
   if (isMissingAnEnd) return null;
   // Opening and closing at the same minute is not a closure: the shop is open round the clock.
-  if (open === close) return null;
+  const isRoundTheClock = open === close;
+  if (isRoundTheClock) return null;
   return { open, close };
 }
 
@@ -60,7 +63,8 @@ export function isShopOpen(hours: ShopHours | null | undefined, now: Date): bool
   const range = readHours(hours);
   if (!range) return true;
   const minute = minutesOf(now);
-  if (range.open < range.close) return minute >= range.open && minute < range.close;
+  const isSameDayWindow = range.open < range.close;
+  if (isSameDayWindow) return minute >= range.open && minute < range.close;
   // Overnight: open from the opening time until midnight, and again from midnight until the closing time.
   return minute >= range.open || minute < range.close;
 }
@@ -79,7 +83,8 @@ export function opensAtLabel(hours: ShopHours | null | undefined, now: Date): st
 
 /** One line for the Game Master and the shop sign: "Always open" or "7:00 AM to 9:00 PM". */
 export function hoursSummary(hours: ShopHours | null | undefined): string {
-  if (!readHours(hours)) return "Always open";
+  const isAlwaysOpen = !readHours(hours);
+  if (isAlwaysOpen) return "Always open";
   return `${formatClock(hours!.open)} to ${formatClock(hours!.close)}`;
 }
 

@@ -46,17 +46,23 @@ const inStrap = (x: number): number => STRAPS.findIndex(([from, to]) => x >= fro
 const strapTone = (x: number, strap: number): string => {
   const [from, to] = STRAPS[strap];
   const t = (x - from) / (to - from);
-  if (t === 0) return GOLD[4];
-  if (t < 0.45) return GOLD[3];
-  if (t < 0.8) return GOLD[2];
+  const isLeftEdge = t === 0;
+  const isLitSide = t < 0.45;
+  const isMidBand = t < 0.8;
+  if (isLeftEdge) return GOLD[4];
+  if (isLitSide) return GOLD[3];
+  if (isMidBand) return GOLD[2];
   return GOLD[1];
 };
 
 /** The wood darkens towards the sides, a little more on the right, away from the light. */
 const sideShade = (x: number): number => {
-  if (x <= LEFT + 1) return -1;
-  if (x >= RIGHT - 2) return -2;
-  if (x >= RIGHT - 6) return -1;
+  const isLeftSide = x <= LEFT + 1;
+  const isRightEdge = x >= RIGHT - 2;
+  const isRightSide = x >= RIGHT - 6;
+  if (isLeftSide) return -1;
+  if (isRightEdge) return -2;
+  if (isRightSide) return -1;
   return 0;
 };
 
@@ -65,8 +71,10 @@ const wood = (tone: number): string => WOOD[Math.max(0, Math.min(WOOD.length - 1
 /** Two-pixel rivet: a bright head with its shadow below. */
 /** Plank tone by row within the seven-row plank: bright top edge, dark seam at the bottom */
 const plankTone = (plankRow: number): number => {
-  if (plankRow === 0) return 3;
-  if (plankRow === 6) return 0;
+  const isTopEdge = plankRow === 0;
+  const isSeam = plankRow === 6;
+  if (isTopEdge) return 3;
+  if (isSeam) return 0;
   return plankRow >= 4 ? 1 : 2;
 };
 
@@ -74,26 +82,31 @@ const plankTone = (plankRow: number): number => {
 const lockTone = (y: number, t: number): number => {
   const isBrightEdge = y === 2 || t < 0.12;
   if (isBrightEdge) return 4;
-  if (t < 0.5) return 3;
+  const isLitHalf = t < 0.5;
+  if (isLitHalf) return 3;
   return t < 0.85 ? 2 : 1;
 };
 
 /** Wood tone banded over the lid's curve: highlight at the crown, falling into shadow above the rim */
 const lidTone = (y: number): number => {
-  if (y <= 3) return 4;
-  if (y <= 7) return 3;
+  const isCrown = y <= 3;
+  const isUpperCurve = y <= 7;
+  if (isCrown) return 4;
+  if (isUpperCurve) return 3;
   return y <= 12 ? 2 : 1;
 };
 
 /** Gold tone across the hasp: lit on its left column, then falling to the right */
 const haspTone = (x: number): number => {
-  if (x === 29) return 4;
+  const isLitColumn = x === 29;
+  if (isLitColumn) return 4;
   return x <= 31 ? 3 : 2;
 };
 
 /** Wood tone on the open lid's inside face: the light fades towards the hinge */
 const insideTone = (y: number): number => {
-  if (y <= 4) return 2;
+  const isNearTop = y <= 4;
+  if (isNearTop) return 2;
   return y <= 9 ? 1 : 0;
 };
 
@@ -166,9 +179,11 @@ export const chestLidClosed = (): ChestRun[] => {
     const inset = cornerInset(y, 9);
     for (let x = LEFT + inset; x <= RIGHT - inset; x++) {
       const strap = inStrap(x);
-      if (y >= rows - 3) {
+      const isRim = y >= rows - 3;
+      const isOnStrap = strap >= 0;
+      if (isRim) {
         set(g, x, y, GOLD[[3, 2, 1][y - (rows - 3)]]);
-      } else if (strap >= 0) {
+      } else if (isOnStrap) {
         // The strap bends over the crown, so it is brightest at the top too
         set(g, x, y, y <= 3 ? GOLD[4] : strapTone(x, strap));
       } else {
@@ -196,9 +211,10 @@ export const chestLidOpen = (): ChestRun[] => {
     const inset = cornerInset(y, 7);
     for (let x = LEFT + inset; x <= RIGHT - inset; x++) {
       const nearEdge = y <= 1 || x - (LEFT + inset) <= 1 || RIGHT - inset - x <= 1;
+      const isOnStrap = inStrap(x) >= 0;
       if (nearEdge) {
         set(g, x, y, y <= 1 ? GOLD[3] : GOLD[2]);
-      } else if (inStrap(x) >= 0) {
+      } else if (isOnStrap) {
         set(g, x, y, GOLD[1]);
       } else {
         // Vertical boards, every eighth column a seam; the light fades towards the hinge
@@ -218,7 +234,8 @@ export const chestMouth = (): ChestRun[] => {
   const g = grid(rows);
   for (let y = 0; y < rows; y++) {
     for (let x = LEFT; x <= RIGHT; x++) {
-      if (y === 0) set(g, x, y, GOLD[1]);
+      const isFarRim = y === 0;
+      if (isFarRim) set(g, x, y, GOLD[1]);
       else set(g, x, y, HOLLOW[Math.min(HOLLOW.length - 1, Math.floor((y - 1) / 2))]);
     }
   }

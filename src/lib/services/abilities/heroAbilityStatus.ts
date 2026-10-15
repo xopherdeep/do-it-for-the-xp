@@ -83,12 +83,15 @@ export const classKey = (name: string): string => String(name ?? "").toLowerCase
 const windowsHolding = (at: Date, now: Date): Array<keyof HeroApWindows> => {
   const held: Array<keyof HeroApWindows> = [];
   const isInLastWeek = now.getTime() - at.getTime() <= WEEK_MS;
-  const isInQuarter = sameYear(at, now) && quarterOf(at) === quarterOf(now);
-  if (sameDay(at, now)) held.push("daily");
+  const isToday = sameDay(at, now);
+  const isThisMonth = sameMonth(at, now);
+  const isThisYear = sameYear(at, now);
+  const isInQuarter = isThisYear && quarterOf(at) === quarterOf(now);
+  if (isToday) held.push("daily");
   if (isInLastWeek) held.push("weekly");
-  if (sameMonth(at, now)) held.push("monthly");
+  if (isThisMonth) held.push("monthly");
   if (isInQuarter) held.push("quarterly");
-  if (sameYear(at, now)) held.push("yearly");
+  if (isThisYear) held.push("yearly");
   return held;
 };
 
@@ -132,7 +135,8 @@ export const heroClassLevels = (hero: HeroAbilityProfile): Record<string, number
   };
   const classes = classLevelsOf(hero?.stats?.classes as Record<string, { level?: number }> | null | undefined);
   for (const [name, level] of Object.entries(classes)) put(name, level);
-  if (hero?.jobClass) put(hero.jobClass, 1);
+  const jobClass = hero?.jobClass;
+  if (jobClass) put(jobClass, 1);
   return levels;
 };
 

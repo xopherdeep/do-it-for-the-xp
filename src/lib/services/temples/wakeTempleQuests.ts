@@ -209,14 +209,17 @@ export interface WakePlan {
 
 /** Why the sheet cannot wake anything yet, in words; null when it can. */
 export function wakeProblem(heroIds: readonly string[], templates: readonly RoomQuestTemplate[]): string | null {
-  if (!heroIds.length) return "Pick at least one hero.";
-  if (!templates.length) return "Tick at least one quest to wake.";
+  const hasNoHeroes = !heroIds.length;
+  if (hasNoHeroes) return "Pick at least one hero.";
+  const hasNoTemplates = !templates.length;
+  if (hasNoTemplates) return "Tick at least one quest to wake.";
   return null;
 }
 
 /** An existing quest is for everyone picked: an Open Bounty is for all, any other quest for its assignees. */
 const isForAll = (quest: Achievement, heroIds: readonly string[]): boolean => {
-  if (quest.type === "asNeeded") return true;
+  const isOpenBounty = quest.type === "asNeeded";
+  if (isOpenBounty) return true;
   const assigned = (quest.assignee ?? []).map(String);
   return heroIds.every((id) => assigned.includes(String(id)));
 };
@@ -297,7 +300,8 @@ export interface WakeDone {
  */
 export async function commitWake(plan: WakePlan, writers: WakeWriters): Promise<WakeDone> {
   const done: WakeDone = { woken: [], adopted: [] };
-  if (plan.problem) return done;
+  const hasProblem = Boolean(plan.problem);
+  if (hasProblem) return done;
   for (const beast of plan.beasts) {
     await writers.saveBeast(beast);
     done.adopted.push(beast);

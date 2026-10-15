@@ -59,7 +59,8 @@ export function linksTo(beastId: string, quests: QuestRef[], temples: TempleRef[
   if (!beastId) return links;
 
   for (const quest of quests) {
-    if (quest.beastId === beastId) links.quests.push({ id: quest.id, name: quest.achievementName || "" });
+    const isLinked = quest.beastId === beastId;
+    if (isLinked) links.quests.push({ id: quest.id, name: quest.achievementName || "" });
   }
 
   for (const temple of temples) {
@@ -91,7 +92,8 @@ const detachQuest = <Q extends QuestRef>(quest: Q): Q => ({
 const detachRoom = (room: RoomRef, beastId: string): RoomRef => {
   const content = { ...room.content };
   if (Array.isArray(content.beasts)) content.beasts = content.beasts.filter((id) => id !== beastId);
-  if (content.mimicBeastId === beastId) content.mimicBeastId = null;
+  const isMimicOfBeast = content.mimicBeastId === beastId;
+  if (isMimicOfBeast) content.mimicBeastId = null;
   return { ...room, content };
 };
 
@@ -105,10 +107,12 @@ const detachRooms = (rooms: Record<string, RoomRef>, beastId: string): Record<st
 
 const detachTemple = <T extends TempleRef>(temple: T, beastId: string): T => {
   const patch: Pick<TempleRef, "dungeonLayout" | "rooms"> = {};
-  if (temple.dungeonLayout?.rooms) {
-    patch.dungeonLayout = { ...temple.dungeonLayout, rooms: detachRooms(temple.dungeonLayout.rooms, beastId) };
+  const layoutRooms = temple.dungeonLayout?.rooms;
+  if (layoutRooms) {
+    patch.dungeonLayout = { ...temple.dungeonLayout, rooms: detachRooms(layoutRooms, beastId) };
   }
-  if (temple.rooms) patch.rooms = detachRooms(temple.rooms, beastId);
+  const { rooms } = temple;
+  if (rooms) patch.rooms = detachRooms(rooms, beastId);
   return { ...temple, ...patch };
 };
 
@@ -137,13 +141,15 @@ export function usageNote(links: BeastLinks): string {
   if (isUnlinked) return "";
 
   const parts: string[] = [];
-  if (quests.length) {
+  const hasQuests = quests.length > 0;
+  if (hasQuests) {
     const names = quests.map((quest) => quest.name || "Unnamed quest");
     const shown = names.slice(0, NAMES_SHOWN).join(", ");
     const more = names.length > NAMES_SHOWN ? `, +${names.length - NAMES_SHOWN} more` : "";
     parts.push(`${count(quests.length, "quest")} (${shown}${more})`);
   }
-  if (rooms.length) parts.push(count(rooms.length, "temple room"));
+  const hasRooms = rooms.length > 0;
+  if (hasRooms) parts.push(count(rooms.length, "temple room"));
   return `Used by ${parts.join(" and ")}`;
 }
 

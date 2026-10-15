@@ -14,7 +14,7 @@ const REFUSAL_COPY: Record<string, string> = { mp: 'Not enough MP', grounded: GR
  * Makes it easy to manage abilities in Vue components
  */
 export function useAbilitySystem() {
-  const isInitialized = ref(false);
+  const isReady = ref(false);
   const abilities = ref<Ability[]>([]);
   const activePresetType = ref<string | null>(null);
   const isLoading = ref(false);
@@ -33,9 +33,9 @@ export function useAbilitySystem() {
 
   // Initialize if not already done
   onMounted(async () => {
-    if (!isInitialized.value) {
+    if (!isReady.value) {
       await fetchAbilities();
-      isInitialized.value = true;
+      isReady.value = true;
     }
   });
 
@@ -70,9 +70,10 @@ export function useAbilitySystem() {
   };
   
   // Cast an ability for a hero: the service charges the MP; a refusal is told to the player as a toast
-  const useAbility = async (abilityId: string, userId: string): Promise<UseAbilityResult> => {
+  const triggerAbility = async (abilityId: string, userId: string): Promise<UseAbilityResult> => {
     const result = await service.useAbility(abilityId, userId);
-    if (!result.ok) {
+    const isRefused = result.ok === false;
+    if (isRefused) {
       const toast = await toastController.create({
         message: REFUSAL_COPY[result.reason] ?? 'That ability is not available',
         duration: 2000,
@@ -103,7 +104,7 @@ export function useAbilitySystem() {
   // Return everything needed by components
   return {
     // State
-    isInitialized,
+    isReady,
     abilities: computed(() => abilities.value), // Read-only access
     activePresetType,
     isLoading,
@@ -113,7 +114,7 @@ export function useAbilitySystem() {
     addAbility,
     updateAbility,
     deleteAbility,
-    useAbility,
+    triggerAbility,
     loadPresetsByType,
     applyPreset,
     refresh: fetchAbilities

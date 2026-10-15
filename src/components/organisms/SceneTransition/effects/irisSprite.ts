@@ -16,8 +16,10 @@ const fillRect = (g: ReturnType<typeof createGrid>, x: number, y: number, w: num
 
 /** A pediment pixel: bright on the left slope, shaded on the right, mid-tone between. */
 const slopeTone = (stone: string[], x: number, half: number): string => {
-  if (x < 14 - half + 2) return stone[4];
-  if (x > 14 + half - 3) return stone[2];
+  const isLeftSlope = x < 14 - half + 2;
+  if (isLeftSlope) return stone[4];
+  const isRightSlope = x > 14 + half - 3;
+  if (isRightSlope) return stone[2];
   return stone[3];
 };
 

@@ -82,11 +82,11 @@ export const shiftDayKey = (dayKey: string, offset: number): string => {
 
 /** The day an entry counts for: its own dayKey, else the local day of completedAt */
 export const entryDayKey = (entry: StreakEntryLike): string => {
-  const hasDayKey = Boolean(entry.dayKey);
-  if (hasDayKey) return entry.dayKey!;
-  const hasNoTime = !entry.completedAt;
-  if (hasNoTime) return "";
-  const date = new Date(String(entry.completedAt));
+  const dayKey = entry.dayKey;
+  if (dayKey) return dayKey;
+  const completedAt = entry.completedAt;
+  if (!completedAt) return "";
+  const date = new Date(completedAt);
   return Number.isNaN(date.getTime()) ? "" : toDayKey(date);
 };
 
@@ -120,8 +120,8 @@ export const dailyStreak = (
   const todayKey = typeof today === "string" ? today : toDayKey(today);
   const days = keptDays(entries, userId, statuses);
   const past = [...days].filter((key) => key <= todayKey).sort();
-  const neverKept = past.length === 0;
-  if (neverKept) return { ...EMPTY_STREAK };
+  const hasNoPastDays = !past.length;
+  if (hasNoPastDays) return { ...EMPTY_STREAK };
 
   const earliest = shiftDayKey(todayKey, -MAX_DAYS_WALKED);
   let day = past[0] < earliest ? earliest : past[0];
@@ -134,15 +134,15 @@ export const dailyStreak = (
 
   while (day <= todayKey) {
     const kept = days.has(day);
-    const missedARun = !kept && day !== todayKey && current > 0;
+    const isMissedRunDay = day !== todayKey && current > 0;
     if (kept) {
-      const startsRun = current === 0;
-      if (startsRun) runStart = day;
+      const isRunStart = current === 0;
+      if (isRunStart) runStart = day;
       current++;
-      const earnsShield = current % SHIELD_EVERY === 0;
-      if (earnsShield) shields = Math.min(MAX_SHIELDS, shields + 1);
+      const isShieldDay = current % SHIELD_EVERY === 0;
+      if (isShieldDay) shields = Math.min(MAX_SHIELDS, shields + 1);
       best = Math.max(best, current);
-    } else if (missedARun) {
+    } else if (isMissedRunDay) {
       const hasShield = shields > 0;
       if (hasShield) {
         shields--;

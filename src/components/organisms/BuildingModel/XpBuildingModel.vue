@@ -112,11 +112,13 @@ export default defineComponent({
     });
 
     const activeWorld = computed(() => {
-      if (props.world) return props.world.toLowerCase();
+      const world = props.world;
+      if (world) return world.toLowerCase();
       const routeName = String(route.name ?? "");
       const match = routeName.match(/world-([a-z]+)/);
       if (match) return match[1];
-      if (routeName === "the-moon") return "moon";
+      const isMoonRoute = routeName === "the-moon";
+      if (isMoonRoute) return "moon";
       return "";
     });
 
@@ -182,7 +184,8 @@ export default defineComponent({
     });
 
     const displayName = computed(() => {
-      if (props.label) return props.label;
+      const label = props.label;
+      if (label) return label;
       if (isPegasus.value) {
         const stablePegasus = pegasus.value;
         const isPegasusAwake = isUnlocked.value && stablePegasus;
@@ -195,7 +198,8 @@ export default defineComponent({
         const hotelMeta = getHotelByWorld(activeWorld.value);
         return hotelMeta?.badgeLabel || hotelMeta?.name || "Hotel";
       }
-      if (HOMETOWN_NAMES[props.buildingId]) return HOMETOWN_NAMES[props.buildingId];
+      const hometownName = HOMETOWN_NAMES[props.buildingId];
+      if (hometownName) return hometownName;
       const shopMeta = getShopMetadata(props.buildingId);
       return shopMeta?.name || props.buildingId;
     });
@@ -203,7 +207,8 @@ export default defineComponent({
     const isBuilding = (...ids: string[]) => ids.includes(props.buildingId);
 
     const displaySublabel = computed(() => {
-      if (props.sublabel) return props.sublabel;
+      const sublabel = props.sublabel;
+      if (sublabel) return sublabel;
       if (isBuilding("home-town", "hometown")) {
         return "Return home";
       }
@@ -252,7 +257,8 @@ export default defineComponent({
     /** The door sits low in the middle of the model: the scene transition pushes the camera in there. */
     const aimAtDoor = () => {
       const box = canvasRef.value?.getBoundingClientRect();
-      if (!box || !box.width) return;
+      const hasNoDoorBox = !box || !box.width;
+      if (hasNoDoorBox) return;
       aimAt({ x: box.left + box.width / 2, y: box.top + box.height * 0.68, size: box.width * 0.3 });
     };
 

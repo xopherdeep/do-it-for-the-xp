@@ -96,7 +96,8 @@ const openChoices = async () => {
 
 const pickAutoRead = (event: CustomEvent) => {
   const isUnchanged = event.detail.checked === autoReadOn.value;
-  if (isUnchanged || !canRead.value) return;
+  const shouldIgnore = isUnchanged || !canRead.value;
+  if (shouldIgnore) return;
   userStore.setAutoRead(String(props.user.id), event.detail.checked);
 };
 </script>

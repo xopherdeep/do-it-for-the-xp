@@ -86,8 +86,6 @@ export const useMonsterRoam = (bounds: RoamBounds = {}) => {
   }));
 
   return {
-    posX,
-    posY,
     facingYaw,
     isHovered,
     isMoving,

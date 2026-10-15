@@ -1,0 +1,629 @@
+@use "@/styles/themes/earthbound.scss" as *;
+@use "./templeReveal" as *;
+
+$cr-gold: $reveal-gold;
+$cr-amber: $reveal-amber;
+$cr-ink: $reveal-ink;
+// The chest sprite is 64 x 48 drawn at 3x, whole pixels on every phone
+$cr-scale: 3;
+$cr-chest-w: 64px * $cr-scale;
+$cr-chest-h: 48px * $cr-scale;
+
+// ---------------------------------------------------------------------------------------------------------------
+// The overlay. It covers the temple page (ion-page is its containing block) and stacks the stage over the panel.
+// ---------------------------------------------------------------------------------------------------------------
+.chest-reveal {
+  --reveal-glow: #{$cr-gold};
+  --reveal-glow-soft: rgba(255, 216, 74, 0.45);
+  @include reveal-overlay;
+
+  &.glow-relic {
+    --reveal-glow: #fff6d0;
+    --reveal-glow-soft: rgba(255, 246, 208, 0.55);
+  }
+  &.glow-gold {
+    --reveal-glow: #{$cr-amber};
+    --reveal-glow-soft: rgba(255, 179, 71, 0.45);
+  }
+  &.glow-supply {
+    --reveal-glow: #{$eb-color-mint-green};
+    --reveal-glow-soft: rgba(128, 216, 144, 0.4);
+  }
+  &.glow-item {
+    --reveal-glow: #{$eb-color-sky-blue};
+    --reveal-glow-soft: rgba(104, 168, 216, 0.4);
+  }
+  &.glow-empty {
+    --reveal-glow: #9c93a8;
+    --reveal-glow-soft: rgba(156, 147, 168, 0.12);
+  }
+}
+
+.chest-reveal__backdrop {
+  @include reveal-backdrop(34%);
+}
+
+// The light only comes up once the lid is open
+.is-landing .chest-reveal__backdrop,
+.is-closed .chest-reveal__backdrop,
+.is-rattle .chest-reveal__backdrop {
+  @include reveal-backdrop-unlit;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The stage: rays, flash, the fan of loot, the chest and its sparks, all centred on the chest's mouth
+// ---------------------------------------------------------------------------------------------------------------
+.chest-reveal__stage {
+  --orb-icon: 120px;
+  position: relative;
+  width: $cr-chest-w;
+  height: $cr-chest-h;
+  flex: none;
+}
+
+.chest-sprite {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: $cr-chest-w;
+  height: $cr-chest-h;
+  overflow: visible;
+  filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.45));
+  animation: chest-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) both, chest-rattle 0.36s 0.42s steps(1, end) both;
+}
+
+// A shut chest waiting to be opened only lands; Open then makes it shake (it does not land again)
+.is-closed .chest-sprite {
+  animation: chest-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.is-rattle .chest-sprite {
+  animation: chest-rattle 0.36s steps(1, end) both;
+}
+
+// The closed lid hinges on the body's top edge; the open lid on its own bottom edge
+.chest-sprite__lid {
+  transform-box: view-box;
+  transform-origin: 32px 20px;
+}
+.chest-sprite__open-lid {
+  transform-box: view-box;
+  transform-origin: 32px 14px;
+  transform: scaleY(0);
+}
+.chest-sprite__mouth {
+  opacity: 0;
+}
+.chest-sprite__glow {
+  fill: url(#chest-hollow-light);
+  opacity: 0;
+}
+.chest-sprite__light-core {
+  stop-color: #fff;
+  stop-opacity: 0.95;
+}
+.chest-sprite__light-mid {
+  stop-color: var(--reveal-glow);
+  stop-opacity: 0.7;
+}
+.chest-sprite__light-edge {
+  stop-color: var(--reveal-glow);
+  stop-opacity: 0;
+}
+
+.is-burst,
+.is-rising,
+.is-ready {
+  .chest-sprite {
+    animation: chest-pop 0.32s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+  .chest-sprite__lid {
+    animation: lid-fly 0.16s steps(2, end) forwards;
+  }
+  .chest-sprite__open-lid {
+    animation: open-lid-swing 0.34s 0.08s cubic-bezier(0.25, 1.7, 0.5, 1) forwards;
+  }
+  .chest-sprite__mouth {
+    opacity: 1;
+  }
+  .chest-sprite__glow {
+    animation: hollow-glow 1.8s 0.1s ease-in-out infinite;
+  }
+}
+
+// God rays behind the chest: a slow-turning wheel of light from the mouth
+.chest-reveal__rays {
+  @include reveal-rays(520px);
+  left: 50%;
+  top: 16 * $cr-scale;
+}
+
+.chest-reveal__flash {
+  @include reveal-flash(80px);
+  z-index: 3;
+  left: 50%;
+  top: 16 * $cr-scale;
+}
+
+.is-burst,
+.is-rising,
+.is-ready {
+  .chest-reveal__rays {
+    animation: reveal-rays-in 0.5s ease-out forwards, reveal-rays-turn 24s linear infinite;
+  }
+  .chest-reveal__flash {
+    animation: reveal-flash 0.55s ease-out forwards;
+  }
+}
+
+.glow-relic .chest-reveal__rays {
+  background: repeating-conic-gradient(
+    from 0deg,
+    #fff6d0 0deg 6deg,
+    transparent 6deg 15deg,
+    #b9e8ff 15deg 19deg,
+    transparent 19deg 30deg,
+    #ffc8e6 30deg 34deg,
+    transparent 34deg 45deg
+  );
+}
+
+// Sparks out of the mouth, once, as the lid flies
+.chest-reveal__sparks {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 17 * $cr-scale;
+  width: 0;
+  height: 0;
+}
+
+.spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: var(--spark-size);
+  line-height: 1;
+  color: var(--reveal-glow);
+  text-shadow: 0 0 6px var(--reveal-glow);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+
+  &:nth-child(3n) {
+    color: #fff;
+  }
+}
+
+.is-burst .spark {
+  animation: spark-fly 0.9s var(--spark-delay) cubic-bezier(0.15, 0.7, 0.35, 1) both;
+}
+
+// A tinted icon (an egg in its Pegasus's colours) keeps a pale edge, so a dark shell still reads on the dark box
+.loot-row__slot i.is-tinted {
+  filter: drop-shadow(0 0 1.5px #fff);
+}
+
+// The loot above the chest, each piece in a bright orb
+.chest-reveal__fan {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 17 * $cr-scale;
+  width: 0;
+  height: 0;
+}
+
+.loot-orb {
+  --orb: var(--reveal-glow);
+  --orb-size: calc(var(--orb-icon) * 1.6);
+  position: absolute;
+  left: calc(var(--orb-size) / -2);
+  top: calc(var(--orb-size) / -2);
+  width: var(--orb-size);
+  height: var(--orb-size);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.75) 0, var(--orb) 26%, transparent 66%);
+  font-size: var(--orb-icon);
+  line-height: 1;
+  opacity: 0;
+  transform: translate(0, 0) scale(0.2);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+
+  i {
+    --fa-primary-color: #{$cr-ink};
+    --fa-secondary-color: var(--orb);
+    --fa-secondary-opacity: 1;
+    // A hard ink edge and a drop shadow, like a sprite held up over the hero's head
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45));
+  }
+
+  &.tier-key { --orb: #{$cr-gold}; }
+  &.tier-gold { --orb: #{$cr-amber}; }
+  &.tier-supply { --orb: #{$eb-color-mint-green}; }
+  &.tier-item { --orb: #{$eb-color-sky-blue}; }
+  &.tier-relic { --orb: #fff6d0; }
+
+  &.is-out {
+    opacity: 1;
+    animation:
+      orb-rise 0.62s cubic-bezier(0.2, 1.3, 0.4, 1) both,
+      orb-bob 2.4s 0.62s ease-in-out infinite;
+  }
+
+  // Pieces left in the chest when Take is pressed dim while the rest fly off
+  &.is-left {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+  }
+
+  // Grabbed: the piece hops and glints
+  &.is-hop i {
+    animation: orb-hop 0.28s steps(5, end);
+  }
+}
+
+// An empty chest: no rays and no light in the hollow, just a dim flash and a puff of dust drifting up
+.is-empty {
+  .chest-reveal__rays,
+  .chest-sprite__glow {
+    display: none;
+  }
+  .chest-reveal__flash {
+    background: radial-gradient(circle, rgba(200, 192, 210, 0.5) 0, transparent 70%);
+  }
+  .spark {
+    width: calc(var(--spark-size) * 0.9);
+    height: calc(var(--spark-size) * 0.9);
+    border-radius: 50%;
+    background: rgba(190, 182, 200, 0.55);
+    box-shadow: 0 0 6px rgba(190, 182, 200, 0.4);
+    text-shadow: none;
+  }
+  &.is-burst .spark {
+    animation: dust-drift 1.4s var(--spark-delay) ease-out both;
+  }
+}
+
+.chest-reveal__empty {
+  @include reveal-text;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------
+// The panel: the RPG box with what came out of the chest, and the two buttons
+// ---------------------------------------------------------------------------------------------------------------
+.chest-reveal__panel {
+  @include reveal-panel;
+}
+
+.is-closed .chest-reveal__panel,
+.is-rising .chest-reveal__panel,
+.is-ready .chest-reveal__panel {
+  animation: reveal-panel-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15) forwards;
+}
+
+// Open was pressed: the panel steps back while the chest shakes, and comes up again with the loot
+.is-rattle .chest-reveal__panel {
+  animation: reveal-panel-out 0.22s ease-in forwards;
+  pointer-events: none;
+}
+
+.chest-reveal__title {
+  @include reveal-title;
+}
+
+.loot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.loot-row {
+  --orb: var(--reveal-glow);
+  opacity: 0;
+  transform: translateX(-10px);
+
+  &.tier-key { --orb: #{$cr-gold}; }
+  &.tier-gold { --orb: #{$cr-amber}; }
+  &.tier-supply { --orb: #{$eb-color-mint-green}; }
+  &.tier-item { --orb: #{$eb-color-sky-blue}; }
+  &.tier-relic { --orb: #fff6d0; }
+
+  &.is-out {
+    animation: row-in 0.28s var(--row-delay) cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+  }
+}
+
+.loot-row__button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px 1fr 26px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 2px solid rgba(231, 230, 179, 0.18);
+  border-radius: 2px;
+  background: rgba(56, 48, 80, 0.75);
+  color: $eb-color-cream;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: 2px dashed $eb-color-pale-yellow;
+    outline-offset: 2px;
+  }
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.loot-row__slot {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.18), transparent 70%), $eb-color-dark-purple;
+  box-shadow: inset 0 0 0 2px var(--orb), inset 0 0 0 4px $eb-color-dark-purple, 0 0 8px var(--orb);
+  font-size: 1.35rem;
+
+  i {
+    --fa-primary-color: #{$eb-color-cream};
+    --fa-secondary-color: var(--orb);
+    --fa-secondary-opacity: 1;
+  }
+}
+
+.loot-row__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.loot-row__name {
+  font-family: $eb-font-status;
+  font-size: 1.05rem;
+  color: var(--orb);
+  text-shadow: 1px 1px 0 $cr-ink;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loot-row__blurb {
+  font-family: $eb-font-primary;
+  font-size: 0.95rem;
+  color: rgba(231, 230, 179, 0.82);
+}
+
+.loot-row__check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid $eb-color-pale-yellow;
+  border-radius: 2px;
+  background: $eb-color-pale-yellow;
+  color: $cr-ink;
+  font-size: 0.8rem;
+  // Not picked yet: an empty box with a soft pulse, asking to be ticked
+  background: transparent;
+  color: transparent;
+  animation: check-invite 1.6s ease-in-out infinite;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.loot-row.is-picked {
+  .loot-row__button {
+    border-color: rgba(255, 216, 74, 0.55);
+  }
+  .loot-row__check {
+    background: $cr-gold;
+    border-color: $cr-gold;
+    color: $cr-ink;
+    // The check stamps in
+    animation: check-stamp 0.18s steps(3, end);
+  }
+}
+
+.loot-row.tier-relic .loot-row__name {
+  background: linear-gradient(90deg, #fff6d0, #b9e8ff, #ffc8e6, #fff6d0);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(1px 1px 0 $cr-ink);
+  animation: relic-shimmer 3s linear infinite;
+}
+
+.chest-reveal__actions {
+  @include reveal-actions;
+}
+
+.chest-button {
+  @include reveal-button;
+}
+
+.chest-button--wide {
+  grid-column: 1 / -1;
+}
+
+.chest-button--ghost {
+  @include reveal-button-ghost;
+}
+
+.chest-button--take {
+  @include reveal-button-primary;
+
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Coming and going. Taking sends the loot up and away; leaving lets the chest sink back into the dark.
+// ---------------------------------------------------------------------------------------------------------------
+.chest-reveal-enter-active {
+  transition: opacity 0.26s ease;
+}
+.chest-reveal-enter-from {
+  opacity: 0;
+}
+.chest-reveal-leave-active {
+  transition: opacity 0.3s 0.12s ease;
+}
+.chest-reveal-leave-to {
+  opacity: 0;
+}
+
+.chest-reveal-leave-active {
+  .chest-reveal__panel {
+    animation: reveal-panel-out 0.26s ease-in forwards;
+  }
+  &.exit-take .loot-orb.is-out:not(.is-left) {
+    animation: orb-collect 0.36s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+  }
+  &.exit-leave .chest-reveal__stage {
+    transition: transform 0.3s ease-in;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Keyframes
+// ---------------------------------------------------------------------------------------------------------------
+@include reveal-keyframes;
+
+@keyframes chest-land {
+  0% { transform: translateY(-60px) scale(0.85); opacity: 0; }
+  60% { transform: translateY(4px) scale(1.04, 0.94); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+// Two hard shakes, the way a sprite jitters: whole steps, no easing
+@keyframes chest-rattle {
+  0% { transform: translateX(0) rotate(0); }
+  16% { transform: translateX(-3px) rotate(-2deg); }
+  33% { transform: translateX(3px) rotate(2deg); }
+  50% { transform: translateX(-3px) rotate(-1.5deg); }
+  66% { transform: translateX(3px) rotate(1.5deg); }
+  83% { transform: translateX(0) translateY(-2px); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+@keyframes chest-pop {
+  0% { transform: scale(1.08, 0.9); }
+  55% { transform: scale(0.96, 1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes lid-fly {
+  0% { transform: scaleY(1); }
+  50% { transform: translateY(-6px) scaleY(0.5); }
+  100% { transform: translateY(-8px) scaleY(0); }
+}
+
+@keyframes open-lid-swing {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes hollow-glow {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+@keyframes spark-fly {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateX(0) scale(0.4); }
+  15% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateX(var(--spark-reach)) scale(1);
+  }
+}
+
+// Dust rises slower and shorter than sparks, and spreads as it goes
+@keyframes dust-drift {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateX(0) scale(0.5); }
+  20% { opacity: 0.9; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateX(calc(var(--spark-reach) * 0.6)) scale(1.6);
+  }
+}
+
+@keyframes orb-rise {
+  0% { transform: translate(0, 12px) scale(0.1) rotate(0); }
+  70% { transform: translate(var(--fan-x), calc(var(--fan-y) - 14px)) scale(1.1) rotate(var(--fan-tilt)); }
+  100% { transform: translate(var(--fan-x), var(--fan-y)) scale(1) rotate(var(--fan-tilt)); }
+}
+
+@keyframes orb-bob {
+  0%, 100% { transform: translate(var(--fan-x), var(--fan-y)) scale(1) rotate(var(--fan-tilt)); }
+  50% { transform: translate(var(--fan-x), calc(var(--fan-y) - 8px)) scale(1) rotate(var(--fan-tilt)); }
+}
+
+@keyframes orb-collect {
+  0% { transform: translate(var(--fan-x), var(--fan-y)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--fan-x), calc(var(--fan-y) - 140px)) scale(0.3); opacity: 0; }
+}
+
+@keyframes check-stamp {
+  0% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes check-invite {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 216, 74, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(255, 216, 74, 0.35); }
+}
+
+@keyframes orb-hop {
+  0% { transform: translateY(0); filter: drop-shadow(0 0 2px #fff) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45)); }
+  40% { transform: translateY(-14px) scale(1.12); filter: brightness(1.8) drop-shadow(0 0 6px #fff) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45)); }
+  100% { transform: translateY(0); filter: drop-shadow(0 0 2px #fff) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45)); }
+}
+
+@keyframes row-in {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes relic-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chest-sprite,
+  .chest-sprite__lid,
+  .chest-sprite__open-lid,
+  .chest-sprite__glow,
+  .chest-reveal__rays,
+  .chest-reveal__flash,
+  .spark,
+  .loot-orb.is-out,
+  .loot-row.is-out,
+  .chest-reveal__panel,
+  .loot-row.tier-relic .loot-row__name,
+  .chest-button--take i,
+  .loot-row__check,
+  .loot-orb.is-hop i {
+    animation: none !important;
+  }
+  .is-closed .chest-reveal__panel { opacity: 1; transform: none; }
+  .is-ready {
+    .chest-sprite__lid { transform: scaleY(0); }
+    .chest-sprite__open-lid { transform: scaleY(1); }
+    .chest-sprite__glow { opacity: 0.7; }
+    .chest-reveal__rays { opacity: 0.4; transform: none; }
+    .chest-reveal__panel { opacity: 1; transform: none; }
+  }
+  .loot-orb.is-out { transform: translate(var(--fan-x), var(--fan-y)); }
+  .loot-row.is-out { opacity: 1; transform: none; }
+}

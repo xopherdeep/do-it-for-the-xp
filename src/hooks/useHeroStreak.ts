@@ -26,8 +26,8 @@ export function useHeroStreak(heroId: Ref<string>) {
     if (!id) return;
     try {
       const read = await getQuestLogDb().getEntriesForUser(id);
-      const heroChanged = id !== heroId.value;
-      if (heroChanged) return;
+      const isStaleHero = id !== heroId.value;
+      if (isStaleHero) return;
       entries.value = read;
       today.value = new Date();
     } catch (error) {

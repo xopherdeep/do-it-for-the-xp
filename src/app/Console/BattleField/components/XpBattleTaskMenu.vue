@@ -1,7 +1,7 @@
 <template>
   <div
     class="xp-battle-task-menu"
-    :class="{ 'is-busy': busy }"
+    :class="{ 'is-busy': isBusy }"
     data-cy="task-sheet"
     role="dialog"
     aria-modal="true"
@@ -45,7 +45,6 @@
           </div>
         </li>
       </ul>
-
       <footer class="menu-footer">
         <button type="button" class="rpg-button" data-cy="task-back" @click="back">
           <i class="fad fa-undo" aria-hidden="true"></i>Back
@@ -68,12 +67,13 @@ const props = defineProps<{
   damagePerTask: number;
 }>();
 
-const emit = defineEmits<{
+interface BattleTaskMenuEmits {
   (e: "cancel"): void;
   (e: "attack-start", task: CombatTask): void;
   (e: "task-complete", taskId: string): void;
   (e: "attack-end", payload: { success: true; taskId: string; taskName: string }): void;
-}>();
+}
+const emit = defineEmits<BattleTaskMenuEmits>();
 
 /** The words on the sheet. */
 const copy = computed(() => ({
@@ -90,7 +90,7 @@ const CONFIRM_GUARD_MS = 250;
 
 const selectedId = ref<string | null>(null);
 /** Latched by Done!: the page closes the sheet next, so nothing else may fire from it before it is gone. */
-const busy = ref(false);
+const isBusy = ref(false);
 const listEl = ref<HTMLElement | null>(null);
 let openedAt = 0;
 
@@ -106,14 +106,14 @@ const revealStrip = () => {
   const strip = list?.querySelector<HTMLElement>(".task-confirm-strip");
   const hasNoStripToReveal = !list || !strip;
   if (hasNoStripToReveal) return;
-  const hidden = strip.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom;
-  if (hidden <= 0) return;
+  const hidden = Math.max(0, strip.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom);
+  if (!hidden) return;
   const calm = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   list.scrollBy?.({ top: hidden + 8, behavior: calm ? "auto" : "smooth" });
 };
 
 const selectTask = (task: CombatTask) => {
-  const cannotSelectTask = busy.value || task.isCompleted || isSelected(task);
+  const cannotSelectTask = isBusy.value || task.isCompleted || isSelected(task);
   if (cannotSelectTask) return;
   selectedId.value = task.id;
   openedAt = Date.now();
@@ -122,16 +122,16 @@ const selectTask = (task: CombatTask) => {
 };
 
 const notYet = () => {
-  if (busy.value) return;
+  if (isBusy.value) return;
   play$fx("no");
   selectedId.value = null;
 };
 
 /** The hero says the chore is done: the page deals the damage and closes the sheet; the attack sounds are its job. */
 const confirmDone = (task: CombatTask) => {
-  const isConfirmBlocked = busy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS;
+  const isConfirmBlocked = isBusy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS;
   if (isConfirmBlocked) return;
-  busy.value = true;
+  isBusy.value = true;
   emit("attack-start", task);
   emit("task-complete", task.id);
   emit("attack-end", { success: true, taskId: task.id, taskName: task.name });
@@ -139,7 +139,7 @@ const confirmDone = (task: CombatTask) => {
 
 /** The Back button and the dimmed backdrop both leave the sheet without attacking. */
 const back = () => {
-  if (busy.value) return;
+  if (isBusy.value) return;
   play$fx("closeTask");
   emit("cancel");
 };

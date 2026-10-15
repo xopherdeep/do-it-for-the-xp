@@ -76,7 +76,8 @@ const splitIds = (value: unknown): string[] =>
 
 const toCoordinate = (value: unknown): number | undefined => {
   const raw = firstParam(value);
-  if (raw === undefined) return undefined;
+  const isAbsent = raw === undefined;
+  if (isAbsent) return undefined;
   const parsed = parseInt(raw, 10);
   return Number.isNaN(parsed) ? undefined : parsed;
 };

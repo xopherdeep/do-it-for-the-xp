@@ -27,7 +27,8 @@ const copyLayout = (dungeon: Dungeon): Dungeon => {
     rooms: JSON.parse(JSON.stringify(dungeon.rooms)),
     visitedPositions: new Set<string>()
   };
-  if (dungeon.entrance) copy.entrance = [...dungeon.entrance];
+  const entrance = dungeon.entrance;
+  if (entrance) copy.entrance = [...entrance];
   return copy;
 };
 
@@ -44,7 +45,8 @@ export class DungeonManager {
   }
 
   public static getInstance(): DungeonManager {
-    if (!DungeonManager.instance) {
+    const hasInstance = Boolean(DungeonManager.instance);
+    if (!hasInstance) {
       DungeonManager.instance = new DungeonManager();
     }
     return DungeonManager.instance;
@@ -55,13 +57,15 @@ export class DungeonManager {
    */
   public registerDungeon(dungeon: Dungeon): void {
     // Initialize visitedPositions if not already present
-    if (!dungeon.visitedPositions) {
+    const hasVisitLog = Boolean(dungeon.visitedPositions);
+    if (!hasVisitLog) {
       dungeon.visitedPositions = new Set<string>();
     }
     // A Dragon Egg or `master` room is the Pegasus chest, and a Dungeon Item chest holds the ids the take path knows
     // (the editor's "small-key" is the small key): rooms are put right before their chests are made
-    if (dungeon.rooms) {
-      dungeon.rooms = Object.fromEntries(Object.entries(dungeon.rooms).map(([key, room]) => [key, asChestRoom(room, dungeon.id)]));
+    const rooms = dungeon.rooms;
+    if (rooms) {
+      dungeon.rooms = Object.fromEntries(Object.entries(rooms).map(([key, room]) => [key, asChestRoom(room, dungeon.id)]));
     }
     // Copied before initializeChests writes chest ids into the rooms and before anyone plays in them
     this.layouts.set(dungeon.id, copyLayout(dungeon));
@@ -107,32 +111,37 @@ export class DungeonManager {
           const room = dungeon.rooms[roomKey];
         
           // If this room has a chest, create a chest in the chest system
-          if (room && room.type === 'loot' && room.content) {
+          const content = room?.content;
+          const isChestRoom = room?.type === 'loot' && content;
+          if (isChestRoom) {
             const chestContent: ChestContent = {};
             
             // Map room content to chest content: the items whatever the chest is called ("loot", "random"...),
             // copied so the chest and the room each keep their own list
-            if (room.content.items?.length) {
-              chestContent.items = [...room.content.items];
+            const roomItems = content.items ?? [];
+            const hasRoomItems = roomItems.length > 0;
+            if (hasRoomItems) {
+              chestContent.items = [...roomItems];
             }
             // The dungeon item is the one the audit and the solver count too (roomGrants): only a Dungeon Item chest holds one
             const dungeonItem = chestDungeonItem(room);
             if (dungeonItem) {
               chestContent.dungeon = dungeonItem;
             }
-            const gold = Math.floor(Number(room.content.gold) || 0);
-            if (gold > 0) {
+            const gold = Math.floor(Number(content.gold) || 0);
+            const hasGold = gold > 0;
+            if (hasGold) {
               chestContent.gold = gold;
             }
             
             // Create a chest with position information
             const chestId = `${dungeonId}:chest:${floorId}:${row}:${col}`;
-            const isLocked = !!room.content.locked;
-            const requiresKey = room.content.requiresKey || undefined;
+            const isLocked = !!content.locked;
+            const requiresKey = content.requiresKey || undefined;
             
             this.chestSystem.createChest(
               chestId,
-              room.content.rarity || 'common',
+              content.rarity || 'common',
               chestContent,
               [row, col],
               isLocked,
@@ -140,7 +149,7 @@ export class DungeonManager {
             );
             
             // Link the chest ID back to the room content for reference
-            room.content.chestId = chestId;
+            content.chestId = chestId;
           }
         }
       }
@@ -186,8 +195,9 @@ export class DungeonManager {
   public openChestInRoom(dungeonId: string, position: [number, number], level: string = "1F"): ChestContent | undefined {
     // The room knows its chest: looking one up by [row, col] alone would find the chest of another floor
     const room = this.getRoom(dungeonId, position, level);
-    if (room?.content?.chestId) {
-      return this.chestSystem.openChest(room.content.chestId);
+    const chestId = room?.content?.chestId;
+    if (chestId) {
+      return this.chestSystem.openChest(chestId);
     }
 
     return undefined;
@@ -204,14 +214,17 @@ export class DungeonManager {
     const content = room?.content;
     if (!content) return true;
 
-    if (content.items) content.items = content.items.filter(item => !items.includes(item));
+    const contentItems = content.items;
+    if (contentItems) content.items = contentItems.filter(item => !items.includes(item));
     const isDungeonItemTaken = content.chest === 'dungeon' && content.dungeon && items.includes(content.dungeon);
     if (isDungeonItemTaken) delete content.dungeon;
-    if (items.some(item => item.startsWith('gold:'))) delete content.gold;
+    const isGoldTaken = items.some(item => item.startsWith('gold:'));
+    if (isGoldTaken) delete content.gold;
 
-    if (content.chestId) {
-      this.chestSystem.removeItemsFromChest(content.chestId, items);
-      const chest = this.chestSystem.getChest(content.chestId);
+    const chestId = content.chestId;
+    if (chestId) {
+      this.chestSystem.removeItemsFromChest(chestId, items);
+      const chest = this.chestSystem.getChest(chestId);
       if (chest) return chest.isEmpty;
     }
     return !content.items?.length && !(content.chest === 'dungeon' && content.dungeon) && !(Number(content.gold) > 0);
@@ -245,9 +258,10 @@ export class DungeonManager {
    */
   public roomHasItem(dungeonId: string, position: [number, number], itemId: string, level: string = "1F"): boolean {
     const room = this.getRoom(dungeonId, position, level);
-    if (!room?.content?.chestId) return false;
+    const chestId = room?.content?.chestId;
+    if (!chestId) return false;
     
-    const chest = this.chestSystem.getChest(room.content.chestId);
+    const chest = this.chestSystem.getChest(chestId);
     const hasNothingInside = !chest || chest.isEmpty;
     if (hasNothingInside) return false;
     

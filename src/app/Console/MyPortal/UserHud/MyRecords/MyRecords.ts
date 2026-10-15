@@ -101,6 +101,7 @@ export default defineComponent({
       try {
         const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
         if (canShare) {
+
           await navigator.share({ title: `${nickname.value}'s week`, text });
           return;
         }

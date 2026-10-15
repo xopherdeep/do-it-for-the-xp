@@ -68,8 +68,9 @@ export default defineComponent({
         event.preventDefault();
         return;
       }
-      if (event.dataTransfer) {
-        event.dataTransfer.setData("item", JSON.stringify(item));
+      const dataTransfer = event.dataTransfer;
+      if (dataTransfer) {
+        dataTransfer.setData("item", JSON.stringify(item));
       }
     },
     isItemEquipped(faIcon: string) {

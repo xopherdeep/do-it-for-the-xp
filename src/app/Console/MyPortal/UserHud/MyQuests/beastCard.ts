@@ -111,7 +111,8 @@ export interface CardStep {
 
 /** The text of one checklist entry; a beast saved by an older build may hold objects (BestiaryService reads both). */
 const stepName = (entry: unknown): string => {
-  if (typeof entry === "string") return entry;
+  const isPlainName = typeof entry === "string";
+  if (isPlainName) return entry;
   const item = (entry ?? {}) as { label?: string; name?: string };
   return item.label || item.name || "Unknown Task";
 };
@@ -122,7 +123,8 @@ const stepName = (entry: unknown): string => {
  */
 export function huntSteps(quest: Pick<Achievement, "id" | "achievementName">, beast?: Pick<Beast, "checklist">): CardStep[] {
   const checklist: unknown[] = Array.isArray(beast?.checklist) ? beast.checklist : [];
-  if (!checklist.length) {
+  const hasChecklist = checklist.length > 0;
+  if (!hasChecklist) {
     return [{ id: `${quest.id}-task`, name: quest.achievementName || "Finish the chore", checked: false }];
   }
   return checklist.map((entry, index) => {
@@ -171,7 +173,8 @@ export function tapStep(steps: readonly CardStep[], stepId: string): StepTap {
 export function progressLine(steps: readonly CardStep[]): string {
   const total = steps.length;
   const done = steps.filter((step) => step.checked).length;
-  if (total === 1) return done ? "1 step, done" : "1 step";
+  const isSingleStep = total === 1;
+  if (isSingleStep) return done ? "1 step, done" : "1 step";
   return done === total && total > 0 ? `All ${total} steps` : `${done} of ${total} steps`;
 }
 
@@ -224,7 +227,8 @@ export function stateNote(status: BeastCardStatus, voice: Voice = "adventure"): 
 
 /** The chip on the beast's portrait for a tamed or pending quest ("Tamed", "Pending"); empty for the rest. */
 export function stateWord(status: BeastCardStatus, voice: Voice = "adventure"): string {
-  if (status === "done") return copyFor("beastCard.state.done", voice);
+  const isTamed = status === "done";
+  if (isTamed) return copyFor("beastCard.state.done", voice);
   return status === "pending" ? copyFor("beastCard.state.pending", voice) : "";
 }
 
@@ -263,8 +267,10 @@ export function calendarCardStatus(
   pending: boolean,
   isToday: boolean
 ): BeastCardStatus {
-  if (status === "done") return pending ? "pending" : "done";
-  if (status === "notDue" || !isToday) return "later";
+  const isDone = status === "done";
+  if (isDone) return pending ? "pending" : "done";
+  const isLater = status === "notDue" || !isToday;
+  if (isLater) return "later";
   return "open";
 }
 
@@ -282,7 +288,8 @@ export function tamedCount(entries: readonly QuestLogEntry[], questId: string | 
 
 /** "Never tamed" / "Tamed 1 time" / "Tamed 7 times": the bestiary's kill-count line. */
 export function tamedLine(count: number, voice: Voice = "adventure"): string {
-  if (!(count > 0)) return copyFor("beastCard.tamed.never", voice);
+  const isNeverTamed = !(count > 0);
+  if (isNeverTamed) return copyFor("beastCard.tamed.never", voice);
   return copyFor(count === 1 ? "beastCard.tamed.one" : "beastCard.tamed.many", voice, { n: count });
 }
 
@@ -295,7 +302,8 @@ export function grudgeSlots(marks: unknown): boolean[] {
 /** "2h 10m", "35m", "1d 3h": a span in whole minutes, the way the clock reads it. */
 export function spanText(totalMinutes: number): string {
   const minutes = Math.max(0, Math.round(totalMinutes));
-  if (minutes < 1) return "under a minute";
+  const isUnderAMinute = minutes < 1;
+  if (isUnderAMinute) return "under a minute";
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
   const rest = minutes % 60;
@@ -315,12 +323,16 @@ export function dueClock(
   now: Date,
   voice: Voice = "adventure"
 ): string {
-  if (status === "done" || status === "pending") return "";
-  if (status === "later") return label ? copyFor("beastCard.due.later", voice, { label }) : copyFor("beastCard.due.notYet", voice);
+  const isSettled = status === "done" || status === "pending";
+  if (isSettled) return "";
+  const isLater = status === "later";
+  if (isLater) return label ? copyFor("beastCard.due.later", voice, { label }) : copyFor("beastCard.due.notYet", voice);
   if (!due) {
     return status === "overdue" && label ? copyFor("beastCard.due.overdue", voice, { label }) : copyFor("beastCard.due.anytime", voice);
   }
   const minutes = differenceInMinutes(due, now);
-  if (status === "overdue" || minutes < 0) return copyFor("beastCard.due.overdue", voice, { label });
+  const isOverdue = status === "overdue" || minutes < 0;
+  if (isOverdue) return copyFor("beastCard.due.overdue", voice, { label });
+
   return copyFor("beastCard.due.left", voice, { label, left: spanText(minutes) });
 }

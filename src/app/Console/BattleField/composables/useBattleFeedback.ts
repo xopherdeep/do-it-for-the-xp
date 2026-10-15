@@ -23,10 +23,11 @@ export const useBattleFeedback = () => {
   let shakeTimer: number | undefined;
   let flashTimer: number | undefined;
 
-  const heroHit = () => {
+  const playHeroHit = () => {
     hitSignal.value += 1;
     feel("thud");
-    if (prefersReducedMotion()) return;
+    const isMotionReduced = prefersReducedMotion();
+    if (isMotionReduced) return;
     shaking.value = true;
     flashing.value = true;
     window.clearTimeout(shakeTimer);
@@ -35,20 +36,27 @@ export const useBattleFeedback = () => {
     flashTimer = window.setTimeout(() => (flashing.value = false), FLASH_MS);
   };
 
-  const beastHit = () => feel("grab");
-  const tap = () => feel("tap");
-  /** One light pulse per second while the clock is in its last ten seconds. */
-  const tick = () => feel("tick");
-  /** The beast winds up: the clock ran out. */
-  const windUp = () => feel("thud");
-  const victory = () => feel("success");
-
   onUnmounted(() => {
     window.clearTimeout(shakeTimer);
     window.clearTimeout(flashTimer);
   });
 
-  return { shaking, flashing, hitSignal, heroHit, beastHit, tap, tick, windUp, victory };
+  return { shaking, flashing, hitSignal, playHeroHit };
 };
+
+/** The other buzzes of a fight: the hero lands a hit, taps, the last ten seconds tick, the beast winds up, the win. */
+export const useBattleBuzz = () => {
+  const playBeastHit = () => feel("grab");
+  const playTap = () => feel("tap");
+  /** One light pulse per second while the clock is in its last ten seconds. */
+  const playTick = () => feel("tick");
+  /** The beast winds up: the clock ran out. */
+  const playWindUp = () => feel("thud");
+  const playVictory = () => feel("success");
+
+  return { playBeastHit, playTap, playTick, playWindUp, playVictory };
+};
+
+export type BattleBuzz = ReturnType<typeof useBattleBuzz>;
 
 export type BattleFeedback = ReturnType<typeof useBattleFeedback>;

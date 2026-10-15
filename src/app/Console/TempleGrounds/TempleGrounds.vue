@@ -61,6 +61,15 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- The painted floors load before the hero walks in; this only shows when they are slow -->
+      <temple-loading
+        :open="isLoadingShown"
+        :name="templeName"
+        :element="templeElement"
+        :done="loadedFloors"
+        :total="totalFloors"
+      />
+
       <!-- Lantern light breathing over the room, dust in the air -->
       <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
 
@@ -191,44 +200,8 @@
                   :key="colIndex"
                   :class="getMapTileClass(rowIndex, colIndex)"
                 >
-                  <!-- Show appropriate content based on map/compass state -->
-                  <template v-if="getRoomVisibility(rowIndex, colIndex) !== 'none'">
-                    <!-- Current position always shows the player icon when we have a map -->
-                    <i
-                      v-if="isCurrentRoom(rowIndex, colIndex)"
-                      class="fad fa-2x fa-walking"
-                      :class="{ 'pulse-animation': true }"
-                    />
-                    <!-- Walls are always visible with the map, using the thematic icon with increased dimness -->
-                    <i
-                      v-else-if="rooms[cell]?.type === 'wall'"
-                      class="fad fa-2x"
-                      :class="{
-                        [ROOM_ICONS.wall]: true,
-                        'opacity-10': true
-                      }"
-                    ></i>
-                    <!-- Show room details if we have compass or have visited the room -->
-                    <i
-                      v-else-if="showRoomDetails(rowIndex, colIndex)"
-                      :class="{
-                        [getRoomIcon(rowIndex, colIndex)]: true,
-                        'fal': rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty,
-                        'fad': !(rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty),
-                        'opacity-45': !isRoomVisited(rowIndex, colIndex) && hasCompass
-                      }"
-                      class="fa-2x"
-                    ></i>
-                    <!-- Show a dimmed question mark for rooms we know exist but haven't visited -->
-                    <i
-                      v-else
-                      class="fad fa-2x fa-question-circle opacity-40"
-                    ></i>
-                  </template>
-                  <!-- Show nothing if we don't have the map -->
-                  <template v-else>
-                    <i class="fad fa-2x fa-solid opacity-0"></i>
-                  </template>
+                  <!-- The cell's icon from the map and compass: the hero, a wall, the room, a question mark or nothing -->
+                  <i :class="mapCellIcon(rowIndex, colIndex, cell)"></i>
                 </ion-col>
               </ion-row>
             </ion-grid>
@@ -371,8 +344,8 @@
       :wall="wallShown"
       :element="templeElement"
       :result="wallResult"
-      @bomb="blowShownWall"
-      @leave="leaveShownWall"
+      @bomb="triggerWallBlast"
+      @leave="closeShownWall"
       @done="finishShownWall"
     />
 

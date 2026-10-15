@@ -157,8 +157,9 @@ export function markTempleCleared(runs: TempleRuns, templeId: string): boolean {
   const templeState = runs.templeStates[templeId];
   if (!templeState) return false;
 
-  if (!templeState.clearedRooms) templeState.clearedRooms = new Set<string>();
-  if (!templeState.clearedRooms.has(TEMPLE_CLEARED_KEY)) templeState.timesCleared = (templeState.timesCleared ?? 0) + 1;
+  templeState.clearedRooms ??= new Set<string>();
+  const isFirstClear = !templeState.clearedRooms.has(TEMPLE_CLEARED_KEY);
+  if (isFirstClear) templeState.timesCleared = (templeState.timesCleared ?? 0) + 1;
   templeState.clearedRooms.add(TEMPLE_CLEARED_KEY);
   runs.queueSave(templeId);
   return true;

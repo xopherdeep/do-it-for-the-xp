@@ -176,13 +176,15 @@ export const classPassive = (jobClass: string | null | undefined): ClassPassive 
 
 /** An item or ability's MP cost once the class discount is taken, rounded down, never below 0 (a free thing stays free). */
 export const discountedMp = (cost: number, jobClass: string | null | undefined): number => {
-  if (!(cost > 0)) return 0;
+  const isFree = !(cost > 0);
+  if (isFree) return 0;
   return Math.max(0, Math.floor(cost * (1 - classPassive(jobClass).mpDiscount)));
 };
 
 /** GP with the class loot bonus on top, rounded to whole coins. */
 export const bonusGp = (gp: number, jobClass: string | null | undefined): number => {
-  if (!(gp > 0)) return Math.max(0, Math.round(gp || 0));
+  const hasNoGp = !(gp > 0);
+  if (hasNoGp) return Math.max(0, Math.round(gp || 0));
   return Math.round(gp * (1 + classPassive(jobClass).gpBonus));
 };
 

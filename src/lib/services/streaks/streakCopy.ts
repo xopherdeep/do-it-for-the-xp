@@ -13,19 +13,19 @@ export const streakChipLabel = (streak: DailyStreak): string => (streak.current 
 /** The words a screen reader hears on the chip */
 export const streakAriaLabel = (streak: DailyStreak): string => {
   const days = plural(streak.current, "day");
-  const kept = streak.doneToday;
-  if (kept) return `${days} streak, kept today. Tap for details.`;
+  const isKeptToday = streak.doneToday;
+  if (isKeptToday) return `${days} streak, kept today. Tap for details.`;
   return `${days} streak, at risk: finish a quest today to keep it. Tap for details.`;
 };
 
 /** The lines of the streak box (the alert behind the chip), as plain sentences */
 export const streakLines = (streak: DailyStreak): string[] => {
   const lines: string[] = [];
-  const noStreak = streak.current === 0;
-  const kept = streak.doneToday;
-  if (noStreak) {
+  const isUnlit = streak.current === 0;
+  const isKeptToday = streak.doneToday;
+  if (isUnlit) {
     lines.push("Finish any quest today to light your streak.");
-  } else if (kept) {
+  } else if (isKeptToday) {
     lines.push(`${plural(streak.current, "day")} in a row. Today is kept!`);
   } else {
     lines.push(`${plural(streak.current, "day")} in a row. Finish a quest before midnight to keep it.`);
@@ -40,9 +40,9 @@ export const streakLines = (streak: DailyStreak): string[] => {
     lines.push("Every 7th day earns a Streak Shield that saves a missed day.");
   }
   lines.push(`Best streak: ${plural(Math.max(streak.best, streak.current), "day")}.`);
-  const lost = noStreak ? streak.lastLost : null;
-  if (lost) {
-    lines.push(`Your ${lost.days}-day streak ended. Start a new one today!`);
+  const lostRun = isUnlit ? streak.lastLost : null;
+  if (lostRun) {
+    lines.push(`Your ${lostRun.days}-day streak ended. Start a new one today!`);
   }
   return lines;
 };

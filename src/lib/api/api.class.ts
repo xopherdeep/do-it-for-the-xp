@@ -37,10 +37,11 @@ export default class Api {
     if (shouldCreateInstance) {
       Api.instance = new Api(config);
     }
-    if (!Api.instance) {
+    const instance = Api.instance;
+    if (!instance) {
       throw new Error('API instance not initialized. Call with config first.');
     }
-    return Api.instance;
+    return instance;
   }
 
   /**
@@ -103,7 +104,8 @@ export default class Api {
     const data = await response.json();
 
     // check for error response
-    if (!response.ok) {
+    const isErrorResponse = !response.ok;
+    if (isErrorResponse) {
       // get error message from body or default to response statusText
       const error = (data && data.message) || response.statusText;
       return Promise.reject(error);

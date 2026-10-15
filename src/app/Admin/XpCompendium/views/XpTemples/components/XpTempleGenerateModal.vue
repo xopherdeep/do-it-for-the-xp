@@ -342,7 +342,7 @@ const reroll = () => {
   draft.value.seed = rerolledSeed(draft.value.seed, randomSeed());
 };
 
-// ---- 2. Size and floors ------------------------------------------------------------------------------------------
+// ---- 2. How big the temple grows ---------------------------------------------------------------------------------
 
 type RailId = "size" | "floors" | "locks";
 
@@ -358,8 +358,10 @@ const sizeSummary = computed(() => sizeLines(draft.value));
 
 const choose = (rail: RailId, value: string | number) => {
   play$fx("cursor");
-  if (rail === "size") draft.value.size = value as GenerateDraft["size"];
-  else if (rail === "floors") draft.value.floors = value as FloorCount;
+  const isSizeRail = rail === "size";
+  const isFloorsRail = rail === "floors";
+  if (isSizeRail) draft.value.size = value as GenerateDraft["size"];
+  else if (isFloorsRail) draft.value.floors = value as FloorCount;
   else draft.value.locks = value as LockCount;
 };
 
@@ -417,7 +419,8 @@ function growTemple() {
 }
 
 watch(position, (at) => {
-  if (at === previewAt) growTemple();
+  const isAtPreview = at === previewAt;
+  if (isAtPreview) growTemple();
 });
 
 /** The id holds a temple already: the Game Master picks Replace, Save as a copy or Cancel (the backdrop is Cancel) */
@@ -436,15 +439,18 @@ async function askAboutTakenId(takenId: string): Promise<TakenIdAnswer> {
   });
   await alert.present();
   const { role } = await alert.onDidDismiss();
-  if (role === "destructive") return "replace";
+  const isReplace = role === "destructive";
+  if (isReplace) return "replace";
   return role === "copy" ? "copy" : "cancel";
 }
 
 async function save() {
-  if (!temple.value || !verdict.value?.solvable || saving.value) return;
+  const builtTemple = temple.value;
+  const isUnsavable = !builtTemple || !verdict.value?.solvable || saving.value;
+  if (isUnsavable) return;
   saving.value = true;
   try {
-    const record = await recordToSave(toTempleRecord(temple.value), templeDb, askAboutTakenId);
+    const record = await recordToSave(toTempleRecord(builtTemple), templeDb, askAboutTakenId);
     if (!record) return;
     await templeDb.setTemple(record);
     play$fx("openMenu");

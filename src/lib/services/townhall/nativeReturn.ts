@@ -4,7 +4,8 @@ import { NATIVE_RETURN_URL, searchOf } from "./townHallLink";
 
 /** Whether an address the system opened in the app is the Town Hall's own (not `town-hall-something`, not another scheme). */
 function isTownHallReturn(url: string): boolean {
-  if (!url.startsWith(NATIVE_RETURN_URL)) return false;
+  const isOwnScheme = url.startsWith(NATIVE_RETURN_URL);
+  if (!isOwnScheme) return false;
   const next = url.charAt(NATIVE_RETURN_URL.length);
   return next === "" || next === "?" || next === "#" || next === "/";
 }
@@ -14,7 +15,7 @@ async function closeBrowser(): Promise<void> {
   try {
     await Browser.close();
   } catch {
-    // Nothing to close, or nothing that can be closed: the parent is back in the game either way
+    // chemx-allow: best-effort nothing to close, or nothing that can be closed: the parent is back in the game either way
   }
 }
 

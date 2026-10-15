@@ -89,7 +89,6 @@ export const trimPaid = (paid: PaidRewardRecord[], now: Date): PaidRewardRecord[
   const cutoff = now.getTime() - NINETY_DAYS_MS;
   return paid.filter((record) => {
     const entryTime = new Date(record.at).getTime();
-    const isRecent = entryTime >= cutoff;
-    return isRecent;
+    return entryTime >= cutoff;
   });
 };

@@ -154,7 +154,8 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
         if (holdsQuest) {
           const questBeastId = questState.beastId;
           const card = questBeastId ? await beastCard(questBeastId, true) : null;
-          if (currentRoom.value === room) {
+          const isStillInRoom = currentRoom.value === room;
+          if (isStillInRoom) {
             roomBeast.value = card ? { name: card.name, avatar: card.art?.src || bestiaryService.getAvatar(74) } : null;
             beastPending.value = false;
           }
@@ -166,7 +167,8 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
       if (authoredBeastId) {
         beastPending.value = true;
         const card = await beastCard(String(authoredBeastId));
-        if (currentRoom.value === room) {
+        const isStillInRoom = currentRoom.value === room;
+        if (isStillInRoom) {
           roomBeast.value = card ? { name: card.name, avatar: card.art?.src || bestiaryService.getAvatar(74) } : null;
         }
         beastPending.value = false;
@@ -193,7 +195,8 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
           const isBeastNamed = chosen !== null && Boolean(chosen.name);
           if (isBeastNamed) {
             const src = chosen.imageUrl || chosen.localImage || (chosen.avatar ? bestiaryService.getAvatar(Number(chosen.avatar)) : '');
-            if (currentRoom.value === room) {
+            const isStillInRoom = currentRoom.value === room;
+            if (isStillInRoom) {
               roomBeast.value = {
                 name: chosen.name,
                 avatar: src || bestiaryService.getAvatar(74),

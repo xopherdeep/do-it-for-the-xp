@@ -33,7 +33,7 @@ function mountTab(schedule: Record<string, unknown>) {
           startsModalOpen: ref(false),
           endsModalOpen: ref(false),
           dueModalOpen: ref(false),
-          generateScheduleWithAI,
+          createScheduleWithAI: generateScheduleWithAI,
           isGeneratingSchedule: ref(false),
         },
       },

@@ -182,11 +182,14 @@ export const draftFromTemple = (temple: AttributesTemple, fallbackIcon: string):
 export const templePatch = (temple: AttributesTemple, draft: AttributesDraft, fallbackIcon: string): TemplePatch => {
   const patch: TemplePatch = { categoryIds: [...draft.categoryIds] };
   const name = draft.name.trim();
-  if (name !== effectiveName(temple)) patch.customName = name;
+  const isRenamed = name !== effectiveName(temple);
+  if (isRenamed) patch.customName = name;
   const description = draft.description.trim();
-  if (description !== (temple.customDescription ?? "").trim()) patch.customDescription = description;
+  const isRedescribed = description !== (temple.customDescription ?? "").trim();
+  if (isRedescribed) patch.customDescription = description;
   const icon = normalizeIcon(draft.icon);
-  if (icon && icon !== effectiveIcon(temple, fallbackIcon)) patch.customIcon = `fad ${icon}`;
+  const hasNewIcon = icon && icon !== effectiveIcon(temple, fallbackIcon);
+  if (hasNewIcon) patch.customIcon = `fad ${icon}`;
   return patch;
 };
 
@@ -245,7 +248,8 @@ export const themeSuggestions = (worlds: readonly string[]): string[] => {
   const seen = new Set<string>();
   return [...HOUSE_THEMES, ...worlds].filter((theme) => {
     const key = theme.trim().toLowerCase();
-    if (!key || seen.has(key)) return false;
+    const isBlankOrSeen = !key || seen.has(key);
+    if (isBlankOrSeen) return false;
     seen.add(key);
     return true;
   });
@@ -300,8 +304,9 @@ export const generateWizardSteps = (): WizardStep<GenerateDraft>[] => [
     guide: "Here is the temple the seed grew. If the heroes can reach the boss, you may save it.",
     icon: "dungeon",
     isValid: (draft) => {
-      if (!draft.preview) return false;
-      return draft.preview.solvable ? true : draft.preview.problem || CANNOT_REACH_BOSS;
+      const preview = draft.preview;
+      if (!preview) return false;
+      return preview.solvable ? true : preview.problem || CANNOT_REACH_BOSS;
     },
   },
 ];

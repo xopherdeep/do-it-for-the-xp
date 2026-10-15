@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng, pulse } from "./util";
 
 /** Twinkling points with a scale pulse, for water and sun. */
@@ -6,7 +6,7 @@ export const sparkles: EffectFactory = () => {
   const rng = makeRng(53);
   let x = new Float32Array(0), y = new Float32Array(0), ph = new Float32Array(0), sp = new Float32Array(0);
   let count = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 20, 60);
       x = new Float32Array(count); y = new Float32Array(count); ph = new Float32Array(count); sp = new Float32Array(count);
@@ -29,5 +29,4 @@ export const sparkles: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

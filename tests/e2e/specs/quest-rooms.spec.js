@@ -284,8 +284,9 @@ describe("Quest rooms: a temple full of real chores", () => {
     // The beast is the quest's: the sheet words the chore, when it is due and nothing about a grudge
     cy.get(".xp-monster-model-wrapper", { timeout: 90000 }).should("be.visible").and("have.attr", "title", "Attack Dish Goblin");
     openRoomSheet("Load the dishwasher");
-    cy.get("[data-cy=choice-reveal]").should("contain", "A Monster approaches!");
-    cy.get("[data-cy=choice-subtitle]").should("contain", "Dish Goblin");
+    // The beast is named in the title itself, with nothing repeated under it
+    cy.get("[data-cy=choice-reveal]").should("contain", "A Dish Goblin approaches!");
+    cy.get("[data-cy=choice-subtitle]").should("not.exist");
     // The machine may be past 7pm: "Due 7:00pm" or "Was due 7:00pm"
     cy.get("[data-cy=choice-body]").invoke("text").should("match", /due/i);
     cy.get("[data-cy=choice-body]").should("not.contain", "Grudge");
@@ -345,7 +346,7 @@ describe("Quest rooms: a temple full of real chores", () => {
     cy.get(".xp-monster-model-wrapper", { timeout: 90000 }).should("be.visible").and("have.attr", "title", "Attack Dish Goblin");
     cy.get("#room-action .cleared-mark").should("not.exist");
     openRoomSheet("Load the dishwasher");
-    cy.get("[data-cy=choice-reveal]").should("contain", "A Monster approaches!");
+    cy.get("[data-cy=choice-reveal]").should("contain", "A Dish Goblin approaches!");
     cy.get("[data-cy=choice-body]").should("not.contain", "Grudge");
     shot("10-next-day-beast-is-back");
   });

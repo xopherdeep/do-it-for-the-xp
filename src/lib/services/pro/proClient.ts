@@ -69,14 +69,18 @@ async function call(path: string, body?: unknown): Promise<{ status: number; dat
 }
 
 /** Only the Gatekeeper's own "no license" answer is a 404 that turns Pro off; a missing route is a server error. */
-const noLicense = (status: number, data: any): boolean => status === 404 && data?.pro === false;
+const isUnlicensed = (status: number, data: any): boolean => status === 404 && data?.pro === false;
 
 function fail(status: number, data: any): never {
   const code = data?.error;
-  if (status === 409) throw new ProClientError("device_limit");
-  if (status === 402) throw new ProClientError("pro_required");
-  if (status === 400) throw new ProClientError("invalid_input");
-  if (status === 429) throw new ProClientError(code === "daily_limit" ? "daily_limit" : "rate_limited");
+  const isDeviceLimit = status === 409;
+  if (isDeviceLimit) throw new ProClientError("device_limit");
+  const isProRequired = status === 402;
+  if (isProRequired) throw new ProClientError("pro_required");
+  const isInvalidInput = status === 400;
+  if (isInvalidInput) throw new ProClientError("invalid_input");
+  const isRateLimited = status === 429;
+  if (isRateLimited) throw new ProClientError(code === "daily_limit" ? "daily_limit" : "rate_limited");
   throw new ProClientError("server");
 }
 
@@ -93,23 +97,26 @@ function toStatus(data: any): ProStatus {
 
 export async function fetchPlans(): Promise<Record<ProPlanId, ProPlanInfo>> {
   const { status, data } = await call("plans");
-  if (status !== 200) fail(status, data);
+  const isOk = status === 200;
+  if (!isOk) fail(status, data);
   return data;
 }
 
 /** The family's license, or null when nothing has arrived for it yet. */
 export async function claim(familyId: string, deviceId: string): Promise<ProStatus | null> {
   const { status, data } = await call("claim", { family_id: familyId, device_id: deviceId });
-  if (noLicense(status, data)) return null;
-  if (status !== 200) fail(status, data);
+  if (isUnlicensed(status, data)) return null;
+  const isOk = status === 200;
+  if (!isOk) fail(status, data);
   return toStatus(data);
 }
 
 /** Check a key (also how a second device restores). Null when the key is unknown. */
 export async function validate(licenseKey: string, deviceId: string): Promise<ProStatus | null> {
   const { status, data } = await call("validate", { license_key: licenseKey, device_id: deviceId });
-  if (noLicense(status, data)) return null;
-  if (status !== 200) fail(status, data);
+  if (isUnlicensed(status, data)) return null;
+  const isOk = status === 200;
+  if (!isOk) fail(status, data);
   return toStatus(data);
 }
 
@@ -124,7 +131,8 @@ export async function manage(
   returnUrl: string
 ): Promise<{ url?: string; store?: "APP_STORE" | "PLAY_STORE" }> {
   const { status, data } = await call("manage", { license_key: licenseKey, return_url: returnUrl });
-  if (status !== 200) fail(status, data);
+  const isOk = status === 200;
+  if (!isOk) fail(status, data);
   return data;
 }
 
@@ -140,7 +148,9 @@ export async function askAi<T>(
     task,
     input,
   });
-  if (status === 502) throw new ProClientError("server", "ai_unavailable");
-  if (status !== 200) fail(status, data);
+  const isAiDown = status === 502;
+  if (isAiDown) throw new ProClientError("server", "ai_unavailable");
+  const isOk = status === 200;
+  if (!isOk) fail(status, data);
   return data as T;
 }

@@ -62,8 +62,8 @@ jest.mock("@/hooks/abilities/useAbilitySystem", () => {
     useAbilitySystem: () => ({
       abilities: ref([mockPower]),
       isLoading: ref(false),
-      isInitialized: ref(true),
-      useAbility: jest.fn(),
+      isReady: ref(true),
+      triggerAbility: jest.fn(),
       refresh: jest.fn(),
     }),
   };

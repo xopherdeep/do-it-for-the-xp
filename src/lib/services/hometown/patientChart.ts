@@ -46,9 +46,12 @@ const shareOf = (pool: { now: number; max: number }): number =>
 
 /** The status band for an HP share. */
 export function patientStatusOf(hpShare: number): PatientStatus {
-  if (hpShare <= 0) return "down";
-  if (hpShare <= CRITICAL_SHARE) return "critical";
-  if (hpShare < HEALTHY_SHARE) return "hurt";
+  const isDown = hpShare <= 0;
+  if (isDown) return "down";
+  const isCritical = hpShare <= CRITICAL_SHARE;
+  if (isCritical) return "critical";
+  const isHurt = hpShare < HEALTHY_SHARE;
+  if (isHurt) return "hurt";
   return "healthy";
 }
 

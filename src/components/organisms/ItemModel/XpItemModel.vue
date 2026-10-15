@@ -18,17 +18,19 @@ import type { LandmarkHandle } from "@/components/organisms/BuildingModel/voxel/
 import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { createPlaceholderItemMesh, iconToVoxelMesh, itemIconClass } from "@/lib/engine/voxel/iconToVoxel";
 
+interface XpItemModelProps {
+  /** Font Awesome duotone name ("film") or class ("fad fa-film") */
+  icon?: string;
+  /** An uploaded picture's address; wins over the icon while it loads */
+  photo?: string;
+  name?: string;
+  size?: number;
+  /** Turns slowly on the spot (the item the shelf is showing) */
+  spinning?: boolean;
+}
+
 const props = withDefaults(
-  defineProps<{
-    /** Font Awesome duotone name ("film") or class ("fad fa-film") */
-    icon?: string;
-    /** An uploaded picture's address; wins over the icon while it loads */
-    photo?: string;
-    name?: string;
-    size?: number;
-    /** Turns slowly on the spot (the item the shelf is showing) */
-    spinning?: boolean;
-  }>(),
+  defineProps<XpItemModelProps>(),
   { icon: "", photo: "", name: "", size: 150, spinning: false }
 );
 
@@ -51,7 +53,8 @@ let latestIcon = 0;
 const loadIcon = async () => {
   const thisLoad = ++latestIcon;
   const next = await iconToVoxelMesh(props.icon);
-  if (thisLoad !== latestIcon) return;
+  const isStaleLoad = thisLoad !== latestIcon;
+  if (isStaleLoad) return;
   mesh = next;
   handle?.rebuildMesh(() => mesh);
 };

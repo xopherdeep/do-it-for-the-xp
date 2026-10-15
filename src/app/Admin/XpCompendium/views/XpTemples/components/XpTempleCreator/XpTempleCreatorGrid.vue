@@ -24,37 +24,14 @@
           ></i>
           <span class="cell-coords">{{rowIndex}},{{colIndex}}</span>
 
-          <!-- Side Configuration Indicators -->
-          <template
-            v-for="dir in directions"
-            :key="dir"
+          <!-- Side Configuration Indicators: one per valid connection, trapped, explicit (locked, bombable, wall) or open -->
+          <div
+            v-for="side in sideIndicators(rowIndex, colIndex)"
+            :key="side.dir"
+            :class="['side-indicator', side.dir, side.kind, 'icon-colors']"
           >
-            <!-- Only show indicators if there is a valid connection in that direction -->
-            <template v-if="hasValidNeighbor(rowIndex, colIndex, dir)">
-              <!-- Trapped State (Either room is boss/miniboss/lockOnEnter) -->
-              <div
-                v-if="isEdgeTrapped(rowIndex, colIndex, dir) && getEffectiveEdge(rowIndex, colIndex, dir) === 'door'"
-                :class="['side-indicator', dir, 'indicator-trapped', 'icon-colors']"
-              >
-                <i class="fad fa-dungeon trap-variant"></i>
-              </div>
-              <!-- Explicit Side Config (Locked, Bombable, Wall) -->
-              <div
-                v-else-if="getEffectiveEdge(rowIndex, colIndex, dir) !== 'door'"
-                :class="['side-indicator', dir, `indicator-${getEffectiveEdge(rowIndex, colIndex, dir)}`, 'icon-colors']"
-              >
-                <i
-                  :class="[sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon === 'DYNAMIC_WALL' ? roomIcons.wall : sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon]"></i>
-              </div>
-              <!-- Open Passage (door state) - green tombstone -->
-              <div
-                v-else
-                :class="['side-indicator', dir, 'indicator-door', 'icon-colors']"
-              >
-                <i class="fal fa-tombstone-alt"></i>
-              </div>
-            </template>
-          </template>
+            <i :class="side.icon"></i>
+          </div>
         </div>
       </div>
     </div>
@@ -68,6 +45,13 @@ import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { effectiveSideInGrid } from '@/lib/services/temples/authoredDoors';
 
 type Direction = 'north' | 'east' | 'south' | 'west';
+
+/** One edge mark on a cell: its side, its indicator class and its icon classes. */
+interface SideIndicator {
+  dir: Direction;
+  kind: string;
+  icon: string;
+}
 
 export default defineComponent({
   name: 'XpTempleCreatorGrid',
@@ -134,7 +118,8 @@ export default defineComponent({
       // First check if CURRENT cell is a non-wall room
       const currentSymbol = props.maze[row]?.[col];
       const currentType = getCellType(currentSymbol);
-      if (currentType === 'wall') return false;
+      const isWall = currentType === 'wall';
+      if (isWall) return false;
       
       // Then check if neighbor exists and is non-wall
       let nRow = row;
@@ -200,8 +185,22 @@ export default defineComponent({
       return neighborSymbol ? isRoomTrapped(neighborSymbol) : false;
     };
 
+    // The edge marks a cell wears: a trapped door (boss, miniboss, lockOnEnter), an explicit side (locked, bombable,
+    // wall) or an open passage (the green tombstone), only where a room sits on both sides
+    const sideIndicators = (row: number, col: number): SideIndicator[] =>
+      directions.filter((dir) => hasValidNeighbor(row, col, dir)).map((dir) => {
+        const edge = getEffectiveEdge(row, col, dir);
+        const isDoor = edge === 'door';
+        const isTrappedDoor = isDoor && isEdgeTrapped(row, col, dir);
+        if (isTrappedDoor) return { dir, kind: 'indicator-trapped', icon: 'fad fa-dungeon trap-variant' };
+        if (isDoor) return { dir, kind: 'indicator-door', icon: 'fal fa-tombstone-alt' };
+        const icon = props.sideTypeInfo[edge].icon;
+        return { dir, kind: `indicator-${edge}`, icon: icon === 'DYNAMIC_WALL' ? props.roomIcons.wall : icon };
+      });
+
     return {
       directions,
+      sideIndicators,
       getCellType,
       isEntrancePosition,
       getSideConfiguration,

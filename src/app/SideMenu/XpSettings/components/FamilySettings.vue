@@ -120,7 +120,7 @@ const writeFamilyLock = (locked: boolean): void => {
   try {
     localStorage.setItem(FAMILY_LOCK_KEY, String(locked));
   } catch {
-    // storage blocked: the lock lasts until the page is left
+    // chemx-allow: best-effort storage blocked, so the lock lasts until the page is left
   }
 };
 
@@ -162,7 +162,8 @@ export default defineComponent({
       void saveFamilySettings(family.value);
     };
     const setBedtime = (change: Partial<FamilySettings["bedtime"]>) => {
-      if (!/^\d\d:\d\d$/.test(change.from ?? change.to ?? "00:00")) return;
+      const isClockTime = /^\d\d:\d\d$/.test(change.from ?? change.to ?? "00:00");
+      if (!isClockTime) return;
       setFamily({ bedtime: { ...family.value.bedtime, ...change } });
     };
 

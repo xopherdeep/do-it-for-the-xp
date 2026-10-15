@@ -112,7 +112,8 @@ export const castBattlePower = (ability: Ability, ctx: BattleEffectContext): Bat
   const isCastRefused = !outcome.ok;
   if (isCastRefused) return outcome;
 
-  if (mp > 0) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
+  const hasMpCost = mp > 0;
+  if (hasMpCost) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   const name = hero?.name?.nick || hero?.name?.first;
   const caster = name ? `${name} casts` : 'You cast';
   return { ...outcome, line: `${caster} ${ability.name}! ${outcome.line}` };

@@ -108,7 +108,8 @@ export class TempleHydrator {
 
       tokens.forEach((token, col) => {
         // Enforce character limit/rule if necessary, but palette handles the mapping
-        if (token.length > 5) {
+        const isLongToken = token.length > 5;
+        if (isLongToken) {
           debug.warn(`Token "${token}" at [${row}, ${col}] exceeds recommended length.`);
         }
 
@@ -166,7 +167,8 @@ export class TempleHydrator {
         room.id = roomKey;
 
         // Special handling for EXIT (Entrance/Exit combo)
-        if (token === 'EXIT') {
+        const isExit = token === 'EXIT';
+        if (isExit) {
           if (!entrance) {
             entrance = [row, col];
             room.type = 'entrance';
@@ -208,7 +210,8 @@ export class TempleHydrator {
       Object.entries(floorDungeon.rooms).forEach(([key, room]) => {
         const newKey = `${floorId}:${key}`;
         room.id = newKey;
-        if (room.coords) room.coords.z = floorId;
+        const coords = room.coords;
+        if (coords) coords.z = floorId;
         rooms[newKey] = room;
       });
 

@@ -204,8 +204,9 @@
 
       showTrackInfoTemporarily() {
         // Clear any existing timeout
-        if (this.infoVisibilityTimeoutId !== null) {
-          clearTimeout(this.infoVisibilityTimeoutId);
+        const infoTimeoutId = this.infoVisibilityTimeoutId;
+        if (infoTimeoutId) {
+          clearTimeout(infoTimeoutId);
           this.infoVisibilityTimeoutId = null;
         }
 
@@ -260,7 +261,7 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
@@ -270,7 +271,7 @@
         if (this.hasPlaybackPosition()) {
           // Fast forward by seekAmount seconds, but don't exceed duration
           const newTime = this.audioElement.currentTime + this.seekAmount;
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.audioElement.currentTime = Math.min(
               newTime,
               this.audioElement.duration
@@ -281,7 +282,7 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
@@ -296,7 +297,7 @@
 
       simulateProgressUpdate() {
         // Clear any existing interval
-        if (progressTimer !== null) {
+        if (progressTimer) {
           clearInterval(progressTimer);
           progressTimer = null;
         }
@@ -359,7 +360,8 @@
           filename = filename.split("#")[0]; // Remove hash
 
           // Remove extension
-          if (filename.includes(".")) {
+          const hasExtension = filename.includes(".");
+          if (hasExtension) {
             filename = filename.substring(0, filename.lastIndexOf("."));
           }
 
@@ -443,7 +445,8 @@
       }
 
       // Listen for changes in the audio source
-      if (this.audioElement) {
+      const hasAudioElement = Boolean(this.audioElement);
+      if (hasAudioElement) {
         // Using watch instead of MutationObserver since it won't work directly on Audio element
         debug.log("Audio element available, using watch for changes instead");
       }
@@ -484,17 +487,19 @@
       );
 
       // Clear intervals and timeouts
-      if (progressTimer !== null) {
+      if (progressTimer) {
         clearInterval(progressTimer);
         progressTimer = null;
       }
 
-      if (this.intervalId !== null) {
-        clearInterval(this.intervalId);
+      const intervalId = this.intervalId;
+      if (intervalId) {
+        clearInterval(intervalId);
       }
 
-      if (this.infoVisibilityTimeoutId !== null) {
-        clearTimeout(this.infoVisibilityTimeoutId);
+      const infoTimeoutId = this.infoVisibilityTimeoutId;
+      if (infoTimeoutId) {
+        clearTimeout(infoTimeoutId);
       }
     },
 
@@ -517,116 +522,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  .xp-music-player {
-    width: 100%;
-    padding: 0;
-
-    .music-player-container {
-      padding: 0;
-    }
-
-    .music-control-item {
-      --padding-start: 0;
-      --inner-padding-end: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .music-label {
-      opacity: 0.8;
-      margin-left: 5px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      /* background-color: rgba(var(--ion-color-primary-rgb), 0.15); */
-    }
-
-    .player-buttons {
-      display: flex;
-      justify-content: space-evenly;
-      align-items: center;
-      width: 100%;
-      padding: 8px 0;
-
-      .control-button {
-        --padding-start: 8px;
-        --padding-end: 8px;
-        height: 40px;
-        margin: 0;
-
-        ion-icon {
-          font-size: 18px;
-        }
-      }
-
-      .play-pause-button {
-        height: 48px;
-
-        ion-icon {
-          font-size: 22px;
-        }
-      }
-    }
-
-    .track-info {
-      padding: 4px 16px 8px;
-      overflow: hidden;
-
-      .track-title {
-        position: relative;
-        font-size: 1.4rem;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 8px;
-        padding: 4px 0;
-
-        &.marquee {
-          animation: marquee 10s linear infinite;
-
-          .marquee-duplicate {
-            position: absolute;
-            left: 100%;
-            margin-left: 20px;
-          }
-        }
-      }
-
-      ion-progress-bar {
-        --buffer-background: rgba(var(--ion-color-primary-rgb), 0.2);
-        --progress-background: var(--ion-color-primary);
-        height: 4px;
-        border-radius: 2px;
-      }
-    }
-
-    // Animation classes
-    .slide-fade-enter-active {
-      transition: all 0.3s ease-out;
-    }
-
-    .slide-fade-leave-active {
-      transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1);
-    }
-
-    .slide-fade-enter-from {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-
-    .slide-fade-leave-to {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-  }
-
-  @keyframes marquee {
-    0% {
-      transform: translate(0, 0);
-    }
-    100% {
-      transform: translate(-100%, 0);
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpMusicPlayer.scss" />

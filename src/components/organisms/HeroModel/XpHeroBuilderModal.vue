@@ -30,7 +30,7 @@
    * open starts from the profile's look. X, the Android back button and a swipe all go through `canDismiss`, which
    * asks the builder whether the player may leave; a finished Done or the hand-off to the portrait picker does not ask.
    */
-  defineProps<{
+  interface HeroBuilderModalProps {
     isOpen: boolean;
     /** The profile's look so far; none yet opens on the starter lineup */
     look?: HeroLook | null;
@@ -38,7 +38,9 @@
     equipment?: HandSlots | null;
     /** Offer "Use a 2D portrait instead" */
     allowPortrait?: boolean;
-  }>();
+  }
+
+  defineProps<HeroBuilderModalProps>();
 
   const emit = defineEmits<{
     (e: "save", look: HeroLook, image?: string): void;

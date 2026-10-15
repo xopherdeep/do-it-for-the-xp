@@ -99,7 +99,7 @@ const userStore = useUserStore();
 const router = useRouter();
 const t = useCopy();
 const { voice } = useVoice();
-const { prompt, ask, respond } = useRevealPrompt();
+const { prompt, showPrompt: ask, submitAnswer: respond } = useRevealPrompt();
 
 /** The Phones button opens the Link a phone modal (MP15) */
 const PHONES_MODAL_READY = true;

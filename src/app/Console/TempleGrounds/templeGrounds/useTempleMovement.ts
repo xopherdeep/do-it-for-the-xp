@@ -18,7 +18,7 @@ export const resolveSwipeDirection = (dx: number, dy: number): 'north' | 'south'
 export interface TempleMovementDeps
   extends Pick<
     TempleState,
-    'currentPosition' | 'canMoveUp' | 'canMoveDown' | 'canMoveLeft' | 'canMoveRight' | 'isDoorLocked' | 'move'
+    'currentPosition' | 'canMoveUp' | 'canMoveDown' | 'canMoveLeft' | 'canMoveRight' | 'isDoorLocked' | 'stepTo'
   > {
   props: TempleGroundsProps;
   templeSystem: TempleSystem;
@@ -40,7 +40,7 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
     canMoveLeft,
     canMoveRight,
     isDoorLocked,
-    move,
+    stepTo,
     fx,
     updateBg,
     showLockedDoor,
@@ -59,11 +59,14 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
 
   const onTouchEnd = (event: TouchEvent) => {
     const touch = event.changedTouches[0];
-    if (!swipeStart || !touch) return;
-    const dx = touch.clientX - swipeStart.x;
-    const dy = touch.clientY - swipeStart.y;
+    const start = swipeStart;
+    const isSwipe = !!start && !!touch;
+    if (!isSwipe) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
     swipeStart = null;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
+    const isTooShort = Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX;
+    if (isTooShort) return;
     // Dragging the world: a swipe to the right pulls the room on the left into view (west), and so on
     const direction = resolveSwipeDirection(dx, dy);
     const allowed = { north: canMoveUp, south: canMoveDown, west: canMoveLeft, east: canMoveRight }[direction];
@@ -111,7 +114,7 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
     updateBg(newCol, newRow);
 
     // THEN attempt to move in the game state
-    const result = move(direction);
+    const result = stepTo(direction);
 
     // If movement failed for some reason, revert the background position
     if (!result) {

@@ -13,7 +13,8 @@ import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
 export const templeElementFor = (templeId: string, recordElement?: string): string => {
   const id = String(templeId || "");
   const isShipped = id.endsWith("-temple") && !id.startsWith("gen-");
-  if (!isShipped && recordElement && recordElement !== "none") return recordElement;
+  const hasOwnElement = !isShipped && !!recordElement && recordElement !== "none";
+  if (hasOwnElement) return recordElement;
   return id.replace("-temple", "") || "wind";
 };
 
@@ -100,9 +101,11 @@ export const standInMonster = (room: Room, element: string): StandInMonster => {
   }
 
   let avatarId = 74;
-  if (roomType === "boss") {
+  const isBoss = roomType === "boss";
+  const isMiniboss = roomType === "miniboss";
+  if (isBoss) {
     avatarId = BOSS_AVATARS[element] || 1;
-  } else if (roomType === "miniboss") {
+  } else if (isMiniboss) {
     avatarId = MINIBOSS_AVATARS[element] || 19;
   } else {
     avatarId = MOB_AVATARS[element] || 74;

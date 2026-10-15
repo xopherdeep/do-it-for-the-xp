@@ -45,7 +45,8 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
 
   const showNext = () => {
     cancelAuto();
-    if (!queue.value.length) {
+    const isQueueEmpty = queue.value.length === 0;
+    if (isQueueEmpty) {
       text.value = "";
       hasMore.value = false;
       currentAuto = false;
@@ -53,7 +54,8 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
       return;
     }
     const next = queue.value.shift() as DialogItem;
-    if (typeof next === "function") {
+    const isQueuedAction = typeof next === "function";
+    if (isQueuedAction) {
       next();
       showNext();
       return;
@@ -65,7 +67,7 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     hasMore.value = false; // shown once the line has finished typing
   };
 
-  const enqueue = (items: DialogItem[]) => {
+  const addToQueue = (items: DialogItem[]) => {
     queue.value.push(...items);
     const isDialogIdle = !isTyping.value && !text.value;
     if (isDialogIdle) showNext();
@@ -73,7 +75,8 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
 
   /** Finishing a line: either keep it on screen until a tap, or move on by itself. */
   const advanceAfterRead = () => {
-    if (queue.value.length) {
+    const hasQueuedItems = queue.value.length > 0;
+    if (hasQueuedItems) {
       showNext();
       return;
     }
@@ -82,7 +85,7 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     onDismiss?.();
   };
 
-  const onTypingComplete = () => {
+  const completeTyping = () => {
     isTyping.value = false;
     const shouldStashLine = isAppendMode.value && Boolean(text.value);
     if (shouldStashLine) {
@@ -138,9 +141,9 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     isVictoryMessage,
     isShowing,
     typingRef,
-    enqueue,
+    addToQueue,
     advance,
-    onTypingComplete,
+    completeTyping,
     enableAppendMode,
     disableAppendMode,
     clear,

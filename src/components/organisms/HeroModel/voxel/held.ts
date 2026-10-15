@@ -37,7 +37,10 @@ const KINDS: Array<[RegExp, HeldKind]> = [
 export const heldKind = (icon?: string | null): HeldKind | null => {
   const name = (icon ?? "").toLowerCase().trim();
   if (!name) return null;
-  for (const [pattern, kind] of KINDS) if (pattern.test(name)) return kind;
+  for (const [pattern, kind] of KINDS) {
+    const isMatch = pattern.test(name);
+    if (isMatch) return kind;
+  }
   return "hammer"; // an unknown icon is still "a tool"
 };
 

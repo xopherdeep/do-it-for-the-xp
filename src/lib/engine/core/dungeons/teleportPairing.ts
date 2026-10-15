@@ -105,13 +105,15 @@ export const teleportTargetFor = (temple: PairingTemple, level: string, position
   if (picked) return picked;
 
   const here = teleportsOn(temple, level);
-  if (here.length >= 2) {
+  const hasPairHere = here.length >= 2;
+  if (hasPairHere) {
     const index = here.findIndex(([row, col]) => row === position[0] && col === position[1]);
     return { level, position: here[(index + 1) % here.length] };
   }
 
   const all = allTeleports(temple);
-  if (all.length < 2) return null;
+  const hasNoPair = all.length < 2;
+  if (hasNoPair) return null;
   const index = all.findIndex((circle) => samePlace(circle, level, position));
   return all[(index + 1) % all.length];
 };
@@ -131,7 +133,8 @@ export const pairingNote = (temple: PairingTemple, level: string): string =>
 export const withRoomAt = (temple: PairingTemple, level: string, position: Position, room: Room): PairingTemple => {
   const token = '__editing__';
   const grid = gridOf(temple, level).map((cells) => [...cells]);
-  if (!grid[position[0]]) return temple;
+  const isOffGrid = !grid[position[0]];
+  if (isOffGrid) return temple;
   grid[position[0]][position[1]] = token;
 
   return {

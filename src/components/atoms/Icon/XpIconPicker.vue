@@ -217,37 +217,40 @@ export default defineComponent({
         result.push({ name, prefix: 'fab', category: 'brands' });
       });
       
+      const isListed = (name, category) =>
+        result.some(icon => icon.name === name && icon.category === category);
+
       // Add gaming icons with solid style
       ICONS.gaming.forEach(name => {
-        if (!result.some(icon => icon.name === name && icon.category === 'gaming')) {
+        if (!isListed(name, 'gaming')) {
           result.push({ name, prefix: 'fas', category: 'gaming' });
         }
       });
       
       // Add weather icons with solid style
       ICONS.weather.forEach(name => {
-        if (!result.some(icon => icon.name === name && icon.category === 'weather')) {
+        if (!isListed(name, 'weather')) {
           result.push({ name, prefix: 'fas', category: 'weather' });
         }
       });
       
       // Add time icons with solid style
       ICONS.time.forEach(name => {
-        if (!result.some(icon => icon.name === name && icon.category === 'time')) {
+        if (!isListed(name, 'time')) {
           result.push({ name, prefix: 'fas', category: 'time' });
         }
       });
       
       // Add rewards icons with solid style
       ICONS.rewards.forEach(name => {
-        if (!result.some(icon => icon.name === name && icon.category === 'rewards')) {
+        if (!isListed(name, 'rewards')) {
           result.push({ name, prefix: 'fas', category: 'rewards' });
         }
       });
       
       // Add RPG icons with solid style
       ICONS.rpg.forEach(name => {
-        if (!result.some(icon => icon.name === name && icon.category === 'rpg')) {
+        if (!isListed(name, 'rpg')) {
           result.push({ name, prefix: 'fas', category: 'rpg' });
         }
       });
@@ -260,13 +263,15 @@ export default defineComponent({
       let filtered = processedIcons.value;
       
       // Filter by category if not 'all'; All shows each icon of each family once, though a name may sit in two lists
-      if (currentCategory.value !== 'all') {
+      const isOneCategory = currentCategory.value !== 'all';
+      if (isOneCategory) {
         filtered = filtered.filter(icon => icon.category === currentCategory.value);
       } else {
         const seen = new Set();
         filtered = filtered.filter(icon => {
           const key = `${icon.prefix}-${icon.name}`;
-          if (seen.has(key)) return false;
+          const isSeen = seen.has(key);
+          if (isSeen) return false;
           seen.add(key);
           return true;
         });
@@ -303,7 +308,8 @@ export default defineComponent({
     };
     
     // If an initial icon was provided without its family, find the first family that has it
-    if (props.initialIcon && !props.initialPrefix) {
+    const needsInitialPrefix = props.initialIcon && !props.initialPrefix;
+    if (needsInitialPrefix) {
       const icon = processedIcons.value.find(i => i.name === props.initialIcon);
       if (icon) {
         selectedIconPrefix.value = icon.prefix;

@@ -221,7 +221,8 @@ export interface PickerFilter {
  * segment keeps the quests whose beast belongs to the temple's theme; the library segment lists beasts, not rows.
  */
 export function filterPickerRows(rows: readonly PickerRow[], filter: PickerFilter): PickerRow[] {
-  if (filter.segment === "library") return [];
+  const isLibrary = filter.segment === "library";
+  if (isLibrary) return [];
   const needle = filter.search.trim().toLowerCase();
   return rows.filter((row) => {
     const isInSegment = filter.segment === "all" || (Boolean(filter.theme) && row.theme === filter.theme);
@@ -273,8 +274,10 @@ export const defaultLibraryForm = (heroIds: readonly string[]): LibraryQuestForm
 
 /** Why the form cannot be saved yet, in words; null when it can. */
 export function libraryFormProblem(form: LibraryQuestForm): string | null {
-  if (!form.heroes.length) return "Pick at least one hero.";
-  if (!LIBRARY_DIFFICULTIES.includes(form.difficulty)) return "Pick a difficulty.";
+  const hasNoHeroes = !form.heroes.length;
+  if (hasNoHeroes) return "Pick at least one hero.";
+  const isKnownDifficulty = LIBRARY_DIFFICULTIES.includes(form.difficulty);
+  if (!isKnownDifficulty) return "Pick a difficulty.";
   return null;
 }
 
@@ -320,7 +323,8 @@ export function questFromLibraryBeast(beast: LibraryBeast, form: LibraryQuestFor
 export function beastToAdopt(beastId: string | undefined, ownedIds: Iterable<string | number>): Beast | null {
   if (!beastId) return null;
   const owned = new Set([...ownedIds].map(String));
-  if (owned.has(beastId)) return null;
+  const isOwned = owned.has(beastId);
+  if (isOwned) return null;
   const entry = libraryEntryOf(beastId);
   return entry ? adoptLibraryBeast(entry) : null;
 }

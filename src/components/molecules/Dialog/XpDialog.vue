@@ -107,7 +107,8 @@
       };
 
       const nextBlock = () => {
-        if (currentBlockIndex.value < props.textBlocks.length - 1) {
+        const hasNextBlock = currentBlockIndex.value < props.textBlocks.length - 1;
+        if (hasNextBlock) {
           currentBlockIndex.value++;
           updateCurrentText();
           if (typingText.value) {

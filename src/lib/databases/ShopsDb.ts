@@ -114,9 +114,7 @@ export function customIcon(shop: Pick<ShopInterface, "id" | "icon"> | null | und
 export class ShopsDb extends DbStorageApi {
   
   public async setShop(shop: ShopInterface) {
-    if (!shop.id) {
-        shop.id =  uuidv4();
-    }
+    shop.id ||= uuidv4();
     await this.set(shop.id, shop);
   }
 
@@ -142,7 +140,8 @@ export class ShopsDb extends DbStorageApi {
    */
   public async seedDefaults() {
     const existing = await this.getShops();
-    if (existing.length > 0) return;
+    const hasShops = existing.length > 0;
+    if (hasShops) return;
 
     // Get all shops from the centralized registry
     const registryShops = getAllShops();
@@ -171,7 +170,8 @@ export class ShopsDb extends DbStorageApi {
     const existingIds = new Set(existingShops.map(s => s.id));
 
     for (const meta of registryShops) {
-      if (!existingIds.has(meta.id)) {
+      const isNewShop = !existingIds.has(meta.id);
+      if (isNewShop) {
         // New shop from registry - add it
         const shop: ShopInterface = {
           id: meta.id,

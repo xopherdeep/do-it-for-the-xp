@@ -204,7 +204,8 @@
       async deleteCategory(category) {
         const count = this.questCounts?.[category.id] || 0;
         // A category in use stays: its quests would point at nothing and fall under "Uncategorized"
-        if (count > 0) {
+        const isInUse = count > 0;
+        if (isInUse) {
           this.armedId = "";
           await this.say(
             `${category.name} is in use`,
@@ -213,10 +214,12 @@
           return;
         }
         // The first tap arms the button, the second deletes: no alert in the way
-        if (this.armedId !== category.id) {
+        const isArmed = this.armedId === category.id;
+        if (!isArmed) {
           this.armedId = category.id;
           this.startTimeout(ARMED_MS, () => {
-            if (this.armedId === category.id) this.armedId = "";
+            const isStillArmed = this.armedId === category.id;
+            if (isStillArmed) this.armedId = "";
           });
           return;
         }

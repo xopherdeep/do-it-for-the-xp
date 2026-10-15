@@ -14,14 +14,16 @@ const path = require("path");
 const SRC_DIR = path.resolve(__dirname, "..", "..", "src");
 
 function resolveDirectory(callerDir, directory) {
-  if (directory.startsWith("@/")) {
+  const isAliased = directory.startsWith("@/");
+  if (isAliased) {
     return path.join(SRC_DIR, directory.slice(2));
   }
   return path.resolve(callerDir, directory);
 }
 
 function listFiles(dir, recursive, found = []) {
-  if (!fs.existsSync(dir)) {
+  const hasDir = fs.existsSync(dir);
+  if (!hasDir) {
     return found;
   }
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -60,7 +62,8 @@ global.__requireContext = function requireContext(
   };
 
   const resolve = (key) => {
-    if (!getKeys().includes(key)) {
+    const isKnownKey = getKeys().includes(key);
+    if (!isKnownKey) {
       const error = new Error(`Cannot find module '${key}'`);
       error.code = "MODULE_NOT_FOUND";
       throw error;
@@ -72,7 +75,8 @@ global.__requireContext = function requireContext(
     try {
       return require(resolve(key));
     } catch (err) {
-      if (/\.(png|jpe?g|webp|svg|gif|mp3|ogg)$/i.test(key)) {
+      const isAsset = /\.(png|jpe?g|webp|svg|gif|mp3|ogg)$/i.test(key);
+      if (isAsset) {
         return { default: key };
       }
       throw err;

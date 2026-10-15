@@ -65,11 +65,12 @@ export const doorPalette = (element: string): DoorPalette => PALETTES[element] ?
 const tone = (ramp: string[], index: number): string => ramp[Math.max(0, Math.min(ramp.length - 1, index))];
 
 /** Inside the doorway: below the arch's spring line it is the straight jambs, above it the circle. */
-export const inOpening = (x: number, y: number): boolean => {
+export const isInOpening = (x: number, y: number): boolean => {
   const { left, right, top, archCenterY, radius } = OPENING;
   const isOutsideDoorway = x < left || x > right || y < top;
   if (isOutsideDoorway) return false;
-  if (y >= archCenterY) return true;
+  const isBelowSpringLine = y >= archCenterY;
+  if (isBelowSpringLine) return true;
   const cx = (left + right) / 2;
   return (x - cx) ** 2 + (y - archCenterY) ** 2 <= radius ** 2 + radius;
 };
@@ -79,7 +80,7 @@ const distanceToOpening = (x: number, y: number): number => {
   for (let d = 1; d <= 4; d++) {
     for (let dy = -d; dy <= d; dy++) {
       for (let dx = -d; dx <= d; dx++) {
-        const isOpeningAtThisRing = Math.max(Math.abs(dx), Math.abs(dy)) === d && inOpening(x + dx, y + dy);
+        const isOpeningAtThisRing = Math.max(Math.abs(dx), Math.abs(dy)) === d && isInOpening(x + dx, y + dy);
         if (isOpeningAtThisRing) return d;
       }
     }
@@ -89,24 +90,26 @@ const distanceToOpening = (x: number, y: number): number => {
 
 // Shade picks for the sprites below, kept out of the drawing loops
 const thresholdStep = (y: number): number => {
-  if (y === DOOR_H - 4) return 4;
-  if (y === DOOR_H - 1) return 1;
+  const isStepTop = y === DOOR_H - 4;
+  if (isStepTop) return 4;
+  const isStepFoot = y === DOOR_H - 1;
+  if (isStepFoot) return 1;
   return 3;
 };
-const archRingStep = (ring: number): number => {
-  if (ring === 1) return 1;
-  if (ring === 2) return 4;
-  return 3;
-};
+const ARCH_RING_STEPS: Record<number, number> = { 1: 1, 2: 4 };
+const archRingStep = (ring: number): number => ARCH_RING_STEPS[ring] ?? 3;
 const blockLit = (bx: number, by: number): number => {
   const isLitEdge = by === 0 || bx === 0;
   if (isLitEdge) return 1;
-  if (by === 4) return -1;
+  const isShadedCourse = by === 4;
+  if (isShadedCourse) return -1;
   return 0;
 };
 const keystoneStep = (x: number, y: number, half: number): number => {
-  if (x <= SEAM_X - half) return 4;
-  if (y >= 14) return 2;
+  const isLeftFace = x <= SEAM_X - half;
+  if (isLeftFace) return 4;
+  const isKeystoneFoot = y >= 14;
+  if (isKeystoneFoot) return 2;
   return 3;
 };
 const boardShade = (side: 'left' | 'right', x: number, from: number, to: number): number => {
@@ -116,26 +119,29 @@ const boardShade = (side: 'left' | 'right', x: number, from: number, to: number)
   if (isShadowedLeftEdge) return -1;
   return 0;
 };
-const boardLight = (bx: number): number => {
-  if (bx === 0) return 3;
-  if (bx === 3) return 1;
-  return 2;
-};
+const BOARD_LIGHTS: Record<number, number> = { 0: 3, 3: 1 };
+const boardLight = (bx: number): number => BOARD_LIGHTS[bx] ?? 2;
 const ringPullStep = (dy: number): number => {
-  if (dy < 0) return 4;
-  if (dy > 0) return 1;
+  const isUpperArc = dy < 0;
+  if (isUpperArc) return 4;
+  const isLowerArc = dy > 0;
+  if (isLowerArc) return 1;
   return 3;
 };
 const padlockStep = (y: number, t: number): number => {
   const isBrightEdge = y === LOCK_Y || t < 0.15;
   if (isBrightEdge) return 4;
-  if (t < 0.55) return 3;
-  if (t < 0.85) return 2;
+  const isLitFace = t < 0.55;
+  if (isLitFace) return 3;
+  const isMidFace = t < 0.85;
+  if (isMidFace) return 2;
   return 1;
 };
 const linkStep = (sum: number): number => {
-  if (sum <= 1) return 4;
-  if (sum >= 3) return 1;
+  const isLitCorner = sum <= 1;
+  if (isLitCorner) return 4;
+  const isShadedCorner = sum >= 3;
+  if (isShadedCorner) return 1;
   return 3;
 };
 const rimStep = (light: number): number => (light > 0 ? 4 : 1);
@@ -154,12 +160,14 @@ export const doorFrame = (element: string): PixelRun[] => {
   for (let y = 0; y < DOOR_H; y++) {
     const inset = cornerInset(y, 6);
     for (let x = inset; x < DOOR_W - inset; x++) {
-      if (inOpening(x, y)) continue;
+      if (isInOpening(x, y)) continue;
       const ring = distanceToOpening(x, y);
-      if (y >= DOOR_H - 4) {
+      const isThreshold = y >= DOOR_H - 4;
+      const isArchRing = ring <= 3;
+      if (isThreshold) {
         // The threshold: a worn step, lit along its top
         paint(g, x, y, tone(stone, thresholdStep(y)));
-      } else if (ring <= 3) {
+      } else if (isArchRing) {
         // The dressed stone around the arch, brighter at the inner edge
         paint(g, x, y, tone(stone, archRingStep(ring)));
       } else {
@@ -195,7 +203,7 @@ export const doorFrame = (element: string): PixelRun[] => {
 export const doorBeyond = (): PixelRun[] => {
   const g = grid();
   for (let y = 0; y < DOOR_H - 4; y++) {
-    for (let x = 0; x < DOOR_W; x++) if (inOpening(x, y)) paint(g, x, y, y < OPENING.archCenterY ? '#0a060c' : '#120a12');
+    for (let x = 0; x < DOOR_W; x++) if (isInOpening(x, y)) paint(g, x, y, y < OPENING.archCenterY ? '#0a060c' : '#120a12');
   }
   return gridRuns(g);
 };
@@ -209,9 +217,10 @@ const leaf = (element: string, side: 'left' | 'right'): PixelRun[] => {
   const bands = [24, 58];
   for (let y = OPENING.top; y < DOOR_H - 4; y++) {
     for (let x = from; x <= to; x++) {
-      if (!inOpening(x, y)) continue;
+      if (!isInOpening(x, y)) continue;
       const band = bands.find((top) => y >= top && y <= top + 2);
-      if (band !== undefined) {
+      const isOnBand = band !== undefined;
+      if (isOnBand) {
         paint(g, x, y, tone(metal, [4, 2, 1][y - band]));
       } else {
         // Boards five wide: lit on the left, a dark seam on the right
@@ -289,7 +298,8 @@ export const bossChains = (element: string): PixelRun[] => {
     for (let i = 0, link = 0; i <= steps; i += 2, link++) {
       const x = Math.round(x0 + ((x1 - x0) * i) / steps) - 1;
       const y = Math.round(y0 + ((y1 - y0) * i) / steps) - 1;
-      if (link % 2 === 0) {
+      const isFaceOnLink = link % 2 === 0;
+      if (isFaceOnLink) {
         // A link seen face on: a ring of metal around a dark eye, lit on its upper left
         for (let dy = 0; dy < 3; dy++) {
           for (let dx = 0; dx < 3; dx++) {
@@ -326,7 +336,8 @@ export const bossLock = (element: string): PixelRun[] => {
       const dx = x - cx;
       const dy = y - cy;
       const r = Math.sqrt(dx * dx + dy * dy);
-      if (r > 10.4) continue;
+      const isOutsidePlate = r > 10.4;
+      if (isOutsidePlate) continue;
       // A raised rim, then the face lit from the top left
       const light = -(dx + dy) / 14;
       paint(g, x, y, tone(metal, r > 8.6 ? rimStep(light) : Math.round(2.4 + light)));

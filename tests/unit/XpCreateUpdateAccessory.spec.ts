@@ -28,7 +28,7 @@ jest.mock("@/lib/services/gp/GPService", () => ({ getGPService: () => ({ syncGP:
 jest.mock("@/lib/services/notifications/notify", () => ({ notify: jest.fn() }));
 
 const mockBack = jest.fn();
-jest.mock("@/hooks/useBack", () => ({ __esModule: true, useBack: () => ({ back: mockBack }) }));
+jest.mock("@/hooks/useBack", () => ({ __esModule: true, useBack: () => ({ stepBack: mockBack }) }));
 
 const mockToast = jest.fn((_options: unknown) => Promise.resolve({ present: jest.fn() }));
 jest.mock("@ionic/vue", () => ({

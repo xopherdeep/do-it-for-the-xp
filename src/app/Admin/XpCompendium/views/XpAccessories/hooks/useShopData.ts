@@ -30,7 +30,8 @@ export async function saveShopFields(shop: ShopInterface, fields: Partial<ShopIn
   await shopsDb.setShop({ ...shop, ...fields }); // undefined fields drop out when the record is flattened to JSON
   const live = shop as unknown as Record<string, unknown>;
   for (const [key, value] of Object.entries(fields)) {
-    if (value === undefined) delete live[key];
+    const isRemoved = value === undefined;
+    if (isRemoved) delete live[key];
     else live[key] = value;
   }
 }

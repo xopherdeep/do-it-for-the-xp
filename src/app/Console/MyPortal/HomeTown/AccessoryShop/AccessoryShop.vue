@@ -30,7 +30,7 @@
             </div>
           </div>
         </div>
-        <div v-else-if="!visibleItems.length && !walletWare" class="shop-sign rpg-box">
+        <div v-else-if="!visibleItems.length && !shelfWalletWare" class="shop-sign rpg-box">
           <i class="fad fa-box-open" />
           <template v-if="shelf.length === 0">The shelves are bare. Ask the Game Master to stock this shop!</template>
           <template v-else>Nothing on the shelves matches. Try another search or filter.</template>
@@ -40,7 +40,9 @@
           ref="shelfRef"
           :items="visibleItems"
           :wallet="wallet"
-          :wallet-ware="walletWare"
+          :wallet-ware="shelfWalletWare"
+          :wallet-ware-affordable="walletWareAffordable"
+          :wallet-ware-short-by="walletWareShort"
           @inspect="openInspect"
           @buy-wallet="buyWallet"
           @position="shelfPosition = $event"
@@ -95,7 +97,7 @@
     </ion-footer>
 
     <!-- The clerk, the wallet and the receipts speak in the game's own dialog, in the shop's colours -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
 
     <!-- Item Inspection and Purchase Modal -->
     <shop-item-modal

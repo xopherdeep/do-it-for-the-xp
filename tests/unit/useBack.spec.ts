@@ -47,7 +47,7 @@ describe("useBack", () => {
   it("follows the history when there is some", async () => {
     mockIonRouter.canGoBack.mockReturnValue(true);
     const wrapper = await mountBack("/shop/wrecked-ship/hero-1");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.back).toHaveBeenCalledTimes(1);
     expect(mockIonRouter.navigate).not.toHaveBeenCalled();
   });
@@ -55,7 +55,7 @@ describe("useBack", () => {
   it("goes up to the world the shop stands in, sliding back and replacing the shop, when there is no history", async () => {
     mockIonRouter.canGoBack.mockReturnValue(false);
     const wrapper = await mountBack("/shop/wrecked-ship/hero-1");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.navigate).toHaveBeenCalledWith("/my-portal/hero-1/islands", "back", "replace");
     expect(mockIonRouter.back).not.toHaveBeenCalled();
   });
@@ -63,7 +63,7 @@ describe("useBack", () => {
   it("goes up from the bank to Home Town", async () => {
     mockIonRouter.canGoBack.mockReturnValue(false);
     const wrapper = await mountBack("/bank/hero-1");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.navigate).toHaveBeenCalledWith("/my-portal/hero-1/home-town", "back", "replace");
   });
 
@@ -71,7 +71,7 @@ describe("useBack", () => {
     mockIonRouter.canGoBack.mockReturnValue(false);
     mockSignedInHero = "hero-9";
     const wrapper = await mountBack("/bank");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.navigate).toHaveBeenCalledWith("/my-portal/hero-9/home-town", "back", "replace");
   });
 
@@ -79,7 +79,7 @@ describe("useBack", () => {
     mockIonRouter.canGoBack.mockReturnValue(false);
     const wrapper = await mountBack("/shop/hermits-tent/hero-1", () => ({ shopWorld: "swamps" }));
     expect((wrapper.vm as any).backHref).toBe("/my-portal/hero-1/swamps");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.navigate).toHaveBeenCalledWith("/my-portal/hero-1/swamps", "back", "replace");
   });
 
@@ -92,7 +92,7 @@ describe("useBack", () => {
   it("does nothing on a page that is the top of its stack, and offers no default-href", async () => {
     mockIonRouter.canGoBack.mockReturnValue(false);
     const wrapper = await mountBack("/xp-profile");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.navigate).not.toHaveBeenCalled();
     expect(mockIonRouter.back).not.toHaveBeenCalled();
     expect((wrapper.vm as any).backHref).toBeUndefined();
@@ -101,13 +101,13 @@ describe("useBack", () => {
   it("still goes back from a top page when there is history", async () => {
     mockIonRouter.canGoBack.mockReturnValue(true);
     const wrapper = await mountBack("/xp-profile");
-    (wrapper.vm as any).back();
+    (wrapper.vm as any).stepBack();
     expect(mockIonRouter.back).toHaveBeenCalledTimes(1);
   });
 
   it("is quiet outside an Ionic router (a page mounted on its own)", async () => {
     const wrapper = await mountBack("/bank/hero-1", undefined, { insideIonic: false });
-    expect(() => (wrapper.vm as any).back()).not.toThrow();
+    expect(() => (wrapper.vm as any).stepBack()).not.toThrow();
     expect((wrapper.vm as any).backHref).toBe("/my-portal/hero-1/home-town");
     expect(mockIonRouter.navigate).not.toHaveBeenCalled();
   });

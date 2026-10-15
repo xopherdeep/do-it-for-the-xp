@@ -52,7 +52,10 @@ export const nextChest = (current: number): StreakChest => {
 /** Every chest day from 1 to `current`, in order */
 export const chestDaysUpTo = (current: number): number[] => {
   const days: number[] = [];
-  days.push(...STREAK_CHESTS.filter((chest) => chest.day <= current).map((chest) => chest.day));
+  for (const chest of STREAK_CHESTS) {
+    const isReached = chest.day <= current;
+    if (isReached) days.push(chest.day);
+  }
   for (let day = lastChest.day + CHEST_REPEAT_EVERY; day <= current; day += CHEST_REPEAT_EVERY) days.push(day);
   return days;
 };
@@ -73,15 +76,16 @@ export const chestsOwed = (
   run: { current: number; runStart: string | null },
   ledger: StreakChestLedger | null
 ): { owed: StreakChest[]; ledger: StreakChestLedger | null } => {
-  const noRun = !run.runStart || run.current <= 0;
-  if (noRun) return { owed: [], ledger };
+  const { runStart } = run;
+  const hasNoRun = !runStart || run.current <= 0;
+  if (hasNoRun) return { owed: [], ledger };
   const paid = ledger && ledger.runStart === run.runStart ? ledger.paid : [];
   const owed = chestDaysUpTo(run.current)
     .filter((day) => !paid.includes(day))
     .map((day) => chestOn(day)!);
-  const nothingOwed = owed.length === 0;
-  if (nothingOwed) return { owed, ledger };
-  return { owed, ledger: { runStart: run.runStart!, paid: [...paid, ...owed.map((chest) => chest.day)] } };
+  const isNothingOwed = !owed.length;
+  if (isNothingOwed) return { owed, ledger };
+  return { owed, ledger: { runStart, paid: [...paid, ...owed.map((chest) => chest.day)] } };
 };
 
 /** The XP and GP of several chests together */

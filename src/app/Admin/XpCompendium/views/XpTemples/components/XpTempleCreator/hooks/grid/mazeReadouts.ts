@@ -10,7 +10,8 @@ import { isUniqueRoomSymbol } from "./roomSymbols";
 /** The entrance position ("row,col" or "floor index,row,col") as the header reads it, e.g. "1F 3x 2y" or "3x 2y" */
 export const describeEntrance = (entrancePosition: string, mazeObj: MazeData): string => {
   const parts = entrancePosition.split(",");
-  if (parts.length === 3) {
+  const isFloorPosition = parts.length === 3;
+  if (isFloorPosition) {
     const [z, y, x] = parts.map(Number);
     let floorName = "";
     if (Array.isArray(mazeObj)) {
@@ -122,10 +123,12 @@ export const buildTempleCode = (
  * grid has one floor, so it saves `[row, col]`. A `[row, col]` pair is saved as it is, whatever the maze.
  */
 export const resolveEntranceCoordinates = (parts: number[], maze: MazeData): number[] => {
-  if (parts.length === 2) {
+  const isRowCol = parts.length === 2;
+  if (isRowCol) {
     return parts;
   }
-  if (parts.length === 3) {
+  const isFloorRowCol = parts.length === 3;
+  if (isFloorRowCol) {
     return Array.isArray(maze) ? [parts[1], parts[2]] : parts;
   }
   return [0, 0];
