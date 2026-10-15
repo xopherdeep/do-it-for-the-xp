@@ -25,6 +25,12 @@ const UserHudRoutes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
+    path: '/my-records/:userId?/',
+    name: 'my-records',
+    component: () => import ('@/app/Console/MyPortal/UserHud/MyRecords/MyRecords.vue'),
+    props: true,
+  },
+  {
     path: '/my-inventory/:userId/',
     name: 'my-inventory',
     component: () => import ('@/app/Console/MyPortal/UserHud/MyInventory/MyInventory.vue'),

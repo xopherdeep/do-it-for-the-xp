@@ -214,6 +214,18 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   /**
+   * Which streak chests the hero's current run has opened (services/streaks/streakChests.ts): `{ runStart, paid }`.
+   * Replaces the whole record; StreakService writes it when it pays a chest.
+   */
+  function setStreakChests(userId: string, ledger: { runStart: string; paid: number[] }) {
+    const user = users[userId];
+    if (!user) return;
+    user.streakChests = { runStart: ledger.runStart, paid: [...ledger.paid] };
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
    * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
    * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
    * Returns true when the item was newly unlocked.
@@ -273,13 +285,17 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   /**
    * The hero ran from a fight that carries this quest: one more grudge mark on its beast, three at the most
    * (docs/Quest-Rooms-Spec.md 5.7). Kept on the profile as `questGrudges[questId]` (and so in ProfileDb); each hero's
-   * grudge is their own. Returns the marks the beast holds now, or 0 when there is no such hero or quest.
+   * grudge is their own. The run is also counted in `questFlees[questId]`, which Hero Records reads. Returns the marks
+   * the beast holds now, or 0 when there is no such hero or quest.
    */
   function addQuestGrudge(userId: string, questId: string, nowMs: number = Date.now()): number {
     const user = users[userId];
     const hasNobodyToMark = !user || !questId;
     if (hasNobodyToMark) return 0;
     user.questGrudges = addGrudgeMark(user.questGrudges, questId, nowMs);
+    // Every run counts toward Hero Records' "dodged most" (services/insights), uncapped and never cleared
+    const flees = user.questFlees && typeof user.questFlees === 'object' ? user.questFlees : {};
+    user.questFlees = { ...flees, [questId]: (Number(flees[questId]) || 0) + 1 };
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
     return marksFor(user.questGrudges, questId);
@@ -340,6 +356,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   return {
+    setStreakChests,
     addInventoryItem,
     spendInventoryItem,
     storeItem,
