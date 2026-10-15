@@ -7,6 +7,8 @@
 **A family chore app that plays like a SNES-era RPG.**
 Parents write the quests, kids are the heroes, and every chore done earns XP, gold and ability points.
 
+**[▶ Play it at app.doit.forthexp.com](https://app.doit.forthexp.com)**
+
 [![Tests](https://github.com/xopherdeep/do-it-for-the-xp/actions/workflows/tests.yml/badge.svg)](https://github.com/xopherdeep/do-it-for-the-xp/actions/workflows/tests.yml)
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
 [![Ionic 7](https://img.shields.io/badge/Ionic-7-3880FF?logo=ionic&logoColor=white)](https://ionicframework.com/)
@@ -89,7 +91,7 @@ Quality gates go through [Chemical X](https://chemicalx.xophz.com) (`chemx`), wh
 - **Pull requests** run lint, the audit, a full typecheck, and the jest specs that depend on the files you changed (`tools/ci/pr-specs.mjs`).
 - **Pushes to `master`** run `chemx verify`: the audit, typecheck and every spec.
 
-Locally, run only the spec you are working on. The **Verify** check is required before anything merges into `master`. Every push to `master` also deploys the web build to Cloudflare Pages.
+Locally, run only the spec you are working on. The **Verify** check is required before anything merges into `master`. Every push to `master` also deploys the web build to Cloudflare Pages at [app.doit.forthexp.com](https://app.doit.forthexp.com).
 
 ## How the code is laid out
 
