@@ -30,7 +30,7 @@ import { questRoomWordsFor } from './roomInteractions/questSheet';
 import { ENCOUNTER_LINES, roomKind, SFX } from './roomInteractions/vocabulary';
 import type { RoomAction, RoomContext, RoomOutcome, RoomSheet } from './roomInteractions/vocabulary';
 
-export { DIRECTIONS, roomKind, SFX } from './roomInteractions/vocabulary';
+export { DIRECTIONS, nameTheEncounter, roomKind, SFX } from './roomInteractions/vocabulary';
 export { backLabel, ownersLabel, questRoomStateFor, questRoomWords, questRoomWordsFor } from './roomInteractions/questSheet';
 export type { QuestRoomWords } from './roomInteractions/questSheet';
 export type {

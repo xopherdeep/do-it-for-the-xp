@@ -3,6 +3,8 @@ import { useRoute } from 'vue-router'
 import { useGameStore } from "@/lib/store/stores/game"
 import { useUserStore } from "@/lib/store/stores/user"
 import { useTravelingMerchant } from "@/hooks/useTravelingMerchant"
+import { prefetchTemple } from "@/lib/services/temples/templeAssets"
+import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry"
 
 export const useUserActions = () => {
   const route = useRoute()
@@ -27,6 +29,12 @@ export const useUserActions = () => {
 
     // Commit to store
     setUserActions(actions)
+
+    // A temple's door on screen: fetch its painted floors now, so walking in shows every room ready
+    actions
+      .map((action) => action?.id)
+      .filter((id): id is string => typeof id === "string" && id in TEMPLE_METADATA)
+      .forEach((temple) => prefetchTemple(temple))
   }
 
   return {

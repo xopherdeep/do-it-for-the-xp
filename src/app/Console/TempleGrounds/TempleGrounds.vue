@@ -61,6 +61,15 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- The painted floors load before the hero walks in; this only shows when they are slow -->
+      <temple-loading
+        :open="isLoadingShown"
+        :name="templeName"
+        :element="templeElement"
+        :done="loadedFloors"
+        :total="totalFloors"
+      />
+
       <!-- Lantern light breathing over the room, dust in the air -->
       <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
 

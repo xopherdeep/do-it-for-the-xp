@@ -114,11 +114,29 @@ export interface RoomSheet {
   chest?: 'closed' | 'empty';
 }
 
-/** What a room with a beast in it says when the hero steps up to it, by tier; the beast's own name is the line under it. */
+/** What a room with a beast in it says when the hero steps up to it, by tier, before its beast's name is known (see nameTheEncounter). */
 export const ENCOUNTER_LINES: Record<string, string> = {
   monster: 'A Monster approaches!',
   miniboss: 'A fierce foe blocks the way!',
   boss: 'A Powerful Boss appears!',
+};
+
+/** The same lines with the beast named in them: "A Mustwisp approaches!" instead of a nameless monster. */
+const NAMED_ENCOUNTER_LINES: Record<string, (name: string) => string> = {
+  monster: (name) => `${/^the\s/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'An ' : 'A '}${name} approaches!`,
+  miniboss: (name) => `${name} blocks the way!`,
+  boss: (name) => `${name} rises to fight!`,
+};
+
+/**
+ * An encounter's title once its beast is known: the beast's name goes in the line itself, so the sheet needs no
+ * name under it. Any other title (and an encounter with no name to give) stays as it is.
+ */
+export const nameTheEncounter = (header: string, beastName: string | undefined): { title: string; named: boolean } => {
+  const tier = Object.keys(ENCOUNTER_LINES).find((key) => ENCOUNTER_LINES[key] === header);
+  const name = beastName?.trim();
+  if (!tier || !name) return { title: header, named: false };
+  return { title: NAMED_ENCOUNTER_LINES[tier](name), named: true };
 };
 
 // --- room kinds and toast text ---------------------------------------------------------------------

@@ -53,6 +53,7 @@ import { startInstallWatch } from '@/lib/services/pwa/installApp';
 // Pinia
 import { createPinia } from 'pinia';
 import { useProStore } from '@/lib/store/stores/pro';
+import { listenForStreakChests } from '@/lib/services/streaks/StreakService';
 
 // Capacitor (the phone apps)
 import { Capacitor } from '@capacitor/core';
@@ -168,6 +169,9 @@ function readyRouterMountApp() {
 
   // XP Pro: load the cached license and recheck it when the offline rules say so (never blocks the app)
   useProStore().init().catch(() => undefined);
+
+  // Streak chests: paid whenever a quest pays and a run reaches 3, 7, 14, 30 days
+  listenForStreakChests();
 
   // Family registration from the phone apps comes back through the app's own address
   listenForTownHallReturn();
