@@ -6,6 +6,7 @@
         v-if="leftHand"
         type="button"
         class="xp-bottom-nav__slot xp-bottom-nav__hand is-equipped"
+        data-tour="hands"
         :aria-label="`Use ${leftHand.name}`"
         @click="$emit('use-hand', leftHand)"
       >
@@ -18,6 +19,7 @@
         v-else
         type="button"
         class="xp-bottom-nav__slot xp-bottom-nav__hand is-empty"
+        data-tour="hands"
         aria-label="Left hand, empty"
         @click="$emit('open-area')"
       >
@@ -32,6 +34,7 @@
         type="button"
         class="xp-bottom-nav__slot xp-bottom-nav__button"
         :class="{ 'is-active': active === 'profile' }"
+        data-tour="profile"
         aria-label="Hero Profile"
         @click="$emit('open-profile')"
       >
@@ -46,6 +49,7 @@
         type="button"
         class="xp-bottom-nav__slot xp-bottom-nav__button xp-bottom-nav__area"
         :class="{ 'is-active': active === 'area' }"
+        data-tour="area"
         :aria-label="`Area: ${areaLabel}`"
         @click="$emit('open-area')"
       >
@@ -60,6 +64,7 @@
         type="button"
         class="xp-bottom-nav__slot xp-bottom-nav__button"
         :class="{ 'is-active': active === 'party' }"
+        data-tour="party"
         aria-label="Party"
         @click="$emit('open-party')"
       >
