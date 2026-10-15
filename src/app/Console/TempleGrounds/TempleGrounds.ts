@@ -87,7 +87,8 @@ export default defineComponent({
     const userStore = useUserStore();
 
     // Ensure users are loaded
-    if (Object.keys(userStore.users).length === 0) {
+    const hasNoUsersLoaded = Object.keys(userStore.users).length === 0;
+    if (hasNoUsersLoaded) {
       userStore.loadUsers();
     }
 
@@ -182,7 +183,8 @@ export default defineComponent({
 
     // A sound key from the fx table; the table is not there in every environment
     const fx = (key: string) => {
-      if (typeof play$fx === 'function') play$fx(key);
+      const canPlayFx = typeof play$fx === 'function';
+      if (canPlayFx) play$fx(key);
     };
 
     // The map closes with the page-close sound, once: from the compass rose, from a tap outside, or from the modal's own dismiss
@@ -341,7 +343,8 @@ export default defineComponent({
     onMounted(() => {
       // The run starts after the temple's saved layout was read, and the hero's save is read once it has
       void whenOpened.then(() => templeSystem.whenProgressReady(props.temple)).then(() => {
-        if (!templeSystem.bloodMoonRose(props.temple)) return;
+        const hasBloodMoonRisen = templeSystem.bloodMoonRose(props.temple);
+        if (!hasBloodMoonRisen) return;
         fx('no');
         say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
       });

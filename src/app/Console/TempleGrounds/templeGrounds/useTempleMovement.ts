@@ -59,11 +59,14 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
 
   const onTouchEnd = (event: TouchEvent) => {
     const touch = event.changedTouches[0];
-    if (!swipeStart || !touch) return;
-    const dx = touch.clientX - swipeStart.x;
-    const dy = touch.clientY - swipeStart.y;
+    const start = swipeStart;
+    const isSwipe = !!start && !!touch;
+    if (!isSwipe) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
     swipeStart = null;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
+    const isTooShort = Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX;
+    if (isTooShort) return;
     // Dragging the world: a swipe to the right pulls the room on the left into view (west), and so on
     const direction = resolveSwipeDirection(dx, dy);
     const allowed = { north: canMoveUp, south: canMoveDown, west: canMoveLeft, east: canMoveRight }[direction];

@@ -214,7 +214,7 @@ const sparkStyle = (n: number) => {
 
 // --- the sequence ----------------------------------------------------------------------------------
 
-const reducedMotion = (): boolean =>
+const wantsReducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const later = (ms: number, run: () => void) => {
@@ -249,7 +249,8 @@ const settle = () => {
 const finishCount = () => {
   counting.value = false;
   STATS.forEach((stat) => (shown[stat.key] = amountOf(stat.key)));
-  if (props.levelUp) {
+  const hasLevelUp = props.levelUp;
+  if (hasLevelUp) {
     levelUpShown.value = true;
     feel("success");
   }
@@ -265,7 +266,8 @@ const countUp = (step: number) => {
   // Fast at first and slowing into the total, so the last digits are seen settling
   const eased = 1 - (1 - progress) * (1 - progress);
   STATS.forEach((stat) => (shown[stat.key] = Math.round(amountOf(stat.key) * eased)));
-  if (step >= steps) {
+  const isLastStep = step >= steps;
+  if (isLastStep) {
     finishCount();
     return;
   }
@@ -274,7 +276,8 @@ const countUp = (step: number) => {
 
 const startTally = () => {
   phase.value = "tally";
-  if (tallyItems.value.length === 0) {
+  const hasNothingToTally = tallyItems.value.length === 0;
+  if (hasNothingToTally) {
     finishCount();
     return;
   }
@@ -284,7 +287,8 @@ const startTally = () => {
 
 const typeNext = () => {
   typed.value += 1;
-  if (typed.value < line.value.length) {
+  const isLineUnfinished = typed.value < line.value.length;
+  if (isLineUnfinished) {
     later(TYPE_EVERY_MS, typeNext);
     return;
   }
@@ -305,7 +309,8 @@ const hatch = () => {
 const crack = (step: number) => {
   crackStep.value = step;
   // The secret sting is the crack: once, on the first
-  if (step === 1) play$fx("shhh");
+  const isFirstCrack = step === 1;
+  if (isFirstCrack) play$fx("shhh");
   feel("tick");
 };
 
@@ -322,12 +327,13 @@ const start = () => {
   // The dialog holds the focus from the start, so Escape works while the egg is still cracking
   nextTick(() => root.value?.focus({ preventScroll: true }));
 
-  if (reducedMotion()) {
+  if (wantsReducedMotion()) {
     heardTheWin();
     settle();
     return;
   }
-  if (!props.pegasus) {
+  const pegasus = props.pegasus;
+  if (!pegasus) {
     later(BARE_HATCH_AT_MS, hatch);
     return;
   }
@@ -337,14 +343,16 @@ const start = () => {
 
 /** A tap while the egg is still hatching, or the reward still counting, shows everything at once. */
 const skip = () => {
-  if (phase.value === "ready") return;
+  const isReady = phase.value === "ready";
+  if (isReady) return;
   heardTheWin();
   settle();
 };
 
 /** The button: before the end it skips ahead; at the end it hands the hero back to the page, once. */
 const press = () => {
-  if (phase.value !== "ready") {
+  const isReady = phase.value === "ready";
+  if (!isReady) {
     skip();
     return;
   }

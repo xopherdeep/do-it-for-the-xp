@@ -86,19 +86,22 @@ const paintGlyph = (g: Grid, glyph: string[], x0: number, y0: number) => {
   // The groove first, a pixel down and to the right of the lit stroke
   glyph.forEach((row, dy) =>
     [...row].forEach((cell, dx) => {
-      if (cell === '#') paint(g, x0 + dx + 1, y0 + dy + 1, STONE[0]);
+      const isStroke = cell === '#';
+      if (isStroke) paint(g, x0 + dx + 1, y0 + dy + 1, STONE[0]);
     }),
   );
   glyph.forEach((row, dy) =>
     [...row].forEach((cell, dx) => {
-      if (cell === '#') paint(g, x0 + dx, y0 + dy, GOLD[glyphTone(dy, glyph.length)]);
+      const isStroke = cell === '#';
+      if (isStroke) paint(g, x0 + dx, y0 + dy, GOLD[glyphTone(dy, glyph.length)]);
     }),
   );
 };
 
 /** Gold tone for a glyph row: lit on the first row, shadowed on the last */
 const glyphTone = (dy: number, rows: number): number => {
-  if (dy === 0) return 4;
+  const isFirstRow = dy === 0;
+  if (isFirstRow) return 4;
   return dy === rows - 1 ? 2 : 3;
 };
 
@@ -106,7 +109,8 @@ const glyphTone = (dy: number, rows: number): number => {
 const rimTone = (dx: number, dy: number): number => {
   const isLitLeftRim = dx < -COIN_RX + 3 && dy <= 0;
   if (isLitLeftRim) return 3;
-  if (dy <= 0) return 2;
+  const isUpperRim = dy <= 0;
+  if (isUpperRim) return 2;
   return dy === 1 ? 1 : 0;
 };
 

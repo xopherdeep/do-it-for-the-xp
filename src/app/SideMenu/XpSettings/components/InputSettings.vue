@@ -185,8 +185,9 @@
       changeMusicVolume(ev) {
         this.musicVolume = ev.detail.value;
         // In a real app, this would update the actual volume
-        if (this.bgm.audio) {
-          this.bgm.audio.volume = this.musicVolume / 100;
+        const audio = this.bgm.audio;
+        if (audio) {
+          audio.volume = this.musicVolume / 100;
         }
         this.showVolumeToast("Music volume updated");
       },
@@ -226,8 +227,9 @@
 
       async showVolumeToast(message: string) {
         // Only show volume toast when dragging ends
-        if (this.volumeToastTimeout) {
-          clearTimeout(this.volumeToastTimeout);
+        const volumeToastTimeout = this.volumeToastTimeout;
+        if (volumeToastTimeout) {
+          clearTimeout(volumeToastTimeout);
         }
 
         this.volumeToastTimeout = setTimeout(async () => {

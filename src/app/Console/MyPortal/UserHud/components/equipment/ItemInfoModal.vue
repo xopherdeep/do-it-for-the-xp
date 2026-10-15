@@ -196,7 +196,8 @@ export default defineComponent({
     };
 
     const handleEquipAt = (hand: string, index: number) => {
-      if (index > 0) return;
+      const isLockedSlot = index > 0;
+      if (isLockedSlot) return;
       
       if (isEquippedAt(hand, index)) {
         emit('unequip', props.item, hand, index);
@@ -207,7 +208,8 @@ export default defineComponent({
     };
 
     const getSlotIcon = (hand: string, index: number) => {
-      if (index > 0) return 'fa-lock';
+      const isLockedSlot = index > 0;
+      if (isLockedSlot) return 'fa-lock';
       const slots = hand === 'left' ? props.leftHandSlots : props.rightHandSlots;
       const itemInSlot = slots[index];
       if (itemInSlot) return `fa-${itemInSlot.faIcon}`;

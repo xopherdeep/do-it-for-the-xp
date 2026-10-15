@@ -196,13 +196,15 @@ export default defineComponent({
 
     // Get UI and RPG sound effects from the $fx object
     const uiSoundEffects = computed(() => {
-      if (!window.$fx?.ui?.[selectedUITheme.value]) return {};
-      return window.$fx.ui[selectedUITheme.value];
+      const themeEffects = window.$fx?.ui?.[selectedUITheme.value];
+      if (!themeEffects) return {};
+      return themeEffects;
     });
 
     const rpgSoundEffects = computed(() => {
-      if (!window.$fx?.rpg?.[selectedRPGTheme.value]) return {};
-      return window.$fx.rpg[selectedRPGTheme.value];
+      const themeEffects = window.$fx?.rpg?.[selectedRPGTheme.value];
+      if (!themeEffects) return {};
+      return themeEffects;
     });
 
     // Get music tracks from the $fx object using type assertion
@@ -232,7 +234,8 @@ export default defineComponent({
       filename = filename.split('.')[0].replace(/%20/g, ' ');
       
       // Handle numbered tracks from Earthbound - fixed regex to avoid unnecessary escapes
-      if (filename.match(/^\d+- *Earthbound *- */i)) {
+      const isEarthboundTrack = /^\d+- *Earthbound *- */i.test(filename);
+      if (isEarthboundTrack) {
         return filename.replace(/^\d+- *Earthbound *- */i, '');
       }
       
@@ -366,7 +369,8 @@ export default defineComponent({
 
     // Initialize themes from store on mount
     onMounted(() => {
-      if (window.$fx?.theme) {
+      const hasStoredTheme = Boolean(window.$fx?.theme);
+      if (hasStoredTheme) {
         // Use type assertion and ensure string conversion
         const fx = window.$fx as unknown as FXObject;
         selectedUITheme.value = String(fx.theme.ui);

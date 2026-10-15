@@ -604,7 +604,8 @@ export default defineComponent({
         await loadProfiles();
         return;
       }
-      if (profile.passcode) {
+      const hasPasscode = Boolean(profile.passcode);
+      if (hasPasscode) {
         openPasscodeModal(profile);
       } else {
         navigateToUserPortal(profile);

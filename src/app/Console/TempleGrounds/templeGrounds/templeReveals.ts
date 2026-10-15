@@ -125,7 +125,8 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   const takeChestLoot = (values: string[]) => {
     // Only what the hero ticked is taken. A take that names nothing takes nothing: the chest stays open and as it was.
-    if (values.length === 0) {
+    const isNothingTaken = values.length === 0;
+    if (isNothingTaken) {
       displayMessage('You took nothing.');
       return;
     }
@@ -213,7 +214,8 @@ export const useDoorReveal = (deps: DoorRevealDeps) => {
   const unlockShownDoor = async () => {
     if (!doorAction) return;
     const outcome = await doorAction.run();
-    if (outcome.sound === SFX.error) {
+    const isRefused = outcome.sound === SFX.error;
+    if (isRefused) {
       doorResult.value = 'refused';
       isDoorOpen.value = false;
       await applyOutcome(outcome);
@@ -228,7 +230,8 @@ export const useDoorReveal = (deps: DoorRevealDeps) => {
   // The reveal already played the key and the door, so the outcome only has its message left to say
   const finishShownDoor = async () => {
     isDoorOpen.value = false;
-    if (playerKeys.value !== keysAtDoor) replayKeyPulse();
+    const hasKeyCountChanged = playerKeys.value !== keysAtDoor;
+    if (hasKeyCountChanged) replayKeyPulse();
     if (doorOutcome) await applyOutcome({ ...doorOutcome, sound: undefined });
     doorOutcome = null;
   };
@@ -276,11 +279,13 @@ export const useWallReveal = (deps: WallRevealDeps) => {
     const view = wallShown.value;
     const bombs = bombsInHand();
     const live = liveContext();
-    if (!view?.canBomb || !bombs || !live) return;
+    const canBlowWall = !!view?.canBomb && !!bombs && !!live;
+    if (!canBlowWall) return;
     const { ctx, room } = live;
     const exits = readExits(ctx.templeId, ctx.level, ctx.position);
     const outcome = useEquippedItem(bombs, { ...ctx, room, exits, side: view.side, catalog: catalog() });
-    if (!outcome.blownSide) {
+    const hasBlownWall = Boolean(outcome.blownSide);
+    if (!hasBlownWall) {
       // A fight's seal, a Bomb run out: nothing blew, the sheet goes and the refusal speaks
       wallResult.value = 'refused';
       isWallOpen.value = false;

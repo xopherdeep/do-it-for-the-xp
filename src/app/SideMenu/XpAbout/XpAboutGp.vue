@@ -183,7 +183,8 @@
         }
 
         // If not typing, advance to next dialog block
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.currentDialogIndex++;
           this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
           this.hasMoreDialog =
@@ -202,7 +203,8 @@
         this.isTyping = false;
 
         // Play subtle sound effect between blocks if there are more blocks
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.play$fx("text");
         }
       },

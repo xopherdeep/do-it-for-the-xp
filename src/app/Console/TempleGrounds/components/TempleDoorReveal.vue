@@ -206,7 +206,7 @@ const clearTimers = () => {
   stopRumble = null;
 };
 
-const reducedMotion = (): boolean =>
+const wantsReducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const focusButton = () =>
@@ -221,7 +221,7 @@ const start = () => {
     // A lock without its key only rattles
     if (!props.door?.canOpen) {
       play$fx("error");
-      if (reducedMotion()) feel("error");
+      if (wantsReducedMotion()) feel("error");
       else {
         stopRumble = rumble(LOCK_BUZZ);
         later(420, () => feel("error"));
@@ -229,7 +229,7 @@ const start = () => {
     }
     focusButton();
   };
-  if (reducedMotion()) settle();
+  if (wantsReducedMotion()) settle();
   else later(SETTLE_MS, settle);
 };
 
@@ -240,7 +240,7 @@ const unlock = () => {
   play$fx("key");
   feel("grab");
   emit("unlock");
-  if (reducedMotion()) {
+  if (wantsReducedMotion()) {
     swingOpen();
     return;
   }
@@ -250,10 +250,11 @@ const unlock = () => {
 
 /** The key has turned: the lock falls and the doors open, if the temple let them. */
 const swingOpen = () => {
-  if (props.result !== "opened") return;
+  const isOpened = props.result === "opened";
+  if (!isOpened) return;
   phase.value = "unlocking";
   play$fx("useKey");
-  const fast = reducedMotion();
+  const fast = wantsReducedMotion();
   if (!fast) feel("thud");
   later(fast ? 0 : UNLOCK_MS, () => {
     phase.value = "opening";

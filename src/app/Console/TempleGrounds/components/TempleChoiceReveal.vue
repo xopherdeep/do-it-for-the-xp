@@ -175,12 +175,18 @@ watch(
 const confirmText = computed(() => props.confirmLabel ?? (props.kind === "shop" ? "Buy" : "Answer"));
 const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : props.kind === "exit" ? "Back" : "Leave"));
 
+/** The sprite each kind draws when the page gives none: the room's actions have none */
+const KIND_SPRITES: Partial<Record<RevealKind, (element?: string) => NonNullable<typeof props.sprite>>> = {
+  riddle: () => ({ runs: tabletRuns(), width: TABLET_W, height: TABLET_H }),
+  shop: () => ({ runs: coinStackRuns(), width: COINS_W, height: COINS_H }),
+  exit: (element) => ({ runs: dungeonExitRuns(element), width: EXIT_W, height: EXIT_H }),
+};
+
 const sprite = computed(() => {
-  if (props.sprite) return props.sprite;
-  if (props.kind === "riddle") return { runs: tabletRuns(), width: TABLET_W, height: TABLET_H };
-  if (props.kind === "shop") return { runs: coinStackRuns(), width: COINS_W, height: COINS_H };
-  if (props.kind === "exit") return { runs: dungeonExitRuns(props.element), width: EXIT_W, height: EXIT_H };
-  return null;
+  const ownSprite = props.sprite;
+  if (ownSprite) return ownSprite;
+  const drawSprite = KIND_SPRITES[props.kind];
+  return drawSprite ? drawSprite(props.element) : null;
 });
 
 const hasStage = computed(() => Boolean(sprite.value) || showArt.value);

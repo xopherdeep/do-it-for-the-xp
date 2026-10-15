@@ -43,7 +43,8 @@ export default dC({
 
       // Play occasional seagull sounds
       seagullInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.6) { // 40% chance of seagull
+        const isSeagullCall = Math.random() > 0.6;
+        if (isSeagullCall) { // 40% chance of seagull
           const seagull = new Audio();
           seagull.src = "https://freesound.org/data/previews/19/19271_32633-lq.mp3"; // Seagull sound
           seagull.volume = 0.2;

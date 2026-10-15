@@ -184,7 +184,8 @@ export default defineComponent({
     const user = computed((): UserData => {
       const userData = userStore.getUserById(props.userId) || {} as UserData;
       // Ensure stats exists to prevent "Cannot read properties of undefined (reading 'stats')" error
-      if (!userData.stats) {
+      const stats = userData.stats;
+      if (!stats) {
         userData.stats = {};
       }
       return userData;
