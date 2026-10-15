@@ -191,7 +191,8 @@ export default defineComponent({
     // Stairs always ask where they lead. A circle asks only when pairing cannot guess (teleportPairing).
     const travel = computed(() => {
       const room = editor.roomData.value;
-      if (room?.type !== 'teleport') return { controls: true, circle: false, note: '' };
+      const isTeleport = room?.type === 'teleport';
+      if (!isTeleport) return { controls: true, circle: false, note: '' };
 
       // The room on screen has not reached the store yet: count it as the circle it is
       const temple = withRoomAt(
@@ -210,8 +211,10 @@ export default defineComponent({
     // Stairs with no target climb to the neighbouring floor in play: say so, rather than showing the room's own floor
     const automaticFloor = computed(() => {
       const type = String(editor.roomData.value?.type ?? '');
-      if (/^stairs[-_]up$/.test(type)) return 'Next floor (automatic)';
-      if (/^stairs[-_]down$/.test(type)) return 'Previous floor (automatic)';
+      const isStairsUp = /^stairs[-_]up$/.test(type);
+      if (isStairsUp) return 'Next floor (automatic)';
+      const isStairsDown = /^stairs[-_]down$/.test(type);
+      if (isStairsDown) return 'Previous floor (automatic)';
       return '';
     });
 
@@ -253,7 +256,8 @@ export default defineComponent({
       // If we just came back from selecting beasts or editing the room's quest, re-open the config modal. The page
       // may have been rebuilt on the way back, so the room has to be loaded before the modal reads its type.
       await roomLoaded;
-      if (editor.consumeReturnToConfig()) {
+      const isBackFromSelection = editor.consumeReturnToConfig();
+      if (isBackFromSelection) {
         editor.openTypeModal();
       }
     });
@@ -333,8 +337,9 @@ export default defineComponent({
       selectDungeonItem: editor.selectDungeonItem,
       selectConsumableItem: editor.selectConsumableItem,
       updateAmount: (val: number) => {
-        if (editor.roomData.value?.content) {
-          editor.roomData.value.content.gold = val;
+        const content = editor.roomData.value?.content;
+        if (content) {
+          content.gold = val;
         }
       },
       setTargetCoord: editor.setTargetCoord,
@@ -357,10 +362,11 @@ export default defineComponent({
         // This is handled via update:rewards, but we can store the index if needed
       },
       handleRewardsUpdate: (rewards: { xp: number; gp: number; ap: number; difficulty: number }) => {
-        if (editor.roomData.value?.content) {
-          editor.roomData.value.content.xp = rewards.xp;
-          editor.roomData.value.content.gp = rewards.gp;
-          editor.roomData.value.content.ap = rewards.ap;
+        const content = editor.roomData.value?.content;
+        if (content) {
+          content.xp = rewards.xp;
+          content.gp = rewards.gp;
+          content.ap = rewards.ap;
         }
       },
 
@@ -369,7 +375,8 @@ export default defineComponent({
         const beastIds = editor.isQuestRoom.value
           ? await editor.questRooms.loadTestFightBeastIds()
           : editor.roomData.value?.content?.beasts || [];
-        if (beastIds.length === 0) return;
+        const hasNoBeasts = beastIds.length === 0;
+        if (hasNoBeasts) return;
 
         // The battle belongs to a hero (rewards and the HUD read it), so a profile must be chosen
         const heroId = userStore.currentUser.id;

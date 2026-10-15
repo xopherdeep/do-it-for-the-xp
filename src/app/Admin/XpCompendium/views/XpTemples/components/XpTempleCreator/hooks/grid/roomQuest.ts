@@ -41,10 +41,11 @@ export function applyQuestPick(room: Room, quest: Pick<Achievement, "id" | "diff
 
 /** Makes a quest room a classic room again: no quest, no list of quests, no shipped template. */
 export function releaseQuest(room: Room): void {
-  if (!room.content) return;
-  delete room.content.questId;
-  delete room.content.questIds;
-  delete room.content.quest;
+  const content = room.content;
+  if (!content) return;
+  delete content.questId;
+  delete content.questIds;
+  delete content.quest;
 }
 
 /** What the type picker calls the room: `quest` for a room that holds a quest or a template, else its type. */
@@ -109,8 +110,10 @@ export function heldBeastId(holding: RoomQuestHolding): string | undefined {
 
 /** The live quest a quest room's card shows: the Game Master's pick, or the one that fills the template. */
 export function heldQuest(holding: RoomQuestHolding): Achievement | undefined {
-  if (holding.kind === "picked") return holding.quest;
-  if (holding.kind === "template") return holding.filler;
+  const isPicked = holding.kind === "picked";
+  if (isPicked) return holding.quest;
+  const isTemplate = holding.kind === "template";
+  if (isTemplate) return holding.filler;
   return undefined;
 }
 

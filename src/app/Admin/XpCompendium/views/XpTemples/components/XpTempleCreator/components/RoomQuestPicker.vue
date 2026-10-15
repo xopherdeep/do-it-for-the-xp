@@ -406,15 +406,19 @@
       : []
   );
 
+  const EMPTY_TEXT_OF_SEGMENT: Partial<Record<PickerSegment, string>> = {
+    library: "Every beast here already has a quest. Try All quests.",
+    theme: "No quest fits this temple's theme yet. Try All quests, or make one From the library.",
+  };
   const emptyText = computed(() => {
-    if (search.value.trim()) return "Nothing matches that search.";
-    if (segment.value === "library") return "Every beast here already has a quest. Try All quests.";
-    if (segment.value === "theme") return "No quest fits this temple's theme yet. Try All quests, or make one From the library.";
-    return "No quests yet. Make one From the library, or in the Compendium.";
+    const isSearching = Boolean(search.value.trim());
+    if (isSearching) return "Nothing matches that search.";
+    return EMPTY_TEXT_OF_SEGMENT[segment.value] ?? "No quests yet. Make one From the library, or in the Compendium.";
   });
 
   const chooseSegment = (id: PickerSegment) => {
-    if (id === segment.value) return;
+    const isSameSegment = id === segment.value;
+    if (isSameSegment) return;
     play$fx("cursor");
     segment.value = id;
     content.value?.$el?.scrollToTop?.(0);
@@ -487,7 +491,8 @@
   /** Makes the quest, then shows it picked among the theme's quests, ready to Confirm. */
   const create = async () => {
     const beast = formBeast.value;
-    if (!beast || formProblem.value || creating.value) return;
+    const isCreateBlocked = !beast || !!formProblem.value || creating.value;
+    if (isCreateBlocked) return;
     creating.value = true;
     try {
       const id = await props.createQuest(beast, form.value);

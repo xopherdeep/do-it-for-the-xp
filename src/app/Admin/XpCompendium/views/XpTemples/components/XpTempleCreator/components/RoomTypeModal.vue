@@ -367,7 +367,8 @@
     if (!category) return [];
     const items: Array<{ key: string; kind: "type"; entry: ReturnType<typeof entryOf> } | { key: string; kind: "disclosure" }> =
       typeEntries(category).map((entry) => ({ key: entry.type, kind: "type" as const, entry }));
-    if (!category.classic?.length) return items;
+    const hasClassic = Boolean(category.classic?.length);
+    if (!hasClassic) return items;
     items.push({ key: "classic", kind: "disclosure" });
     if (classicOpen.value) items.push(...classicEntries(category).map((entry) => ({ key: entry.type, kind: "type" as const, entry })));
     return items;
@@ -378,7 +379,8 @@
 
   const pathStops = computed(() => criticalPathStops(shownType.value));
   const pathNote = computed(() => {
-    if (shownType.value === QUEST_ROOM_KEY) return QUEST_PATH_NOTE;
+    const isQuestShown = shownType.value === QUEST_ROOM_KEY;
+    if (isQuestShown) return QUEST_PATH_NOTE;
     return isOnCriticalPath(shownType.value)
       ? `${roomTypeShortLabel(shownType.value)} sits at the lit stop.`
       : `${roomTypeShortLabel(shownType.value)} is not a fixed stop: it can go anywhere on the way.`;
@@ -398,13 +400,16 @@
     () => [props.isOpen, props.step, props.selectedCategory?.name, props.currentType] as const,
     ([open]) => {
       if (!open) return;
-      if (props.selectedCategory) pickedCategory.value = props.selectedCategory.name;
+      const selectedCategory = props.selectedCategory;
+      if (selectedCategory) pickedCategory.value = selectedCategory.name;
       else if (!pickedCategory.value) {
         pickedCategory.value = categories.find((category) => typesOf(category).includes(currentCanonical.value))?.name ?? categories[0]?.name ?? "";
       }
       const allTypes = props.selectedCategory ? typesOf(props.selectedCategory) : [];
-      if (allTypes.includes(currentCanonical.value)) pickedType.value = currentCanonical.value;
-      else if (!allTypes.includes(pickedType.value)) pickedType.value = allTypes[0] ?? "";
+      const isCurrentListed = allTypes.includes(currentCanonical.value);
+      const isPickListed = allTypes.includes(pickedType.value);
+      if (isCurrentListed) pickedType.value = currentCanonical.value;
+      else if (!isPickListed) pickedType.value = allTypes[0] ?? "";
       const isClassicRoom = Boolean(props.selectedCategory?.classic?.includes(currentCanonical.value));
       if (isClassicRoom) classicOpen.value = true;
       void centerRail();
@@ -413,11 +418,13 @@
   );
 
   const title = computed(() => {
-    if (props.step === 1) return "Select Category";
-    if (props.step === 2) return props.selectedCategory?.name || "Select Type";
-    if (props.step === 2.5) return "Pick a Config";
-    if (props.step === 3) return `${roomTypeShortLabel(props.currentType)} Config`;
-    return "Room Editor";
+    const titleOfStep: Record<number, () => string> = {
+      1: () => "Select Category",
+      2: () => props.selectedCategory?.name || "Select Type",
+      2.5: () => "Pick a Config",
+      3: () => `${roomTypeShortLabel(props.currentType)} Config`,
+    };
+    return titleOfStep[props.step]?.() ?? "Room Editor";
   });
 
   // ---- The rail ----
@@ -436,7 +443,8 @@
   };
 
   const pickCategory = (category: RoomCategory) => {
-    if (category.name === pickedCategory.value) return;
+    const isSameCategory = category.name === pickedCategory.value;
+    if (isSameCategory) return;
     play$fx("cursor");
     pickedCategory.value = category.name;
     content.value?.$el?.scrollToTop?.(0);
@@ -444,7 +452,8 @@
   };
 
   const pickType = (type: string) => {
-    if (type === shownType.value) return;
+    const isAlreadyShown = type === shownType.value;
+    if (isAlreadyShown) return;
     play$fx("cursor");
     pickedType.value = type;
     content.value?.$el?.scrollToTop?.(0);
@@ -454,22 +463,30 @@
   // Opening the disclosure shows the first classic room; folding it away while one is on show goes back to the quest room
   const toggleClassic = () => {
     const category = props.selectedCategory;
-    if (!category?.classic?.length) return;
+    const classic = category?.classic;
+    const hasClassic = !!category && !!classic && classic.length > 0;
+    if (!hasClassic) return;
     play$fx("cursor");
     classicOpen.value = !classicOpen.value;
-    if (classicOpen.value) pickedType.value = category.classic[0];
+    if (classicOpen.value) pickedType.value = classic[0];
     else if (isClassicShown.value) pickedType.value = category.types[0] ?? "";
     content.value?.$el?.scrollToTop?.(0);
     void centerRail(true);
   };
 
   // ---- The one Confirm button ----
+  const typeStepLabel = () => {
+    const isQuestPick = shownType.value === QUEST_ROOM_KEY;
+    if (isQuestPick) return "Pick a quest";
+    return shownType.value ? `Confirm ${roomTypeShortLabel(shownType.value)}` : "";
+  };
   const confirmLabel = computed(() => {
-    if (props.step === 1) return shownCategory.value ? `Choose ${shownCategory.value.name}` : "";
-    if (props.step === 2 && shownType.value === QUEST_ROOM_KEY) return "Pick a quest";
-    if (props.step === 2) return shownType.value ? `Confirm ${roomTypeShortLabel(shownType.value)}` : "";
-    if (props.step === 3) return "Confirm Configuration";
-    return "";
+    const labelOfStep: Record<number, () => string> = {
+      1: () => (shownCategory.value ? `Choose ${shownCategory.value.name}` : ""),
+      2: typeStepLabel,
+      3: () => "Confirm Configuration",
+    };
+    return labelOfStep[props.step]?.() ?? "";
   });
   const CONFIRM_ICONS: Record<number, string> = { 2: "fa-sparkles", 3: "fa-check-circle" };
   const confirmIcon = computed(() =>

@@ -20,8 +20,10 @@ export interface EntrancePosition {
 /** Reads a "row,col" or "floor index,row,col" position; null for anything else (the numbers themselves may be NaN) */
 export const readEntrancePosition = (entrancePosition: string): EntrancePosition | null => {
   const parts = entrancePosition.split(",").map(Number);
-  if (parts.length === 2) return { floorIndex: null, row: parts[0], col: parts[1] };
-  if (parts.length === 3) return { floorIndex: parts[0], row: parts[1], col: parts[2] };
+  const isRowCol = parts.length === 2;
+  if (isRowCol) return { floorIndex: null, row: parts[0], col: parts[1] };
+  const isFloorRowCol = parts.length === 3;
+  if (isFloorRowCol) return { floorIndex: parts[0], row: parts[1], col: parts[2] };
   return null;
 };
 
@@ -32,12 +34,14 @@ export const readEntrancePosition = (entrancePosition: string): EntrancePosition
  */
 const isOnFloor = (position: EntrancePosition, maze: MazeData, levelId: string): boolean => {
   const floorKeys = floorKeysOf(maze);
-  if (position.floorIndex === null) {
+  const floorIndex = position.floorIndex;
+  const isFirstFloorPosition = floorIndex === null;
+  if (isFirstFloorPosition) {
     // A maze that lists no floor yet has only the floor on show to put it on
     const hasNoFloorsListed = floorKeys.length === 0;
     return hasNoFloorsListed || floorKeys[0] === levelId;
   }
-  return floorKeys[position.floorIndex] === levelId;
+  return floorKeys[floorIndex] === levelId;
 };
 
 /** The entrance's cell on one floor; null when the position is not a position or names another floor */
@@ -47,7 +51,8 @@ export const entranceCellOnFloor = (
   levelId: string
 ): { row: number; col: number } | null => {
   const position = readEntrancePosition(entrancePosition);
-  if (!position || !isOnFloor(position, maze, levelId)) return null;
+  const isOnThisFloor = !!position && isOnFloor(position, maze, levelId);
+  if (!isOnThisFloor) return null;
   return { row: position.row, col: position.col };
 };
 
@@ -65,7 +70,8 @@ export const buildInitialMaze = (
   const newGrid = blankGrid(rows, cols);
 
   const cell = entranceCellOnFloor(entrancePosition, maze, currentLevelId);
-  if (cell && isInsideGrid(cell.row, cell.col, rows, cols)) {
+  const isEntranceOnGrid = !!cell && isInsideGrid(cell.row, cell.col, rows, cols);
+  if (isEntranceOnGrid) {
     newGrid[cell.row][cell.col] = _00_;
   }
 
@@ -116,7 +122,8 @@ export const resizeMaze = (
       const isInsideOldMaze = i < oldRows && j < oldCols;
       if (isInsideOldMaze) {
         const oldSymbol = oldMaze[i][j];
-        if (oldSymbol !== _00_) {
+        const isEntranceSymbol = oldSymbol === _00_;
+        if (!isEntranceSymbol) {
           newMaze[i][j] = oldSymbol;
         } else {
           const isNotEntranceCell = !entranceCell || i !== entranceCell.row || j !== entranceCell.col;
@@ -132,7 +139,8 @@ export const resizeMaze = (
     return { maze: newMaze, entranceOutsideGrid: false, entrancePosition };
   }
 
-  if (entranceCell && isInsideGrid(entranceCell.row, entranceCell.col, newRows, newCols)) {
+  const isEntranceKept = !!entranceCell && isInsideGrid(entranceCell.row, entranceCell.col, newRows, newCols);
+  if (isEntranceKept) {
     newMaze[entranceCell.row][entranceCell.col] = _00_;
     return { maze: newMaze, entranceOutsideGrid: false, entrancePosition };
   }

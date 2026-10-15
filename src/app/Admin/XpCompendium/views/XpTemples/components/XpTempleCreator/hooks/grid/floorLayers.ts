@@ -26,8 +26,10 @@ export const sortedFloorKeys = (maze: MazeData): string[] => climbOrder(floorKey
  */
 export const floorNameProblem = (name: string): string | null => {
   const trimmed = name.trim();
-  if (trimmed === "") return "A floor needs a name";
-  if (/^\d+$/.test(trimmed)) return `A floor name can't be only digits: try ${trimmed}F`;
+  const isBlank = trimmed === "";
+  if (isBlank) return "A floor needs a name";
+  const isOnlyDigits = /^\d+$/.test(trimmed);
+  if (isOnlyDigits) return `A floor name can't be only digits: try ${trimmed}F`;
   return null;
 };
 
@@ -56,11 +58,13 @@ export const getEntranceFloor = (floorList: string[]): string => {
   const fFloors = floorList
     .filter((f) => f.endsWith("F"))
     .sort((a, b) => getFloorValue(a) - getFloorValue(b));
-  if (fFloors.length > 0) return fFloors[0];
+  const hasSurfaceFloor = fFloors.length > 0;
+  if (hasSurfaceFloor) return fFloors[0];
   const bFloors = floorList
     .filter((f) => f.startsWith("B"))
     .sort((a, b) => getFloorValue(b) - getFloorValue(a));
-  if (bFloors.length > 0) return bFloors[0];
+  const hasBasement = bFloors.length > 0;
+  if (hasBasement) return bFloors[0];
   return floorList[0] || "1F";
 };
 
@@ -72,12 +76,16 @@ export const nextFloorOptions = (
   let nextBasement = 1;
 
   existingFloors.forEach((f) => {
-    if (f.endsWith("F")) {
+    const isSurface = f.endsWith("F");
+    const isBasement = f.startsWith("B");
+    if (isSurface) {
       const n = parseInt(f);
-      if (n >= nextSurface) nextSurface = n + 1;
-    } else if (f.startsWith("B")) {
+      const isNumberTaken = n >= nextSurface;
+      if (isNumberTaken) nextSurface = n + 1;
+    } else if (isBasement) {
       const n = parseInt(f.replace("B", ""));
-      if (n >= nextBasement) nextBasement = n + 1;
+      const isNumberTaken = n >= nextBasement;
+      if (isNumberTaken) nextBasement = n + 1;
     }
   });
 

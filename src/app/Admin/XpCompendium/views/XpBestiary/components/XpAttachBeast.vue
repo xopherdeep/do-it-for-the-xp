@@ -74,7 +74,8 @@ export default defineComponent({
   },
   methods: {
     toggleAttachment(id) {
-      if (this.attached?.includes(id)) {
+      const isAttached = this.attached?.includes(id);
+      if (isAttached) {
         this.attached.splice(this.attached.indexOf(id), 1);
       } else {
         this.attached.push(id);
