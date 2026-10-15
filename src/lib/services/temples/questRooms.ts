@@ -122,7 +122,8 @@ export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementNa
   const hasOwnBeast = Boolean(quest.beastId);
   if (hasOwnBeast) return String(quest.beastId);
   // The parent chose "No beast" on the quest form (QR14): no suggestion stands in for one
-  if (quest.noBeast) return undefined;
+  const isNoBeastChosen = Boolean(quest.noBeast);
+  if (isNoBeastChosen) return undefined;
   const name = String(quest.achievementName ?? "");
   const isUnasked = !suggestedBeastIds.has(name);
   if (isUnasked) {

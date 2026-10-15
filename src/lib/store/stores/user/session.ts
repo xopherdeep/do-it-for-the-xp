@@ -54,7 +54,8 @@ export function replaceRoster(users: Record<string, any>, usersList: any[]) {
 
   // Remove users that are no longer in the list
   Object.keys(users).forEach(id => {
-    if (!userIds.includes(id)) {
+    const isListed = userIds.includes(id);
+    if (!isListed) {
       delete users[id];
     }
   });

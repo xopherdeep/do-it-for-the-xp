@@ -30,7 +30,8 @@ export function newLinkState(heroId: string, now: number, state: string): LinkSt
 
 /** Whether a return's state is the one this device handed out, and still fresh. */
 export function matchesLinkState(stored: LinkState | null, state: string | undefined, now: number): boolean {
-  if (!stored || !state) return false;
+  const isMissing = !stored || !state;
+  if (isMissing) return false;
   return stored.state === state && now < stored.expiresAt;
 }
 
@@ -103,6 +104,7 @@ export async function claimLinkState(state: string | undefined, now: number = Da
   if (!stored) return null;
   const matches = matchesLinkState(stored, state, now);
   const expired = now >= stored.expiresAt;
-  if (matches || expired) await shelf().clear();
+  const shouldClear = matches || expired;
+  if (shouldClear) await shelf().clear();
   return matches ? stored : null;
 }

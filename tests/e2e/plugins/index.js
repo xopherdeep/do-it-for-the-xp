@@ -14,7 +14,8 @@ module.exports = (on, config) => {
   // and makes Cypress scale the app down inside its runner; give the window room so viewport
   // screenshots come out at the real phone size.
   on('before:browser:launch', (browser = {}, launchOptions) => {
-    if (browser.family === 'chromium') {
+    const isChromium = browser.family === 'chromium'
+    if (isChromium) {
       launchOptions.args.push('--window-size=1000,1400', '--force-device-scale-factor=1')
     }
     return launchOptions

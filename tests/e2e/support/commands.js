@@ -44,7 +44,8 @@ Cypress.Commands.overwrite("visit", (originalFn, url, options = {}) => {
     ...options,
     onBeforeLoad(win) {
       win.localStorage.setItem("xpSkipSplash", "1");
-      if (typeof callerBeforeLoad === "function") callerBeforeLoad(win);
+      const hasCallerHook = typeof callerBeforeLoad === "function";
+      if (hasCallerHook) callerBeforeLoad(win);
     },
   });
 });

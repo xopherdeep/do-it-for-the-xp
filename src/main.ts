@@ -82,7 +82,8 @@ window.addEventListener('unhandledrejection', (event) => {
 const markUserInteracted = () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
 
-  if (window._pendingAudioPlay) {
+  const hasPendingAudioPlay = Boolean(window._pendingAudioPlay);
+  if (hasPendingAudioPlay) {
     window._pendingAudioPlay = false;
   }
 };
@@ -200,8 +201,9 @@ declare global {
 if (process.env.NODE_ENV !== 'production') {
   window.unlockPegasus = (index: number) => {
     const store = useUserStore();
-    if (store.currentUser.id) {
-      store.unlockPegasus(store.currentUser.id, index);
+    const userId = store.currentUser.id;
+    if (userId) {
+      store.unlockPegasus(userId, index);
       debug.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
     } else {
       debug.warn("No user logged in.");

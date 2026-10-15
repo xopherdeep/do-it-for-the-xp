@@ -16,13 +16,13 @@ module.exports = function requireContextPlugin({ types: t }) {
     visitor: {
       CallExpression(path) {
         const callee = path.node.callee;
-        if (
+        const isRequireContext =
           t.isMemberExpression(callee) &&
           !callee.computed &&
           t.isIdentifier(callee.object, { name: "require" }) &&
           t.isIdentifier(callee.property, { name: "context" }) &&
-          !path.scope.hasBinding("require")
-        ) {
+          !path.scope.hasBinding("require");
+        if (isRequireContext) {
           path.node.callee = t.identifier("__requireContext");
           path.node.arguments.unshift(t.identifier("__dirname"));
         }
