@@ -1,8 +1,9 @@
 name: Tests
 
-# The full gate on GitHub instead of on a laptop: typecheck, lint and the whole jest suite run on
-# every pull request and on every push to master. To block merging on a red run, mark these checks
-# as required in the repo's branch protection settings for master.
+# The full gate on GitHub instead of on a laptop, through Chemical X: `chemx verify` (audit against
+# chemx-ratchet.json, typecheck and the whole jest suite) and `chemx lint` run on every pull request
+# and on every push to master. To block merging on a red run, mark these checks as required in the
+# repo's branch protection settings for master. Bump CHEMX_VERSION to move CI to a newer chemx.
 
 on:
   pull_request:
@@ -17,6 +18,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CHEMX_VERSION: 26.10.10-75
+
 jobs:
   check:
     name: ${{ matrix.name }}
@@ -26,12 +30,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Typecheck
-            run: pnpm typecheck
+          - name: Verify
+            run: chemx verify
           - name: Lint
-            run: pnpm lint --no-fix
-          - name: Unit tests
-            run: pnpm test --ci
+            run: chemx lint
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +47,9 @@ jobs:
           cache: pnpm
 
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          npm install --global "chemx@$CHEMX_VERSION"
 
       - name: ${{ matrix.name }}
         run: ${{ matrix.run }}

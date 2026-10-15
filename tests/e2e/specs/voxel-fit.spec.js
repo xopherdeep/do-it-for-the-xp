@@ -16,7 +16,7 @@ const probeEdges = (win) => {
     let context = null;
     try {
       context = canvas.getContext("2d");
-    } catch (error) {
+    } catch {
       context = null;
     }
     if (!context || !canvas.width || !canvas.height) return;

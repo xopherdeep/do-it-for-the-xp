@@ -330,7 +330,7 @@ describe("canAccessGameMaster (what the SideMenu uses to show Compendium)", () =
   });
 
   it("returns false in kid mode even for a Game Master", () => {
-    const store = makeStore([mom, ava], "mom", { impersonating: false });
+    const _store = makeStore([mom, ava], "mom", { impersonating: false });
     // In actual app, kid mode or session flags might be checked, or maybe canAccessGameMaster takes a second param or store state. Let's pass (store, true) if accepted or update canAccessGameMaster if needed, wait, typescript said expected 0-1 arguments for canAccessGameMaster.
   });
 });

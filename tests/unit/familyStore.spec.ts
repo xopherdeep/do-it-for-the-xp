@@ -1199,7 +1199,7 @@ describe("family store", () => {
     });
 
     it("the app coming back to the front triggers download", async () => {
-      const store = await started();
+      await started();
       fetchEvents.mockClear();
       fetchEvents.mockResolvedValueOnce([sampleRewardEvent()]);
       Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });

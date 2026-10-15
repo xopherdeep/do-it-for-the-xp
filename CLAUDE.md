@@ -11,7 +11,7 @@ Do It For The XP: a gamified family chore app (Vue 3 + Ionic 7 + Pinia + Capacit
 **Chemical X first.** The owner's `chemx` CLI (and the `chemical-x` MCP tool) wraps every gate and read and prints only what matters. Never run `pnpm typecheck`, `pnpm lint`, `pnpm test` or `pnpm jest` raw: they flood the context. The same goes for subagents: put the chemx commands in their prompts.
 
 ```bash
-chemx verify                     # audit + typecheck + full tests: CI runs this now, see below; don't run it locally
+chemx verify                     # audit + typecheck + full tests: CI runs it on every PR, see below; don't run it locally
 chemx typecheck                  # errors only
 chemx lint                       # ESLint, grouped by file (warnings are tolerated, errors are not)
 chemx test tests/unit/Foo.spec.ts   # one spec, failures only (add -t "name" for one test)
@@ -33,7 +33,7 @@ python3 tools/art/beast_portraits.py -n 2 --style a socktopus   # paint chore be
 python3 tools/bgm/master_bgm.py master --upload [name...]  # master produced songs from ~/Downloads WAVs and upload them to R2
 ```
 
-**The full suite runs on GitHub, not here.** `.github/workflows/tests.yml` runs typecheck, lint and every jest spec on each pull request and each push to `master`. Do not run the whole suite locally (no bare `chemx test`, `chemx verify`, `pnpm test` or `pnpm jest` without a spec path): push the branch, open the PR, and read the **Tests** checks instead. While working, run only the spec you are touching (`chemx test tests/unit/Foo.spec.ts`) and `chemx typecheck` / `chemx lint` when you need a quick read. A red check on the PR is the gate: fix it and push again.
+**The full suite runs on GitHub, not here.** `.github/workflows/tests.yml` runs `chemx verify` (audit, typecheck, every jest spec) and `chemx lint` on each pull request and each push to `master`. Do not run the whole suite locally (no bare `chemx test`, `chemx verify`, `pnpm test` or `pnpm jest` without a spec path): push the branch, open the PR, and read the **Tests** checks (Verify, Lint) instead. While working, run only the spec you are touching (`chemx test tests/unit/Foo.spec.ts`) and `chemx typecheck` / `chemx lint` when you need a quick read. A red check on the PR is the gate: fix it and push again.
 
 Commit small and push to `origin master` when the owner has asked for pushes. The `docs/` folder is a git submodule.
 
