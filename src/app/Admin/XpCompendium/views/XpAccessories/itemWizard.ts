@@ -149,7 +149,10 @@ export const itemToRecord = (draft: ItemDraft, original?: Accessory | null): Acc
   const isVirtual = draft.type === AccessoryType.Virtual;
   const bonusStats: Accessory["bonusStats"] = {};
   if (isVirtual) {
-    for (const { key } of GEAR_STATS) if (draft.bonusStats[key]) bonusStats[key] = draft.bonusStats[key];
+    for (const { key } of GEAR_STATS) {
+      const bonus = draft.bonusStats[key];
+      if (bonus) bonusStats[key] = bonus;
+    }
   }
   return {
     rewardCount: 0,
@@ -179,7 +182,8 @@ export const addTags = (tags: readonly string[], typed: string): string[] => {
   const next = [...tags];
   for (const piece of typed.split(",")) {
     const tag = piece.trim();
-    if (tag && !next.some((held) => held.toLowerCase() === tag.toLowerCase())) next.push(tag);
+    const isNewTag = Boolean(tag) && !next.some((held) => held.toLowerCase() === tag.toLowerCase());
+    if (isNewTag) next.push(tag);
   }
   return next;
 };

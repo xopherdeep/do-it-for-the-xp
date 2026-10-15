@@ -407,7 +407,8 @@ export default defineComponent({
     const isPro = computed(() => pro.isPro);
 
     const clickGenerateMonsterName = async () => {
-      if (!(await pro.requirePro("aiHelpers"))) return;
+      const hasPro = await pro.requirePro("aiHelpers");
+      if (!hasPro) return;
       if (!hasChecklistItems.value) {
         const toast = await toastController.create({
           message: "Add some checklist items first!",
@@ -435,8 +436,10 @@ export default defineComponent({
 
                 const result = await generateMonsterName({ checklistItems: validItems });
 
-                if (result.success && result.name) {
-                  localBeast.name = result.name;
+                const generatedName = result.name;
+                const isNameGenerated = result.success && !!generatedName;
+                if (isNameGenerated) {
+                  localBeast.name = generatedName;
 
                   const toast = await toastController.create({
                     message: `✨ Generated: ${result.name}`,
@@ -476,7 +479,8 @@ export default defineComponent({
 
     // AI-powered checklist generation from monster name
     const clickGenerateChecklist = async () => {
-      if (!(await pro.requirePro("aiHelpers"))) return;
+      const hasPro = await pro.requirePro("aiHelpers");
+      if (!hasPro) return;
       if (!isNameValid.value) {
         const toast = await toastController.create({
           message: "Enter a monster name first!",
@@ -501,9 +505,11 @@ export default defineComponent({
               try {
                 const result = await generateChecklistFromName({ monsterName: localBeast.name });
 
-                if (result.success && result.checklist) {
+                const generatedChecklist = result.checklist;
+                const isChecklistGenerated = result.success && !!generatedChecklist;
+                if (isChecklistGenerated) {
                   // Replace or append to existing checklist
-                  localBeast.checklist = result.checklist;
+                  localBeast.checklist = generatedChecklist;
 
                   const toast = await toastController.create({
                     message: `✨ Generated ${result.checklist.length} tasks!`,

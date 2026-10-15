@@ -250,7 +250,8 @@
 
       const filteredAccessories = computed(() => {
         let filtered = accessories.value;
-        if (filterType.value !== 'all') {
+        const isFilteringByType = filterType.value !== 'all';
+        if (isFilteringByType) {
           filtered = filtered.filter(item => {
             const isRealLife = item.type?.toLowerCase() === 'real';
             return (filterType.value === 'real' && isRealLife) ||

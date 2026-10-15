@@ -202,7 +202,8 @@ export const setGoodPrice = (items: readonly ShopItem[], itemId: string, typed: 
   const price = parsePrice(typed);
   return items.map((item) => {
     const next = copyGood(item);
-    if (item.itemId !== itemId) return next;
+    const isPricedGood = item.itemId === itemId;
+    if (!isPricedGood) return next;
     if (price) next.price = price;
     else delete next.price;
     return next;
@@ -239,8 +240,10 @@ export const hoursOf = (draft: HoursDraft): ShopHours | null => {
 
 /** The one line under the times when they do something a parent may not expect; empty otherwise. */
 export const hoursNote = (draft: HoursDraft): string => {
-  if (!hoursOf(draft)) return "";
-  if (draft.opensAt === draft.closesAt) return "Opening and closing at the same time keeps the shop open all day.";
+  const hours = hoursOf(draft);
+  if (!hours) return "";
+  const isOpenAllDay = draft.opensAt === draft.closesAt;
+  if (isOpenAllDay) return "Opening and closing at the same time keeps the shop open all day.";
   const closesBeforeOpening = (clockToMinutes(draft.closesAt) as number) < (clockToMinutes(draft.opensAt) as number);
   return closesBeforeOpening ? `This runs past midnight: heroes can shop until ${formatClock(draft.closesAt)} the next morning.` : "";
 };
@@ -319,7 +322,8 @@ export const shopWizardSteps = (): WizardStep<ShopDraft>[] => [
     guide: "What does the shop look like from the street?",
     icon: "paint-brush",
     isValid: (draft) => {
-      if (!draft.world.trim()) return "Pick a look for the shop";
+      const world = draft.world.trim();
+      if (!world) return "Pick a look for the shop";
       return draft.icon.trim().length > 0 || "Pick a sign for the shop";
     },
   },
@@ -370,7 +374,8 @@ const clerkLine = (draft: ShopDraft): string => {
 /** "Empty for now", "1 good", "3 goods (1 priced by you, 1 on set days)" */
 const shelvesLine = (items: readonly ShopItem[]): string => {
   const goods = cleanItems(items);
-  if (!goods.length) return "Empty for now";
+  const hasGoods = goods.length > 0;
+  if (!hasGoods) return "Empty for now";
   const priced = goods.filter((item) => item.price).length;
   const onSetDays = goods.filter((item) => daysLine(item.availableDays) !== EVERY_DAY).length;
   const extras = [priced ? `${priced} priced by you` : "", onSetDays ? `${onSetDays} on set days` : ""].filter(Boolean);

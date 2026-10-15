@@ -280,14 +280,18 @@
         `+${rewards.xp} XP · +${rewards.gp} GP · +${rewards.ap} AP`;
 
       const statusBadge = (status: QuestLogEntry["status"]) => {
-        if (status === "approved") return { label: "Approved", color: "success" };
-        if (status === "rejected") return { label: "Rejected", color: "danger" };
+        const isApproved = status === "approved";
+        if (isApproved) return { label: "Approved", color: "success" };
+        const isRejected = status === "rejected";
+        if (isRejected) return { label: "Rejected", color: "danger" };
         return { label: "Pending", color: "warning" };
       };
 
       const purchaseBadge = (status: PurchaseLogEntry["status"]) => {
-        if (status === "fulfilled") return { label: "Delivered", color: "success" };
-        if (status === "refunded") return { label: "Refunded", color: "danger" };
+        const isFulfilled = status === "fulfilled";
+        if (isFulfilled) return { label: "Delivered", color: "success" };
+        const isRefunded = status === "refunded";
+        if (isRefunded) return { label: "Refunded", color: "danger" };
         return { label: "Pending", color: "warning" };
       };
 
@@ -338,6 +342,7 @@
       // Only the newest load may write to the lists, so a slow earlier read can never
       // overwrite the fresh data that follows an approve/reject.
       let latestLoad = 0;
+      const isLatestLoad = (load: number) => load === latestLoad;
       const loadApprovals = async (): Promise<boolean> => {
         const thisLoad = ++latestLoad;
         try {
@@ -348,15 +353,17 @@
             Promise.all([questLog.getPending(), questLog.getEntries()]),
             Promise.all([purchaseLog.getPending(), purchaseLog.getEntries()]),
           ]);
-          if (thisLoad === latestLoad) {
-            if (quests.status === "fulfilled") {
+          if (isLatestLoad(thisLoad)) {
+            const isQuestsLoaded = quests.status === "fulfilled";
+            if (isQuestsLoaded) {
               const [pending, entries] = quests.value;
               pendingAchievements.value = pending;
               recentReviews.value = entries
                 .filter((entry) => entry.status !== "pending")
                 .slice(0, HISTORY_LIMIT);
             }
-            if (purchases.status === "fulfilled") {
+            const isPurchasesLoaded = purchases.status === "fulfilled";
+            if (isPurchasesLoaded) {
               const [pending, entries] = purchases.value;
               pendingAccessories.value = pending;
               recentPurchaseReviews.value = entries
@@ -366,16 +373,19 @@
           }
 
           const failed: string[] = [];
-          if (quests.status === "rejected") {
+          const isQuestsFailed = quests.status === "rejected";
+          if (isQuestsFailed) {
             debug.error("Failed to load quest approvals:", quests.reason);
             failed.push("quest approvals");
           }
-          if (purchases.status === "rejected") {
+          const isPurchasesFailed = purchases.status === "rejected";
+          if (isPurchasesFailed) {
             debug.error("Failed to load accessory purchases:", purchases.reason);
             failed.push("accessory purchases");
           }
-          if (failed.length > 0) {
-            if (thisLoad === latestLoad) {
+          const hasFailures = failed.length > 0;
+          if (hasFailures) {
+            if (isLatestLoad(thisLoad)) {
               void showToast(
                 `Couldn't load ${failed.join(" and ")}. Tap refresh to try again.`,
                 "danger"
@@ -386,17 +396,18 @@
           return true;
         } catch (error) {
           debug.error("Failed to load approvals:", error);
-          if (thisLoad === latestLoad) {
+          if (isLatestLoad(thisLoad)) {
             void showToast("Couldn't load approvals. Tap refresh to try again.", "danger");
           }
           return false;
         } finally {
-          if (thisLoad === latestLoad) isLoading.value = false;
+          if (isLatestLoad(thisLoad)) isLoading.value = false;
         }
       };
 
       const refreshApprovals = async () => {
-        if (await loadApprovals()) void showToast("Approvals refreshed!");
+        const isLoaded = await loadApprovals();
+        if (isLoaded) void showToast("Approvals refreshed!");
       };
 
       onMounted(loadApprovals);
@@ -411,7 +422,8 @@
         entry: { id: string },
         review: () => Promise<ReviewOutcome>
       ) => {
-        if (reviewing.has(entry.id)) return;
+        const isInFlight = reviewing.has(entry.id);
+        if (isInFlight) return;
         reviewing.add(entry.id);
         let outcome: ReviewOutcome;
         try {
@@ -431,7 +443,8 @@
 
       const approveItem = async (entry: QuestLogEntry) => {
         const hero = heroName(entry.userId);
-        if (!heroFor(entry.userId)) {
+        const isKnownHero = Boolean(heroFor(entry.userId));
+        if (!isKnownHero) {
           // applyQuestRewards silently skips unknown heroes, so don't claim a payout.
           void showToast(
             "That hero no longer exists, so there is no one to pay. Reject the quest instead.",
@@ -458,7 +471,8 @@
                     entry.id,
                     userStore.currentUser.id ?? undefined
                   );
-                  if (approved?.status !== "approved") {
+                  const isApproved = approved?.status === "approved";
+                  if (!isApproved) {
                     return {
                       message: "That quest is no longer waiting for approval.",
                       color: "warning",
@@ -505,7 +519,8 @@
                     userStore.currentUser.id ?? undefined,
                     note || undefined
                   );
-                  if (rejected?.status !== "rejected") {
+                  const isRejected = rejected?.status === "rejected";
+                  if (!isRejected) {
                     return {
                       message: "That quest is no longer waiting for approval.",
                       color: "warning",
@@ -543,7 +558,8 @@
                     entry.id,
                     userStore.currentUser.id ?? undefined
                   );
-                  if (fulfilled?.status !== "fulfilled") {
+                  const isFulfilled = fulfilled?.status === "fulfilled";
+                  if (!isFulfilled) {
                     return {
                       message: "That purchase is no longer waiting for delivery.",
                       color: "warning",
@@ -562,7 +578,8 @@
 
       const refundItem = async (entry: PurchaseLogEntry) => {
         const hero = heroName(entry.userId);
-        if (!heroFor(entry.userId)) {
+        const isKnownHero = Boolean(heroFor(entry.userId));
+        if (!isKnownHero) {
           // refundPurchase can't credit a missing profile, so don't claim a refund.
           void showToast(
             "That hero no longer exists, so there is no one to refund. Fulfil the purchase to clear it.",
@@ -596,7 +613,8 @@
                     userStore.currentUser.id ?? undefined,
                     note || undefined
                   );
-                  if (refunded?.status !== "refunded") {
+                  const isRefunded = refunded?.status === "refunded";
+                  if (!isRefunded) {
                     return {
                       message: "That purchase is no longer waiting for delivery.",
                       color: "warning",

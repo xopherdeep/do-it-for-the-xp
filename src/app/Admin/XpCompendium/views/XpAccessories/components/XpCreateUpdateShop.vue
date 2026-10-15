@@ -372,7 +372,8 @@ const openSaved = async (id: string) => {
 
 onMounted(async () => {
   await loadAccessories();
-  if (props.id) await openSaved(props.id);
+  const savedId = props.id;
+  if (savedId) await openSaved(savedId);
   if (!original.value) position.value = firstIndex(steps, draft.value);
   isOpen.value = true;
 });
@@ -465,7 +466,8 @@ const setDays = (itemId: string, days: number[]) => {
 const takeOff = (itemId: string) => {
   play$fx("cursor");
   draft.value.items = dropGood(draft.value.items, itemId);
-  if (openGood.value === itemId) openGood.value = null;
+  const isGoodOpen = openGood.value === itemId;
+  if (isGoodOpen) openGood.value = null;
 };
 
 // The same picker the shop's Items tab uses: the list of goods in selection mode. This page stays under it, so the
@@ -491,7 +493,8 @@ const ROW_ICONS: Record<ShopSummaryRow["id"], string> = { shop: "store", clerk: 
 // A tap on a row goes straight back to the step that owns the answer
 const goToStep = (id: ShopStepId) => {
   const target = steps.findIndex((step) => step.id === id);
-  if (target >= 0) position.value = target;
+  const isKnownStep = target >= 0;
+  if (isKnownStep) position.value = target;
 };
 
 const openShop = async () => {

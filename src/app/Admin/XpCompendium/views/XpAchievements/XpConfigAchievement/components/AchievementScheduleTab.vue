@@ -383,7 +383,8 @@ const daysOfWeek = [
 const updateSchedule = async (value: string) => {
   const isSwitchingToCustom = value === 'custom' && achievement.value.basicSchedule !== 'custom';
   if (isSwitchingToCustom) {
-    if (!(await pro.requirePro('advancedSchedule'))) return;
+    const hasPro = await pro.requirePro('advancedSchedule');
+    if (!hasPro) return;
   }
   achievement.value.basicSchedule = value;
   achievement.value.scheduleType = value === 'custom' ? 'custom' : 'basic';
@@ -414,7 +415,8 @@ const toggleDay = (day: string) => {
   const current = achievement.value.repeatOnDays || [];
   const index = current.indexOf(day);
   let next;
-  if (index > -1) {
+  const isSelected = index > -1;
+  if (isSelected) {
     next = current.filter((d: string) => d !== day);
   } else {
     next = [...current, day];
@@ -425,7 +427,8 @@ const toggleDay = (day: string) => {
 const hasTime = (time: TimeOfDay) => Boolean(achievement.value.timesOfDay?.includes(time));
 
 const toggleTime = async (time: TimeOfDay) => {
-  if (!(await pro.requirePro('advancedSchedule'))) return;
+  const hasPro = await pro.requirePro('advancedSchedule');
+  if (!hasPro) return;
   achievement.value.timesOfDay = toggleTimeOfDay(achievement.value.timesOfDay, time);
   play$fx('select');
 };
@@ -442,14 +445,16 @@ const updateTimesPerDay = async (input: HTMLInputElement) => {
 };
 
 const askOracle = async () => {
-  if (!(await pro.requirePro('aiHelpers'))) return;
+  const hasPro = await pro.requirePro('aiHelpers');
+  if (!hasPro) return;
   generateScheduleWithAI();
 };
 
 const scheduleSummary = computed(() => {
   const { customFrequency, customPeriodNumber, customPeriodType, basicSchedule } = achievement.value;
   
-  if (basicSchedule !== 'custom') return '';
+  const isCustom = basicSchedule === 'custom';
+  if (!isCustom) return '';
 
   const freq = customFrequency || 1;
   const period = customPeriodNumber || 1;

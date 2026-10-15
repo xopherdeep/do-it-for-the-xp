@@ -201,12 +201,16 @@ export default defineComponent({
       return this.beasts.find((b) => b.id === this.achievement.beastId);
     },
     beastAvatarUrl(): string | null {
-      if (!this.activeBeast) return null;
-      if (this.activeBeast.imageUrl) return this.activeBeast.imageUrl;
-      if (this.activeBeast.localImage) return this.activeBeast.localImage;
-      if (this.activeBeast.avatar) {
+      const beast = this.activeBeast;
+      if (!beast) return null;
+      const imageUrl = beast.imageUrl;
+      if (imageUrl) return imageUrl;
+      const localImage = beast.localImage;
+      if (localImage) return localImage;
+      const avatar = beast.avatar;
+      if (avatar) {
         try {
-          const pad = this.activeBeast.avatar.toString().padStart(3, "0");
+          const pad = avatar.toString().padStart(3, "0");
           return require(`@/assets/images/beasts/${pad}.webp`);
         } catch {
           return null;

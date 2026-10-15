@@ -69,14 +69,16 @@ const canMore = computed(() => current.value < props.max);
 
 const bump = (direction: 1 | -1) => {
   const next = clamp(current.value + direction * props.step);
-  if (next === props.modelValue) return;
+  const isUnchanged = next === props.modelValue;
+  if (isUnchanged) return;
   play$fx("cursor");
   emit("update:modelValue", next);
 };
 
 const onType = (event: Event) => {
   const typed = countOf((event.target as HTMLInputElement).value);
-  if (typed !== null) emit("update:modelValue", clamp(typed));
+  const isNumber = typed !== null;
+  if (isNumber) emit("update:modelValue", clamp(typed));
 };
 
 const settle = () => {

@@ -69,8 +69,10 @@ export default defineComponent({
     handleTabClick(tab: string, event: Event) {
       const targetPath = `/game-master/compendium/${tab}`;
 
-      if (this.route.path.includes(targetPath)) {
-        if (this.route.path !== targetPath) {
+      const isInTab = this.route.path.includes(targetPath);
+      const isTabRoot = this.route.path === targetPath;
+      if (isInTab) {
+        if (!isTabRoot) {
           // Already in this tab but deep relative to root (e.g. editing)
           // Navigate back to the index
           event.preventDefault();

@@ -235,7 +235,8 @@
       const toggleSelection = (accessory: Accessory) => {
         const currentSelected = [...itemSelectionStore.selectedItemIds];
         const index = currentSelected.indexOf(accessory.id);
-        if (index > -1) {
+        const isSelected = index > -1;
+        if (isSelected) {
           currentSelected.splice(index, 1);
         } else {
           currentSelected.push(accessory.id);
@@ -263,7 +264,8 @@
 
       const filteredAccessories = computed(() => {
         let filtered = accessories.value;
-        if (filterType.value !== "all") {
+        const isFilteringByType = filterType.value !== "all";
+        if (isFilteringByType) {
           filtered = filtered.filter((item) => {
             const isRealLife = item.type?.toLowerCase() === "real";
             return (

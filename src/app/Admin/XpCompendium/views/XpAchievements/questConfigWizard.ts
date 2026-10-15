@@ -162,9 +162,11 @@ export const stepForSegment = (segment: string): QuestStepId => {
 
 /** "For Mia, Sam" under the quest's name when it is made Ready; "Open to every hero" for an Open Bounty; "" when no hero is named. */
 export const readySubtitle = (draft: Pick<QuestConfigDraft, "type" | "assignee">, heroName: (id: string) => string): string => {
-  if (draft.type === "asNeeded") return "Open to every hero";
+  const isOpenBounty = draft.type === "asNeeded";
+  if (isOpenBounty) return "Open to every hero";
   const names = (draft.assignee ?? []).map(heroName).filter(Boolean);
-  if (!names.length) return "";
+  const hasNames = names.length > 0;
+  if (!hasNames) return "";
   const shown = names.slice(0, 3).join(", ");
   return names.length > 3 ? `For ${shown} and ${names.length - 3} more` : `For ${shown}`;
 };

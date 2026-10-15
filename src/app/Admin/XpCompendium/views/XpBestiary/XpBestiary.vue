@@ -166,13 +166,15 @@ export default defineComponent({
       const changed = unlink(beast.id, quests, temples);
       for (const quest of changed.quests) await this.achievementDb.setTask(quest);
       for (const temple of changed.temples) await templeDb.setTemple(temple);
-      if (!changed.temples.length) return;
+      const hasChangedTemples = changed.temples.length > 0;
+      if (!hasChangedTemples) return;
 
       // The temple creator keeps its own copy of the temple it has open and the bestiary it listed; neither may
       // hand the deleted beast back
       const creator = useTempleCreatorStore();
       creator.cachedBestiary = [];
-      if (changed.temples.some((temple) => temple.id === creator.loadedTempleId)) creator.reset();
+      const isOpenInCreator = changed.temples.some((temple) => temple.id === creator.loadedTempleId);
+      if (isOpenInCreator) creator.reset();
     },
     async clickDeleteBeast(beast: Beast) {
       let usage = "";
