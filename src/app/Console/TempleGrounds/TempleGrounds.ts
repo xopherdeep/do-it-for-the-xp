@@ -269,7 +269,7 @@ export default defineComponent({
 
     // A boss or guardian still waiting in the room the hero walks into: the room dims and a banner names it
     const bossEntranceDeps = { currentRoom, currentPosition, currentLevel, isCombatRoomCleared, activeMonster };
-    // Each step to the next room: dust streams past the other way and the camera lurches while the floor slides
+    // Each step to the next room: a puff of dust streams past the other way while the floor slides
     const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition) };
 
     // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out

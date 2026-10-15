@@ -74,7 +74,6 @@
       <div
         id="background-container"
         class="background-container"
-        :class="{ 'is-lurching': isLurching }"
         :style="{
           position: 'absolute',
           top: 0,
