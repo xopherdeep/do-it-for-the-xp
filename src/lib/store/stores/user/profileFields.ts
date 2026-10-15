@@ -221,7 +221,8 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const user = users[userId];
     if (!user) return;
     user.streakChests = { runStart: ledger.runStart, paid: [...ledger.paid] };
-    if (currentUser.id === userId) syncCurrentUser(user);
+    const isSignedIn = currentUser.id === userId;
+    if (isSignedIn) syncCurrentUser(user);
     persistUser(userId);
   }
 
@@ -294,7 +295,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (hasNobodyToMark) return 0;
     user.questGrudges = addGrudgeMark(user.questGrudges, questId, nowMs);
     // Every run counts toward Hero Records' "dodged most" (services/insights), uncapped and never cleared
-    const flees = user.questFlees && typeof user.questFlees === 'object' ? user.questFlees : {};
+    const flees = { ...(user.questFlees || {}) };
     user.questFlees = { ...flees, [questId]: (Number(flees[questId]) || 0) + 1 };
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
@@ -356,7 +357,6 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   return {
-    setStreakChests,
     addInventoryItem,
     spendInventoryItem,
     storeItem,
@@ -367,6 +367,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setBedRestAt,
     setQuestEffects,
     setPowerTimers,
+    setStreakChests,
     unlockItem,
     setEquipment,
     setLook,

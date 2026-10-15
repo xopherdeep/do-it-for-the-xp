@@ -443,6 +443,7 @@ describe("signing in, masquerading, loading", () => {
         "setQuestEffects",
         "setPowerTimers",
         "setQuestGrudges",
+        "setStreakChests",
         "setVoice",
         "setWallet",
         "spendInventoryItem",
