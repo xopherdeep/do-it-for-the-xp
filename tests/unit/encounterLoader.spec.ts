@@ -219,7 +219,6 @@ describe("loadEncounter for a temple combat room", () => {
  * encounter carries both the quest and the room key. A dormant room fights as today.
  */
 describe("loadEncounter for a quest room", () => {
-  const NOW = new Date();
   const dishGoblin: Beast = {
     id: "beast-dish-goblin",
     name: "Dish Goblin",
