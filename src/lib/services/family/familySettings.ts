@@ -2,9 +2,9 @@ import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { dayKeyOf, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
- * What the Game Master lets the family do (docs/Items-And-Classes-Contract.md, B). Items no longer bend the
- * quest board, so only `trustedHour` is live: the Trusted Hour Power refuses to cast unless it is on. The
- * bedtime locks nothing (`isBedtimeNow` has no caller) and `dayOffBroadcast` is hidden in the settings screen
+ * What the Game Master lets the family do (docs/Items-And-Classes-Contract.md, B), and the family-wide game rules
+ * (`streaks`, Settings > Chores). Items no longer bend the quest board, so of the item rules only `trustedHour` is
+ * live: the Trusted Hour Power refuses to cast unless it is on. The bedtime locks nothing (`isBedtimeNow` has no caller) and `dayOffBroadcast` is hidden in the settings screen
  * (Gale's Wind used to read it); their stored values stay.
  */
 export interface FamilySettings {
@@ -13,12 +13,15 @@ export interface FamilySettings {
   bedtime: { enabled: boolean; /** "HH:mm" */ from: string; /** "HH:mm" */ to: string };
   /** Old: Gale's Wind sent every Game Master a note. Nothing reads it now; the settings screen hides it. */
   dayOffBroadcast: boolean;
+  /** Daily streaks (services/streaks): the HUD flame, Streak Shields and streak chests. On unless switched off. */
+  streaks: boolean;
 }
 
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   trustedHour: false,
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
   dayOffBroadcast: false,
+  streaks: true,
 };
 
 const clock = (value: unknown, fallback: string): string =>
@@ -32,6 +35,7 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
     to: clock(stored?.bedtime?.to, DEFAULT_FAMILY_SETTINGS.bedtime.to),
   },
   dayOffBroadcast: stored?.dayOffBroadcast === true,
+  streaks: stored?.streaks !== false,
 });
 
 export const loadFamilySettings = async (): Promise<FamilySettings> => {
