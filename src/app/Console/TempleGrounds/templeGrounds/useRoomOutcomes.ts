@@ -23,6 +23,7 @@ import { pegasusOfTemple, pegasusView } from '@/lib/services/temples/TemplePegas
 import type { useUserStore } from '@/lib/store/stores/user';
 import { dungeonExitRuns, EXIT_W, EXIT_H } from '../components/exitSprite';
 import type { useChestReveal, useChoiceReveal, usePegasusReveal } from './templeReveals';
+import type { useItemFanfare } from './useItemFanfare';
 import type { useRoomBeast } from './useRoomBeast';
 import type { useTempleLayout } from './useTempleLayout';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
@@ -36,6 +37,8 @@ export interface RoomOutcomeDeps
   templeSystem: TempleSystem;
   say: (message: string, duration?: number) => void;
   fx: (key: string) => void;
+  /** A key, map or compass is held overhead with its name, in place of the toast */
+  showFanfare: ReturnType<typeof useItemFanfare>['showFanfare'];
   updateBg: ReturnType<typeof useTempleLayout>['updateBg'];
   leaveTemple: () => void;
   showTempleCleared: ReturnType<typeof usePegasusReveal>['showTempleCleared'];
@@ -69,6 +72,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     handleTeleport,
     say,
     fx,
+    showFanfare,
     updateBg,
     leaveTemple,
     showTempleCleared,
@@ -170,7 +174,9 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     if (shouldPlaySound) fx(sound);
     const shouldShake = Boolean(outcome.shake);
     if (shouldShake) shake();
-    const shouldShowToast = message && !celebrating;
+    const found = outcome.found;
+    if (found) showFanfare(found, message);
+    const shouldShowToast = message && !celebrating && !found;
     if (shouldShowToast) say(message);
 
     const isDefeated = Boolean(outcome.defeated);

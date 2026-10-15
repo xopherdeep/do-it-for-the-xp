@@ -67,6 +67,9 @@
       <!-- A boss or guardian waiting in the room: the room dims, shakes and a banner names it -->
       <temple-boss-banner :banner="bossBanner" :element="templeElement" @dismiss="dismissBossBanner" />
 
+      <!-- A key, map or compass picked up: the hero holds it overhead in a burst of light -->
+      <temple-item-fanfare :fanfare="fanfare" :element="templeElement" @dismiss="dismissFanfare" />
+
       <!-- Lantern light breathing over the room, dust in the air -->
       <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
 
