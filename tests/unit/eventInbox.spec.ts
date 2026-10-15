@@ -1,5 +1,4 @@
 import {
-  RewardToPay,
   markPaid,
   newestSeq,
   rewardsToPay,

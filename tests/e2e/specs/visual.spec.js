@@ -306,7 +306,7 @@ const freezeMotion = (win) => {
           animation.pause();
           animation.currentTime = (timing.delay || 0) + 250;
         }
-      } catch (error) {
+      } catch {
         // an animation that cannot be parked stays as it is; the noise check will flag the screen
       }
     });

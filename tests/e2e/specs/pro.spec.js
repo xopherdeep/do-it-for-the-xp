@@ -22,7 +22,7 @@ describe("XP Pro", () => {
   const forgetLicense = (win) => {
     try {
       win.indexedDB.deleteDatabase("__xp_pro");
-    } catch (e) {
+    } catch {
       // no IndexedDB: nothing cached
     }
   };
