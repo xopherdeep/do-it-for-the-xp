@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-// The old develop branch had a mock of this page (tools/reference/develop/AccountSettings.vue); this one is wired to the Town Hall link.
+// The old develop branch had a mock of this page (tools/reference/develop/AccountSettings.vue.txt); this one is wired to the Town Hall link.
 import { computed, onMounted, ref } from "vue";
 import { IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, alertController } from "@ionic/vue";
 import XpComingSoonCard from "./XpComingSoonCard.vue";
@@ -89,24 +89,29 @@ const isGameMaster = canManageFamily();
 // The email lives on the site; it is read for display and never stored. undefined = still loading, null = unavailable
 const email = ref<string | null | undefined>(undefined);
 const emailLabel = computed(() => {
-  if (email.value === undefined) return "…";
-  return email.value || "—";
+  const isLoading = email.value === undefined;
+  if (isLoading) return "…";
+  return email.value || "not on file";
 });
 
 const planLabel = computed(() => {
-  if (!pro.isPro) return "XP Pro is off";
+  const isOff = !pro.isPro;
+  if (isOff) return "XP Pro is off";
   const name = pro.plan ? PLAN_NAMES[pro.plan] ?? pro.plan : "";
   return `XP Pro is on: ${name}`;
 });
 
 async function announce(result: LinkResult): Promise<void> {
-  if (result === "linked") {
+  const isLinked = result === "linked";
+  if (isLinked) {
     await proToast(`Linked as ${townHall.activeLink?.displayName ?? ""}.`, "success");
     await loadEmail();
     return;
   }
-  if (result === "rejected") await proToast("Nothing changed.");
-  if (result === "failed") await proToast("The link didn't go through, and nothing was saved. Try again.", "danger");
+  const isRejected = result === "rejected";
+  if (isRejected) await proToast("Nothing changed.");
+  const isFailed = result === "failed";
+  if (isFailed) await proToast("The link didn't go through, and nothing was saved. Try again.", "danger");
 }
 
 const link = useTownHallLink({
@@ -135,7 +140,8 @@ function openSite(url: string): void {
 async function unlinkNow(): Promise<void> {
   const result = await link.unlink();
   email.value = undefined;
-  if (result === "removed-here-only") {
+  const isStillOnSite = result === "removed-here-only";
+  if (isStillOnSite) {
     const host = new URL(townHallSiteUrl()).host;
     await proToast(`Done here. To finish, remove "Do It For The XP" from your profile on ${host}.`);
     return;
