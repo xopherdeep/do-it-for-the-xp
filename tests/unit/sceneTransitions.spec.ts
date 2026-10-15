@@ -109,8 +109,8 @@ describe("transitionFor", () => {
     });
   });
 
-  it("irises out of a temple to the destination region", () => {
-    expect(transitionFor(wind, plains)).toMatchObject({ effect: "iris", direction: "out", title: "The Plains" });
+  it("leaves a temple through its own gate, out to the destination region", () => {
+    expect(transitionFor(wind, plains)).toMatchObject({ effect: "gate", direction: "out", title: "The Plains", element: wind.element });
     expect(transitionFor(wind, other)).toBeNull();
   });
 

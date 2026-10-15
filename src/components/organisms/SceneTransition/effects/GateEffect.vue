@@ -20,6 +20,7 @@
       <!-- A line of light along the seam, and the temple's sigil lighting up across it, as the lock gives -->
       <span class="gate-seam" />
       <svg
+        v-if="isEntering"
         class="gate-sigil"
         :viewBox="`0 0 ${IRIS_SPRITE_W} ${IRIS_SPRITE_H}`"
         shape-rendering="crispEdges"
@@ -59,14 +60,17 @@ const PALETTE: Record<string, [string, string, string]> = {
   storm: ["#ffe45c", "#4e5a70", "#28303e"],
 };
 const palette = computed(() => PALETTE[props.plan.element ?? "wind"] ?? PALETTE.wind);
-const glow = computed(() => palette.value[0]);
+/** Leaving, the hero is inside: what shows through the seam is daylight, and the sigil is on the other face */
+const DAYLIGHT = "#fff6dc";
+const isEntering = computed(() => props.plan.direction !== "out");
+const glow = computed(() => (isEntering.value ? palette.value[0] : DAYLIGHT));
 const stone = computed(() => palette.value[1]);
 const stoneDark = computed(() => palette.value[2]);
 const sigil = computed(() => irisTemple(props.plan.element ?? "wind"));
 
 const DUST = [1, 2, 3, 4, 5, 6];
 
-/** The hero walks up to the shut doors out of the dark; the hold lets the sigil flare; then they grind apart. */
+/** The hero walks up to the shut doors out of the dark; the hold lets the sigil (or daylight) flare; then they grind apart. */
 const APPROACH_MS = 520;
 const OPEN_MS = 680;
 const CALM_MS = 150;

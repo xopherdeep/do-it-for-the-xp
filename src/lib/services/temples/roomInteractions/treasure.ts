@@ -107,14 +107,14 @@ export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome 
     const state = system.getTempleState(ctx.templeId);
     if (state) state.hasMap = true;
     system.saveProgress(ctx.templeId);
-    return { message: 'You take the map.', sound: SFX.takeItem };
+    return { message: 'You take the map.', sound: SFX.takeItem, found: { kind: 'map', title: 'Dungeon Map' } };
   }
   const isCompass = kind === 'compass';
   if (isCompass) {
     const state = system.getTempleState(ctx.templeId);
     if (state) state.hasCompass = true;
     system.saveProgress(ctx.templeId);
-    return { message: 'You take the compass.', sound: SFX.takeItem };
+    return { message: 'You take the compass.', sound: SFX.takeItem, found: { kind: 'compass', title: 'Compass' } };
   }
 
   const name = String(room.content?.keyName ?? 'a small key');
@@ -123,10 +123,11 @@ export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome 
     system.grantMasterKey(ctx.templeId);
     // The key that opens the boss door is the Boss Key; a layout may give this one a name of its own
     const named = room.content?.keyName;
-    return { message: named ? `${named}: the Boss Key is yours.` : 'The Boss Key is yours.', sound: SFX.key };
+    const message = named ? `${named}: the Boss Key is yours.` : 'The Boss Key is yours.';
+    return { message, sound: SFX.key, found: { kind: 'boss-key', title: 'Boss Key' } };
   }
   system.addKey(ctx.templeId);
-  return { message: `You take ${name}.`, sound: SFX.key };
+  return { message: `You take ${name}.`, sound: SFX.key, found: { kind: 'key', title: 'Small Key' } };
 };
 
 /** A chest is empty when the room says so, or its chest in the ChestSystem is. */

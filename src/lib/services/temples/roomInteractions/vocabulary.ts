@@ -80,6 +80,14 @@ export interface RoomOutcome {
   moved?: boolean;
   /** The temple was just cleared: the screen celebrates with this reward before the hero walks out (the toast stays unsaid) */
   cleared?: ClearedReward;
+  /** A key, map or compass picked up: the hero holds it overhead with `message` under it (instead of a toast) */
+  found?: FoundItem;
+}
+
+/** What the hero holds overhead after picking it up, and what it is called on the banner. */
+export interface FoundItem {
+  kind: 'key' | 'boss-key' | 'map' | 'compass';
+  title: string;
 }
 
 /** What the temple paid for being cleared: the coins as paid (with the hero's bonuses), and whether the XP levelled them up. */
