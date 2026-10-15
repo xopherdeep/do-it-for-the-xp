@@ -21,23 +21,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { BossBanner } from "../templeGrounds/useBossEntrance";
+import { templeGlow } from "./templeGlow";
 
 const props = defineProps<{ banner: BossBanner | null; element?: string }>();
 const emit = defineEmits<{ (e: "dismiss"): void }>();
 
-/** The glow around the banner, per temple element */
-const GLOWS: Record<string, string> = {
-  wind: "#fff2d0",
-  fire: "#ff7828",
-  ice: "#bfe6ff",
-  water: "#7fe0ea",
-  earth: "#b4d26e",
-  light: "#ffe9a0",
-  shadow: "#b48cff",
-  moon: "#dcdcff",
-  storm: "#ffe45c",
-};
-const glow = computed(() => GLOWS[props.element ?? "wind"] ?? GLOWS.wind);
+const glow = computed(() => templeGlow(props.element));
 const label = computed(() => (props.banner?.tier === "boss" ? "Boss" : "Guardian"));
 </script>
 

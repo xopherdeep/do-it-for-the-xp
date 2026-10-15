@@ -26,6 +26,7 @@ import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import TempleLoading from './components/TempleLoading.vue';
 import TempleBossBanner from './components/TempleBossBanner.vue';
+import TempleRoomArrival from './components/TempleRoomArrival.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
 import { play$fx } from "@/assets/fx"
@@ -43,6 +44,7 @@ import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
 import { useBossEntrance } from './templeGrounds/useBossEntrance';
+import { useRoomArrival } from './templeGrounds/useRoomArrival';
 import { mapCellIconOf } from './templeGrounds/mapCellIcon';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
@@ -78,6 +80,7 @@ export default defineComponent({
     'temple-pegasus-reveal': TemplePegasusReveal,
     'temple-loading': TempleLoading,
     'temple-boss-banner': TempleBossBanner,
+    'temple-room-arrival': TempleRoomArrival,
     XpVitalsBar,
     XpPurseBar,
     XpEquipmentModal,
@@ -265,13 +268,9 @@ export default defineComponent({
     });
 
     // A boss or guardian still waiting in the room the hero walks into: the room dims and a banner names it
-    const { bossBanner, dismissBossBanner } = useBossEntrance({
-      currentRoom,
-      currentPosition,
-      currentLevel,
-      isCombatRoomCleared,
-      activeMonster
-    });
+    const bossEntranceDeps = { currentRoom, currentPosition, currentLevel, isCombatRoomCleared, activeMonster };
+    // Each step to the next room: dust streams past the other way and the camera lurches while the floor slides
+    const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition) };
 
     // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out
     const { isShaking, getLiveContext: liveContext, applyOutcome, handleArrival: arrive, showRoomActions } = useRoomOutcomes({
@@ -453,8 +452,7 @@ export default defineComponent({
       validRoomCoords,
       templeName,
       isLoadingShown,
-      bossBanner,
-      dismissBossBanner,
+      ...roomDrama,
       loadedFloors,
       totalFloors,
       backgroundPosition,
