@@ -17,8 +17,10 @@ export const snow: EffectFactory = () => {
       for (let i = 0; i < count; i++) {
         y[i] += fall * (0.4 + d[i]);
         x[i] += Math.sin(f.time * (0.6 + d[i]) + ph[i]) * 18 * f.dt + 6 * f.dt;
-        if (y[i] > f.height + 4) { y[i] = -4; x[i] = rng() * f.width; }
-        if (x[i] > f.width + 4) x[i] = -4;
+        const isPastBottom = y[i] > f.height + 4;
+        if (isPastBottom) { y[i] = -4; x[i] = rng() * f.width; }
+        const isPastRightEdge = x[i] > f.width + 4;
+        if (isPastRightEdge) x[i] = -4;
       }
     },
     draw(f) {

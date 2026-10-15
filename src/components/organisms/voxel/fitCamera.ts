@@ -93,7 +93,8 @@ const ringsOf = (bounds: Bounds, turns: number | Ring[] | undefined): Ring[] => 
 /** Every point of the model that has to stay on screen, in the world's frame */
 const worstPoints = (bounds: Bounds, yaw: number, rings: Ring[]): Vec3[] => {
   const points: Vec3[] = [];
-  if (rings.length > 0) {
+  const hasRings = rings.length > 0;
+  if (hasRings) {
     // The farthest a turning part gets is on a circle round the axis, at the height where it is
     for (const { y, radius } of rings) {
       for (let i = 0; i < RING_POINTS; i++) {
@@ -128,7 +129,8 @@ const SLICES = 16;
 
 /** The bounds and the turning rings of a flat x, y, z, x, y, z... vertex list; null when there is nothing in it */
 export const measurePositions = (positions: ArrayLike<number>): Measured | null => {
-  if (positions.length < 3) return null;
+  const isMissingVertex = positions.length < 3;
+  if (isMissingVertex) return null;
   const min = { x: Infinity, y: Infinity, z: Infinity };
   const max = { x: -Infinity, y: -Infinity, z: -Infinity };
   for (let i = 0; i + 2 < positions.length; i += 3) {
@@ -154,7 +156,8 @@ export const measurePositions = (positions: ArrayLike<number>): Measured | null 
   }
   const rings: Ring[] = [];
   for (let slice = 0; slice < slices; slice++) {
-    if (low[slice] === Infinity) continue;
+    const isEmptySlice = low[slice] === Infinity;
+    if (isEmptySlice) continue;
     rings.push({ y: low[slice], radius: reach[slice] }, { y: high[slice], radius: reach[slice] });
   }
   return { bounds: { min, max }, rings };
@@ -187,7 +190,8 @@ export const fitCamera = (input: FitInput): CameraFit => {
   const points = worstPoints(input.bounds, finiteOr(input.yaw, 0), rings);
   const { min, max } = input.bounds;
   const target: Vec3 = { x: (min.x + max.x) / 2, y: (min.y + max.y) / 2, z: (min.z + max.z) / 2 };
-  if (rings.length > 0) {
+  const hasRings = rings.length > 0;
+  if (hasRings) {
     target.x = 0;
     target.z = 0;
   } else {

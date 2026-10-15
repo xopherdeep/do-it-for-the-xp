@@ -71,7 +71,8 @@ const isAimed = Boolean(focus) && !reduced;
 /** Where the door starts: its spot on the building, as an offset from the middle of the screen and a squash */
 const aimStyle = computed(() => {
   const openMs = { "--open-ms": `${opening.value.ms}ms` };
-  if (!focus || typeof window === "undefined") return openMs;
+  const isUnaimed = !focus || typeof window === "undefined";
+  if (isUnaimed) return openMs;
   const w = window.innerWidth || 1;
   const h = window.innerHeight || 1;
   return {
@@ -96,16 +97,19 @@ const centre = () => ({
 watch(
   () => props.phase,
   (phase) => {
-    if (phase === "cover") {
+    const isCover = phase === "cover";
+    const isReveal = phase === "reveal";
+    if (isCover) {
       const coverMs = reduced ? FADE_MS : isAimed ? PUSH_MS : COVER_MS;
       // The camera walks in toward the door; coming out there is no door on screen to walk to
-      if (!reduced && props.plan.direction === "in") {
+      const isWalkingIn = !reduced && props.plan.direction === "in";
+      if (isWalkingIn) {
         if (focus) pushCamera(focus, PUSH_SCALE, coverMs);
         else pushCamera(centre(), CENTER_PUSH_SCALE, coverMs);
       }
       later(() => emit("covered"), coverMs);
     }
-    if (phase === "reveal") {
+    if (isReveal) {
       const { ms, sound, buzz } = opening.value;
       resetCamera();
       // The new page finishes the push (in) or the camera pulls back from the door (out)

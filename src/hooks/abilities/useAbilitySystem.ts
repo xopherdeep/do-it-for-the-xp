@@ -72,7 +72,8 @@ export function useAbilitySystem() {
   // Cast an ability for a hero: the service charges the MP; a refusal is told to the player as a toast
   const useAbility = async (abilityId: string, userId: string): Promise<UseAbilityResult> => {
     const result = await service.useAbility(abilityId, userId);
-    if (!result.ok) {
+    const isRefused = result.ok === false;
+    if (isRefused) {
       const toast = await toastController.create({
         message: REFUSAL_COPY[result.reason] ?? 'That ability is not available',
         duration: 2000,

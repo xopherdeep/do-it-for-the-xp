@@ -16,8 +16,10 @@ export const leaves: EffectFactory = () => {
     update(f) {
       for (let i = 0; i < count; i++) {
         y[i] += (18 + f.intensity * 4) * (0.5 + k[i]) * f.dt; x[i] += (Math.sin(f.time * 1.2 + k[i] * 8) * 25 + 10) * f.dt; r[i] += (1 + k[i]) * f.dt * 2;
-        if (y[i] > f.height + 8) { y[i] = -8; x[i] = rng() * f.width; }
-        if (x[i] > f.width + 8) x[i] = -8;
+        const isPastBottom = y[i] > f.height + 8;
+        if (isPastBottom) { y[i] = -8; x[i] = rng() * f.width; }
+        const isPastRightEdge = x[i] > f.width + 8;
+        if (isPastRightEdge) x[i] = -8;
       }
     },
     draw(f) {

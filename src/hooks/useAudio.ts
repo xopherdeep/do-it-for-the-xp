@@ -124,7 +124,8 @@ export function useAudio() {
    */
   const playMusicCategory = (category: string, index = 0, fadeInTime = 1000): void => {
     const tracks = getMusicByCategory(category);
-    if (tracks.length === 0) {
+    const isEmptyCategory = tracks.length === 0;
+    if (isEmptyCategory) {
       debug.warn(`No music tracks found for category: ${category}`);
       return;
     }

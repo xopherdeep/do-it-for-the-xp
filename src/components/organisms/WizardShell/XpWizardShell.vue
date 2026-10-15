@@ -175,12 +175,14 @@ defineExpose({ scrollToTop });
 // Close the phone's keyboard when a step is left, so the next step opens on a clear screen
 const dropKeyboard = () => {
   const active = document.activeElement;
-  if (active instanceof HTMLElement && root.value?.contains(active)) active.blur();
+  const isInsideShell = active instanceof HTMLElement && root.value?.contains(active);
+  if (isInsideShell) active.blur();
 };
 
 const onBack = () => {
   play$fx("cursor");
-  if (!back()) emit("close");
+  const didStepBack = back();
+  if (!didStepBack) emit("close");
 };
 
 const onNext = () => {
@@ -190,7 +192,8 @@ const onNext = () => {
   }
   if (isLast.value) {
     // The form plays its own fanfare, or its own "no" when the save fails
-    if (!props.busy) emit("submit");
+    const isBusy = props.busy;
+    if (!isBusy) emit("submit");
     return;
   }
   play$fx("select");
@@ -199,7 +202,8 @@ const onNext = () => {
 };
 
 const onDot = (target: number) => {
-  if (!props.jumpable) return;
+  const canJump = props.jumpable;
+  if (!canJump) return;
   play$fx("cursor");
   dropKeyboard();
   jumpTo(target);

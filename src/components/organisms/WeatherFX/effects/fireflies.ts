@@ -14,7 +14,8 @@ export const fireflies: EffectFactory = () => {
     },
     update(f) {
       for (let i = 0; i < count; i++) {
-        if (Math.abs(x[i] - tx[i]) + Math.abs(y[i] - ty[i]) < 4) { tx[i] = x[i] + (rng() - 0.5) * 120; ty[i] = y[i] + (rng() - 0.5) * 80; }
+        const hasReachedTarget = Math.abs(x[i] - tx[i]) + Math.abs(y[i] - ty[i]) < 4;
+        if (hasReachedTarget) { tx[i] = x[i] + (rng() - 0.5) * 120; ty[i] = y[i] + (rng() - 0.5) * 80; }
         x[i] += (tx[i] - x[i]) * f.dt * 0.8; y[i] += (ty[i] - y[i]) * f.dt * 0.8;
       }
     },
@@ -24,7 +25,8 @@ export const fireflies: EffectFactory = () => {
       ctx.globalCompositeOperation = "lighter";
       for (let i = 0; i < count; i++) {
         const blink = f.reducedMotion ? 0.7 : Math.max(0, Math.sin(f.time * 1.6 + ph[i]));
-        if (blink < 0.05) continue;
+        const isDark = blink < 0.05;
+        if (isDark) continue;
         const grad = ctx.createRadialGradient(x[i], y[i], 0, x[i], y[i], 7);
         grad.addColorStop(0, `rgba(220,255,140,${blink * 0.9})`);
         grad.addColorStop(1, "rgba(220,255,140,0)");

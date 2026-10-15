@@ -17,7 +17,8 @@ export const sand: EffectFactory = () => {
       const v = (160 + f.intensity * 30) * (0.3 + gust) * f.dt;
       for (let i = 0; i < count; i++) {
         x[i] += v * (0.5 + k[i]); y[i] += Math.sin(f.time * 3 + k[i] * 7) * 14 * f.dt;
-        if (x[i] > f.width + 10) { x[i] = -10; y[i] = f.height * (0.3 + rng() * 0.7); }
+        const isPastRightEdge = x[i] > f.width + 10;
+        if (isPastRightEdge) { x[i] = -10; y[i] = f.height * (0.3 + rng() * 0.7); }
       }
     },
     draw(f) {

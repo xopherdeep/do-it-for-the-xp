@@ -77,9 +77,11 @@ const stepRadius = (from: number, to: number, ms: number, done: () => void) => {
 
 const run = (phase: string) => {
   clearAll();
+  const isCover = phase === "cover";
+  const isReveal = phase === "reveal";
   if (calm.value) {
-    if (phase === "cover") later(() => emit("covered"), CALM_MS);
-    if (phase === "reveal") {
+    if (isCover) later(() => emit("covered"), CALM_MS);
+    if (isReveal) {
       feel("tap");
       later(() => emit("revealed"), CALM_MS);
     }
@@ -87,13 +89,13 @@ const run = (phase: string) => {
   }
   const max = maxRadius();
   const entering = props.plan.direction === "in";
-  if (phase === "cover") {
+  if (isCover) {
     const shouldPlayDoorSound = entering && !props.plan.sound;
     if (shouldPlayDoorSound) play$fx("openDoor");
     if (entering) stepRadius(max, 0, CLOSE_MS, () => emit("covered"));
     else stepRadius(0, max, BURST_MS, () => emit("covered"));
   }
-  if (phase === "reveal") {
+  if (isReveal) {
     feel("tap");
     if (entering) stepRadius(0, max, OPEN_MS, () => emit("revealed"));
     else later(() => emit("revealed"), FADE_OUT_MS);

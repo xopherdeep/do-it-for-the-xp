@@ -29,9 +29,11 @@ const LANDING: Record<Stat, string> = { xp: "select", gp: "gp", ap: "select" };
 watch(
   () => rewardsOverlay.card,
   (card, previous) => {
-    if (!card || card === previous) return;
-    play$fx(card.levelUp ? "levelUp" : "win");
-    if (card.levelUp) rumble([[0, "slam"], [LEVEL_UP_SUCCESS_MS, "success"]]);
+    const isSameCard = !card || card === previous;
+    if (isSameCard) return;
+    const isLevelUp = card.levelUp;
+    play$fx(isLevelUp ? "levelUp" : "win");
+    if (isLevelUp) rumble([[0, "slam"], [LEVEL_UP_SUCCESS_MS, "success"]]);
     else feel("success");
   },
 );

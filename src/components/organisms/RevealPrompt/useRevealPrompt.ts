@@ -48,7 +48,8 @@ export const useRevealPrompt = () => {
   const ask = async (options: RevealPromptOptions): Promise<string> => (await askAmount(options)).id;
 
   // A screen that goes away mid-question must not leave the question hanging
-  if (getCurrentInstance()) onBeforeUnmount(dismiss);
+  const isInsideComponent = Boolean(getCurrentInstance());
+  if (isInsideComponent) onBeforeUnmount(dismiss);
 
   return { prompt, ask, askAmount, respond, dismiss };
 };

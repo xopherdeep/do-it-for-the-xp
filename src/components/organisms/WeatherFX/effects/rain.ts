@@ -26,12 +26,15 @@ export const rain: EffectFactory = (options = {}) => {
       for (let i = 0; i < count; i++) {
         const speed = base * (0.55 + depth[i]);
         y[i] += speed; x[i] += speed * wind;
-        if (y[i] > f.height) { y[i] = -len[i]; x[i] = rng() * (f.width + 60) - 30; }
-        if (x[i] > f.width + 20) x[i] = -20;
+        const isPastBottom = y[i] > f.height;
+        if (isPastBottom) { y[i] = -len[i]; x[i] = rng() * (f.width + 60) - 30; }
+        const isPastRightEdge = x[i] > f.width + 20;
+        if (isPastRightEdge) x[i] = -20;
       }
       for (let i = 0; i < splashes; i++) {
         splashT[i] += f.dt * 2.6;
-        if (splashT[i] > 1) { splashT[i] = 0; splashX[i] = rng() * f.width; }
+        const isSplashDone = splashT[i] > 1;
+        if (isSplashDone) { splashT[i] = 0; splashX[i] = rng() * f.width; }
       }
     },
     draw(f) {
