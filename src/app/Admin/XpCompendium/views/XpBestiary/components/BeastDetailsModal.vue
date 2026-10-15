@@ -512,7 +512,7 @@ export default defineComponent({
                   localBeast.checklist = generatedChecklist;
 
                   const toast = await toastController.create({
-                    message: `✨ Generated ${result.checklist.length} tasks!`,
+                    message: `✨ Generated ${generatedChecklist.length} tasks!`,
                     duration: 2000,
                     color: "success",
                     position: "top",
