@@ -12,14 +12,18 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from "vue";
 import { play$fx } from "@/assets/fx";
+import { feel, rumble } from "@/lib/services/feedback/haptics";
 import BattleVictoryCard from "@/app/Console/BattleField/components/BattleVictoryCard.vue";
 import { closeRewards, rewardsOverlay } from "./rewardsOverlay";
 
 /**
  * The battle's victory card, for loot earned anywhere else (a quest marked done in the Beast Log). It sounds like the
  * battle's: a fanfare (the level-up one when the hero levels), the points roll while the tiles count, a chime as each lands.
+ * It feels like it too: a success buzz on the fanfare (a double slam first for a level up), a tick as each tile lands.
  */
 type Stat = "xp" | "gp" | "ap";
+/** A level up lands as a slam, then the success buzz once the slam's second hit is through */
+const LEVEL_UP_SUCCESS_MS = 220;
 const LANDING: Record<Stat, string> = { xp: "select", gp: "gp", ap: "select" };
 
 watch(
@@ -27,11 +31,16 @@ watch(
   (card, previous) => {
     if (!card || card === previous) return;
     play$fx(card.levelUp ? "levelUp" : "win");
+    if (card.levelUp) rumble([[0, "slam"], [LEVEL_UP_SUCCESS_MS, "success"]]);
+    else feel("success");
   },
 );
 
 const onRolling = (on: boolean) => (on ? play$fx("fillPoints") : play$fx("fillPoints", { stop: true }));
-const onLand = (stat: Stat) => play$fx(LANDING[stat]);
+const onLand = (stat: Stat) => {
+  play$fx(LANDING[stat]);
+  feel("tick");
+};
 
 const onContinue = () => {
   play$fx("cursor");

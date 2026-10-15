@@ -1,5 +1,6 @@
 import debug from "@/lib/utils/debug";
 import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
+import { feelSound } from "@/lib/services/feedback/soundFeel";
 
 import $fx from "./library";
 
@@ -21,6 +22,9 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
   }
 
   let soundFx = ui[themeUi][targetFx]
+
+  // The reward sounds buzz too (their own Vibration switch, so a muted game can still be felt)
+  feelSound(targetFx, options);
 
   // Only play sound if user has interacted with the page
   // Check with AudioEngine first
