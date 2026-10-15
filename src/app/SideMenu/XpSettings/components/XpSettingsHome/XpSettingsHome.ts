@@ -76,6 +76,14 @@ export default defineComponent({
         route: '/xp-settings/pro'
       },
       {
+        id: 'account',
+        title: 'Account',
+        description: 'Email, password, plan and linked sign-ins, once accounts exist.',
+        icon: require('@/assets/icons/014-individual.svg'),
+        route: '/xp-settings/account',
+        soon: true
+      },
+      {
         id: 'chore',
         title: 'Chores',
         description: 'Family-wide chore rules, like late penalties and photo proof.',

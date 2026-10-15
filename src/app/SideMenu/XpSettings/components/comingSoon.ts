@@ -45,3 +45,11 @@ export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Join requests", description: "Approve who joins your party" },
   { title: "Party invites", description: "Let members invite others, and choose who can" },
 ];
+
+/** Everything here needs server accounts; the app keeps its data on the device until sign-in exists */
+export const ACCOUNT_COMING_SOON: ComingSoonItem[] = [
+  { title: "Email and username", description: "The address and name your account signs in with" },
+  { title: "Change password", description: "Enter your current password, then a new one twice" },
+  { title: "Subscription plan", description: "See your current plan and when it renews" },
+  { title: "Linked accounts", description: "Connect or disconnect Google and Apple sign-in" },
+];

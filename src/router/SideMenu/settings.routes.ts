@@ -69,7 +69,12 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
           "@/app/SideMenu/XpSettings/components/ProSettings.vue"
         ),
     },
-    // Chore, Reward and Party list planned settings only (greyed out, Coming soon)
+    // Account, Chore, Reward and Party list planned settings only (greyed out, Coming soon)
+    {
+      path: "account",
+      name: "xp-settings-account",
+      component: () => import("@/app/SideMenu/XpSettings/components/AccountSettings.vue"),
+    },
     {
       path: "chore",
       name: "xp-settings-chore",
