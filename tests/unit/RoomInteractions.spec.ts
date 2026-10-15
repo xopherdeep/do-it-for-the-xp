@@ -1049,6 +1049,8 @@ describe("secret chambers, saves and pick-ups", () => {
     const outcome = await run(roomActions(room, ctx));
 
     expect(outcome.message).toBe("You take Coral Key.");
+    // The hero holds it overhead: a small key, whatever the layout calls it
+    expect(outcome.found).toEqual({ kind: "key", title: "Small Key" });
     expect(temples.getTempleState(id)!.playerKeys).toBe(1);
     expect(roomActions(room, ctx).actions).toEqual([]);
 
@@ -1057,6 +1059,7 @@ describe("secret chambers, saves and pick-ups", () => {
     expect(temples.hasMasterKey(master.id)).toBe(true);
     // The player reads "Boss Key", never "master key"
     expect(taken.message).toBe("The Boss Key is yours.");
+    expect(taken.found).toEqual({ kind: "boss-key", title: "Boss Key" });
 
     const named = withRoom({ type: "key", content: { keyId: "master", keyName: "Trident Key" } });
     expect((await run(roomActions(named.room, named.ctx))).message).toBe("Trident Key: the Boss Key is yours.");

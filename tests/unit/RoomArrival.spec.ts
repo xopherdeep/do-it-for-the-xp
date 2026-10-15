@@ -1,7 +1,10 @@
 import { nextTick, ref } from "vue";
-import { useRoomArrival } from "@/app/Console/TempleGrounds/templeGrounds/useRoomArrival";
+import { ROOM_DUST_MS, useRoomArrival } from "@/app/Console/TempleGrounds/templeGrounds/useRoomArrival";
 
 describe("stepping to the next room", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
   const walk = async (from: [number, number], to: [number, number]) => {
     const position = ref<[number, number]>(from);
     const room = useRoomArrival(position);
@@ -13,6 +16,12 @@ describe("stepping to the next room", () => {
   it("knows the way the hero walked", async () => {
     const { arrival } = await walk([2, 2], [2, 3]);
     expect(arrival.value).toEqual({ key: 1, dx: 1, dy: 0 });
+  });
+
+  it("takes the dust down once it has settled", async () => {
+    const { arrival } = await walk([2, 2], [2, 3]);
+    jest.advanceTimersByTime(ROOM_DUST_MS);
+    expect(arrival.value).toBeNull();
   });
 
   it("reads north as up", async () => {

@@ -26,6 +26,7 @@ import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import TempleLoading from './components/TempleLoading.vue';
 import TempleBossBanner from './components/TempleBossBanner.vue';
+import TempleItemFanfare from './components/TempleItemFanfare.vue';
 import TempleRoomArrival from './components/TempleRoomArrival.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
@@ -45,6 +46,7 @@ import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
 import { useBossEntrance } from './templeGrounds/useBossEntrance';
 import { useRoomArrival } from './templeGrounds/useRoomArrival';
+import { useItemFanfare } from './templeGrounds/useItemFanfare';
 import { mapCellIconOf } from './templeGrounds/mapCellIcon';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
@@ -80,6 +82,7 @@ export default defineComponent({
     'temple-pegasus-reveal': TemplePegasusReveal,
     'temple-loading': TempleLoading,
     'temple-boss-banner': TempleBossBanner,
+    'temple-item-fanfare': TempleItemFanfare,
     'temple-room-arrival': TempleRoomArrival,
     XpVitalsBar,
     XpPurseBar,
@@ -269,8 +272,9 @@ export default defineComponent({
 
     // A boss or guardian still waiting in the room the hero walks into: the room dims and a banner names it
     const bossEntranceDeps = { currentRoom, currentPosition, currentLevel, isCombatRoomCleared, activeMonster };
-    // Each step to the next room: a puff of dust streams past the other way while the floor slides
-    const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition) };
+    // Each step to the next room: dust streams past the other way; a key, map or compass found is held overhead
+    const itemFanfare = useItemFanfare();
+    const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition), ...itemFanfare };
 
     // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out
     const { isShaking, getLiveContext: liveContext, applyOutcome, handleArrival: arrive, showRoomActions } = useRoomOutcomes({
@@ -285,6 +289,7 @@ export default defineComponent({
       handleTeleport,
       say,
       fx,
+      showFanfare: itemFanfare.showFanfare,
       updateBg,
       leaveTemple,
       showTempleCleared,
@@ -378,7 +383,6 @@ export default defineComponent({
       const exits = readExits(ctx.templeId, ctx.level, ctx.position);
       void applyOutcome(useEquippedItem(item, { ...ctx, room, exits, catalog: itemCatalog }));
     };
-
 
     return {
       // From useTemple
