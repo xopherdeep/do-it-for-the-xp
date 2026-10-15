@@ -69,7 +69,7 @@
             <div v-for="bar in bars" :key="bar.from" class="xp-bar-col" :class="{ now: bar.isThisWeek }">
               <span class="xp-bar-value">{{ bar.xp || "" }}</span>
               <div class="xp-bar-track">
-                <div class="xp-bar" :style="{ height: `${bar.height}%` }"></div>
+                <div class="xp-bar" :style="{ '--bar-height': `${bar.height}%` }"></div>
               </div>
               <span class="xp-bar-label">{{ bar.isThisWeek ? "Now" : bar.label }}</span>
             </div>

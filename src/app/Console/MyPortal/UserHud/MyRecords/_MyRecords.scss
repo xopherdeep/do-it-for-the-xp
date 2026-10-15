@@ -227,6 +227,7 @@
 
   .xp-bar {
     width: 100%;
+    height: var(--bar-height, 0%);
     min-height: 2px;
     border-radius: 2px 2px 0 0;
     background: linear-gradient(180deg, #7bc950, #3a7d1f);
