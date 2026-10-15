@@ -61,6 +61,9 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- Each step: dust streams past and the temple's light breathes as the new room slides in -->
+      <temple-room-arrival :arrival="arrival" :element="templeElement" />
+
       <!-- A boss or guardian waiting in the room: the room dims, shakes and a banner names it -->
       <temple-boss-banner :banner="bossBanner" :element="templeElement" @dismiss="dismissBossBanner" />
 
@@ -71,6 +74,7 @@
       <div
         id="background-container"
         class="background-container"
+        :class="{ 'is-lurching': isLurching }"
         :style="{
           position: 'absolute',
           top: 0,
