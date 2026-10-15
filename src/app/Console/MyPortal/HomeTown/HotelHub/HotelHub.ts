@@ -81,7 +81,7 @@ export default defineComponent({
         getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
-            this.play$fx("coins");
+            this.play$fx("countCoins");
           })
           .catch((error) => {
             debug.log("Deposit error:", error.message);
@@ -95,7 +95,7 @@ export default defineComponent({
         getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
-            this.play$fx("coins");
+            this.play$fx("countCoins");
           })
           .catch((error) => {
             debug.log("Withdraw error:", error.message);
@@ -109,7 +109,7 @@ export default defineComponent({
         getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
-            this.play$fx("success");
+            this.play$fx("finish");
           })
           .catch((error) => {
             debug.log("Pay debt error:", error.message);

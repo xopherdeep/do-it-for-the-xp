@@ -197,7 +197,10 @@ export default defineComponent({
 
     /** The card counts the loot silently; the points roll runs while it counts and a chime rings as each number lands. */
     const rollVictorySound = (on: boolean) => (on ? audio.startTally() : audio.stopTally());
-    const landVictorySound = (stat: TallyStat) => audio.playLanding(stat);
+    const landVictorySound = (stat: TallyStat) => {
+      audio.playLanding(stat);
+      feedback.tick();
+    };
 
     const outcome = useBattleOutcome({
       ctx,

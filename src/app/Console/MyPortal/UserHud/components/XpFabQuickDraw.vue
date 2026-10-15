@@ -200,7 +200,7 @@ export default defineComponent({
       if (hasClickHandler) {
         item.click();
       } else if (item.mpCost) {
-        this.play$fx("spell");
+        this.play$fx("useMP");
       }
     },
   },

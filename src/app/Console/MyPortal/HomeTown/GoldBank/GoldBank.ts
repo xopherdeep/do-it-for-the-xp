@@ -235,7 +235,7 @@ export default defineComponent({
         await this.reveal.ask(noticePrompt(refusal))
         return
       }
-      this.play$fx("select");
+      this.play$fx("countCoins");
       // The bill reaching 0 lifts the grounding at once; the family hears of it after the purse is saved
       const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0
       const heroId = this.user.id
