@@ -20,7 +20,14 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { TempleLoadingProps } from "./templeLoading";
+
+interface TempleLoadingProps {
+  open: boolean;
+  name?: string;
+  element?: string;
+  done?: number;
+  total?: number;
+}
 
 const props = withDefaults(
   defineProps<TempleLoadingProps>(),

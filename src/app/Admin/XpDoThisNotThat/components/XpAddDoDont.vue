@@ -211,15 +211,17 @@
 
   type StatKey = "ap" | "gp" | "xp";
 
-  // The three kinds of points, in the order the rest of the Admin shows them
-  const STATS: {
+  interface StatOption {
     key: StatKey;
     short: string;
     name: string;
     blurb: string;
     icon: string;
     color: string;
-  }[] = [
+  }
+
+  // The three kinds of points, in the order the rest of the Admin shows them
+  const STATS: StatOption[] = [
     {
       key: "ap",
       short: "AP",
@@ -331,14 +333,16 @@
       },
       increaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex < this.fibonacciArray.length - 1) {
+        const canIncrease = currentIndex < this.fibonacciArray.length - 1;
+        if (canIncrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex + 1];
           this.updatePoints();
         }
       },
       decreaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex > 0) {
+        const canDecrease = currentIndex > 0;
+        if (canDecrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex - 1];
           this.updatePoints();
         }
@@ -350,263 +354,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-// Boxed RPG panels on the slide pattern, same frame as the quick task modal.
-// The gap between panels equals the padding around them.
-$pad: 1rem;
-
-.do-dont-form {
-  --accent: var(--ion-color-success);
-  display: flex;
-  flex-direction: column;
-  gap: $pad;
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: $pad $pad calc(#{$pad} + env(safe-area-inset-bottom));
-  color: var(--ion-color-rpg, #f7e8a8);
-
-  &.is-dont {
-    --accent: var(--ion-color-danger);
-  }
-}
-
-.do-dont-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: $pad;
-  background: rgba(var(--ion-color-rpg-contrast-rgb, 40, 8, 40), 0.92);
-  border: 3px solid var(--ion-color-rpg, #f7e8a8);
-  box-shadow: inset 0 0 0 2px var(--ion-color-rpg-contrast, #280828),
-    4px 4px 0 rgba(0, 0, 0, 0.5);
-}
-
-// Readable titles: Orange Kid, sentence case, never forced caps
-.do-dont-title,
-.do-dont-label {
-  margin: 0;
-  font-family: "Orange Kid", "StatusPlz", monospace;
-  font-weight: normal;
-  text-transform: none;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
-}
-
-.do-dont-title {
-  font-size: 1.75rem;
-}
-
-.do-dont-label {
-  font-size: 1.4rem;
-}
-
-.do-dont-hint {
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-.do-dont-type-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $pad;
-}
-
-.do-dont-thumb {
-  color: var(--accent);
-}
-
-.do-dont-type ion-segment {
-  --background: rgba(0, 0, 0, 0.35);
-  font-family: "StatusPlz", monospace;
-
-  ion-segment-button {
-    --color: var(--ion-color-rpg, #f7e8a8);
-    --color-checked: #fff;
-    --indicator-color: var(--accent);
-    min-height: 2.75rem;
-  }
-}
-
-// Stacked label above an outlined box, so the field is obvious
-.do-dont-input {
-  --color: var(--ion-color-rpg, #f7e8a8);
-  --placeholder-color: var(--ion-color-rpg, #f7e8a8);
-  --placeholder-opacity: 0.45;
-  --border-color: rgba(247, 232, 168, 0.55);
-  --highlight-color-focused: var(--accent);
-  --background: rgba(0, 0, 0, 0.3);
-  --border-radius: 0;
-  font-size: 1rem;
-
-  &::part(label),
-  :deep(.label-text) {
-    font-family: "Orange Kid", "StatusPlz", monospace;
-    font-size: 1.4rem;
-    text-transform: none;
-  }
-}
-
-.do-dont-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.do-dont-row .do-dont-label {
-  flex: none;
-  white-space: nowrap;
-}
-
-.do-dont-effort {
-  flex: 1 1 11rem;
-  min-width: 0;
-  --placeholder-color: var(--ion-color-rpg, #f7e8a8);
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
-  border: 2px solid rgba(247, 232, 168, 0.55);
-  background: rgba(0, 0, 0, 0.3);
-  font-family: "StatusPlz", monospace;
-}
-
-.do-dont-range {
-  flex-wrap: nowrap;
-
-  ion-range {
-    flex: 1;
-    min-width: 0;
-    padding: 0;
-    --bar-background: rgba(247, 232, 168, 0.25);
-  }
-
-  ion-button {
-    --padding-start: 0.6rem;
-    --padding-end: 0.6rem;
-    margin: 0;
-  }
-}
-
-.do-dont-range-end {
-  font-size: 0.85rem;
-  opacity: 0.8;
-}
-
-.do-dont-chips {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.chip-danger {
-  --chip: var(--ion-color-danger);
-  --chip-ink: var(--ion-color-danger-contrast);
-}
-.chip-warning {
-  --chip: var(--ion-color-warning);
-  --chip-ink: var(--ion-color-warning-contrast);
-}
-.chip-success {
-  --chip: var(--ion-color-success);
-  --chip-ink: var(--ion-color-success-contrast);
-}
-
-.do-dont-chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 2.75rem;
-  padding: 0 0.5rem;
-  border: 2px solid var(--chip);
-  background: transparent;
-  color: var(--ion-color-rpg, #f7e8a8);
-  font-family: "StatusPlz", monospace;
-  font-size: 1rem;
-  cursor: pointer;
-
-  .fad {
-    color: var(--chip);
-  }
-
-  &.on {
-    background: var(--chip);
-    color: var(--chip-ink);
-
-    .fad {
-      color: inherit;
-    }
-  }
-}
-
-.do-dont-chip-check {
-  font-size: 0.75rem;
-  opacity: 0.85;
-}
-
-.do-dont-points {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border-left: 4px solid var(--chip);
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.do-dont-points-icon {
-  flex: none;
-  color: var(--chip);
-}
-
-.do-dont-points-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-
-  strong {
-    font-family: "Orange Kid", "StatusPlz", monospace;
-    font-size: 1.25rem;
-    font-weight: normal;
-  }
-
-  span {
-    font-size: 0.8rem;
-    opacity: 0.75;
-  }
-}
-
-.do-dont-points-input {
-  flex: none;
-  width: 6.5rem;
-  --color: var(--ion-color-rpg, #f7e8a8);
-  --border-color: var(--chip);
-  --highlight-color-focused: var(--chip);
-  --border-radius: 0;
-  --padding-start: 0.5rem;
-  min-height: 2.5rem;
-  text-align: right;
-  font-family: "StatusPlz", monospace;
-}
-
-.do-dont-points-unit {
-  margin-left: 0.25rem;
-  color: var(--chip);
-  font-size: 0.8rem;
-}
-
-.do-dont-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $pad;
-  padding: 0 0.5rem;
-
-  ion-button:last-child {
-    flex: 1;
-    max-width: 14rem;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpAddDoDont.scss" />

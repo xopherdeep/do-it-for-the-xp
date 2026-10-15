@@ -47,12 +47,14 @@ export const clearTemple = (templeId: string, userId?: string, reward = templeRe
 
   const store = useUserStore();
   let levelUp = false;
-  if (reward.xp > 0) {
+  const hasXp = reward.xp > 0;
+  if (hasXp) {
     levelUp = store.updateUserXP({ userId, amount: reward.xp, commit: true }).didLevelUp;
     store.updateClassXp(userId, store.getUserById(userId)?.jobClass || 'default', reward.xp);
   }
   const paidGp = reward.gp > 0 ? earnGold(userId, reward.gp) : 0;
-  if (reward.ap > 0) store.recordAPGain({ userId, amount: reward.ap, source: `temple:${templeId}` });
+  const hasAp = reward.ap > 0;
+  if (hasAp) store.recordAPGain({ userId, amount: reward.ap, source: `temple:${templeId}` });
   return { xp: reward.xp, gp: paidGp, ap: reward.ap, levelUp };
 };
 
@@ -100,13 +102,15 @@ export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome 
   if (isPickupTaken(kind, ctx)) return { message: 'Nothing left here.' };
   spendRoom(ctx);
 
-  if (kind === 'map') {
+  const isMap = kind === 'map';
+  if (isMap) {
     const state = system.getTempleState(ctx.templeId);
     if (state) state.hasMap = true;
     system.saveProgress(ctx.templeId);
     return { message: 'You take the map.', sound: SFX.takeItem };
   }
-  if (kind === 'compass') {
+  const isCompass = kind === 'compass';
+  if (isCompass) {
     const state = system.getTempleState(ctx.templeId);
     if (state) state.hasCompass = true;
     system.saveProgress(ctx.templeId);
@@ -114,7 +118,8 @@ export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome 
   }
 
   const name = String(room.content?.keyName ?? 'a small key');
-  if (room.content?.keyId === 'master') {
+  const isMasterKey = room.content?.keyId === 'master';
+  if (isMasterKey) {
     system.grantMasterKey(ctx.templeId);
     // The key that opens the boss door is the Boss Key; a layout may give this one a name of its own
     const named = room.content?.keyName;
@@ -130,8 +135,9 @@ export const isChestEmptyIn = (given: Room): boolean => {
   const content = room.content;
   const hasNothingToLoot = room.type !== 'loot' || room.isEmpty || !content;
   if (hasNothingToLoot) return true;
-  if (content.chestId) {
-    const chest = ChestSystem.getInstance().getChest(content.chestId);
+  const chestId = content.chestId;
+  if (chestId) {
+    const chest = ChestSystem.getInstance().getChest(chestId);
     if (chest?.isEmpty) return true;
   }
   return false;

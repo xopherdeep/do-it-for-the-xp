@@ -26,6 +26,8 @@ export interface RevealSprite {
 const INK = '#1c0a04';
 // Heart reds, darkest to brightest
 const HEART = ['#5a0a1e', '#8c1230', '#c01c3c', '#e8486a', '#ff93a6'];
+/** Distances from the glint where the heart steps down a tone: nearer than all four is the brightest. */
+const HEART_BANDS = [0.32, 0.75, 1.3, 1.75];
 // The bed: wood, linen and a hearth-orange blanket (the hotel's colour), darkest to brightest
 const BED_WOOD = ['#3e1e0c', '#62341a', '#8a4e26', '#b06e36', '#d4965a'];
 const LINEN = ['#9a96b8', '#c4c0dc', '#e6e3f4', '#ffffff'];
@@ -52,7 +54,7 @@ const heartRuns = (): PixelRun[] => {
       if (!inside) continue;
       // The farther from the glint at the top left, the darker the red
       const d = Math.hypot(x + 0.55, y - 0.6);
-      const tone = d < 0.32 ? 4 : d < 0.75 ? 3 : d < 1.3 ? 2 : d < 1.75 ? 1 : 0;
+      const tone = HEART_BANDS.filter((edge) => d < edge).length;
       paint(g, px, py, HEART[tone]);
     }
   }

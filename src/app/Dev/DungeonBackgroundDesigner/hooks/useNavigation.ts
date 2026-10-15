@@ -40,7 +40,7 @@ export function useNavigation(
   };
   
   // Move in a specified direction
-  const moveDirection = (direction: Direction, isDoorLocked?: (direction: Direction) => boolean): boolean => {
+  const stepDirection = (direction: Direction, isDoorLocked?: (direction: Direction) => boolean): boolean => {
     // Check if door is locked first if the function is provided
     const isBlockedByLockedDoor = isDoorLocked && isDoorLocked(direction);
     if (isBlockedByLockedDoor) {
@@ -68,6 +68,6 @@ export function useNavigation(
     canMoveDown,
     canMoveLeft,
     canMoveRight,
-    moveDirection
+    stepDirection
   };
 }

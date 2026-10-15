@@ -41,8 +41,10 @@ const MP_WORDS = /\b(mp|mana|ether|magic|spell)\b/i;
 
 /** The dock tab a stored stack sits under: potions and food are HP unless they speak of mana, keys are keys, the rest is misc. */
 const shelfOf = (entry: InventoryEntry): Shelf => {
-  if (entry.kind === "key") return "key";
-  if (entry.kind !== "consumable") return "misc";
+  const isKey = entry.kind === "key";
+  if (isKey) return "key";
+  const isConsumable = entry.kind === "consumable";
+  if (!isConsumable) return "misc";
   return MP_WORDS.test(`${entry.name} ${entry.description ?? ""}`) ? "mp" : "hp";
 };
 
@@ -99,10 +101,14 @@ export default defineComponent({
     });
     const emptyText = computed(() => {
       if (isLocked.value) return t("storage.locked");
-      if (activeShelf.value === "key") return t("storage.keyNote");
-      if (search.value.trim()) return t("storage.empty.search");
+      const isKeyShelf = activeShelf.value === "key";
+      if (isKeyShelf) return t("storage.keyNote");
+      const isSearching = search.value.trim() !== "";
+      if (isSearching) return t("storage.empty.search");
       const tab = STORAGE_TABS.find((shelf) => shelf.id === activeShelf.value);
-      if (tab && tab.id !== "all" && stored.value.length) return t("storage.empty.shelf", { shelf: tab.label });
+      const isOnlyShelfEmpty = tab !== undefined && tab.id !== "all" && stored.value.length > 0;
+      if (isOnlyShelfEmpty) return t("storage.empty.shelf", { shelf: tab.label });
+
       return t("storage.empty.none");
     });
     const emptyIcon = computed(() => (isLocked.value || activeShelf.value !== "key" ? "treasure-chest" : "key"));

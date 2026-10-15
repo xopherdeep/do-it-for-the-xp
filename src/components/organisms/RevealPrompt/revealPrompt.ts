@@ -138,7 +138,8 @@ export const stepAmount = (current: number, direction: 1 | -1, amount: RevealAmo
  */
 export const amountPresets = (max: number, marks: number[] = [10, 50, 100, 500]): RevealPreset[] => {
   const top = whole(max, 0);
-  if (top <= 0) return [];
+  const isNothingToGive = top <= 0;
+  if (isNothingToGive) return [];
   const below = marks.filter((mark) => mark < top);
   const picked = below.length > 3 ? [below[0], below[Math.floor(below.length / 2)], below[below.length - 1]] : below;
   return [...picked.map((value) => ({ label: String(value), value })), { label: 'All', value: top }];
@@ -155,9 +156,12 @@ export const linesOf = (options: RevealPromptOptions): string[] => {
 
 /** The light behind the sprite: what was asked for, else gold for chests and coins, rose for the heart, amber for the bed and sky blue for the rest. */
 export const glowOf = (options: RevealPromptOptions): RevealGlow => {
-  if (options.glow) return options.glow;
-  if (options.sprite === 'heart') return 'rose';
-  if (options.sprite === 'bed') return 'amber';
+  const asked = options.glow;
+  if (asked) return asked;
+  const isHeart = options.sprite === 'heart';
+  if (isHeart) return 'rose';
+  const isBed = options.sprite === 'bed';
+  if (isBed) return 'amber';
   return options.sprite === 'chest' || options.sprite === 'chestOpen' || options.sprite === 'coins' ? 'gold' : 'sky';
 };
 
@@ -173,11 +177,19 @@ export const noticeOf = (speaker: string, lines: string | string[], extra: Parti
   ...extra,
 });
 
+/** The words (and optional icons) on a yes/no question's two buttons */
+interface YesNoLabels {
+  yes: string;
+  no: string;
+  yesIcon?: string;
+  noIcon?: string;
+}
+
 /** A question for a speaker, answered yes (id `yes`, primary) or no (id `no`, dim; Escape is no). */
 export const yesNoOf = (
   speaker: string,
   lines: string | string[],
-  labels: { yes: string; no: string; yesIcon?: string; noIcon?: string },
+  labels: YesNoLabels,
   extra: Partial<RevealPromptOptions> = {}
 ): RevealPromptOptions => ({
   speaker,

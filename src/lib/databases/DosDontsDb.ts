@@ -7,6 +7,13 @@ export const dosDontsStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
+interface DosDontsFilters {
+  type?: 'do' | 'dont';
+  search?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'whatFor';
+  sortOrder?: 'asc' | 'desc';
+}
+
 export interface DosDont {
   id: string;
   type: 'do' | 'dont';
@@ -81,10 +88,11 @@ export class DosDontsDb extends DbStorageApi {
   }
 
   public async deleteDosDont(dosDont: DosDont) {
-    if (!dosDont.id) {
+    const id = dosDont.id;
+    if (!id) {
       throw new Error('Cannot delete DosDont without an id');
     }
-    await this.remove(dosDont.id);
+    await this.remove(id);
     await this.showDeleteToast();
     return await this.getDosDonts();
   }
@@ -94,22 +102,19 @@ export class DosDontsDb extends DbStorageApi {
     return dosDonts.find(dosDont => dosDont.id === id) || this.createDosDont('do');
   }
 
-  public async getDosDonts(filters?: {
-    type?: 'do' | 'dont';
-    search?: string;
-    sortBy?: 'createdAt' | 'updatedAt' | 'whatFor';
-    sortOrder?: 'asc' | 'desc';
-  }) {
+  public async getDosDonts(filters?: DosDontsFilters) {
     let dosDonts = await this.getAll() as DosDont[];
 
     // Apply filters
     if (filters) {
-      if (filters.type) {
+      const hasTypeFilter = Boolean(filters.type);
+      if (hasTypeFilter) {
         dosDonts = dosDonts.filter(item => item.type === filters.type);
       }
       
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
+      const search = filters.search;
+      if (search) {
+        const searchLower = search.toLowerCase();
         dosDonts = dosDonts.filter(item => 
           item.whatFor.toLowerCase().includes(searchLower) ||
           item.notes.toLowerCase().includes(searchLower)
@@ -124,7 +129,8 @@ export class DosDontsDb extends DbStorageApi {
         const aValue = a[sortBy];
         const bValue = b[sortBy];
         
-        if (typeof aValue === 'string') {
+        const isTextValue = typeof aValue === 'string';
+        if (isTextValue) {
           return sortOrder === 'asc' 
             ? aValue.localeCompare(bValue as string)
             : (bValue as string).localeCompare(aValue);

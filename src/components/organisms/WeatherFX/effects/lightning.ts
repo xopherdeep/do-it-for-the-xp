@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng } from "./util";
 
 /** A full-screen flash that decays in 180 ms plus a jagged bolt shown for two frames; only at intensity >= 6. */
@@ -6,12 +6,13 @@ export const lightning: EffectFactory = () => {
   const rng = makeRng(23);
   let nextAt = 6, flash = 0, boltFrames = 0;
   const bolt: number[] = [];
-  const effect: WeatherEffect = {
+  return {
     init(f) { nextAt = f.time + 4 + rng() * 10; flash = 0; boltFrames = 0; },
     update(f) {
       const cannotStrike = f.reducedMotion || f.intensity < 6;
       if (cannotStrike) return;
-      if (f.time >= nextAt) {
+      const isStrikeDue = f.time >= nextAt;
+      if (isStrikeDue) {
         nextAt = f.time + 6 + rng() * 14;
         flash = 1;
         boltFrames = 2;
@@ -23,18 +24,21 @@ export const lightning: EffectFactory = () => {
           bolt.push(bx, by);
         }
       }
-      if (flash > 0) flash = Math.max(0, flash - f.dt / 0.18);
+      const isFlashing = flash > 0;
+      if (isFlashing) flash = Math.max(0, flash - f.dt / 0.18);
     },
     draw(f) {
       const isSkyQuiet = flash <= 0 && boltFrames <= 0;
       if (isSkyQuiet) return;
       const { ctx } = f;
       ctx.save();
-      if (flash > 0) {
+      const isFlashing = flash > 0;
+      if (isFlashing) {
         ctx.fillStyle = `rgba(235,240,255,${flash * 0.55})`;
         ctx.fillRect(0, 0, f.width, f.height);
       }
-      if (boltFrames > 0) {
+      const isBoltShowing = boltFrames > 0;
+      if (isBoltShowing) {
         boltFrames -= 1;
         ctx.globalCompositeOperation = "lighter";
         ctx.strokeStyle = "rgba(255,255,255,0.95)";
@@ -43,12 +47,12 @@ export const lightning: EffectFactory = () => {
         ctx.shadowBlur = 18;
         ctx.beginPath();
         for (let i = 0; i < bolt.length; i += 2) {
-          if (i === 0) ctx.moveTo(bolt[i], bolt[i + 1]); else ctx.lineTo(bolt[i], bolt[i + 1]);
+          const isFirstPoint = i === 0;
+          if (isFirstPoint) ctx.moveTo(bolt[i], bolt[i + 1]); else ctx.lineTo(bolt[i], bolt[i + 1]);
         }
         ctx.stroke();
       }
       ctx.restore();
     },
   };
-  return effect;
 };

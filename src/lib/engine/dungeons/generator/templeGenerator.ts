@@ -238,8 +238,10 @@ const growthFront = (skeleton: Skeleton, floor: number): Array<[number, number]>
   const front: Array<[number, number]> = [];
   for (let row = 0; row < skeleton.rows; row++) {
     for (let col = 0; col < skeleton.cols; col++) {
-      if (skeleton.cells.has(cellKey(floor, row, col))) continue;
-      if (roomNeighbours(skeleton, floor, row, col).length === 1) front.push([row, col]);
+      const isRoom = skeleton.cells.has(cellKey(floor, row, col));
+      if (isRoom) continue;
+      const isBesideOneRoom = roomNeighbours(skeleton, floor, row, col).length === 1;
+      if (isBesideOneRoom) front.push([row, col]);
     }
   }
   return front;
@@ -253,7 +255,8 @@ const carveFloor = (skeleton: Skeleton, rng: Rng, floor: number, start: Cell, ta
   const recent: Cell[] = [start];
   for (let count = 1; count < target; ) {
     const front = growthFront(skeleton, floor);
-    if (!front.length) return;
+    const isFrontEmpty = !front.length;
+    if (isFrontEmpty) return;
     const tail = recent[recent.length - 1];
     const near = front.filter(([r, c]) => Math.abs(r - tail.row) + Math.abs(c - tail.col) === 1);
     const [row, col] = near.length && chance(rng, 0.65) ? pick(rng, near) : pick(rng, front);
@@ -270,7 +273,8 @@ const distancesFrom = (skeleton: Skeleton, start: string): Map<string, number> =
   const queue = [start];
   for (let i = 0; i < queue.length; i++) {
     for (const next of skeleton.adjacency.get(queue[i]) ?? []) {
-      if (distance.has(next)) continue;
+      const isMeasured = distance.has(next);
+      if (isMeasured) continue;
       distance.set(next, distance.get(queue[i])! + 1);
       queue.push(next);
     }
@@ -295,7 +299,8 @@ const carveFloors = (skeleton: Skeleton, rng: Rng, roomsPerFloor?: number): Cell
   const entrance = start;
   for (let floor = 0; floor < skeleton.floors; floor++) {
     carveFloor(skeleton, rng, floor, start, target);
-    if (floor === skeleton.floors - 1) break;
+    const isTopFloor = floor === skeleton.floors - 1;
+    if (isTopFloor) break;
     const up = farthestLeaf(skeleton, floor, start.key);
     if (!up) return undefined;
     up.kind = "stairs-up";
@@ -312,7 +317,8 @@ const rootTree = (skeleton: Skeleton, entrance: string): void => {
   const queue = [entrance];
   for (let i = 0; i < queue.length; i++) {
     for (const next of skeleton.adjacency.get(queue[i])!) {
-      if (skeleton.depth.has(next)) continue;
+      const isRooted = skeleton.depth.has(next);
+      if (isRooted) continue;
       skeleton.parent.set(next, queue[i]);
       skeleton.depth.set(next, skeleton.depth.get(queue[i])! + 1);
       queue.push(next);
@@ -377,7 +383,8 @@ const buildSkeleton = (rng: Rng, options: GenerateOptions, locks: number): Skele
   boss.kind = "boss";
   skeleton.path = pathTo(skeleton, boss.key);
   const minibossAt = chooseMiniboss(skeleton, rng, locks);
-  if (minibossAt === undefined) return undefined;
+  const hasNoMiniboss = minibossAt === undefined;
+  if (hasNoMiniboss) return undefined;
   skeleton.minibossAt = minibossAt;
   skeleton.cells.get(skeleton.path[minibossAt])!.kind = "miniboss";
   const [row, col] = pick(rng, freeWallsBeside(skeleton, boss));
@@ -466,7 +473,8 @@ const placeCriticalLocks = (dressing: Dressing, locks: number): number => {
   for (const index of edges) {
     const [from, to] = [skeleton.path[index], skeleton.path[index + 1]];
     const spots = freeRooms(dressing, beforeEdge(skeleton, from, to));
-    if (!spots.length) continue;
+    const isOutOfSpots = !spots.length;
+    if (isOutOfSpots) continue;
     reserveAs(dressing, pick(rng, spots), "key");
     lockEdge(dressing, from, to);
     placed++;
@@ -488,12 +496,14 @@ const placeSideLock = (dressing: Dressing): void => {
     .filter((cell) => !onPath(skeleton, cell.key) && skeleton.parent.get(cell.key) && onPath(skeleton, skeleton.parent.get(cell.key)!))
     .filter((cell) => skeleton.path.indexOf(skeleton.parent.get(cell.key)!) < skeleton.minibossAt)
     .filter((cell) => [...subtreeOf(skeleton, skeleton.parent.get(cell.key)!, cell.key)].every((key) => !dressing.reserved.has(key) && skeleton.cells.get(key)!.kind === "plain"));
-  if (!branches.length) return;
+  const hasNoBranches = !branches.length;
+  if (hasNoBranches) return;
   const child = pick(rng, branches);
   const parent = skeleton.parent.get(child.key)!;
   const zone = locksBefore(dressing, parent);
   const spots = freeRooms(dressing, [...beforeEdge(skeleton, parent, child.key)].filter((key) => locksBefore(dressing, key) <= zone));
-  if (!spots.length) return;
+  const isOutOfSpots = !spots.length;
+  if (isOutOfSpots) return;
   reserveAs(dressing, pick(rng, spots), "key");
   lockEdge(dressing, parent, child.key);
 };
@@ -514,7 +524,8 @@ const placeMasterKey = (dressing: Dressing): void => {
   const leaves = free.filter((cell) => isLeaf(skeleton, cell.key));
   const spots = leaves.length ? leaves : free;
   reserveAs(dressing, miniboss, "miniboss", { lockOnEnter: true, difficulty: "hard" });
-  if (spots.length) reserveAs(dressing, pick(rng, spots.map((cell) => cell.key)), "master");
+  const hasSpots = spots.length > 0;
+  if (hasSpots) reserveAs(dressing, pick(rng, spots.map((cell) => cell.key)), "master");
 };
 
 /** Step 3: the boss door, locked with the master key on the boss room and barred on the room in front of it. */
@@ -537,9 +548,13 @@ const zoneSignatures = (dressing: Dressing): Map<string, string> => {
     const here = [...passed];
     const isGatedEntry = from && dressing.gates.has(edgeId(from, key));
     if (isGatedEntry) here.push(edgeId(from, key));
-    if (key === miniboss) here.push("miniboss");
+    const isMiniboss = key === miniboss;
+    if (isMiniboss) here.push("miniboss");
     zones.set(key, here.sort().join("|"));
-    for (const next of skeleton.adjacency.get(key)!) if (next !== from) walk(next, key, here);
+    for (const next of skeleton.adjacency.get(key)!) {
+      const isOnward = next !== from;
+      if (isOnward) walk(next, key, here);
+    }
   };
   walk(skeleton.path[0], undefined, []);
   return zones;
@@ -556,7 +571,8 @@ const addLoops = (dressing: Dressing, zones: Map<string, string>): void => {
     for (let floor = 0; floor < skeleton.floors; floor++) {
       for (let row = 0; row < skeleton.rows; row++) {
         for (let col = 0; col < skeleton.cols; col++) {
-          if (skeleton.cells.has(cellKey(floor, row, col))) continue;
+          const isRoom = skeleton.cells.has(cellKey(floor, row, col));
+          if (isRoom) continue;
           const beside = roomNeighbours(skeleton, floor, row, col);
           const zone = zones.get(beside[0]?.key);
           const isUnsafeLoopSpot = beside.length < 2 || touchesBossOrPegasus(skeleton, beside) || !beside.every((cell) => zones.get(cell.key) === zone);
@@ -565,11 +581,15 @@ const addLoops = (dressing: Dressing, zones: Map<string, string>): void => {
         }
       }
     }
-    if (!spots.length) return;
+    const isOutOfSpots = !spots.length;
+    if (isOutOfSpots) return;
     const [floor, row, col, zone] = pick(rng, spots);
     const cell = addCell(skeleton, floor, row, col, "plain");
     zones.set(cell.key, zone);
-    for (const other of roomNeighbours(skeleton, floor, row, col)) if (other !== cell) link(skeleton, cell.key, other.key);
+    for (const other of roomNeighbours(skeleton, floor, row, col)) {
+      const isOtherRoom = other !== cell;
+      if (isOtherRoom) link(skeleton, cell.key, other.key);
+    }
   }
 };
 
@@ -600,9 +620,11 @@ const placeComforts = (dressing: Dressing): void => {
     if (spot) reserveAs(dressing, spot, "loot", { chest: "dungeon", dungeon: item });
   }
 
-  if (chance(rng, 0.85)) {
+  const shouldOpenShop = chance(rng, 0.85);
+  if (shouldOpenShop) {
     const shop = freeRooms(dressing, skeleton.cells.keys());
-    if (shop.length) reserveAs(dressing, pick(rng, shop), "shop");
+    const hasShopRoom = shop.length > 0;
+    if (hasShopRoom) reserveAs(dressing, pick(rng, shop), "shop");
   }
 };
 
@@ -616,7 +638,8 @@ const placeShortcuts = (dressing: Dressing, zones: Map<string, string>): void =>
     const byZone = new Map<string, string[]>();
     for (const key of leaves()) byZone.set(zones.get(key)!, [...(byZone.get(zones.get(key)!) ?? []), key]);
     const pairs = [...byZone.values()].filter((group) => group.length >= 2);
-    if (pairs.length) {
+    const hasPairs = pairs.length > 0;
+    if (hasPairs) {
       const [a, b] = shuffle(rng, pick(rng, pairs)).slice(0, 2);
       reserveAs(dressing, a, "teleport");
       reserveAs(dressing, b, "teleport");
@@ -632,7 +655,8 @@ const placeShortcuts = (dressing: Dressing, zones: Map<string, string>): void =>
       const landing = skeleton.cells.get(cellKey(cell.floor - 1, cell.row, cell.col));
       return cell.floor > 0 && landing && !["pit", "boss", "pegasus", "teleport"].includes(landing.kind) && earlier(landing.key, key);
     });
-    if (pits.length) reserveAs(dressing, pick(rng, pits), "pit");
+    const hasPits = pits.length > 0;
+    if (hasPits) reserveAs(dressing, pick(rng, pits), "pit");
   }
 };
 
@@ -721,7 +745,8 @@ const ROOM_TYPE: Record<Kind, string> = {
 
 /** The authored content a kind implies, when the dressing gave the room none. */
 const contentFor = (cell: Cell, element: TempleElement | undefined): RoomContent | undefined => {
-  if (cell.content) return cell.content;
+  const authored = cell.content;
+  if (authored) return authored;
   switch (cell.kind) {
     case "boss":
       return { lockOnEnter: true, difficulty: "boss", element, ...FIGHT_REWARDS.boss };
@@ -756,8 +781,10 @@ const layOut = (skeleton: Skeleton, element: TempleElement | undefined): { maze:
         const room: Room = { type: ROOM_TYPE[cell.kind] };
         const content = contentFor(cell, element);
         if (content) room.content = content;
-        if (Object.keys(cell.locked).length) room.locked = { ...cell.locked };
-        if (cell.kind === "entrance") room.visited = true;
+        const hasLockedSides = Object.keys(cell.locked).length > 0;
+        if (hasLockedSides) room.locked = { ...cell.locked };
+        const isEntrance = cell.kind === "entrance";
+        if (isEntrance) room.visited = true;
         rooms[token] = room;
         return token;
       })
@@ -788,7 +815,8 @@ const dress = (skeleton: Skeleton, rng: Rng, options: GenerateOptions, locks: nu
 
   lockBossDoor(dressing);
   placeCriticalLocks(dressing, locks);
-  if (chance(rng, 0.5)) placeSideLock(dressing);
+  const shouldPlaceSideLock = chance(rng, 0.5);
+  if (shouldPlaceSideLock) placeSideLock(dressing);
   placeMasterKey(dressing);
   const zones = zoneSignatures(dressing);
   addLoops(dressing, zones);
@@ -844,7 +872,8 @@ export const generateTemple = (seed: number | string, options: GenerateOptions):
     const plain = toTemple(dressed, seed, options, themeId);
     const temple = (options.masterRoom ?? true) ? withMasterRoom(plain) : plain;
     const verdict = solveTemple(temple);
-    if (!verdict.reasons.length) return { ...temple, criticalPath: verdict.criticalPath, attempts: attempt + 1 };
+    const isSolved = verdict.reasons.length === 0;
+    if (isSolved) return { ...temple, criticalPath: verdict.criticalPath, attempts: attempt + 1 };
     failures.push(`attempt ${attempt + 1}: ${verdict.reasons.join("; ")}`);
   }
   throw new Error(`generateTemple: seed "${seedText}" failed the solver ${MAX_ATTEMPTS} times\n${failures.join("\n")}`);

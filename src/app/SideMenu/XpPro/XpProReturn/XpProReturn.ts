@@ -11,7 +11,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const router = useRouter();
-    const { back } = useBack();
+    const { stepBack: back } = useBack();
     const pro = useProStore();
     const timedOut = ref(false);
 
@@ -34,7 +34,8 @@ export default defineComponent({
 
     onMounted(() => {
       // Stripe puts session_id, purchased and status after the hash; vue-router reads them from route.query
-      if (route.query.status === "cancelled") {
+      const isCancelled = route.query.status === "cancelled";
+      if (isCancelled) {
         router.replace("/pro");
         return;
       }

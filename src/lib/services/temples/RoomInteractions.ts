@@ -74,10 +74,12 @@ const hunt = (
   found: (gp: number) => string,
   nothing: () => string
 ): RoomOutcome => {
-  if (!spendRoom(ctx)) return { message: 'You already looked here.' };
+  const isFirstLook = spendRoom(ctx);
+  if (!isFirstLook) return { message: 'You already looked here.' };
   const rng = rngOf(ctx);
   const hero = useUserStore().getUserById(ctx.userId);
-  if (rng() >= chance + heroEffects(hero).findChanceBonus) return { message: nothing() };
+  const isEmptyHanded = rng() >= chance + heroEffects(hero).findChanceBonus;
+  if (isEmptyHanded) return { message: nothing() };
   const gp = earnGold(ctx.userId, randomInt(min, luckyTop(max, hero), rng));
   return { message: found(gp), sound: SFX.gainGP };
 };
@@ -89,8 +91,10 @@ const spring = (
   doneSound: string
 ): RoomOutcome => {
   const { now, max } = readPoints(ctx.userId, kind);
-  if (now >= max) return { message: 'Not thirsty. The spring will keep.' };
-  if (!rememberOnce(roomKey(ctx, 'spring'))) return { message: 'The spring is still.' };
+  const isFull = now >= max;
+  if (isFull) return { message: 'Not thirsty. The spring will keep.' };
+  const isFirstDrink = rememberOnce(roomKey(ctx, 'spring'));
+  if (!isFirstDrink) return { message: 'The spring is still.' };
   const gain = kind === 'hp' ? healHero(ctx.userId, amount) : restoreMana(ctx.userId, amount);
   return { message: `+${gain} ${kind.toUpperCase()}`, sound: doneSound };
 };
@@ -271,7 +275,8 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
           ? []
           : [
               act('Open the chest', () => {
-                if (!spendRoom(ctx)) return { message: 'The chamber is bare now.' };
+                const isFirstOpen = spendRoom(ctx);
+                if (!isFirstOpen) return { message: 'The chamber is bare now.' };
                 // The chest holds its gold, and trained luck can find a little more at the bottom
                 const gold = Number(room.content?.gold) || 20;
                 const gp = earnGold(ctx.userId, randomInt(gold, luckyTop(gold, useUserStore().getUserById(ctx.userId)), rngOf(ctx)));

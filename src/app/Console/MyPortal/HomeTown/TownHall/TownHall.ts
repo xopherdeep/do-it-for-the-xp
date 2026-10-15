@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, watch, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import {
   IonPage,
   IonHeader,
@@ -109,7 +109,7 @@ export default defineComponent({
   },
   setup(props) {
     const router = useRouter();
-    const route = useRoute();
+    const route = router.currentRoute.value;
     // ?tab=board&board=feature-requests opens a tab (and a board) directly: the Help Desk links here
     const linkedTab = TABS.find((tab) => tab.id === route.query.tab)?.id;
     const selectedTab = ref<TabId>(linkedTab ?? "news");
@@ -219,7 +219,8 @@ export default defineComponent({
       registerFamily: () => registerFamily(),
       // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
       profilesReady: async () => {
-        if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
+        const hasNoProfiles = Object.keys(userStore.users).length === 0;
+        if (hasNoProfiles) await userStore.loadUsers();
       },
     });
 
@@ -231,9 +232,11 @@ export default defineComponent({
     const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, events: eventsTab, updates: updatesTab };
 
     const onTrouble = async (id: TabId) => {
-      if (reveal.prompt.value) return;
-      const pick = await reveal.ask(courierLatePrompt());
-      if (pick === "retry") await tabRefs[id].value?.reload();
+      const isClerkBusy = Boolean(reveal.prompt.value);
+      if (isClerkBusy) return;
+      const pick = await reveal.showPrompt(courierLatePrompt());
+      const isRetrying = pick === "retry";
+      if (isRetrying) await tabRefs[id].value?.reload();
     };
 
     /** The device's saved link is read once; a storage failure leaves the family unregistered here and the page working */
@@ -247,9 +250,11 @@ export default defineComponent({
 
     /** The clerk says how the registration went; posts kept before the family was registered go out while she talks */
     const announceLink = async (result: LinkResult) => {
-      if (result === "none") return;
-      if (result === "linked") void posting.sendQueue();
-      await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
+      const isUnchanged = result === "none";
+      if (isUnchanged) return;
+      const isLinked = result === "linked";
+      if (isLinked) void posting.sendQueue();
+      await reveal.showPrompt(linkResultNotice(result, townHall.activeLink?.displayName));
     };
 
     /**
@@ -262,7 +267,8 @@ export default defineComponent({
       const search = takeLinkReturn();
       await loadLink();
       void posting.sendQueue();
-      if (search === null) {
+      const isOrdinaryVisit = search === null;
+      if (isOrdinaryVisit) {
         await offerRegistration();
         return;
       }
@@ -318,18 +324,22 @@ export default defineComponent({
       await loadLink();
       const link = townHall.activeLink;
       if (link) {
-        const pick = await reveal.ask(linkedStatusPrompt(link.displayName));
-        if (pick !== "unlink") return;
+        const pick = await reveal.showPrompt(linkedStatusPrompt(link.displayName));
+        const isKeepingLink = pick !== "unlink";
+        if (isKeepingLink) return;
         try {
-          await reveal.ask(unlinkResultNotice(await townHall.unlink()));
+          await reveal.showPrompt(unlinkResultNotice(await townHall.unlink()));
         } catch (err) {
           debug.error("Town Hall could not unlink this device:", err);
         }
         return;
       }
-      const pick = (await reveal.ask(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
-      if (pick === "create") window.open(SIGNUP_URL, "_blank", "noopener");
-      if (pick === "have") await goToAuthorizePage();
+      const pick = (await reveal.showPrompt(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
+      const isCreatingAccount = pick === "create";
+      if (isCreatingAccount) window.open(SIGNUP_URL, "_blank", "noopener");
+      const hasAccount = pick === "have";
+      if (hasAccount) await goToAuthorizePage();
+
     };
 
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
@@ -364,7 +374,7 @@ export default defineComponent({
       eventsTab,
       updatesTab,
       prompt: reveal.prompt,
-      respond: reveal.respond,
+      respond: reveal.submitAnswer,
       // Icons
       businessOutline,
       addOutline,

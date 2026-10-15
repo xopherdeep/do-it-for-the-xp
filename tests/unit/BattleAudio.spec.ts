@@ -15,7 +15,7 @@ jest.mock("@/lib/engine/audio/AudioEngine", () => ({
   AudioEngine: { getInstance: () => ({ stopMusic: mockStopMusic }) },
 }));
 
-import { useBattleAudio } from "@/app/Console/BattleField/composables/useBattleAudio";
+import { useBattleAudio, useTallySound } from "@/app/Console/BattleField/composables/useBattleAudio";
 
 const playedSlot = () => mockChangeBGM.mock.calls[0]?.[1]?.tracks;
 
@@ -61,7 +61,7 @@ describe("useBattleAudio", () => {
 
   describe("the loot tally", () => {
     it("starts the points roll once and stops it with the stop option", () => {
-      const audio = useBattleAudio();
+      const audio = useTallySound();
       audio.startTally();
       expect(mockPlayFx).toHaveBeenCalledWith("fillPoints");
       audio.stopTally();
@@ -69,7 +69,7 @@ describe("useBattleAudio", () => {
     });
 
     it("rings the rupee chime when GP lands and the plain select for XP and AP", () => {
-      const audio = useBattleAudio();
+      const audio = useTallySound();
       audio.playLanding("xp");
       audio.playLanding("gp");
       audio.playLanding("ap");

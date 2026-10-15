@@ -15,8 +15,9 @@ type ImageContext = {
 let floorContext: ImageContext | null | undefined;
 
 function getFloorContext(): ImageContext | null {
-  const isContextRead = floorContext !== undefined;
-  if (isContextRead) return floorContext ?? null;
+  const cached = floorContext;
+  const isCached = cached !== undefined;
+  if (isCached) return cached;
   try {
     floorContext = require.context(
       "@/assets/images/backgrounds",
@@ -115,8 +116,8 @@ export function preloadImages(urls: string[], options: PreloadOptions = {}): Pro
   const total = unique.length;
   let done = 0;
   onProgress?.(done, total);
-  const isNothingToLoad = total === 0;
-  if (isNothingToLoad) return Promise.resolve();
+  const isEmpty = total === 0;
+  if (isEmpty) return Promise.resolve();
   const all = Promise.all(
     unique.map((url) =>
       loadOnce(url, loader).then(() => {

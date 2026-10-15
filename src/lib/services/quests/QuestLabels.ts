@@ -98,7 +98,8 @@ export const questTypeHint = (type?: string, adventureType?: string): string => 
 
 /** What the party tile's number means: it counts heroes, or the quest is open to every hero. */
 export const partyHint = (type: string | undefined, heroCount: number): string => {
-  if (type === "asNeeded") return "any hero can claim it";
+  const isOpenBounty = type === "asNeeded";
+  if (isOpenBounty) return "any hero can claim it";
   const hasNoHeroes = !heroCount || heroCount < 1;
   if (hasNoHeroes) return "pick a hero";
   return heroCount === 1 ? "hero assigned" : "heroes assigned";
@@ -123,9 +124,12 @@ export const difficultyLabel = (difficulty?: number): string => {
 /** When the quest comes back, in words: "One-time", "Daily", "Weekly on Mon, Wed", "2x every 3 days". */
 export const scheduleLabel = (quest: ScheduleFields): string => {
   const { basicSchedule, scheduleType } = quest;
-  if (basicSchedule === "once") return "One-time";
-  if (basicSchedule === "daily") return "Daily";
-  if (basicSchedule === "weekly") {
+  const isOneTime = basicSchedule === "once";
+  if (isOneTime) return "One-time";
+  const isDaily = basicSchedule === "daily";
+  if (isDaily) return "Daily";
+  const isWeekly = basicSchedule === "weekly";
+  if (isWeekly) {
     const days = DAY_ORDER.filter((day) => (quest.repeatOnDays || []).includes(day)).map((day) => DAY_NAMES[day]);
     return days.length ? `Weekly on ${days.join(", ")}` : "Weekly";
   }
@@ -145,9 +149,11 @@ export const assigneeLabel = (
   maxNames = 3
 ): string => {
   const ids = (quest.assignee || []).map(String);
-  if (!ids.length) return quest.type === "asNeeded" ? "Anyone" : "Unassigned";
+  const isUnassigned = !ids.length;
+  if (isUnassigned) return quest.type === "asNeeded" ? "Anyone" : "Unassigned";
   const names = ids.map((id) => nickOf(users.find((user) => String(user.id) === id), "Unknown hero"));
-  if (names.length <= maxNames) return names.join(", ");
+  const isFullList = names.length <= maxNames;
+  if (isFullList) return names.join(", ");
   return `${names.slice(0, maxNames).join(", ")} +${names.length - maxNames}`;
 };
 

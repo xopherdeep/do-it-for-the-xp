@@ -110,7 +110,8 @@ export default defineComponent({
     };
 
     const nextBlock = () => {
-      if (currentBlockIndex.value < textBlocks.value.length - 1) {
+      const hasNextBlock = currentBlockIndex.value < textBlocks.value.length - 1;
+      if (hasNextBlock) {
         currentBlockIndex.value++;
         currentText.value = textBlocks.value[currentBlockIndex.value];
         hasMoreBlocks.value = currentBlockIndex.value < textBlocks.value.length - 1;

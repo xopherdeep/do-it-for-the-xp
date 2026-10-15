@@ -121,19 +121,25 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
   };
 
   const drawer = (): ThumbDraw | null => {
-    if (options.draw !== undefined) return options.draw;
-    if (three === undefined) three = createThreeDraw(giveUp);
+    const customDraw = options.draw;
+    const hasCustomDraw = customDraw !== undefined;
+    if (hasCustomDraw) return customDraw;
+    const isRendererUntried = three === undefined;
+    if (isRendererUntried) three = createThreeDraw(giveUp);
     return three ? three.draw : null;
   };
 
   const keep = (key: string, picture: string): void => {
     pictures.set(key, picture);
-    if (pictures.size > cacheSize) pictures.delete(pictures.keys().next().value as string);
+    const isOverCache = pictures.size > cacheSize;
+    if (isOverCache) pictures.delete(pictures.keys().next().value as string);
   };
+
+  const isShutDown = (): boolean => disposed || !supported.value;
 
   const frame = (): void => {
     waiting = false;
-    if (disposed || !supported.value) return;
+    if (isShutDown()) return;
     const draw = drawer();
     if (!draw) {
       giveUp();
@@ -149,7 +155,8 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
       giveUp();
       return;
     }
-    if (queue.length > 0) requestFrame();
+    const hasMoreQueued = queue.length > 0;
+    if (hasMoreQueued) requestFrame();
   };
 
   const requestFrame = (): void => {
@@ -159,15 +166,17 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
   };
 
   const get = (look: HeroLook, framing: SnapshotFraming, size = DEFAULT_SIZE): string => {
-    if (disposed || !supported.value) return "";
+    if (isShutDown()) return "";
     const stored = withoutHands(look);
     const key = `${framing}|${size}|${JSON.stringify(stored)}`;
     const picture = pictures.get(key);
-    if (picture !== undefined) return picture;
+    const isDrawn = picture !== undefined;
+    if (isDrawn) return picture;
 
     // Asking again moves a look to the front: what is on screen now draws before what was asked for earlier
     const queued = queue.findIndex((request) => request.key === key);
-    if (queued >= 0) queue.splice(queued, 1);
+    const isQueued = queued >= 0;
+    if (isQueued) queue.splice(queued, 1);
     queue.push({ key, look: stored, framing, size });
     requestFrame();
     return "";

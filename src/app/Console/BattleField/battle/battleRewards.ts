@@ -4,6 +4,8 @@ import { huntBonusXpOn } from "@/lib/services/quests/huntBonus";
 import type { BattleKind } from "./battleContext";
 import type { Encounter } from "./encounterLoader";
 
+const isMiniboss = (enemy: Enemy): boolean => enemy.type === "miniboss";
+
 /**
  * What a victory is worth.
  *
@@ -19,13 +21,13 @@ import type { Encounter } from "./encounterLoader";
  */
 const bossMultiplier = (enemy: Enemy): number => {
   if (enemy.isBoss) return 1.5;
-  if (enemy.type === "miniboss") return 1.25;
+  if (isMiniboss(enemy)) return 1.25;
   return 1;
 };
 
 const bossApReward = (enemy: Enemy): number => {
   if (enemy.isBoss) return 3;
-  if (enemy.type === "miniboss") return 2;
+  if (isMiniboss(enemy)) return 2;
   return 1;
 };
 
@@ -48,8 +50,10 @@ export const sumRewards = (rewards: QuestRewards[]): QuestRewards =>
 
 /** What the fight pays before the hunt bonus: the quest's or room's authored rewards, else the formula. */
 const baseRewards = (encounter: Encounter | null, defeated: Enemy[], kind: BattleKind): QuestRewards => {
-  if (encounter?.rewards) return encounter.rewards;
-  if (kind === "free") return sumRewards(defeated.map(freeFightRewards));
+  const authoredRewards = encounter?.rewards;
+  if (authoredRewards) return authoredRewards;
+  const isFreeFight = kind === "free";
+  if (isFreeFight) return sumRewards(defeated.map(freeFightRewards));
   return sumRewards(defeated.map(formulaRewards));
 };
 

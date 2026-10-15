@@ -88,8 +88,9 @@
     computed: {
       dialogBlocks() {
         // Return custom blocks if available, otherwise return default blocks
-        if ((this as any)._dialogBlocks) {
-          return (this as any)._dialogBlocks;
+        const customBlocks = (this as any)._dialogBlocks;
+        if (customBlocks) {
+          return customBlocks;
         }
 
         return [
@@ -179,7 +180,8 @@
         }
 
         // If not typing, advance to next dialog block
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.currentDialogIndex++;
           this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
           this.hasMoreDialog =
@@ -198,7 +200,8 @@
         this.isTyping = false;
 
         // Play subtle sound effect between blocks if there are more blocks
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.play$fx("text");
         }
       },

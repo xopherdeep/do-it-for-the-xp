@@ -74,7 +74,8 @@ const KIND_WORDS: Record<string, InventoryKind> = {
 /** The tab an item belongs under, from its kind, type or category; anything unknown is misc. */
 export const kindOf = (item: RawInventoryItem): InventoryKind => {
   for (const hint of [item.kind, item.type, item.category]) {
-    if (typeof hint !== 'string') continue;
+    const isNotText = typeof hint !== 'string';
+    if (isNotText) continue;
     const found = KIND_WORDS[hint.trim().toLowerCase()];
     if (found) return found;
   }
@@ -82,7 +83,8 @@ export const kindOf = (item: RawInventoryItem): InventoryKind => {
 };
 
 const text = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') return undefined;
+  const isNotText = typeof value !== 'string';
+  if (isNotText) return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
 };

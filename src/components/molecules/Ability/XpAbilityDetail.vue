@@ -226,7 +226,8 @@ export default defineComponent({
     };
     
     const getActionLabel = () => {
-      if (props.abilityStatus === AbilityStatus.Locked) {
+      const isLocked = props.abilityStatus === AbilityStatus.Locked;
+      if (isLocked) {
         return 'Locked';
       }
       
@@ -236,7 +237,8 @@ export default defineComponent({
         return 'Already Used';
       }
       
-      if (props.availableMp < props.ability.mpCost) {
+      const isShortOfMp = props.availableMp < props.ability.mpCost;
+      if (isShortOfMp) {
         return 'Not Enough MP';
       }
       
@@ -265,7 +267,8 @@ export default defineComponent({
     };
     
     const formatPeriod = (period: TimePeriod) => {
-      if (period === TimePeriod.Flat) {
+      const isFlat = period === TimePeriod.Flat;
+      if (isFlat) {
         return 'total';
       }
       return formatFrequency(period).toLowerCase();
@@ -301,10 +304,11 @@ export default defineComponent({
     };
     
     const getScalingBonus = () => {
-      if (!props.ability.scaling) return 0;
+      const scaling = props.ability.scaling;
+      if (!scaling) return 0;
       
-      const attributeValue = props.characterStats[props.ability.scaling.attribute] || 0;
-      return Math.round(attributeValue * props.ability.scaling.rate * 100);
+      const attributeValue = props.characterStats[scaling.attribute] || 0;
+      return Math.round(attributeValue * scaling.rate * 100);
     };
     
     const getScalingWidth = () => {
@@ -349,160 +353,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-.ability-detail {
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  background-color: var(--ion-card-background);
-  
-  &.real-life {
-    border-left: 4px solid var(--ion-color-success);
-  }
-  
-  &.in-game {
-    border-left: 4px solid var(--ion-color-primary);
-  }
-  
-  &.status-locked {
-    opacity: 0.7;
-  }
-  
-  &.status-used,
-  &.status-cooling {
-    opacity: 0.8;
-  }
-}
-
-.ability-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  
-  .ability-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--ion-color-light);
-    border-radius: 50%;
-    margin-right: 16px;
-    flex-shrink: 0;
-  }
-  
-  .ability-title {
-    flex: 1;
-    
-    h2 {
-      margin: 0 0 4px 0;
-      font-weight: bold;
-    }
-  }
-  
-  .ability-badges {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    
-    ion-badge {
-      font-size: 0.7em;
-    }
-  }
-}
-
-.ability-description {
-  margin-bottom: 16px;
-  font-style: italic;
-  color: var(--ion-color-medium);
-}
-
-.ability-requirements,
-.ability-effect,
-.ability-usage {
-  margin-bottom: 16px;
-  
-  h3 {
-    font-size: 1em;
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: var(--ion-color-dark);
-    display: flex;
-    align-items: center;
-    
-    &::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background-color: var(--ion-color-light-shade);
-      margin-left: 8px;
-    }
-  }
-  
-  h4 {
-    font-size: 0.9em;
-    font-weight: bold;
-    margin-top: 12px;
-    margin-bottom: 4px;
-    color: var(--ion-color-medium);
-  }
-}
-
-.requirements-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  
-  .requirement {
-    display: flex;
-    align-items: center;
-    font-size: 0.9em;
-    
-    ion-icon {
-      margin-right: 8px;
-      flex-shrink: 0;
-    }
-  }
-}
-
-.ability-scaling {
-  margin-top: 12px;
-  
-  .scaling-visualization {
-    margin-top: 8px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    
-    .base-effect {
-      background-color: var(--ion-color-light);
-      height: 100%;
-      padding: 0 8px;
-      display: flex;
-      align-items: center;
-      border-radius: 4px 0 0 4px;
-      font-size: 0.8em;
-      color: var(--ion-color-dark);
-    }
-    
-    .scaled-effect {
-      background-color: var(--ion-color-primary);
-      height: 100%;
-      min-width: 40px;
-      padding: 0 8px;
-      display: flex;
-      align-items: center;
-      border-radius: 0 4px 4px 0;
-      font-size: 0.8em;
-      color: white;
-      transition: width 0.3s ease;
-    }
-  }
-}
-
-.last-used {
-  font-size: 0.8em;
-  color: var(--ion-color-medium);
-  margin-bottom: 12px;
-}
-</style>
+<style lang="scss" scoped src="./_XpAbilityDetail.scss" />

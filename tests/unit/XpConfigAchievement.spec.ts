@@ -81,7 +81,7 @@ jest.mock("vue-router", () => ({
   useRouter: () => ({ push: jest.fn(), replace: (...args: unknown[]) => mockReplace(...args), currentRoute: { value: { params: {} } } }),
 }));
 const mockBack = jest.fn();
-jest.mock("@/hooks/useBack", () => ({ useBack: () => ({ back: () => mockBack() }) }));
+jest.mock("@/hooks/useBack", () => ({ useBack: () => ({ stepBack: () => mockBack() }) }));
 jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn(), default: {} }));
 jest.mock("@/lib/databases/ProfileDb", () => {
   class MockProfileDb {

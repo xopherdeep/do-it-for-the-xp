@@ -67,9 +67,9 @@ export interface UseTempleRoomNavigationReturn {
   unvisitedRooms: ComputedRef<{ row: number; col: number }[]>;
   
   // Methods
-  calculateAdjacency: () => void;
+  updateAdjacency: () => void;
   canNavigate: (direction: 'prev' | 'next') => boolean;
-  navigateRoom: (direction: 'prev' | 'next') => void;
+  stepRoom: (direction: 'prev' | 'next') => void;
   handleDoorClick: (dir: string) => void;
   toggleLock: (dir: string) => void;
   getDoorIcon: (dir: string) => string;
@@ -78,15 +78,15 @@ export interface UseTempleRoomNavigationReturn {
   getAdjacentRoomIcon: (dir: string) => string;
   getAdjacentRoomLabel: (dir: string) => string;
   getAdjacentRoomType: (dir: string) => string;
-  goBack: () => void;
-  goToCell: (row: number, col: number) => void;
+  stepBack: () => void;
+  selectCell: (row: number, col: number) => void;
   apply: () => void;
 }
 
 export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): UseTempleRoomNavigationReturn {
   const ionRouter = useIonRouter();
   // Back from a room goes back, or up to the temple's rooms when the editor was opened with no history behind it
-  const { back } = useBack();
+  const { stepBack: back } = useBack();
   const store = useTempleCreatorStore();
   
   const adjacentRooms = ref<AdjacentRooms>({ 
@@ -118,7 +118,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
   });
 
   // Calculate adjacency for current room
-  const calculateAdjacency = () => {
+  const updateAdjacency = () => {
     const maze = getMaze();
     const r = props.rowIdx.value;
     const c = props.colIdx.value;
@@ -132,12 +132,11 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     adjacentRooms.value = computeAdjacency(maze, r, c);
 
     // Edge-to-Wall normalization: If no neighbor exists, this side MUST be a wall in the data
-    if (props.roomData.value) {
-      if (!props.roomData.value.sides) {
-        props.roomData.value.sides = defaultSides();
-      }
+    const room = props.roomData.value;
+    if (room) {
+      room.sides ??= defaultSides();
       
-      wallOffMissingSides(props.roomData.value.sides, adjacentRooms.value);
+      wallOffMissingSides(room.sides, adjacentRooms.value);
     }
   };
 
@@ -172,7 +171,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     if (isWallToken(symbol)) return 'DYNAMIC_WALL';
 
     const roomType = store.roomsData[symbol]?.type || 'empty';
-    if (roomType === 'wall') return 'DYNAMIC_WALL';
+    const isWallType = roomType === 'wall';
+    if (isWallType) return 'DYNAMIC_WALL';
     return ROOM_ICONS[roomType as keyof typeof ROOM_ICONS] || ROOM_ICONS.empty;
   };
 
@@ -191,7 +191,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     if (isWallToken(symbol)) return 'Wall';
     
     const roomType = store.roomsData[symbol]?.type || 'empty';
-    if (roomType === 'wall') return 'Wall';
+    const isWallType = roomType === 'wall';
+    if (isWallType) return 'Wall';
     return roomType.charAt(0).toUpperCase() + roomType.slice(1);
   };
 
@@ -232,15 +233,15 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
 
   // Toggle lock state for a door (local state only - sync happens on save)
   const toggleLock = async (dir: string) => {
-    if (!adjacentRooms.value[dir as keyof typeof adjacentRooms.value]) return;
-    if (!props.roomData.value) return;
+    const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
+    if (!hasAccess) return;
+    const room = props.roomData.value;
+    if (!room) return;
     
-    if (!props.roomData.value.sides) {
-      props.roomData.value.sides = defaultSides();
-    }
+    room.sides ??= defaultSides();
 
     // Every door into a boss room is the Boss door: it stays the skull, whatever is tapped
-    const isBossDoor = sideOf(dir) === 'masterlocked' && leadsToBoss(props.roomData.value, neighbourRoom(dir));
+    const isBossDoor = sideOf(dir) === 'masterlocked' && leadsToBoss(room, neighbourRoom(dir));
     if (isBossDoor) {
       const toast = await toastController.create({
         message: 'Boss Lock: only the Boss Key opens it',
@@ -254,9 +255,9 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
       return;
     }
 
-    const currentState = props.roomData.value.sides[dir] || 'door';
+    const currentState = room.sides[dir] || 'door';
     const newState = nextDoorState(currentState);
-    props.roomData.value.sides[dir] = newState;
+    room.sides[dir] = newState;
     
     // Toast messages for each state
     const info = DOOR_STATE_INFO[newState];
@@ -320,11 +321,12 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
   const canNavigate = (direction: 'prev' | 'next'): boolean => {
     const coords = unvisitedRooms.value;
     const currentIdx = coords.findIndex(c => c.row === props.rowIdx.value && c.col === props.colIdx.value);
-    if (direction === 'prev') return currentIdx > 0;
+    const isBackward = direction === 'prev';
+    if (isBackward) return currentIdx > 0;
     return currentIdx < coords.length - 1;
   };
 
-  const navigateRoom = (direction: 'prev' | 'next') => {
+  const stepRoom = (direction: 'prev' | 'next') => {
     if (!canNavigate(direction)) return;
     
     props.saveToStore();
@@ -344,12 +346,12 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     back();
   };
 
-  const goBack = () => {
+  const stepBack = () => {
     back();
   };
 
   // Navigate to specific cell coordinates (for mini-map)
-  const goToCell = (row: number, col: number) => {
+  const selectCell = (row: number, col: number) => {
     ionRouter.replace(roomAddress('xp-room-editor', row, col), noAnimation);
   };
 
@@ -361,9 +363,9 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     unvisitedRooms,
     
     // Methods
-    calculateAdjacency,
+    updateAdjacency,
     canNavigate,
-    navigateRoom,
+    stepRoom,
     handleDoorClick,
     toggleLock,
     getDoorIcon,
@@ -372,8 +374,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     getAdjacentRoomIcon,
     getAdjacentRoomLabel,
     getAdjacentRoomType,
-    goBack,
-    goToCell,
+    stepBack,
+    selectCell,
     apply
   };
 }

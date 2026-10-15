@@ -34,6 +34,18 @@ import { computed, useSlots } from "vue";
 import { play$fx } from "@/assets/fx";
 import { appIconClass, useAppSkin } from "./useAppSkin";
 
+interface XpAppRowProps {
+  title: string;
+  subtitle?: string;
+  /** Font Awesome duotone icon for the leading tile: `scroll`, `fa-scroll` or `fad fa-scroll`. */
+  icon?: string;
+  /** Image for the leading tile (sprite, portrait). Wins over `icon`. */
+  image?: string;
+  chevron?: boolean;
+  disabled?: boolean;
+  active?: boolean;
+}
+
 /**
  * One list row of a phone app: a 40px leading tile (slot `leading`, else `image`, else `icon`), the title, a one-line
  * subtitle, a chips row (slot `chips`, use XpAppChip) and a trailing value or button (slot `trailing`) before the chevron.
@@ -41,17 +53,7 @@ import { appIconClass, useAppSkin } from "./useAppSkin";
  * the row (a trailing Cast / Use / Equip) answers on its own and does not fire the row.
  */
 const props = withDefaults(
-  defineProps<{
-    title: string;
-    subtitle?: string;
-    /** Font Awesome duotone icon for the leading tile: `scroll`, `fa-scroll` or `fad fa-scroll`. */
-    icon?: string;
-    /** Image for the leading tile (sprite, portrait). Wins over `icon`. */
-    image?: string;
-    chevron?: boolean;
-    disabled?: boolean;
-    active?: boolean;
-  }>(),
+  defineProps<XpAppRowProps>(),
   { subtitle: "", icon: "", image: "", chevron: true, disabled: false, active: false }
 );
 
@@ -68,10 +70,12 @@ const hasLeading = computed(() => Boolean(slots.leading || props.image || props.
 const INNER_CONTROLS = "button, a, input, select, textarea, ion-button, [data-xp-app-action]";
 
 const activate = (ev: MouseEvent | KeyboardEvent) => {
-  if (props.disabled) return;
+  const isDisabled = props.disabled;
+  if (isDisabled) return;
   const row = ev.currentTarget as HTMLElement | null;
   const inner = (ev.target as HTMLElement | null)?.closest?.(INNER_CONTROLS);
-  if (row && inner && inner !== row && row.contains(inner)) return;
+  const isOnInnerControl = Boolean(row && inner && inner !== row && row.contains(inner));
+  if (isOnInnerControl) return;
   play$fx("cursor");
   emit("click", ev);
 };

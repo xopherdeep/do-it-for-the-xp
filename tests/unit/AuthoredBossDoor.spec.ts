@@ -103,7 +103,7 @@ const draw = async (id: string, floors: Floors, entrance: [number, number] = [0,
   const cols = floors[firstName][0].length;
   creator.gridSize.value = `${rows}x${cols}`;
   creator.entrancePosition.value = entrance.join(",");
-  creator.initializeGrid();
+  creator.initGrid();
 
   const place = (grid: Cell[][]) =>
     grid.forEach((cells, row) =>

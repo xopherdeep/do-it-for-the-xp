@@ -172,7 +172,8 @@
           portraitPicked.value = true;
           emit("update:avatarIndex", value);
           // A portrait picked after a 3D face wins: the voxel picture goes, the look stays to build on
-          if (props.profile.avatarImage) emit("update:avatarImage", undefined);
+          const hasVoxelPicture = Boolean(props.profile.avatarImage);
+          if (hasVoxelPicture) emit("update:avatarImage", undefined);
         },
       });
 

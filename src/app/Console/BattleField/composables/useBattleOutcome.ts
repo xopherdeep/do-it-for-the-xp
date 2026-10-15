@@ -17,7 +17,7 @@ import type { Encounter } from "../battle/encounterLoader";
 import type { BattleAudio } from "./useBattleAudio";
 import type { BattleBackground } from "./useBattleBackground";
 import type { BattleDialog, DialogItem } from "./useBattleDialog";
-import type { BattleFeedback } from "./useBattleFeedback";
+import type { BattleBuzz } from "./useBattleFeedback";
 
 export interface BattleOutcomeDeps {
   ctx: BattleContext;
@@ -25,7 +25,7 @@ export interface BattleOutcomeDeps {
   dialog: BattleDialog;
   audio: BattleAudio;
   background: BattleBackground;
-  feedback: BattleFeedback;
+  feedback: BattleBuzz;
   enemyAnimationClass: Ref<EnemyAnimation>;
   router: Router;
   /** Shows the victory card and resolves once the hero taps it away. */
@@ -74,7 +74,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const userStore = useUserStore();
   const { ctx, dialog, audio } = deps;
 
-  const leaveBattle = () => deps.router.replace(battleReturnRoute(ctx));
+  const closeBattle = () => deps.router.replace(battleReturnRoute(ctx));
 
   const commitRewards = (rewards: QuestRewards) => {
     const user = userStore.users[ctx.userId];
@@ -85,8 +85,10 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     const levelUp = rewards.xp > 0 ? userStore.updateUserXP({ userId: ctx.userId, amount: rewards.xp, commit: true }) : null;
     const classLevelUp =
       rewards.xp > 0 ? userStore.updateClassXp(ctx.userId, user.jobClass || "default", rewards.xp) : null;
-    if (rewards.gp > 0) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
-    if (rewards.ap > 0) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
+    const hasGp = rewards.gp > 0;
+    if (hasGp) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
+    const hasAp = rewards.ap > 0;
+    if (hasAp) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
     regenerateOnWin();
     return { levelUp, classLevelUp };
   };
@@ -102,8 +104,10 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     if (!stats) return;
     const points = (value: { now?: number; max?: number } | undefined) => ({ now: value?.now ?? 0, max: value?.max ?? 0 });
     const regen = winRegen(classPassive(user.jobClass), points(stats.hp), points(stats.mp));
-    if (regen.hp > 0) userStore.updateUserHP({ userId: ctx.userId, amount: regen.hp });
-    if (regen.mp > 0) userStore.updateUserMP({ userId: ctx.userId, amount: regen.mp });
+    const hasHpRegen = regen.hp > 0;
+    if (hasHpRegen) userStore.updateUserHP({ userId: ctx.userId, amount: regen.hp });
+    const hasMpRegen = regen.mp > 0;
+    if (hasMpRegen) userStore.updateUserMP({ userId: ctx.userId, amount: regen.mp });
   };
 
   /**
@@ -197,10 +201,13 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     if (levelUp?.didLevelUp) {
       lines.push(() => dialog.enableAppendMode());
       lines.push(`${heroName} grew to Level ${levelUp.newLevel}!`);
-      if (levelUp.hpGained > 0) lines.push(`Max HP increased by ${levelUp.hpGained}!`);
-      if (levelUp.mpGained > 0) lines.push(`Max MP increased by ${levelUp.mpGained}!`);
+      const hasHpGain = levelUp.hpGained > 0;
+      const hasMpGain = levelUp.mpGained > 0;
+      if (hasHpGain) lines.push(`Max HP increased by ${levelUp.hpGained}!`);
+      if (hasMpGain) lines.push(`Max MP increased by ${levelUp.mpGained}!`);
       Object.entries(levelUp.statsGained || {}).forEach(([stat, gained]) => {
-        if (gained > 0) lines.push(`${capitalize(stat)} went up by ${gained}!`);
+        const hasStatGain = gained > 0;
+        if (hasStatGain) lines.push(`${capitalize(stat)} went up by ${gained}!`);
       });
       lines.push(() => dialog.disableAppendMode());
     }
@@ -216,7 +223,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     return lines;
   };
 
-  const celebrateVictory = async (defeated: Enemy[], stats: FightStats) => {
+  const startVictory = async (defeated: Enemy[], stats: FightStats) => {
     const encounter = deps.encounter.value;
     const quest = encounter?.quest;
 
@@ -230,14 +237,14 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     dialog.clear();
     deps.enemyAnimationClass.value = "victory-strobe";
     await wait(VICTORY_TIMINGS.strobe);
-    await deps.background.collapse(VICTORY_TIMINGS.collapse);
+    await deps.background.playCollapse(VICTORY_TIMINGS.collapse);
     deps.enemyAnimationClass.value = "victory-fadeout";
     await wait(VICTORY_TIMINGS.fade);
 
     // 3. Fanfare, then the card counts the loot up and waits for a tap.
     const leveled = Boolean(levelUp?.didLevelUp);
     audio.playVictory(Boolean(encounter?.boss), leveled);
-    deps.feedback.victory();
+    deps.feedback.playVictory();
     const label = encounter?.label || defeated[0]?.name || "The enemy";
     await deps.presentVictory({
       title: "YOU WON!",
@@ -255,12 +262,13 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
 
     // 4. Level ups read like Earthbound, then the walk home.
     const lines = held ? [] : levelUpLines(levelUp, classLevelUp);
-    if (!lines.length) {
-      leaveBattle();
+    const hasNoLines = lines.length === 0;
+    if (hasNoLines) {
+      closeBattle();
       return;
     }
     dialog.isVictoryMessage.value = true;
-    dialog.enqueue([...lines, () => leaveBattle()]);
+    dialog.addToQueue([...lines, () => closeBattle()]);
   };
 
   /**
@@ -274,7 +282,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     audio.playSound("die");
     const isStillStanding = (userStore.users[ctx.userId]?.stats?.hp?.now ?? 0) > 0;
     if (!isStillStanding) admitToHospital(ctx.userId, "battle");
-    dialog.enqueue([
+    dialog.addToQueue([
       CARRIED_TO_HOSPITAL_LINE,
       () => {
         void deps.router.replace(hospitalRoute(ctx.userId));
@@ -291,7 +299,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     audio.stopBgm();
     audio.playSound("die");
     admitToHospital(ctx.userId, "run");
-    dialog.enqueue([() => void deps.router.replace(hospitalRoute(ctx.userId))]);
+    dialog.addToQueue([() => void deps.router.replace(hospitalRoute(ctx.userId))]);
   };
 
   /**
@@ -312,17 +320,18 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
    */
   const handleEscape = (report?: EscapeReport) => {
     leaveGrudgeMark(report);
-    if (report?.emptied) {
+    const isCarriedOut = Boolean(report?.emptied);
+    if (isCarriedOut) {
       handleCarriedOut();
       return;
     }
-    dialog.enqueue([
+    dialog.addToQueue([
       () => {
         deps.enemyAnimationClass.value = "fadeout";
-        window.setTimeout(() => void leaveBattle(), ESCAPE_FADE_MS);
+        window.setTimeout(() => void closeBattle(), ESCAPE_FADE_MS);
       },
     ]);
   };
 
-  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle };
+  return { startVictory, handlePlayerDefeated, handleEscape, closeBattle };
 };

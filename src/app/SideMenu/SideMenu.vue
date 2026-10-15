@@ -334,7 +334,8 @@
       // Chrome, Edge and Android show their own install dialog; Safari only installs from its menus, so show the steps
       async installApp() {
         this.$fx.ui[this.$fx.theme.ui].select.play();
-        if (installState.route === "prompt") {
+        const isPromptRoute = installState.route === "prompt";
+        if (isPromptRoute) {
           await promptInstall();
           return;
         }
@@ -365,8 +366,10 @@
       const proStore = useProStore();
       const proIcon = computed(() => {
         const kind = proMenuIcon(proStore.isPro, proStore.plan);
-        if (kind === "sun") return { iosIcon: sunnyOutline, mdIcon: sunnySharp };
-        if (kind === "moon") return { iosIcon: moonOutline, mdIcon: moonSharp };
+        const isSun = kind === "sun";
+        if (isSun) return { iosIcon: sunnyOutline, mdIcon: sunnySharp };
+        const isMoon = kind === "moon";
+        if (isMoon) return { iosIcon: moonOutline, mdIcon: moonSharp };
         return { iosIcon: ribbonOutline, mdIcon: ribbonSharp };
       });
 

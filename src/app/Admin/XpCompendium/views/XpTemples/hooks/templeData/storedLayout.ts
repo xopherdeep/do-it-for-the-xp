@@ -26,27 +26,32 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const adoptStoredLayout = (store: CreatorStore, id: string, record: StoredTemple): void => {
   const layout = record.dungeonLayout;
 
-  if (record.customName) {
-    store.templeName = record.customName;
-  } else if (record.name) {
-    store.templeName = record.name;
+  const { customName, name, customIcon } = record;
+  if (customName) {
+    store.templeName = customName;
+  } else if (name) {
+    store.templeName = name;
   }
-  if (record.customIcon) {
-    store.templeIcon = record.customIcon;
+  if (customIcon) {
+    store.templeIcon = customIcon;
   }
 
-  if (layout.entrance) {
-    store.entrancePosition = layout.entrance.join(",");
+  const entrance = layout.entrance;
+  if (entrance) {
+    store.entrancePosition = entrance.join(",");
   }
-  if (layout.maze) {
-    store.templeMaze = clone(layout.maze);
+  const maze = layout.maze;
+  if (maze) {
+    store.templeMaze = clone(maze);
     const measuredSize = measureGridSize(store.templeMaze);
-    if (measuredSize !== null) {
+    const hasMeasuredSize = measuredSize !== null;
+    if (hasMeasuredSize) {
       store.gridSize = measuredSize;
     }
   }
-  if (layout.rooms) {
-    store.roomsData = clone(layout.rooms);
+  const rooms = layout.rooms;
+  if (rooms) {
+    store.roomsData = clone(rooms);
   }
 
   // The symbols the stored rooms already hold, so a new room never reissues one (and overwrites its record)

@@ -113,13 +113,16 @@ export const sceneOf = (route: RouteLike): Scene => {
     };
   }
 
-  if (name === "home-town") return { kind: "town", key: "town", title: "Home Town" };
-  if (name === "world-map") return { kind: "world-map", key: "world-map", title: "World Map" };
+  const isHomeTown = name === "home-town";
+  if (isHomeTown) return { kind: "town", key: "town", title: "Home Town" };
+  const isWorldMap = name === "world-map";
+  if (isWorldMap) return { kind: "world-map", key: "world-map", title: "World Map" };
 
   const region = REGION_BY_ROUTE[name];
   if (region) return { kind: "region", key: `region:${region.id}`, title: region.title, element: region.element };
 
-  if (name === "temple") {
+  const isTemple = name === "temple";
+  if (isTemple) {
     const id = String(route.params?.temple ?? "");
     const meta = metadataFor(id);
     return {
@@ -130,8 +133,10 @@ export const sceneOf = (route: RouteLike): Scene => {
     };
   }
 
-  if (BATTLE_ROUTES.has(name)) return { kind: "battle", key: "battle" };
-  if (PORTAL_ROUTES.has(name)) return { kind: "portal", key: `portal:${name}` };
+  const isBattle = BATTLE_ROUTES.has(name);
+  if (isBattle) return { kind: "battle", key: "battle" };
+  const isPortal = PORTAL_ROUTES.has(name);
+  if (isPortal) return { kind: "portal", key: `portal:${name}` };
 
   return { kind: "other", key: `other:${name || route.path || ""}` };
 };
@@ -149,30 +154,37 @@ const regionSubtitle = (scene: Scene): string | undefined => {
 };
 
 export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => {
-  if (from.key === to.key) return null;
+  const isSameScene = from.key === to.key;
+  if (isSameScene) return null;
 
   // Into a battle, from anywhere
-  if (to.kind === "battle") return { effect: "swirl", direction: "in", sound: "enterBattle" };
+  const isEnteringBattle = to.kind === "battle";
+  if (isEnteringBattle) return { effect: "swirl", direction: "in", sound: "enterBattle" };
 
   // Back out of a battle to where the hero was
   const isReturningFromBattle = from.kind === "battle" && ["temple", "region", "town", "world-map"].includes(to.kind);
   if (isReturningFromBattle) {
     return { effect: "fade", direction: "out" };
   }
-  if (from.kind === "battle") return null;
+  const isLeavingBattle = from.kind === "battle";
+  if (isLeavingBattle) return null;
 
   // Through a building's door
-  if (to.kind === "building") {
+  const isEnteringBuilding = to.kind === "building";
+  if (isEnteringBuilding) {
     // The variant names the building whose doors these are (the effect paints its trim); the doors play their own creak
     return { effect: "doors", direction: "in", title: to.title, variant: to.title, door: doorTypeFor(to.building) };
   }
-  if (from.kind === "building") {
-    if (to.kind === "other") return null;
+  const isLeavingBuilding = from.kind === "building";
+  if (isLeavingBuilding) {
+    const isUnknownDestination = to.kind === "other";
+    if (isUnknownDestination) return null;
     return { effect: "doors", direction: "out", title: to.title, variant: from.title, door: doorTypeFor(from.building) };
   }
 
   // Into and out of a temple
-  if (to.kind === "temple") {
+  const isEnteringTemple = to.kind === "temple";
+  if (isEnteringTemple) {
     return {
       effect: "iris",
       direction: "in",
@@ -181,7 +193,8 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
       element: to.element,
     };
   }
-  if (from.kind === "temple") {
+  const isLeavingTemple = from.kind === "temple";
+  if (isLeavingTemple) {
     const hasNoSceneToEnter = to.kind === "other" || to.kind === "portal";
     if (hasNoSceneToEnter) return null;
     return { effect: "iris", direction: "out", title: to.title, element: to.element };

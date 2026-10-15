@@ -41,7 +41,7 @@ const fakeReveal = () => {
         };
       }),
   );
-  return { prompt, ask, asked, answer: (id = "ok") => answerNow(id) };
+  return { prompt, showPrompt: ask, asked, answer: (id = "ok") => answerNow(id) };
 };
 
 /** A store that keeps what it is given and sends nothing; `flush` answers what the spec says. */
@@ -351,7 +351,7 @@ describe("sending a draft", () => {
     expect(posting.trouble.value).toBe("Write something first.");
     expect(posting.sending.value).toBe(false);
     expect(store.flush).not.toHaveBeenCalled();
-    expect(reveal.ask).not.toHaveBeenCalled();
+    expect(reveal.showPrompt).not.toHaveBeenCalled();
   });
 
   it("keeps the compose open, and Send alive, when the device could not save the post", async () => {
@@ -436,7 +436,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     await posting.sendQueue();
 
     expect(store.flush).toHaveBeenCalledTimes(1);
-    expect(reveal.ask).not.toHaveBeenCalled();
+    expect(reveal.showPrompt).not.toHaveBeenCalled();
   });
 
   it("logs a flush that fails to load or save instead of crashing", async () => {
@@ -459,7 +459,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     reveal.answer();
     await both;
 
-    expect(reveal.ask).toHaveBeenCalledTimes(1);
+    expect(reveal.showPrompt).toHaveBeenCalledTimes(1);
   });
 
   it("tells the family once when the post that was just sent shares the flush", async () => {
@@ -516,7 +516,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
       expect(reveal.asked.slice(2)).toEqual([registerAgainPrompt()]);
       reveal.answer();
       await flushPromises();
-      expect(reveal.ask).toHaveBeenCalledTimes(3);
+      expect(reveal.showPrompt).toHaveBeenCalledTimes(3);
     });
 
     it("holds the news while the hero writes another post, then gives it once", async () => {
@@ -533,7 +533,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
       expect(reveal.asked).toEqual([postedNotice("bug"), registerAgainPrompt()]);
       reveal.answer();
       await flushPromises();
-      expect(reveal.ask).toHaveBeenCalledTimes(2);
+      expect(reveal.showPrompt).toHaveBeenCalledTimes(2);
     });
 
     it("gives the news at once when the way is clear", async () => {
@@ -560,7 +560,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     reveal.answer();
     await second;
 
-    expect(reveal.ask).toHaveBeenCalledTimes(2);
+    expect(reveal.showPrompt).toHaveBeenCalledTimes(2);
   });
 
   it("waits for the clerk to finish talking, then gives the news", async () => {
@@ -569,7 +569,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     reveal.prompt.value = { speaker: "Town Clerk", lines: ["Something else"], choices: [] };
 
     await posting.sendQueue();
-    expect(reveal.ask).not.toHaveBeenCalled();
+    expect(reveal.showPrompt).not.toHaveBeenCalled();
 
     reveal.prompt.value = null;
     await nextTick();
@@ -585,7 +585,7 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     posting.openBug();
 
     await posting.sendQueue();
-    expect(reveal.ask).not.toHaveBeenCalled();
+    expect(reveal.showPrompt).not.toHaveBeenCalled();
 
     posting.closeCompose();
     await nextTick();

@@ -20,7 +20,8 @@ export const useChatStore = defineStore('chat', () => {
      * Initialize messages for a specific room
      */
     async function initRoom(roomId: string) {
-        if (messages.value[roomId]) return;
+        const isRoomLoaded = !!messages.value[roomId];
+        if (isRoomLoaded) return;
 
         try {
             const roomMessages = await chatDb.getMessagesByRoom(roomId, 50);
@@ -38,14 +39,15 @@ export const useChatStore = defineStore('chat', () => {
      */
     async function sendMessage(roomId: string, text: string) {
         const currentUser = userStore.currentUser;
-        if (!currentUser.id) return;
+        const heroId = currentUser.id;
+        if (!heroId) return;
 
-        const fullUser = userStore.getUserById(currentUser.id);
+        const fullUser = userStore.getUserById(heroId);
 
         const message: ChatMessage = {
             id: uuidv4(),
             roomId,
-            senderId: currentUser.id,
+            senderId: heroId,
             senderName: fullUser?.name?.nick || 'Unknown',
             avatar: fullUser?.avatar,
             text,
@@ -56,7 +58,8 @@ export const useChatStore = defineStore('chat', () => {
         await chatDb.saveMessage(message);
 
         // Update state
-        if (!messages.value[roomId]) {
+        const hasRoom = !!messages.value[roomId];
+        if (!hasRoom) {
             messages.value[roomId] = [];
         }
         messages.value[roomId].push(message);
@@ -84,7 +87,8 @@ export const useChatStore = defineStore('chat', () => {
         await initRoom(roomId);
         await chatDb.saveMessage(message);
 
-        if (!messages.value[roomId]) {
+        const hasRoom = !!messages.value[roomId];
+        if (!hasRoom) {
             messages.value[roomId] = [];
         }
         messages.value[roomId].push(message);
@@ -108,7 +112,8 @@ export const useChatStore = defineStore('chat', () => {
         try {
             const olderMessages = await chatDb.getMessagesByRoom(roomId, limit);
 
-            if (olderMessages.length <= currentMessages.length) {
+            const hasNoOlder = olderMessages.length <= currentMessages.length;
+            if (hasNoOlder) {
                 hasMore.value[roomId] = false;
             } else {
                 messages.value[roomId] = olderMessages;

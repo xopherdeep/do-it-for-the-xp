@@ -308,12 +308,14 @@ export default defineComponent({
       activeSlideIndex.value = swiper.activeIndex;
 
       // Trigger slide 0 enter effect if returning to slide 0
-      if (activeSlideIndex.value === 0) {
+      const isFirstSlide = activeSlideIndex.value === 0;
+      if (isFirstSlide) {
         handleSlide0Enter();
       }
 
       // Automatically show dialog when reaching a new slide that hasn't been viewed yet
-      if (!slidesViewed.value[activeSlideIndex.value]) {
+      const isSlideViewed = slidesViewed.value[activeSlideIndex.value];
+      if (!isSlideViewed) {
         showSlideDialog(activeSlideIndex.value);
       }
     };
@@ -327,7 +329,8 @@ export default defineComponent({
           autoDismiss: false,
           onDismiss: () => {
             // Logic from onDialogComplete
-            if (slidesViewed.value.every((viewed) => viewed)) {
+            const isEverySlideViewed = slidesViewed.value.every((viewed) => viewed);
+            if (isEverySlideViewed) {
               markTutorialCompleted();
             }
 
@@ -347,7 +350,8 @@ export default defineComponent({
       slidesViewed.value[slideIndex] = true;
 
       // Play a sound effect for immersion when dialog is shown
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("select");
       }
     };
@@ -364,7 +368,8 @@ export default defineComponent({
       showSlideDialog(activeSlideIndex.value);
 
       // Play sound effect
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("system");
       }
 
@@ -429,206 +434,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-.ion-page {
-  transition: all 0.5s ease;
-
-  ion-content {
-    .slideshow-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-
-      .main-slideshow {
-        width: 100%;
-        height: 100%;
-        position: relative;
-
-        .swiper-slide {
-          padding-bottom: 100px;
-          overflow-y: auto;
-          overflow-x: hidden;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-      }
-    }
-
-    .nav-fab-container {
-      margin-bottom: 60px;
-      z-index: 1000;
-      --color: var(--eb-color-pale-yellow);
-
-      &[horizontal="start"] {
-        margin-left: 16px;
-      }
-
-      &[horizontal="end"] {
-        margin-right: 16px;
-      }
-
-      ion-fab-button {
-        --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        --border-color: rgba(255, 255, 255, 0.2);
-        --border-width: 1px;
-        --border-style: solid;
-      }
-    }
-
-    .nav-pagination-container {
-      position: absolute;
-      bottom: 45px;
-      left: 0;
-      right: 0;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 48px;
-      pointer-events: none;
-      z-index: 2000;
-    }
-
-    .swiper-pagination-custom {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      gap: 25px;
-      width: auto;
-      pointer-events: auto;
-
-      :deep(.swiper-pagination-bullet) {
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.25);
-        opacity: 1;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        margin: 0 !important;
-        transform: rotate(45deg);
-        border-radius: 1px;
-      }
-
-      :deep(.swiper-pagination-bullet-active) {
-        background: var(--eb-color-pale-yellow);
-        transform: rotate(45deg) scale(1.6);
-        border-radius: 1px;
-        box-shadow: 0 0 15px var(--eb-color-pale-yellow),
-          0 0 5px rgba(255, 255, 255, 0.8);
-        border-color: #fff;
-      }
-    }
-  }
-}
-
-/* Premium Hero Styles */
-.hero-content {
-  width: 92%;
-  max-width: 600px;
-  margin: 1.5rem auto 1rem;
-  transition: all 0.4s ease;
-}
-
-.icon-wrapper {
-  background: radial-gradient(circle,
-      rgba(255, 255, 255, 0.08) 0%,
-      transparent 70%);
-  padding: 16px;
-  border-radius: 50%;
-
-  i {
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25));
-  }
-}
-
-.get-started-btn {
-  --border-radius: 8px;
-  --background: linear-gradient(135deg,
-      var(--ion-color-success),
-      var(--ion-color-success-shade));
-  font-weight: 700;
-  font-size: 1rem;
-  height: 50px;
-  width: 80%;
-  box-shadow: 0 4px 15px rgba(var(--ion-color-success-rgb), 0.3);
-
-  &:hover {
-    --box-shadow: 0 6px 20px rgba(var(--ion-color-success-rgb), 0.4);
-  }
-}
-
-/* Animations */
-.hero-card-container {
-  width: 100%;
-  opacity: 0;
-  transform: scale(0.9) translateY(20px);
-  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  &.animate-in {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.dashboard-container {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease-out;
-  transition-delay: 0.2s;
-  display: flex;
-
-  &.animate-up {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.xp-icon {
-  color: var(--ion-color-success);
-}
-
-.gp-icon {
-  color: var(--ion-color-warning);
-}
-
-.ap-icon {
-  color: var(--ion-color-tertiary);
-}
-
-.character-stats-icon {
-  color: var(--ion-color-danger);
-}
-
-.beast-icon {
-  color: var(--ion-color-danger-shade);
-}
-
-.temple-icon {
-  color: var(--ion-color-secondary);
-}
-
-.shop-icon {
-  color: #e599f7;
-  text-shadow: 0 0 10px rgba(190, 75, 219, 0.6);
-}
-
-/* GameMaster Title Specific Animation */
-.gamemaster-title-animate {
-  animation: dropIn 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  display: inline-block;
-}
-
-@keyframes dropIn {
-  0% {
-    transform: translateY(-200px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpCompendiumDashboard.scss" />

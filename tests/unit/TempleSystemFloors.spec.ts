@@ -183,7 +183,7 @@ describe("the arrows of the temple screen", () => {
     const atEntrance = gap([0, 1]);
     expect(atEntrance.vm.canMoveLeft).toBe(false);
     expect(atEntrance.vm.canMoveRight).toBe(true);
-    expect(atEntrance.vm.move("west")).toBe(false);
+    expect(atEntrance.vm.stepTo("west")).toBe(false);
     atEntrance.unmount();
 
     const onFloor = gap([0, 2]);
@@ -210,7 +210,7 @@ describe("the arrows of the temple screen", () => {
       const { id, vm, unmount } = barred("bombable");
 
       expect(vm.canMoveRight).toBe(true);
-      expect(vm.move("east")).toBe(false);
+      expect(vm.stepTo("east")).toBe(false);
 
       expect(vm.currentMessage).toBe("The wall is cracked. Bombs might do it.");
       expect(vm.showMessage).toBe(true);
@@ -224,7 +224,7 @@ describe("the arrows of the temple screen", () => {
       expect(temples.blowBombableSide(id, [0, 0], "east")).toBe(true);
 
       expect(vm.canMoveRight).toBe(true);
-      expect(vm.move("east")).toBe(true);
+      expect(vm.stepTo("east")).toBe(true);
       unmount();
     });
 

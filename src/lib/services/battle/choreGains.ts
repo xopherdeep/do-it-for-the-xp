@@ -33,7 +33,8 @@ export interface ChoreGains {
 const shareOf = (max: number, share: number): number => (max > 0 ? Math.max(1, Math.round(max * share)) : 0);
 
 export function choreGains(input: ChoreGainsInput): ChoreGains {
-  if (!input.questFight) return { hp: 0, mp: 0 };
+  const isFreeFight = !input.questFight;
+  if (isFreeFight) return { hp: 0, mp: 0 };
   const mp = shareOf(input.maxMp, CHORE_MP_SHARE) * (input.charged ? 2 : 1);
   const hp = input.moonlit ? shareOf(input.maxHp, MOONLIGHT_HP_SHARE) : 0;
   return { hp, mp };

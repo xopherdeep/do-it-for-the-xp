@@ -10,14 +10,15 @@ export type DungeonLayout = TempleInterface["dungeonLayout"];
 
 /** The grid the preview draws: the only grid, else floor 1F, else the first floor; null when there is no maze */
 export const pickPreviewMaze = (layout: DungeonLayout) => {
-  if (!layout || !layout.maze) return null;
-
-  const maze = layout.maze;
+  const maze = layout?.maze;
+  if (!maze) return null;
 
   if (!Array.isArray(maze)) {
-    if (maze['1F']) return maze['1F'];
+    const groundFloor = maze['1F'];
+    if (groundFloor) return groundFloor;
     const floors = Object.keys(maze);
-    if (floors.length > 0) return maze[floors[0]];
+    const hasFloors = floors.length > 0;
+    if (hasFloors) return maze[floors[0]];
     return null;
   }
 

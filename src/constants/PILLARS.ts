@@ -108,7 +108,8 @@ export const getPillarColor = (pillar: PillarType): string => {
 // Helper: Map stat name to its pillar
 export const getStatPillar = (stat: string): PillarType | null => {
   for (const [pillarKey, pillar] of Object.entries(PILLARS)) {
-    if (stat in pillar.stats) {
+    const isPillarStat = stat in pillar.stats;
+    if (isPillarStat) {
       return pillarKey as PillarType;
     }
   }

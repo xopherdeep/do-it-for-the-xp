@@ -142,9 +142,11 @@ export const heroPoints = (userId: string, kind: 'hp' | 'mp'): { now: number; ma
 export const battleEffectBlocked = (effect: BattleEffectId, ctx: BattleEffectContext): string | null => {
   const isAlreadyUsed = BATTLE_EFFECTS[effect].oncePerFight && ctx.usedThisFight.has(effect);
   if (isAlreadyUsed) return REASON_USED;
-  if (effect === 'heal') {
+  const isHeal = effect === 'heal';
+  if (isHeal) {
     const hp = heroPoints(ctx.userId, 'hp');
-    if (hp.now >= hp.max) return REASON_HP_FULL;
+    const isHpFull = hp.now >= hp.max;
+    if (isHpFull) return REASON_HP_FULL;
   }
   const isRunRefused = effect === 'vanish' && ctx.service.hasPendingDamage();
   if (isRunRefused) return REASON_STRIKE_WAITING;
@@ -155,7 +157,8 @@ export const battleEffectBlocked = (effect: BattleEffectId, ctx: BattleEffectCon
 export const refuse = (line: string): BattleEffectOutcome => ({ ok: false, line, sound: SOUND_NO });
 
 const done = (ctx: BattleEffectContext, effect: BattleEffectId, line: string, sound = SOUND_ITEM): BattleEffectOutcome => {
-  if (BATTLE_EFFECTS[effect].oncePerFight) ctx.usedThisFight.add(effect);
+  const isOncePerFight = BATTLE_EFFECTS[effect].oncePerFight;
+  if (isOncePerFight) ctx.usedThisFight.add(effect);
   return { ok: true, line, sound };
 };
 
@@ -177,21 +180,27 @@ export const applyBattleEffect = (effect: BattleEffectId, ctx: BattleEffectConte
   if (blocked) return refuse(blocked);
 
   switch (effect) {
-    case 'frost':
-      if (!ctx.service.extendClock(ICE_WAND_MS)) return refuse(CLOCK_STOPPED);
+    case 'frost': {
+      const didExtendClock = ctx.service.extendClock(ICE_WAND_MS);
+      if (!didExtendClock) return refuse(CLOCK_STOPPED);
       return done(ctx, effect, 'Ice creeps over the clock: +10 minutes!');
+    }
 
-    case 'time-stop':
-      if (!ctx.service.freezeClock(CHRONOS_FREEZE_MS)) return refuse(CLOCK_STOPPED);
+    case 'time-stop': {
+      const didFreezeClock = ctx.service.freezeClock(CHRONOS_FREEZE_MS);
+      if (!didFreezeClock) return refuse(CLOCK_STOPPED);
       return done(ctx, effect, 'Time stands still for 15 minutes!');
+    }
 
     case 'kindle':
       ctx.service.scaleCooldown(FIRE_WAND_FACTOR);
       return done(ctx, effect, 'The fuse burns slow: every chore earns 1.5x the minutes!');
 
-    case 'gust':
-      if (!ctx.service.refillClock()) return refuse(CLOCK_STOPPED);
+    case 'gust': {
+      const didRefillClock = ctx.service.refillClock();
+      if (!didRefillClock) return refuse(CLOCK_STOPPED);
       return done(ctx, effect, 'A gust blows the beast back: the clock is full again!');
+    }
 
     case 'stun':
       ctx.service.skipNextStrike();

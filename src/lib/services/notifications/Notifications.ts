@@ -61,7 +61,8 @@ export const dedupeKeyOfNotification = (notification: XpNotification): string =>
  * Notifications without a refId are never duplicates of each other (a second system note is a second note).
  */
 export const isDuplicate = (candidate: NewXpNotification, existing: readonly XpNotification[]): boolean => {
-  if (!candidate.refId) return false;
+  const hasNoRef = !candidate.refId;
+  if (hasNoRef) return false;
   const key = dedupeKeyOf(candidate.kind, candidate.refId, candidate.createdAt ?? new Date());
   return existing.some((entry) => entry.heroId === candidate.heroId && dedupeKeyOfNotification(entry) === key);
 };
@@ -102,13 +103,15 @@ export const dueInCopy = (deadline: Date, now: Date): string => {
   const diffMs = deadline.getTime() - now.getTime();
   const late = diffMs < 0;
   const minutes = Math.round(Math.abs(diffMs) / 60000);
-  if (minutes < 1) return "due now";
+  const isDueNow = minutes < 1;
+  if (isDueNow) return "due now";
   const span = spanCopy(minutes);
   return late ? `${span} overdue` : `due in ${span}`;
 };
 
 const spanCopy = (minutes: number): string => {
-  if (minutes < 60) return `${minutes} min`;
+  const isUnderAnHour = minutes < 60;
+  if (isUnderAnHour) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
@@ -242,9 +245,17 @@ export const bloodMoonNotification = (
   createdAt: night.toISOString(),
 });
 
+/** A shop purchase the GM settled: delivered or refunded. */
+interface SettledPurchase {
+  id: string;
+  itemName: string;
+  price: number;
+  status: "fulfilled" | "refunded";
+}
+
 export const purchaseNotification = (
   heroId: string,
-  entry: { id: string; itemName: string; price: number; status: "fulfilled" | "refunded" }
+  entry: SettledPurchase
 ): NewXpNotification => ({
   heroId,
   kind: "purchase",

@@ -119,8 +119,10 @@ const countOf = (rooms: AuditableRoom[], test: (room: AuditableRoom) => boolean)
 
 /** "Placed" when there is one, "Missing" when there is none, otherwise "Two <many>: keep one" */
 const oneOf = (count: number, many: string): string => {
-  if (count === 1) return 'Placed';
-  if (count === 0) return 'Missing';
+  const isSingle = count === 1;
+  if (isSingle) return 'Placed';
+  const isNone = count === 0;
+  if (isNone) return 'Missing';
   return tooMany(count, many);
 };
 
@@ -133,7 +135,8 @@ const sizeCheck = (rooms: AuditableRoom[], sizeOf: (room: AuditableRoom) => Size
   const shares = rooms
     .map((room): SizedRoom | null => {
       const share = sizeOf(room);
-      if (share === null || share === undefined) return null;
+      const hasNoShare = share === null || share === undefined;
+      if (hasNoShare) return null;
       return typeof share === 'number' ? { difficulty: share } : share;
     })
     .filter((share): share is SizedRoom => share !== null);
@@ -154,7 +157,8 @@ const stairsCheck = (temple: AuditableTemple | null | undefined): AuditCheck | n
   const layout: AuditableLayout | null | undefined = temple?.dungeonLayout ?? temple;
   const definitions = layout?.rooms;
   const maze = layout?.maze;
-  if (!definitions || !maze) return null;
+  const hasNoMaze = !definitions || !maze;
+  if (hasNoMaze) return null;
 
   const floors: Array<[string, string[][]]> = Array.isArray(maze) ? [['1F', maze]] : Object.entries(maze).filter(([, grid]) => Array.isArray(grid));
   const floorNames = floors.map(([name]) => name);
@@ -167,7 +171,8 @@ const stairsCheck = (temple: AuditableTemple | null | undefined): AuditCheck | n
         const isRoomlessCell = !token || isWallToken(token) || token === VOID;
         const room = isRoomlessCell ? undefined : definitions[token];
         const step = room ? STAIRS_STEP[typeOf(room)] : undefined;
-        if (!room || !step) return;
+        const isNotStairs = !room || !step;
+        if (isNotStairs) return;
 
         stairsCount += 1;
         const target = room.content?.targetLevel ?? neighbourFloorOf(floorNames, name, step);
@@ -177,7 +182,8 @@ const stairsCheck = (temple: AuditableTemple | null | undefined): AuditCheck | n
     );
   }
 
-  if (stairsCount === 0) return null;
+  const hasNoStairs = stairsCount === 0;
+  if (hasNoStairs) return null;
   const detail = stranded.length === 0 ? 'Placed' : `Stairs on ${shortList(stranded)} lead nowhere`;
   return { id: 'stairs', label: 'Stairs', ok: stranded.length === 0, detail, optional: true };
 };
@@ -199,8 +205,10 @@ export const auditTemple = (temple: AuditableTemple | null | undefined, options:
 
   // A temple without a gate ends where it began: the entrance is also the way out (how the generator builds them)
   let exitDetail = 'Missing';
-  if (gates > 0) exitDetail = 'Placed';
-  else if (entrances > 0) exitDetail = 'Entrance doubles as exit';
+  const hasGate = gates > 0;
+  const hasEntrance = entrances > 0;
+  if (hasGate) exitDetail = 'Placed';
+  else if (hasEntrance) exitDetail = 'Entrance doubles as exit';
 
   const checks: AuditCheck[] = [
     { id: 'entrance', label: 'Entrance', ok: entrances === 1, detail: oneOf(entrances, 'entrances') },
@@ -221,7 +229,8 @@ export const auditTemple = (temple: AuditableTemple | null | undefined, options:
     { id: 'map', label: 'Dungeon Map', ok: maps > 0, detail: maps > 0 ? 'Placed' : 'Missing', optional: true },
     { id: 'compass', label: 'Compass', ok: compasses > 0, detail: compasses > 0 ? 'Placed' : 'Missing', optional: true },
   ];
-  if (options.sizeOf) checks.push(sizeCheck(rooms, options.sizeOf));
+  const { sizeOf } = options;
+  if (sizeOf) checks.push(sizeCheck(rooms, sizeOf));
   const stairs = stairsCheck(temple);
   if (stairs) checks.push(stairs);
 

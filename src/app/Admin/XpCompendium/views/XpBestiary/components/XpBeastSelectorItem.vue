@@ -45,9 +45,10 @@ export default defineComponent({
     const isHovered = ref(false);
 
     const avatarUrl = computed(() => {
-      if (!props.avatar) return null;
+      const avatar = props.avatar;
+      if (!avatar) return null;
       try {
-        const pad = props.avatar.toString().padStart(3, '0');
+        const pad = avatar.toString().padStart(3, '0');
         return require(`@/assets/images/beasts/${pad}.webp`);
       } catch {
         return null;
@@ -90,7 +91,8 @@ export default defineComponent({
         }
         
         // Ensure the engine is using our current canvas
-        if (engine.canvas !== bgCanvas.value) {
+        const isOtherCanvas = engine.canvas !== bgCanvas.value;
+        if (isOtherCanvas) {
           engine.canvas = bgCanvas.value;
         }
         engine.animate();

@@ -163,7 +163,8 @@ export class BattleService {
       this.queueDialogMessages(stepsForwardLines(enemy, next));
       this.battleCallbacks.onEnemyChange?.(next);
       // A strike that is already waiting restarts the clock itself when it lands
-      if (this.state.pendingPlayerDamage === 0) {
+      const hasNoStrikeWaiting = this.state.pendingPlayerDamage === 0;
+      if (hasNoStrikeWaiting) {
         this.startAttackTimer();
       }
       return;
@@ -192,7 +193,8 @@ export class BattleService {
    * @param userIds Array of user IDs to participate in battle
    */
   public initMultiBattle(enemies: Enemy[], userIds?: string[]): void {
-    if (enemies.length === 0) {
+    const hasNoEnemies = enemies.length === 0;
+    if (hasNoEnemies) {
       debug.error('Cannot initialize battle with no enemies');
       return;
     }
@@ -231,7 +233,8 @@ export class BattleService {
    * @returns Result of the action
    */
   public handleBattleAction(action: string): BattleResult {
-    if (!this.state.battleStarted) {
+    const isBattleStarted = this.state.battleStarted;
+    if (!isBattleStarted) {
       return { success: false, message: "Battle not started" };
     }
 
@@ -260,7 +263,8 @@ export class BattleService {
   public getBribeQuotes(heroGp?: { wallet?: number; savings?: number } | null): BribeQuotes | null {
     const hero = this.getActiveUser();
     const enemy = this.state.currentEnemy;
-    if (!hero || !enemy) return null;
+    const isMissingCombatant = !hero || !enemy;
+    if (isMissingCombatant) return null;
     const user = this.userStore.getUserById(hero.id) || this.userStore.users[hero.id];
     const storedGp = heroGp ?? user?.stats?.gp ?? user?.gp;
     const marks = enemy.grudgeMarks ?? marksOfFactor(this.grudge);
@@ -273,13 +277,14 @@ export class BattleService {
    * - low: pays discounted cost, avoids parting strike, incurs grudge mark.
    */
   private handleBribe(tier: BribeTier): BattleResult {
-    if (this.state.pendingPlayerDamage > 0) {
+    if (this.hasPendingDamage()) {
       return { success: false, message: "A strike is already on its way" };
     }
 
     const hero = this.getActiveUser();
     const enemy = this.state.currentEnemy;
-    if (!hero || !enemy) {
+    const isMissingCombatant = !hero || !enemy;
+    if (isMissingCombatant) {
       return { success: false, message: "Cannot bribe without active combatants" };
     }
 
@@ -318,7 +323,7 @@ export class BattleService {
    * hit lands, and the hero gets a fresh full clock afterwards.
    */
   private handleDefend(): BattleResult {
-    if (this.state.pendingPlayerDamage > 0) {
+    if (this.hasPendingDamage()) {
       return { success: false, message: "A strike is already on its way" };
     }
 
@@ -338,7 +343,7 @@ export class BattleService {
    * vanish, the Ninja's first strike or a hammer skip is owed, the clock is frozen, or trained agility rolls under its dodge.
    */
   private handleRun(): BattleResult {
-    if (this.state.pendingPlayerDamage > 0) {
+    if (this.hasPendingDamage()) {
       return { success: false, message: "A strike is already on its way" };
     }
 
@@ -391,17 +396,19 @@ export class BattleService {
     // The brace was the hero's to spend, and the fight is over
     if (wasBracing) this.setDefendingState(false);
 
-    if (strike.dodgedBy) {
-      this.spendDodge(strike.dodgedBy);
-      report.dodgedBy = strike.dodgedBy;
-      this.queueDialogMessages(runAwayLines([partingDodgeLine(strike.dodgedBy, enemy, hero.name)]));
+    const { dodgedBy } = strike;
+    if (dodgedBy) {
+      this.spendDodge(dodgedBy);
+      report.dodgedBy = dodgedBy;
+      this.queueDialogMessages(runAwayLines([partingDodgeLine(dodgedBy, enemy, hero.name)]));
       return report;
     }
 
     // A strike that empties HP takes it to 0 (never below). The page admits the hero to the Hospital on the way out
     // (docs/Quest-Rooms-Spec.md 5.8) when the report says `emptied`; that is not a lost fight, so no defeat callback fires.
     const damage = Math.min(strike.damage, hp);
-    if (damage > 0) this.hurtHero(hero, damage);
+    const hasDamage = damage > 0;
+    if (hasDamage) this.hurtHero(hero, damage);
 
     report.damage = damage;
     report.softener = strike.softener;
@@ -429,9 +436,12 @@ export class BattleService {
 
   /** A dodge that spends something (a vanish, the Ninja's owed miss, a hammer skip) spends it; ice and agility keep nothing. */
   private spendDodge(dodge: PartingDodge): void {
-    if (dodge === 'vanish') this.vanishOwed = false;
-    if (dodge === 'shadow') this.firstStrikeOwed = false;
-    if (dodge === 'hammer') this.strikeSkips--;
+    const isVanish = dodge === 'vanish';
+    if (isVanish) this.vanishOwed = false;
+    const isShadow = dodge === 'shadow';
+    if (isShadow) this.firstStrikeOwed = false;
+    const isHammer = dodge === 'hammer';
+    if (isHammer) this.strikeSkips--;
   }
 
   /**
@@ -451,7 +461,8 @@ export class BattleService {
     this.clearStrikeTimeout();
     this.strikeTimeout = setTimeout(() => {
       this.strikeTimeout = null;
-      if (this.state.currentEnemy) {
+      const hasEnemy = Boolean(this.state.currentEnemy);
+      if (hasEnemy) {
         this.performEnemyTurn();
       } else {
         // If no enemy, just go back to player turn
@@ -488,9 +499,10 @@ export class BattleService {
     this.battleCallbacks.onDamage?.('enemy', damage, isFinalBlow);
     this.queueDialogMessages(choreUsedLines(this.heroName(), task.name, enemy, damage));
 
+    const hasNoStrikeWaiting = this.state.pendingPlayerDamage === 0;
     if (isFinalBlow) {
       this.defeatEnemy(enemy);
-    } else if (this.state.pendingPlayerDamage === 0) {
+    } else if (hasNoStrikeWaiting) {
       // A chore earns a fresh clock (a strike that is already waiting restarts it when it lands)
       this.stopAttackTimer();
       this.startAttackTimer();
@@ -514,14 +526,16 @@ export class BattleService {
     for (const task of this.state.combatTasks) {
       const shouldSkipTask = !wanted.has(task.id) || task.isCompleted;
       if (shouldSkipTask) continue;
-      if (openChores(this.state.combatTasks) <= 1) break;
+      const isLastOpenChore = openChores(this.state.combatTasks) <= 1;
+      if (isLastOpenChore) break;
 
       task.isCompleted = true;
       enemy.health -= this.choreDamage(enemy, false);
       restored++;
     }
 
-    if (restored > 0) {
+    const hasRestored = restored > 0;
+    if (hasRestored) {
       this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
       this.notifyEnemyHealthChange();
     }
@@ -561,14 +575,16 @@ export class BattleService {
    * beast strikes. Does nothing while the clock is stopped.
    */
   public tick(): void {
-    if (this.attackTimerInterval === null) return;
+    const isClockStopped = this.attackTimerInterval === null;
+    if (isClockStopped) return;
 
     // Frozen: the bar stands where the ice caught it and the beast cannot strike
     const { remaining, percent } = clockReading(Date.now(), this.frozenUntil, this.attackDeadline, this.state.attackDuration);
     this.state.timeRemaining = remaining;
     this.state.enemyAttackTimer = percent;
 
-    if (remaining <= 0) {
+    const isTimeUp = remaining <= 0;
+    if (isTimeUp) {
       this.stopAttackTimer();
       this.performEnemyTurn();
     }
@@ -697,7 +713,8 @@ export class BattleService {
   public weakenEnemy(factor: number): number {
     const enemy = this.state.currentEnemy;
     if (!enemy) return 0;
-    if (!(factor > 0)) return enemy.attack;
+    const isUsableFactor = factor > 0;
+    if (!isUsableFactor) return enemy.attack;
     enemy.attack = Math.max(1, (enemy.attack || 10) * factor);
     return enemy.attack;
   }
@@ -708,7 +725,8 @@ export class BattleService {
    * now in force (several wands multiply).
    */
   public scaleCooldown(factor: number): number {
-    if (factor > 0) this.cooldownScale *= factor;
+    const isUsableFactor = factor > 0;
+    if (isUsableFactor) this.cooldownScale *= factor;
     return this.cooldownScale;
   }
 
@@ -732,14 +750,15 @@ export class BattleService {
     this.stopAttackTimer();
 
     // A strike is already waiting for the hero: one at a time
-    if (this.state.pendingPlayerDamage > 0) return;
+    if (this.hasPendingDamage()) return;
 
     const enemy = this.state.currentEnemy;
     const isBeastGone = !enemy || enemy.health <= 0;
     if (isBeastGone) return;
 
     // A Ninja is never where the first strike lands
-    if (this.firstStrikeOwed) {
+    const isFirstStrikeOwed = this.firstStrikeOwed;
+    if (isFirstStrikeOwed) {
       this.firstStrikeOwed = false;
       this.skipStrike(shadowStrikeLine(enemy, this.heroName()));
       return;
@@ -750,7 +769,8 @@ export class BattleService {
       this.skipStrike(frozenStrikeLine(enemy));
       return;
     }
-    if (this.strikeSkips > 0) {
+    const isStrikeSkipOwed = this.strikeSkips > 0;
+    if (isStrikeSkipOwed) {
       this.strikeSkips--;
       this.skipStrike(stunnedStrikeLine(enemy));
       return;
@@ -790,7 +810,8 @@ export class BattleService {
    */
   public applyPendingDamage(): void {
     const damage = this.state.pendingPlayerDamage;
-    if (damage <= 0) {
+    const isNothingWaiting = damage <= 0;
+    if (isNothingWaiting) {
       // Nothing was waiting: give the move back and start the clock
       this.setPlayerTurnState(true);
       this.startAttackTimer();

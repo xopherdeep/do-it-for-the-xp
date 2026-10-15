@@ -37,9 +37,11 @@ export async function setBloodMoonEvery(runs: TempleRuns, templeId: string, user
     entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, nextWeekly(new Date().toISOString()));
   }
   const state = runs.templeStates[templeId];
-  if (entry && state && runs.heroByTemple.get(templeId) === userId) {
-    state.bloodMoonEvery = entry.bloodMoonEvery;
-    state.bloodMoonAt = entry.bloodMoonAt;
+  const scheduled = entry;
+  const isHeroRunOpen = scheduled && state && runs.heroByTemple.get(templeId) === userId;
+  if (isHeroRunOpen) {
+    state.bloodMoonEvery = scheduled.bloodMoonEvery;
+    state.bloodMoonAt = scheduled.bloodMoonAt;
   }
   return entry;
 }
@@ -49,7 +51,8 @@ export async function bloodMoon(runs: TempleRuns, templeId: string, userId: stri
   await runs.flushProgress();
 
   const saved = await readSavedProgress(userId, templeId);
-  if (saved === undefined) return null;
+  const isUnreadable = saved === undefined;
+  if (isUnreadable) return null;
 
   const open = runs.heroByTemple.get(templeId) === userId;
   const before = saved ?? (open ? progressSnapshot(runs, templeId) : undefined);
@@ -57,7 +60,8 @@ export async function bloodMoon(runs: TempleRuns, templeId: string, userId: stri
 
   const reset = resetTempleProgress(before);
   // A weekly moon keeps its cadence: the next one a week on from the one spent (or from tonight)
-  if (before.bloodMoonEvery === 'weekly') reset.bloodMoonAt = nextWeekly(before.bloodMoonAt ?? new Date().toISOString());
+  const isWeekly = before.bloodMoonEvery === 'weekly';
+  if (isWeekly) reset.bloodMoonAt = nextWeekly(before.bloodMoonAt ?? new Date().toISOString());
 
   // Saved before the run is swapped, so a save that fails leaves the hero's run standing (not forgotten and stranded)
   const entry = await saveReset(runs, templeId, userId, reset, open);
@@ -107,7 +111,8 @@ async function saveReset(
   // Not a read set after this one (the temple went to another hero meanwhile)
   const isMarkerStanding = runs.reads.get(templeId) === marker;
   if (isMarkerStanding) runs.reads.delete(templeId);
-  if (!entry && isMarkerStanding) runs.queueSave(templeId);
+  const shouldResave = !entry && isMarkerStanding;
+  if (shouldResave) runs.queueSave(templeId);
   return entry;
 }
 

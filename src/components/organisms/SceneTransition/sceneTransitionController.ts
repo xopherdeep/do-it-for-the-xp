@@ -32,13 +32,15 @@ export interface AreaCard {
   element?: string;
 }
 
-export const state = reactive<{
+interface TransitionState {
   plan: TransitionPlan | null;
   phase: TransitionPhase;
   card: AreaCard | null;
   /** Where on screen the hero tapped the building, for the doors' camera push; null to push into the middle. */
   focus: DoorFocus | null;
-}>({
+}
+
+export const state = reactive<TransitionState>({
   plan: null,
   phase: "idle",
   card: null,
@@ -66,11 +68,12 @@ let cardTimer: ReturnType<typeof setTimeout> | undefined;
 
 const showCard = (plan: TransitionPlan) => {
   clearTimeout(cardTimer);
-  if (!plan.title) {
+  const title = plan.title;
+  if (!title) {
     state.card = null;
     return;
   }
-  state.card = { title: plan.title, subtitle: plan.subtitle, element: plan.element };
+  state.card = { title, subtitle: plan.subtitle, element: plan.element };
   cardTimer = setTimeout(() => (state.card = null), CARD_MS);
 };
 
@@ -119,16 +122,19 @@ export const cover = (plan: TransitionPlan): Promise<void> => {
     const superseded = coverWaiter !== mine;
     if (superseded) return;
     coverWaiter = null;
-    if (state.phase === "cover") state.phase = "covered";
+    const isStillCovering = state.phase === "cover";
+    if (isStillCovering) state.phase = "covered";
   });
 };
 
 /** Lift the cover. Resolves when the effect reports 'revealed', or at the hard cap; then back to idle. */
 export const reveal = (): Promise<void> => {
-  if (state.phase === "idle") return Promise.resolve();
+  const isIdle = state.phase === "idle";
+  if (isIdle) return Promise.resolve();
   settle(coverWaiter);
   state.phase = "reveal";
-  if (state.plan) showCard(state.plan);
+  const plan = state.plan;
+  if (plan) showCard(plan);
   let mine: Waiter | null = null;
   return wait((waiter) => {
     mine = waiter;

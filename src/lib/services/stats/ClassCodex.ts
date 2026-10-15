@@ -114,8 +114,10 @@ const evolutionsOf = (name: string, levels: Record<string, number>): CodexEvolut
   }));
 
 const codexTier = (tier: number | undefined): 1 | 2 | 3 => {
-  if (tier === 3) return 3;
-  if (tier === 2) return 2;
+  const isTopTier = tier === 3;
+  if (isTopTier) return 3;
+  const isMiddleTier = tier === 2;
+  if (isMiddleTier) return 2;
   return 1;
 };
 

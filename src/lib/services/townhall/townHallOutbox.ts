@@ -100,12 +100,16 @@ function sentAs(post: TownHallPost, remoteId: number): TownHallPost {
  * late answer for a post the Game Master rejected) changes nothing, so a sent post is never queued and sent twice.
  */
 export function settle(post: TownHallPost, result: SendResult): { post: TownHallPost; unlink: boolean } {
-  if (post.status !== "sending") return { post, unlink: false };
-  if (result.ok) return { post: sentAs(post, result.remoteId), unlink: false };
+  const isStray = post.status !== "sending";
+  if (isStray) return { post, unlink: false };
+  const isAccepted = result.ok;
+  if (isAccepted) return { post: sentAs(post, result.remoteId), unlink: false };
   const siteCode = siteCodeOf(result);
   // A duplicate: the site has the comment already, from a try whose answer was lost (its id is not known)
-  if (siteCode === COMMENT_DUPLICATE) return { post: sentAs(post, 0), unlink: false };
-  if (siteCode === COMMENT_FLOOD) return { post: { ...post, status: "queued", error: siteCode }, unlink: false };
+  const isDuplicate = siteCode === COMMENT_DUPLICATE;
+  if (isDuplicate) return { post: sentAs(post, 0), unlink: false };
+  const isFlood = siteCode === COMMENT_FLOOD;
+  if (isFlood) return { post: { ...post, status: "queued", error: siteCode }, unlink: false };
   const refusesText = result.code === "invalid" || NOT_OPEN_FOR_COMMENTS.has(siteCode);
   if (refusesText) {
     return { post: { ...post, status: "failed", error: result.message || result.code }, unlink: false };
@@ -156,7 +160,8 @@ export type PostedOutcome = "to-gm" | "to-site" | "bug" | "on-file-hero" | "on-f
  * the developers, a Game Master's topic or comment to the site.
  */
 export function postedOutcome(post: TownHallPost, linked: boolean, isGameMaster: boolean): PostedOutcome {
-  if (post.status === "awaiting-gm") return "to-gm";
+  const isAwaitingGm = post.status === "awaiting-gm";
+  if (isAwaitingGm) return "to-gm";
   if (!linked) return isGameMaster ? "on-file-gm" : "on-file-hero";
   return post.kind === "bug" ? "bug" : "to-site";
 }
@@ -170,7 +175,8 @@ export function waitingFor(posts: TownHallPost[], heroId: string): TownHallPost[
 
 /** A failed post with new text starts again, with its error cleared. Any other post is left alone. */
 export function editPost(post: TownHallPost, draft: PostDraft, isGameMaster: boolean): TownHallPost {
-  if (post.status !== "failed") return post;
+  const canEdit = post.status === "failed";
+  if (!canEdit) return post;
   return {
     id: post.id,
     kind: post.kind,

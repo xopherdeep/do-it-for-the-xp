@@ -66,7 +66,8 @@ export function migrateVisitedRooms(runs: TempleRuns, templeId: string): void {
       if (isNotARoom) continue;
       
         // Check if this room was marked as visited in the old system
-        if ((room as any).visited === true) {
+        const isMarkedVisited = (room as any).visited === true;
+        if (isMarkedVisited) {
           // Mark it as visited in the new coordinate-based system
           const posKey = roomPositionKey(floorId, [row, col]);
           temple.visitedPositions.add(posKey);
@@ -131,7 +132,7 @@ function arrive(runs: TempleRuns, templeId: string, level: string, position: [nu
 
   const room = runs.dungeonManager.getRoom(templeId, position, level);
   const shouldSealOnEntry = room?.content?.lockOnEnter && !isRoomCleared(runs, templeId, level, position);
-  if (room && shouldSealOnEntry) {
+  if (shouldSealOnEntry) {
     // Lock all 4 directions (markRoomCleared opens them again after the fight)
     sealRoom(runs, templeId, level, position, room);
 

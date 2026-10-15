@@ -20,7 +20,8 @@ export function createProfilePersister(users: Record<string, any>): (userId: str
     pendingPersist.clear();
     if (!profileDb) profileDb = new ProfileDb(profileStorage);
     for (const userId of userIds) {
-      if (!users[userId]) continue;
+      const isGone = !users[userId];
+      if (isGone) continue;
       try {
         await profileDb.setProfile(JSON.parse(JSON.stringify(users[userId])));
       } catch (error) {

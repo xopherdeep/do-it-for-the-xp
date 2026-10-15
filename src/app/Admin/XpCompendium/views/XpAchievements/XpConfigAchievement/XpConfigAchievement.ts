@@ -81,7 +81,7 @@ export default defineComponent({
 
     // The quest app's purple, cream text on it (the Beast wizard wears it too); the shop item wizard wears Goods red
     const { rootClass, rootStyle } = useAppSkin("quests");
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
 
     // Destructure form to make them available to template
     const {
@@ -102,7 +102,7 @@ export default defineComponent({
       dueModalOpen,
       fibonacciIndex,
       fibonacciArray,
-      displayFibonacciValue,
+      formatFibonacciValue: displayFibonacciValue,
       handleDifficultyChange,
 
       // Selectors
@@ -111,9 +111,9 @@ export default defineComponent({
 
       // Actions
       loadData,
-      markReady,
-      flushSave,
-      pickCategory,
+      confirmReady: markReady,
+      savePending: flushSave,
+      selectCategory: pickCategory,
       addCategory,
       editCategories,
       deleteCategory,
@@ -152,7 +152,8 @@ export default defineComponent({
     const open = async (questId: string) => {
       try {
         const loaded = await loadData(questId);
-        if (openedFor.value !== questId) {
+        const isNewlyOpened = openedFor.value !== questId;
+        if (isNewlyOpened) {
           openedFor.value = questId;
           isDebut.value = !loaded.isSaved || loaded.wasDraft;
           position.value = openingIndex(steps, achievement.value, loaded.isSaved);
@@ -198,7 +199,8 @@ export default defineComponent({
 
     const goToStep = (id: QuestStepId) => {
       const target = stepIndexOf(steps, id);
-      if (target >= 0) position.value = target;
+      const isKnownStep = target >= 0;
+      if (isKnownStep) position.value = target;
     };
 
     // ---- The Save chip: autosave's state in words; a draft is saved but hidden from heroes -----------------------------
@@ -211,8 +213,10 @@ export default defineComponent({
     const saveChip = computed(() => SAVE_CHIPS[saveState.value] || null);
 
     const clickSaveChip = async () => {
-      if (saveState.value === "error") return saveNow();
-      if (saveState.value === "draft") {
+      const isError = saveState.value === "error";
+      if (isError) return saveNow();
+      const isDraft = saveState.value === "draft";
+      if (isDraft) {
         const missing = questMissing(achievement.value);
         await say(
           "Draft quest",
@@ -239,10 +243,12 @@ export default defineComponent({
     const fanfareSubtitle = computed(() => readySubtitle(achievement.value, heroName));
 
     const makeReady = async () => {
-      if (isFinishing.value || showFanfare.value) return;
+      const isBusy = isFinishing.value || showFanfare.value;
+      if (isBusy) return;
       isFinishing.value = true;
       try {
-        if (!(await markReady())) {
+        const isMarkedReady = await markReady();
+        if (!isMarkedReady) {
           play$fx("no");
           void say("It could not be saved", "Try Ready once more.");
           return;
@@ -272,8 +278,9 @@ export default defineComponent({
 
     const minEndDate = computed(() => {
       // Use startsOn if available, otherwise today
-      if (achievement.value.startsOn) {
-        return achievement.value.startsOn;
+      const startsOn = achievement.value.startsOn;
+      if (startsOn) {
+        return startsOn;
       }
       return new Date().toISOString();
     });

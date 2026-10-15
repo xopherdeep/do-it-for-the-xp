@@ -105,7 +105,8 @@ export default defineComponent({
         };
 
         const onBackdropClick = () => {
-            if (props.backdropDismiss) {
+            const canDismissByBackdrop = props.backdropDismiss;
+            if (canDismissByBackdrop) {
                 dismiss();
             }
         };

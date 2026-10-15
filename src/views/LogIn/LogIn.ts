@@ -87,9 +87,7 @@ export default defineComponent({
 
   // Clear timer when component is deactivated (for kept-alive components)
   deactivated(): void {
-    if (this.interval) {
-      clearInterval(this.interval as ReturnType<typeof setInterval>);
-    }
+    clearInterval(this.interval as ReturnType<typeof setInterval>);
 
     this.clearInactivityTimer();
   },
@@ -97,7 +95,8 @@ export default defineComponent({
   // Clear timer when component is unmounted (destroyed)
   unmounted(): void {
     this.clearInactivityTimer();
-    if ((this as any).stopAnimation) {
+    const canStopAnimation = Boolean((this as any).stopAnimation);
+    if (canStopAnimation) {
       (this as any).stopAnimation();
     }
   },
@@ -160,7 +159,8 @@ export default defineComponent({
       setBGStyle("backgroundSize", `cover`);
       this.toggleBGDirection = !this.toggleBGDirection;
 
-      if (this.toggleBGDirection)
+      const isFlipped = this.toggleBGDirection;
+      if (isFlipped)
         setBGStyle("backgroundPosition", `right center, left center`);
       else setBGStyle("backgroundPosition", `left center, right center`);
 

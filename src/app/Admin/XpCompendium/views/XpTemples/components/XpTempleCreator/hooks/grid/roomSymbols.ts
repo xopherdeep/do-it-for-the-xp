@@ -97,7 +97,8 @@ export const buildRoomRecord = (
 ): Room => {
   const roomData: Room = { type: newType };
 
-  if (newType === "boss") {
+  const isBoss = newType === "boss";
+  if (isBoss) {
     sideData = lockBossSides(sideData);
   }
 
@@ -105,7 +106,8 @@ export const buildRoomRecord = (
     roomData.sides = sideData;
   }
 
-  if (Object.keys(contentData).length > 0) {
+  const hasContent = Object.keys(contentData).length > 0;
+  if (hasContent) {
     roomData.content = contentData;
   }
 

@@ -41,7 +41,8 @@ export default dC({
 
       // Occasionally play grasshopper/cricket sounds
       grasshopperInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.7) {
+        const isCricketChirp = Math.random() > 0.7;
+        if (isCricketChirp) {
           const cricketSound = new Audio();
           cricketSound.src = "https://freesound.org/data/previews/425/425556_7552848-lq.mp3"; // Cricket/grasshopper sound
           cricketSound.volume = 0.2 + (Math.random() * 0.2); // Random volume for variety

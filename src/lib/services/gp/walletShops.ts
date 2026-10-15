@@ -108,7 +108,8 @@ export function walletOfferAt(place: string | null | undefined, gp?: GpPurse | n
     hint,
   };
 
-  if (walletLimitOf(gp) >= tier.limit) {
+  const isOwned = walletLimitOf(gp) >= tier.limit;
+  if (isOwned) {
     return { ...base, offer: null, status: "owned", note: "You already carry a bigger wallet." };
   }
   const isTierAhead = !next || next.limit !== tier.limit;
@@ -116,7 +117,8 @@ export function walletOfferAt(place: string | null | undefined, gp?: GpPurse | n
     return { ...base, offer: null, status: "ahead", note: hint };
   }
   const heroLevel = Number.isFinite(Number(level)) ? Number(level) : 1;
-  if (heroLevel < next.minLevel) {
+  const isUnderLevel = heroLevel < next.minLevel;
+  if (isUnderLevel) {
     return { ...base, offer: next, status: "locked", note: `LVL ${next.minLevel} needed` };
   }
   return { ...base, offer: next, status: "for-sale", note: `Yours for ${gold(next.price)}.` };

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Round flakes in three depths with a sine drift, slow and soft. */
@@ -6,7 +6,7 @@ export const snow: EffectFactory = () => {
   const rng = makeRng(31);
   let x = new Float32Array(0), y = new Float32Array(0), d = new Float32Array(0), ph = new Float32Array(0);
   let count = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 40, 260);
       x = new Float32Array(count); y = new Float32Array(count); d = new Float32Array(count); ph = new Float32Array(count);
@@ -17,8 +17,10 @@ export const snow: EffectFactory = () => {
       for (let i = 0; i < count; i++) {
         y[i] += fall * (0.4 + d[i]);
         x[i] += Math.sin(f.time * (0.6 + d[i]) + ph[i]) * 18 * f.dt + 6 * f.dt;
-        if (y[i] > f.height + 4) { y[i] = -4; x[i] = rng() * f.width; }
-        if (x[i] > f.width + 4) x[i] = -4;
+        const isPastBottom = y[i] > f.height + 4;
+        if (isPastBottom) { y[i] = -4; x[i] = rng() * f.width; }
+        const isPastRightEdge = x[i] > f.width + 4;
+        if (isPastRightEdge) x[i] = -4;
       }
     },
     draw(f) {
@@ -34,5 +36,4 @@ export const snow: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

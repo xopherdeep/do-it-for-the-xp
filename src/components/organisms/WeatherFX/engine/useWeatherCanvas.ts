@@ -45,6 +45,6 @@ export function useWeatherCanvas(
 
   return {
     /** For the dev page: live budget and fps; null before mount. */
-    stats: () => (handle ? { budget: handle.budget, fps: handle.fps } : null),
+    getStats: () => (handle ? { budget: handle.budget, fps: handle.fps } : null),
   };
 }

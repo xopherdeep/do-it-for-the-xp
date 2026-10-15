@@ -7,7 +7,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 /**
  * The class's say on a win's pay (docs/Items-And-Classes-Contract.md, C), through useBattleOutcome's
- * celebrateVictory: the Thief's GP, the Monk's AP, the Mage's MP and the Paladin's HP. Rewards are paid the
+ * startVictory: the Thief's GP, the Monk's AP, the Mage's MP and the Paladin's HP. Rewards are paid the
  * moment the beast falls, so the store is checked right after the call; the celebration that follows runs on
  * timers the test never advances. Fights leave damage behind: a win does not fill HP. A defeat admits the hero to
  * the Hospital (BattleOutcomeDefeat.spec.ts).
@@ -84,10 +84,10 @@ const rig = (kind: "free" | "quest" | "temple", encounter: Partial<Encounter> | 
   const deps = {
     ctx: kind === "temple" ? { kind, userId: HERO_ID, beastIds: [], ...ROOM } : { kind, userId: HERO_ID, questId: "q1", beastIds: [] },
     encounter: ref(encounter as Encounter | null),
-    dialog: { clear: jest.fn(), enqueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
+    dialog: { clear: jest.fn(), addToQueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
     audio: { playSound: jest.fn(), playVictory: jest.fn(), stopBgm: jest.fn() },
-    background: { collapse: jest.fn().mockResolvedValue(undefined) },
-    feedback: { victory: jest.fn() },
+    background: { playCollapse: jest.fn().mockResolvedValue(undefined) },
+    feedback: { playVictory: jest.fn() },
     enemyAnimationClass: ref(""),
     router: { replace: jest.fn() },
     presentVictory,
@@ -148,7 +148,7 @@ describe("useBattleOutcome: class passives on a win", () => {
   it("a Warrior is paid the fight's plain rewards: AP only for a free fight", async () => {
     addHero("Warrior");
     const { outcome, presentVictory } = rig("free", { label: "Socktopus", enemies: [beast()] });
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().ap.total).toBe(1);
@@ -160,7 +160,7 @@ describe("useBattleOutcome: class passives on a win", () => {
   it("a Monk gets +1 AP on every win, even a free fight's single point", async () => {
     addHero("Monk");
     const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().ap.total).toBe(2);
@@ -170,7 +170,7 @@ describe("useBattleOutcome: class passives on a win", () => {
   it("a Thief takes +25% GP from a quest tamed in battle", async () => {
     addHero("Thief");
     const { outcome } = rig("quest", questEncounter());
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(50);
@@ -181,7 +181,7 @@ describe("useBattleOutcome: class passives on a win", () => {
     addHero("Warrior");
     const encounter = { ...questEncounter(), rewards: { xp: 120, gp: 40, ap: 2 } };
     const { outcome, presentVictory } = rig("quest", encounter);
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().xp.now).toBe(150); // 120 + 25%
@@ -199,7 +199,7 @@ describe("useBattleOutcome: class passives on a win", () => {
     addHero("Warrior");
     const encounter = { ...questEncounter(true), rewards: { xp: 120, gp: 40, ap: 2 } };
     const { outcome, presentVictory } = rig("quest", encounter);
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
     await runTimers();
 
@@ -213,7 +213,7 @@ describe("useBattleOutcome: class passives on a win", () => {
   it("a Mage gets 10% of max MP back on a win and keeps the damage taken; a Paladin heals 10% HP", async () => {
     addHero("Mage");
     let { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
     expect(stats().mp.now).toBe(18);
     expect(stats().hp.now).toBe(20); // the fight's damage stays: the Hospital and the Hotel matter
@@ -222,7 +222,7 @@ describe("useBattleOutcome: class passives on a win", () => {
     addHero("Paladin");
     const spy = jest.spyOn(useUserStore(), "updateUserHP");
     ({ outcome } = rig("free", { label: "Socktopus", enemies: [beast()] }));
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ userId: HERO_ID, amount: 10 });
@@ -234,7 +234,7 @@ describe("useBattleOutcome: class passives on a win", () => {
     addHero("Warrior");
     const spy = jest.spyOn(useUserStore(), "updateUserHP");
     const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
     expect(spy).not.toHaveBeenCalled();
     expect(stats().hp.now).toBe(20);
@@ -243,7 +243,7 @@ describe("useBattleOutcome: class passives on a win", () => {
   it("a held quest (approval needed) pays nothing now, so the class bonus waits with it", async () => {
     addHero("Thief");
     const { outcome } = rig("quest", questEncounter(true));
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(0);
@@ -285,7 +285,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Thief");
     const encounter = roomQuestEncounter();
     const { outcome } = rig("temple", encounter);
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(50);
@@ -302,7 +302,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Thief");
     const encounter = roomQuestEncounter(true);
     const { outcome, presentVictory } = rig("temple", encounter);
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(mockCompleteQuest).toHaveBeenCalledWith(encounter.quest, HERO_ID, "battle");
@@ -320,7 +320,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     const hero = useUserStore().users[HERO_ID] as { questEffects?: { trustedUntil?: string } };
     hero.questEffects = { trustedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString() };
     const { outcome } = rig("temple", roomQuestEncounter(true));
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(mockCompleteQuest).not.toHaveBeenCalled();
@@ -332,7 +332,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Thief");
     mockIsQuestStillOpen.mockResolvedValue(false);
     const { outcome, presentVictory } = rig("temple", roomQuestEncounter());
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(0);
@@ -349,7 +349,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Warrior");
     mockIsQuestStillOpen.mockResolvedValue(false);
     const { outcome } = rig("quest", questEncounter());
-    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(0);
@@ -362,7 +362,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Warrior");
     mockIsQuestStillOpen.mockRejectedValue(new Error("storage is gone"));
     const { outcome } = rig("temple", roomQuestEncounter());
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(40);
@@ -372,7 +372,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
   it("a dormant or classic room pays the room and opens it, with no quest to log or board to re-read", async () => {
     addHero("Warrior");
     const { outcome } = rig("temple", { label: "Dish Goblin", enemies: [beast()], rewards: { xp: 5, gp: 6, ap: 1 }, roomKey: "Q0001" });
-    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
     await flush();
 
     expect(stats().gp.wallet).toBe(6);
@@ -386,7 +386,7 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     addHero("Warrior");
     const { outcome, deps } = rig("temple", roomQuestEncounter());
     outcome.handleEscape();
-    const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
+    const queued = (deps.dialog.addToQueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
     queued[0]();
     jest.advanceTimersByTime(1000);
 
@@ -493,7 +493,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("still fades the beast and leaves, as before", () => {
       const { outcome, deps } = rig("quest", questEncounter());
       outcome.handleEscape(escape());
-      const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
+      const queued = (deps.dialog.addToQueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
       queued[0]();
       jest.advanceTimersByTime(1000);
       expect(deps.enemyAnimationClass.value).toBe("fadeout");
@@ -505,7 +505,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("a paid win clears the hero's marks on the quest", async () => {
       markedHero(3);
       const { outcome } = rig("quest", questEncounter());
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
 
       expect(marks()).toBe(0);
@@ -515,7 +515,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("a win held for the Game Master clears them too", async () => {
       markedHero(2);
       const { outcome } = rig("quest", questEncounter(true));
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
 
       expect(mockCompleteQuest).toHaveBeenCalled();
@@ -525,7 +525,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("a quest room's win clears them, and the room still opens", async () => {
       markedHero(1);
       const { outcome } = rig("temple", roomQuestEncounter());
-      void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
       await flush();
 
       expect(marks()).toBe(0);
@@ -536,7 +536,7 @@ describe("useBattleOutcome: grudge marks", () => {
       markedHero(2);
       mockIsQuestStillOpen.mockResolvedValue(false);
       const { outcome } = rig("quest", questEncounter());
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
 
       expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
@@ -549,7 +549,7 @@ describe("useBattleOutcome: grudge marks", () => {
       useUserStore().addQuestGrudge(HERO_ID, "q-other", 5);
       useUserStore().addQuestGrudge(OTHER_HERO, "q1", 5);
       const { outcome } = rig("quest", questEncounter());
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
 
       expect(marks(HERO_ID, "q1")).toBe(0);
@@ -560,7 +560,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("a free fight's win touches no marks", async () => {
       markedHero(2);
       const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
       expect(marks()).toBe(2);
     });
@@ -568,7 +568,7 @@ describe("useBattleOutcome: grudge marks", () => {
     it("running again after a clear starts over at one mark", async () => {
       markedHero(3);
       const { outcome } = rig("quest", questEncounter());
-      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      void outcome.startVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
       await flush();
       rig("quest", questEncounter()).outcome.handleEscape(escape());
       expect(marks()).toBe(1);

@@ -83,13 +83,16 @@ export default defineComponent({
   },
   setup(props) {
     const hpProgress = computed(() => {
-      if (!props.stats?.hp) return 0;
-      return (props.stats.hp.now / Math.max(props.stats.hp.max, 1)) * 100;
+      const hp = props.stats?.hp;
+      if (!hp) return 0;
+      return (hp.now / Math.max(hp.max, 1)) * 100;
     });
 
     const mpProgress = computed(() => {
-      if (!props.stats?.mp) return 0;
-      return (props.stats.mp.now / Math.max(props.stats.mp.max, 1)) * 100;
+      const mp = props.stats?.mp;
+      if (!mp) return 0;
+      return (mp.now / Math.max(mp.max, 1)) * 100;
+
     });
 
 

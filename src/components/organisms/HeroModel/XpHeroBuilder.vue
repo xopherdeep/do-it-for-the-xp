@@ -224,13 +224,17 @@
     play$fx("select");
   };
 
+  /** Saving, or already gone: a second way out does nothing */
+  const isLeaving = () => saving.value || left.value;
+
   /** A changed build is thrown away by the portrait, so that asks first; a clean one goes at once */
   const usePortrait = async () => {
-    if (saving.value || left.value) return;
+    if (isLeaving()) return;
     if (dirty.value) {
       const leaving = await askToLeave();
       // Done, or another way out, may have won while the question was open
-      if (!leaving || saving.value || left.value) return;
+      const isStayingOrGone = !leaving || isLeaving();
+      if (isStayingOrGone) return;
     }
     play$fx("select");
     left.value = true;
@@ -256,7 +260,8 @@
 
   const changeDraft = (next: HeroLook) => {
     // A tap on the tile that is already chosen hands back the same look: nothing to remember, nothing to hear
-    if (saving.value || sameLook(next, draft.value)) return;
+    const isUnchanged = saving.value || sameLook(next, draft.value);
+    if (isUnchanged) return;
     history.value = pushHistory(history.value, draft.value);
     draft.value = next;
     hop();
@@ -274,12 +279,13 @@
   const undo = () => {
     if (saving.value) return;
     const previous = popHistory(history.value);
-    if (!previous.look) {
+    const previousLook = previous.look;
+    if (!previousLook) {
       play$fx("no");
       return;
     }
     history.value = previous.history;
-    draft.value = previous.look;
+    draft.value = previousLook;
     hop();
     play$fx("cursor");
   };
@@ -330,7 +336,8 @@
     })();
     pending = question;
     const settled = (): void => {
-      if (pending === question) pending = null;
+      const isStillPending = pending === question;
+      if (isStillPending) pending = null;
     };
     question.then(settled, settled);
     return question;

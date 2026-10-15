@@ -49,13 +49,17 @@ const AXES: Axis[] = [0, 1, 2];
 const EPS = 1e-5;
 
 const lo = (b: Box, a: Axis): number => {
-  if (a === 0) return b.x;
-  if (a === 1) return b.y;
+  const isAxisX = a === 0;
+  if (isAxisX) return b.x;
+  const isAxisY = a === 1;
+  if (isAxisY) return b.y;
   return b.z;
 };
 const size = (b: Box, a: Axis): number => {
-  if (a === 0) return b.w;
-  if (a === 1) return b.h;
+  const isAxisX = a === 0;
+  if (isAxisX) return b.w;
+  const isAxisY = a === 1;
+  if (isAxisY) return b.h;
   return b.d;
 };
 const hi = (b: Box, a: Axis): number => lo(b, a) + size(b, a);
@@ -74,7 +78,8 @@ const isHidden = (box: Box, axis: Axis, positive: boolean, others: Box[]): boole
   const u = ((axis + 1) % 3) as Axis;
   const v = ((axis + 2) % 3) as Axis;
   for (const o of others) {
-    if (o === box) continue;
+    const isSelf = o === box;
+    if (isSelf) continue;
     const touching = Math.abs((positive ? lo(o, axis) : hi(o, axis)) - plane) < EPS;
     const swallowing = lo(o, axis) < plane - EPS && hi(o, axis) > plane + EPS;
     const cannotHideFace = !touching && !swallowing;
@@ -152,7 +157,8 @@ const bucketed = (boxes: Box[]): ((min: number[], max: number[]) => Box[]) => {
           const bucket = grid.get(cellKey(x, y, z));
           if (!bucket) continue;
           for (const index of bucket) {
-            if (seen[index] === query) continue;
+            const isSeenThisQuery = seen[index] === query;
+            if (isSeenThisQuery) continue;
             seen[index] = query;
             const o = boxes[index];
             const overlaps =
@@ -213,7 +219,8 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
     AXES.map((k) => Math.min(slabA[k], slabB[k])),
     AXES.map((k) => Math.max(slabA[k], slabB[k])),
   ).filter((o) => o !== box);
-  if (!neighbours.length) {
+  const hasNeighbours = neighbours.length > 0;
+  if (!hasNeighbours) {
     return [{ axis, positive, plane, u0: lo(box, u), u1: hi(box, u), v0: lo(box, v), v1: hi(box, v), color, ao: [1, 1, 1, 1], edges: [1, 1, 1, 1] }];
   }
   const us = steps(lo(box, u), hi(box, u));
@@ -234,10 +241,12 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
       const dv = bit & 2 ? AO_REACH : -AO_REACH;
       for (let i = 0; i < us.length; i++) {
         const su = us[i] + du;
-        if (su <= ou0 || su >= ou1) continue;
+        const isOutsideU = su <= ou0 || su >= ou1;
+        if (isOutsideU) continue;
         for (let j = 0; j < vs.length; j++) {
           const sv = vs[j] + dv;
-          if (sv > ov0 && sv < ov1) spots[i][j] |= 1 << bit;
+          const isInsideV = sv > ov0 && sv < ov1;
+          if (isInsideV) spots[i][j] |= 1 << bit;
         }
       }
     }
@@ -267,15 +276,24 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
   const used = us.slice(1).map(() => vs.slice(1).map(() => false));
   /** Is the shade the same at grid points (i, ja..jb) / (ia..ib, j)? */
   const isFlatAlongV = (i: number, ja: number, jb: number): boolean => {
-    for (let j = ja + 1; j <= jb; j++) if (aoAt[i][j] !== aoAt[i][ja]) return false;
+    for (let j = ja + 1; j <= jb; j++) {
+      const isShadeChanged = aoAt[i][j] !== aoAt[i][ja];
+      if (isShadeChanged) return false;
+    }
     return true;
   };
   const isFlatAlongU = (j: number, ia: number, ib: number): boolean => {
-    for (let i = ia + 1; i <= ib; i++) if (aoAt[i][j] !== aoAt[ia][j]) return false;
+    for (let i = ia + 1; i <= ib; i++) {
+      const isShadeChanged = aoAt[i][j] !== aoAt[ia][j];
+      if (isShadeChanged) return false;
+    }
     return true;
   };
   const isFlatRun = (flags: number[], a: number, b: number): boolean => {
-    for (let k = a + 1; k <= b; k++) if (flags[k] !== flags[a]) return false;
+    for (let k = a + 1; k <= b; k++) {
+      const isFlagChanged = flags[k] !== flags[a];
+      if (isFlagChanged) return false;
+    }
     return true;
   };
   /**
@@ -284,12 +302,17 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
    * (the band along a wall). And the stretch of each rim it touches must be all bevelled or all not.
    */
   const fits = (i0: number, i1: number, j0: number, j1: number): boolean => {
-    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (used[i][j]) return false;
+    for (let i = i0; i <= i1; i++)
+      for (let j = j0; j <= j1; j++) {
+        const isCellUsed = used[i][j];
+        if (isCellUsed) return false;
+      }
     let isOpen = true;
     for (let i = i0; i <= i1 + 1 && isOpen; i++) for (let j = j0; j <= j1 + 1 && isOpen; j++) isOpen = aoAt[i][j] === 1;
     const isAlongV = i0 === i1 && isFlatAlongV(i0, j0, j1 + 1) && isFlatAlongV(i0 + 1, j0, j1 + 1);
     const isAlongU = j0 === j1 && isFlatAlongU(j0, i0, i1 + 1) && isFlatAlongU(j0 + 1, i0, i1 + 1);
-    if (!isOpen && !isAlongV && !isAlongU) return false;
+    const isBlendMismatched = !isOpen && !isAlongV && !isAlongU;
+    if (isBlendMismatched) return false;
     return (
       (i0 > 0 || isFlatRun(lowU, j0, j1)) &&
       (i1 < cellsU - 1 || isFlatRun(highU, j0, j1)) &&
@@ -302,7 +325,8 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
   const quads: Quad[] = [];
   for (let j = 0; j < cellsV; j++) {
     for (let i = 0; i < cellsU; i++) {
-      if (used[i][j]) continue;
+      const isCellUsed = used[i][j];
+      if (isCellUsed) continue;
       let i1 = i;
       while (i1 + 1 < cellsU && fits(i, i1 + 1, j, j)) i1++;
       let j1 = j;

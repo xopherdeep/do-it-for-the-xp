@@ -1,0 +1,331 @@
+  .ability-manager {
+    height: 100%;
+  }
+
+  .ability-unlocked {
+    --ion-item-background: rgba(0, 255, 0, 0.1);
+  }
+
+  .ability-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .ability-grid-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #1a1a2e;
+    padding: 20px;
+  }
+
+  .grid-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ability-canvas {
+    position: relative;
+    width: 1000px;
+    height: 800px;
+    transform-origin: 0 0;
+  }
+
+  .ability-node {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+
+    &.real-life {
+      background-color: #3498db;
+
+      &:hover {
+        box-shadow: 0 0 15px #3498db;
+      }
+    }
+
+    &.in-game {
+      background-color: #9b59b6;
+
+      &:hover {
+        box-shadow: 0 0 15px #9b59b6;
+      }
+    }
+
+    &.time-mage {
+      background-color: #1abc9c;
+
+      &:hover {
+        box-shadow: 0 0 15px #1abc9c;
+      }
+    }
+
+    &.black-mage {
+      background-color: #e74c3c;
+
+      &:hover {
+        box-shadow: 0 0 15px #e74c3c;
+      }
+    }
+
+    &.white-mage {
+      background-color: #f1c40f;
+
+      &:hover {
+        box-shadow: 0 0 15px #f1c40f;
+      }
+    }
+
+    &.technician {
+      background-color: #3498db;
+
+      &:hover {
+        box-shadow: 0 0 15px #3498db;
+      }
+    }
+
+    // Status classes
+    &.status-available {
+      border: 3px solid #2ecc71;
+    }
+
+    &.status-unlocked {
+      border: 3px solid #f39c12;
+    }
+
+    &.status-used,
+    &.status-cooling {
+      border: 3px solid #7f8c8d;
+      opacity: 0.7;
+    }
+
+    &.status-locked {
+      border: 3px solid transparent;
+      opacity: 0.5;
+    }
+
+    .node-icon {
+      font-size: 24px;
+      color: white;
+    }
+
+    .node-tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      width: 200px;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: none;
+
+      .tooltip-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .tooltip-class {
+        font-size: 0.9em;
+        margin-bottom: 5px;
+      }
+
+      .tooltip-description {
+        font-size: 0.9em;
+        margin-bottom: 5px;
+      }
+
+      .tooltip-cost {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8em;
+
+        span {
+          padding: 2px 5px;
+          border-radius: 3px;
+
+          &:first-child {
+            background-color: #f39c12;
+          }
+
+          &:last-child {
+            background-color: #9b59b6;
+          }
+        }
+      }
+
+      .tooltip-frequency {
+        font-size: 0.8em;
+        margin-top: 5px;
+      }
+
+      .tooltip-status {
+        font-size: 0.8em;
+        margin-top: 5px;
+        font-weight: bold;
+      }
+    }
+
+    &:hover .node-tooltip {
+      display: block;
+    }
+  }
+
+  .ability-paths {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+
+    path {
+      stroke-width: 3px;
+      fill: none;
+
+      &.locked {
+        stroke: #7f8c8d;
+        stroke-dasharray: 5, 5;
+      }
+
+      &.unlocked {
+        stroke: #2ecc71;
+      }
+
+      &.neutral {
+        stroke: #7f8c8d;
+      }
+
+      &.active {
+        stroke: #f1c40f;
+        animation: pulse 2s infinite;
+      }
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      stroke-width: 3px;
+    }
+
+    50% {
+      stroke-width: 6px;
+    }
+
+    100% {
+      stroke-width: 3px;
+    }
+  }
+
+  .mini-map {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 200px;
+    height: 160px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid #fff;
+    border-radius: 5px;
+    overflow: hidden;
+    z-index: 20;
+  }
+
+  .mini-map-content {
+    position: relative;
+    width: 1000px;
+    height: 800px;
+    transform-origin: 0 0;
+  }
+
+  .mini-node {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+
+    &.real-life {
+      background-color: #3498db;
+    }
+
+    &.in-game {
+      background-color: #9b59b6;
+    }
+
+    &.time-mage {
+      background-color: #1abc9c;
+    }
+
+    &.black-mage {
+      background-color: #e74c3c;
+    }
+
+    &.white-mage {
+      background-color: #f1c40f;
+    }
+
+    &.technician {
+      background-color: #3498db;
+    }
+
+    &.status-available {
+      border: 1px solid #2ecc71;
+    }
+
+    &.status-unlocked {
+      border: 1px solid #f39c12;
+    }
+
+    &.status-used,
+    &.status-cooling {
+      opacity: 0.5;
+    }
+
+    &.status-locked {
+      opacity: 0.3;
+    }
+  }
+
+  .view-rectangle {
+    position: absolute;
+    border: 1px solid #fff;
+    box-sizing: border-box;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: auto; // the card holds its text and the preset button; 100% stretched it over whatever sits below
+    color: var(--ion-color-medium);
+
+    ion-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      text-align: center;
+      max-width: 300px;
+    }
+  }

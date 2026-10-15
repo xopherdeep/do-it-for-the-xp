@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Fast horizontal grains plus a tan haze band that gusts. */
@@ -6,7 +6,7 @@ export const sand: EffectFactory = () => {
   const rng = makeRng(83);
   let x = new Float32Array(0), y = new Float32Array(0), k = new Float32Array(0);
   let count = 0, gust = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 60, 260);
       x = new Float32Array(count); y = new Float32Array(count); k = new Float32Array(count);
@@ -17,7 +17,8 @@ export const sand: EffectFactory = () => {
       const v = (160 + f.intensity * 30) * (0.3 + gust) * f.dt;
       for (let i = 0; i < count; i++) {
         x[i] += v * (0.5 + k[i]); y[i] += Math.sin(f.time * 3 + k[i] * 7) * 14 * f.dt;
-        if (x[i] > f.width + 10) { x[i] = -10; y[i] = f.height * (0.3 + rng() * 0.7); }
+        const isPastRightEdge = x[i] > f.width + 10;
+        if (isPastRightEdge) { x[i] = -10; y[i] = f.height * (0.3 + rng() * 0.7); }
       }
     },
     draw(f) {
@@ -37,5 +38,4 @@ export const sand: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

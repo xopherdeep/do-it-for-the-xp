@@ -67,7 +67,8 @@ export default defineComponent({
             const newLastId = newVal[newVal.length - 1]?.id;
             const isInitialLoad = lastProcessedId.value === null;
 
-            if (newLastId !== lastProcessedId.value) {
+            const isNewMessage = newLastId !== lastProcessedId.value;
+            if (isNewMessage) {
                 scrollToBottom(isInitialLoad);
                 lastProcessedId.value = newLastId;
             }
@@ -82,7 +83,8 @@ export default defineComponent({
             // Re-scroll on any image load inside the container
             if (scrollContainer.value) {
                 scrollContainer.value.addEventListener('load', (e) => {
-                    if ((e.target as HTMLElement).tagName === 'IMG') {
+                    const isImage = (e.target as HTMLElement).tagName === 'IMG';
+                    if (isImage) {
                         scrollToBottom(false);
                     }
                 }, { capture: true, signal: listeners.signal });

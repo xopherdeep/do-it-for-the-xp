@@ -71,7 +71,8 @@ const isKey = (entry: Pick<InventoryEntry, 'kind'>): boolean => entry.kind === '
 /** The tier the hero has bought: 0 when storage is locked, a profile without the field, or a broken value. */
 export const storageTierOf = (user: StorageOwner | null | undefined): number => {
   const tier = Math.floor(Number(user?.storageTier));
-  if (!(tier >= 1)) return 0;
+  const isUnlocked = tier >= 1;
+  if (!isUnlocked) return 0;
   return Math.min(tier, STORAGE_TIERS.length);
 };
 
@@ -93,7 +94,8 @@ export const storageUsage = (user: StorageOwner | null | undefined): Usage => {
 /** What the Gold Bank sells next, or null when the hero already holds the biggest storage. */
 export const nextStorageTier = (user: StorageOwner | null | undefined): NextStorageTier | null => {
   const tier = storageTierOf(user);
-  if (tier >= STORAGE_TIERS.length) return null;
+  const isTopTier = tier >= STORAGE_TIERS.length;
+  if (isTopTier) return null;
   return { tier: tier + 1, ...STORAGE_TIERS[tier] };
 };
 
@@ -139,7 +141,8 @@ export const storagePurchase = (
   const inWallet = gp(wallet);
   const inSavings = gp(savings);
   const spendable = inWallet + (useSavings ? inSavings : 0);
-  if (spendable < next.price) {
+  const isShortOfGp = spendable < next.price;
+  if (isShortOfGp) {
     const short = next.price - inWallet;
     const shortAll = Math.max(0, next.price - inWallet - inSavings);
     return { ok: false, reason: 'gp', tier: next.tier, slots: next.slots, price: next.price, short, canTopUp: shortAll === 0, shortAll };
@@ -158,7 +161,8 @@ const idOf = (row: unknown): string | undefined => toEntry(row)?.id;
 export const rowsAfterTaking = (rows: unknown[], entryId: string, qty: number): unknown[] | null => {
   const entries = rows.map((row) => toEntry(row));
   const held = entries.reduce((sum, entry) => (entry?.id === entryId ? sum + entry.qty : sum), 0);
-  if (held < qty) return null;
+  const isShortOfStock = held < qty;
+  if (isShortOfStock) return null;
 
   let left = qty;
   const next: unknown[] = [];
@@ -171,7 +175,8 @@ export const rowsAfterTaking = (rows: unknown[], entryId: string, qty: number): 
     }
     const taken = Math.min(left, entry.qty);
     left -= taken;
-    if (entry.qty > taken) {
+    const hasLeftover = entry.qty > taken;
+    if (hasLeftover) {
       const raw = row as RawInventoryItem;
       const key = raw.qty == null && raw.quantity != null ? 'quantity' : 'qty';
       next.push({ ...raw, [key]: entry.qty - taken });
@@ -187,8 +192,10 @@ const movedRow = (rows: unknown[], stack: InventoryEntry, qty: number): RawInven
   delete moved.quantity;
   moved.qty = qty;
   // The stack merged what its rows knew, so the row that moves keeps the icon, blurb and kind any of them gave it
-  if (stack.faIcon && !moved.faIcon && !moved.icon) moved.faIcon = stack.faIcon;
-  if (stack.description && !moved.description && !moved.blurb) moved.description = stack.description;
+  const isMissingIcon = !!stack.faIcon && !moved.faIcon && !moved.icon;
+  if (isMissingIcon) moved.faIcon = stack.faIcon;
+  const isMissingBlurb = !!stack.description && !moved.description && !moved.blurb;
+  if (isMissingBlurb) moved.description = stack.description;
   const kindWasMerged = stack.kind !== 'misc' && toEntry(moved)?.kind !== stack.kind;
   if (kindWasMerged) moved.kind = stack.kind;
   return moved;
@@ -197,7 +204,8 @@ const movedRow = (rows: unknown[], stack: InventoryEntry, qty: number): RawInven
 /** The rows with `qty` more of a stack: added to the row the hero already has, or a row of its own at the end. */
 const rowsWithStack = (rows: unknown[], stack: InventoryEntry, qty: number, row: RawInventoryItem): unknown[] => {
   const index = rows.findIndex((existing) => idOf(existing) === stack.id);
-  if (index === -1) return [...rows, row];
+  const isNewStack = index === -1;
+  if (isNewStack) return [...rows, row];
   const held = rows[index] as RawInventoryItem;
   const key = held.qty == null && held.quantity != null ? 'quantity' : 'qty';
   const next = rows.slice();
@@ -207,7 +215,8 @@ const rowsWithStack = (rows: unknown[], stack: InventoryEntry, qty: number, row:
 
 /** The quantity asked for: the whole stack when none is named, a whole number from 1 up, never more than the stack holds. */
 const quantityOf = (stack: InventoryEntry, qty: number | undefined): number | null => {
-  if (qty === undefined) return stack.qty;
+  const isWholeStack = qty === undefined;
+  if (isWholeStack) return stack.qty;
   const wanted = Math.floor(Number(qty));
   return wanted >= 1 && wanted <= stack.qty ? wanted : null;
 };
@@ -223,7 +232,8 @@ const transfer = (
   const stack = inventoryOf({ inventory: from }).find((entry) => entry.id === entryId);
   if (!stack) return null;
   const amount = quantityOf(stack, qty);
-  if (amount === null) return null;
+  const isBadAmount = amount === null;
+  if (isBadAmount) return null;
   if (!canReceive(stack, inventoryOf({ inventory: to }))) return null;
   const left = rowsAfterTaking(from, entryId, amount);
   if (!left) return null;
@@ -238,7 +248,8 @@ const transfer = (
 export const moveToStorage = (user: StorageOwner | null | undefined, entryId: string, qty?: number): BagAndStorage | null => {
   const { max } = storageUsage(user);
   const moved = transfer(rowsOf(user?.inventory), rowsOf(user?.storage), entryId, qty, (stack, stored) => {
-    if (isKey(stack) || max <= 0) return false;
+    const isOffLimits = isKey(stack) || max <= 0;
+    if (isOffLimits) return false;
     return stored.some((entry) => entry.id === stack.id) || stored.length < max;
   });
   return moved && { inventory: moved.from, storage: moved.to };

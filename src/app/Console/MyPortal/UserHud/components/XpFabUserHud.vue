@@ -219,10 +219,13 @@ export default defineComponent({
 
     const clickAction = async (action) => {
       closeFab(); // Close the fab menu on any action
-      if (action.action === "openProfile") {
+      const isOpenProfile = action.action === "openProfile";
+      if (isOpenProfile) {
         emit("open-profile"); // Emit event for the parent
       }
-      if (action.action === "openPegasus") {
+      const isOpenPegasus = action.action === "openPegasus";
+      if (isOpenPegasus) {
+
         emit("open-pegasus"); // The portal (or the temple) owns the world map modal
       }
     };
@@ -346,164 +349,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-@use "@/styles/themes/earthbound.scss" as *;
-
-ion-fab {
-  &.fab-user {
-    z-index: 2100;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative; // Allow it to sit in the flow of the organism anchor
-    margin: 0;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: none;
-
-    ion-fab-list {
-      margin-top: 65px;
-
-      ion-col {
-        padding: 0;
-      }
-    }
-
-    .avatar-wrapper {
-      position: relative;
-      display: inline-block;
-
-      .avatar-button {
-        --border-radius: 50%;
-        --padding-start: 0;
-        --padding-end: 0;
-        --padding-top: 0;
-        --padding-bottom: 0;
-        --background: transparent;
-        --background-hover: transparent;
-        --background-focused: transparent;
-        --background-activated: transparent;
-        margin-bottom: 0.5rem;
-        margin-top: 0.5rem;
-        transition: all 0.3s ease;
-        overflow: hidden;
-
-        ion-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transform: scale(1.1); // Scale up to ensure it covers the original button area
-        }
-
-        &:hover {
-          transform: scale(1.12);
-        }
-      }
-
-      .avatar-badge {
-        position: absolute;
-        bottom: -2px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 20;
-        font-family: "StatusPlz", sans-serif;
-        font-size: 0.7rem;
-        padding: 3px 8px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-      }
-
-      .notification-badge {
-        position: absolute;
-        top: 2px;
-        right: -2px;
-        z-index: 21;
-        font-family: "StatusPlz", sans-serif;
-        font-size: 0.7rem;
-        padding: 2px 6px;
-        min-width: 1.3rem;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-        line-height: 1.1;
-        text-align: center;
-      }
-    }
-
-    .name-badge {
-      display: none; // Hidden in the organism view to keep it clean
-    }
-
-    // RPG Menu Header Styles (used in slot)
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding-top: 4px;
-
-      .title-group {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .menu-title {
-        font-family: "Apple Kid", "Twoson", sans-serif;
-        font-size: 1.5rem;
-        font-weight: normal;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-      }
-
-      .level-badge-pill {
-        background: #50fa7b;
-        color: #111;
-        font-weight: 900;
-        font-size: 0.75rem;
-        padding: 2px 8px;
-        border-radius: 4px;
-        text-transform: uppercase;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        font-family: "StatusPlz", sans-serif;
-
-        small {
-          font-size: 0.5rem;
-          font-weight: 700;
-          opacity: 0.7;
-        }
-      }
-
-      .menu-subtitle {
-        font-family: "StatusPlz", monospace;
-        font-size: 1.25rem;
-        opacity: 0.9;
-        letter-spacing: 3px; // Matching your update
-      }
-    }
-
-    .wallet {
-      float: right;
-      letter-spacing: 1px;
-    }
-  }
-}
-
-ion-button {
-  // width: 100%;
-  justify-content: flex-start !important;
-
-  * {
-    display: flex;
-    justify-content: flex-start !important;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpFabUserHud.scss" />

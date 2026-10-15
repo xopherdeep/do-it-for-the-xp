@@ -132,7 +132,7 @@ export function useRoomQuests(options: UseRoomQuestsOptions) {
   };
 
   /** Picks the quest for the room: its id, its tier as the room type, saved into the store; then the config shows. */
-  const pickQuest = async (questId: string): Promise<boolean> => {
+  const selectQuest = async (questId: string): Promise<boolean> => {
     const quest = quests.value.find((candidate) => String(candidate.id) === String(questId) && !candidate.draft);
     const room = roomData.value;
     const hasNothingToPick = !quest || !room;
@@ -177,7 +177,7 @@ export function useRoomQuests(options: UseRoomQuestsOptions) {
     loadQuests,
     openPicker,
     closePicker,
-    pickQuest,
+    selectQuest,
     createLibraryQuest,
     loadTestFightBeastIds,
   };

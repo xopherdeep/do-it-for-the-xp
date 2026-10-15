@@ -190,16 +190,18 @@ import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import type { BattleMenuAction } from "../battle/battleMenu";
 
+interface XpBattleRadialMenuProps {
+  actions: BattleMenuAction[];
+  heroAvatar?: string;
+  heroLook?: HeroLook;
+  animation?: HeroAnimation;
+  prompt?: string;
+  isOpen?: boolean;
+  disabled?: boolean;
+}
+
 const props = withDefaults(
-  defineProps<{
-    actions: BattleMenuAction[];
-    heroAvatar?: string;
-    heroLook?: HeroLook;
-    animation?: HeroAnimation;
-    prompt?: string;
-    isOpen?: boolean;
-    disabled?: boolean;
-  }>(),
+  defineProps<XpBattleRadialMenuProps>(),
   {
     heroAvatar: "",
     prompt: "",
@@ -228,17 +230,21 @@ const bribeFullAction = computed(() => props.actions.find((action) => action.id 
 const bribeLowAction = computed(() => props.actions.find((action) => action.id === "bribe-low"));
 
 const onActionClick = (action?: BattleMenuAction) => {
-  if (!action || props.disabled) return;
+  const isUnavailable = !action || props.disabled;
+  if (isUnavailable) return;
   emit("action", action.id);
   action.click();
 };
 
 const onCenterTap = () => {
-  if (props.disabled) return;
+  const isDisabled = props.disabled;
+  if (isDisabled) return;
   emit("center-tap");
-  if (isRunConfirm.value && keepFightingAction.value) {
+  const shouldKeepFighting = isRunConfirm.value && keepFightingAction.value;
+  const shouldAttack = !isRunConfirm.value && attackAction.value;
+  if (shouldKeepFighting) {
     onActionClick(keepFightingAction.value);
-  } else if (!isRunConfirm.value && attackAction.value) {
+  } else if (shouldAttack) {
     onActionClick(attackAction.value);
   }
 };

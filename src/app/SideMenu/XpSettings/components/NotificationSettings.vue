@@ -93,10 +93,12 @@
 
       onMounted(async () => {
         const perm = await alertPermission();
-        if (perm === "unsupported") {
+        const isUnsupported = perm === "unsupported";
+        const isRevoked = perm !== "granted";
+        if (isUnsupported) {
           ambushAlertsDisabled.value = true;
           ambushAlertsMessage.value = "This browser can't show alerts.";
-        } else if (perm !== "granted") {
+        } else if (isRevoked) {
           // Alerts were turned off in the browser since the hero said yes
           ambushAlerts.value = false;
         }
@@ -107,7 +109,8 @@
 
         if (isOn) {
           const perm = await requestAlertPermission();
-          if (perm === "granted") {
+          const isGranted = perm === "granted";
+          if (isGranted) {
             setBattleAlertsChoice("on");
             ambushAlerts.value = true;
           } else {

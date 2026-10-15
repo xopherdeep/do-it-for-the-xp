@@ -36,9 +36,7 @@ import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useTimers } from "@/hooks/useTimers";
 import AnimatedNumber from "@/components/atoms/AnimatedNumber/XpAnimatedNumber.vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
-import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper/modules";
 import { formatQuestName } from "@/lib/utils/format";
@@ -235,7 +233,8 @@ export default defineComponent({
   methods: {
     // The claim already credited the wallet; fill the bar and counters up to the new total
     addUpGP() {
-      if (!this.rewards.gp) return;
+      const hasGp = Boolean(this.rewards.gp);
+      if (!hasGp) return;
       this.$fx.rpg[this.$fx.theme.rpg].countCoins.play();
       setTimeout(() => {
         this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
@@ -326,8 +325,9 @@ export default defineComponent({
       this.segment = swiper.activeIndex;
     },
     getUserAvatar(user) {
-      if (user.avatar) {
-        const avatar = `./avatars/${user.avatar}.svg`;
+      const avatarName = user.avatar;
+      if (avatarName) {
+        const avatar = `./avatars/${avatarName}.svg`;
         return this.$requireImg(avatar);
       }
     },
@@ -477,7 +477,8 @@ export default defineComponent({
     },
     // Record the claim, pay the rewards (or hold them for the Game Master) and show the result
     async submitClaim() {
-      if (this.claiming) return; // "Yes" tapped again before the first claim was recorded
+      const isClaiming = this.claiming;
+      if (isClaiming) return; // "Yes" tapped again before the first claim was recorded
       this.claiming = true;
       const heroId = String(this.userId);
       try {
@@ -616,15 +617,19 @@ export default defineComponent({
           this.didPresent();
           this.$fx.ui[this.$fx.theme.ui].openTask.play();
           break;
-        case 1:
+        case 1: {
           // Nothing is paid out while the claim waits for the Game Master
-          if (this.awaitingApproval) break;
+          const isAwaitingApproval = this.awaitingApproval;
+          if (isAwaitingApproval) break;
           this.startCounting();
           this.$fx.rpg[this.$fx.theme.rpg].fillPoints.play();
-          if (this.$refs.userCard) (this.$refs.userCard as UserCardRef).beginCounter();
+          const userCard = this.$refs.userCard;
+          if (userCard) (userCard as UserCardRef).beginCounter();
+
           this.$fx.rpg[this.$fx.theme.rpg].gainXP.play();
           // setTimeout(()=>this.$refs.slides.slideNext(), 5000)
           break;
+        }
         case 2:
           this.addUpGP();
           break;
@@ -646,9 +651,7 @@ export default defineComponent({
     } = useItemFetcher("xp_achievement", { per_page: 4 }, (props as any).userId);
 
     const userStore = useUserStore();
-    const gameStore = useGameStore();
     const battleStore = useBattleStore();
-    const audioStore = useAudioStore();
     const router = useRouter();
     const timers = useTimers();
     const controlledSwiper = ref<SwiperType | null>(null);
@@ -657,9 +660,7 @@ export default defineComponent({
     };
     return {
       userStore,
-      gameStore,
       battleStore,
-      audioStore,
       timers,
       controlledSwiper,
       setControlledSwiper,

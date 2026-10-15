@@ -144,6 +144,25 @@ import { isHeroLook, type HeroAnimation, type HeroLook } from "@/lib/hero-look/t
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
 import XpConfettiBurst from "./XpConfettiBurst.vue";
 
+interface XpHeroFanfareProps {
+  open: boolean;
+  /** The name the party will know the hero or quest by */
+  name: string;
+  jobClass?: string;
+  /** Optional subtitle line (e.g. beast name or quest details) */
+  subtitle?: string;
+  /** Header banner announcement line */
+  title?: string;
+  /** Button action prompt label */
+  actionText?: string;
+  /** FX sound played on burst */
+  sound?: string;
+  /** The 3D hero; without it (or without WebGL) the portrait stands in */
+  look?: HeroLook | null;
+  /** The face for a hero/beast: a picture of their look, or their preset portrait */
+  portrait?: string;
+}
+
 /**
  * A new hero joins the party, staged like the temple's reveals (the chest, the Pegasus): in the dark the hero stands
  * as a glowing shape that charges up in three pulses, then bursts into colour in a flash and a wheel of light with
@@ -154,24 +173,7 @@ import XpConfettiBurst from "./XpConfettiBurst.vue";
  * burst, one gentle sparkle. The page owns `open` and does whatever comes after `done`.
  */
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    /** The name the party will know the hero or quest by */
-    name: string;
-    jobClass?: string;
-    /** Optional subtitle line (e.g. beast name or quest details) */
-    subtitle?: string;
-    /** Header banner announcement line */
-    title?: string;
-    /** Button action prompt label */
-    actionText?: string;
-    /** FX sound played on burst */
-    sound?: string;
-    /** The 3D hero; without it (or without WebGL) the portrait stands in */
-    look?: HeroLook | null;
-    /** The face for a hero/beast: a picture of their look, or their preset portrait */
-    portrait?: string;
-  }>(),
+  defineProps<XpHeroFanfareProps>(),
   {
     title: "A new hero joins the party!",
     actionText: "Begin your adventure",
@@ -288,7 +290,8 @@ const showCard = () => {
 
 const typeNext = () => {
   typed.value += 1;
-  if (typed.value < lineText.value.length) {
+  const hasMoreToType = typed.value < lineText.value.length;
+  if (hasMoreToType) {
     later(TYPE_EVERY_MS, typeNext);
     return;
   }
@@ -323,7 +326,8 @@ const start = () => {
   // The dialog holds the focus from the start, so Escape works while the shape is still charging
   nextTick(() => root.value?.focus({ preventScroll: true }));
 
-  if (reducedMotion()) {
+  const isMotionReduced = reducedMotion();
+  if (isMotionReduced) {
     announce();
     settle();
     return;
@@ -345,20 +349,23 @@ const start = () => {
   });
 };
 
+const isRevealing = (): boolean => phase.value !== "ready";
+
 /** A tap while the reveal is still playing shows everything at once; at the end it is the way on. */
 const tapAnywhere = () => {
-  if (phase.value !== "ready") {
+  if (isRevealing()) {
     burst();
     settle();
     return;
   }
-  if (performance.now() - readyAt < LEAVE_TAP_GUARD_MS) return;
+  const isTooSoonToLeave = performance.now() - readyAt < LEAVE_TAP_GUARD_MS;
+  if (isTooSoonToLeave) return;
   press();
 };
 
 /** The button: before the end it skips ahead; at the end it hands the hero back to the page, once. */
 const press = () => {
-  if (phase.value !== "ready") {
+  if (isRevealing()) {
     tapAnywhere();
     return;
   }

@@ -13,7 +13,8 @@ const visitLog = new Set<string>();
 
 /** Remember that something happened this visit. Returns false if it already had. */
 export const rememberOnce = (key: string): boolean => {
-  if (visitLog.has(key)) return false;
+  const isRemembered = visitLog.has(key);
+  if (isRemembered) return false;
   visitLog.add(key);
   return true;
 };

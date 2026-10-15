@@ -170,7 +170,7 @@ describe("taking from a chest through the temple screen's hook: only what was ti
     );
     const vm = wrapper.vm as any;
     const rows = () => vm.chestContents.map((item: { value: string }) => item.value);
-    return { id, messages, rows, take: (items: string[]) => vm.processChestItems(items), done: () => wrapper.unmount() };
+    return { id, messages, rows, take: (items: string[]) => vm.claimChestItems(items), done: () => wrapper.unmount() };
   };
 
   it("takes the one ticked row of two and leaves the other in the chest, to be shown again", async () => {

@@ -12,7 +12,7 @@ export const isCourierTrouble = (error: unknown): boolean =>
  */
 export function useTownHallLoad(onTrouble: () => void) {
   const pending = ref(0);
-  const loading = computed(() => pending.value > 0);
+  const isLoading = computed(() => pending.value > 0);
   const failed = ref(false);
 
   const run = async (task: () => Promise<void>): Promise<void> => {
@@ -29,5 +29,5 @@ export function useTownHallLoad(onTrouble: () => void) {
     }
   };
 
-  return { loading, failed, run };
+  return { isLoading, failed, run };
 }

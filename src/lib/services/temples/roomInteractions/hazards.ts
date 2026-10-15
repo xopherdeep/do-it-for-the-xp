@@ -58,12 +58,14 @@ export const onEnterRoom = (room: Room | undefined, ctx: RoomContext): RoomOutco
   const kind = roomKind(room);
   if (!room) return null;
 
-  if (kind === 'trap') {
+  const isTrap = kind === 'trap';
+  if (isTrap) {
     if (hasHappened(roomKey(ctx, 'trap'))) return null;
     return room.content?.avoidable ? { intent: 'sheet' } : springTrap(room, ctx);
   }
 
-  if (kind === 'pit') {
+  const isPit = kind === 'pit';
+  if (isPit) {
     // With a floor below the pit always drops the hero; with none it only bruises them once
     const hasFloorBelow = Boolean(neighbourFloor(ctx.templeId, ctx.level, -1));
     const isRepeatPitVisit = !hasFloorBelow && !rememberOnce(roomKey(ctx, 'pit'));

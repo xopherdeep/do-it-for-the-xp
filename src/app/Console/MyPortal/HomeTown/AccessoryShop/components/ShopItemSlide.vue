@@ -21,20 +21,22 @@
 <script setup lang="ts">
 import XpItemModel from "@/components/organisms/ItemModel/XpItemModel.vue";
 
+interface ShopItemSlideProps {
+  name: string;
+  price: number;
+  icon?: string;
+  photo?: string;
+  affordable?: boolean;
+  /** GP still missing when the wallet can't cover the price */
+  shortBy?: number;
+  /** A line of its own instead of the shortfall (a wallet that is owned, or locked to a level) */
+  note?: string;
+  /** The slide the shelf is showing */
+  active?: boolean;
+}
+
 withDefaults(
-  defineProps<{
-    name: string;
-    price: number;
-    icon?: string;
-    photo?: string;
-    affordable?: boolean;
-    /** GP still missing when the wallet can't cover the price */
-    shortBy?: number;
-    /** A line of its own instead of the shortfall (a wallet that is owned, or locked to a level) */
-    note?: string;
-    /** The slide the shelf is showing */
-    active?: boolean;
-  }>(),
+  defineProps<ShopItemSlideProps>(),
   { icon: "", photo: "", affordable: true, shortBy: 0, note: "", active: false }
 );
 

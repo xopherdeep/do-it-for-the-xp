@@ -16,7 +16,7 @@ export default defineComponent({
     XpCloseButton
   },
   setup() {
-    const { back } = useBack();
+    const { stepBack: back } = useBack();
     const chatStore = useChatStore();
     const roomId = 'family-chat';
 

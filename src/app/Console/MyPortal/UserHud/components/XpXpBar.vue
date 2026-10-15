@@ -57,7 +57,8 @@ export default defineComponent({
     // Progress percentage within current level
     const xpProgress = computed(() => {
       const needed = xpNeededForLevel.value;
-      if (needed <= 0) return 100; // Already at max or error case
+      const isMaxedOut = needed <= 0;
+      if (isMaxedOut) return 100; // Already at max or error case
       return Math.min(100, (xpInLevel.value / needed) * 100);
     });
 

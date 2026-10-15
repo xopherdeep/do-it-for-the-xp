@@ -170,14 +170,16 @@ const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService)
 };
 
 const findRoom = async (ctx: BattleContext) => {
-  if (!ctx.templeId || ctx.level === undefined || ctx.x === undefined || ctx.y === undefined) return null;
-  const temple = await templeDb.getTempleById(ctx.templeId);
+  const { templeId, level, x, y } = ctx;
+  const isMissingRoomAddress = !templeId || level === undefined || x === undefined || y === undefined;
+  if (isMissingRoomAddress) return null;
+  const temple = await templeDb.getTempleById(templeId);
   const maze = temple?.dungeonLayout?.maze || temple?.maze;
   const isMazeUnavailable = !temple || !maze;
   if (isMazeUnavailable) return null;
 
-  const levelMaze = Array.isArray(maze) ? maze : (maze as Record<string, string[][]>)[ctx.level];
-  const roomKey = levelMaze?.[ctx.y]?.[ctx.x];
+  const levelMaze = Array.isArray(maze) ? maze : (maze as Record<string, string[][]>)[level];
+  const roomKey = levelMaze?.[y]?.[x];
   if (!roomKey) return null;
 
   const rooms = temple.dungeonLayout?.rooms || temple.rooms;

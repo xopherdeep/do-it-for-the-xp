@@ -63,11 +63,13 @@ const passable = (door: Door, opened: ReadonlySet<string>, master: boolean): boo
  */
 const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
   const region: Region = { reached: new Set(), order: [], keysFound: 0, master: false };
-  if (!graph.entrance) return region;
+  const { entrance } = graph;
+  if (!entrance) return region;
   const waiting: Door[] = [];
 
   const arrive = (key: string): void => {
-    if (region.reached.has(key)) return;
+    const isReached = region.reached.has(key);
+    if (isReached) return;
     region.reached.add(key);
     region.order.push(key);
     const room = graph.rooms.get(key)!;
@@ -79,11 +81,13 @@ const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
     }
   };
 
-  arrive(graph.entrance);
+  arrive(entrance);
   for (let i = 0; i < region.order.length; i++) {
     for (const door of graph.out.get(region.order[i]) ?? []) {
-      if (passable(door, opened, region.master)) arrive(door.to);
-      else if (door.lock === "master") waiting.push(door);
+      const isPassable = passable(door, opened, region.master);
+      const isBossDoor = door.lock === "master";
+      if (isPassable) arrive(door.to);
+      else if (isBossDoor) waiting.push(door);
     }
   }
   return region;
@@ -110,18 +114,21 @@ const goalOf = (graph: TempleGraph): Goal => ({
 
 /** The gate the hero leaves by: a gate room when the temple has one, else the entrance. */
 const exits = (graph: TempleGraph, goal: Goal): string[] => {
-  if (goal.gates.length > 0) {
+  const hasGates = goal.gates.length > 0;
+  if (hasGates) {
     return goal.gates;
   }
-  if (graph.entrance) {
-    return [graph.entrance];
+  const { entrance } = graph;
+  if (entrance) {
+    return [entrance];
   }
   return [];
 };
 
 /** What a run still lacks, as text, or nothing when it is done. */
 const missing = (graph: TempleGraph, goal: Goal, region: Region, opened: ReadonlySet<string>): string | undefined => {
-  if (!goal.bosses.length) return "no boss room to reach";
+  const hasNoBoss = !goal.bosses.length;
+  if (hasNoBoss) return "no boss room to reach";
   const boss = goal.bosses.find((key) => region.reached.has(key));
   if (!boss) return region.master ? "the boss room is out of reach" : "the master key is out of reach";
   const prize = goal.prizes.find((key) => region.reached.has(key));
@@ -159,7 +166,8 @@ const search = (graph: TempleGraph, goal: Goal, history: string[], memo: Map<str
   if (lacking) {
     const keys = region.keysFound - opened.size;
     const choices = keys > 0 ? closedDoorsInReach(graph, region, opened) : [];
-    if (!choices.length) verdict = { ok: false, reason: stuckReason(graph, region, opened, history, lacking) };
+    const isOutOfChoices = !choices.length;
+    if (isOutOfChoices) verdict = { ok: false, reason: stuckReason(graph, region, opened, history, lacking) };
     else {
       const branches = choices.map((door) => search(graph, goal, [...history, door.id], memo));
       verdict = branches.find((branch) => !branch.ok) ?? branches[0];
@@ -178,7 +186,8 @@ const replay = (graph: TempleGraph, history: string[]): { order: RoomRef[]; crit
   for (let step = 0; step <= history.length; step++) {
     const region = explore(graph, new Set(history.slice(0, step)));
     for (const key of region.order) {
-      if (seen.has(key)) continue;
+      const isSeen = seen.has(key);
+      if (isSeen) continue;
       seen.add(key);
       order.push(key);
       const room = graph.rooms.get(key)!;
@@ -203,7 +212,8 @@ const listRooms = (graph: TempleGraph, keys: string[]): string => {
 const checkConnected = (graph: TempleGraph, reasons: string[]): void => {
   const reach = openReach(graph);
   const lost = [...graph.rooms.keys()].filter((key) => !reach.has(key));
-  if (lost.length) reasons.push(`R1: ${lost.length} room${lost.length > 1 ? "s" : ""} out of reach: ${listRooms(graph, lost)}`);
+  const hasLostRooms = lost.length > 0;
+  if (hasLostRooms) reasons.push(`R1: ${lost.length} room${lost.length > 1 ? "s" : ""} out of reach: ${listRooms(graph, lost)}`);
 };
 
 /** A small-key door with no way around it on the way to the boss. */
@@ -216,14 +226,16 @@ const isCritical = (graph: TempleGraph, goal: Goal, door: Door): boolean => {
 const checkKeyCount = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
   const keys = [...graph.rooms.values()].reduce((sum, room) => sum + room.smallKeys, 0);
   const critical = graph.doors.filter((door) => door.lock === "small" && isCritical(graph, goal, door)).length;
-  if (keys < critical) reasons.push(`R3: ${keys} small key${keys === 1 ? "" : "s"} for ${critical} locked door${critical === 1 ? "" : "s"} on the critical path`);
+  const isShortOfKeys = keys < critical;
+  if (isShortOfKeys) reasons.push(`R3: ${keys} small key${keys === 1 ? "" : "s"} for ${critical} locked door${critical === 1 ? "" : "s"} on the critical path`);
 };
 
 /** R4: the master key waits in or behind the mini-boss room and never behind the boss door. */
 const checkMasterKey = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
   const masters = [...graph.rooms.values()].filter((room) => room.masterKey);
   const minibosses = roomsOfKind(graph, "miniboss").map((room) => room.key);
-  if (masters.length !== 1) {
+  const hasOneMasterKey = masters.length === 1;
+  if (!hasOneMasterKey) {
     reasons.push(masters.length ? `R4: ${masters.length} master keys` : "R4: no master key");
     return;
   }
@@ -231,14 +243,16 @@ const checkMasterKey = (graph: TempleGraph, goal: Goal, reasons: string[]): void
   const isMasterKeyBehindBossDoor = !openReach(graph, goal.bosses).has(master.key) && openReach(graph).has(master.key);
   const isMasterKeyUnguarded = () => !minibosses.includes(master.key) && openReach(graph, minibosses).has(master.key);
   if (isMasterKeyBehindBossDoor) reasons.push(`R4: master key behind the boss door (${describeRoom(master)})`);
-  if (!minibosses.length) reasons.push("R4: no mini-boss room to guard the master key");
+  const hasNoMiniboss = !minibosses.length;
+  if (hasNoMiniboss) reasons.push("R4: no mini-boss room to guard the master key");
   else if (isMasterKeyUnguarded()) reasons.push(`R4: the master key at ${describeRoom(master)} can be reached without passing the mini-boss`);
 };
 
 /** R5: mini-boss and boss rooms start their fight on entry. */
 const checkAutoFights = (graph: TempleGraph, reasons: string[]): void => {
   for (const room of [...roomsOfKind(graph, "miniboss"), ...roomsOfKind(graph, "boss")]) {
-    if (room.room.content?.lockOnEnter !== true) reasons.push(`R5: ${describeRoom(room)} does not lock on enter (content.lockOnEnter)`);
+    const isAutoLocking = room.room.content?.lockOnEnter === true;
+    if (!isAutoLocking) reasons.push(`R5: ${describeRoom(room)} does not lock on enter (content.lockOnEnter)`);
   }
 };
 
@@ -251,18 +265,21 @@ const doorsIntoFromOutside = (graph: TempleGraph, room: GraphRoom): Door[] => {
 
 /** R6: one boss room, one door into it. Every door into a boss room needs the master key (templeGraph.lockBetween), so the lock itself is not checked. */
 const checkBossDoor = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
-  if (goal.bosses.length !== 1) {
+  const hasOneBoss = goal.bosses.length === 1;
+  if (!hasOneBoss) {
     reasons.push(goal.bosses.length ? `R6: ${goal.bosses.length} boss rooms` : "R6: no boss room");
     return;
   }
   const boss = graph.rooms.get(goal.bosses[0])!;
   const doors = doorsIntoFromOutside(graph, boss);
-  if (doors.length !== 1) reasons.push(`R6: the boss room at ${describeRoom(boss)} has ${doors.length} doors from the temple (needs exactly one)`);
+  const hasOneDoor = doors.length === 1;
+  if (!hasOneDoor) reasons.push(`R6: the boss room at ${describeRoom(boss)} has ${doors.length} doors from the temple (needs exactly one)`);
 };
 
 /** R7: one Pegasus chest, and only the boss's defeat opens the way to it. */
 const checkPegasus = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
-  if (goal.prizes.length !== 1) {
+  const hasOnePrize = goal.prizes.length === 1;
+  if (!hasOnePrize) {
     reasons.push(goal.prizes.length ? `R7: ${goal.prizes.length} Pegasus chests` : "R7: no Pegasus chest");
     return;
   }
@@ -273,7 +290,8 @@ const checkPegasus = (graph: TempleGraph, goal: Goal, reasons: string[]): void =
 
 /** R9: no small key waits behind the boss door. */
 const checkDeadKeys = (graph: TempleGraph, goal: Goal, reasons: string[]): void => {
-  if (!goal.bosses.length) return;
+  const hasNoBoss = !goal.bosses.length;
+  if (hasNoBoss) return;
   const all = openReach(graph);
   const beforeBoss = openReach(graph, goal.bosses);
   for (const room of graph.rooms.values()) {
@@ -288,12 +306,14 @@ const checkDeadKeys = (graph: TempleGraph, goal: Goal, reasons: string[]): void 
 export const solveTemple = (layout: TempleLayout): SolveResult => {
   const graph = buildTempleGraph(layout);
   const reasons = graph.issues.map((issue) => `${issue.rule}: ${issue.text}`);
-  if (!graph.entrance) return { solvable: false, reasons: [...reasons, "R1: no entrance room"], order: [], criticalPath: [] };
+  const hasEntrance = Boolean(graph.entrance);
+  if (!hasEntrance) return { solvable: false, reasons: [...reasons, "R1: no entrance room"], order: [], criticalPath: [] };
 
   const goal = goalOf(graph);
   checkConnected(graph, reasons);
   const verdict = search(graph, goal, [], new Map());
-  if (!verdict.ok) reasons.push(verdict.reason);
+  const isStuck = !verdict.ok;
+  if (isStuck) reasons.push(verdict.reason);
   checkKeyCount(graph, goal, reasons);
   checkMasterKey(graph, goal, reasons);
   checkAutoFights(graph, reasons);

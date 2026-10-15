@@ -75,14 +75,16 @@ module.exports = {
     });
 
     // Dev only: drop the fork-ts-checker type pass from the dev build, `chemx typecheck` covers it (production keeps it)
-    if (!isProd && DEV_TYPECHECK) config.plugins.delete('fork-ts-checker');
+    const shouldDropTypecheck = !isProd && DEV_TYPECHECK;
+    if (shouldDropTypecheck) config.plugins.delete('fork-ts-checker');
 
     // Dev only: esbuild-loader instead of babel-loader + ts-loader (+ thread-loader), about 40% faster cold start.
     // Production keeps Vue CLI's babel/ts-loader and terser: esbuild adds no core-js polyfills and grows chunk-vendors.
     // Targets mirror .browserslistrc (Chrome/Edge 79, Firefox 70, Safari/iOS 14); Safari 14 has no Array.prototype.at.
     // .vue <script lang="ts"> blocks are routed by vue-loader through these same rules,
     // so no appendTsSuffixTo equivalent is needed (esbuild's `loader` option is explicit).
-    if (!isProd && DEV_ESBUILD) {
+    const shouldUseEsbuild = !isProd && DEV_ESBUILD;
+    if (shouldUseEsbuild) {
       useEsbuild(config.module.rule('js'), { loader: 'js', target, supported });
       useEsbuild(config.module.rule('ts'), { loader: 'ts', target, supported, tsconfigRaw });
       useEsbuild(config.module.rule('tsx'), { loader: 'tsx', target, supported, tsconfigRaw });

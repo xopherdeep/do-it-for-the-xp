@@ -98,8 +98,7 @@ export class BestiaryDb extends DbStorageApi {
       return await this.setBeast(clone).then(cloneToast)
     }
 
-    const clone = await this.getBeasts().then(cloneFromBeasts)
-    return clone
+    return this.getBeasts().then(cloneFromBeasts)
   }
 
   public async getBeastById(id) {
@@ -109,8 +108,7 @@ export class BestiaryDb extends DbStorageApi {
   }
 
   public async getBeasts() {
-    const beasts = await this.getAll()
-    return beasts
+    return this.getAll()
   }
 
   // NEW IMPORT/EXPORT FUNCTIONALITY
@@ -124,7 +122,8 @@ export class BestiaryDb extends DbStorageApi {
       // Get all beasts
       const beasts = await this.getBeasts();
       
-      if (beasts.length === 0) {
+      const hasNoBeasts = beasts.length === 0;
+      if (hasNoBeasts) {
         this.showWarningToast("No beasts to export!");
         return;
       }
@@ -239,13 +238,15 @@ export class BestiaryDb extends DbStorageApi {
             let importMsg = '';
             
             // Import beasts if any available
-            if (beasts.length > 0) {
+            const hasBeasts = beasts.length > 0;
+            if (hasBeasts) {
               const beastCount = await this.importBeastsData(beasts);
               importMsg += `${beastCount} beasts `;
             }
             
             // Import background presets if any available
-            if (backgroundPresets.length > 0) {
+            const hasBackgroundPresets = backgroundPresets.length > 0;
+            if (hasBackgroundPresets) {
               const presetCount = await this.importBackgroundPresets(backgroundPresets, bestiaryBgSettings);
               if (importMsg) {
                 importMsg += 'and ';

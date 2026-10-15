@@ -10,7 +10,7 @@ import { toFaClass } from "@/lib/utils/faIcon";
  */
 const props = withDefaults(defineProps<{ heroId: string; floating?: boolean }>(), { floating: false });
 
-const { timers, endEarly } = usePowerTimers(toRef(props, "heroId"));
+const { timers, stopEarly } = usePowerTimers(toRef(props, "heroId"));
 const hasTimers = computed(() => timers.value.length > 0);
 </script>
 
@@ -31,7 +31,7 @@ const hasTimers = computed(() => timers.value.length > 0);
         type="button"
         class="timer-end"
         :aria-label="`End ${timer.name} now`"
-        @click.stop="endEarly(timer.abilityId)"
+        @click.stop="stopEarly(timer.abilityId)"
       >
         <i class="fad fa-times" aria-hidden="true"></i>
       </button>

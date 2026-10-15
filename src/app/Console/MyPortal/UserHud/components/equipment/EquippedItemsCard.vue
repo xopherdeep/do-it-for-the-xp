@@ -165,24 +165,30 @@
         
         // Fill slots with items
         this.leftHandItems.forEach((item, index) => {
-          if (index < this.slotsPerWing) this.leftSlots[index] = item;
+          const isOnWing = index < this.slotsPerWing;
+          if (isOnWing) this.leftSlots[index] = item;
         });
 
         this.rightHandItems.forEach((item, index) => {
-          if (index < this.slotsPerWing) this.rightSlots[index] = item;
+          const isOnWing = index < this.slotsPerWing;
+          if (isOnWing) this.rightSlots[index] = item;
         });
       },
       allowDrop(event: DragEvent) {
-        if (!this.readonly) event.preventDefault();
+        const isReadonly = this.readonly;
+        if (!isReadonly) event.preventDefault();
       },
       changeClass() {
-        if (!this.readonly) this.$emit("change-class");
+        const isReadonly = this.readonly;
+        if (!isReadonly) this.$emit("change-class");
       },
       async drop(event: DragEvent, hand: string, index: number) {
         event.preventDefault();
-        if (this.readonly) return;
+        const isReadonly = this.readonly;
+        if (isReadonly) return;
 
-        if (index > 0) {
+        const isLockedSlot = index > 0;
+        if (isLockedSlot) {
           const toast = await toastController.create({
             message: "This slot is locked. Unlock more slots as you level up.",
             duration: 2000,
@@ -194,14 +200,16 @@
           return;
         }
 
-        if (event.dataTransfer) {
-          const data = event.dataTransfer.getData("item");
+        const dataTransfer = event.dataTransfer;
+        if (dataTransfer) {
+          const data = dataTransfer.getData("item");
           const item = JSON.parse(data);
           this.$emit("equip", item, hand, index);
         }
       },
       handleSlotClick(item: EquipmentItem | null, index: number) {
-        if (index > 0) return; // Locked slots
+        const isLockedSlot = index > 0;
+        if (isLockedSlot) return; // Locked slots
         if (item) {
           this.$emit("select-item", item);
         }

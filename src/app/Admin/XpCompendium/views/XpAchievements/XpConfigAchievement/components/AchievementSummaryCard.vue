@@ -115,12 +115,7 @@ interface Props {
   isOpenBounty?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  heroCount: 0,
-  isOpenBounty: false
-});
-
-defineEmits<{
+interface SummaryCardEmits {
   click: [];
   navigate: [segment: string];
   'open-category-modal': [];
@@ -128,7 +123,14 @@ defineEmits<{
   'open-type-modal': [];
   'open-approval-modal': [];
   'open-bonus-modal': [];
-}>();
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  heroCount: 0,
+  isOpenBounty: false
+});
+
+defineEmits<SummaryCardEmits>();
 
 defineOptions({
   name: 'AchievementSummaryCard'

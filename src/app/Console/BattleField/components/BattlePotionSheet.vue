@@ -3,7 +3,7 @@
     title="Bottles"
     fa-icon="flask-potion"
     subtitle="Drinking one keeps your move."
-    :busy="busy"
+    :busy="isBusy"
     cy="potion-sheet"
     @back="emit('cancel')"
   >
@@ -51,12 +51,12 @@ const emit = defineEmits<{
 }>();
 
 /** Latched by a drink: the page closes the sheet next, so nothing else may fire from it before it is gone. */
-const busy = ref(false);
+const isBusy = ref(false);
 
 const drink = (potion: PotionCard) => {
-  const cannotDrink = busy.value || !!potion.reason;
+  const cannotDrink = isBusy.value || !!potion.reason;
   if (cannotDrink) return;
-  busy.value = true;
+  isBusy.value = true;
   emit("drink", potion.id);
 };
 </script>

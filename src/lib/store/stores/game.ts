@@ -59,7 +59,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addRequest(type: string, request: any) {
-    if (requests[type]) {
+    const isTrackedType = Boolean(requests[type]);
+    if (isTrackedType) {
       requests[type].push(request);
     }
   }
@@ -109,7 +110,8 @@ export const useGameStore = defineStore('game', () => {
     if (hasNoRequestsOfType) return undefined;
     
     return requests[type].find((request: any) => {
-      if (Object.keys(request.params).length === Object.keys(params).length) {
+      const hasSameParamCount = Object.keys(request.params).length === Object.keys(params).length;
+      if (hasSameParamCount) {
         return Object.keys(request.params).every((key) => {
           return request.params[key] == params[key];
         });

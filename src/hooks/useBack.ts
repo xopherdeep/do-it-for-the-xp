@@ -30,17 +30,17 @@ export const useBack = (extra: () => ParentOptions = () => ({})) => {
   });
   const backHref = computed(() => parentHref.value ?? undefined);
 
-  const goUp = () => {
+  const stepUp = () => {
     const parent = parentHref.value;
     if (parent) ionRouter?.navigate(parent, "back", "replace");
   };
 
-  const back = () => {
+  const stepBack = () => {
     if (ionRouter?.canGoBack()) ionRouter.back();
-    else goUp();
+    else stepUp();
   };
 
-  return { back, goUp, backHref, parentHref };
+  return { stepBack, stepUp, backHref, parentHref };
 };
 
 /**
@@ -57,12 +57,12 @@ export const HARDWARE_BACK_PRIORITY = 1;
  */
 export const useHardwareBack = () => {
   const ionRouter = useIonRouterIfAny();
-  const { goUp, parentHref } = useBack();
+  const { stepUp, parentHref } = useBack();
 
   const handle = useBackButton(HARDWARE_BACK_PRIORITY, (processNextHandler: () => void) => {
     const hasHistory = Boolean(ionRouter?.canGoBack());
     const hasSomewhereToGo = !hasHistory && Boolean(parentHref.value);
-    if (hasSomewhereToGo) goUp();
+    if (hasSomewhereToGo) stepUp();
     else processNextHandler();
   });
   onBeforeUnmount(() => handle.unregister());

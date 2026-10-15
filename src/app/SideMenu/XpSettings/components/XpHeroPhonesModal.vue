@@ -136,7 +136,7 @@ const props = defineProps<Props>();
 const router = useRouter();
 const family = useFamilyStore();
 const { voice } = useVoice();
-const { prompt, ask, respond } = useRevealPrompt();
+const { prompt, showPrompt: ask, submitAnswer: respond } = useRevealPrompt();
 
 const currentCode = ref<string | null>(null);
 const expiresAtMs = ref<number | null>(null);

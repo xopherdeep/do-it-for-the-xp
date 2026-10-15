@@ -330,6 +330,24 @@
   import type { TempleTheme, TempleThemeInfo } from "@/lib/services/temples/templeThemes";
   import QuestRoomRow from "./QuestRoomRow.vue";
 
+  interface RoomQuestPickerProps {
+    isOpen?: boolean;
+    /** Every live quest as a picker row */
+    rows: PickerRow[];
+    /** The quests themselves, for the library to know which beasts are taken */
+    quests: Achievement[];
+    heroes: FamilyMember[];
+    /** The temple's theme, when it has one */
+    theme?: TempleTheme;
+    themeInfo?: TempleThemeInfo;
+    /** The temple as saved and the part this room makes of it */
+    size: { total: number; here: number };
+    /** The quest the room holds now */
+    selectedId?: string;
+    /** Makes a quest from a library beast and resolves to its id */
+    createQuest: (beast: LibraryBeast, form: LibraryQuestForm) => Promise<string>;
+  }
+
   /**
    * The quest picker of the temple room editor (docs/Quest-Rooms-Spec.md section 9) as a full-screen sheet in the
    * Codex style: search on top, the quests (or the library's beasts) in the page, and under the thumb the three
@@ -337,23 +355,7 @@
    * services/temples/questRoomPicker; "From the library" makes a quest through `createQuest` and picks it.
    */
   const props = withDefaults(
-    defineProps<{
-      isOpen?: boolean;
-      /** Every live quest as a picker row */
-      rows: PickerRow[];
-      /** The quests themselves, for the library to know which beasts are taken */
-      quests: Achievement[];
-      heroes: FamilyMember[];
-      /** The temple's theme, when it has one */
-      theme?: TempleTheme;
-      themeInfo?: TempleThemeInfo;
-      /** The temple as saved and the part this room makes of it */
-      size: { total: number; here: number };
-      /** The quest the room holds now */
-      selectedId?: string;
-      /** Makes a quest from a library beast and resolves to its id */
-      createQuest: (beast: LibraryBeast, form: LibraryQuestForm) => Promise<string>;
-    }>(),
+    defineProps<RoomQuestPickerProps>(),
     { isOpen: false, theme: undefined, themeInfo: undefined, selectedId: "" }
   );
 
@@ -406,15 +408,19 @@
       : []
   );
 
+  const EMPTY_TEXT_OF_SEGMENT: Partial<Record<PickerSegment, string>> = {
+    library: "Every beast here already has a quest. Try All quests.",
+    theme: "No quest fits this temple's theme yet. Try All quests, or make one From the library.",
+  };
   const emptyText = computed(() => {
-    if (search.value.trim()) return "Nothing matches that search.";
-    if (segment.value === "library") return "Every beast here already has a quest. Try All quests.";
-    if (segment.value === "theme") return "No quest fits this temple's theme yet. Try All quests, or make one From the library.";
-    return "No quests yet. Make one From the library, or in the Compendium.";
+    const isSearching = Boolean(search.value.trim());
+    if (isSearching) return "Nothing matches that search.";
+    return EMPTY_TEXT_OF_SEGMENT[segment.value] ?? "No quests yet. Make one From the library, or in the Compendium.";
   });
 
   const chooseSegment = (id: PickerSegment) => {
-    if (id === segment.value) return;
+    const isSameSegment = id === segment.value;
+    if (isSameSegment) return;
     play$fx("cursor");
     segment.value = id;
     content.value?.$el?.scrollToTop?.(0);
@@ -487,7 +493,8 @@
   /** Makes the quest, then shows it picked among the theme's quests, ready to Confirm. */
   const create = async () => {
     const beast = formBeast.value;
-    if (!beast || formProblem.value || creating.value) return;
+    const isCreateBlocked = !beast || !!formProblem.value || creating.value;
+    if (isCreateBlocked) return;
     creating.value = true;
     try {
       const id = await props.createQuest(beast, form.value);
@@ -504,442 +511,4 @@
   };
 </script>
 
-<style lang="scss" scoped>
-  @use "@/styles/themes/earthbound.scss" as *;
-
-  $body-backing: rgba(20, 6, 28, 0.55);
-  $divider: rgba(231, 230, 179, 0.25);
-
-  .room-quest-picker {
-    --width: 100%;
-    --height: 100%;
-    --max-width: 100%;
-    --max-height: 100%;
-    --border-radius: 0;
-    --background: #{$eb-color-dark-purple};
-    --box-shadow: none;
-  }
-
-  .picker-toolbar {
-    --color: #{$eb-color-cream};
-
-    ion-title {
-      text-align: left;
-      padding-inline-start: 8px;
-    }
-  }
-
-  .picker-title {
-    font-family: $eb-font-title;
-    color: $eb-color-pale-yellow;
-    font-size: 1.25rem;
-    letter-spacing: 1px;
-  }
-
-  /* ---- Search, on top ---- */
-  .search-bar {
-    margin: 0;
-    padding: 8px 16px 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: $eb-color-dark-purple;
-    border-bottom: 1px solid $divider;
-
-    > i {
-      font-size: 1.1rem;
-      --fa-primary-color: #{$eb-color-pale-yellow};
-      --fa-secondary-color: #{$eb-color-pale-yellow};
-      --fa-secondary-opacity: 0.5;
-    }
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 0;
-    height: 42px;
-    padding: 0 12px;
-    font-family: $eb-font-status;
-    font-size: 1.05rem;
-    color: $eb-color-cream;
-    background: $body-backing;
-    border: 2px solid rgba(231, 230, 179, 0.3);
-    border-radius: 6px;
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-
-    &::placeholder {
-      color: rgba(231, 230, 179, 0.5);
-    }
-
-    &:focus {
-      border-color: $eb-color-pale-yellow;
-    }
-  }
-
-  .search-clear {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 40px;
-    display: grid;
-    place-items: center;
-    background: none;
-    border: none;
-    color: $eb-color-cream;
-    font-size: 1.3rem;
-    cursor: pointer;
-
-    i {
-      --fa-primary-color: currentColor;
-      --fa-secondary-color: currentColor;
-    }
-  }
-
-  /* ---- The page ---- */
-  .picker-content {
-    --padding-top: 10px;
-    --padding-bottom: 20px;
-    --color: #{$eb-color-cream};
-    color: $eb-color-cream;
-  }
-
-  .picker-page {
-    margin: 0 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .theme-line {
-    margin: 0;
-    padding: 8px 12px;
-    font-size: 0.95rem;
-    line-height: 1.35;
-    border-radius: 8px;
-    background: $body-backing;
-
-    strong {
-      display: block;
-      font-family: $eb-font-status;
-      font-weight: normal;
-      font-size: 1.05rem;
-      color: $eb-color-pale-yellow;
-    }
-  }
-
-  .picker-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .empty-line,
-  .picker-hint {
-    margin: 0;
-    font-size: 1rem;
-    line-height: 1.4;
-    text-align: center;
-    opacity: 0.85;
-  }
-
-  .empty-line {
-    padding: 28px 12px;
-    font-family: $eb-font-status;
-    font-size: 1.1rem;
-  }
-
-  /* ---- The form ---- */
-  .form-section {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .form-heading {
-    margin: 0 0 8px;
-    padding: 0 2px 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid $divider;
-    font-family: $eb-font-status;
-    font-weight: normal;
-    font-size: 0.9rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: $eb-color-pale-yellow;
-  }
-
-  .hero-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .hero-chip {
-    min-height: 44px;
-    padding: 6px 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: $eb-font-status;
-    font-size: 1.05rem;
-    color: $eb-color-cream;
-    background: $body-backing;
-    border: 2px solid rgba(231, 230, 179, 0.25);
-    border-radius: 22px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-
-    i {
-      --fa-primary-color: currentColor;
-      --fa-secondary-color: currentColor;
-      --fa-secondary-opacity: 0.4;
-    }
-
-    &.is-on {
-      color: $eb-color-mint-green;
-      border-color: $eb-color-mint-green;
-      background: rgba(128, 216, 144, 0.14);
-    }
-  }
-
-  .approval-row {
-    width: 100%;
-    min-height: 52px;
-    padding: 6px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    text-align: left;
-    font-family: $eb-font-status;
-    font-size: 1.05rem;
-    color: $eb-color-cream;
-    background: $body-backing;
-    border: 2px solid rgba(231, 230, 179, 0.25);
-    border-radius: 8px;
-    cursor: pointer;
-
-    i {
-      --fa-primary-color: currentColor;
-      --fa-secondary-color: currentColor;
-      --fa-secondary-opacity: 0.4;
-    }
-
-    &.is-on {
-      border-color: $eb-color-pale-yellow;
-
-      i {
-        color: $eb-color-mint-green;
-      }
-    }
-  }
-
-  .form-problem {
-    margin: 0;
-    text-align: center;
-    font-family: $eb-font-status;
-    color: #ff9a9a;
-  }
-
-  /* ---- Footer: the sources, the size meter and Confirm, under the thumb ---- */
-  .picker-footer {
-    background: $eb-color-dark-purple;
-    border-top: 3px solid $eb-color-pale-yellow;
-  }
-
-  .picker-dock {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px 16px calc(12px + var(--ion-safe-area-bottom, 0px));
-    background: $eb-color-dark-purple;
-  }
-
-  .segments {
-    display: flex;
-    gap: 6px;
-  }
-
-  .segment {
-    flex: 1 1 0;
-    min-height: 46px;
-    padding: 4px 6px;
-    font-family: $eb-font-status;
-    font-size: 0.9rem;
-    line-height: 1.15;
-    color: $eb-color-cream;
-    background: $body-backing;
-    border: 2px solid rgba(231, 230, 179, 0.25);
-    border-radius: 6px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-
-    &.is-on {
-      color: $eb-color-dark-purple;
-      background: $eb-color-pale-yellow;
-      border-color: $eb-color-pale-yellow;
-    }
-
-    &:focus-visible {
-      outline: 2px solid $eb-color-pale-yellow;
-      outline-offset: 2px;
-    }
-  }
-
-  .size-meter {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-family: $eb-font-status;
-    font-size: 1rem;
-    color: $eb-color-cream;
-    text-align: center;
-
-    &.is-full .size-fill {
-      background: $eb-color-mint-green;
-    }
-  }
-
-  .size-bar {
-    height: 8px;
-    border-radius: 4px;
-    overflow: hidden;
-    background: rgba(231, 230, 179, 0.18);
-  }
-
-  .size-fill {
-    display: block;
-    height: 100%;
-    background: $eb-color-sky-blue;
-    transition: width 160ms steps(4);
-  }
-
-  .picker-actions {
-    display: flex;
-    gap: 12px;
-  }
-
-  .picker-back,
-  .picker-confirm {
-    min-height: 56px;
-    padding: 8px 14px;
-    font-family: $eb-font-status;
-    font-size: 1.2rem;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-
-    i {
-      --fa-primary-color: currentColor;
-      --fa-secondary-color: currentColor;
-    }
-
-    &:active:not(:disabled) {
-      transform: translateY(2px);
-    }
-
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-  }
-
-  .picker-back {
-    flex: 0 0 auto;
-    color: $eb-color-cream;
-    background: $eb-color-medium-purple;
-    border: none;
-    border-radius: 1px;
-    box-shadow: 0 0 0 3px $eb-color-slate, 0 0 0 5px rgba(104, 208, 184, 0.35);
-  }
-
-  .picker-confirm {
-    flex: 1;
-    color: $eb-color-dark-purple;
-    background: $eb-color-pale-yellow;
-    border: none;
-    border-radius: 1px;
-    box-shadow: 0 0 0 3px $eb-color-medium-purple, 0 0 0 5px $eb-color-minty-blue, 0 4px 0 5px rgba(0, 0, 0, 0.5);
-  }
-
-  /* ---- The form's difficulty control ---- */
-  .difficulty {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .step-button {
-    flex: 0 0 auto;
-    width: 46px;
-    height: 46px;
-    display: grid;
-    place-items: center;
-    font-size: 1.1rem;
-    color: $eb-color-cream;
-    background: $eb-color-medium-purple;
-    border: none;
-    border-radius: 1px;
-    box-shadow: 0 0 0 3px $eb-color-slate;
-    cursor: pointer;
-
-    i {
-      --fa-primary-color: currentColor;
-      --fa-secondary-color: currentColor;
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-
-  .difficulty-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .difficulty-range {
-    width: 100%;
-    height: 28px;
-    margin: 0;
-    accent-color: $eb-color-pale-yellow;
-    cursor: pointer;
-  }
-
-  .difficulty-text {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: $eb-font-status;
-    font-size: 1.05rem;
-    color: #fff;
-  }
-
-  .chip-tier {
-    padding: 1px 7px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    color: $eb-color-dark-purple;
-    background: $eb-color-minty-blue;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .size-fill {
-      transition: none;
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_RoomQuestPicker.scss" />

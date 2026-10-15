@@ -16,11 +16,12 @@ export const buildComposition = (layout: DungeonLayout, getRunState: () => Templ
     monsters: [] as { size: string, count: number }[]
   };
 
-  if (!layout?.maze || !layout?.rooms) return result;
+  const maze = layout?.maze;
+  const roomDefs = layout?.rooms;
+  const isMissingLayout = !maze || !roomDefs;
+  if (isMissingLayout) return result;
 
   result.hasRooms = true;
-  const maze = layout.maze;
-  const roomDefs = layout.rooms;
   const sysState = getRunState();
 
   const monCounts: Record<string, number> = {};
@@ -68,7 +69,8 @@ export const buildComposition = (layout: DungeonLayout, getRunState: () => Templ
           const isBossKey = dungeonItem === 'master-key';
           const itemName = isBossKey ? 'Boss Key' : dungeonItem.charAt(0).toUpperCase() + dungeonItem.slice(1);
 
-          if (!seenKeyItems.has(itemName.toLowerCase())) {
+          const isFirstSighting = !seenKeyItems.has(itemName.toLowerCase());
+          if (isFirstSighting) {
             seenKeyItems.add(itemName.toLowerCase());
             const found = sysState?.[isBossKey ? 'hasMasterKey' : `has${itemName}`] || false;
             result.keyItems.push({
@@ -83,11 +85,13 @@ export const buildComposition = (layout: DungeonLayout, getRunState: () => Templ
   });
 
   Object.entries(roomTypeCounts).forEach(([type, count]) => {
-    if (count > 0) result.roomTypes.push({ type, count });
+    const hasAnyRoom = count > 0;
+    if (hasAnyRoom) result.roomTypes.push({ type, count });
   });
 
   Object.entries(monCounts).forEach(([size, count]) => {
-    if (count > 0) result.monsters.push({ size, count });
+    const hasAnyMonster = count > 0;
+    if (hasAnyMonster) result.monsters.push({ size, count });
   });
 
   return result;
@@ -109,9 +113,11 @@ export const countDungeonStats = (layout: NonNullable<DungeonLayout>, maze: stri
     });
   }
 
-  if (layout.rooms) {
-    Object.values(layout.rooms).forEach((room: any) => {
-      if (room.visited) visitedRooms++;
+  const rooms = layout.rooms;
+  if (rooms) {
+    Object.values(rooms).forEach((room: any) => {
+      const isVisited = Boolean(room.visited);
+      if (isVisited) visitedRooms++;
       const isTreasureRoom = room.type === 'chest' || room.type === 'treasure' || room.type === 'loot';
       if (isTreasureRoom) {
         totalTreasures++;
@@ -144,9 +150,11 @@ export const rateTemplePower = (level: number, monResult: { size: string, count:
 };
 
 export const filterMonstersByTier = (monsters: { size: string, count: number }[], tier: 'boss' | 'miniboss' | 'other') => {
-  if (tier === 'boss') {
+  const isBossTier = tier === 'boss';
+  const isMinibossTier = tier === 'miniboss';
+  if (isBossTier) {
     return monsters.filter(m => m.size === 'boss');
-  } else if (tier === 'miniboss') {
+  } else if (isMinibossTier) {
     return monsters.filter(m => m.size === 'miniboss');
   } else {
     return monsters.filter(m => !['boss', 'miniboss'].includes(m.size));
@@ -166,9 +174,11 @@ export const countKeysAndLocks = (rooms: Record<string, any>) => {
     totalKeys += smallKeysGranted(room);
 
     // Check locked doors
-    if (room.sides) {
-      Object.values(room.sides).forEach(side => {
-        if (side === 'locked') totalLockedDoors++;
+    const sides = room.sides;
+    if (sides) {
+      Object.values(sides).forEach(side => {
+        const isLocked = side === 'locked';
+        if (isLocked) totalLockedDoors++;
       });
     }
   });

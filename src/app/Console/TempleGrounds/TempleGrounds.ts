@@ -41,6 +41,7 @@ import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
+import { mapCellIconOf } from './templeGrounds/mapCellIcon';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
 const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
@@ -87,7 +88,8 @@ export default defineComponent({
     const userStore = useUserStore();
 
     // Ensure users are loaded
-    if (Object.keys(userStore.users).length === 0) {
+    const hasNoUsersLoaded = Object.keys(userStore.users).length === 0;
+    if (hasNoUsersLoaded) {
       userStore.loadUsers();
     }
 
@@ -127,7 +129,7 @@ export default defineComponent({
       playerKeys,
       keyChange,
       keyPulse,
-      replayKeyPulse,
+      playKeyPulse,
       isMapOpen,
       currentRoom,
       maze,
@@ -140,19 +142,19 @@ export default defineComponent({
       canMoveLeft,
       canMoveRight,
       moveIcons,
-      move,
+      stepTo,
       isDoorLocked,
-      processChestItems,
+      claimChestItems,
       handleTeleport,
       toggleMap,
-      displayMessage,
+      showTempleMessage,
       registerMessageDisplay,
       chestContents,
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
       whenOpened,
-      reopenIfGone,
+      restoreIfGone,
       // Map and compass utilities
       showRoomDetails,
       getRoomVisibility,
@@ -161,11 +163,14 @@ export default defineComponent({
       getMapTileClass,
       isRoomVisited
     } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
+    const mapCellIcon = mapCellIconOf({
+      rooms, hasCompass, getRoomVisibility, isCurrentRoom, showRoomDetails, getRoomIcon, isRoomVisited
+    });
 
     const router = useRouter();
 
     // The page stays parked while the hero is on another screen, so a run put away meanwhile (Portal Home) is reopened on Back
-    onIonViewWillEnter(reopenIfGone);
+    onIonViewWillEnter(restoreIfGone);
 
     // Messages are RPG-box toasts in the center with an X to dismiss
     const { showToast } = useToast();
@@ -182,7 +187,8 @@ export default defineComponent({
 
     // A sound key from the fx table; the table is not there in every environment
     const fx = (key: string) => {
-      if (typeof play$fx === 'function') play$fx(key);
+      const canPlayFx = typeof play$fx === 'function';
+      if (canPlayFx) play$fx(key);
     };
 
     // The map closes with the page-close sound, once: from the compass rose, from a tap outside, or from the modal's own dismiss
@@ -235,8 +241,8 @@ export default defineComponent({
         progressHeroId,
         chestContents,
         currentRoom,
-        displayMessage,
-        processChestItems,
+        showTempleMessage,
+        claimChestItems,
         showTempleCleared,
         setHushMessages
       });
@@ -264,7 +270,7 @@ export default defineComponent({
       templeSystem,
       currentPosition,
       currentLevel,
-      displayMessage,
+      showTempleMessage,
       handleTeleport,
       say,
       fx,
@@ -280,7 +286,7 @@ export default defineComponent({
     });
 
     // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
-    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
+    const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
 
     // The live item definitions: the copy stored on the profile has no click. The composable needs the
     // router and the game store; where those are missing the navigation items simply have no click.
@@ -296,14 +302,14 @@ export default defineComponent({
       props,
       templeSystem,
       playerKeys,
-      replayKeyPulse,
+      playKeyPulse,
       liveContext,
       applyOutcome
     });
     const { isDoorOpen, doorShown, doorResult } = door;
 
     // The cracked wall close up: a Bomb in a hand blows it open
-    const { wall, showCrackedWall, blowShownWall, completeShownWall: finishShownWall, leaveShownWall } = useWallReveal({
+    const { wall, showCrackedWall, triggerWallBlast, completeShownWall: finishShownWall, closeShownWall } = useWallReveal({
       liveContext,
       applyOutcome,
       heldItems: () => [leftHandItem.value, rightHandItem.value] as Array<EquipmentItem | null>,
@@ -321,7 +327,7 @@ export default defineComponent({
       canMoveLeft,
       canMoveRight,
       isDoorLocked,
-      move,
+      stepTo,
       fx,
       updateBg,
       showLockedDoor,
@@ -341,7 +347,8 @@ export default defineComponent({
     onMounted(() => {
       // The run starts after the temple's saved layout was read, and the hero's save is read once it has
       void whenOpened.then(() => templeSystem.whenProgressReady(props.temple)).then(() => {
-        if (!templeSystem.bloodMoonRose(props.temple)) return;
+        const hasBloodMoonRisen = templeSystem.bloodMoonRose(props.temple);
+        if (!hasBloodMoonRisen) return;
         fx('no');
         say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
       });
@@ -353,7 +360,7 @@ export default defineComponent({
       fx('select');
       const live = liveContext();
       if (!live) {
-        displayMessage('Choose a profile first');
+        showTempleMessage('Choose a profile first');
         return;
       }
       const { ctx, room } = live;
@@ -394,6 +401,7 @@ export default defineComponent({
       getRoomIcon,
       getMapTileClass,
       isRoomVisited,
+      mapCellIcon,
 
       // Local functions
       moveWithUpdate,
@@ -421,9 +429,9 @@ export default defineComponent({
       isWallOpen,
       wallShown,
       wallResult,
-      blowShownWall,
+      triggerWallBlast,
       finishShownWall,
-      leaveShownWall,
+      closeShownWall,
       isPegasusRevealOpen,
       pegasusShown,
       pegasusReward,

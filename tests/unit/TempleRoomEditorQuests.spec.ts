@@ -99,7 +99,7 @@ beforeEach(async () => {
 describe("picking a quest", () => {
   it("writes questId, sets the type from the tier and promotes a shared monster token to a unique symbol", async () => {
     const editor = await startEditor([quest("q1", 13)], 0);
-    expect(await editor.questRooms.pickQuest("q1")).toBe(true);
+    expect(await editor.questRooms.selectQuest("q1")).toBe(true);
 
     const { store } = editor;
     const symbol = (store.templeMaze as string[][])[0][0];
@@ -115,13 +115,13 @@ describe("picking a quest", () => {
 
   it("promotes the shared MINI token too, and keeps a symbol the room already owns", async () => {
     const mini = await startEditor([quest("q1", 3)], 1);
-    await mini.questRooms.pickQuest("q1");
+    await mini.questRooms.selectQuest("q1");
     const promoted = (mini.store.templeMaze as string[][])[0][1];
     expect(promoted).not.toBe("MINI");
     expect(mini.store.roomsData[promoted].type).toBe("miniboss");
 
     const own = await startEditor([quest("q2", 1)], 2);
-    await own.questRooms.pickQuest("q2");
+    await own.questRooms.selectQuest("q2");
     expect((own.store.templeMaze as string[][])[0][2]).toBe("R0102");
     expect(own.store.roomsData.R0102).toMatchObject({ type: "monster", content: { questId: "q2" } });
   });
@@ -130,7 +130,7 @@ describe("picking a quest", () => {
     const types: string[] = [];
     for (const difficulty of [2, 5, 8]) {
       const editor = await startEditor([quest("q", difficulty)], 2);
-      await editor.questRooms.pickQuest("q");
+      await editor.questRooms.selectQuest("q");
       types.push(editor.store.roomsData.R0102.type);
     }
     expect(types).toEqual(["monster", "miniboss", "boss"]);
@@ -140,7 +140,7 @@ describe("picking a quest", () => {
     const editor = await startEditor([quest("q1", 2)], 2);
     editor.questRooms.openPicker();
     expect(editor.questRooms.showPicker.value).toBe(true);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     expect(editor.questRooms.showPicker.value).toBe(false);
     expect(editor.showTypeModal.value).toBe(true);
     expect(editor.modalStep.value).toBe(3);
@@ -151,8 +151,8 @@ describe("picking a quest", () => {
 
   it("refuses a quest that is gone or only a draft, and changes nothing", async () => {
     const editor = await startEditor([quest("wip", 2, { draft: true })], 2);
-    expect(await editor.questRooms.pickQuest("wip")).toBe(false);
-    expect(await editor.questRooms.pickQuest("nope")).toBe(false);
+    expect(await editor.questRooms.selectQuest("wip")).toBe(false);
+    expect(await editor.questRooms.selectQuest("nope")).toBe(false);
     expect(editor.store.roomsData.R0102.type).toBe("empty");
     expect(editor.store.roomsData.R0102.content?.questId).toBeUndefined();
     expect(editor.isQuestRoom.value).toBe(false);
@@ -160,14 +160,14 @@ describe("picking a quest", () => {
 
   it("puts the quest's library beast in the family's bestiary, and never writes over a beast the family already has", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     const stored = (await beastStorage.get("beast-dish-goblin")) as Beast | null;
     expect(stored?.name).toBe("Dish Goblin");
     expect(editor.allBeasts.value.map((beast) => beast.id)).toContain("beast-dish-goblin");
 
     await beastStorage.set("beast-dish-goblin", { ...stored, name: "Plate Fiend" });
     const again = await startEditor([quest("q1", 2)], 2);
-    await again.questRooms.pickQuest("q1");
+    await again.questRooms.selectQuest("q1");
     expect(((await beastStorage.get("beast-dish-goblin")) as Beast).name).toBe("Plate Fiend");
   });
 });
@@ -182,7 +182,7 @@ describe("the classic path is unchanged", () => {
 
   it("drops the quest from a room that becomes any other type", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     expect(editor.isQuestRoom.value).toBe(true);
     await editor.selectType("trap");
     expect(editor.roomData.value?.type).toBe("trap");
@@ -201,7 +201,7 @@ describe("the classic path is unchanged", () => {
 describe("the type modal on a quest room", () => {
   it("opens on the quest room's config, in Combat", async () => {
     const editor = await startEditor([quest("q1", 5)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     editor.closeTypeModal();
     editor.openTypeModal();
     expect(editor.modalStep.value).toBe(3);
@@ -210,8 +210,8 @@ describe("the type modal on a quest room", () => {
 
   it("goes back from the config to the type step, not the beast config selector", async () => {
     const editor = await startEditor([quest("q1", 5)], 2);
-    await editor.questRooms.pickQuest("q1");
-    editor.backModalStep();
+    await editor.questRooms.selectQuest("q1");
+    editor.prevModalStep();
     expect(editor.modalStep.value).toBe(2);
     expect(editor.pickerType.value).toBe("quest");
   });
@@ -219,13 +219,13 @@ describe("the type modal on a quest room", () => {
   it("names the room Quest · its tier in the header", async () => {
     const editor = await startEditor([quest("q1", 13)], 2);
     expect(editor.capitalizedType.value).toBe("Empty");
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     expect(editor.capitalizedType.value).toBe("Quest · Boss");
   });
 
   it("opens the Compendium's quest form for Edit quest, saving the room first and coming back to the config", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     editor.editQuest("q1");
     expect(mockPush).toHaveBeenCalledWith({ name: "xp-achievement-config-dashboard", params: { id: "q1" } });
     expect(editor.isReturningFromSelection.value).toBe(true);
@@ -238,57 +238,57 @@ describe("coming back from the quest form", () => {
 
   it("opens the room's config once, even when the page was rebuilt and lost its own flag", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     editor.editQuest("q1");
 
     const rebuilt = editorFor("0", "2");
     expect(rebuilt.isReturningFromSelection.value).toBe(false);
-    expect(rebuilt.consumeReturnToConfig()).toBe(true);
-    expect(rebuilt.consumeReturnToConfig()).toBe(false);
+    expect(rebuilt.claimReturnToConfig()).toBe(true);
+    expect(rebuilt.claimReturnToConfig()).toBe(false);
   });
 
   it("is for the room that left, not another room or another temple", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     editor.editQuest("q1");
 
-    expect(editorFor("0", "1").consumeReturnToConfig()).toBe(false);
-    expect(editorFor("0", "2", "water-temple").consumeReturnToConfig()).toBe(false);
-    expect(editorFor("0", "2").consumeReturnToConfig()).toBe(true);
+    expect(editorFor("0", "1").claimReturnToConfig()).toBe(false);
+    expect(editorFor("0", "2", "water-temple").claimReturnToConfig()).toBe(false);
+    expect(editorFor("0", "2").claimReturnToConfig()).toBe(true);
   });
 
   it("still opens it for the same page that left, which kept its flag", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     editor.editQuest("q1");
-    expect(editor.consumeReturnToConfig()).toBe(true);
+    expect(editor.claimReturnToConfig()).toBe(true);
     expect(editor.isReturningFromSelection.value).toBe(false);
-    expect(editorFor("0", "2").consumeReturnToConfig()).toBe(false);
+    expect(editorFor("0", "2").claimReturnToConfig()).toBe(false);
   });
 
   it("lapses after an hour, so a trip that never came back opens nothing later", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     const now = Date.now();
     const clock = jest.spyOn(Date, "now").mockReturnValue(now);
     try {
       editor.editQuest("q1");
       clock.mockReturnValue(now + 61 * 60 * 1000);
-      expect(editorFor("0", "2").consumeReturnToConfig()).toBe(false);
+      expect(editorFor("0", "2").claimReturnToConfig()).toBe(false);
     } finally {
       clock.mockRestore();
     }
   });
 
   it("has nothing to open when no trip was made", () => {
-    expect(editorFor("0", "2").consumeReturnToConfig()).toBe(false);
+    expect(editorFor("0", "2").claimReturnToConfig()).toBe(false);
   });
 });
 
 describe("the picker's size meter", () => {
   it("reads the temple as saved and the part this room makes of it", async () => {
     const editor = await startEditor([quest("small", 2), quest("big", 13)], 0);
-    await editor.questRooms.pickQuest("big");
+    await editor.questRooms.selectQuest("big");
     // cell 0 now holds the 13; the other cells are classic or empty
     expect(editor.questRooms.size.value).toEqual({ total: 13, here: 13 });
     const [dishRow] = editor.questRooms.rows.value.filter((row) => row.id === "small");
@@ -300,7 +300,7 @@ describe("Test fight", () => {
   it("fights the quest's beast, adopted first, and has nothing to fight in a classic room", async () => {
     const editor = await startEditor([quest("q1", 2)], 2);
     expect(await editor.questRooms.loadTestFightBeastIds()).toEqual([]);
-    await editor.questRooms.pickQuest("q1");
+    await editor.questRooms.selectQuest("q1");
     expect(await editor.questRooms.loadTestFightBeastIds()).toEqual(["beast-dish-goblin"]);
   });
 
@@ -336,7 +336,7 @@ describe("a room that lists several chores (the Old House)", () => {
   it("still replaces the list with the one quest the Game Master picks", async () => {
     const editor = await startEditor(kitchen(), 2);
     editor.roomData.value = listRoom();
-    await editor.questRooms.pickQuest("mugs");
+    await editor.questRooms.selectQuest("mugs");
     expect(editor.roomData.value?.content?.questId).toBe("mugs");
     expect(editor.roomData.value?.content).not.toHaveProperty("questIds");
   });

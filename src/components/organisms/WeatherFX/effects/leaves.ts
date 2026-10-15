@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Tumbling ellipses with rotation, in a few greens and golds. */
@@ -7,7 +7,7 @@ export const leaves: EffectFactory = () => {
   let x = new Float32Array(0), y = new Float32Array(0), r = new Float32Array(0), k = new Float32Array(0);
   const colors = ["rgba(120,160,70,0.85)", "rgba(190,150,60,0.85)", "rgba(90,130,60,0.85)", "rgba(200,110,50,0.85)"];
   let count = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 15, 40);
       x = new Float32Array(count); y = new Float32Array(count); r = new Float32Array(count); k = new Float32Array(count);
@@ -16,8 +16,10 @@ export const leaves: EffectFactory = () => {
     update(f) {
       for (let i = 0; i < count; i++) {
         y[i] += (18 + f.intensity * 4) * (0.5 + k[i]) * f.dt; x[i] += (Math.sin(f.time * 1.2 + k[i] * 8) * 25 + 10) * f.dt; r[i] += (1 + k[i]) * f.dt * 2;
-        if (y[i] > f.height + 8) { y[i] = -8; x[i] = rng() * f.width; }
-        if (x[i] > f.width + 8) x[i] = -8;
+        const isPastBottom = y[i] > f.height + 8;
+        if (isPastBottom) { y[i] = -8; x[i] = rng() * f.width; }
+        const isPastRightEdge = x[i] > f.width + 8;
+        if (isPastRightEdge) x[i] = -8;
       }
     },
     draw(f) {
@@ -30,5 +32,4 @@ export const leaves: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

@@ -112,7 +112,8 @@ export function quoteCare(kind: CareKind, stats: CareStats | null | undefined, l
   if (isAlreadyHealthy) {
     return { kind, cost, hpGain: 0, mpGain: 0, canPay: false, reason: "healthy" };
   }
-  if (wallet < cost) {
+  const isShortOfGold = wallet < cost;
+  if (isShortOfGold) {
     return { kind, cost, hpGain, mpGain, canPay: false, reason: "poor" };
   }
   return { kind, cost, hpGain, mpGain, canPay: true };
@@ -156,8 +157,10 @@ export function quoteBenchRest(
 ): BenchQuote {
   const hp = readPool(stats?.hp, stats?.maxHp);
   const hpGain = gainTo(hp, hp.now + Math.max(1, Math.round(hp.max * BENCH_REST_SHARE)));
-  if (hpGain <= 0) return { hpGain: 0, canRest: false, reason: "healthy" };
-  if (benchRestedToday(benchRestAt, now)) return { hpGain, canRest: false, reason: "rested" };
+  const isHealthy = hpGain <= 0;
+  if (isHealthy) return { hpGain: 0, canRest: false, reason: "healthy" };
+  const hasRestedToday = benchRestedToday(benchRestAt, now);
+  if (hasRestedToday) return { hpGain, canRest: false, reason: "rested" };
   return { hpGain, canRest: true };
 }
 
@@ -188,6 +191,7 @@ export function quoteBedRest(
   const mpGain = gainTo(mp, mp.max);
   const isFullyRested = hpGain <= 0 && mpGain <= 0;
   if (isFullyRested) return { hpGain: 0, mpGain: 0, canRest: false, reason: "healthy" };
-  if (benchRestedToday(bedRestAt, now)) return { hpGain, mpGain, canRest: false, reason: "rested" };
+  const hasRestedToday = benchRestedToday(bedRestAt, now);
+  if (hasRestedToday) return { hpGain, mpGain, canRest: false, reason: "rested" };
   return { hpGain, mpGain, canRest: true };
 }

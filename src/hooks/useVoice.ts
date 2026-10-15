@@ -1,11 +1,11 @@
-import { computed, getCurrentInstance, onBeforeUnmount, ref } from "vue";
+import { computed, getCurrentInstance, onBeforeUnmount, ref, type Ref } from "vue";
 import { getActivePinia } from "pinia";
 import { hasReadingVoice, onReadingVoiceChange, speak, stop } from "@/lib/engine/audio/speech";
 import { useUserStore } from "@/lib/store/stores/user";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { CopyKey } from "@/lib/services/copy/catalog";
 import { autoReadsFor, voiceFor } from "@/lib/services/copy/voices";
-import type { CopyVars } from "@/lib/services/copy/voices";
+import type { CopyVars, Voice } from "@/lib/services/copy/voices";
 
 /** A catalogue key, still completing in the editor, but any string is accepted (a computed key, a key from data) */
 export type CopyKeyArg = CopyKey | (string & Record<never, never>);
@@ -39,8 +39,14 @@ export function useVoice() {
  */
 export function useCopy(): CopyLookup {
   const { voice } = useVoice();
-  return (key, vars) => copyFor(key, voice.value, vars);
+  return copyIn(voice);
 }
+
+/** `useCopy` for a screen that already holds the voice from `useVoice`: the same lookup, without a second read of it */
+export const copyIn =
+  (voice: Readonly<Ref<Voice>>): CopyLookup =>
+  (key, vars) =>
+    copyFor(key, voice.value, vars);
 
 /**
  * Whether this device has a voice to read with, kept current: the browser lists its voices a moment after the page

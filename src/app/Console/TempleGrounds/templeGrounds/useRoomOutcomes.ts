@@ -28,7 +28,7 @@ import type { useTempleLayout } from './useTempleLayout';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
 
 export interface RoomOutcomeDeps
-  extends Pick<TempleState, 'currentPosition' | 'currentLevel' | 'displayMessage' | 'handleTeleport'> {
+  extends Pick<TempleState, 'currentPosition' | 'currentLevel' | 'showTempleMessage' | 'handleTeleport'> {
   props: TempleGroundsProps;
   userStore: ReturnType<typeof useUserStore>;
   router: Router;
@@ -65,7 +65,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     templeSystem,
     currentPosition,
     currentLevel,
-    displayMessage,
+    showTempleMessage,
     handleTeleport,
     say,
     fx,
@@ -84,7 +84,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
   const startFight = () => {
     const heroId = props.userId || userStore.currentUser.id;
     if (!heroId) {
-      displayMessage('Choose a profile first');
+      showTempleMessage('Choose a profile first');
       return;
     }
     const [row, col] = currentPosition.value;
@@ -168,11 +168,13 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const { sound, message } = outcome;
     const shouldPlaySound = sound && !celebrating;
     if (shouldPlaySound) fx(sound);
-    if (outcome.shake) shake();
+    const shouldShake = Boolean(outcome.shake);
+    if (shouldShake) shake();
     const shouldShowToast = message && !celebrating;
     if (shouldShowToast) say(message);
 
-    if (outcome.defeated) {
+    const isDefeated = Boolean(outcome.defeated);
+    if (isDefeated) {
       // Same as losing a battle: the trap already admitted the hero (full HP and MP, billed). The temple says one line,
       // then the Hospital screen takes over and the nurse reads the bill. The run is saved where the hero fell.
       fx('die');
@@ -185,12 +187,13 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const live = liveContext();
     switch (outcome.intent) {
       case 'leave': {
-        if (outcome.cleared) {
+        const cleared = outcome.cleared;
+        if (cleared) {
           // The gate opened: the egg cracks and the reward counts up, and only then does the hero walk out
           const heroId = String(progressHeroId ?? '');
           const freed = pegasusOfTemple(props.temple);
           const hasFreed = Boolean(freed && userStore.getUserById(heroId)?.stats?.pegasi?.[freed.index]);
-          showTempleCleared(hasFreed ? pegasusView(props.temple) : null, outcome.cleared);
+          showTempleCleared(hasFreed ? pegasusView(props.temple) : null, cleared);
           return;
         }
         leaveTemple();
@@ -205,8 +208,9 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
       case 'emptyChest':
         showEmptyChest();
         break;
-      case 'teleport':
-        if (handleTeleport()) {
+      case 'teleport': {
+        const didTeleport = handleTeleport();
+        if (didTeleport) {
           // Update UI after teleport, then see what the new room does
           fx('okdesuka');
           timers.startTimeout(100, () => updateBg(currentPosition.value[1], currentPosition.value[0]));
@@ -214,9 +218,10 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
         } else {
           // A circle with no partner anywhere leads nowhere
           fx('no');
-          displayMessage(CIRCLE_FIZZLES);
+          showTempleMessage(CIRCLE_FIZZLES);
         }
         break;
+      }
       case 'riddle': {
         const canShowRiddle = Boolean(live && outcome.riddle);
         if (canShowRiddle) {
@@ -236,7 +241,8 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
         break;
     }
 
-    if (outcome.moved) await arrive();
+    const hasMoved = Boolean(outcome.moved);
+    if (hasMoved) await arrive();
   };
 
   /** The hero has just walked (or fallen, or jumped) into a room: traps and pits act at once. */
@@ -255,17 +261,19 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
   const showRoomActions = async () => {
     const live = liveContext();
     if (!live) {
-      displayMessage('Choose a profile first');
+      showTempleMessage('Choose a profile first');
       return;
     }
 
     const sheet = roomActions(live.room, live.ctx);
     // A chest has no sheet: it comes up as the chest itself, shut with Open and Leave (or open and empty, with Leave)
-    if (sheet.chest === 'closed') {
+    const isShutChest = sheet.chest === 'closed';
+    if (isShutChest) {
       showChestContentsDialog();
       return;
     }
-    if (sheet.chest === 'empty') {
+    const isEmptyChest = sheet.chest === 'empty';
+    if (isEmptyChest) {
       showEmptyChest();
       return;
     }
@@ -282,14 +290,13 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const monsterArt = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
 
     const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
+    const beastSubtitle = encounter.named ? undefined : monsterSubtitle;
     const exitSprite = isEntrance ? { runs: dungeonExitRuns(element), width: EXIT_W, height: EXIT_H } : undefined;
 
-    // The entrance words its own line; a named encounter needs none, since the name is in the title
-    const encounterSubtitle = encounter.named ? undefined : monsterSubtitle;
     openChoiceReveal({
       kind: isEntrance ? 'exit' : 'sheet',
       title: encounter.title,
-      subtitle: isEntrance ? sheet.subHeader : encounterSubtitle,
+      subtitle: isEntrance ? sheet.subHeader : beastSubtitle,
       body: sheet.body,
       art: isEntrance ? undefined : monsterArt,
       sprite: exitSprite,
