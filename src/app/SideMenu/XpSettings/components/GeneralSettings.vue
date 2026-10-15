@@ -140,7 +140,8 @@
 
       /** The first-run tour plays once per hero; this queues it for the hero signed in now */
       async replayTour() {
-        if (!this.currentHeroId) return;
+        const noHero = this.currentHeroId === "";
+        if (noHero) return;
         resetTour(this.currentHeroId);
         await this.showToast("The tour will play next time your portal opens.");
       },
