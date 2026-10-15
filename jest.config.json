@@ -11,7 +11,9 @@
   "transformIgnorePatterns": [
     "/node_modules/(?!(\\.pnpm/|@ionic/(vue|vue-router|core)|@stencil/core|ionicons|three/))"
   ],
+  "cacheDirectory": "<rootDir>/node_modules/.cache/jest",
   "transform": {
+    "^.+\\.vue$": "<rootDir>/tests/jest/vue-transform.js",
     "/three/build/three\\.(module|core)\\.js$": "<rootDir>/tests/jest/esm-transform.js"
   },
   "testPathIgnorePatterns": [

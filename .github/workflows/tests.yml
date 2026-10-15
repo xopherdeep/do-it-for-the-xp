@@ -43,6 +43,20 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Jest's transform cache (ts-jest, vue-jest, babel), so unchanged files skip recompiling. Saved under a new key
+      # every run and restored from the newest one; the vue transform keys on `src=` files so nothing goes stale.
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/jest
+          key: jest-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.json', 'tsconfig.json') }}-${{ github.sha }}
+          restore-keys: jest-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.json', 'tsconfig.json') }}-
+
+      # The chemx package npx downloads, so it isn't fetched again on every run.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-chemx-${{ runner.os }}-${{ env.CHEMX_VERSION }}
+
       - name: Lint
         run: npx --yes "chemx@$CHEMX_VERSION" lint
         env:
