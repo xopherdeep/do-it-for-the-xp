@@ -1,8 +1,9 @@
 name: Tests
 
-# The full gate on GitHub instead of on a laptop, through Chemical X: `chemx verify` (audit against
-# chemx-ratchet.json, typecheck and the whole jest suite) and `chemx lint` run in one job on every
-# pull request and on every push to master. To block merging on a red run, mark the Verify check as
+# The full gate on GitHub instead of on a laptop, through Chemical X. Every push to master runs
+# `chemx verify` (audit against chemx-ratchet.json, typecheck and the whole jest suite) and `chemx lint`.
+# Pull requests run the same lint, audit and typecheck over the whole project, but only the jest specs
+# that depend on the files the PR changed (tools/ci/pr-specs.mjs); master's full run catches the rest. To block merging on a red run, mark the Verify check as
 # required in the repo's branch protection settings for master. Bump CHEMX_VERSION to move CI to a newer chemx.
 
 on:
@@ -29,7 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Depth 2 so a PR's merge commit keeps its first parent (the base tip) to diff against.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - uses: pnpm/action-setup@v4
         with:
@@ -63,6 +67,23 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Verify
+        if: github.event_name != 'pull_request'
         run: npx --yes "chemx@$CHEMX_VERSION" verify
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      # `chemx verify --changed` would also narrow the audit to the changed files, which swaps the ratchet
+      # gate for a severity gate, so a PR runs the three parts itself: whole audit, whole typecheck, related specs.
+      - name: Audit
+        if: github.event_name == 'pull_request'
+        run: npx --yes "chemx@$CHEMX_VERSION" audit --no-index
+
+      - name: Typecheck
+        if: github.event_name == 'pull_request'
+        run: npx --yes "chemx@$CHEMX_VERSION" typecheck
+
+      - name: Related tests
+        if: github.event_name == 'pull_request'
+        run: node tools/ci/pr-specs.mjs HEAD^1
         env:
           NODE_OPTIONS: --max-old-space-size=6144
