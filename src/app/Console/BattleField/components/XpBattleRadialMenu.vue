@@ -97,8 +97,8 @@
           :disabled="disabled"
           @click="onActionClick(runAction)"
         >
+          <xp-icon :icon="runAction.faIcon || 'running'" size="lg" class="pill-icon" />
           <ion-label class="pill-label">{{ runAction.label }}</ion-label>
-          <xp-icon :icon="runAction.faIcon || 'running'" size="lg" class="pill-icon pill-icon--end" />
         </ion-button>
       </div>
     </div>
@@ -115,8 +115,8 @@
           :disabled="disabled"
           @click="onActionClick(confirmRunAction)"
         >
+          <xp-icon :icon="confirmRunAction.faIcon || 'running'" size="lg" class="pill-icon" />
           <ion-label class="pill-label">{{ confirmRunAction.label }}</ion-label>
-          <xp-icon :icon="confirmRunAction.faIcon || 'running'" size="lg" class="pill-icon pill-icon--end" />
         </ion-button>
       </div>
 
@@ -390,11 +390,6 @@ const onCenterTap = () => {
     align-items: center;
     justify-content: center;
     margin-right: 4px;
-
-    &--end {
-      margin-right: 0;
-      margin-left: 4px;
-    }
   }
 
   &.pill-attack {
