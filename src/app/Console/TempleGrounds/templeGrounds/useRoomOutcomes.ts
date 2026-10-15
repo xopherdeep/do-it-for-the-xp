@@ -9,6 +9,7 @@ import {
   buyWare,
   onEnterRoom,
   roomActions,
+  nameTheEncounter,
   roomKind,
   type Riddle,
   type RoomAction,
@@ -276,6 +277,8 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const beast = sheet.beastId ? await beastCard(sheet.beastId, sheet.questBeast) : null;
     // A sheet that words its own subtitle (a quest room's, even an empty one) keeps it; an encounter shows its beast's name
     const monsterSubtitle = sheet.subHeader ?? beast?.name ?? (isCombatRoom && activeMonster.value ? activeMonster.value.name : undefined);
+    // The beast's name leads the title ("A Mustwisp approaches!"), so it is not repeated under it
+    const encounter = nameTheEncounter(sheet.header, sheet.subHeader === undefined ? monsterSubtitle : undefined);
     const monsterArt = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
 
     const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
@@ -283,8 +286,8 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
 
     openChoiceReveal({
       kind: isEntrance ? 'exit' : 'sheet',
-      title: sheet.header,
-      subtitle: isEntrance ? sheet.subHeader : monsterSubtitle,
+      title: encounter.title,
+      subtitle: isEntrance ? sheet.subHeader : encounter.named ? undefined : monsterSubtitle,
       body: sheet.body,
       art: isEntrance ? undefined : monsterArt,
       sprite: exitSprite,
