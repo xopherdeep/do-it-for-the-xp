@@ -1,0 +1,74 @@
+  .xp-approvals {
+    .loading-wrapper-centered {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100%;
+      padding: 40px;
+    }
+
+    ion-segment {
+      padding: 4px 8px;
+
+      ion-segment-button {
+        --indicator-color: var(--ion-color-primary);
+
+        ion-badge {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          font-size: 10px;
+          padding: 2px 6px;
+        }
+      }
+    }
+
+    ion-item {
+      --padding-start: 8px;
+      --inner-padding-end: 8px;
+      margin-bottom: 4px;
+
+      ion-note {
+        font-size: 12px;
+        margin-left: 8px;
+        color: var(--ion-color-medium);
+      }
+    }
+
+    .hero-avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ion-color-light);
+      color: var(--ion-color-medium);
+      font-size: 22px;
+    }
+
+    .status-icon {
+      margin-inline-end: 16px;
+    }
+
+    .rewards {
+      font-size: 12px;
+      color: var(--ion-color-medium);
+    }
+
+    .review-note {
+      font-style: italic;
+    }
+
+    .swipe-hint {
+      margin: 8px 16px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--ion-color-medium);
+    }
+
+    .text-success {
+      color: var(--ion-color-success);
+    }
+
+    .text-danger {
+      color: var(--ion-color-danger);
+    }
+  }
