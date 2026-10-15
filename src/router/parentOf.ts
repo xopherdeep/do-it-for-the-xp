@@ -125,6 +125,7 @@ const NAMED_RULES: Record<string, ParentRule> = {
   "my-tasks": toHome,
   "my-abilities": toHome,
   "my-gold-points": toHome,
+  "my-records": toHome,
   "my-inventory": toHome,
   "my-profile": toHome,
   "my-party": () => PROFILE_CHOOSER,

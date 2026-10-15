@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { alertController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { useHeroStreak } from "@/hooks/useHeroStreak";
@@ -11,9 +11,11 @@ import { useUserStore } from "@/lib/store/stores/user";
 /**
  * The daily streak flame on the HUD (services/streaks/dailyStreak.ts): the days in a row, lit once today is kept and
  * flickering while it is at risk; grey with a 0 on the day after a streak ended. Shields show as small pips. A tap
- * opens the streak box: days, next chest, shields, best. Draws nothing with streaks switched off, or with no streak.
+ * opens the streak box: days, next chest, shields, best, and a way to Hero Records. Draws nothing with streaks
+ * switched off, or with no streak.
  */
 const route = useRoute();
+const router = useRouter();
 const userStore = useUserStore();
 
 /** The hero on this screen: the route's hero, else whoever is playing */
@@ -33,7 +35,16 @@ const openStreakBox = async () => {
     header: streakHeader(streak.value),
     message: lines,
     cssClass: "rpg-alert streak-alert",
-    buttons: [{ text: "OK", role: "cancel", handler: () => play$fx("closeMenu") }],
+    buttons: [
+      {
+        text: "Records",
+        handler: () => {
+          play$fx("select");
+          void router.push({ name: "my-records", params: { userId: heroId.value } });
+        },
+      },
+      { text: "OK", role: "cancel", handler: () => play$fx("closeMenu") },
+    ],
   });
   await alert.present();
 };

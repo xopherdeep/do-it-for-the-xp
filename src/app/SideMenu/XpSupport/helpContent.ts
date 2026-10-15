@@ -64,6 +64,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "Claim when the chore is done, or Hunt to fight the beast for 25% more XP.",
       "A quest marked GM approves waits as Pending until a Game Master says yes.",
       "Finish a quest every day to grow your streak (the flame under your avatar). Days 3, 7, 14 and 30 open a chest, and every 7th day earns a shield that saves one missed day.",
+      "Hero Records (Stats in the avatar menu, or Records in the streak box) shows your week to share, XP by week, the beasts you tame most and the ones you run from.",
     ],
   },
   {

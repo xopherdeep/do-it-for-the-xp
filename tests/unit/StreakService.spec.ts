@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { chestMessage, settleStreakChests } from "@/lib/services/streaks/StreakService";
 import { shiftDayKey } from "@/lib/services/streaks/dailyStreak";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { useUserStore } from "@/lib/store/stores/user";
 import { addHero, hero, HERO, wallet } from "./templeFixtures";
 
 // The user store is real; only what it writes to disk is faked.
@@ -89,5 +90,15 @@ describe("chestMessage", () => {
     expect(chestMessage("Sam", [{ day: 3, xp: 15, gp: 10 }, { day: 7, xp: 40, gp: 25 }])).toBe(
       "Sam hit a 7-day streak! Chest: +55 XP, +35 GP"
     );
+  });
+});
+
+describe("questFlees", () => {
+  it("counts every run from a quest's fight, past the grudge's cap of three", () => {
+    const store = useUserStore();
+    for (let run = 0; run < 5; run++) store.addQuestGrudge(HERO, "dishes");
+    expect(hero().questFlees).toEqual({ dishes: 5 });
+    store.clearQuestGrudge(HERO, "dishes");
+    expect(hero().questFlees).toEqual({ dishes: 5 });
   });
 });

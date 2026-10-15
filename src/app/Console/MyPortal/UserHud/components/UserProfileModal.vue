@@ -119,6 +119,13 @@
           </div>
         </div>
 
+        <!-- Hero Records: the weekly recap, streak and all-time numbers -->
+        <ion-button expand="block" fill="outline" color="warning" class="records-button" data-cy="open-records"
+          @click="openRecords">
+          <i class="fad fa-scroll-old mr-2" aria-hidden="true"></i>
+          Hero Records
+        </ion-button>
+
         <!-- Five Pillars Explanation - shows when no accordion is open -->
         <Transition name="pillars-fade">
           <div v-if="!activeAccordion" class="pillars-explanation">
@@ -194,6 +201,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   IonModal,
   IonHeader,
@@ -298,6 +306,13 @@ export default defineComponent({
     const dismiss = async () => {
       play$fx('no');
       await modal.value?.$el?.dismiss();
+    };
+
+    const router = useRouter();
+    const openRecords = async () => {
+      play$fx('select');
+      await modal.value?.$el?.dismiss();
+      await router.push({ name: 'my-records', params: { userId: String(props.user?.id || '') } });
     };
 
     // Toggle accordion when clicking stat boxes
@@ -699,6 +714,7 @@ export default defineComponent({
       showDieInfo,
       modal,
       dismiss,
+      openRecords,
 
       // Computed
       xpProgress,
@@ -714,6 +730,11 @@ export default defineComponent({
 <style lang="scss">
 // Styles are in earthbound.scss for the .user-profile-modal class
 .user-profile-modal {
+  .records-button {
+    margin: 0.75rem 1rem 0.25rem;
+    font-family: "StatusPlz", sans-serif;
+  }
+
   .mastery-dice-row {
     display: flex !important;
     justify-content: space-between;
