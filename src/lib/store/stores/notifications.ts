@@ -26,7 +26,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
 
   const feedOf = (heroId: string): XpNotification[] => {
     const key = String(heroId);
-    if (!byHero[key]) byHero[key] = [];
+    const hasFeed = !!byHero[key];
+    if (!hasFeed) byHero[key] = [];
     return byHero[key];
   };
 
@@ -47,7 +48,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
   function load(heroId: string): Promise<void> {
     const key = String(heroId);
     if (!key) return Promise.resolve();
-    if (loaded[key]) return Promise.resolve();
+    const isFeedLoaded = !!loaded[key];
+    if (isFeedLoaded) return Promise.resolve();
     const running = loading.get(key);
     if (running) return running;
     const read = (async () => {
@@ -112,7 +114,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     for (const heroId of Object.keys(byHero)) {
       const entry = byHero[heroId].find((candidate) => candidate.id === id);
       if (!entry) continue;
-      if (!entry.readAt) {
+      const isUnread = !entry.readAt;
+      if (isUnread) {
         entry.readAt = at.toISOString();
         persist(heroId);
       }
@@ -125,7 +128,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     const key = String(heroId);
     let marked = 0;
     for (const entry of feedOf(key)) {
-      if (entry.readAt) continue;
+      const isRead = !!entry.readAt;
+      if (isRead) continue;
       entry.readAt = at.toISOString();
       marked += 1;
     }
@@ -136,7 +140,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
   function remove(id: string): boolean {
     for (const heroId of Object.keys(byHero)) {
       const index = byHero[heroId].findIndex((candidate) => candidate.id === id);
-      if (index < 0) continue;
+      const hasNoMatch = index < 0;
+      if (hasNoMatch) continue;
       byHero[heroId].splice(index, 1);
       persist(heroId);
       return true;

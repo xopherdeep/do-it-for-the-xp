@@ -14,18 +14,22 @@ const afterPaint = (): Promise<void> =>
       clearTimeout(fallback);
       resolve();
     };
-    if (typeof requestAnimationFrame !== "function") return done();
+    const hasAnimationFrames = typeof requestAnimationFrame === "function";
+    if (!hasAnimationFrames) return done();
     requestAnimationFrame(() => requestAnimationFrame(done));
   });
 
 /** The buzz that goes with each effect, felt as the screen goes dark (clouds) or is fully covered (the rest). */
 const feelCoverStart = (plan: TransitionPlan) => {
-  if (plan.effect === "clouds") rumble([[0, "tick"], [140, "tick"], [280, "tick"]]);
+  const isClouds = plan.effect === "clouds";
+  if (isClouds) rumble([[0, "tick"], [140, "tick"], [280, "tick"]]);
 };
 // The doors slam on their own when the leaves meet, so they get no second hit here
 const feelCovered = (plan: TransitionPlan) => {
-  if (plan.effect === "iris") feel("thud");
-  if (plan.effect === "swirl") feel("slam");
+  const isIris = plan.effect === "iris";
+  if (isIris) feel("thud");
+  const isSwirl = plan.effect === "swirl";
+  if (isSwirl) feel("slam");
 };
 
 const isE2e = (): boolean => typeof window !== "undefined" && Boolean((window as unknown as { Cypress?: unknown }).Cypress);
@@ -43,7 +47,8 @@ export function handleTransitionGuard(router: Router): void {
       if (shouldSkipEffect) return;
       const plan = transitionFor(sceneOf(from), sceneOf(to));
       if (!plan) return;
-      if (plan.sound) play$fx(plan.sound);
+      const { sound } = plan;
+      if (sound) play$fx(sound);
       feelCoverStart(plan);
       const shouldHoldForSwirl = plan.effect === "swirl" && !prefersReducedMotion();
       if (shouldHoldForSwirl) {
@@ -59,7 +64,8 @@ export function handleTransitionGuard(router: Router): void {
 
   router.afterEach?.(async () => {
     try {
-      if (state.phase === "idle") return;
+      const isIdle = state.phase === "idle";
+      if (isIdle) return;
       // Covered and mounted, or the navigation failed or was aborted: either way the cover comes off.
       // (afterEach also runs for failures, with the failure as third argument; the wait is harmless then.)
       await nextTick();
@@ -72,6 +78,7 @@ export function handleTransitionGuard(router: Router): void {
   });
 
   router.onError?.(() => {
-    if (state.phase !== "idle") void reveal();
+    const isCovered = state.phase !== "idle";
+    if (isCovered) void reveal();
   });
 }

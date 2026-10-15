@@ -70,8 +70,10 @@ export function readLinkReturn(search: string): LinkReturn {
   const appPassword = params.get("password");
   const state = params.get(LINK_STATE_PARAM);
   const withState = state ? { state } : {};
-  if (siteUrl && userLogin && appPassword) return { kind: "linked", siteUrl, userLogin, appPassword, ...withState };
-  if (params.get("success") === "false") return { kind: "rejected", ...withState };
+  const isApproved = !!(siteUrl && userLogin && appPassword);
+  if (isApproved) return { kind: "linked", siteUrl, userLogin, appPassword, ...withState };
+  const isRejected = params.get("success") === "false";
+  if (isRejected) return { kind: "rejected", ...withState };
   return { kind: "none" };
 }
 
@@ -102,9 +104,11 @@ export function captureLinkReturn(loc: ReturnLocation): { search: string; url: s
 /** The query of an address (`?a=b`, no fragment; empty when it has none), in the shape `readLinkReturn` reads. */
 export function searchOf(url: string): string {
   const start = url.indexOf("?");
-  if (start < 0) return "";
+  const hasNoQuery = start < 0;
+  if (hasNoQuery) return "";
   const fragment = url.indexOf("#");
-  if (fragment >= 0 && fragment < start) return "";
+  const isQueryInFragment = fragment >= 0 && fragment < start;
+  if (isQueryInFragment) return "";
   return fragment < 0 ? url.slice(start) : url.slice(start, fragment);
 }
 
@@ -115,8 +119,10 @@ export function searchOf(url: string): string {
  * A route without a query comes back unchanged in value.
  */
 export function strippedState(state: unknown): unknown {
-  if (!state || typeof state !== "object") return state;
+  const isNotObject = !state || typeof state !== "object";
+  if (isNotObject) return state;
   const current = (state as { current?: unknown }).current;
-  if (typeof current !== "string") return state;
+  const hasNoRoute = typeof current !== "string";
+  if (hasNoRoute) return state;
   return { ...state, current: current.replace(/\?[^#]*/, "") };
 }

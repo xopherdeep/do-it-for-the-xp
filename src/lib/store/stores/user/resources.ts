@@ -15,17 +15,23 @@ export function applyGpChange(existingStats: any, payload: GpPayload): any {
   const userStats = existingStats || { gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT } };
 
   // Initialize stats if missing
-  if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT };
+  const hasNoPurse = !userStats.gp;
+  if (hasNoPurse) userStats.gp = { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT };
 
-  if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
-  if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
-  if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
+  const hasWalletChange = wallet !== undefined;
+  if (hasWalletChange) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
+  const hasSavingsChange = savings !== undefined;
+  if (hasSavingsChange) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
+  const hasDebtChange = debt !== undefined;
+  if (hasDebtChange) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
   // The Hospital's bill (docs/Quest-Rooms-Spec.md 5.8) never goes below 0: paying past it is not a credit
-  if (hospitalBill !== undefined) userStats.gp.hospitalBill = Math.max(0, (userStats.gp.hospitalBill || 0) + hospitalBill);
+  const hasBillChange = hospitalBill !== undefined;
+  if (hasBillChange) userStats.gp.hospitalBill = Math.max(0, (userStats.gp.hospitalBill || 0) + hospitalBill);
 
   // Wallet overflow protection: excess goes to savings (Earthbound-style ATM)
   const walletLimit = walletLimitOf(userStats.gp);
-  if (userStats.gp.wallet > walletLimit) {
+  const isWalletOverflowing = userStats.gp.wallet > walletLimit;
+  if (isWalletOverflowing) {
     const overflow = userStats.gp.wallet - walletLimit;
     userStats.gp.wallet = walletLimit;
     userStats.gp.savings = (userStats.gp.savings || 0) + overflow;
@@ -65,7 +71,8 @@ export function applyHpChange(userStats: any, amount: number): boolean {
   }
 
   // Ensure maxHp is synced if it exists as a top-level property
-  if (typeof userStats.maxHp === 'number') {
+  const hasTopLevelMaxHp = typeof userStats.maxHp === 'number';
+  if (hasTopLevelMaxHp) {
     userStats.hp.max = userStats.maxHp;
   }
 
@@ -95,7 +102,8 @@ export function applyMpChange(userStats: any, amount: number): boolean {
   }
 
   // Ensure maxMp is synced if it exists as a top-level property
-  if (typeof userStats.maxMp === 'number') {
+  const hasTopLevelMaxMp = typeof userStats.maxMp === 'number';
+  if (hasTopLevelMaxMp) {
     userStats.mp.max = userStats.maxMp;
   }
 

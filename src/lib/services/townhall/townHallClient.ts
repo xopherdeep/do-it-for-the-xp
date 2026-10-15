@@ -31,9 +31,12 @@ export class TownHallError extends Error {
 
 /** 400 is the kid's input, 401 and 403 are the account; anything else (404 included) is the site's trouble. */
 export function errorCodeFor(status: number): TownHallErrorCode {
-  if (status === 400) return "invalid";
-  if (status === 401) return "unauthorized";
-  if (status === 403) return "forbidden";
+  const isBadInput = status === 400;
+  if (isBadInput) return "invalid";
+  const isUnauthorized = status === 401;
+  if (isUnauthorized) return "unauthorized";
+  const isForbidden = status === 403;
+  if (isForbidden) return "forbidden";
   return "server";
 }
 
@@ -72,7 +75,8 @@ export interface TownHallRequest {
 function urlFor(root: string, path: string, query: TownHallRequest["query"]): string {
   const params = new URLSearchParams();
   Object.entries(query ?? {}).forEach(([key, value]) => {
-    if (value !== undefined) params.append(key, String(value));
+    const hasValue = value !== undefined;
+    if (hasValue) params.append(key, String(value));
   });
   const search = params.toString();
   return `${root}/${path}${search ? `?${search}` : ""}`;
@@ -107,7 +111,8 @@ function retryAfterFrom(headers: Headers): number | undefined {
 export async function townHallFetch<T>(path: string, req: TownHallRequest = {}): Promise<{ data: T; headers: Headers }> {
   const { auth = { kind: "none" }, method = "GET", query, body, root = townHallRestRoot(), fetchImpl = fetch, timeoutMs = TOWN_HALL_TIMEOUT_MS } = req;
   const headers: Record<string, string> = { Accept: "application/json", ...authHeaders(auth) };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const hasBody = body !== undefined;
+  if (hasBody) headers["Content-Type"] = "application/json";
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -128,9 +133,11 @@ export async function townHallFetch<T>(path: string, req: TownHallRequest = {}):
       data = await res.json();
     } catch {
       // A body that is not JSON (an empty 204, an HTML error page) reads as null, unless the clock ran out mid-read.
-      if (controller.signal.aborted) throw new TownHallError("offline");
+      const isTimedOut = controller.signal.aborted;
+      if (isTimedOut) throw new TownHallError("offline");
     }
-    if (!res.ok) throw new TownHallError(errorCodeFor(res.status), messageFrom(data), res.status, siteCodeFrom(data), retryAfterFrom(res.headers));
+    const isFailure = !res.ok;
+    if (isFailure) throw new TownHallError(errorCodeFor(res.status), messageFrom(data), res.status, siteCodeFrom(data), retryAfterFrom(res.headers));
     return { data: data as T, headers: res.headers };
   } finally {
     clearTimeout(timer);

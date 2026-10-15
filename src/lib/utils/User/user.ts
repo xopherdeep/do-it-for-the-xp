@@ -60,7 +60,8 @@ export function nameFromFull({ full, first, last, middle, nick, preferred }: any
   if (full) {
     const [realName, akaNick] = String(full).split(/\s+aka\s+/i)
     const parts = realName.trim().split(/\s+/).filter(Boolean)
-    if (parts.length) {
+    const hasParts = parts.length > 0
+    if (hasParts) {
       name.first = name.first || parts[0]
       name.last = name.last || (parts.length > 1 ? parts[parts.length - 1] : "")
       name.middle = name.middle || parts.slice(1, -1).join(" ")
@@ -68,7 +69,8 @@ export function nameFromFull({ full, first, last, middle, nick, preferred }: any
     if (akaNick) name.nick = name.nick || akaNick.trim()
   }
   // Every hero needs something to be called by; fall back to the first name
-  if (!name.nick) name.nick = name.first || name.full
+  const hasNoNick = !name.nick
+  if (hasNoNick) name.nick = name.first || name.full
   return name
 }
 
@@ -92,7 +94,8 @@ const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "fav
 export function mergeProfileEdit(stored: StoredProfile, form: ProfileFormValues): StoredProfile {
   const edited: StoredProfile = {}
   for (const field of FORM_EDITED_FIELDS) {
-    if (form[field] !== undefined) edited[field] = form[field]
+    const isEdited = form[field] !== undefined
+    if (isEdited) edited[field] = form[field]
   }
   // The same normalisation `new User` applies, so an edit never turns "" into a missing field
   edited.email = form.email || ""
@@ -108,8 +111,10 @@ export function mergeProfileEdit(stored: StoredProfile, form: ProfileFormValues)
   }
 
   // Only a look the form really holds is laid over the stored one; the form cannot clear it
-  if (form.look) edited.look = form.look
-  if (form.avatarImage) edited.avatarImage = form.avatarImage
+  const hasLook = !!form.look
+  if (hasLook) edited.look = form.look
+  const hasAvatarImage = !!form.avatarImage
+  if (hasAvatarImage) edited.avatarImage = form.avatarImage
 
   return { ...stored, ...edited }
 }
@@ -132,10 +137,11 @@ export async function profileToSave(
   openedWith?: StoredProfile | null
 ): Promise<StoredProfile> {
   let stored: StoredProfile | null | undefined
-  if (form.id) {
+  const formId = form.id
+  if (formId) {
     try {
       // Read it again now: the copy the form was opened with may be older than what is stored
-      stored = await storage.get(form.id)
+      stored = await storage.get(formId)
     } catch {
       stored = undefined
     }
