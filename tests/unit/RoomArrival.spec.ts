@@ -1,10 +1,7 @@
 import { nextTick, ref } from "vue";
-import { ROOM_SLIDE_MS, useRoomArrival } from "@/app/Console/TempleGrounds/templeGrounds/useRoomArrival";
+import { useRoomArrival } from "@/app/Console/TempleGrounds/templeGrounds/useRoomArrival";
 
 describe("stepping to the next room", () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
   const walk = async (from: [number, number], to: [number, number]) => {
     const position = ref<[number, number]>(from);
     const room = useRoomArrival(position);
@@ -13,12 +10,9 @@ describe("stepping to the next room", () => {
     return room;
   };
 
-  it("knows the way the hero walked and lurches while the floor slides", async () => {
-    const { arrival, isLurching } = await walk([2, 2], [2, 3]);
+  it("knows the way the hero walked", async () => {
+    const { arrival } = await walk([2, 2], [2, 3]);
     expect(arrival.value).toEqual({ key: 1, dx: 1, dy: 0 });
-    expect(isLurching.value).toBe(true);
-    jest.advanceTimersByTime(ROOM_SLIDE_MS);
-    expect(isLurching.value).toBe(false);
   });
 
   it("reads north as up", async () => {
@@ -36,8 +30,7 @@ describe("stepping to the next room", () => {
   });
 
   it("does nothing for a jump that is not one step", async () => {
-    const { arrival, isLurching } = await walk([0, 0], [3, 4]);
+    const { arrival } = await walk([0, 0], [3, 4]);
     expect(arrival.value).toBeNull();
-    expect(isLurching.value).toBe(false);
   });
 });

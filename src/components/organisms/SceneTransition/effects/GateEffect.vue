@@ -17,7 +17,8 @@
         <span class="gate-door__band gate-door__band--low" />
         <span class="gate-door__ring" />
       </div>
-      <!-- The temple's sigil lights up across the seam once the doors meet -->
+      <!-- A line of light along the seam, and the temple's sigil lighting up across it, as the lock gives -->
+      <span class="gate-seam" />
       <svg
         class="gate-sigil"
         :viewBox="`0 0 ${IRIS_SPRITE_W} ${IRIS_SPRITE_H}`"
@@ -26,7 +27,7 @@
       >
         <pixel-runs :runs="sigil" />
       </svg>
-      <!-- Dust shaken loose by the slam -->
+      <!-- Dust shaken loose as the doors grind apart -->
       <span v-for="mote in DUST" :key="mote" class="gate-dust" :class="`gate-dust--${mote}`" />
     </template>
   </div>
@@ -65,8 +66,8 @@ const sigil = computed(() => irisTemple(props.plan.element ?? "wind"));
 
 const DUST = [1, 2, 3, 4, 5, 6];
 
-/** The doors swing shut in hard steps and slam; the hold lets the sigil flare; then they grind apart. */
-const SHUT_MS = 520;
+/** The hero walks up to the shut doors out of the dark; the hold lets the sigil flare; then they grind apart. */
+const APPROACH_MS = 520;
 const OPEN_MS = 680;
 const CALM_MS = 150;
 
@@ -79,8 +80,10 @@ const cover = () => {
     timers.startTimeout(CALM_MS, () => emit("covered"));
     return;
   }
-  timers.startTimeout(SHUT_MS, () => {
-    feel("slam");
+  // Two footsteps up to the doors, then the lock clunks as the sigil lights
+  rumble([[0, "tick"], [260, "tick"]]);
+  timers.startTimeout(APPROACH_MS, () => {
+    feel("thud");
     emit("covered");
   });
 };
@@ -138,6 +141,11 @@ watch(
   animation: gate-light-flood 680ms steps(8, end) both;
 }
 
+/* The doors are already shut: the hero steps up to them out of the dark */
+.is-cover {
+  animation: gate-approach 520ms steps(6, end) both;
+}
+
 /* Each door is half the screen of carved stone */
 .gate-door {
   position: absolute;
@@ -153,29 +161,10 @@ watch(
 
 .gate-door--left {
   left: 0;
-  transform: translateX(-100%);
 }
 
 .gate-door--right {
   right: 0;
-  transform: translateX(100%);
-}
-
-.is-cover .gate-door--left {
-  animation: gate-shut-left 520ms steps(7, end) both;
-}
-
-.is-cover .gate-door--right {
-  animation: gate-shut-right 520ms steps(7, end) both;
-}
-
-.is-covered .gate-door {
-  transform: none;
-}
-
-.is-covered .gate-door--left,
-.is-covered .gate-door--right {
-  animation: gate-quake 220ms steps(4, end) both;
 }
 
 .is-reveal .gate-door--left {
@@ -221,6 +210,28 @@ watch(
   left: 22px;
 }
 
+/* Light leaks through the seam once the lock gives */
+.gate-seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--gate-glow);
+  box-shadow: 0 0 12px var(--gate-glow);
+  opacity: 0;
+}
+
+.is-covered .gate-seam {
+  animation: gate-seam-leak 600ms steps(6, end) both;
+}
+
+.is-reveal .gate-seam {
+  opacity: 1;
+  animation: gate-sigil-fade 200ms steps(3, end) both;
+}
+
 /* The sigil flares across the seam while the doors are shut */
 .gate-sigil {
   position: absolute;
@@ -241,7 +252,7 @@ watch(
   animation: gate-sigil-fade 200ms steps(3, end) both;
 }
 
-/* Dust drops from the lintel when the doors slam */
+/* Dust drops from the lintel as the doors start to move */
 .gate-dust {
   position: absolute;
   top: -8px;
@@ -258,18 +269,18 @@ watch(
 .gate-dust--5 { left: 55%; animation-delay: 40ms !important; }
 .gate-dust--6 { left: 58%; animation-delay: 80ms !important; }
 
-.is-covered .gate-dust {
-  animation: gate-dust-fall 700ms steps(10, end) both;
+.is-reveal .gate-dust {
+  animation: gate-dust-fall 680ms steps(10, end) both;
 }
 
-@keyframes gate-shut-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+@keyframes gate-approach {
+  from { opacity: 0; transform: scale(1.3); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes gate-shut-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+@keyframes gate-seam-leak {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes gate-open-left {
@@ -282,14 +293,6 @@ watch(
   0% { transform: translateX(0); }
   15% { transform: translateX(2%); }
   100% { transform: translateX(102%); }
-}
-
-@keyframes gate-quake {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-4px, 3px); }
-  50% { transform: translate(3px, -2px); }
-  75% { transform: translate(-2px, 1px); }
-  100% { transform: translate(0, 0); }
 }
 
 @keyframes gate-light-flood {

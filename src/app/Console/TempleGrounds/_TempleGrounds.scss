@@ -580,28 +580,8 @@ ion-modal.temple-map-modal .temple-map__close,
   }
 }
 
-// A step to the next room: the camera pulls back a touch as the floor slides, then settles on the new room.
-// It uses the separate `scale` property so it rides on top of the slide's transform.
-.background-container.is-lurching {
-  animation: temple-room-lurch 0.65s cubic-bezier(0.3, 0, 0.3, 1);
-}
-
-@keyframes temple-room-lurch {
-  0%,
-  100% {
-    scale: 1;
-  }
-  45% {
-    scale: 0.96;
-  }
-  80% {
-    scale: 1.01;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  #game-area.temple-shake,
-  .background-container.is-lurching {
+  #game-area.temple-shake {
     animation: none;
   }
 }

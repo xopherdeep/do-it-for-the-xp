@@ -20,13 +20,15 @@ const props = defineProps<{ arrival: RoomArrival | null; element?: string }>();
 
 const glow = computed(() => templeGlow(props.element));
 
-/** Fixed spots and delays, so every step looks alike and nothing is random in a test */
+/** Fixed spots, sizes and delays, so every step looks alike and nothing is random in a test */
 const MOTES = [
-  [12, 18, 0], [28, 64, 60], [44, 30, 30], [60, 78, 90], [76, 42, 15],
-  [88, 70, 75], [20, 88, 45], [52, 12, 105], [36, 50, 20], [70, 24, 50],
-].map(([x, y, delay], id) => ({
+  [10, 20, 0, 8], [24, 62, 50, 6], [40, 32, 25, 10], [58, 76, 80, 8],
+  [74, 40, 10, 6], [88, 68, 65, 10], [18, 86, 40, 8], [50, 14, 95, 6],
+  [34, 48, 15, 8], [68, 22, 45, 10], [82, 88, 30, 6], [6, 44, 70, 10],
+  [46, 66, 55, 8], [92, 30, 20, 6], [62, 54, 85, 8], [28, 8, 35, 6],
+].map(([x, y, delay, size], id) => ({
   id,
-  style: { "--x": `${x}%`, "--y": `${y}%`, "--delay": `${delay}ms` },
+  style: { "--x": `${x}%`, "--y": `${y}%`, "--delay": `${delay}ms`, "--size": `${size}px` },
 }));
 </script>
 
@@ -52,12 +54,13 @@ const MOTES = [
     position: absolute;
     left: var(--x);
     top: var(--y);
-    width: 4px;
-    height: 4px;
+    width: var(--size);
+    height: var(--size);
     background: var(--glow);
-    box-shadow: 0 0 4px var(--glow);
+    /* A dark rim so the dust reads on a pale floor as well as a dark one */
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45), 0 0 8px var(--glow);
     opacity: 0;
-    animation: room-arrival-mote 600ms steps(8, end) var(--delay) both;
+    animation: room-arrival-mote 850ms steps(10, end) var(--delay) both;
   }
 }
 
@@ -69,8 +72,9 @@ const MOTES = [
 
 @keyframes room-arrival-mote {
   0% { opacity: 0; transform: translate(0, 0); }
-  20% { opacity: 0.9; }
-  100% { opacity: 0; transform: translate(calc(var(--dx) * -120px), calc(var(--dy) * -120px)); }
+  15% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(calc(var(--dx) * -220px), calc(var(--dy) * -220px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
