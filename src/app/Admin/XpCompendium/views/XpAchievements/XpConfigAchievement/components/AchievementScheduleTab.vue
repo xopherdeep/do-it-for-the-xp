@@ -322,7 +322,7 @@ const {
   startsModalOpen,
   endsModalOpen,
   dueModalOpen,
-  generateScheduleWithAI,
+  createScheduleWithAI: generateScheduleWithAI,
   isGeneratingSchedule
 } = inject(AchievementFormInjectionKey) as any;
 

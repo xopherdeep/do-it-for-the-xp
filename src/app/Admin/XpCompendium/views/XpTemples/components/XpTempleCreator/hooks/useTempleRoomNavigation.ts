@@ -67,9 +67,9 @@ export interface UseTempleRoomNavigationReturn {
   unvisitedRooms: ComputedRef<{ row: number; col: number }[]>;
   
   // Methods
-  calculateAdjacency: () => void;
+  updateAdjacency: () => void;
   canNavigate: (direction: 'prev' | 'next') => boolean;
-  navigateRoom: (direction: 'prev' | 'next') => void;
+  stepRoom: (direction: 'prev' | 'next') => void;
   handleDoorClick: (dir: string) => void;
   toggleLock: (dir: string) => void;
   getDoorIcon: (dir: string) => string;
@@ -78,8 +78,8 @@ export interface UseTempleRoomNavigationReturn {
   getAdjacentRoomIcon: (dir: string) => string;
   getAdjacentRoomLabel: (dir: string) => string;
   getAdjacentRoomType: (dir: string) => string;
-  goBack: () => void;
-  goToCell: (row: number, col: number) => void;
+  stepBack: () => void;
+  selectCell: (row: number, col: number) => void;
   apply: () => void;
 }
 
@@ -118,7 +118,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
   });
 
   // Calculate adjacency for current room
-  const calculateAdjacency = () => {
+  const updateAdjacency = () => {
     const maze = getMaze();
     const r = props.rowIdx.value;
     const c = props.colIdx.value;
@@ -324,7 +324,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     return currentIdx < coords.length - 1;
   };
 
-  const navigateRoom = (direction: 'prev' | 'next') => {
+  const stepRoom = (direction: 'prev' | 'next') => {
     if (!canNavigate(direction)) return;
     
     props.saveToStore();
@@ -344,12 +344,12 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     back();
   };
 
-  const goBack = () => {
+  const stepBack = () => {
     back();
   };
 
   // Navigate to specific cell coordinates (for mini-map)
-  const goToCell = (row: number, col: number) => {
+  const selectCell = (row: number, col: number) => {
     ionRouter.replace(roomAddress('xp-room-editor', row, col), noAnimation);
   };
 
@@ -361,9 +361,9 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     unvisitedRooms,
     
     // Methods
-    calculateAdjacency,
+    updateAdjacency,
     canNavigate,
-    navigateRoom,
+    stepRoom,
     handleDoorClick,
     toggleLock,
     getDoorIcon,
@@ -372,8 +372,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     getAdjacentRoomIcon,
     getAdjacentRoomLabel,
     getAdjacentRoomType,
-    goBack,
-    goToCell,
+    stepBack,
+    selectCell,
     apply
   };
 }

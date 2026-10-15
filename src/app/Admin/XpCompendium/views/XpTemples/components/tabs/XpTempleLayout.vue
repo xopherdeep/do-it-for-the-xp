@@ -328,7 +328,7 @@ export default defineComponent({
 
     // Initialize a new empty layout
     const initializeNewLayout = () => {
-      creator.initializeGrid();
+      creator.initGrid();
     };
 
     // Handle quick edit popover from context menu
@@ -400,18 +400,18 @@ export default defineComponent({
       SIDE_TYPE_INFO: creator.SIDE_TYPE_INFO,
 
       // Floor management
-      promptAddFloor: creator.promptAddFloor,
+      promptAddFloor: creator.openAddFloorPrompt,
       confirmAddFloor: creator.confirmAddFloor,
-      promptCustomFloorName: creator.promptCustomFloorName,
+      promptCustomFloorName: creator.openCustomFloorNamePrompt,
       addFloor: creator.addFloor,
       removeFloor: creator.removeFloor,
       setLevel: creator.setLevel,
 
       // Grid management
-      resizeGrid: creator.resizeGrid,
+      resizeGrid: creator.updateGridSize,
 
       // Cell/Room actions
-      onCellClick: creator.onCellClick,
+      onCellClick: creator.handleCellClick,
       showQuickEditPopover,
       applyQuickType: creator.applyQuickType,
       applyRoomChanges: creator.applyRoomChanges,

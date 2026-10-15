@@ -117,17 +117,17 @@ export interface UseTempleCreatorReturn {
   SIDE_TYPE_INFO: typeof SIDE_TYPE_INFO;
 
   // Methods - Floor Management
-  promptAddFloor: () => void;
+  openAddFloorPrompt: () => void;
   confirmAddFloor: (name: string) => void;
-  promptCustomFloorName: () => Promise<void>;
+  openCustomFloorNamePrompt: () => Promise<void>;
   addFloor: (levelId: string) => void;
   removeFloor: (levelId: string) => void;
   setLevel: (levelId: string) => void;
 
   // Methods - Grid Management
-  initializeGrid: () => void;
-  resizeGrid: () => void;
-  generateUniqueSymbol: () => string;
+  initGrid: () => void;
+  updateGridSize: () => void;
+  createUniqueSymbol: () => string;
 
   // Methods - Cell/Room Management
   selectCell: (row: number, col: number) => void;
@@ -147,8 +147,8 @@ export interface UseTempleCreatorReturn {
   openBeastSelectorForQuickEdit: () => void;
 
   // Methods - Navigation
-  navigateToRoomEditor: (row: number, col: number) => void;
-  onCellClick: (payload: { row: number; col: number; event: Event }) => void;
+  openRoomEditor: (row: number, col: number) => void;
+  handleCellClick: (payload: { row: number; col: number; event: Event }) => void;
 
   // Methods - Save/Load
   saveTemple: () => Promise<void>;
@@ -347,7 +347,7 @@ export function useTempleCreator(
     nextFloorOptions.value = nextFloorOptionsFor(floors.value);
   };
 
-  const promptAddFloor = () => {
+  const openAddFloorPrompt = () => {
     calculateNextFloors();
     showAddFloorModal.value = true;
   };
@@ -357,7 +357,7 @@ export function useTempleCreator(
     showAddFloorModal.value = false;
   };
 
-  const promptCustomFloorName = async () => {
+  const openCustomFloorNamePrompt = async () => {
     showAddFloorModal.value = false;
     const customAlert = await alertController.create({
       header: "Custom Floor Name",
@@ -430,7 +430,7 @@ export function useTempleCreator(
   };
 
   // --- Grid Management ---
-  const initializeGrid = () => {
+  const initGrid = () => {
     const hasFloors =
       !Array.isArray(templeMaze.value) && Object.keys(templeMaze.value).length > 0;
     if (hasFloors) {
@@ -452,9 +452,9 @@ export function useTempleCreator(
   };
 
   // The store's counter and used set are the only ones, and it skips every symbol a room record already holds
-  const generateUniqueSymbol = (): string => store.generateUniqueSymbol();
+  const createUniqueSymbol = (): string => store.generateUniqueSymbol();
 
-  const resizeGrid = () => {
+  const updateGridSize = () => {
     const newSize = readGridSize(gridSize.value);
     if (!newSize) return; // not a grid: the floor stays as it is
     const resized = resizeMaze(
@@ -643,7 +643,7 @@ export function useTempleCreator(
   };
 
   // --- Navigation ---
-  const navigateToRoomEditor = (row: number, col: number) => {
+  const openRoomEditor = (row: number, col: number) => {
     ionRouter.push(
       {
         name: "xp-temple-room-editor",
@@ -657,8 +657,8 @@ export function useTempleCreator(
     );
   };
 
-  const onCellClick = (payload: { row: number; col: number; event: Event }) => {
-    navigateToRoomEditor(payload.row, payload.col);
+  const handleCellClick = (payload: { row: number; col: number; event: Event }) => {
+    openRoomEditor(payload.row, payload.col);
   };
 
   // --- Save/Load ---
@@ -923,17 +923,17 @@ export function useTempleCreator(
     SIDE_TYPE_INFO,
 
     // Floor management
-    promptAddFloor,
+    openAddFloorPrompt,
     confirmAddFloor,
-    promptCustomFloorName,
+    openCustomFloorNamePrompt,
     addFloor,
     removeFloor,
     setLevel,
 
     // Grid management
-    initializeGrid,
-    resizeGrid,
-    generateUniqueSymbol,
+    initGrid,
+    updateGridSize,
+    createUniqueSymbol,
 
     // Cell/Room management
     selectCell,
@@ -950,8 +950,8 @@ export function useTempleCreator(
     openBeastSelectorForQuickEdit,
 
     // Navigation
-    navigateToRoomEditor,
-    onCellClick,
+    openRoomEditor,
+    handleCellClick,
 
     // Save/Reset
     saveTemple,

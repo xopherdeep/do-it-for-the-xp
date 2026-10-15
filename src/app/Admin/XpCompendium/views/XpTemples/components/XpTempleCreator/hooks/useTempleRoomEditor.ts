@@ -212,10 +212,10 @@ export interface UseTempleRoomEditorReturn {
   saveToStore: () => Promise<void>;
   openTypeModal: () => void;
   closeTypeModal: () => void;
-  goToTypes: (category: RoomCategory) => void;
+  showRoomTypes: (category: RoomCategory) => void;
   selectType: (type: string) => Promise<void>;
   selectMonsterConfig: (token: string) => void;
-  backModalStep: () => void;
+  prevModalStep: () => void;
   confirmConfig: () => void;
   getCategoryColorClass: (categoryName: string) => string;
 
@@ -242,7 +242,7 @@ export interface UseTempleRoomEditorReturn {
   /** Open the Compendium's quest form for the room's quest; the editor comes back to the room's config */
   editQuest: (questId: string) => void;
   /** True once on coming back from picking beasts or editing the quest: the page then opens the room's config */
-  consumeReturnToConfig: () => boolean;
+  claimReturnToConfig: () => boolean;
 }
 
 export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleRoomEditorReturn {
@@ -555,7 +555,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     showTypeModal.value = true;
   };
 
-  const goToTypes = (category: RoomCategory) => {
+  const showRoomTypes = (category: RoomCategory) => {
     selectedCategory.value = category;
     modalStep.value = 2;
   };
@@ -664,7 +664,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     modalStep.value = 3; // Move to config step
   };
 
-  const backModalStep = () => {
+  const prevModalStep = () => {
     if (modalStep.value > 1) {
       // Handle step 2.5 (monster config) - go back to step 2
       if (modalStep.value === 2.5) {
@@ -827,7 +827,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   };
 
   /** True once when the Game Master has come back to this room from picking beasts or editing its quest. */
-  const consumeReturnToConfig = (): boolean => {
+  const claimReturnToConfig = (): boolean => {
     const isThisRoom = pendingReturn?.templeId === props.templeId && pendingReturn.row === props.row && pendingReturn.col === props.col;
     const isFresh = Boolean(pendingReturn) && Date.now() - (pendingReturn?.at ?? 0) < RETURN_LAPSES_AFTER_MS;
     const wasReturning = isReturningFromSelection.value || (isThisRoom && isFresh);
@@ -926,10 +926,10 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     saveToStore,
     openTypeModal,
     closeTypeModal,
-    goToTypes,
+    showRoomTypes,
     selectType,
     selectMonsterConfig,
-    backModalStep,
+    prevModalStep,
     confirmConfig,
     getCategoryColorClass,
 
@@ -957,6 +957,6 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     // Quest rooms
     questRooms,
     editQuest,
-    consumeReturnToConfig
+    claimReturnToConfig
   };
 }

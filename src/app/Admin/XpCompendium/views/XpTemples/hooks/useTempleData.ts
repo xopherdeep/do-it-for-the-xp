@@ -252,7 +252,7 @@ export function useTempleData(templeId: string) {
     }
   };
 
-  const calculatePowerRating = () => {
+  const getPowerRating = () => {
     const level = temple.value.level || 1;
     return rateTemplePower(level, composition.value.monsters);
   };
@@ -334,7 +334,7 @@ export function useTempleData(templeId: string) {
     loadCategories: loadCategories,
     loadTemple: loadTemple,
     saveTemple: saveTemple,
-    calculatePowerRating: calculatePowerRating,
+    getPowerRating: getPowerRating,
     getBeastsByTier: getBeastsByTier,
     getCategoryColor: getCategoryColor,
     getCategoryName: getCategoryName,

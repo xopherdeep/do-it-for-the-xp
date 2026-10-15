@@ -239,7 +239,7 @@ export default defineComponent({
       editor.loadBestiary();
       editor.loadShops();
       editor.questRooms.loadQuests();
-      navigation.calculateAdjacency();
+      navigation.updateAdjacency();
     });
 
     // Ionic lifecycle - reload when page enters view
@@ -248,12 +248,12 @@ export default defineComponent({
       editor.loadBestiary();
       editor.loadShops();
       editor.questRooms.loadQuests();
-      navigation.calculateAdjacency();
+      navigation.updateAdjacency();
 
       // If we just came back from selecting beasts or editing the room's quest, re-open the config modal. The page
       // may have been rebuilt on the way back, so the room has to be loaded before the modal reads its type.
       await roomLoaded;
-      if (editor.consumeReturnToConfig()) {
+      if (editor.claimReturnToConfig()) {
         editor.openTypeModal();
       }
     });
@@ -262,7 +262,7 @@ export default defineComponent({
     watch(
       [() => editor.rowIdx.value, () => editor.colIdx.value],
       () => {
-        navigation.calculateAdjacency();
+        navigation.updateAdjacency();
       }
     );
 
@@ -312,7 +312,7 @@ export default defineComponent({
       canTestFight: editor.questRooms.canTestFight,
       openQuestPicker: editor.questRooms.openPicker,
       closeQuestPicker: editor.questRooms.closePicker,
-      pickQuest: editor.questRooms.pickQuest,
+      pickQuest: editor.questRooms.selectQuest,
       createLibraryQuest: editor.questRooms.createLibraryQuest,
       editQuest: editor.editQuest,
 
@@ -320,11 +320,11 @@ export default defineComponent({
       selectEggPegasus: editor.selectEggPegasus, // NEW
       openTypeModal: editor.openTypeModal,
       closeTypeModal: editor.closeTypeModal,
-      goToTypes: editor.goToTypes,
+      goToTypes: editor.showRoomTypes,
       selectType: editor.selectType,
       selectMonsterConfig: editor.selectMonsterConfig,
       availableMonsterConfigs: editor.availableMonsterConfigs,
-      backModalStep: editor.backModalStep,
+      backModalStep: editor.prevModalStep,
       confirmConfig: editor.confirmConfig,
       toggleAutoLock: editor.toggleAutoLock,
       toggleMimicHeader: editor.toggleMimicHeader,
@@ -390,7 +390,7 @@ export default defineComponent({
       // From Navigation Hook
       adjacentRooms: navigation.adjacentRooms,
       canNavigate: navigation.canNavigate,
-      navigateRoom: navigation.navigateRoom,
+      navigateRoom: navigation.stepRoom,
       handleDoorClick: navigation.handleDoorClick,
       toggleLock: navigation.toggleLock,
       getDoorIcon: navigation.getDoorIcon,
@@ -398,12 +398,12 @@ export default defineComponent({
       getAdjacentRoomIcon: navigation.getAdjacentRoomIcon,
       getAdjacentRoomLabel: navigation.getAdjacentRoomLabel,
       getAdjacentRoomType: navigation.getAdjacentRoomType,
-      goBack: navigation.goBack,
+      goBack: navigation.stepBack,
 
       // Save and go back
       saveAndGoBack: async () => {
         await editor.saveToStore();
-        navigation.goBack();
+        navigation.stepBack();
       },
 
       // Mini-map navigation
@@ -411,7 +411,7 @@ export default defineComponent({
         // Save current room first, then navigate
         editor.saveToStore();
         // Use navigation hook's navigateRoom pattern with noAnimation
-        navigation.goToCell(row, col);
+        navigation.selectCell(row, col);
       },
 
       showLegendModal

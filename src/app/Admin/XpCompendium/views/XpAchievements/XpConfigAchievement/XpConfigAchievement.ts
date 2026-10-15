@@ -102,7 +102,7 @@ export default defineComponent({
       dueModalOpen,
       fibonacciIndex,
       fibonacciArray,
-      displayFibonacciValue,
+      formatFibonacciValue: displayFibonacciValue,
       handleDifficultyChange,
 
       // Selectors
@@ -111,9 +111,9 @@ export default defineComponent({
 
       // Actions
       loadData,
-      markReady,
-      flushSave,
-      pickCategory,
+      confirmReady: markReady,
+      savePending: flushSave,
+      selectCategory: pickCategory,
       addCategory,
       editCategories,
       deleteCategory,

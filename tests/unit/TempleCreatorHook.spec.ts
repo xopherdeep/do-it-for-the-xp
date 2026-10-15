@@ -85,7 +85,7 @@ const startTemple = (id: string, size: string, entrance: string) => {
   creator.store.templeId = id;
   creator.gridSize.value = size;
   creator.entrancePosition.value = entrance;
-  creator.initializeGrid();
+  creator.initGrid();
   return creator;
 };
 
@@ -157,14 +157,14 @@ describe("a 'floor,row,col' entrance", () => {
 
     creator.gridSize.value = "5x5";
     creator.currentLevelId.value = "1F";
-    creator.resizeGrid();
+    creator.updateGridSize();
     const floors = creator.templeMaze.value as Record<string, string[][]>;
     expect(floors["1F"]).toHaveLength(5);
     expect(entranceCells(floors["1F"])).toEqual([[1, 2]]);
     expect(creator.entrancePosition.value).toBe("0,1,2");
 
     creator.currentLevelId.value = "2F";
-    creator.resizeGrid();
+    creator.updateGridSize();
     expect(entranceCells((creator.templeMaze.value as Record<string, string[][]>)["2F"])).toEqual([]);
     expect(creator.entrancePosition.value).toBe("0,1,2");
   });
@@ -175,7 +175,7 @@ describe("a 'floor,row,col' entrance", () => {
 
     creator.gridSize.value = "2x2";
     creator.currentLevelId.value = "1F";
-    creator.resizeGrid();
+    creator.updateGridSize();
     const floors = creator.templeMaze.value as Record<string, string[][]>;
     expect(entranceCells(floors["1F"])).toEqual([[0, 0]]);
     expect(creator.entrancePosition.value).toBe("0,0,0");
@@ -244,7 +244,7 @@ describe("a 'row,col' entrance", () => {
     creator.addFloor("2F"); // shows 2F
     creator.gridSize.value = "3x3";
 
-    creator.resizeGrid();
+    creator.updateGridSize();
 
     const floors = creator.templeMaze.value as Record<string, string[][]>;
     expect(entranceCells(floors["2F"])).toEqual([]); // no second entrance, nothing stamped over a room of 2F
@@ -258,7 +258,7 @@ describe("a 'row,col' entrance", () => {
     creator.currentLevelId.value = "1F";
     creator.gridSize.value = "3x3";
 
-    creator.resizeGrid();
+    creator.updateGridSize();
 
     const floors = creator.templeMaze.value as Record<string, string[][]>;
     expect(entranceCells(floors["1F"])).toEqual([[0, 0]]);
@@ -626,7 +626,7 @@ describe("a temple with no stored record", () => {
     const creator = useTempleCreator({ templeId: nextId() });
     await creator.loadTempleLayout();
 
-    creator.initializeGrid();
+    creator.initGrid();
 
     const grid = creator.templeMaze.value as string[][];
     expect(grid).toHaveLength(10);
@@ -695,9 +695,9 @@ describe("minting a symbol on a temple loaded from the database", () => {
     expect(store.generateUniqueSymbol()).toBe("R007");
   });
 
-  it("is the same store counter for the hook's own generateUniqueSymbol", async () => {
+  it("is the same store counter for the hook's own createUniqueSymbol", async () => {
     const creator = await load();
-    expect(creator.generateUniqueSymbol()).toBe("R006");
+    expect(creator.createUniqueSymbol()).toBe("R006");
     expect(creator.store.generateUniqueSymbol()).toBe("R007");
   });
 
@@ -707,11 +707,11 @@ describe("minting a symbol on a temple loaded from the database", () => {
   });
 });
 
-describe("initializeGrid on a temple with floors", () => {
+describe("initGrid on a temple with floors", () => {
   it("never replaces the floors when the floor on show is not one of them", async () => {
     const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
     creator.currentLevelId.value = "9F";
-    creator.initializeGrid();
+    creator.initGrid();
     expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
     expect(creator.currentLevelId.value).toBe("1F");
   });
@@ -720,7 +720,7 @@ describe("initializeGrid on a temple with floors", () => {
     const creator = await startOnHalfLoadedStore(earthTemple(nextId()));
     creator.gridSize.value = "3x3";
     creator.currentLevelId.value = "2F";
-    creator.initializeGrid();
+    creator.initGrid();
     expect(floorMap(creator)["2F"]).toHaveLength(3);
     expect(floorMap(creator)["1F"]).toHaveLength(5);
   });

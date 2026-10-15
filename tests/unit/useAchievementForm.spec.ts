@@ -304,7 +304,7 @@ describe("What's the chore?: the category a typed name picks", () => {
     const form = await newForm();
     await form.addCategory({ id: "cat-kitchen", name: "Kitchen" });
     await form.addCategory({ id: "cat-garden", name: "Garden" });
-    form.pickCategory({ id: "cat-kitchen", name: "Kitchen" });
+    form.selectCategory({ id: "cat-kitchen", name: "Kitchen" });
     expect(form.achievement.value.categoryId).toBe("cat-kitchen");
   });
 });
@@ -327,14 +327,14 @@ describe("Ready?: the last step's verb", () => {
     expect(await savedQuest(form)).toMatchObject({ draft: true });
     form.achievement.value.categoryId = "cat-1";
     form.achievement.value.assignee = ["hero-1"];
-    expect(await form.markReady()).toBe(true);
+    expect(await form.confirmReady()).toBe(true);
     expect(form.saveState.value).toBe("saved");
     expect(await achievementDb.getTaskById(form.achievement.value.id)).toMatchObject({ draft: false });
   });
 
   it("refuses a quest that is not complete, and saves nothing", async () => {
     const form = await newForm("Load the dishwasher", false);
-    expect(await form.markReady()).toBe(false);
+    expect(await form.confirmReady()).toBe(false);
     expect(await achievementDb.getTaskById(form.achievement.value.id)).toBeNull();
   });
 });

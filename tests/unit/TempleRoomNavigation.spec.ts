@@ -95,7 +95,7 @@ const openRoom = async (
     floor,
   });
   await editor.loadRoomData();
-  navigation.calculateAdjacency();
+  navigation.updateAdjacency();
   return { editor, navigation, store, floor };
 };
 
@@ -206,7 +206,7 @@ describe("the address of the next room", () => {
   it("names the floor when stepping to the next room", async () => {
     const { navigation } = await openRoom(twoFloors(), rooms(), [0, 0], { level: "2F" });
 
-    navigation.navigateRoom("next");
+    navigation.stepRoom("next");
 
     expect(mockReplace).toHaveBeenCalledWith(
       { name: "xp-temple-room-editor", params: { templeId: "t1", floor: "2F", row: "0", col: "1" } },
@@ -217,7 +217,7 @@ describe("the address of the next room", () => {
   it("names the floor when jumping from the mini-map", async () => {
     const { navigation } = await openRoom(twoFloors(), rooms(), [0, 0], { level: "2F" });
 
-    navigation.goToCell(0, 1);
+    navigation.selectCell(0, 1);
 
     expect(mockReplace).toHaveBeenCalledWith(
       { name: "xp-room-editor", params: { templeId: "t1", floor: "2F", row: "0", col: "1" } },

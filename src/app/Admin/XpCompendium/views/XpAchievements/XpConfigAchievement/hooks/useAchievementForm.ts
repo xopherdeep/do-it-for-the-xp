@@ -88,7 +88,7 @@ export function useAchievementForm() {
   const categories = ref<AchievementCategoryInterface[]>([]);
   const users = ref<User[]>([]);
 
-  const loading = ref(false);
+  const isLoading = ref(false);
   const saving = ref(false);
   /** What the editor's save chip says: draft = saved but hidden from heroes until the quest is complete */
   const saveState = ref<"idle" | "saving" | "saved" | "draft" | "error">("idle");
@@ -320,7 +320,7 @@ export function useAchievementForm() {
     }
   );
 
-  const displayFibonacciValue = (index: number) => {
+  const formatFibonacciValue = (index: number) => {
     const value = fibonacciArray[index];
     return value ? value.toString() : "0";
   };
@@ -356,13 +356,13 @@ export function useAchievementForm() {
     );
   });
 
-  const increaseDifficulty = () => {
+  const incrementDifficulty = () => {
     if (fibonacciIndex.value < fibonacciArray.length - 1) {
       fibonacciIndex.value++;
     }
   };
 
-  const decreaseDifficulty = () => {
+  const decrementDifficulty = () => {
     if (fibonacciIndex.value > 0) {
       fibonacciIndex.value--;
     }
@@ -422,7 +422,7 @@ export function useAchievementForm() {
 
   // Actions
   const loadData = async (routeId?: string): Promise<LoadedQuest> => {
-    loading.value = true;
+    isLoading.value = true;
     resetPick();
     let loaded: LoadedQuest = { isSaved: false, wasDraft: false };
     try {
@@ -483,7 +483,7 @@ export function useAchievementForm() {
       // Store initial state for change detection
       lastSavedState.value = JSON.stringify(achievement.value);
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
     return loaded;
   };
@@ -537,7 +537,7 @@ export function useAchievementForm() {
   );
 
   /** Save the pending edit now (leaving the page before the 2 second timer runs) */
-  const flushSave = async () => {
+  const savePending = async () => {
     await autosave.flush();
   };
 
@@ -545,7 +545,7 @@ export function useAchievementForm() {
    * The last step's verb: the quest is complete, so mark it Ready (no longer a draft) and save it for good. Returns
    * false, saving nothing, while it is not complete; the wizard keeps the verb shut until then. The page says "Ready".
    */
-  const markReady = async (): Promise<boolean> => {
+  const confirmReady = async (): Promise<boolean> => {
     if (!isValidAdventure.value) return false;
     saving.value = true;
     saveState.value = "saving";
@@ -608,7 +608,7 @@ export function useAchievementForm() {
     categories,
     users,
     id,
-    loading,
+    isLoading,
     saving,
     saveState,
     saveNow,
@@ -627,7 +627,7 @@ export function useAchievementForm() {
     fibonacciIndex,
     fibonacciArray,
     fibonacciDescriptions,
-    displayFibonacciValue,
+    formatFibonacciValue,
     ...effort,
     ...suggestionForTabs,
     achievementTypes,
@@ -692,11 +692,11 @@ export function useAchievementForm() {
 
     // Actions
     loadData,
-    markReady,
-    flushSave,
+    confirmReady,
+    savePending,
     updatePoints,
-    increaseDifficulty,
-    decreaseDifficulty,
+    incrementDifficulty,
+    decrementDifficulty,
     handleDifficultyChange,
     toggleApproval,
     toggleBonus,
@@ -744,7 +744,7 @@ export function useAchievementForm() {
 
     // Category Actions
     /** Tapping a category in the modal files the quest under it */
-    pickCategory: (cat: AchievementCategoryInterface) => {
+    selectCategory: (cat: AchievementCategoryInterface) => {
       achievement.value.categoryId = cat.id;
     },
     /** A typed name that is already a category (any case or spacing) is picked, never added a second time */
@@ -776,7 +776,7 @@ export function useAchievementForm() {
     dismissModal: () => {
       modalController.dismiss();
     },
-    clickReorder: async () => {
+    openReorder: async () => {
       const achievementChain = (achievement.value.subAchievementIds || [])
         .map((id: string) => achievements.value.find((a) => a.id === id))
         .filter(Boolean);
@@ -797,7 +797,7 @@ export function useAchievementForm() {
 
     // AI Scheduler
     isGeneratingSchedule,
-    generateScheduleWithAI: async () => {
+    createScheduleWithAI: async () => {
       // Lazy import to avoid circular dependency issues if any, or just standard import usage
       const { generateSchedule, isGeminiConfigured } = await import(
         "@/lib/services/ai/GeminiService"
