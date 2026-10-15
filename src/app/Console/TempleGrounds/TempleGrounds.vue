@@ -61,6 +61,9 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- A boss or guardian waiting in the room: the room dims, shakes and a banner names it -->
+      <temple-boss-banner :banner="bossBanner" :element="templeElement" @dismiss="dismissBossBanner" />
+
       <!-- Lantern light breathing over the room, dust in the air -->
       <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
 
