@@ -45,7 +45,7 @@ export const setTextSpeed = (speed: TextSpeed): void => {
   try {
     localStorage.setItem(KEY, speed);
   } catch {
-    // storage blocked: the choice still holds until reload
+    // chemx-allow: best-effort storage blocked, so the choice still holds until reload
   }
 };
 
