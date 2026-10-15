@@ -85,7 +85,8 @@ export const countdownLabel = (ms: number): string => {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = String(total % 60).padStart(2, "0");
-  if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`;
+  const isPastAnHour = hours > 0;
+  if (isPastAnHour) return `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`;
   return `${minutes}:${seconds}`;
 };
 

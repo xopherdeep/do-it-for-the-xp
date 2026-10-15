@@ -119,7 +119,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     roomsData.value = JSON.parse(JSON.stringify(defaultData.rooms));
 
     // Standardize entrance
-    if (defaultData.entrance) {
+    const hasEntrance = Boolean(defaultData.entrance);
+    if (hasEntrance) {
       entrancePosition.value = defaultData.entrance.join(",");
     }
 
@@ -212,7 +213,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
 
           // WALL NORMALIZATION: If this cell's room has type 'wall', replace with WALL_TOKEN
           const existingRoom = roomsData.value[cell];
-          if (existingRoom?.type === "wall") {
+          const isWallRoom = existingRoom?.type === "wall";
+          if (isWallRoom) {
             // Delete the spurious wall entry from roomsData (we'll use shared WALL_TOKEN)
             delete roomsData.value[cell];
             return WALL_TOKEN;
@@ -239,7 +241,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
             }
           } else {
             // It's already a coord token, just ensure it's in the new room data
-            if (roomsData.value[cell]) {
+            const hasRoom = Boolean(roomsData.value[cell]);
+            if (hasRoom) {
               newRoomsData[cell] = JSON.parse(
                 JSON.stringify(roomsData.value[cell])
               );

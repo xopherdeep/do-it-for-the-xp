@@ -25,7 +25,8 @@ const startTicking = () => {
 
 const stopTicking = () => {
   users = Math.max(0, users - 1);
-  if (users || !ticker) return;
+  if (users) return;
+  if (!ticker) return;
   clearInterval(ticker);
   ticker = null;
 };

@@ -54,7 +54,8 @@ export const careConfirmPrompt = (kind: Extract<CareKind, 'heal' | 'revive'>, vo
 
 /** Nurse Joy turning a hero away: the quote said why. */
 export const careRefusalLine = (quote: CareQuote, voice: Voice = 'adventure'): string => {
-  if (quote.reason === 'healthy') return copyFor('nurse.refuse.healthy', voice);
+  const isHealthy = quote.reason === 'healthy';
+  if (isHealthy) return copyFor('nurse.refuse.healthy', voice);
   return copyFor('nurse.refuse.poor', voice, { cost: gold(quote.cost) });
 };
 
@@ -127,7 +128,8 @@ export const roomConfirmPrompt = (
 
 /** The concierge turning a guest away: the quote said why. */
 export const roomRefusalLine = (quote: CareQuote, voice: Voice = 'adventure'): string => {
-  if (quote.reason === 'healthy') return copyFor('hotel.refuse.healthy', voice);
+  const isHealthy = quote.reason === 'healthy';
+  if (isHealthy) return copyFor('hotel.refuse.healthy', voice);
   return copyFor('hotel.refuse.poor', voice, { cost: gold(quote.cost) });
 };
 
@@ -254,8 +256,10 @@ export const linkedStatusPrompt = (displayName: string): RevealPromptOptions => 
 
 /** What the clerk says when the parent comes back from the site's authorize page. */
 export const linkResultNotice = (result: 'linked' | 'rejected' | 'failed', displayName?: string): RevealPromptOptions => {
-  if (result === 'linked') return clerkNotice(`*stamps the ledger* Welcome, ${displayName?.trim() || 'friend'}! Your family is registered at the Town Hall.`);
-  if (result === 'rejected') return clerkNotice('*closes the ledger* Maybe another time.');
+  const isLinked = result === 'linked';
+  if (isLinked) return clerkNotice(`*stamps the ledger* Welcome, ${displayName?.trim() || 'friend'}! Your family is registered at the Town Hall.`);
+  const isRejected = result === 'rejected';
+  if (isRejected) return clerkNotice('*closes the ledger* Maybe another time.');
   return clerkNotice("*squints at the papers* The registration didn't go through, and nothing was saved. Try again.");
 };
 

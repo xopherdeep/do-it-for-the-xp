@@ -74,53 +74,66 @@ export class PackFormatError extends Error {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const isPackRecord = (value: unknown): value is Record<string, unknown> =>
+  isRecord(value) && value.format === PACK_FORMAT;
+
 const RECORD_LISTS = ["categories", "beasts", "quests", "abilities", "rewards", "dosDonts"] as const;
 const TEXT_FIELDS = ["id", "name", "version", "audience", "description"] as const;
 
 /** Checks the shape of a pack (text or parsed JSON) and returns it; throws PackFormatError for anything it can't load */
 export const parsePack = (input: string | unknown): XpPack => {
   let data: unknown = input;
-  if (typeof input === "string") {
+  const isPackText = typeof input === "string";
+  if (isPackText) {
     try {
       data = JSON.parse(input);
     } catch {
       throw new PackFormatError("The file is not valid JSON.");
     }
   }
-  if (!isRecord(data) || data.format !== PACK_FORMAT) {
+  if (!isPackRecord(data)) {
     throw new PackFormatError("This file is not an XP pack.");
   }
-  if (data.formatVersion !== PACK_FORMAT_VERSION) {
+  const isReadableVersion = data.formatVersion === PACK_FORMAT_VERSION;
+  if (!isReadableVersion) {
     throw new PackFormatError(`This pack was made for pack format ${String(data.formatVersion)}; this app reads format ${PACK_FORMAT_VERSION}.`);
   }
   for (const field of TEXT_FIELDS) {
-    if (typeof data[field] !== "string" || !(data[field] as string).trim()) {
+    const isFieldMissing = typeof data[field] !== "string" || !(data[field] as string).trim();
+    if (isFieldMissing) {
       throw new PackFormatError(`The pack needs a "${field}".`);
     }
   }
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(data.id as string)) {
+  const isValidPackId = /^[a-z0-9]+(-[a-z0-9]+)*$/.test(data.id as string);
+  if (!isValidPackId) {
     throw new PackFormatError("A pack id is lowercase letters, numbers and dashes.");
   }
   const content = data.content;
   if (!isRecord(content)) throw new PackFormatError("The pack has no content.");
   for (const list of RECORD_LISTS) {
     const records = content[list];
-    if (records === undefined) continue;
-    if (!Array.isArray(records)) throw new PackFormatError(`"${list}" must be a list.`);
+    const isListAbsent = records === undefined;
+    if (isListAbsent) continue;
+    const isList = Array.isArray(records);
+    if (!isList) throw new PackFormatError(`"${list}" must be a list.`);
     const seen = new Set<string>();
     records.forEach((record, index) => {
-      if (!isRecord(record) || (typeof record.id !== "string" && typeof record.id !== "number") || record.id === "") {
+      const isMissingId = !isRecord(record) || (typeof record.id !== "string" && typeof record.id !== "number") || record.id === "";
+      if (isMissingId) {
         throw new PackFormatError(`"${list}", entry ${index + 1}: every entry needs an "id".`);
       }
       const id = String(record.id);
-      if (seen.has(id)) throw new PackFormatError(`"${list}" lists the id "${id}" more than once.`);
+      const isDuplicateId = seen.has(id);
+      if (isDuplicateId) throw new PackFormatError(`"${list}" lists the id "${id}" more than once.`);
       seen.add(id);
     });
   }
-  if (content.shopStock !== undefined) {
+  const hasShopStock = content.shopStock !== undefined;
+  if (hasShopStock) {
     if (!isRecord(content.shopStock)) throw new PackFormatError(`"shopStock" must map shop ids to item ids.`);
     for (const [shopId, itemIds] of Object.entries(content.shopStock)) {
-      if (!Array.isArray(itemIds) || !itemIds.every((itemId) => typeof itemId === "string")) {
+      const isItemIdList = Array.isArray(itemIds) && itemIds.every((itemId) => typeof itemId === "string");
+      if (!isItemIdList) {
         throw new PackFormatError(`"shopStock.${shopId}" must be a list of item ids.`);
       }
     }

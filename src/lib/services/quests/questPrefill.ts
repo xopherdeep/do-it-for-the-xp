@@ -27,7 +27,8 @@ const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 /** The query a Calendar on `day` puts on the form's address. "all" tabs carry no time of day. */
 export function prefillQueryFor(day: Date, segment: "all" | TimeOfDay, heroId: string): Record<string, string> {
   const query: Record<string, string> = { day: format(day, "yyyy-MM-dd") };
-  if (segment !== "all") query.time = segment;
+  const hasTimeOfDay = segment !== "all";
+  if (hasTimeOfDay) query.time = segment;
   if (heroId) query.hero = heroId;
   return query;
 }
@@ -58,7 +59,8 @@ export function questPrefill(query: Record<string, unknown> | undefined): QuestP
   const day = parseDayKey(textOf(query?.day));
   if (day) prefill.startsOn = day.toISOString();
   const time = textOf(query?.time);
-  if ((TIMES_OF_DAY as string[]).includes(time)) prefill.timesOfDay = [time as TimeOfDay];
+  const isTimeOfDay = (TIMES_OF_DAY as string[]).includes(time);
+  if (isTimeOfDay) prefill.timesOfDay = [time as TimeOfDay];
   const hero = textOf(query?.hero);
   if (hero) {
     prefill.assignee = [hero];

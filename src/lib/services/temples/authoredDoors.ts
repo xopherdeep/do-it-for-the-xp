@@ -59,25 +59,30 @@ export const lockedFromSides = <R extends DoorRoom>(room: R): R => {
   let barriersChanged = false;
   for (const side of SIDES) {
     const isDrawnLocked = sides[side] === 'locked';
-    if (Boolean(locked[side]) !== isDrawnLocked) {
+    const isLockRedrawn = Boolean(locked[side]) !== isDrawnLocked;
+    if (isLockRedrawn) {
       if (isDrawnLocked) locked[side] = true;
       else delete locked[side];
       lockedChanged = true;
     }
-    if (sides[side] === 'masterlocked') {
+    const isMasterLocked = sides[side] === 'masterlocked';
+    if (isMasterLocked) {
       locked.master = true;
       lockedChanged = true;
     }
 
     const drawn = sides[side];
     if (isBarrier(drawn)) barriers[side] = drawn;
-    if (room.barriers?.[side] !== barriers[side]) barriersChanged = true;
+    const isBarrierRedrawn = room.barriers?.[side] !== barriers[side];
+    if (isBarrierRedrawn) barriersChanged = true;
   }
-  if (!lockedChanged && !barriersChanged) return room;
+  const isUnchanged = !lockedChanged && !barriersChanged;
+  if (isUnchanged) return room;
 
   const played: DoorRoom = { ...room };
   if (lockedChanged) played.locked = locked;
-  if (Object.keys(barriers).length) played.barriers = barriers;
+  const hasBarriers = Object.keys(barriers).length > 0;
+  if (hasBarriers) played.barriers = barriers;
   else delete played.barriers;
   return played as R;
 };
@@ -89,8 +94,10 @@ export const lockedFromSides = <R extends DoorRoom>(room: R): R => {
  */
 export const barrierBetween = (here: DoorRoom | null | undefined, there: DoorRoom | null | undefined, side: Side): Barrier | undefined => {
   const ends = [here?.barriers?.[side], there?.barriers?.[OPPOSITE[side]]];
-  if (ends.includes('wall')) return 'wall';
-  if (ends.includes('bombable')) return 'bombable';
+  const isWalled = ends.includes('wall');
+  if (isWalled) return 'wall';
+  const isBombable = ends.includes('bombable');
+  if (isBombable) return 'bombable';
   return undefined;
 };
 
@@ -162,11 +169,13 @@ export const bossDoorSides = <R extends DoorRoom>(maze: Maze | null | undefined,
   for (const grid of grids) {
     grid.forEach((cells, row) =>
       (cells ?? []).forEach((token, col) => {
-        if (!result[token]) return;
+        const isRoomless = !result[token];
+        if (isRoomless) return;
 
         for (const side of SIDES) {
           const facing = effectiveSideInGrid(grid, result, row, col, side);
-          if (facing === (result[token].sides?.[side] ?? 'door')) continue;
+          const isAlreadyFacing = facing === (result[token].sides?.[side] ?? 'door');
+          if (isAlreadyFacing) continue;
           result[token] = { ...result[token], sides: { ...openSides(), ...result[token].sides, [side]: facing } };
         }
       })

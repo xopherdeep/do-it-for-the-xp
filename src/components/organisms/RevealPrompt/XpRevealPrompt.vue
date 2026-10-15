@@ -207,7 +207,8 @@ watch(
   (next) => {
     if (!next) {
       pending = null;
-      if (shown.value && !isLeaving.value) {
+      const isShowingStill = Boolean(shown.value) && !isLeaving.value;
+      if (isShowingStill) {
         isLeaving.value = true;
         window.clearTimeout(leaveTimer);
         leaveTimer = window.setTimeout(endLeave, LEAVE_MS);
@@ -265,15 +266,18 @@ const heldToRange = (value: number): number => (options.value.amount ? clampAmou
 const setAmount = (value: number) => {
   if (!ready.value) return;
   const next = heldToRange(value);
-  if (next !== amountValue.value) play$fx("cursor");
+  const isAmountChanged = next !== amountValue.value;
+  if (isAmountChanged) play$fx("cursor");
   amountValue.value = next;
 };
 
 const stepBy = (direction: 1 | -1, times = 1) => {
   const amount = options.value.amount;
-  if (!amount || !ready.value) return;
+  const isStepperIdle = !amount || !ready.value;
+  if (isStepperIdle) return;
   const next = stepAmount(amountValue.value, direction, amount, times);
-  if (next !== amountValue.value) play$fx("cursor");
+  const isAmountChanged = next !== amountValue.value;
+  if (isAmountChanged) play$fx("cursor");
   amountValue.value = next;
 };
 
@@ -364,14 +368,16 @@ const choose = (choice: RevealChoice) => {
 };
 
 const cancel = () => {
-  if (spent || !shown.value) return;
+  const isCancelMoot = spent || !shown.value;
+  if (isCancelMoot) return;
   play$fx("closeMenu");
   answer(cancelAnswer(options.value));
 };
 
 const moveCursor = (delta: number) => {
   const total = options.value.choices.length;
-  if (!total || !ready.value) return;
+  const isCursorIdle = !total || !ready.value;
+  if (isCursorIdle) return;
   cursor.value = (cursor.value + delta + total) % total;
   play$fx("cursor");
 };
@@ -424,7 +430,8 @@ watch(
     typed.value = false;
     cursor.value = Math.max(0, options.value.choices.findIndex((choice) => !choice.disabled));
     amountValue.value = options.value.amount ? initialAmount(options.value.amount) : 0;
-    if (key === undefined) return;
+    const isPromptGone = key === undefined;
+    if (isPromptGone) return;
     play$fx(options.value.sound ?? "openMenu");
     // The simple voice reads the first line as it starts to type; the next lines follow below
     startAutoReading(line.value);

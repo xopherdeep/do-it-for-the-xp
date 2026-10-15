@@ -11,7 +11,8 @@ export const birds: EffectFactory = () => {
   return {
     init(f) { nextAt = f.time + 2 + rng() * 6; active = false; flock.length = 0; },
     update(f) {
-      if (f.reducedMotion) return;
+      const isMotionReduced = f.reducedMotion;
+      if (isMotionReduced) return;
       const shouldLaunchFlock = !active && f.time >= nextAt;
       if (shouldLaunchFlock) {
         active = true;

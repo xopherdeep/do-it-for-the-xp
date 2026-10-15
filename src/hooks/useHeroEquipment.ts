@@ -54,9 +54,11 @@ export function useHeroEquipment(userId: Ref<string> | string) {
       return;
     }
     const alreadyEquippedIndex = equipment.value.findIndex((i) => i.faIcon === item?.faIcon);
-    if (alreadyEquippedIndex !== -1) equipment.value.splice(alreadyEquippedIndex, 1);
+    const isAlreadyEquipped = alreadyEquippedIndex !== -1;
+    if (isAlreadyEquipped) equipment.value.splice(alreadyEquippedIndex, 1);
     const slotOccupiedIndex = equipment.value.findIndex((i) => i.hand === hand && i.slotIndex === index);
-    if (slotOccupiedIndex !== -1) equipment.value.splice(slotOccupiedIndex, 1);
+    const isSlotOccupied = slotOccupiedIndex !== -1;
+    if (isSlotOccupied) equipment.value.splice(slotOccupiedIndex, 1);
     const itemToEquip = { ...item, hand, slotIndex: index } as EquippedItem;
     const hasClickHandler = item?.click && typeof item.click === "function";
     if (hasClickHandler) itemToEquip.click = item.click;

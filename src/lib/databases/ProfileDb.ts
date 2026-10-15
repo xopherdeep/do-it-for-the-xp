@@ -80,8 +80,9 @@ export class ProfileDb extends DbStorageApi {
   }
 
   public async setProfile(profile: NewProfileForm) {
-    if (!profile.id) return
-    await this.set(profile.id, profile)
+    const id = profile.id
+    if (!id) return
+    await this.set(id, profile)
     
     // Backup to persistent storage after setting a profile
     await this.backupProfiles()
@@ -141,8 +142,9 @@ export class ProfileDb extends DbStorageApi {
       
       // Add each profile from backup
       for (const profile of profiles) {
-        if (profile.id) {
-          await this.set(profile.id, profile)
+        const id = profile.id
+        if (id) {
+          await this.set(id, profile)
         }
       }
       
@@ -171,8 +173,9 @@ export class ProfileDb extends DbStorageApi {
       
       // Add each profile
       for (const profile of profiles) {
-        if (profile.id) {
-          await this.set(profile.id, profile)
+        const id = profile.id
+        if (id) {
+          await this.set(id, profile)
         }
       }
       

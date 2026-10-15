@@ -74,16 +74,20 @@ const amount = (value: unknown): number => {
 const xpOf = (entry: InsightEntry): number => amount(entry.rewards?.xp) + amount(entry.huntBonusXp);
 
 const dayOf = (entry: InsightEntry): string => {
-  if (entry.dayKey) return entry.dayKey;
+  const dayKey = entry.dayKey;
+  if (dayKey) return dayKey;
   const date = new Date(String(entry.completedAt));
   return Number.isNaN(date.getTime()) ? "" : toDayKey(date);
 };
 
 /** Morning 5-12, afternoon 12-17, evening 17-21, night otherwise */
 export const timeOfDay = (hour: number): TimeOfDay => {
-  if (hour >= 5 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 17) return "afternoon";
-  if (hour >= 17 && hour < 21) return "evening";
+  const isMorning = hour >= 5 && hour < 12;
+  if (isMorning) return "morning";
+  const isAfternoon = hour >= 12 && hour < 17;
+  if (isAfternoon) return "afternoon";
+  const isEvening = hour >= 17 && hour < 21;
+  if (isEvening) return "evening";
   return "night";
 };
 
@@ -113,7 +117,8 @@ const mostOf = <T>(values: T[]): T | null => {
   let best: T | null = null;
   let bestCount = 0;
   for (const [value, count] of counts) {
-    if (count > bestCount) {
+    const isNewBest = count > bestCount;
+    if (isNewBest) {
       best = value;
       bestCount = count;
     }
@@ -142,7 +147,11 @@ export const heroInsights = (
   const done = mine.filter((entry) => entry.status === "approved" && dayOf(entry) && dayOf(entry) <= todayKey);
 
   const names = new Map<string, string>();
-  for (const entry of done) if (entry.questId && entry.questName) names.set(String(entry.questId), entry.questName);
+  for (const entry of done) {
+    const questName = entry.questName || "";
+    const isNamedQuest = Boolean(entry.questId) && questName !== "";
+    if (isNamedQuest) names.set(String(entry.questId), questName);
+  }
   for (const [id, name] of questNames) names.set(id, name);
 
   const weekStart = shiftDayKey(todayKey, -6);
@@ -162,13 +171,15 @@ export const heroInsights = (
     const id = String(entry.questId || "");
     if (!id) continue;
     allCounts.set(id, (allCounts.get(id) || 0) + 1);
-    if (dayOf(entry) >= weekStart) weekCounts.set(id, (weekCounts.get(id) || 0) + 1);
+    const isThisWeek = dayOf(entry) >= weekStart;
+    if (isThisWeek) weekCounts.set(id, (weekCounts.get(id) || 0) + 1);
   }
 
   const flees = new Map<string, number>();
   for (const [questId, count] of Object.entries(profile?.questFlees || {})) {
     const value = Math.floor(amount(count));
-    if (value > 0) flees.set(questId, value);
+    const hasFled = value > 0;
+    if (hasFled) flees.set(questId, value);
   }
   const marksOf = (questId: string): number => {
     const grudge = (profile?.questGrudges || {})[questId] as { marks?: unknown } | undefined;
@@ -205,23 +216,28 @@ export const heroInsights = (
 /** "+12" / "-3" / "same" against last week */
 export const changeLabel = (now: number, before: number): string => {
   const change = now - before;
-  if (change === 0) return "same as last week";
+  const isUnchanged = change === 0;
+  if (isUnchanged) return "same as last week";
   return `${change > 0 ? "+" : ""}${change} vs last week`;
 };
 
 /** The recap card's headline lines, the most bragworthy first. Plain sentences, ready to share. */
 export const recapLines = (insights: HeroInsights): string[] => {
   const { thisWeek, streak, weekTopBeasts } = insights;
-  if (thisWeek.quests === 0) return ["No quests done this week yet. Today is a great day to start!"];
+  const hasNoQuests = thisWeek.quests === 0;
+  if (hasNoQuests) return ["No quests done this week yet. Today is a great day to start!"];
   const lines = [
     `Tamed ${thisWeek.quests} beast${thisWeek.quests === 1 ? "" : "s"} for ${thisWeek.xp} XP and ${thisWeek.gp} GP.`,
     `Played ${thisWeek.activeDays} of the last 7 days.`,
   ];
-  if (streak.current > 1) lines.push(`On a ${streak.current}-day streak (best ${Math.max(streak.best, streak.current)}).`);
-  if (weekTopBeasts[0] && weekTopBeasts[0].count > 1) {
+  const isOnStreak = streak.current > 1;
+  if (isOnStreak) lines.push(`On a ${streak.current}-day streak (best ${Math.max(streak.best, streak.current)}).`);
+  const hasFavoriteFoe = !!weekTopBeasts[0] && weekTopBeasts[0].count > 1;
+  if (hasFavoriteFoe) {
     lines.push(`Favorite foe: ${weekTopBeasts[0].name}, beaten ${weekTopBeasts[0].count} times.`);
   }
-  if (insights.lastWeek.quests > 0 && thisWeek.quests > insights.lastWeek.quests) {
+  const isBetterThanLastWeek = insights.lastWeek.quests > 0 && thisWeek.quests > insights.lastWeek.quests;
+  if (isBetterThanLastWeek) {
     lines.push(`${thisWeek.quests - insights.lastWeek.quests} more quests than last week!`);
   }
   return lines;

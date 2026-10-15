@@ -9,7 +9,7 @@ const FADE_STEP_MS = 50;
 
 interface SoundEntry {
   audio: HTMLAudioElement;
-  fadeTimer: ReturnType<typeof setInterval> | null;
+  fadeTimer: ReturnType<typeof setInterval> | undefined;
 }
 
 export interface WeatherFXAPI {
@@ -53,7 +53,8 @@ export function useWeatherFX(): WeatherFXAPI {
   function getEntry(type: WeatherSoundType): SoundEntry | null {
     const existing = entries.get(type);
     if (existing) return existing;
-    if (typeof Audio === "undefined") return null;
+    const hasAudio = typeof Audio !== "undefined";
+    if (!hasAudio) return null;
     try {
       const audio = new Audio();
       const src = pickSoundSource(type, audio);
@@ -62,7 +63,7 @@ export function useWeatherFX(): WeatherFXAPI {
       audio.loop = true;
       audio.preload = "auto";
       audio.volume = 0;
-      const entry: SoundEntry = { audio, fadeTimer: null };
+      const entry: SoundEntry = { audio, fadeTimer: undefined };
       entries.set(type, entry);
       return entry;
     } catch {
@@ -71,10 +72,8 @@ export function useWeatherFX(): WeatherFXAPI {
   }
 
   function clearFade(entry: SoundEntry) {
-    if (entry.fadeTimer !== null) {
-      clearInterval(entry.fadeTimer);
-      entry.fadeTimer = null;
-    }
+    clearInterval(entry.fadeTimer);
+    entry.fadeTimer = undefined;
   }
 
   function fadeTo(entry: SoundEntry, target: number, onDone?: () => void) {
@@ -89,7 +88,8 @@ export function useWeatherFX(): WeatherFXAPI {
       } catch {
         step = steps;
       }
-      if (step >= steps) {
+      const isFadeDone = step >= steps;
+      if (isFadeDone) {
         clearFade(entry);
         onDone?.();
       }
@@ -122,7 +122,8 @@ export function useWeatherFX(): WeatherFXAPI {
   }
 
   function start(entry: SoundEntry, target: number) {
-    if (entry.audio.paused) {
+    const isPaused = entry.audio.paused;
+    if (isPaused) {
       try {
         entry.audio.volume = 0;
         const result = entry.audio.play();
@@ -144,7 +145,8 @@ export function useWeatherFX(): WeatherFXAPI {
   function playSound(type: WeatherSoundType, volume = 1) {
     master = clamp01(volume);
     entries.forEach((entry, key) => {
-      if (key !== type) silence(entry, false);
+      const isOtherSound = key !== type;
+      if (isOtherSound) silence(entry, false);
     });
     currentSound.value = type;
     if (isAppMuted()) {
@@ -178,7 +180,8 @@ export function useWeatherFX(): WeatherFXAPI {
     if (immediate) entries.clear();
   }
 
-  if (getCurrentInstance()) {
+  const isInComponent = getCurrentInstance() !== null;
+  if (isInComponent) {
     onUnmounted(() => dispose(true));
   }
 

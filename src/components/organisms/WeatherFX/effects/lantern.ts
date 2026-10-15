@@ -17,7 +17,8 @@ export const lantern: EffectFactory = () => {
     update(f) {
       for (let i = 0; i < motes; i++) {
         y[i] -= (6 + k[i] * 10) * f.dt; x[i] += Math.sin(f.time * 1.1 + k[i] * 9) * 6 * f.dt;
-        if (y[i] < -4) { y[i] = f.height + 4; x[i] = rng() * f.width; }
+        const isPastTop = y[i] < -4;
+        if (isPastTop) { y[i] = f.height + 4; x[i] = rng() * f.width; }
       }
     },
     draw(f) {

@@ -27,7 +27,8 @@ export const fog: EffectFactory = (options = {}) => {
     update(f) {
       for (const g of items) {
         g.x += g.v * f.dt * (f.reducedMotion ? 0.3 : 1);
-        if (g.x - g.s / 2 > f.width) g.x = -g.s / 2;
+        const isPastRightEdge = g.x - g.s / 2 > f.width;
+        if (isPastRightEdge) g.x = -g.s / 2;
       }
     },
     draw(f) {

@@ -124,7 +124,8 @@ export const trainedStats = (hero: HeroLike | null | undefined): TrainedStats =>
   const trained: TrainedStats = {};
   STAT_NAMES.forEach((stat) => {
     const value = points(special[stat] ?? stats[stat]);
-    if (value > 0) trained[stat] = value;
+    const isTrained = value > 0;
+    if (isTrained) trained[stat] = value;
   });
   return trained;
 };
@@ -180,25 +181,29 @@ export const heroPassive = (hero: HeroLike | null | undefined): ClassPassive => 
 
 /** An item or ability's MP bill for this hero: class discount and intelligence taken, rounded down, never below 0. */
 export const heroMpBill = (cost: number, hero: HeroLike | null | undefined): number => {
-  if (!(cost > 0)) return 0;
+  const isCharged = cost > 0;
+  if (!isCharged) return 0;
   return Math.max(0, Math.floor(cost * (1 - heroPassive(hero).mpDiscount) + 1e-9));
 };
 
 /** Temple gold as this hero is paid it: the class loot bonus and awareness, rounded to whole coins. */
 export const heroGold = (amount: number, hero: HeroLike | null | undefined): number => {
-  if (!(amount > 0)) return Math.max(0, Math.round(amount || 0));
+  const isPaid = amount > 0;
+  if (!isPaid) return Math.max(0, Math.round(amount || 0));
   return Math.round(amount * (1 + heroPassive(hero).gpBonus));
 };
 
 /** The top of a gold range once luck has had its say: `max` grown by the luck share, rounded up. */
 export const luckyTop = (max: number, hero: HeroLike | null | undefined): number => {
-  if (!(max > 0)) return 0;
+  const hasRange = max > 0;
+  if (!hasRange) return 0;
   return max + Math.ceil(max * heroEffects(hero).luckyRangeBonus - 1e-9);
 };
 
 /** A shop price for this hero: charisma taken off, rounded to whole coins, never below 1 for a priced ware. */
 export const shopPrice = (price: number, hero: HeroLike | null | undefined): number => {
-  if (!(price > 0)) return 0;
+  const isPriced = price > 0;
+  if (!isPriced) return 0;
   return Math.max(1, Math.round(price * heroEffects(hero).shopPriceFactor));
 };
 

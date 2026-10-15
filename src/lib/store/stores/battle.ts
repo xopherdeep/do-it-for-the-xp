@@ -62,7 +62,8 @@ export const useBattleStore = defineStore('battle', () => {
   }
 
   function startBattleTimer(options: { onEncounter: () => void } ) {
-    if (steps.counter <= 0) {
+    const isOutOfSteps = steps.counter <= 0;
+    if (isOutOfSteps) {
       steps.counter = rollSteps(steps.min, steps.max);
     }
 
@@ -101,10 +102,12 @@ export const useBattleStore = defineStore('battle', () => {
    */
   function randomEncounter(now: number = Date.now()) {
     const perSecond = stepsPerSecond(terrain);
-    if (lastWalkAt.value === null) {
+    const walkedSince = lastWalkAt.value;
+    const isStandingStill = walkedSince === null;
+    if (isStandingStill) {
       steps.counter -= perSecond;
     } else {
-      steps.counter -= stepsWalked(now - lastWalkAt.value, perSecond);
+      steps.counter -= stepsWalked(now - walkedSince, perSecond);
       lastWalkAt.value = now;
     }
 
@@ -119,7 +122,8 @@ export const useBattleStore = defineStore('battle', () => {
 
   /** A tick that could not start a fight spends no steps: move the walk clock up to `now` without walking. */
   function restWalk(now: number = Date.now()) {
-    if (lastWalkAt.value !== null) {
+    const isWalking = lastWalkAt.value !== null;
+    if (isWalking) {
       lastWalkAt.value = now;
     }
   }

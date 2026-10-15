@@ -77,17 +77,21 @@ class QuestEngine {
     filterQuests(quests: Achievement[], filter: QuestFilter): Achievement[] {
         return quests.filter(quest => {
             // 1. User-based filter
-            if (filter.userId !== undefined) {
-                if (!this.isVisibleToUser(quest, filter.userId)) {
+            const { userId } = filter;
+            const hasUserFilter = userId !== undefined;
+            if (hasUserFilter) {
+                if (!this.isVisibleToUser(quest, userId)) {
                     return false;
                 }
             }
 
             // 2. Typed text: a quest stays only when its name holds it, in any case
-            if (filter.search) {
-                const query = filter.search.toLowerCase();
+            const { search } = filter;
+            if (search) {
+                const query = search.toLowerCase();
                 const name = (quest.achievementName || '').toLowerCase();
-                if (!name.includes(query)) {
+                const isNameMatch = name.includes(query);
+                if (!isNameMatch) {
                     return false;
                 }
             }

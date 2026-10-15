@@ -25,7 +25,8 @@ export const feelForSound = (sound: string): Feel | undefined =>
 
 /** Buzz along with a one-shot sound. Loops and stops never buzz. */
 export const feelSound = (sound: string, options?: { loop?: boolean; stop?: boolean }): void => {
-  if (options?.loop || options?.stop) return;
+  const isNotOneShot = options?.loop || options?.stop;
+  if (isNotOneShot) return;
   const kind = feelForSound(sound);
   if (kind) feel(kind);
 };

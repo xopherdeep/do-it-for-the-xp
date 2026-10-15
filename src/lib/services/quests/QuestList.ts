@@ -87,7 +87,8 @@ export const assigneeOf = (
 ): { assigneeId: string | null; assigneeName: string } => {
   const ids = (quest.assignee || []).map(String);
   const mine = ids.includes(String(userId));
-  if (!ids.length) return { assigneeId: null, assigneeName: quest.type === "asNeeded" ? "Anyone" : "Unassigned" };
+  const isUnassigned = !ids.length;
+  if (isUnassigned) return { assigneeId: null, assigneeName: quest.type === "asNeeded" ? "Anyone" : "Unassigned" };
   const assigneeId = mine ? String(userId) : ids[0];
   const name = nickOf(users[assigneeId], assigneeId);
   const others = ids.length - 1;
@@ -153,8 +154,10 @@ export const doneByLabelFor = (item: QuestBoardItem, userId: string, users: Fami
 
 const statusOf = (item: QuestBoardItem, due: Date | null, date: Date): QuestListStatus | null => {
   const { quest, status, pending, overdue } = item;
-  if (status === "done") return pending ? "pending" : "done";
-  if (status === "open") return overdue || (isOnce(quest) && due !== null && date > due) ? "overdue" : "open";
+  const isDone = status === "done";
+  if (isDone) return pending ? "pending" : "done";
+  const isOpen = status === "open";
+  if (isOpen) return overdue || (isOnce(quest) && due !== null && date > due) ? "overdue" : "open";
   // Not due today: an upcoming one-off task still belongs on the list; recurring quests wait for their day
   const starts = parseDate(quest.startsOn);
   return isOnce(quest) && starts && startOfDay(starts) > startOfDay(date) ? "later" : null;
@@ -234,8 +237,10 @@ export interface QuickTaskInput {
 export const quickTaskDay = (due: QuickTaskDue | undefined, now: Date): Date => {
   const isDueToday = due === undefined || due === "today";
   if (isDueToday) return startOfDay(now);
-  if (due === "tomorrow") return startOfDay(addDays(now, 1));
-  if (due instanceof Date) {
+  const isDueTomorrow = due === "tomorrow";
+  if (isDueTomorrow) return startOfDay(addDays(now, 1));
+  const isDueOnDate = due instanceof Date;
+  if (isDueOnDate) {
     if (Number.isNaN(due.getTime())) throw new Error("That day is not on any calendar.");
     return startOfDay(due);
   }

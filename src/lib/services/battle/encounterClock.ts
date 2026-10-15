@@ -43,7 +43,8 @@ export const nextEncounterAt = (
   if (Number.isNaN(now.getTime())) return null;
 
   const resumes = invisibleUntil && invisibleUntil.getTime() > now.getTime() ? invisibleUntil : now;
-  if (stepsLeft <= 0) return new Date(resumes.getTime());
+  const isEncounterDue = stepsLeft <= 0;
+  if (isEncounterDue) return new Date(resumes.getTime());
   const isEncounterUnreachable = !Number.isFinite(stepsLeft) || !Number.isFinite(perSecond) || perSecond <= 0;
   if (isEncounterUnreachable) return null;
 

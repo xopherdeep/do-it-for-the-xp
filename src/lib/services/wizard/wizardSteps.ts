@@ -40,7 +40,8 @@ export interface WizardProgress {
 
 export const stepVerdict = <Draft>(step: WizardStep<Draft>, draft: Draft): StepVerdict => {
   const result = step.isValid(draft);
-  if (result === true) return { valid: true, reason: "" };
+  const isValid = result === true;
+  if (isValid) return { valid: true, reason: "" };
   return { valid: false, reason: typeof result === "string" ? result : "" };
 };
 
@@ -103,8 +104,10 @@ export const blockedBy = <Draft>(steps: readonly WizardStep<Draft>[], draft: Dra
  * too: a tap never leaps over a step that still wants an answer.
  */
 export const canJumpTo = <Draft>(steps: readonly WizardStep<Draft>[], draft: Draft, target: number): boolean => {
-  if (!Number.isInteger(target) || target < 0 || target >= steps.length) return false;
-  if (skippedAt(steps, draft, target)) return false;
+  const isOutOfRange = !Number.isInteger(target) || target < 0 || target >= steps.length;
+  if (isOutOfRange) return false;
+  const isSkipped = skippedAt(steps, draft, target);
+  if (isSkipped) return false;
   return askedIndexes(steps, draft)
     .filter((index) => index <= target)
     .every((index) => stepVerdict(steps[index], draft).valid);

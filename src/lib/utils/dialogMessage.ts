@@ -32,10 +32,12 @@ const escapeHtml = (text: string): string =>
 export function dialogMessage({ lead, groups = [], note }: DialogMessage): string {
   const parts = [`<p class="rpg-alert__lead">${escapeHtml(lead)}</p>`];
   for (const group of groups) {
-    if (!group.lines.length) continue;
+    const hasNoLines = !group.lines.length;
+    if (hasNoLines) continue;
     const tone = group.tone ?? "info";
-    if (group.title) {
-      parts.push(`<p class="rpg-alert__title">${escapeHtml(group.title)}</p>`);
+    const title = group.title;
+    if (title) {
+      parts.push(`<p class="rpg-alert__title">${escapeHtml(title)}</p>`);
     }
     const items = group.lines
       .map((line) => `<li>${escapeHtml(line)}</li>`)

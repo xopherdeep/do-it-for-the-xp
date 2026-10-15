@@ -78,7 +78,8 @@ let sheetSoundsInstalled = false;
  * once, when this module loads (the kit components are registered globally at startup).
  */
 export function installSheetSounds(): void {
-  if (sheetSoundsInstalled || typeof document === "undefined") return;
+  const shouldSkipInstall = sheetSoundsInstalled || typeof document === "undefined";
+  if (shouldSkipInstall) return;
   sheetSoundsInstalled = true;
   document.addEventListener("ionActionSheetWillDismiss", (event) => {
     const role = (event as CustomEvent<{ role?: string }>).detail?.role;

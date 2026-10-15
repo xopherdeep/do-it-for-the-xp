@@ -54,6 +54,10 @@ export const useUserStore = defineStore('user', () => {
   // below must end with persistUser(); otherwise rewards vanish on the next reload.
   const persistUser = createProfilePersister(users);
 
+  /** Whether the roster holds this hero, and whether it is the one signed in (whose copy of the stats mirrors the roster's). */
+  const hasHero = (userId: string): boolean => Boolean(users[userId]);
+  const isCurrentHero = (userId: string): boolean => currentUser.id === userId;
+
   // --- Actions ---
 
   /**
@@ -128,7 +132,7 @@ export const useUserStore = defineStore('user', () => {
         if (hasSavedProfile) {
           // loadUsers runs after every deposit, battle and page entry, so refreshing the profile
           // that is already signed in must not end a masquerade; only a different profile does.
-          if (currentUser.id === savedUserId) syncCurrentUser(users[savedUserId]);
+          if (isCurrentHero(savedUserId)) syncCurrentUser(users[savedUserId]);
           else loginUser(users[savedUserId]);
         }
       }
@@ -154,14 +158,14 @@ export const useUserStore = defineStore('user', () => {
   async function updateUserGP(payload: GpPayload) {
     const { userId } = payload;
 
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = applyGpChange(users[userId].stats, payload);
 
       // Update state
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -180,7 +184,7 @@ export const useUserStore = defineStore('user', () => {
     if (!user) return;
     const stats = applyWallet(user, gp);
     user.stats = stats;
-    if (currentUser.id === userId) currentUser.stats = stats;
+    if (isCurrentHero(userId)) currentUser.stats = stats;
     persistUser(userId);
   }
 
@@ -191,7 +195,7 @@ export const useUserStore = defineStore('user', () => {
   function updateUserHP(payload: { userId: string, amount: number }): boolean {
     const { userId, amount } = payload;
 
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       const isStillAlive = applyHpChange(userStats, amount);
@@ -200,7 +204,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -220,14 +224,14 @@ export const useUserStore = defineStore('user', () => {
   function updateUserMP(payload: { userId: string, amount: number }): boolean {
     const { userId, amount } = payload;
 
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       const hasMpLeft = applyMpChange(userStats, amount);
 
       users[userId].stats = userStats;
 
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -244,7 +248,7 @@ export const useUserStore = defineStore('user', () => {
    * that use `.length` or `.some` are then always safe.
    */
   function unlockPegasus(userId: string, pegasusIndex: number) {
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       applyPegasusUnlock(userStats, pegasusIndex);
@@ -253,7 +257,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -265,7 +269,7 @@ export const useUserStore = defineStore('user', () => {
    * Impersonate a user - sets them as the current user and persists to localStorage
    */
   function impersonateUser(userId: string) {
-    if (users[userId]) {
+    if (hasHero(userId)) {
       // Remember who is masquerading so stopImpersonating can hand control back to them
       const impersonatorId = currentUser.id;
       const shouldRememberImpersonator = !currentUser.isImpersonating && impersonatorId && impersonatorId !== userId;
@@ -298,7 +302,7 @@ export const useUserStore = defineStore('user', () => {
    * Default: 1 slot, First unlock: 2 slots, Second unlock: 3 slots (max)
    */
   function unlockQuickDrawSlot(userId: string) {
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       applyQuickDrawSlotUnlock(userStats);
@@ -307,7 +311,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -319,7 +323,7 @@ export const useUserStore = defineStore('user', () => {
    * Unlock a specific class for a user
    */
   function unlockClass(userId: string, jobClassId: string) {
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       applyClassUnlock(userStats, jobClassId);
@@ -328,7 +332,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -340,7 +344,7 @@ export const useUserStore = defineStore('user', () => {
    * Check if any locked classes should be unlocked based on current class levels
    */
   function checkClassUnlocks(userId: string) {
-    if (!users[userId]) return;
+    if (!hasHero(userId)) return;
 
     const userStats = users[userId].stats || {};
     const classes = userStats.classes || {};
@@ -356,7 +360,7 @@ export const useUserStore = defineStore('user', () => {
     // Default result
     const result = newClassLevelUpInfo(jobClassId);
 
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userStats = users[userId].stats || {};
 
       applyClassXp(userStats, users[userId].jobClass, jobClassId, amount, result, () => checkClassUnlocks(userId));
@@ -365,7 +369,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -386,7 +390,7 @@ export const useUserStore = defineStore('user', () => {
     // Default result (no level up)
     const result = newLevelUpInfo();
 
-    if (users[userId]) {
+    if (hasHero(userId)) {
       const userData = users[userId];
       // Work on a clone if not committing, otherwise reference the reactive store object so mutations stick
       // However, userData.stats IS the reactive object. If we clone it, we are safe. 
@@ -408,14 +412,15 @@ export const useUserStore = defineStore('user', () => {
       if (commit) {
         // userStats is the reactive object if commit is true (except if it was null initially)
 
-        if (!userData.stats) {
+        const hasNoStats = !userData.stats;
+        if (hasNoStats) {
           users[userId].stats = userStats;
         } else {
           // We modified userStats in place if commit is true
         }
 
         // Update current user if matches
-        if (currentUser.id === userId) {
+        if (isCurrentHero(userId)) {
           currentUser.stats = userStats;
         }
 
@@ -444,7 +449,7 @@ export const useUserStore = defineStore('user', () => {
       users[userId].stats = userStats;
 
       // Update current user if matches
-      if (currentUser.id === userId) {
+      if (isCurrentHero(userId)) {
         currentUser.stats = userStats;
       }
 
@@ -456,7 +461,7 @@ export const useUserStore = defineStore('user', () => {
    * Get AP gained in the last N days
    */
   function getAPInTimeRange(userId: string, days: number): { total: number, records: any[] } {
-    if (!users[userId]) return { total: 0, records: [] };
+    if (!hasHero(userId)) return { total: 0, records: [] };
 
     const userStats = users[userId].stats || {};
 

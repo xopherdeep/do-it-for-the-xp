@@ -8,7 +8,8 @@ interface IonComponentsMap {
 const components: IonComponentsMap = {} 
 
 Object.keys(IonComponents).forEach((key: string) => {
-  if (/^Ion[A-Z]\w+$/.test(key)) {
+  const isIonComponent = /^Ion[A-Z]\w+$/.test(key);
+  if (isIonComponent) {
     components[key] = IonComponents[key as keyof typeof IonComponents] as Component;
   }
 });

@@ -41,7 +41,8 @@ export function applyXpGain(userStats: any, jobClass: string, amount: number, re
   const specialStats = userStats.special || {};
 
   // Initialize xp structure if missing
-  if (!userStats.xp) {
+  const hasNoXp = !userStats.xp;
+  if (hasNoXp) {
     userStats.xp = { now: 0, next_level: 100 };
   }
 
@@ -64,7 +65,8 @@ export function applyXpGain(userStats: any, jobClass: string, amount: number, re
   userStats.xp.next_level = getXpForLevel(newLevel + 1);
 
   // Check for level up
-  if (newLevel > oldLevel) {
+  const didLevelUp = newLevel > oldLevel;
+  if (didLevelUp) {
     result.didLevelUp = true;
     result.newLevel = newLevel;
     result.levelsGained = newLevel - oldLevel;
@@ -81,16 +83,20 @@ export function applyXpGain(userStats: any, jobClass: string, amount: number, re
     result.statsGained = levelUpDetails.statsGained;
 
     // Apply stat gains to user profile
-    if (result.statsGained) {
-      if (!userStats.special) userStats.special = {};
+    const hasStatGains = !!result.statsGained;
+    if (hasStatGains) {
+      const hasNoSpecial = !userStats.special;
+      if (hasNoSpecial) userStats.special = {};
       Object.entries(result.statsGained).forEach(([stat, val]) => {
         userStats.special[stat] = (userStats.special[stat] || 0) + val;
       });
     }
 
     // Restore HP/MP to full on level up
-    if (!userStats.hp) userStats.hp = { now: 0, max: 0 };
-    if (!userStats.mp) userStats.mp = { now: 0, max: 0 };
+    const hasNoHp = !userStats.hp;
+    if (hasNoHp) userStats.hp = { now: 0, max: 0 };
+    const hasNoMp = !userStats.mp;
+    if (hasNoMp) userStats.mp = { now: 0, max: 0 };
 
     userStats.hp.max = result.newMaxHp;
     userStats.mp.max = result.newMaxMp;
@@ -116,10 +122,12 @@ export function applyClassXp(
   checkUnlocks: () => void
 ) {
   // Initialize classes if missing
-  if (!userStats.classes) userStats.classes = {};
+  const hasNoClasses = !userStats.classes;
+  if (hasNoClasses) userStats.classes = {};
 
   // Initialize specific class if missing (standard default is unlocked)
-  if (!userStats.classes[jobClassId]) {
+  const hasNoClassEntry = !userStats.classes[jobClassId];
+  if (hasNoClassEntry) {
     userStats.classes[jobClassId] = {
       level: 1,
       xp: 0,
@@ -140,14 +148,16 @@ export function applyClassXp(
   const newLevel = getLevelFromXp(classProgress.xp);
 
   // Check for level up
-  if (newLevel > oldLevel) {
+  const didLevelUp = newLevel > oldLevel;
+  if (didLevelUp) {
     classProgress.level = newLevel;
     result.didLevelUp = true;
     result.newLevel = newLevel;
     result.levelsGained = newLevel - oldLevel;
 
     // The hero's own class growing grows their max HP/MP by the class bonus (CLASS_LEVEL_BONUSES)
-    if ((heroJobClass || 'default') === jobClassId) {
+    const isHeroOwnClass = (heroJobClass || 'default') === jobClassId;
+    if (isHeroOwnClass) {
       const before = getClassStatBonus(jobClassId, oldLevel);
       const after = getClassStatBonus(jobClassId, newLevel);
       const shouldGrowMaxHp = userStats.hp && typeof userStats.hp === 'object' && after.hp > before.hp;
@@ -176,7 +186,8 @@ export function applyApGain(userStats: any, payload: ApGainPayload) {
   const { amount, source, at } = payload;
 
   // Initialize ap structure if missing
-  if (!userStats.ap) {
+  const hasNoAp = !userStats.ap;
+  if (hasNoAp) {
     userStats.ap = { total: 0, history: [] };
   }
 
@@ -237,7 +248,8 @@ export function applyQuickDrawSlotUnlock(userStats: any) {
   userStats.quickDrawSlots = userStats.quickDrawSlots ?? 1;
 
   // Max 3 slots
-  if (userStats.quickDrawSlots < 3) {
+  const canAddSlot = userStats.quickDrawSlots < 3;
+  if (canAddSlot) {
     userStats.quickDrawSlots++;
   }
 }
@@ -247,10 +259,12 @@ export function applyQuickDrawSlotUnlock(userStats: any) {
  */
 export function applyClassUnlock(userStats: any, jobClassId: string) {
   // Initialize classes if missing
-  if (!userStats.classes) userStats.classes = {};
+  const hasNoClasses = !userStats.classes;
+  if (hasNoClasses) userStats.classes = {};
 
   // Initialize class entry if missing
-  if (!userStats.classes[jobClassId]) {
+  const hasNoClassEntry = !userStats.classes[jobClassId];
+  if (hasNoClassEntry) {
     userStats.classes[jobClassId] = {
       level: 1,
       xp: 0,
@@ -259,7 +273,8 @@ export function applyClassUnlock(userStats: any, jobClassId: string) {
   }
 
   // Unlock
-  if (!userStats.classes[jobClassId].unlocked) {
+  const isLocked = !userStats.classes[jobClassId].unlocked;
+  if (isLocked) {
     userStats.classes[jobClassId].unlocked = true;
     // Optionally add notification here
   }
@@ -273,13 +288,15 @@ export function forEachClassUnlockMet(classes: any, unlock: (jobClassId: string)
   // Iterate over all available job classes in requirements
   Object.entries(JOB_UNLOCK_REQUIREMENTS).forEach(([jobClassId, requirements]) => {
     // If already unlocked, skip
-    if (classes[jobClassId]?.unlocked) return;
+    const isAlreadyUnlocked = !!classes[jobClassId]?.unlocked;
+    if (isAlreadyUnlocked) return;
 
     // Check if all requirements are met
     let allMet = true;
     for (const [reqClass, reqLevel] of Object.entries(requirements)) {
       const currentClassLevel = classes[reqClass]?.level || 0;
-      if (currentClassLevel < reqLevel) {
+      const isBelowRequirement = currentClassLevel < reqLevel;
+      if (isBelowRequirement) {
         allMet = false;
         break;
       }

@@ -32,11 +32,15 @@ export function draftProblem(draft: PostDraft): string | null {
   const bodyLimit = draft.kind === "bug" ? BUG_BODY_MAX : BODY_MAX;
   const bodyLimitMessage = draft.kind === "bug" ? "Keep it under 4,000 characters." : "Keep it under 2,000 characters.";
 
-  if (isTopic && !hasBoard) return "Pick a board.";
-  if (isTopic && !hasTitle) return "Give it a title.";
-  if (charCount(title) > TITLE_MAX) return "Keep the title under 100 characters.";
+  const needsBoard = isTopic && !hasBoard;
+  if (needsBoard) return "Pick a board.";
+  const needsTitle = isTopic && !hasTitle;
+  if (needsTitle) return "Give it a title.";
+  const isTitleTooLong = charCount(title) > TITLE_MAX;
+  if (isTitleTooLong) return "Keep the title under 100 characters.";
   if (!hasBody) return "Write something first.";
-  if (charCount(draft.body) > bodyLimit) return bodyLimitMessage;
+  const isBodyTooLong = charCount(draft.body) > bodyLimit;
+  if (isBodyTooLong) return bodyLimitMessage;
   return null;
 }
 
@@ -96,11 +100,14 @@ export interface PostRequest {
 
 /** The WordPress REST request that sends a post. Throws when the post lacks what its kind needs. */
 export function requestFor(post: TownHallPost, boardIds: Partial<Record<TownHallBoardSlug, number>>): PostRequest {
-  if (post.kind === "comment") {
-    if (post.postId === undefined) throw new Error("A comment needs the post it answers.");
+  const isComment = post.kind === "comment";
+  if (isComment) {
+    const hasNoParent = post.postId === undefined;
+    if (hasNoParent) throw new Error("A comment needs the post it answers.");
     return { path: "wp/v2/comments", body: { post: post.postId, content: post.body + signature(post.heroName) } };
   }
-  if (post.kind === "bug") {
+  const isBug = post.kind === "bug";
+  if (isBug) {
     return {
       path: "wp/v2/compass_bug",
       body: {
@@ -117,7 +124,8 @@ export function requestFor(post: TownHallPost, boardIds: Partial<Record<TownHall
     };
   }
   const boardId = post.board === undefined ? undefined : boardIds[post.board as TownHallBoardSlug];
-  if (boardId === undefined) throw new Error(`The board "${post.board ?? ""}" has no id on the site.`);
+  const hasNoBoardId = boardId === undefined;
+  if (hasNoBoardId) throw new Error(`The board "${post.board ?? ""}" has no id on the site.`);
   return {
     path: "wp/v2/cafeteria_topic",
     body: { title: post.title ?? "", content: post.body + signature(post.heroName), status: "pending", cafeteria_board: [boardId] },

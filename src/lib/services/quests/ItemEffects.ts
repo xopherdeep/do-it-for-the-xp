@@ -112,9 +112,11 @@ export const isItemUnlocked = (
   user: { unlockedItems?: string[]; stats?: { pegasi?: boolean[] } } | null | undefined,
   itemName: string
 ): boolean => {
-  if (ALWAYS_UNLOCKED.includes(itemName)) return true;
+  const isAlwaysUnlocked = ALWAYS_UNLOCKED.includes(itemName);
+  if (isAlwaysUnlocked) return true;
   if (!Array.isArray(user?.unlockedItems)) return true;
-  if (user.unlockedItems.includes(itemName)) return true;
+  const hasUnlocked = user.unlockedItems.includes(itemName);
+  if (hasUnlocked) return true;
   const pegasus = PEGASUS_INDEX[itemName];
   return pegasus !== undefined && Boolean(user.stats?.pegasi?.[pegasus]);
 };
@@ -124,13 +126,15 @@ const PEGASUS_NAMES = ["Ventus", "Ignis", "Sol", "Aura", "Terra", "Glacie", "Aqu
 /** How the hero earns a locked item: a freed Pegasus's gift first, else the item registry's unlock event when it knows the item. */
 export const unlockHintOf = (itemName: string): string => {
   const gift = PEGASUS_INDEX[itemName];
-  if (gift !== undefined) return `Locked: free ${PEGASUS_NAMES[gift]} the Pegasus to earn ${itemName}.`;
+  const isPegasusGift = gift !== undefined;
+  if (isPegasusGift) return `Locked: free ${PEGASUS_NAMES[gift]} the Pegasus to earn ${itemName}.`;
   const meta = Object.values(ITEM_METADATA).find((entry) => entry.name === itemName);
   const event = meta?.unlockEvent ?? "";
   // The registry names a Pegasus for an item that has none here (the Wind Whistle has a chest of its own)
   const isEarnedFromPegasus = event.startsWith("pegasus:") && !CHEST_TEMPLE[itemName];
   if (isEarnedFromPegasus) return `Locked: free ${event.slice("pegasus:".length)} the Pegasus to earn ${itemName}.`;
-  if (event === "purchase") return `Locked: ${itemName} is for sale in a shop.`;
+  const isForSale = event === "purchase";
+  if (isForSale) return `Locked: ${itemName} is for sale in a shop.`;
   const isEarnedFromChest = event.startsWith("dungeon:") || Boolean(CHEST_TEMPLE[itemName]);
   if (isEarnedFromChest) {
     const where = CHEST_TEMPLE[itemName] ? `the ${CHEST_TEMPLE[itemName]}` : "a temple";

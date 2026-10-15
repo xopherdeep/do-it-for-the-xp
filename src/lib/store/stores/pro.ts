@@ -76,7 +76,8 @@ export const useProStore = defineStore("pro", () => {
         await persist();
       }
     } catch (e) {
-      if (!(e instanceof ProClientError)) throw e;
+      const isClientError = e instanceof ProClientError;
+      if (!isClientError) throw e;
       // offline, rate limited or the server is down: the cached state stands
     } finally {
       loading.value = false;
@@ -153,7 +154,8 @@ export const useProStore = defineStore("pro", () => {
         return status.pro;
       }
     } catch (e) {
-      if (!(e instanceof ProClientError)) throw e;
+      const isClientError = e instanceof ProClientError;
+      if (!isClientError) throw e;
     }
     return false;
   }
@@ -170,7 +172,8 @@ export const useProStore = defineStore("pro", () => {
           backgroundTimer = setTimeout(resolve, intervalMs);
         });
         if (disposed) return;
-        if (await attemptClaim().catch(() => false)) {
+        const isUnlocked = await attemptClaim().catch(() => false);
+        if (isUnlocked) {
           await proToast("XP Pro unlocked!", "success");
           return;
         }
@@ -197,10 +200,13 @@ export const useProStore = defineStore("pro", () => {
     loading.value = true;
     try {
       for (let i = 0; i < attempts; i++) {
-        if (await attemptClaim()) return true;
-        if (i < attempts - 1) await sleep(intervalMs);
+        const isUnlocked = await attemptClaim();
+        if (isUnlocked) return true;
+        const hasAttemptsLeft = i < attempts - 1;
+        if (hasAttemptsLeft) await sleep(intervalMs);
       }
-      if (opts.keepClaiming) claimInBackground();
+      const shouldKeepClaiming = opts.keepClaiming;
+      if (shouldKeepClaiming) claimInBackground();
       return false;
     } finally {
       loading.value = false;
@@ -259,7 +265,8 @@ export const useProStore = defineStore("pro", () => {
       await proClient.recover(email.trim());
       await proToast("If that email has a key on file, it is on its way.", "success");
     } catch (e) {
-      if (!(e instanceof ProClientError)) throw e;
+      const isClientError = e instanceof ProClientError;
+      if (!isClientError) throw e;
       await proToast("Could not send the email right now. Try again in a moment.");
     }
   }
@@ -277,7 +284,8 @@ export const useProStore = defineStore("pro", () => {
         window.open("https://play.google.com/store/account/subscriptions", "_blank");
       }
     } catch (e) {
-      if (!(e instanceof ProClientError)) throw e;
+      const isClientError = e instanceof ProClientError;
+      if (!isClientError) throw e;
       await proToast("Could not open subscription management right now.");
     }
   }

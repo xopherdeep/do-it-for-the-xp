@@ -31,7 +31,8 @@ export const earnGold = (userId: string, amount: number): number => {
   const store = useUserStore();
   const gp = heroGold(amount, store.getUserById(userId));
   // The wallet moves before updateUserGP's first await; the save is not waited for
-  if (gp > 0) void store.updateUserGP({ userId, wallet: gp });
+  const hasGold = gp > 0;
+  if (hasGold) void store.updateUserGP({ userId, wallet: gp });
   return gp;
 };
 
@@ -55,13 +56,15 @@ export const hurtHero = (userId: string, amount: number): { lost: number; defeat
 export const healHero = (userId: string, amount: number): number => {
   const { now, max } = readPoints(userId, 'hp');
   const gain = Math.max(0, Math.min(amount, max - now));
-  if (gain > 0) useUserStore().updateUserHP({ userId, amount: gain });
+  const hasGain = gain > 0;
+  if (hasGain) useUserStore().updateUserHP({ userId, amount: gain });
   return gain;
 };
 
 export const restoreMana = (userId: string, amount: number): number => {
   const { now, max } = readPoints(userId, 'mp');
   const gain = Math.max(0, Math.min(amount, max - now));
-  if (gain > 0) useUserStore().updateUserMP({ userId, amount: gain });
+  const hasGain = gain > 0;
+  if (hasGain) useUserStore().updateUserMP({ userId, amount: gain });
   return gain;
 };

@@ -44,7 +44,8 @@ const tone3 = (first: boolean, second: boolean, [a, b, c]: readonly [number, num
 /** A frame `width` pixels deep: bright on the top and left, shaded on the bottom and right. */
 const frameTone = (x: number, y: number, w: number, h: number, width: number): number | null => {
   const depth = Math.min(x, y, w - 1 - x, h - 1 - y);
-  if (depth >= width) return null;
+  const isPastFrame = depth >= width;
+  if (isPastFrame) return null;
   const isLit = y < width || x < width;
   return isLit ? 4 - Math.min(depth, 1) : 1 + Math.min(depth, 1);
 };
@@ -70,7 +71,8 @@ const paintShopDoor = (trim: string[]): Grid => {
   for (let y = 0; y < SHOP_H; y++) {
     for (let x = 0; x < SHOP_W; x++) {
       const trimShade = frameTone(x, y, SHOP_W, SHOP_H, 4);
-      if (trimShade !== null) {
+      const isOnFrame = trimShade !== null;
+      if (isOnFrame) {
         paint(g, x, y, tone(trim, trimShade));
         continue;
       }
@@ -141,7 +143,8 @@ const paintGlassLeaf = (): Grid => {
   for (let y = 0; y < LEAF_H; y++) {
     for (let x = 0; x < LEAF_W; x++) {
       const steel = frameTone(x, y, LEAF_W, LEAF_H, 3);
-      if (steel !== null) {
+      const isOnFrame = steel !== null;
+      if (isOnFrame) {
         paint(g, x, y, tone(IRON, steel));
         continue;
       }
@@ -178,7 +181,8 @@ const paintStoneLeaf = (trim: string[]): Grid => {
   for (let y = 0; y < LEAF_H; y++) {
     for (let x = 0; x < LEAF_W; x++) {
       const border = frameTone(x, y, LEAF_W, LEAF_H, 3);
-      if (border !== null) {
+      const isOnFrame = border !== null;
+      if (isOnFrame) {
         paint(g, x, y, tone(STONE, border));
         continue;
       }
@@ -228,13 +232,16 @@ const paintVaultDisc = (trim: string[]): Grid => {
       const dx = x - c;
       const dy = y - c;
       const r = Math.sqrt(dx * dx + dy * dy);
-      if (r > 47) continue;
+      const isOutsideDisc = r > 47;
+      if (isOutsideDisc) continue;
       const lit = dx + dy < 0;
-      if (r > 42) {
+      const isOuterRing = r > 42;
+      if (isOuterRing) {
         paint(g, x, y, tone(IRON, lit ? 4 : 1));
         continue;
       }
-      if (r > 39) {
+      const isTrimRing = r > 39;
+      if (isTrimRing) {
         paint(g, x, y, tone(trim, lit ? 3 : 1));
         continue;
       }
@@ -268,7 +275,8 @@ const paintVaultWheel = (): Grid => {
       const angle = Math.atan2(dy, dx);
       const toSpoke = Math.abs(Math.sin(3 * angle)) * r;
       const isSpoke = r < 21 && toSpoke < 1.6;
-      if (isRim || isHub || isSpoke) paint(g, x, y, tone(BRASS, tone3(isHub, lit, [3, 4, 1])));
+      const isBrass = isRim || isHub || isSpoke;
+      if (isBrass) paint(g, x, y, tone(BRASS, tone3(isHub, lit, [3, 4, 1])));
     }
   }
   outlineGrid(g, INK);

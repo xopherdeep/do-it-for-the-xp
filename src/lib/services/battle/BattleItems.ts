@@ -109,9 +109,12 @@ const nameOf = (item: BattleItemLike): string => (typeof item.name === 'string' 
 /** Sort a bag item for the fight: a BATTLE_ITEMS name is an effect, Containers open sheets, Potions/Ethers are consumable directly. */
 export const battleBagRole = (item: BattleItemLike | null | undefined): BattleBagRole => {
   const name = item ? nameOf(item) : '';
-  if (battleRuleOf(name)) return 'effect';
-  if (CONTAINERS[name.toLowerCase()]) return CONTAINERS[name.toLowerCase()];
-  if (findPotionRule(name)) return 'potion';
+  const isEffectItem = Boolean(battleRuleOf(name));
+  if (isEffectItem) return 'effect';
+  const container = CONTAINERS[name.toLowerCase()];
+  if (container) return container;
+  const isPotion = Boolean(findPotionRule(name));
+  if (isPotion) return 'potion';
   return 'none';
 };
 
@@ -154,7 +157,8 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
   const isContainer = role === 'potions' || role === 'powers';
   if (isContainer) return { name, faIcon, mp: 0, effect: CONTAINER_LINES[role], reason: null };
 
-  if (role === 'potion') {
+  const isPotion = role === 'potion';
+  if (isPotion) {
     const potion = findPotionRule(name);
     if (potion) {
       const shelfItem = potionShelf(ctx.userId).find(
@@ -203,7 +207,8 @@ export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): Bat
   // reasonOf has checked the pack: a Bomb tool always finds its Bomb here
   const bomb = spendsBomb(name) ? bombInPack(ctx.userId) : null;
   const outcome = applyBattleEffect(rule.effect, ctx);
-  if (outcome.ok && bomb) useUserStore().spendInventoryItem(ctx.userId, bomb.id);
+  const spentBomb = outcome.ok ? bomb : null;
+  if (spentBomb) useUserStore().spendInventoryItem(ctx.userId, spentBomb.id);
   const shouldChargeMp = outcome.ok && mp > 0;
   if (shouldChargeMp) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   return outcome;

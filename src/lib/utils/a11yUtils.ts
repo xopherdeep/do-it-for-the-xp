@@ -7,14 +7,16 @@
  * Replaces aria-hidden with the inert attribute which properly prevents focus on the element and its descendants
  */
 export function fixAriaHiddenFocusIssues() {
-  if (process.env.NODE_ENV === "development") {
+  const isDevelopment = process.env.NODE_ENV === "development";
+  if (isDevelopment) {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         const isAriaHiddenChange =
           mutation.type === "attributes" &&
           mutation.attributeName === "aria-hidden";
         if (isAriaHiddenChange) {
-          if (mutation.target instanceof HTMLElement) {
+          const isElement = mutation.target instanceof HTMLElement;
+          if (isElement) {
             mutation.target.removeAttribute("aria-hidden");
           }
         }
@@ -43,7 +45,8 @@ export function fixAriaHiddenFocusIssues() {
         if (isAriaHiddenChangeOnElement) {
           const element = mutation.target;
           const isInertLeftover = () => element.hasAttribute('inert') && !element.hasAttribute('aria-hidden');
-          if (element.getAttribute('aria-hidden') === 'true') {
+          const isHidden = element.getAttribute('aria-hidden') === 'true';
+          if (isHidden) {
             // Replace aria-hidden with inert
             element.removeAttribute('aria-hidden');
             element.setAttribute('inert', '');
@@ -77,14 +80,18 @@ export function fixAriaHiddenFocusIssues() {
     // Also observe for new ion-page elements that may be added later
     const bodyObserver = new MutationObserver((mutations) => {
       mutations.forEach(mutation => {
-        if (mutation.type === 'childList') {
+        const isChildListChange = mutation.type === 'childList';
+        if (isChildListChange) {
           mutation.addedNodes.forEach(node => {
-            if (node instanceof HTMLElement) {
+            const isElement = node instanceof HTMLElement;
+            if (isElement) {
               const newPages = node.querySelectorAll('.ion-page');
               newPages.forEach(page => {
-                if (page instanceof HTMLElement) {
+                const isPageElement = page instanceof HTMLElement;
+                if (isPageElement) {
                   // Handle existing aria-hidden
-                  if (page.getAttribute('aria-hidden') === 'true') {
+                  const isHidden = page.getAttribute('aria-hidden') === 'true';
+                  if (isHidden) {
                     page.removeAttribute('aria-hidden');
                     page.setAttribute('inert', '');
                   }
@@ -126,11 +133,13 @@ export function preventIOSZoom() {
   // Prevent touchend events from triggering zoom
   document.addEventListener('touchend', (event) => {
     // Prevent double-tap zoom
-    if (event.target) {
+    const hasTarget = !!event.target;
+    if (hasTarget) {
       const now = Date.now();
       const lastTouch = (event.target as any)._lastTouch || 0;
       
-      if (now - lastTouch < 300) {
+      const isDoubleTap = now - lastTouch < 300;
+      if (isDoubleTap) {
         event.preventDefault();
       }
       
@@ -142,7 +151,8 @@ export function preventIOSZoom() {
   let lastTouchEnd = 0;
   document.addEventListener('touchend', (event) => {
     const now = Date.now();
-    if (now - lastTouchEnd <= 300) {
+    const isDoubleTap = now - lastTouchEnd <= 300;
+    if (isDoubleTap) {
       event.preventDefault();
     }
     lastTouchEnd = now;

@@ -58,9 +58,12 @@ const reach = (mask: boolean[][], x: number, y: number, dx: number, dy: number):
 /** One cloud of puffs on a flat base, shaded and inked. */
 /** Which body band a pixel falls in, by how far the cloud reaches above it. */
 const bodyBand = (up: number): number => {
-  if (up <= 2) return 0;
-  if (up <= 5) return 1;
-  if (up <= 9) return 2;
+  const isCrown = up <= 2;
+  if (isCrown) return 0;
+  const isUpperBody = up <= 5;
+  if (isUpperBody) return 1;
+  const isMidBody = up <= 9;
+  if (isMidBody) return 2;
   return 3;
 };
 
@@ -76,7 +79,10 @@ export const paintCloud = (w: number, h: number, rand: () => number, palette: Cl
     const r = h * (0.26 + rand() * 0.16) * (1.15 - Math.abs(t - 0.5) * 0.9);
     const cy = baseY - r * 0.7;
     for (let y = 0; y <= baseY; y++)
-      for (let x = 0; x < w; x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) mask[y][x] = true;
+      for (let x = 0; x < w; x++) {
+        const isInPuff = (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+        if (isInPuff) mask[y][x] = true;
+      }
   }
   // A flat base under the puffs
   for (let y = baseY - 3; y <= baseY; y++) for (let x = margin; x < w - margin; x++) mask[y][x] = true;
@@ -84,9 +90,11 @@ export const paintCloud = (w: number, h: number, rand: () => number, palette: Cl
   const g = createGrid(w, h);
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
-      if (!mask[y][x]) continue;
+      const isFilled = mask[y][x];
+      if (!isFilled) continue;
       const below = reach(mask, x, y, 0, 1);
-      if (below <= 2) {
+      const isUnderside = below <= 2;
+      if (isUnderside) {
         paint(g, x, y, palette.under[below <= 1 ? 1 : 0]);
         continue;
       }
@@ -193,7 +201,8 @@ export const pegasusRuns = (): PixelRun[] => {
   const g = createGrid(PEGASUS_W, PEGASUS_H);
   PEGASUS_ART.forEach((line, y) =>
     [...line].forEach((ch, x) => {
-      if (PEGASUS_TONES[ch]) paint(g, x, y, PEGASUS_TONES[ch]);
+      const tone = PEGASUS_TONES[ch];
+      if (tone) paint(g, x, y, tone);
     }),
   );
   outlineGrid(g, "#4a3c78");

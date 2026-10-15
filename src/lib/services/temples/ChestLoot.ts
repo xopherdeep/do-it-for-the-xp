@@ -86,7 +86,8 @@ const asWhistled = <R extends { type?: string; content?: RoomContent }>(room: R,
   const content = room.content;
   const isNotWindPegasusChest = templeId !== WIND_TEMPLE_ID || roomTypeOf(room) !== 'loot' || content?.pegasus !== true;
   if (isNotWindPegasusChest) return room;
-  if ((content.items ?? []).includes(WIND_WHISTLE)) return room;
+  const hasWhistle = (content.items ?? []).includes(WIND_WHISTLE);
+  if (hasWhistle) return room;
   return { ...room, content: { ...content, items: [...(content.items ?? []), WIND_WHISTLE] } };
 };
 
@@ -205,7 +206,8 @@ export const chestLoot = (content: RoomContent | undefined, egg?: PegasusEgg | n
   if (hasDungeonItem) loot.push({ value: dungeonItem, ...lootFace(dungeonItem) });
 
   const gold = Math.floor(Number(content.gold) || 0);
-  if (gold > 0) {
+  const hasGold = gold > 0;
+  if (hasGold) {
     loot.push({ value: `gold:${gold}`, name: `${gold} GP`, icon: 'coins', blurb: 'Straight into your purse.', tier: 'gold' });
   }
 

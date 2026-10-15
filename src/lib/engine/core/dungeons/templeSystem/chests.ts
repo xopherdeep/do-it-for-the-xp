@@ -10,7 +10,7 @@ export function takeFromChest(runs: TempleRuns, templeId: string, level: string,
   const emptied = runs.dungeonManager.removeItemsFromRoomChest(templeId, position, items, level);
   const templeState = runs.templeStates[templeId];
   if (templeState) {
-    if (!templeState.takenFromChests) templeState.takenFromChests = new Set<string>();
+    templeState.takenFromChests ??= new Set<string>();
     const room = roomPositionKey(level, position);
     for (const key of Array.from(templeState.takenFromChests)) {
       const isLeftoverOfEmptiedChest = emptied && key.startsWith(`${room}>`);
@@ -32,7 +32,7 @@ export function markChestOpened(runs: TempleRuns, templeId: string, level: strin
   const templeState = runs.templeStates[templeId];
   if (!templeState) return;
 
-  if (!templeState.openedChests) templeState.openedChests = new Set<string>();
+  templeState.openedChests ??= new Set<string>();
   templeState.openedChests.add(roomPositionKey(level, position));
   runs.queueSave(templeId);
 }
@@ -60,12 +60,15 @@ export function openChest(runs: TempleRuns, templeId: string) {
   const result: ChestOpenResult = {};
   
   // Process items
-  if (chestContent.items?.length) {
-    result.items = chestContent.items;
+  const items = chestContent.items ?? [];
+  const hasItems = items.length > 0;
+  if (hasItems) {
+    result.items = items;
     
     // Check for special items
-    chestContent.items.forEach(item => {
-      if (item === 'key') {
+    items.forEach(item => {
+      const isKey = item === 'key';
+      if (isKey) {
         templeState.playerKeys++;
         result.keyFound = true;
       }
@@ -75,28 +78,31 @@ export function openChest(runs: TempleRuns, templeId: string) {
     runs.dungeonManager.removeItemsFromRoomChest(
       templeId,
       templeState.currentPosition,
-      chestContent.items,
+      items,
       templeState.currentLevel
     );
   }
   
   // Process dungeon special item
-  if (chestContent.dungeon) {
-    if (chestContent.dungeon === 'map') {
+  const dungeonItem = chestContent.dungeon;
+  if (dungeonItem) {
+    const isMap = dungeonItem === 'map';
+    const isCompass = dungeonItem === 'compass';
+    if (isMap) {
       templeState.hasMap = true;
       result.mapFound = true;
-    } else if (chestContent.dungeon === 'compass') {
+    } else if (isCompass) {
       templeState.hasCompass = true;
       result.compassFound = true;
     } else {
-      result.specialItem = chestContent.dungeon;
+      result.specialItem = dungeonItem;
     }
     
     // Remove the dungeon item from the chest
     runs.dungeonManager.removeItemsFromRoomChest(
       templeId,
       templeState.currentPosition,
-      [chestContent.dungeon],
+      [dungeonItem],
       templeState.currentLevel
     );
   }

@@ -142,7 +142,8 @@ const NAMED_ENCOUNTER_LINES: Record<string, (name: string) => string> = {
 export const nameTheEncounter = (header: string, beastName: string | undefined): { title: string; named: boolean } => {
   const tier = Object.keys(ENCOUNTER_LINES).find((key) => ENCOUNTER_LINES[key] === header);
   const name = beastName?.trim();
-  if (!tier || !name) return { title: header, named: false };
+  const isUnnamed = !tier || !name;
+  if (isUnnamed) return { title: header, named: false };
   return { title: NAMED_ENCOUNTER_LINES[tier](name), named: true };
 };
 

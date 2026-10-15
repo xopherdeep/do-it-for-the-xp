@@ -43,7 +43,8 @@ export const clouds: EffectFactory = (options = {}) => {
     update(f) {
       for (const c of items) {
         c.x += c.v * f.dt;
-        if (c.x - c.s > f.width) { c.x = -c.s; c.y = rng() * f.height * 0.5; }
+        const isPastRightEdge = c.x - c.s > f.width;
+        if (isPastRightEdge) { c.x = -c.s; c.y = rng() * f.height * 0.5; }
       }
     },
     draw(f) {

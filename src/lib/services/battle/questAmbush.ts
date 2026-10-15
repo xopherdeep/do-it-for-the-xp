@@ -91,7 +91,8 @@ export function pickQuestAmbush(
     const isAnytime = !missedDeadline;
     const isLate = isQuestOverdue(quest, effects, now);
     const isWaiting = isAnytime || isLate;
-    if (!beastId || !isWaiting) continue;
+    const isNotAmbushing = !beastId || !isWaiting;
+    if (isNotAmbushing) continue;
 
     const deadline = missedDeadline ?? now;
     const isOlderThanBest = !best || deadline.getTime() < best.deadline.getTime();

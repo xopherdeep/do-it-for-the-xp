@@ -53,7 +53,8 @@ let latestIcon = 0;
 const loadIcon = async () => {
   const thisLoad = ++latestIcon;
   const next = await iconToVoxelMesh(props.icon);
-  if (thisLoad !== latestIcon) return;
+  const isStaleLoad = thisLoad !== latestIcon;
+  if (isStaleLoad) return;
   mesh = next;
   handle?.rebuildMesh(() => mesh);
 };

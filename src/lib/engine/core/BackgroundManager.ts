@@ -55,7 +55,8 @@ class BackgroundManager {
    * Get the singleton instance
    */
   public static getInstance(): BackgroundManager {
-    if (!BackgroundManager.instance) {
+    const hasInstance = Boolean(BackgroundManager.instance);
+    if (!hasInstance) {
       BackgroundManager.instance = new BackgroundManager();
     }
     return BackgroundManager.instance;
@@ -90,10 +91,11 @@ class BackgroundManager {
     this.cleanupBackground();
 
     // Get canvas element either from selector or direct element reference
-    if (options.canvasElement) {
-      this.canvasElement = options.canvasElement;
-    } else if (options.canvasSelector) {
-      const el = document.querySelector(options.canvasSelector);
+    const { canvasElement, canvasSelector } = options;
+    if (canvasElement) {
+      this.canvasElement = canvasElement;
+    } else if (canvasSelector) {
+      const el = document.querySelector(canvasSelector);
       const isCanvasElement = el && el instanceof HTMLCanvasElement;
       if (isCanvasElement) {
         this.canvasElement = el;
@@ -108,16 +110,19 @@ class BackgroundManager {
     }
 
     // Exit if we don't have a valid canvas
-    if (!this.canvasElement) {
+    const canvas = this.canvasElement;
+    if (!canvas) {
       debug.error("BackgroundManager: No canvas element found");
       return false;
     }
 
     // Track active page if provided
-    if (options.page) {
-      this.activePage = options.page;
+    const page = options.page;
+    if (page) {
+      this.activePage = page;
     }
 
+    const shouldHandleResize = options.handleResize;
     try {
       // Update background settings with validation
       this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
@@ -131,12 +136,13 @@ class BackgroundManager {
       // Create animation engine
       this.backgroundEngine = new Engine([layer1, layer2], {
         aspectRatio: this.aspectRatio,
-        canvas: this.canvasElement,
+        canvas,
       });
 
       // Restore tick state if we have a preserved one and we're likely using the same/similar background
       // Note: We might want to check if bg1/bg2 changed significantly, but usually continuing is smoother.
-      if (this.lastTick > 0) {
+      const hasPreservedTick = this.lastTick > 0;
+      if (hasPreservedTick) {
         (this.backgroundEngine as any).tick = this.lastTick;
       }
 
@@ -144,7 +150,7 @@ class BackgroundManager {
       this.backgroundEngine.animate();
 
       // Set up resize handler if requested
-      if (options.handleResize) {
+      if (shouldHandleResize) {
         this.setupResizeHandler();
       }
 
@@ -162,12 +168,12 @@ class BackgroundManager {
 
         this.backgroundEngine = new Engine([layer1, layer2], {
           aspectRatio: this.aspectRatio,
-          canvas: this.canvasElement,
+          canvas,
         });
 
         this.backgroundEngine.animate();
 
-        if (options.handleResize) {
+        if (shouldHandleResize) {
           this.setupResizeHandler();
         }
 
@@ -184,19 +190,22 @@ class BackgroundManager {
    */
   public cleanupBackground(): void {
     // Stop the animation engine if it exists
-    if (this.backgroundEngine) {
+    const engine = this.backgroundEngine;
+    if (engine) {
       // Capture current tick before stopping/destroying
-      this.lastTick = (this.backgroundEngine as any).tick || 0;
+      this.lastTick = (engine as any).tick || 0;
 
-      if (typeof this.backgroundEngine.stop === 'function') {
-        this.backgroundEngine.stop();
+      const canStop = typeof engine.stop === 'function';
+      if (canStop) {
+        engine.stop();
       }
       this.backgroundEngine = null;
     }
 
     // Remove resize listener if it exists
-    if (this.resizeListener) {
-      window.removeEventListener('resize', this.resizeListener);
+    const listener = this.resizeListener;
+    if (listener) {
+      window.removeEventListener('resize', listener);
       this.resizeListener = null;
     }
 
@@ -215,16 +224,21 @@ class BackgroundManager {
    */
   public updateBackground(options: BackgroundUpdateOptions = {}): boolean {
     // Update the settings with validation
-    if (options.bg1 !== undefined) this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
-    if (options.bg2 !== undefined) this.bg2 = this.validateBackgroundIndex(options.bg2, this.bg2);
-    if (options.aspectRatio !== undefined) this.aspectRatio = options.aspectRatio;
-    if (options.page) this.activePage = options.page;
+    const { bg1, bg2, aspectRatio, page } = options;
+    const hasBg1 = bg1 !== undefined;
+    if (hasBg1) this.bg1 = this.validateBackgroundIndex(bg1, this.bg1);
+    const hasBg2 = bg2 !== undefined;
+    if (hasBg2) this.bg2 = this.validateBackgroundIndex(bg2, this.bg2);
+    const hasAspectRatio = aspectRatio !== undefined;
+    if (hasAspectRatio) this.aspectRatio = aspectRatio;
+    if (page) this.activePage = page;
 
     // If we have an active canvas, reinitialize the background with new settings
-    if (this.canvasElement) {
+    const canvas = this.canvasElement;
+    if (canvas) {
       const handleResize = !!this.resizeListener;
       return this.initBackground({
-        canvasElement: this.canvasElement,
+        canvasElement: canvas,
         bg1: this.bg1,
         bg2: this.bg2,
         aspectRatio: this.aspectRatio,
@@ -262,9 +276,7 @@ class BackgroundManager {
    */
   public setAspectRatio(aspectRatio: number): void {
     this.aspectRatio = aspectRatio;
-    if (this.backgroundEngine) {
-      this.backgroundEngine.setAspectRatio(aspectRatio);
-    }
+    this.backgroundEngine?.setAspectRatio(aspectRatio);
   }
 
   /**
@@ -278,7 +290,8 @@ class BackgroundManager {
   public animateAspectRatio(targetAspectRatio: number, duration: number = 1500, callback?: () => void): Promise<void> {
     return new Promise<void>((resolve) => {
       // If no background engine is active, just resolve immediately
-      if (!this.backgroundEngine) {
+      const hasEngine = Boolean(this.backgroundEngine);
+      if (!hasEngine) {
         if (callback) callback();
         resolve();
         return;
@@ -307,7 +320,8 @@ class BackgroundManager {
         this.backgroundEngine.aspectRatio = currentValue;
 
         // Continue animation if not complete
-        if (progress < 1) {
+        const isAnimating = progress < 1;
+        if (isAnimating) {
           requestAnimationFrame(animate);
         } else {
           // Animation complete
@@ -417,7 +431,8 @@ class BackgroundManager {
       if (hasNewCanvas) {
         (engine as any).canvas = options.canvas;
       }
-      if (options.aspectRatio !== undefined) {
+      const hasAspectRatio = options.aspectRatio !== undefined;
+      if (hasAspectRatio) {
         (engine as any).aspectRatio = options.aspectRatio;
       }
     }

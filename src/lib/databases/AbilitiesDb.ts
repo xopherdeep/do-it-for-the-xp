@@ -154,12 +154,14 @@ export class AbilitiesDb extends DbStorageApi {
     }
 
     // Check character class requirements
-    if (ability.characterRequirement?.class) {
+    const classRequirements = ability.characterRequirement?.class;
+    if (classRequirements) {
       for (const [className, requiredLevel] of Object.entries(
-        ability.characterRequirement.class
+        classRequirements
       )) {
         const userClassLevel = characterClasses[className] || 0;
-        if (userClassLevel < requiredLevel) {
+        const isBelowClassLevel = userClassLevel < requiredLevel;
+        if (isBelowClassLevel) {
           return false;
         }
       }

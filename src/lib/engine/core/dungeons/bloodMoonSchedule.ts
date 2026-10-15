@@ -31,7 +31,8 @@ export const nextWeekly = (fromISO: string, now: Date = new Date()): string => {
   const next = parseOr(fromISO, now);
   // A long gap (a hero away for months) is skipped in whole weeks before the day-by-day loop
   const behindBy = now.getTime() - next.getTime();
-  if (behindBy > 7 * DAY_MS) next.setDate(next.getDate() + 7 * Math.floor(behindBy / (7 * DAY_MS)));
+  const isWeeksBehind = behindBy > 7 * DAY_MS;
+  if (isWeeksBehind) next.setDate(next.getDate() + 7 * Math.floor(behindBy / (7 * DAY_MS)));
   while (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 7);
   return next.toISOString();
 };
@@ -42,8 +43,10 @@ export const describeWait = (atISO: string, now: Date = new Date()): string => {
   const isWithinAMoment = Number.isNaN(wait) || wait < MINUTE_MS;
   if (isWithinAMoment) return 'in a moment';
   const unit = (count: number, word: string) => `in ${count} ${word}${count === 1 ? '' : 's'}`;
-  if (wait >= DAY_MS) return unit(Math.round(wait / DAY_MS), 'day');
-  if (wait >= HOUR_MS) return unit(Math.round(wait / HOUR_MS), 'hour');
+  const isDaysAway = wait >= DAY_MS;
+  if (isDaysAway) return unit(Math.round(wait / DAY_MS), 'day');
+  const isHoursAway = wait >= HOUR_MS;
+  if (isHoursAway) return unit(Math.round(wait / HOUR_MS), 'hour');
   return unit(Math.round(wait / MINUTE_MS), 'minute');
 };
 
@@ -64,6 +67,7 @@ export const describeNextMoon = (record: BloodMoonSchedule | null | undefined, n
   if (Number.isNaN(at)) return weekly ? 'Weekly, waiting for a first date' : 'No blood moon scheduled';
 
   const then = weekly ? ', then weekly' : '';
-  if (at <= now.getTime()) return `Due: rises when the hero next enters (was ${formatMoonDate(record!.bloodMoonAt!)})${then}`;
+  const isDue = at <= now.getTime();
+  if (isDue) return `Due: rises when the hero next enters (was ${formatMoonDate(record!.bloodMoonAt!)})${then}`;
   return `Rises ${describeWait(record!.bloodMoonAt!, now)} (${formatMoonDate(record!.bloodMoonAt!)})${then}`;
 };

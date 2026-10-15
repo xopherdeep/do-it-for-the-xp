@@ -186,7 +186,8 @@ const monsterTokensByDistance = (temple: GeneratedTemple): string[] => {
   const reached = reachableFrom(graph, graph.entrance ?? "");
   const order = [...reached, ...graph.rooms.keys()];
   const tokens = [...new Set(order)].map((key) => graph.rooms.get(key)!).filter((room) => room.kind === "monster").map((room) => room.token);
-  if (new Set(tokens).size !== tokens.length) throw new Error(`${temple.id}: a monster token is shared by several rooms`);
+  const hasSharedToken = new Set(tokens).size !== tokens.length;
+  if (hasSharedToken) throw new Error(`${temple.id}: a monster token is shared by several rooms`);
   return tokens;
 };
 
@@ -226,13 +227,18 @@ const dress = (temple: GeneratedTemple, plan: Plan): GeneratedTemple => {
 
   for (const room of rooms) {
     const content = room.content ?? {};
-    if (room.type === "trap") Object.assign(content, { trapType: plan.trap[0], damage: plan.trap[1] });
-    if (room.type === "puzzle") content.puzzleType = plan.puzzle;
-    if (room.type === "shop" && plan.shop) content.specialItem = plan.shop;
-    if (Object.keys(content).length) room.content = content;
+    const isTrap = room.type === "trap";
+    if (isTrap) Object.assign(content, { trapType: plan.trap[0], damage: plan.trap[1] });
+    const isPuzzle = room.type === "puzzle";
+    if (isPuzzle) content.puzzleType = plan.puzzle;
+    const isStockedShop = room.type === "shop" && !!plan.shop;
+    if (isStockedShop) content.specialItem = plan.shop;
+    const hasContent = Object.keys(content).length > 0;
+    if (hasContent) room.content = content;
   }
   const potions = rooms.filter((room) => room.type === "loot" && room.content?.chest === "consumable");
-  if (potions.length < plan.relics.length) throw new Error(`${temple.id}: ${potions.length} chests of potions for ${plan.relics.length} relics`);
+  const isShortOfPotions = potions.length < plan.relics.length;
+  if (isShortOfPotions) throw new Error(`${temple.id}: ${potions.length} chests of potions for ${plan.relics.length} relics`);
   plan.relics.forEach((relic, index) => (potions[potions.length - 1 - index].content = { chest: "dungeon", dungeon: relic }));
   return temple;
 };
@@ -244,7 +250,8 @@ const KEY = /^[A-Za-z_$][\w$]*$/;
 /** A JS literal on one line, keys bare where they can be. */
 const literal = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(literal).join(", ")}]`;
-  if (value && typeof value === "object") {
+  const isObject = !!value && typeof value === "object";
+  if (isObject) {
     const entries = Object.entries(value)
       .filter(([, item]) => item !== undefined)
       .map(([key, item]) => `${KEY.test(key) ? key : JSON.stringify(key)}: ${literal(item)}`);
@@ -290,7 +297,8 @@ export const generateShipped = (id: string): GeneratedTemple => dress(generateTe
 
 export const SHIPPED_IDS = Object.keys(PLANS);
 
-if (require.main === module) {
+const isRunDirectly = require.main === module;
+if (isRunDirectly) {
   const folder = join(process.cwd(), "src/lib/engine/temples");
   for (const id of SHIPPED_IDS) {
     const temple = generateShipped(id);

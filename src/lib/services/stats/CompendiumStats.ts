@@ -224,9 +224,12 @@ export const totalsByPeriod = (records: ReadonlyArray<{ at: unknown; amount: num
     const when = Date.parse(String(at));
     const isUndatedOrFuture = !Number.isFinite(when) || when > end;
     if (isUndatedOrFuture) continue;
-    if (when >= starts.today) totals.today += amount;
-    if (when >= starts.week) totals.week += amount;
-    if (when >= starts.month) totals.month += amount;
+    const isToday = when >= starts.today;
+    if (isToday) totals.today += amount;
+    const isThisWeek = when >= starts.week;
+    if (isThisWeek) totals.week += amount;
+    const isThisMonth = when >= starts.month;
+    if (isThisMonth) totals.month += amount;
   }
   return totals;
 };
@@ -259,7 +262,8 @@ export const apHistoryTotals = (heroes: ReadonlyArray<HeroLike>, now: Date): Per
   const records: { at: unknown; amount: number }[] = [];
   for (const hero of heroes) {
     for (const record of hero.stats?.ap?.history ?? []) {
-      if (present(record)) records.push({ at: record.timestamp, amount: positive(record.amount) });
+      const isPresent = present(record);
+      if (isPresent) records.push({ at: record.timestamp, amount: positive(record.amount) });
     }
   }
   return totalsByPeriod(records, now);
@@ -358,7 +362,8 @@ export const beastFigures = (
   const attachedIds = new Set<string>();
   for (const beast of list) {
     for (const questId of beast.achievementIds ?? []) {
-      if (idOf(questId)) attachedIds.add(idOf(questId));
+      const questKey = idOf(questId);
+      if (questKey) attachedIds.add(questKey);
     }
   }
   // A quest is tied to a beast from either side: its own beastId, or the beast's list of quests
@@ -410,7 +415,10 @@ const cellsOf = (maze: unknown): string[] => {
     if (!Array.isArray(floor)) continue;
     for (const row of floor) {
       if (!Array.isArray(row)) continue;
-      for (const cell of row) if (typeof cell === "string") cells.push(cell);
+      for (const cell of row) {
+        const isTile = typeof cell === "string";
+        if (isTile) cells.push(cell);
+      }
     }
   }
   return cells;
@@ -434,7 +442,10 @@ export const uniqueTemples = (temples: ReadonlyArray<TempleLike | null | undefin
 export const countDistinctIds = (...lists: ReadonlyArray<ReadonlyArray<unknown>>): number => {
   const ids = new Set<string>();
   for (const list of lists) {
-    for (const id of list) if (idOf(id)) ids.add(idOf(id));
+    for (const id of list) {
+      const key = idOf(id);
+      if (key) ids.add(key);
+    }
   }
   return ids.size;
 };

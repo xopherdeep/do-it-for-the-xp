@@ -46,7 +46,8 @@ export interface SplashGateInput {
 function hasQueryFlag(query: string | undefined, flag: string): boolean {
   if (!query) return false;
   const start = query.indexOf("?");
-  if (start === -1) return false;
+  const isMissingQuery = start === -1;
+  if (isMissingQuery) return false;
   return query
     .slice(start + 1)
     .split("&")
@@ -55,8 +56,10 @@ function hasQueryFlag(query: string | undefined, flag: string): boolean {
 
 /** True when the splash should be skipped: already shown, `?nosplash`, or `localStorage.xpSkipSplash === "1"`. */
 export function shouldSkipSplash(input: SplashGateInput): boolean {
-  if (input.alreadyShown) return true;
-  if (input.storedFlag === "1") return true;
+  const isAlreadyShown = input.alreadyShown;
+  if (isAlreadyShown) return true;
+  const isSkipStored = input.storedFlag === "1";
+  if (isSkipStored) return true;
   return hasQueryFlag(input.search, SPLASH_SKIP_QUERY) || hasQueryFlag(input.hash, SPLASH_SKIP_QUERY);
 }
 
@@ -74,7 +77,8 @@ function readStoredFlag(): string | null {
 
 /** Reads the window and decides whether to show the splash now; a true answer marks it as shown. */
 export function claimStudioSplash(): boolean {
-  if (typeof window === "undefined") return false;
+  const isServerSide = typeof window === "undefined";
+  if (isServerSide) return false;
   const skip = shouldSkipSplash({
     search: window.location.search,
     hash: window.location.hash,

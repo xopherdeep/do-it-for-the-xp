@@ -100,7 +100,8 @@ export const findRoomOfKind = (templeId: string, floor: string, kinds: string[])
   const grid = manager.getMazeGrid(templeId, floor);
   for (let row = 0; row < grid.length; row++) {
     for (let col = 0; col < grid[row].length; col++) {
-      if (kinds.includes(roomKind(manager.getRoom(templeId, [row, col], floor)))) return [row, col];
+      const isWantedKind = kinds.includes(roomKind(manager.getRoom(templeId, [row, col], floor)));
+      if (isWantedKind) return [row, col];
     }
   }
   return undefined;
@@ -115,7 +116,8 @@ export const climb = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomOut
   const coords = room.content?.targetCoords;
   const landing = findRoomOfKind(ctx.templeId, target, [way === 'up' ? 'stairs-down' : 'stairs-up']);
   const requested: [number, number] | undefined = coords ? [Number(coords.y), Number(coords.x)] : undefined;
-  if (!arriveOn(ctx.templeId, target, [requested, landing, ctx.position])) return rubble;
+  const hasArrived = arriveOn(ctx.templeId, target, [requested, landing, ctx.position]);
+  if (!hasArrived) return rubble;
 
   return { message: `You climb ${way} to ${target}.`, sound: SFX.steps, moved: true };
 };

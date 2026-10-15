@@ -74,8 +74,11 @@ const size = () => {
 
 /** Paint one frame. `fill` is how wide the arms are, 0 (none) to 1 (solid). */
 const draw = (now: number, fill: number) => {
-  if (!ctx || !image) return;
-  const data = image.data;
+  const brush = ctx;
+  const frameImage = image;
+  const isUnsized = !brush || !frameImage;
+  if (isUnsized) return;
+  const data = frameImage.data;
   const spin = now * SPIN;
   const shimmer = Math.floor(now / 90);
   for (let i = 0; i < angle.length; i++) {
@@ -94,7 +97,7 @@ const draw = (now: number, fill: number) => {
     data[o + 2] = c[2];
     data[o + 3] = 255;
   }
-  ctx.putImageData(image, 0, 0);
+  brush.putImageData(frameImage, 0, 0);
 };
 
 const stopLoop = () => {
@@ -107,7 +110,8 @@ const frame = (now: number) => {
   // Ease-in: the arms creep, then swallow the screen
   const t = Math.min(1, elapsed / COVER_MS);
   draw(now, t * t * 0.5 + t * 0.55);
-  if (t >= 1) {
+  const isFullyCovered = t >= 1;
+  if (isFullyCovered) {
     if (!covered) {
       covered = true;
       stopTicks?.();
@@ -145,12 +149,14 @@ const startReveal = () => {
 watch(
   () => props.phase,
   (phase) => {
-    if (phase === "reveal") startReveal();
+    const isReveal = phase === "reveal";
+    if (isReveal) startReveal();
   }
 );
 
 onMounted(() => {
-  if (props.phase === "reveal") startReveal();
+  const isRevealing = props.phase === "reveal";
+  if (isRevealing) startReveal();
   else startCover();
 });
 

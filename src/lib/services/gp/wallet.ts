@@ -106,10 +106,12 @@ export function buyWalletUpgrade(gp: GpPurse | null | undefined, level: number):
   const offer = nextWalletUpgrade(gp);
   if (!offer) return { ok: false, reason: "maxed", offer: null, short: 0 };
   const heroLevel = Number.isFinite(Number(level)) ? Number(level) : 1;
-  if (heroLevel < offer.minLevel) return { ok: false, reason: "locked", offer, short: 0 };
+  const isUnderLevel = heroLevel < offer.minLevel;
+  if (isUnderLevel) return { ok: false, reason: "locked", offer, short: 0 };
   const purse = normalizePurse(gp);
   const available = purse.savings + purse.wallet;
-  if (available < offer.price) return { ok: false, reason: "poor", offer, short: offer.price - available };
+  const isShortOfGp = available < offer.price;
+  if (isShortOfGp) return { ok: false, reason: "poor", offer, short: offer.price - available };
 
   const fromSavings = Math.min(purse.savings, offer.price);
   const fromWallet = offer.price - fromSavings;
@@ -132,15 +134,18 @@ export interface BankMove {
 }
 
 const resolveWithdrawCap = (amount: number, wanted: number, room: number, savings: number): BankMove["capped"] => {
-  if (amount === wanted) return "none";
+  const isUncapped = amount === wanted;
+  if (isUncapped) return "none";
   const isWalletTheLimit = room < savings && room < wanted;
   if (isWalletTheLimit) return "wallet-full";
   return "savings";
 };
 
 const resolveDebtCap = (amount: number, wanted: number, debt: number, wallet: number): BankMove["capped"] => {
-  if (amount === wanted) return "none";
-  if (debt < wallet) return "debt";
+  const isUncapped = amount === wanted;
+  if (isUncapped) return "none";
+  const isDebtTheLimit = debt < wallet;
+  if (isDebtTheLimit) return "debt";
   return "wallet";
 };
 
@@ -183,7 +188,8 @@ export function payHospitalBill(gp: GpPurse | null | undefined, requested: numbe
   const wanted = money(requested);
   const amount = Math.min(wanted, purse.wallet, purse.hospitalBill);
   let capped: BankMove["capped"] = "none";
-  if (amount !== wanted) capped = purse.hospitalBill < purse.wallet ? "bill" : "wallet";
+  const isCapped = amount !== wanted;
+  if (isCapped) capped = purse.hospitalBill < purse.wallet ? "bill" : "wallet";
   return {
     gp: { ...purse, wallet: purse.wallet - amount, hospitalBill: purse.hospitalBill - amount },
     amount,
@@ -203,6 +209,7 @@ export function payDownBills(gp: GpPurse | null | undefined, requested: number):
   const amount = billMove.amount + debtMove.amount;
   const owed = normalizePurse(gp);
   let capped: BankMove["capped"] = "none";
-  if (amount !== wanted) capped = owed.hospitalBill + owed.debt < owed.wallet ? "debt" : "wallet";
+  const isCapped = amount !== wanted;
+  if (isCapped) capped = owed.hospitalBill + owed.debt < owed.wallet ? "debt" : "wallet";
   return { gp: debtMove.gp, amount, capped, billPaid: billMove.amount };
 }

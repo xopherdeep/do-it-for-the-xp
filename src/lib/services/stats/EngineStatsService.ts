@@ -86,11 +86,9 @@ class EngineStatsService {
      * The figures behind the Setup XP slides: heroes, quests, beasts, quest log and temples, worked out now.
      */
     getCompendiumStats(): Promise<CompendiumStats> {
-        if (!this.compendiumLoad) {
-            this.compendiumLoad = this.loadCompendiumStats().finally(() => {
-                this.compendiumLoad = null;
-            });
-        }
+        this.compendiumLoad ??= this.loadCompendiumStats().finally(() => {
+            this.compendiumLoad = null;
+        });
         return this.compendiumLoad;
     }
 
@@ -111,7 +109,8 @@ class EngineStatsService {
         const userStore = useUserStore();
 
         // Ensure users are loaded for an accurate count
-        if (Object.keys(userStore.users).length === 0) {
+        const hasNoUsersLoaded = Object.keys(userStore.users).length === 0;
+        if (hasNoUsersLoaded) {
             await userStore.loadUsers();
         }
         return userStore.usersAz;

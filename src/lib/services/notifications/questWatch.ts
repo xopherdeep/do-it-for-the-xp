@@ -96,7 +96,8 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
 
   let pushed = 0;
   for (const alert of pickQuestAlerts(board, effects, now, id)) {
-    if (notifications.push(alert.notification, now)) pushed += 1;
+    const isPushed = notifications.push(alert.notification, now);
+    if (isPushed) pushed += 1;
   }
   const reminders = await scheduleDueReminders(remindersOf(board, effects, now), now);
   return { pushed, reminders };
