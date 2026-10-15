@@ -25,6 +25,11 @@ export const ALERTS_COMING_SOON: ComingSoonItem[] = [
   { title: "Done notices", description: "Tell Game Masters, or other heroes, when a chore is finished" },
 ];
 
+/** The stored bedtime (familySettings.ts) is kept, but nothing locks, warns or blocks at night yet */
+export const FAMILY_COMING_SOON: ComingSoonItem[] = [
+  { title: "Bedtime", description: "Set when the family's night begins and ends, and lock the portal after lights out" },
+];
+
 export const CHORE_COMING_SOON: ComingSoonItem[] = [
   { title: "Game Masters do chores too", description: "Give quests to Game Masters and track them like a hero's" },
   { title: "Finish overdue chores", description: "Let heroes mark past chores done and still collect the reward" },

@@ -66,21 +66,10 @@
             </ion-label>
             <ion-toggle :checked="family.trustedHour" @ionChange="setFamily({ trustedHour: $event.detail.checked })"> </ion-toggle>
           </ion-item>
-          <ion-item>
-            <ion-label>
-              <h2>Bedtime</h2>
-              <p>When the family's night begins and ends</p>
-            </ion-label>
-            <ion-toggle :checked="family.bedtime.enabled" @ionChange="setBedtime({ enabled: $event.detail.checked })"> </ion-toggle>
-          </ion-item>
-          <ion-item v-if="family.bedtime.enabled">
-            <ion-label>From</ion-label>
-            <input type="time" :value="family.bedtime.from" @change="setBedtime({ from: $event.target.value })" />
-            <ion-label class="ion-text-end">To</ion-label>
-            <input type="time" :value="family.bedtime.to" @change="setBedtime({ to: $event.target.value })" />
-          </ion-item>
         </ion-list>
       </ion-card>
+
+      <xp-coming-soon-card v-if="canManage" title="Family rules" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
@@ -94,6 +83,8 @@ import User from "@/lib/utils/User";
 import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import XpFamilyPhones from "./XpFamilyPhones.vue";
+import XpComingSoonCard from "./XpComingSoonCard.vue";
+import { FAMILY_COMING_SOON } from "./comingSoon";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
@@ -127,7 +118,7 @@ const writeFamilyLock = (locked: boolean): void => {
 export default defineComponent({
   name: "xp-settings-family",
   mixins: [ionic],
-  components: { XpProfileItem, XpFamilyPhones },
+  components: { XpProfileItem, XpFamilyPhones, XpComingSoonCard },
   setup() {
     // "Family setup is complete" hides the add, edit and delete buttons; kept on this device across visits
     const lockFamily = ref(readFamilyLock());
@@ -153,7 +144,7 @@ export default defineComponent({
     // Load profiles when component mounts
     loadProfiles();
 
-    // The Items card: what the Game Master allows Tesla's Bolt, Night's Light and Gale's Wind to do
+    // The Item rules card: whether the Trusted Hour Power may cast
     const family = ref<FamilySettings>(JSON.parse(JSON.stringify(DEFAULT_FAMILY_SETTINGS)));
     loadFamilySettings().then((loaded) => (family.value = loaded));
     const setFamily = (change: Partial<FamilySettings>) => {
@@ -161,16 +152,11 @@ export default defineComponent({
       family.value = { ...family.value, ...change };
       void saveFamilySettings(family.value);
     };
-    const setBedtime = (change: Partial<FamilySettings["bedtime"]>) => {
-      const isClockTime = /^\d\d:\d\d$/.test(change.from ?? change.to ?? "00:00");
-      if (!isClockTime) return;
-      setFamily({ bedtime: { ...family.value.bedtime, ...change } });
-    };
 
     return {
       family,
       setFamily,
-      setBedtime,
+      comingSoon: FAMILY_COMING_SOON,
       userStore,
       requireAvatar,
       profiles,
