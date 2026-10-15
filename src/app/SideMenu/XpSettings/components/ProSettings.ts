@@ -1,6 +1,7 @@
 import { computed, defineComponent, onMounted, ref } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { useProStore } from "@/lib/store/stores/pro";
+import { PLAN_NAMES } from "@/lib/services/pro/proPlans";
 import { proToast } from "@/lib/services/pro/proUi";
 import XpLicenseCard from "./XpLicenseCard.vue";
 
@@ -30,7 +31,6 @@ export default defineComponent({
       return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
     });
 
-    const PLAN_NAMES: Record<string, string> = { monthly: "Monthly", yearly: "Yearly", lifetime: "Lifetime" };
     const planLabel = computed(() => (pro.plan ? PLAN_NAMES[pro.plan] ?? pro.plan : ""));
 
     async function copyKey() {

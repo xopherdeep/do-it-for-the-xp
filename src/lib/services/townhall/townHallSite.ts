@@ -63,6 +63,19 @@ export function townHallRestRoot(site: string = townHallSiteUrl()): string {
 }
 
 /**
+ * The site's own profile page. The app never edits the email or password itself: WordPress confirms an email change
+ * by mail, so the family finishes it there.
+ */
+export function profileUrl(site: string = townHallSiteUrl()): string {
+  return `${withoutTrailingSlashes(site)}/wp-admin/profile.php`;
+}
+
+/** The site's reset-password page. A new password does not touch the Application Password the app signs in with. */
+export function passwordResetUrl(site: string = townHallSiteUrl()): string {
+  return `${withoutTrailingSlashes(site)}/wp-login.php?action=lostpassword`;
+}
+
+/**
  * The host page's REST nonce, but only when that page is the Town Hall site itself: a nonce from another
  * site (www.forthexp.com hosting the app) means nothing to the Town Hall.
  */

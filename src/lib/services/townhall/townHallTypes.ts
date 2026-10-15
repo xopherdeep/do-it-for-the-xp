@@ -11,6 +11,13 @@ export interface TownHallLink {
   appPasswordUuid?: string;
 }
 
+/** What the Account page shows of the family's account on the site; read fresh each time, never kept. */
+export interface TownHallProfile {
+  login: string;
+  displayName: string;
+  email?: string;
+}
+
 /** One topic, comment or bug report, from the hero's draft until the site has it. */
 export interface TownHallPost {
   id: string; // uuid, made on the device

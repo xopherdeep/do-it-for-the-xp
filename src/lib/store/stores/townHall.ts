@@ -23,7 +23,7 @@ import {
 } from "@/lib/services/townhall/townHallOutbox";
 import { bugEnvironment, draftProblem, requestFor, type PostDraft, type PostRequest } from "@/lib/services/townhall/townHallPosts";
 import { appVersion, hostNonce, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
-import type { TownHallLink, TownHallPost } from "@/lib/services/townhall/townHallTypes";
+import type { TownHallLink, TownHallPost, TownHallProfile } from "@/lib/services/townhall/townHallTypes";
 
 /** What coming back from WordPress's "authorize this app" page came to: nothing there, turned down, or a checked link. */
 export type LinkResult = "linked" | "rejected" | "none" | "failed";
@@ -200,6 +200,31 @@ export const useTownHallStore = defineStore("townHall", () => {
     const shouldRemoveOld = !!previous && replacesConnection;
     if (shouldRemoveOld) await removeFromSite(previous);
     return "linked";
+  }
+
+  /**
+   * The family's account as the site has it, for the Account page. The email is never stored: only that page shows it,
+   * and the link keeps just what the app needs. Null when not linked or when the site cannot answer now.
+   */
+  async function fetchProfile(): Promise<TownHallProfile | null> {
+    await init();
+    const current = activeLink.value;
+    if (!current) return null;
+    try {
+      const { data } = await townHallFetch<{ name?: unknown; email?: unknown } | null>("wp/v2/users/me", {
+        auth: basicAuthOf(current),
+        query: { context: "edit" },
+      });
+      return {
+        login: current.userLogin,
+        displayName: textOrUndefined(data?.name) ?? current.displayName,
+        email: textOrUndefined(data?.email),
+      };
+    } catch (e) {
+      const isSiteError = e instanceof TownHallError;
+      if (!isSiteError) throw e;
+      return null;
+    }
   }
 
   /**
@@ -456,6 +481,7 @@ export const useTownHallStore = defineStore("townHall", () => {
     completeLink,
     unlink,
     forgetLink,
+    fetchProfile,
     submit,
     approve,
     reject,

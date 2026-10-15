@@ -3,6 +3,8 @@ import {
   connectionName,
   DEFAULT_TOWN_HALL_SITE,
   hostNonce,
+  passwordResetUrl,
+  profileUrl,
   SITE_OVERRIDE_KEY,
   townHallRestRoot,
   townHallSiteUrl,
@@ -97,4 +99,16 @@ it("appVersion reads the build's version", () => {
   expect(appVersion()).toBe("0.3.0");
   delete process.env.VUE_APP_VERSION;
   expect(appVersion()).toBe("dev");
+});
+
+describe("profileUrl and passwordResetUrl", () => {
+  it("point at the default site's profile and reset pages", () => {
+    expect(profileUrl()).toBe("https://doit.forthexp.com/wp-admin/profile.php");
+    expect(passwordResetUrl()).toBe("https://doit.forthexp.com/wp-login.php?action=lostpassword");
+  });
+
+  it("strip trailing slashes from a given site", () => {
+    expect(profileUrl("https://example.test//")).toBe("https://example.test/wp-admin/profile.php");
+    expect(passwordResetUrl("https://example.test/")).toBe("https://example.test/wp-login.php?action=lostpassword");
+  });
 });

@@ -570,6 +570,37 @@ describe("town hall store", () => {
     });
   });
 
+  describe("fetchProfile", () => {
+    const linked = async () => {
+      mockDb.getLink.mockResolvedValue(storedLink());
+      return useTownHallStore();
+    };
+
+    it("is null when no one is linked, and asks nothing", async () => {
+      expect(await useTownHallStore().fetchProfile()).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("reads the name and email from the site with the link's sign-in", async () => {
+      fetchMock.mockResolvedValue({ data: { name: " Mom Pollard ", email: "mom@example.com" }, headers: { get: () => null } });
+      const store = await linked();
+
+      expect(await store.fetchProfile()).toEqual({ login: LOGIN, displayName: "Mom Pollard", email: "mom@example.com" });
+      expect(requests()).toEqual([expect.objectContaining({ path: "wp/v2/users/me", auth: BASIC, query: { context: "edit" } })]);
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+    });
+
+    it("is null when the site refuses", async () => {
+      fetchMock.mockRejectedValue(new TownHallError("unauthorized", "no", 401));
+      expect(await (await linked()).fetchProfile()).toBeNull();
+    });
+
+    it("rethrows an error that is not the site's", async () => {
+      fetchMock.mockRejectedValue(new TypeError("boom"));
+      await expect((await linked()).fetchProfile()).rejects.toThrow("boom");
+    });
+  });
+
   describe("init", () => {
     it("loads the stored link and posts once", async () => {
       const post: TownHallPost = {

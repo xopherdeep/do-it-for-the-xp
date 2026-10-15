@@ -14,6 +14,9 @@ export const PRO_PLANS: Record<ProPlanId, ProPlan> = {
   lifetime: { price: 79, interval: null, trialDays: 0, storeProductId: "xp_pro_lifetime" },
 };
 
+/** How a plan reads on the Pro and Account pages. */
+export const PLAN_NAMES: Record<ProPlanId, string> = { monthly: "Monthly", yearly: "Yearly", lifetime: "Lifetime" };
+
 export const PRO_GATE_NAMES: Record<ProGate, string> = {
   templeCreator: "Temple Creator",
   advancedSchedule: "Advanced scheduling",
