@@ -57,6 +57,14 @@ import {
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
 import { buyWalletUpgrade, hospitalBillOf } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
+import {
+  type ShelfFilter,
+  canAffordPrice,
+  canAffordWalletWare,
+  keepsWalletWare,
+  keepsWare,
+  walletWareShortBy,
+} from "@/lib/services/shop/shelfFilter";
 import { type BankAction, bankMove, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
 import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import {
@@ -82,8 +90,6 @@ import { parentOf } from "@/router/parentOf";
 interface GpAmount {
   gp?: number | string;
 }
-
-type ShelfFilter = "all" | "affordable" | "out-of-budget";
 
 // The ways to look at the shelves, picked from the shelves sheet
 const SHELF_FILTERS: ReadonlyArray<{ id: ShelfFilter; label: string }> = [
@@ -418,7 +424,7 @@ export default defineComponent({
     // Shops reached from the world map are opened without a hero id, so fall back to whoever is playing.
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
     const wallet = computed(() => Number(userStore.users[heroId.value]?.stats?.gp?.wallet) || 0);
-    const canAfford = (price: number) => wallet.value >= price;
+    const canAfford = (price: number) => canAffordPrice(wallet.value, price);
     // The catalogue keeps a bare Font Awesome name ("film"); a full class ("fad fa-film") is honoured as given
     const itemIconClass = (icon: string): string => {
       if (!icon) return "fad fa-gift";
@@ -430,6 +436,11 @@ export default defineComponent({
       const stats = userStore.users[heroId.value]?.stats;
       return walletOfferAt(props.merchant, stats?.gp, Number(stats?.level) || 1);
     });
+    // The Bigger Wallet is paid from savings and the wallet together, so it has its own sums
+    const walletWareAffordable = computed(() =>
+      canAffordWalletWare(walletWare.value, userStore.users[heroId.value]?.stats?.gp)
+    );
+    const walletWareShort = computed(() => walletWareShortBy(walletWare.value, userStore.users[heroId.value]?.stats?.gp));
 
     const shelf = ref<ShelfItem[]>([]);
     // The Game Master's shop record: its clerk, sign, picture and hours
@@ -444,7 +455,6 @@ export default defineComponent({
     const canGoForward = computed(
       () => Boolean(shelfRef.value) && shelfPosition.value.index < shelfPosition.value.count - 1
     );
-    const shelves = ref<string[]>(["affordable", "out-of-budget"]);
     const inspectedItem = ref<ShelfItem | null>(null);
     const openInspect = (item: ShelfItem) => {
       play$fx("select");
@@ -457,11 +467,6 @@ export default defineComponent({
     const shelfFilterLabel = computed(() => SHELF_FILTERS.find((filter) => filter.id === shelfFilter.value)?.label ?? "All");
     const setShelfFilter = (filter: ShelfFilter) => {
       shelfFilter.value = filter;
-      if (filter === "all") {
-        shelves.value = ["affordable", "out-of-budget"];
-      } else {
-        shelves.value = [filter];
-      }
     };
 
     // Trained charisma takes 1% a point off every price on the shelf, up to 20% (docs/Stats-Contract.md);
@@ -518,9 +523,13 @@ export default defineComponent({
       return shelf.value.filter((item) => {
         const isHiddenBySearch = term !== "" && !item.name.toLowerCase().includes(term);
         if (isHiddenBySearch) return false;
-        return shelves.value.includes(canAfford(item.price) ? "affordable" : "out-of-budget");
+        return keepsWare(shelfFilter.value, canAfford(item.price));
       });
     });
+    // The Bigger Wallet goes by the filter too: on sale and covered under Can Afford, short or level-locked under Can't
+    const shelfWalletWare = computed(() =>
+      keepsWalletWare(shelfFilter.value, walletWare.value, userStore.users[heroId.value]?.stats?.gp) ? walletWare.value : null
+    );
 
     return {
       t,
@@ -554,6 +563,9 @@ export default defineComponent({
       canAfford,
       itemIconClass,
       walletWare,
+      walletWareAffordable,
+      walletWareShort,
+      shelfWalletWare,
       shopRecord,
       isOpen,
       opensAt,
@@ -561,7 +573,6 @@ export default defineComponent({
       gold,
       charismaDiscount,
       shelf,
-      shelves,
       isLoading,
       isBuying,
       search,

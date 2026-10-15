@@ -122,13 +122,16 @@ watch(index, show);
 const somethingElseShowing = () => BUSY_SELECTORS.some((selector) => document.querySelector(selector));
 
 const start = () => {
-  if (hasSeenTour(props.heroId)) return;
-  if (somethingElseShowing()) {
+  const alreadySeen = hasSeenTour(props.heroId);
+  if (alreadySeen) return;
+  const mustWait = somethingElseShowing();
+  if (mustWait) {
     startTimer = window.setTimeout(start, RETRY_MS);
     return;
   }
   const found = visibleStops(FIRST_RUN_TOUR, isOnScreen);
-  if (!found.length) return;
+  const nothingToShow = found.length === 0;
+  if (nothingToShow) return;
   stops.value = found;
   index.value = 0;
   play$fx("openMenu");

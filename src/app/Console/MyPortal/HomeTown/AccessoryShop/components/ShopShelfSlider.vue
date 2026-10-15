@@ -13,7 +13,8 @@
         :name="walletWare.name"
         :price="walletWare.price"
         icon="wallet"
-        :affordable="walletWare.status === 'for-sale'"
+        :affordable="walletWareAffordable"
+        :short-by="walletWareShortBy"
         :note="walletNote"
         :active="activeIndex === 0"
         @pick="pick(0)"
@@ -25,7 +26,7 @@
         :price="item.price"
         :icon="item.icon"
         :photo="item.photo"
-        :affordable="wallet >= item.price"
+        :affordable="canAffordPrice(wallet, item.price)"
         :short-by="Math.max(0, item.price - wallet)"
         :active="activeIndex === index + offset"
         @pick="pick(index + offset)"
@@ -43,6 +44,7 @@ import type { Swiper as SwiperClass } from "swiper";
 import "swiper/css";
 import { play$fx } from "@/assets/fx";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
+import { canAffordPrice } from "@/lib/services/shop/shelfFilter";
 import ShopItemSlide from "./ShopItemSlide.vue";
 
 /** The bigger wallet this shop sells (walletOfferAt), when it sells one. */
@@ -61,8 +63,12 @@ const props = withDefaults(
     items: ShelfItem[];
     wallet: number;
     walletWare?: WalletWareData | null;
+    /** On sale to this hero and covered by savings plus wallet (canAffordWalletWare) */
+    walletWareAffordable?: boolean;
+    /** How much more GP the wallet needs (walletWareShortBy) */
+    walletWareShortBy?: number;
   }>(),
-  { walletWare: null }
+  { walletWare: null, walletWareAffordable: false, walletWareShortBy: 0 }
 );
 
 const emit = defineEmits<{

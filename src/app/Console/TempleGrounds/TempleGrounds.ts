@@ -24,6 +24,7 @@ import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
 import TempleDoorReveal from './components/TempleDoorReveal.vue';
 import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
+import TempleLoading from './components/TempleLoading.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
 import { play$fx } from "@/assets/fx"
@@ -39,6 +40,7 @@ import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWa
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
+import { useTemplePreload } from './templeGrounds/useTemplePreload';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
 const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
@@ -71,6 +73,7 @@ export default defineComponent({
     'temple-door-reveal': TempleDoorReveal,
     'temple-wall-reveal': TempleWallReveal,
     'temple-pegasus-reveal': TemplePegasusReveal,
+    'temple-loading': TempleLoading,
     XpVitalsBar,
     XpPurseBar,
     XpEquipmentModal,
@@ -208,6 +211,12 @@ export default defineComponent({
       element: templeElement,
       shortName: templeShortName
     } = useTempleMeta(props);
+
+    // The painted floors are fetched before the hero walks in, the room they start in first
+    const { isLoadingShown, loadedFloors, totalFloors } = useTemplePreload(
+      props.temple,
+      ref<[number, number]>(startPosition ?? currentPosition.value ?? [0, 0])
+    );
 
     // Get the world location for this temple and walk out to it
     const leaveTemple = () => {
@@ -423,6 +432,9 @@ export default defineComponent({
       getBgImage,
       validRoomCoords,
       templeName,
+      isLoadingShown,
+      loadedFloors,
+      totalFloors,
       backgroundPosition,
       updateBg,
 
