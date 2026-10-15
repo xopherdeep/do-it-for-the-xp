@@ -214,6 +214,18 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   /**
+   * Which streak chests the hero's current run has opened (services/streaks/streakChests.ts): `{ runStart, paid }`.
+   * Replaces the whole record; StreakService writes it when it pays a chest.
+   */
+  function setStreakChests(userId: string, ledger: { runStart: string; paid: number[] }) {
+    const user = users[userId];
+    if (!user) return;
+    user.streakChests = { runStart: ledger.runStart, paid: [...ledger.paid] };
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
    * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
    * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
    * Returns true when the item was newly unlocked.
@@ -340,6 +352,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   return {
+    setStreakChests,
     addInventoryItem,
     spendInventoryItem,
     storeItem,

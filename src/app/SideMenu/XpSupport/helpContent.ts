@@ -63,6 +63,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "Tap a quest to see its beast and its checklist.",
       "Claim when the chore is done, or Hunt to fight the beast for 25% more XP.",
       "A quest marked GM approves waits as Pending until a Game Master says yes.",
+      "Finish a quest every day to grow your streak (the flame under your avatar). Days 3, 7, 14 and 30 open a chest, and every 7th day earns a shield that saves one missed day.",
     ],
   },
   {
@@ -222,6 +223,10 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         question: "What happens when a chore is late?",
         answer: "Nothing is taken away. The quest moves to Overdue in the Beast Log and its beast starts ambushing the hero until the chore is done.",
+      },
+      {
+        question: "How do streaks work?",
+        answer: "A hero who finishes at least one quest a day builds a streak. Days 3, 7, 14 and 30 (then every 30) open a chest of XP and GP, paid once the quests are approved. Every 7th day earns a Streak Shield (two at most) that covers one missed day. A missed day with no shield starts the streak over. Switch streaks off in Settings, Chores.",
       },
       {
         question: "Can I give or take points by hand?",
