@@ -145,11 +145,21 @@
           :key="`room-voxel-${currentLevel}-${currentPosition[0]}-${currentPosition[1]}-${currentRoom?.type}-${currentRoom?.isEmpty}`"
           :room="currentRoom"
           :cleared="isCombatRoomCleared"
+          :searched="isLootSearched"
           @click="showRoomActions"
         />
-        <!-- The beasts in this room have been beaten -->
+        <!-- The beasts here are beaten, but their bones still hide something: search them before the room is done -->
+        <span
+          v-if="isCombatRoomCleared && !isLootSearched"
+          class="cleared-mark cleared-mark--search"
+          title="Search the bones"
+          data-cy="room-unsearched"
+        >
+          <i class="fas fa-search" aria-hidden="true" />
+        </span>
+        <!-- Beaten and searched: nothing left here -->
         <i
-          v-if="isCombatRoomCleared"
+          v-else-if="isCombatRoomCleared"
           class="fas fa-check-circle cleared-mark"
           title="Cleared"
         />

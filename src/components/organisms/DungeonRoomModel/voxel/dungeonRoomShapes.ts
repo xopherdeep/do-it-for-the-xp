@@ -28,6 +28,8 @@ export interface DungeonRoomShapeOptions {
   isEmpty?: boolean;
   isBoss?: boolean;
   cleared?: boolean;
+  /** A cleared combat room whose bones the hero has already searched: the spoils are gone */
+  searched?: boolean;
 }
 
 const b = (x: number, y: number, z: number, w: number, h: number, d: number, color: string): Box => ({
@@ -333,15 +335,47 @@ export const emptyRoomBoxes = (): Box[] => [
   b(2.8, 0.6, -1.5, 1.0, 0.6, 1.0, "#607d8b"),
 ];
 
-/** Cleared combat room: victory stand with staff, green banner, and golden wreath */
-export const clearedCombatBoxes = (): Box[] => [
-  b(-4.5, 0, -4.5, 9.0, 1.0, 9.0, "#37474f"),
-  b(-3.2, 1.0, -3.2, 6.4, 1.0, 6.4, "#455a64"),
-  b(-0.5, 2.0, -0.5, 1.0, 7.5, 1.0, "#8d6e63"),
-  b(-0.3, 5.0, 0.5, 0.6, 4.0, 3.5, "#2e7d32"),
-  b(-0.3, 6.0, 0.5, 0.7, 2.0, 2.0, "#ffd700"),
-  b(-0.8, 9.5, -0.8, 1.6, 1.6, 1.6, "#ffd700"),
+const BONE = "#efe8d8";
+const BONE_SHADE = "#d9cfba";
+const SOCKET = "#1a1a1a";
+
+/** What is left of a beaten beast: a skull on a pile of bones */
+const bonesBoxes = (): Box[] => [
+  b(-4.5, 0, -4.5, 9.0, 0.5, 9.0, "#4e342e"),
+  // Skull, staring out of the pile
+  b(-1.6, 0.5, -1.4, 3.2, 2.8, 2.8, BONE),
+  b(-1.3, 3.3, -1.1, 2.6, 0.6, 2.2, BONE_SHADE),
+  b(-1.2, 0.5, 1.2, 2.4, 0.7, 0.6, BONE_SHADE),
+  b(-1.1, 1.8, 1.35, 0.8, 0.8, 0.2, SOCKET),
+  b(0.3, 1.8, 1.35, 0.8, 0.8, 0.2, SOCKET),
+  b(-0.2, 1.2, 1.35, 0.4, 0.4, 0.2, SOCKET),
+  // A long bone behind, knobbed at both ends
+  b(-3.6, 0.5, -3.3, 6.0, 0.6, 0.6, BONE),
+  b(-4.2, 0.4, -3.6, 0.9, 0.9, 1.2, BONE_SHADE),
+  b(2.2, 0.4, -3.6, 0.9, 0.9, 1.2, BONE_SHADE),
+  // Another across it on the right
+  b(2.8, 0.5, -1.6, 0.6, 0.6, 4.6, BONE),
+  b(2.5, 0.4, -2.1, 1.2, 0.9, 0.9, BONE_SHADE),
+  b(2.5, 0.4, 2.8, 1.2, 0.9, 0.9, BONE_SHADE),
+  // Ribs on the left
+  b(-4.0, 0.5, 0.0, 0.9, 0.4, 3.2, BONE_SHADE),
+  b(-3.8, 0.5, 0.2, 0.5, 1.4, 0.5, BONE),
+  b(-3.8, 0.5, 1.2, 0.5, 1.6, 0.5, BONE),
+  b(-3.8, 0.5, 2.2, 0.5, 1.2, 0.5, BONE),
 ];
+
+/** The spoils still lying among the bones until the hero searches them: a pouch and spilled coins */
+const spoilsBoxes = (): Box[] => [
+  b(-3.0, 0.5, -2.2, 1.8, 1.5, 1.6, "#8d6e63"),
+  b(-2.6, 2.0, -1.9, 1.0, 0.4, 1.0, "#5d4037"),
+  b(-2.5, 2.4, -1.8, 0.8, 0.3, 0.8, "#ffd700"),
+  b(0.8, 0.5, 2.6, 0.9, 0.3, 0.9, "#ffd700"),
+  b(-0.4, 0.5, 3.1, 0.8, 0.3, 0.8, "#ffc107"),
+  b(1.9, 0.5, 1.6, 0.7, 0.3, 0.7, "#ffea00"),
+];
+
+/** Cleared combat room: a pile of bones, with the beast's spoils until they are searched */
+export const bonePileBoxes = (searched = false): Box[] => (searched ? bonesBoxes() : [...bonesBoxes(), ...spoilsBoxes()]);
 
 const ROOM_FACTORIES: Record<string, (options: DungeonRoomShapeOptions) => Box[]> = {
   loot: (opts) => (opts.isEmpty ? emptyChestBoxes() : treasureChestBoxes(opts.isBoss)),
@@ -365,16 +399,16 @@ const ROOM_FACTORIES: Record<string, (options: DungeonRoomShapeOptions) => Box[]
   pit: () => pitBoxes(),
   void: () => pitBoxes(),
   empty: () => emptyRoomBoxes(),
-  cleared: () => clearedCombatBoxes(),
-  monster: (opts) => (opts.cleared ? clearedCombatBoxes() : emptyRoomBoxes()),
-  miniboss: (opts) => (opts.cleared ? clearedCombatBoxes() : emptyRoomBoxes()),
-  boss: (opts) => (opts.cleared ? clearedCombatBoxes() : emptyRoomBoxes()),
+  cleared: (opts) => bonePileBoxes(opts.searched),
+  monster: (opts) => (opts.cleared ? bonePileBoxes(opts.searched) : emptyRoomBoxes()),
+  miniboss: (opts) => (opts.cleared ? bonePileBoxes(opts.searched) : emptyRoomBoxes()),
+  boss: (opts) => (opts.cleared ? bonePileBoxes(opts.searched) : emptyRoomBoxes()),
 };
 
 export const getDungeonRoomBoxes = (roomType: string, options: DungeonRoomShapeOptions = {}): Box[] => {
   const isClearedCombat = Boolean(options.cleared && ["monster", "miniboss", "boss"].includes(roomType));
   if (isClearedCombat) {
-    return clearedCombatBoxes();
+    return bonePileBoxes(options.searched);
   }
   const factory = ROOM_FACTORIES[roomType] || ROOM_FACTORIES.empty;
   return factory(options);

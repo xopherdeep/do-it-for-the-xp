@@ -258,7 +258,7 @@ export default defineComponent({
     const { isChestOpen, chestLootShown, isChestClosed } = chest;
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
-    const { isCombatRoomCleared, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
+    const { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
       props,
       progressHeroId,
       currentRoom,
@@ -396,7 +396,7 @@ export default defineComponent({
       keyPulse,
       isMapOpen,
       currentRoom,
-      isCombatRoomCleared,
+      isCombatRoomCleared, isLootSearched,
       maze,
       rooms,
       actionColor,
