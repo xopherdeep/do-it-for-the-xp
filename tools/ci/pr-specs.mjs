@@ -29,7 +29,8 @@ const WHOLE_SUITE = [
 
 const git = (args) => {
   const result = spawnSync("git", args, { encoding: "utf8" });
-  if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  const hasFailed = result.status !== 0;
+  if (hasFailed) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
   return result.stdout;
 };
 
@@ -46,7 +47,8 @@ const changedFiles = (base) =>
 // dependency graph doesn't see, so a change to either also counts as a change to the .vue beside it.
 const siblingVues = (file) => {
   const dir = path.dirname(file);
-  if (!existsSync(dir)) return [];
+  const isGone = !existsSync(dir);
+  if (isGone) return [];
   const stem = path.basename(file).replace(/\.[^.]+$/, "").replace(/^_/, "");
   return readdirSync(dir)
     .filter((name) => name.endsWith(".vue") && name.replace(/\.vue$/, "") === stem)
@@ -63,11 +65,13 @@ export const planSpecs = (changes) => {
   for (const file of live) {
     const isSource = file.startsWith("src/") && (CODE.test(file) || /\.s?css$/.test(file));
     const isSpec = file.startsWith("tests/") && SPEC.test(file);
-    if (isSource && CODE.test(file)) related.add(file);
+    const isSourceModule = isSource && CODE.test(file);
+    if (isSourceModule) related.add(file);
     if (isSource) siblingVues(file).forEach((vue) => related.add(vue));
     if (isSpec) related.add(file);
   }
-  if (related.size === 0) return { mode: "none", reason: `no source or spec changed in ${changes.length} file(s)` };
+  const hasNothingToTest = related.size === 0;
+  if (hasNothingToTest) return { mode: "none", reason: `no source or spec changed in ${changes.length} file(s)` };
   return { mode: "related", reason: `${related.size} changed source/spec file(s)`, files: [...related].sort() };
 };
 
@@ -75,15 +79,19 @@ const run = (args) => spawnSync("npx", ["--yes", CHEMX, "test", ...args], { stdi
 
 const main = () => {
   const [base, flag] = process.argv.slice(2);
-  if (!base) {
-    console.error("usage: node tools/ci/pr-specs.mjs <base-rev> [--list]");
+  const isMissingBase = !base;
+  if (isMissingBase) {
+    process.stderr.write("usage: node tools/ci/pr-specs.mjs <base-rev> [--list]\n");
     return 2;
   }
   const plan = planSpecs(changedFiles(base));
-  console.log(`Specs: ${plan.mode} (${plan.reason})`);
-  if (plan.files) plan.files.forEach((file) => console.log(`  ${file}`));
-  if (flag === "--list" || plan.mode === "none") return 0;
-  if (plan.mode === "full") return run([]);
+  const listing = (plan.files || []).map((file) => `  ${file}\n`).join("");
+  process.stdout.write(`Specs: ${plan.mode} (${plan.reason})\n${listing}`);
+  const isDryRun = flag === "--list";
+  const shouldSkip = isDryRun || plan.mode === "none";
+  if (shouldSkip) return 0;
+  const isFullSuite = plan.mode === "full";
+  if (isFullSuite) return run([]);
   return run(["--allow-empty", "--", "jest", "--passWithNoTests", "--findRelatedTests", ...plan.files]);
 };
 
