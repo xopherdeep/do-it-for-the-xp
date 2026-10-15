@@ -92,7 +92,8 @@ export const stockedShops = (
     const items = [...(base.items ?? [])];
     const shelved = new Set(items.map((item) => item.itemId));
     for (const itemId of itemIds) {
-      if (shelved.has(itemId)) continue;
+      const isShelved = shelved.has(itemId);
+      if (isShelved) continue;
       shelved.add(itemId);
       items.push({ itemId, type: ShopItemType.Accessory });
     }
@@ -111,11 +112,13 @@ export const packToBackup = (
 ): BackupFile => {
   const stores: Record<string, BackupEntry[]> = {};
   for (const list of PACK_LISTS) {
-    const records = pack.content[list];
-    if (records?.length) stores[PACK_LIST_STORES[list]] = entries(records);
+    const records = pack.content[list] ?? [];
+    const hasRecords = records.length > 0;
+    if (hasRecords) stores[PACK_LIST_STORES[list]] = entries(records);
   }
   const shops = stockedShops(pack.content.shopStock, shopsNow, registry);
-  if (shops.length) stores.__shops = entries(shops);
+  const hasStockedShops = shops.length > 0;
+  if (hasStockedShops) stores.__shops = entries(shops);
   return { version: BACKUP_VERSION, exportedAt: now.toISOString(), stores };
 };
 
@@ -123,7 +126,8 @@ export const packToBackup = (
 const othersIds = (pack: XpPack, packs: readonly XpPack[]): Record<PackList, Set<string>> => {
   const shared = Object.fromEntries(PACK_LISTS.map((list) => [list, new Set<string>()])) as Record<PackList, Set<string>>;
   for (const other of packs) {
-    if (other.id === pack.id) continue;
+    const isSamePack = other.id === pack.id;
+    if (isSamePack) continue;
     const ids = packIds(other);
     for (const list of PACK_LISTS) ids[list].forEach((id) => shared[list].add(id));
   }
@@ -145,7 +149,8 @@ export const packStatus = (pack: XpPack, packs: readonly XpPack[], snapshot: Pac
   const ids = packIds(pack);
   const shared = othersIds(pack, packs);
   let own = PACK_LISTS.flatMap((list) => ids[list].filter((id) => !shared[list].has(id)).map((id) => [list, id] as const));
-  if (!own.length) own = PACK_LISTS.flatMap((list) => ids[list].map((id) => [list, id] as const));
+  const isAllShared = !own.length;
+  if (isAllShared) own = PACK_LISTS.flatMap((list) => ids[list].map((id) => [list, id] as const));
   const present = own.filter(([list, id]) => snapshot[PACK_LIST_STORES[list]].has(id)).length;
   const total = own.length;
   return { state: present === 0 ? "none" : present === total ? "loaded" : "partial", present, total };
@@ -226,7 +231,8 @@ export const readSnapshot = async (deps: PackDeps = defaultDeps): Promise<PackSn
     await storage.create();
     await storage.forEach((value, key) => {
       // Block body on purpose: forEach stops as soon as the callback returns anything but undefined
-      if (value !== undefined) snapshot[name].set(key, value);
+      const isStored = value !== undefined;
+      if (isStored) snapshot[name].set(key, value);
     });
   }
   return snapshot;

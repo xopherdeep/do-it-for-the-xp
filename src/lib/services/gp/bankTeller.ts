@@ -17,20 +17,29 @@ export const gold = (value: number): string => `₲${Math.round(Number(value) ||
  * `before` is the purse the move was computed from.
  */
 export function bankRefusal(action: BankAction, before: GpPurse | null | undefined, move: BankMove, voice: Voice = "adventure"): string | null {
-  if (move.amount > 0) return null;
+  const isMoved = move.amount > 0;
+  if (isMoved) return null;
   const purse = normalizePurse(before);
   switch (action) {
-    case "withdraw":
-      if (purse.savings <= 0) return copyFor("bank.refusal.noSavings", voice);
-      if (purse.wallet >= purse.limit) return copyFor("bank.refusal.walletFull", voice, { limit: gold(purse.limit) });
+    case "withdraw": {
+      const hasNoSavings = purse.savings <= 0;
+      if (hasNoSavings) return copyFor("bank.refusal.noSavings", voice);
+      const isWalletFull = purse.wallet >= purse.limit;
+      if (isWalletFull) return copyFor("bank.refusal.walletFull", voice, { limit: gold(purse.limit) });
       return copyFor("bank.refusal.nameWithdraw", voice);
-    case "deposit":
-      if (purse.wallet <= 0) return copyFor("bank.refusal.walletEmpty", voice);
+    }
+    case "deposit": {
+      const isWalletEmpty = purse.wallet <= 0;
+      if (isWalletEmpty) return copyFor("bank.refusal.walletEmpty", voice);
       return copyFor("bank.refusal.nameDeposit", voice);
-    case "payDebt":
-      if (purse.debt <= 0 && purse.hospitalBill <= 0) return copyFor("bank.refusal.noDebt", voice);
-      if (purse.wallet <= 0) return copyFor("bank.refusal.walletEmptyDebt", voice);
+    }
+    case "payDebt": {
+      const isDebtFree = purse.debt <= 0 && purse.hospitalBill <= 0;
+      if (isDebtFree) return copyFor("bank.refusal.noDebt", voice);
+      const isWalletEmpty = purse.wallet <= 0;
+      if (isWalletEmpty) return copyFor("bank.refusal.walletEmptyDebt", voice);
       return copyFor("bank.refusal.namePay", voice);
+    }
   }
 }
 
@@ -102,7 +111,8 @@ export function storageTopUpQuestion(sale: Extract<StoragePurchase, { ok: false;
 
 /** Why the sale did not go through, in the banker's words, or null when it did. */
 export function storageRefusal(sale: StoragePurchase | { ok: false; reason: "hero" }, voice: Voice = "adventure"): string | null {
-  if (sale.ok) return null;
+  const isSold = sale.ok;
+  if (isSold) return null;
   switch (sale.reason) {
     case "max":
       return storageMaxed(voice);

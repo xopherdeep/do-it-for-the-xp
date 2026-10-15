@@ -82,9 +82,11 @@ export const shiftDayKey = (dayKey: string, offset: number): string => {
 
 /** The day an entry counts for: its own dayKey, else the local day of completedAt */
 export const entryDayKey = (entry: StreakEntryLike): string => {
-  if (entry.dayKey) return entry.dayKey;
-  if (!entry.completedAt) return "";
-  const date = new Date(entry.completedAt);
+  const dayKey = entry.dayKey;
+  if (dayKey) return dayKey;
+  const completedAt = entry.completedAt;
+  if (!completedAt) return "";
+  const date = new Date(completedAt);
   return Number.isNaN(date.getTime()) ? "" : toDayKey(date);
 };
 
@@ -97,7 +99,8 @@ export const keptDays = (
   const days = new Set<string>();
   for (const entry of entries) {
     const isTheHeros = Boolean(entry && String(entry.userId) === String(userId));
-    if (!isTheHeros || !statuses.includes(String(entry!.status))) continue;
+    const isSkipped = !isTheHeros || !statuses.includes(String(entry!.status));
+    if (isSkipped) continue;
     const key = entryDayKey(entry!);
     if (key) days.add(key);
   }
@@ -117,7 +120,8 @@ export const dailyStreak = (
   const todayKey = typeof today === "string" ? today : toDayKey(today);
   const days = keptDays(entries, userId, statuses);
   const past = [...days].filter((key) => key <= todayKey).sort();
-  if (!past.length) return { ...EMPTY_STREAK };
+  const hasNoPastDays = !past.length;
+  if (hasNoPastDays) return { ...EMPTY_STREAK };
 
   const earliest = shiftDayKey(todayKey, -MAX_DAYS_WALKED);
   let day = past[0] < earliest ? earliest : past[0];
@@ -130,13 +134,17 @@ export const dailyStreak = (
 
   while (day <= todayKey) {
     const kept = days.has(day);
+    const isMissedRunDay = day !== todayKey && current > 0;
     if (kept) {
-      if (current === 0) runStart = day;
+      const isRunStart = current === 0;
+      if (isRunStart) runStart = day;
       current++;
-      if (current % SHIELD_EVERY === 0) shields = Math.min(MAX_SHIELDS, shields + 1);
+      const isShieldDay = current % SHIELD_EVERY === 0;
+      if (isShieldDay) shields = Math.min(MAX_SHIELDS, shields + 1);
       best = Math.max(best, current);
-    } else if (day !== todayKey && current > 0) {
-      if (shields > 0) {
+    } else if (isMissedRunDay) {
+      const hasShield = shields > 0;
+      if (hasShield) {
         shields--;
         shieldsUsed++;
       } else {

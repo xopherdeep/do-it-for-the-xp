@@ -81,16 +81,20 @@ export function forgiveHospitalBill(gp: GpPurse | null | undefined, amount?: num
 /** "₲40 from your wallet, ₲25 from your savings, ₲35 still owed" */
 const shares = (charge: BillCharge): string => {
   const parts: string[] = [];
-  if (charge.fromWallet > 0) parts.push(`${gold(charge.fromWallet)} from your wallet`);
-  if (charge.fromSavings > 0) parts.push(`${gold(charge.fromSavings)} from your savings`);
-  if (charge.owed > 0) parts.push(`${gold(charge.owed)} still owed`);
+  const hasWalletShare = charge.fromWallet > 0;
+  if (hasWalletShare) parts.push(`${gold(charge.fromWallet)} from your wallet`);
+  const hasSavingsShare = charge.fromSavings > 0;
+  if (hasSavingsShare) parts.push(`${gold(charge.fromSavings)} from your savings`);
+  const isStillOwed = charge.owed > 0;
+  if (isStillOwed) parts.push(`${gold(charge.owed)} still owed`);
   return parts.join(", ");
 };
 
 /** What the nurse reads when a hero is carried in. */
 export function nurseBillLine(charge: BillCharge): string {
   const head = `Treatment: ${gold(charge.bill)}. ${shares(charge)}.`;
-  if (charge.owed <= 0) return `${head} Paid in full, you're free to go.`;
+  const isPaidInFull = charge.owed <= 0;
+  if (isPaidInFull) return `${head} Paid in full, you're free to go.`;
   const stacked = charge.totalOwed > charge.owed ? ` That brings your bill to ${gold(charge.totalOwed)}.` : "";
   return `${head}${stacked} You're grounded until the bill is paid at the Gold Bank.`;
 }
@@ -109,7 +113,8 @@ export function nurseAdmissionBlocks(charge: BillCharge | null, owedNow: number)
   const greeting = "*gasps* Oh dear, they carried you in! You're all patched up, with full HP and full MP.";
   const tip = "You can still fight and do quests, so chores are how the gold comes in. Pay at the Gold Bank and you're free!";
   if (charge) return [greeting, nurseBillLine(charge), ...(charge.totalOwed > 0 ? [tip] : [])];
-  if (owedNow > 0) return [greeting, nurseOwedLine(owedNow), tip];
+  const isStillOwed = owedNow > 0;
+  if (isStillOwed) return [greeting, nurseOwedLine(owedNow), tip];
   return [];
 }
 

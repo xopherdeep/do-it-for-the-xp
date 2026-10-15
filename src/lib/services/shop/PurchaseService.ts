@@ -163,15 +163,18 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
     qty: 1,
   };
 
-  if (isConsumable && !canCarry(hero, consumableRawItem)) {
+  const hasNoBagRoom = isConsumable && !canCarry(hero, consumableRawItem);
+  if (hasNoBagRoom) {
     throw new PurchaseError("bag-full", `Your bag is full. Store something at home first.`);
   }
 
   // Check and charge in the same tick (updateUserGP changes the wallet before its first await),
   // so two purchases racing each other can never spend the same GP.
   const wallet = walletOf(userId);
-  if (wallet < price) throw new InsufficientFundsError(item.name, price, wallet);
-  if (price > 0) await userStore.updateUserGP({ userId, wallet: -price });
+  const isShortOfGp = wallet < price;
+  if (isShortOfGp) throw new InsufficientFundsError(item.name, price, wallet);
+  const isPaid = price > 0;
+  if (isPaid) await userStore.updateUserGP({ userId, wallet: -price });
 
   try {
     if (isConsumable) {
@@ -186,7 +189,7 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
     });
   } catch (error) {
     // Nothing was recorded, so the Game Master would never learn what to deliver: give the GP back.
-    if (price > 0) await userStore.updateUserGP({ userId, wallet: price });
+    if (isPaid) await userStore.updateUserGP({ userId, wallet: price });
     throw error;
   }
 };
@@ -219,7 +222,8 @@ const reviewEntry = async (
   entryId: string,
   review: (entry: PurchaseLogEntry) => Promise<PurchaseLogEntry | null>
 ): Promise<PurchaseLogEntry | null> => {
-  if (reviewsInFlight.has(entryId)) return null;
+  const isUnderReview = reviewsInFlight.has(entryId);
+  if (isUnderReview) return null;
   reviewsInFlight.add(entryId);
   try {
     const entry = await getPurchaseLogDb().getEntry(entryId);
@@ -240,7 +244,8 @@ export const fulfillPurchase = (entryId: string, reviewerId?: string): Promise<P
       reviewedBy: reviewerId,
     });
     // The hero's feed hears the item was handed over
-    if (fulfilled?.status === "fulfilled") notify(purchaseNotification(fulfilled.userId, { ...fulfilled, status: "fulfilled" }));
+    const isFulfilled = fulfilled?.status === "fulfilled";
+    if (isFulfilled) notify(purchaseNotification(fulfilled.userId, { ...fulfilled, status: "fulfilled" }));
     return fulfilled;
   });
 
@@ -256,7 +261,8 @@ export const refundPurchase = (
 ): Promise<PurchaseLogEntry | null> =>
   reviewEntry(entryId, async (entry) => {
     const userStore = useUserStore();
-    if (!userStore.users[entry.userId]) {
+    const isUnknownHero = !userStore.users[entry.userId];
+    if (isUnknownHero) {
       throw new PurchaseError("unknown-hero", `Hero ${entry.userId} doesn't exist, so there is nobody to refund.`);
     }
 
@@ -272,7 +278,8 @@ export const refundPurchase = (
     if (!refunded) return null;
 
     try {
-      if (entry.price > 0) await userStore.updateUserGP({ userId: entry.userId, wallet: entry.price });
+      const isPaid = entry.price > 0;
+      if (isPaid) await userStore.updateUserGP({ userId: entry.userId, wallet: entry.price });
     } catch (error) {
       await db.updateEntry(entry.id, {
         status: "pending",
@@ -282,6 +289,7 @@ export const refundPurchase = (
       });
       throw error;
     }
-    if (refunded.status === "refunded") notify(purchaseNotification(refunded.userId, { ...refunded, status: "refunded" }));
+    const isRefunded = refunded.status === "refunded";
+    if (isRefunded) notify(purchaseNotification(refunded.userId, { ...refunded, status: "refunded" }));
     return refunded;
   });

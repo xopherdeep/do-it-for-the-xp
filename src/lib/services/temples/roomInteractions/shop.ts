@@ -49,13 +49,17 @@ export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
 export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutcome => {
   const ware = shopWares(room, ctx).find((item) => item.id === wareId);
   if (!ware) return { message: 'We do not carry that.', sound: SFX.error };
-  if (ware.soldOut) return { message: 'Sold out. Sorry, friend.', sound: SFX.error };
-  if (readGold(ctx.userId) < ware.price) return { message: 'Not enough GP', sound: SFX.error };
+  const isSoldOut = ware.soldOut;
+  if (isSoldOut) return { message: 'Sold out. Sorry, friend.', sound: SFX.error };
+  const isShortOfGp = readGold(ctx.userId) < ware.price;
+  if (isShortOfGp) return { message: 'Not enough GP', sound: SFX.error };
 
   const store = useUserStore();
-  if (ware.id === POTION_ID) {
+  const isPotion = ware.id === POTION_ID;
+  if (isPotion) {
     const hp = readPoints(ctx.userId, 'hp');
-    if (hp.now >= hp.max) return { message: 'You are in fine shape already. Keep your GP.', sound: SFX.error };
+    const isHealthy = hp.now >= hp.max;
+    if (isHealthy) return { message: 'You are in fine shape already. Keep your GP.', sound: SFX.error };
     void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
     const healed = healHero(ctx.userId, POTION_HEAL);
     return { message: `Potion of Vigor: +${healed} HP`, sound: SFX.buy };
@@ -83,7 +87,8 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
     ...(ware.blurb ? { description: ware.blurb } : {}),
   };
   // Room is checked before any GP changes hands: a full bag and full storage take nothing and charge nothing
-  if (!canCarry(store.getUserById(ctx.userId), item) || !store.addInventoryItem(ctx.userId, item)) {
+  const isNotStowed = !canCarry(store.getUserById(ctx.userId), item) || !store.addInventoryItem(ctx.userId, item);
+  if (isNotStowed) {
     return { message: BAG_FULL, sound: SFX.error };
   }
   void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });

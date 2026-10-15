@@ -105,23 +105,26 @@ export function walletPitch(
   level: number,
   words: Voice = 'adventure'
 ): RevealPromptOptions {
-  if (!ware.offer) {
+  const offer = ware.offer;
+  if (!offer) {
     const line = ware.status === 'owned' ? `${ware.note} ${ware.hint}` : ware.note;
     return shopRefusal(voice, line, 'coins');
   }
-  if (ware.status === 'locked') {
-    return shopRefusal(voice, copyFor('shop.wallet.level', words, { level: ware.offer.minLevel }), 'coins');
+  const isLocked = ware.status === 'locked';
+  if (isLocked) {
+    return shopRefusal(voice, copyFor('shop.wallet.level', words, { level: offer.minLevel }), 'coins');
   }
   const sale = buyWalletUpgrade(gp, level);
-  if (!sale.ok) return shopRefusal(voice, walletRefusal(sale, words), 'coins');
+  const isSold = sale.ok;
+  if (!isSold) return shopRefusal(voice, walletRefusal(sale, words), 'coins');
   return {
     speaker: voice.shopkeeper,
     accent: voice.accent,
     sprite: 'coins',
     title: ware.name,
-    lines: [copyFor('shop.wallet.pitch', words, { limit: gold(ware.offer.limit), price: gold(ware.offer.price) })],
+    lines: [copyFor('shop.wallet.pitch', words, { limit: gold(offer.limit), price: gold(offer.price) })],
     choices: [
-      { id: 'yes', label: `Buy for ${gold(ware.offer.price)}`, icon: 'coins', tone: 'primary' },
+      { id: 'yes', label: `Buy for ${gold(offer.price)}`, icon: 'coins', tone: 'primary' },
       { id: 'no', label: 'No thanks', icon: 'times', tone: 'ghost' },
     ],
     cancelId: 'no',
@@ -175,10 +178,12 @@ export function purchaseFailure(
   words: Voice = 'adventure',
   reasonCode?: string
 ): RevealPromptOptions {
-  if (shortBy !== null) {
+  const isShortOfGp = shortBy !== null;
+  if (isShortOfGp) {
     return shopRefusal(voice, copyFor('shop.buy.short', words, { short: gold(shortBy), item: itemName }), 'coins');
   }
-  if (reasonCode === 'bag-full') {
+  const isBagFull = reasonCode === 'bag-full';
+  if (isBagFull) {
     // There is no bag sprite: the chest stands in for the hero's full bag
     return shopRefusal(voice, copyFor('shop.buy.bagFull', words), 'chest');
   }
