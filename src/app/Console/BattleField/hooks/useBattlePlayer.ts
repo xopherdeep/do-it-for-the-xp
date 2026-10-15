@@ -95,14 +95,14 @@ const useRollingNumber = (target: () => number) => {
   );
 
   /** Jump to the real value without rolling. */
-  const snap = () => {
+  const completeRoll = () => {
     stop();
     shown.value = target();
   };
 
   if (getCurrentScope()) onScopeDispose(stop);
 
-  return { shown, snap };
+  return { shown, completeRoll };
 };
 
 /**
@@ -163,8 +163,8 @@ export function useBattlePlayer(userId?: MaybeRefOrGetter<string | null | undefi
     () => (player.value ? heroId.value : ""),
     (key) => {
       if (!key) return;
-      hp.snap();
-      mp.snap();
+      hp.completeRoll();
+      mp.completeRoll();
     },
     { flush: "sync" }
   );

@@ -199,7 +199,7 @@ export default defineComponent({
     const rollVictorySound = (on: boolean) => (on ? audio.startTally() : audio.stopTally());
     const landVictorySound = (stat: TallyStat) => {
       audio.playLanding(stat);
-      feedback.tick();
+      feedback.playTick();
     };
 
     const outcome = useBattleOutcome({
@@ -260,8 +260,8 @@ export default defineComponent({
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
     const sayItemResult = (result: { ok: boolean; line: string; sound: string }) => {
       audio.playSound(result.sound);
-      if (result.ok) feedback.tap();
-      if (result.line) dialog.enqueue([{ text: result.line, auto: true }]);
+      if (result.ok) feedback.playTap();
+      if (result.line) dialog.addToQueue([{ text: result.line, auto: true }]);
     };
 
     /** An item or a Power answered; a vanish (X's Invisibility) has armed the getaway, so Run Away follows at once. */
@@ -345,7 +345,7 @@ export default defineComponent({
         passive: heroPassive(userStore.users[ctx.userId]),
       });
       engine.registerCallbacks({
-        onDialogMessage: (messages) => dialog.enqueue(messages),
+        onDialogMessage: (messages) => dialog.addToQueue(messages),
         onCombatTasksChange: (tasks) => {
           combatTasks.value = tasks;
           choresDone.value = tasks.filter((task) => task.isCompleted).length;
@@ -364,7 +364,7 @@ export default defineComponent({
           closeSheet();
           stopNag();
           clearBattleProgress(progressCtx);
-          void outcome.celebrateVictory(engine.getAllEnemies(), {
+          void outcome.startVictory(engine.getAllEnemies(), {
             choresDone: choresDone.value,
             elapsedMs: startedAt ? Date.now() - startedAt : 0,
           });
@@ -381,7 +381,7 @@ export default defineComponent({
         onAttack: (attacker) => {
           if (attacker !== "enemy") return;
           audio.playSound("preAttack");
-          feedback.windUp();
+          feedback.playWindUp();
           closeSheet();
           runConfirm.value = false;
           startNag();
@@ -394,7 +394,7 @@ export default defineComponent({
             return;
           }
           audio.playSound("damage");
-          feedback.heroHit();
+          feedback.playHeroHit();
         },
       });
       return engine;
@@ -403,7 +403,7 @@ export default defineComponent({
     const startIntro = (label: string, stillHurt: boolean) => {
       showEnemy.value = false;
       dialog.isVictoryMessage.value = false;
-      dialog.enqueue([
+      dialog.addToQueue([
         () => {
           showEnemy.value = true;
           if (encounter.value?.boss) audio.startBossBgm();
@@ -430,7 +430,7 @@ export default defineComponent({
       const theft = stealFromHero(ctx.userId, userStore);
       const beastName = enc.label || "Thief Beast";
 
-      dialog.enqueue([
+      dialog.addToQueue([
         () => {
           showEnemy.value = true;
         },
@@ -439,7 +439,7 @@ export default defineComponent({
           const hasStolenLoot = theft.stolenGp > 0 || Boolean(theft.stolenItemName);
           if (hasStolenLoot) {
             audio.playSound("damage");
-            feedback.heroHit();
+            feedback.playHeroHit();
           }
         },
         ...(theft.stolenGp > 0
@@ -456,7 +456,7 @@ export default defineComponent({
           audio.stopBgm();
           audio.playSound("cursor");
           enemyAnimationClass.value = "fadeout";
-          window.setTimeout(() => void outcome.leaveBattle(), ESCAPE_FADE_MS);
+          window.setTimeout(() => void outcome.closeBattle(), ESCAPE_FADE_MS);
         },
       ]);
     };
@@ -479,7 +479,7 @@ export default defineComponent({
         if (!userStore.users[ctx.userId]) await userStore.loadUsers();
         if (!userStore.users[ctx.userId]) {
           debug.warn("BattleField: no hero for this fight", ctx.userId);
-          dialog.enqueue(["No hero showed up for this fight...", () => outcome.leaveBattle()]);
+          dialog.addToQueue(["No hero showed up for this fight...", () => outcome.closeBattle()]);
           return;
         }
         // The hands as they are now: a page Ionic kept from an earlier visit would still hold the old ones
@@ -488,7 +488,7 @@ export default defineComponent({
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
         if (loaded.thief) {
-          background.lockLayers(loaded.background);
+          background.setLockedLayers(loaded.background);
           await background.applyEnemy(loaded.enemies[0]);
           startThiefEncounter(loaded);
           return;
@@ -497,8 +497,8 @@ export default defineComponent({
         // Read before the engine arms the chores: arming reports an empty checklist, which clears the save
         const remembered = loadBattleProgress(progressCtx);
         abilities = await loadAbilities();
-        background.lockLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
-        background.lockLayers(loaded.background);
+        background.setLockedLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
+        background.setLockedLayers(loaded.background);
 
         const engine = createEngine();
         service.value = engine;
@@ -516,7 +516,7 @@ export default defineComponent({
         startIntro(loaded.label, restored > 0);
       } catch (error) {
         debug.error("BattleField: the battle could not begin", error);
-        dialog.enqueue(["The beast slipped away before the fight could start...", () => outcome.leaveBattle()]);
+        dialog.addToQueue(["The beast slipped away before the fight could start...", () => outcome.closeBattle()]);
       }
     };
 
@@ -601,7 +601,7 @@ export default defineComponent({
           faIcon: tackleIcon(hero.value?.jobClass),
           click: () => {
             audio.playSound("cursor");
-            feedback.tap();
+            feedback.playTap();
             sheet.value = "task";
           },
         },
@@ -620,7 +620,7 @@ export default defineComponent({
           faIcon: POWERS_ICON,
           click: () => {
             audio.playSound("cursor");
-            feedback.tap();
+            feedback.playTap();
             sheet.value = "powers";
           },
         },
@@ -630,7 +630,7 @@ export default defineComponent({
           faIcon: "backpack",
           click: () => {
             audio.playSound("cursor");
-            feedback.tap();
+            feedback.playTap();
             sheet.value = "bag";
           },
         },
@@ -662,7 +662,7 @@ export default defineComponent({
       swingTimer = window.setTimeout(() => {
         if (!battleStarted.value) return;
         audio.playSound("attack");
-        feedback.beastHit();
+        feedback.playBeastHit();
         const engine = service.value;
         // Only a chore the engine still holds open pays back: it ignores one that is already done
         const isChoreOpen = engine?.getCombatTasks().some((task) => task.id === taskId && !task.isCompleted) ?? false;
@@ -679,7 +679,7 @@ export default defineComponent({
       const isSilentTick = !atb.timerCritical.value || !label || label === previous;
       if (isSilentTick) return;
       audio.playSound("cursor");
-      feedback.tick();
+      feedback.playTick();
     });
 
     // Coming back to the phone: the deadline clock catches up at once instead of on the next throttled tick
@@ -751,7 +751,7 @@ export default defineComponent({
       dialogIsVictory: dialog.isVictoryMessage,
       dialogHasMore: dialog.hasMore,
       advanceDialog: dialog.advance,
-      onDialogTypingComplete: dialog.onTypingComplete,
+      onDialogTypingComplete: dialog.completeTyping,
       showMenu,
       menuActions,
       menuPrompt,

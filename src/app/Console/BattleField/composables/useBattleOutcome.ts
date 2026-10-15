@@ -74,7 +74,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const userStore = useUserStore();
   const { ctx, dialog, audio } = deps;
 
-  const leaveBattle = () => deps.router.replace(battleReturnRoute(ctx));
+  const closeBattle = () => deps.router.replace(battleReturnRoute(ctx));
 
   const commitRewards = (rewards: QuestRewards) => {
     const user = userStore.users[ctx.userId];
@@ -216,7 +216,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     return lines;
   };
 
-  const celebrateVictory = async (defeated: Enemy[], stats: FightStats) => {
+  const startVictory = async (defeated: Enemy[], stats: FightStats) => {
     const encounter = deps.encounter.value;
     const quest = encounter?.quest;
 
@@ -230,14 +230,14 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     dialog.clear();
     deps.enemyAnimationClass.value = "victory-strobe";
     await wait(VICTORY_TIMINGS.strobe);
-    await deps.background.collapse(VICTORY_TIMINGS.collapse);
+    await deps.background.playCollapse(VICTORY_TIMINGS.collapse);
     deps.enemyAnimationClass.value = "victory-fadeout";
     await wait(VICTORY_TIMINGS.fade);
 
     // 3. Fanfare, then the card counts the loot up and waits for a tap.
     const leveled = Boolean(levelUp?.didLevelUp);
     audio.playVictory(Boolean(encounter?.boss), leveled);
-    deps.feedback.victory();
+    deps.feedback.playVictory();
     const label = encounter?.label || defeated[0]?.name || "The enemy";
     await deps.presentVictory({
       title: "YOU WON!",
@@ -256,11 +256,11 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     // 4. Level ups read like Earthbound, then the walk home.
     const lines = held ? [] : levelUpLines(levelUp, classLevelUp);
     if (!lines.length) {
-      leaveBattle();
+      closeBattle();
       return;
     }
     dialog.isVictoryMessage.value = true;
-    dialog.enqueue([...lines, () => leaveBattle()]);
+    dialog.addToQueue([...lines, () => closeBattle()]);
   };
 
   /**
@@ -274,7 +274,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     audio.playSound("die");
     const isStillStanding = (userStore.users[ctx.userId]?.stats?.hp?.now ?? 0) > 0;
     if (!isStillStanding) admitToHospital(ctx.userId, "battle");
-    dialog.enqueue([
+    dialog.addToQueue([
       CARRIED_TO_HOSPITAL_LINE,
       () => {
         void deps.router.replace(hospitalRoute(ctx.userId));
@@ -291,7 +291,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     audio.stopBgm();
     audio.playSound("die");
     admitToHospital(ctx.userId, "run");
-    dialog.enqueue([() => void deps.router.replace(hospitalRoute(ctx.userId))]);
+    dialog.addToQueue([() => void deps.router.replace(hospitalRoute(ctx.userId))]);
   };
 
   /**
@@ -316,13 +316,13 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       handleCarriedOut();
       return;
     }
-    dialog.enqueue([
+    dialog.addToQueue([
       () => {
         deps.enemyAnimationClass.value = "fadeout";
-        window.setTimeout(() => void leaveBattle(), ESCAPE_FADE_MS);
+        window.setTimeout(() => void closeBattle(), ESCAPE_FADE_MS);
       },
     ]);
   };
 
-  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle };
+  return { startVictory, handlePlayerDefeated, handleEscape, closeBattle };
 };

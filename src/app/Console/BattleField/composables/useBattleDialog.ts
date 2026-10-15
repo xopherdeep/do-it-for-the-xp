@@ -65,7 +65,7 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     hasMore.value = false; // shown once the line has finished typing
   };
 
-  const enqueue = (items: DialogItem[]) => {
+  const addToQueue = (items: DialogItem[]) => {
     queue.value.push(...items);
     const isDialogIdle = !isTyping.value && !text.value;
     if (isDialogIdle) showNext();
@@ -82,7 +82,7 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     onDismiss?.();
   };
 
-  const onTypingComplete = () => {
+  const completeTyping = () => {
     isTyping.value = false;
     const shouldStashLine = isAppendMode.value && Boolean(text.value);
     if (shouldStashLine) {
@@ -138,9 +138,9 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
     isVictoryMessage,
     isShowing,
     typingRef,
-    enqueue,
+    addToQueue,
     advance,
-    onTypingComplete,
+    completeTyping,
     enableAppendMode,
     disableAppendMode,
     clear,

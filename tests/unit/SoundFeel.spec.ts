@@ -74,17 +74,17 @@ describe("the battle's buzzes", () => {
   it("go quiet when Vibration is off in Settings", () => {
     localStorage.setItem(HAPTICS_KEY, "off");
     const feedback = useBattleFeedback();
-    feedback.heroHit();
-    feedback.beastHit();
-    feedback.victory();
+    feedback.playHeroHit();
+    feedback.playBeastHit();
+    feedback.playVictory();
     expect(impact).not.toHaveBeenCalled();
     expect(notification).not.toHaveBeenCalled();
   });
 
   it("buzz when Vibration is on", () => {
     const feedback = useBattleFeedback();
-    feedback.heroHit();
-    feedback.victory();
+    feedback.playHeroHit();
+    feedback.playVictory();
     expect(impact).toHaveBeenCalledWith({ style: "HEAVY" });
     expect(notification).toHaveBeenCalledWith({ type: "SUCCESS" });
   });

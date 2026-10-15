@@ -17,7 +17,7 @@ export const useBattleBackground = () => {
   const bg2 = ref(DEFAULT_BG2);
   let locked = false;
 
-  const enter = () => {
+  const playEntrance = () => {
     if (backgroundManager.isActiveFor(PAGE_ID)) backgroundManager.cleanupBackground();
     const common = { bg1: bg1.value, bg2: bg2.value, aspectRatio: BATTLE_ASPECT_RATIO, handleResize: true, page: PAGE_ID };
     if (canvasRef.value) {
@@ -28,7 +28,7 @@ export const useBattleBackground = () => {
   };
 
   /** A room-authored background beats whatever the beast would have chosen. */
-  const lockLayers = (layers?: { bg1?: number; bg2?: number }) => {
+  const setLockedLayers = (layers?: { bg1?: number; bg2?: number }) => {
     const hasNoRoomBackground = !layers || (layers.bg1 === undefined && layers.bg2 === undefined);
     if (hasNoRoomBackground) return;
     if (layers.bg1 !== undefined) bg1.value = layers.bg1;
@@ -43,15 +43,15 @@ export const useBattleBackground = () => {
       if (enemy.bg2 !== undefined) bg2.value = enemy.bg2;
     }
     await nextTick();
-    enter();
+    playEntrance();
   };
 
-  const collapse = (durationMs = 750) => backgroundManager.animateAspectRatio(0, durationMs);
-  const cleanup = () => backgroundManager.cleanupBackground();
+  const playCollapse = (durationMs = 750) => backgroundManager.animateAspectRatio(0, durationMs);
+  const disposeBackground = () => backgroundManager.cleanupBackground();
 
-  onUnmounted(cleanup);
+  onUnmounted(disposeBackground);
 
-  return { canvasRef, bg1, bg2, enter, lockLayers, applyEnemy, collapse, cleanup };
+  return { canvasRef, bg1, bg2, playEntrance, setLockedLayers, applyEnemy, playCollapse, disposeBackground };
 };
 
 export type BattleBackground = ReturnType<typeof useBattleBackground>;
