@@ -8,31 +8,57 @@
           </ion-button>
         </ion-buttons>
 
-        <ion-title>Add New Category</ion-title>
+        <ion-title>Categories</ion-title>
         <ion-buttons slot="end">
           <ion-button
             expand="full"
             class="mx-2"
+            data-test="save-category"
             @click="addNewCategory"
-            :disabled="newCategoryName.length < 3"
+            :disabled="newCategoryName.trim().length < 3"
           >
-            Save
+            {{ typedMatch ? "Pick" : "Save" }}
             <i class="fad fa-save fa-lg mx-2"></i>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content class="bg-slide">
+      <!-- Tap a category to file the quest under it -->
+      <ion-list v-if="categories.length > 0">
+        <ion-list-header> Pick a category </ion-list-header>
+        <ion-item
+          v-for="category in categories"
+          :key="`pick-${category.id}`"
+          button
+          :detail="false"
+          class="category-pick"
+          :class="{ 'is-current': category.id === current }"
+          :data-test="`pick-${category.id}`"
+          @click="pickCategory(category)"
+        >
+          <i class="fad fa-tag mr-3" slot="start" aria-hidden="true"></i>
+          <ion-label>{{ category.name }}</ion-label>
+          <i
+            v-if="category.id === current"
+            class="fad fa-check-circle fa-lg"
+            slot="end"
+            aria-label="Chosen"
+          ></i>
+          <ion-note v-else slot="end">{{ questCountLabel(category) }}</ion-note>
+        </ion-item>
+      </ion-list>
+
       <ion-grid class="ion-no-padding">
         <ion-row>
           <ion-col>
             <ion-list>
+              <ion-list-header> Add your own </ion-list-header>
               <ion-item>
-                <ion-avatar @click="openActionSheet" slot="start">
-                  <ion-skeleton-text></ion-skeleton-text>
-                </ion-avatar>
+                <i class="fad fa-tags fa-lg mr-3" slot="start" aria-hidden="true"></i>
                 <ion-input
                   v-model="newCategoryName"
+                  data-test="category-name"
                   placeholder="Enter Category Name"
                 ></ion-input>
               </ion-item>
@@ -44,9 +70,7 @@
                 @ionChange="setPredefinedCategory"
               >
                 <ion-item size="4" v-for="cat in categoriesNotAdded" :key="cat">
-                  <ion-avatar slot="start">
-                    <ion-skeleton-text />
-                  </ion-avatar>
+                  <i class="fad fa-tag mr-3" slot="start" aria-hidden="true"></i>
                   <ion-label>
                     {{ cat }}
                   </ion-label>
@@ -64,17 +88,26 @@
         </ion-row>
       </ion-grid>
 
-      <ion-list>
-        <ion-list-header> Categories </ion-list-header>
+      <ion-list v-if="categories.length > 0">
+        <ion-list-header> Rename or delete </ion-list-header>
         <ion-item v-for="category in categories" :key="category.id">
-          <ion-avatar slot="start">
-            <ion-skeleton-text />
-          </ion-avatar>
-          <ion-input :value="category.name"> </ion-input>
-          <!-- {{ category.name }} -->
+          <i class="fad fa-tag mr-3" slot="start" aria-hidden="true"></i>
+          <ion-input
+            :value="category.name"
+            :aria-label="`Rename ${category.name}`"
+            @ionChange="renameCategory(category, $event.detail.value)"
+          >
+          </ion-input>
+          <ion-note slot="end" class="mr-2">{{ questCountLabel(category) }}</ion-note>
           <ion-buttons slot="end">
-            <ion-button @click="deleteCategory(category)" color="danger">
+            <ion-button
+              :color="armedId === category.id ? 'warning' : 'danger'"
+              :aria-label="armedId === category.id ? `Tap again to delete ${category.name}` : `Delete ${category.name}`"
+              :data-test="`delete-${category.id}`"
+              @click="deleteCategory(category)"
+            >
               <i class="fad fa-trash fa-lg"></i>
+              <span v-if="armedId === category.id" class="ml-1">Sure?</span>
             </ion-button>
           </ion-buttons>
         </ion-item>
@@ -85,33 +118,32 @@
         <ion-button @click="didDismiss"> Cancel </ion-button>
       </ion-toolbar>
     </ion-footer>
-    <ion-action-sheet
-      :is-open="actionSheetOpen"
-      :header="'Choose an option'"
-      :buttons="[
-        { text: 'Take Picture', icon: cameraOutline, handler: () => {} },
-        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => {} },
-        { text: 'Cancel', role: 'cancel' },
-      ]"
-      @didDismiss="actionSheetOpen = false"
-    />
   </ion-modal>
 </template>
 
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { alertController } from "@ionic/vue";
-  import { cameraOutline, imagesOutline } from "ionicons/icons";
+  import { toastController } from "@ionic/vue";
   import { v4 as uuid4 } from "uuid";
+  import { useTimers } from "@/hooks/useTimers";
+  import debug from "@/lib/utils/debug";
+  import { findCategory } from "../../questConfigWizard";
+
+  /** How long the trash button stays armed ("Sure?") before it goes back to being a plain trash can */
+  const ARMED_MS = 3000;
 
   export default defineComponent({
     name: "xp-add-category",
-    props: ["isOpen", "categories"],
+    // questCounts: quests per category id (a category in use can't be deleted); current: the id the quest is filed under
+    props: ["isOpen", "categories", "questCounts", "current"],
+    emits: ["dismiss", "add-category", "pick-category", "edit-categories", "delete-category"],
     mixins: [ionic],
     data() {
       return {
         newCategoryName: "",
+        // The category whose trash button was tapped once: a second tap deletes it
+        armedId: "",
       };
     },
     computed: {
@@ -123,35 +155,79 @@
           );
         });
       },
+      // The category a typed name already is: Save then picks it instead of adding a second one
+      typedMatch() {
+        return findCategory(this.categories || [], this.newCategoryName);
+      },
     },
     methods: {
       didDismiss() {
+        this.armedId = "";
         this.$emit("dismiss");
       },
       editCategories() {
         this.$emit("edit-categories", this.categories);
       },
+      questCountLabel(category) {
+        const count = this.questCounts?.[category.id] || 0;
+        return count === 1 ? "1 quest" : `${count} quests`;
+      },
+      // A tap on a row files the quest under that category and closes the list
+      pickCategory(category) {
+        this.$emit("pick-category", category);
+        this.didDismiss();
+      },
+      renameCategory(category, name) {
+        const trimmed = (name || "").trim();
+        const shouldSkipRename = !trimmed || trimmed === category.name;
+        if (shouldSkipRename) return;
+        this.$emit(
+          "edit-categories",
+          this.categories.map((cat) => (cat.id === category.id ? { ...cat, name: trimmed } : cat))
+        );
+      },
+      async say(header, message) {
+        try {
+          const toast = await toastController.create({
+            header,
+            message,
+            duration: 3000,
+            position: "middle",
+            buttons: [{ text: "Close", role: "cancel" }],
+            cssClass: "rpg-toast",
+          });
+          await toast.present();
+        } catch (error) {
+          debug.warn("[Categories] the toast could not be shown", error);
+        }
+      },
       async deleteCategory(category) {
-        const alert = await alertController.create({
-          header: "Delete Category: " + category.name,
-          message: "Are you sure you want to delete this category?",
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Delete",
-              handler: () => {
-                this.$emit("delete-category", category);
-              },
-            },
-          ],
-        });
-        alert.present();
+        const count = this.questCounts?.[category.id] || 0;
+        // A category in use stays: its quests would point at nothing and fall under "Uncategorized"
+        const isInUse = count > 0;
+        if (isInUse) {
+          this.armedId = "";
+          await this.say(
+            `${category.name} is in use`,
+            `${this.questCountLabel(category)} ${count === 1 ? "uses" : "use"} this category. Move ${count === 1 ? "it" : "them"} to another category first.`
+          );
+          return;
+        }
+        // The first tap arms the button, the second deletes: no alert in the way
+        const isArmed = this.armedId === category.id;
+        if (!isArmed) {
+          this.armedId = category.id;
+          this.startTimeout(ARMED_MS, () => {
+            const isStillArmed = this.armedId === category.id;
+            if (isStillArmed) this.armedId = "";
+          });
+          return;
+        }
+        this.armedId = "";
+        this.$emit("delete-category", category);
       },
       addNewCategory() {
-        // emit event with new category name
+        // The parent files the quest under it; a name that already exists is picked there, not added twice
         this.$emit("add-category", {
           id: uuid4(),
           name: this.newCategoryName,
@@ -164,12 +240,7 @@
       },
     },
     setup() {
-      const actionSheetOpen = ref(false);
-
-      const openActionSheet = () => {
-        actionSheetOpen.value = true;
-      };
-
+      const { startTimeout } = useTimers();
       const predefinedCategories = ref([
         "After School",
         "Bathroom",
@@ -187,14 +258,18 @@
       ]);
 
       return {
-        actionSheetOpen,
-        openActionSheet,
-        cameraOutline,
-        imagesOutline,
         predefinedCategories,
+        startTimeout,
       };
     },
   });
 </script>
 
-<style></style>
+<style lang="scss" scoped>
+  // The category the quest is filed under: its tag and check wear the app's accent
+  .category-pick.is-current {
+    i {
+      color: var(--xp-app-accent, var(--ion-color-rpg));
+    }
+  }
+</style>

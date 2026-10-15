@@ -29,6 +29,7 @@ import {
 import ionic from "@/lib/mixins/ionic";
 
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import Vue3Autocounter from 'vue3-autocounter';
 
 
@@ -90,13 +91,27 @@ export default defineComponent({
       return this.userStore.getUserById(this.id);
     },
 
-    xpBar() {
-      return this.getCounterXPCurrentAmount() / 200;
+    stats() {
+      return this.user?.stats;
+    },
+
+    // The hero's total XP and the XP their next level needs: the counter climbs to the first, the bar fills against the second
+    xpNow(): number {
+      return Number(this.stats?.xp?.now) || 0;
+    },
+
+    xpNext(): number {
+      return Number(this.stats?.xp?.next_level) || 100;
+    },
+
+    apWindows() {
+      return heroApWindows(this.stats?.ap);
     },
   },
 
   mounted() {
-    if (!this.startCounting) {
+    const isCountingDeferred = this.startCounting;
+    if (!isCountingDeferred) {
       this.beginCounter();
     }
   },
@@ -114,15 +129,16 @@ export default defineComponent({
     getCounterXPCurrentAmount() {
       const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter
       if (XpTotal)
-        return XpTotal.currentAmount / 200;
+        return XpTotal.currentAmount / this.xpNext;
       else
         return 0
     },
     beginCounter() {
       const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter
       const ApTotal = this.$refs.countAPTotal as typeof Vue3Autocounter
-      ApTotal.start();
-      XpTotal.start();
+      // The refs are missing while the hero is not in the store yet (the card renders nothing then)
+      ApTotal?.start();
+      XpTotal?.start();
     },
 
     async clickHP() {

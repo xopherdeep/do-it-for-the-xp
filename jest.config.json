@@ -1,6 +1,24 @@
 {
   "preset": "@vue/cli-plugin-unit-jest/presets/typescript-and-babel",
+  "setupFiles": ["<rootDir>/tests/jest/require-context.setup.js"],
+  "globals": {
+    "ts-jest": {
+      "tsconfig": {
+        "importHelpers": false
+      }
+    }
+  },
   "transformIgnorePatterns": [
-    "/node_modules/(?!@ionic/vue|@ionic/vue-router|@ionic/core|@stencil/core|ionicons)"
+    "/node_modules/(?!(\\.pnpm/|@ionic/(vue|vue-router|core)|@stencil/core|ionicons|three/))"
+  ],
+  "transform": {
+    "/three/build/three\\.(module|core)\\.js$": "<rootDir>/tests/jest/esm-transform.js"
+  },
+  "testPathIgnorePatterns": [
+    "/node_modules/",
+    "<rootDir>/.claude/"
+  ],
+  "modulePathIgnorePatterns": [
+    "<rootDir>/.claude/"
   ]
 }

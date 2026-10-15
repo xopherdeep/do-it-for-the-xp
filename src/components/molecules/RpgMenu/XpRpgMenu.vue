@@ -8,7 +8,7 @@
       <slot name="header">
         <div class="header-content">
           <span class="menu-title">{{ title }}</span>
-          <div v-if="subtitle" class="menu-subtitle" v-html="subtitle"></div>
+          <div v-if="subtitle" class="menu-subtitle" v-html="sanitizeHtml(subtitle)"></div>
         </div>
       </slot>
     </div>
@@ -22,6 +22,7 @@
             <i v-if="action.faIcon || action.icon" class="fad"
               :class="[`fa-${((action.faIcon || action.icon) as string).replace('fa-', '')}`, action.iconClass]"></i>
             <span class="item-label">{{ action.label }}</span>
+            <span v-if="action.badge" class="item-badge">{{ action.badge }}</span>
           </div>
         </button>
       </div>
@@ -32,6 +33,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 export interface RpgMenuAction {
   id?: string;
@@ -42,6 +44,8 @@ export interface RpgMenuAction {
   fullWidth?: boolean;
   iconClass?: string;
   action?: string;
+  /** A count shown on the entry (unread notifications); nothing when empty or 0 */
+  badge?: string | number;
 }
 
 export default defineComponent({
@@ -75,14 +79,13 @@ export default defineComponent({
   emits: ['action-click'],
   setup(props, { emit }) {
     const handleAction = (action: RpgMenuAction) => {
-      if (action.click) {
-        action.click();
-      }
+      action.click?.();
       emit('action-click', action);
     };
 
     return {
-      handleAction
+      handleAction,
+      sanitizeHtml,
     };
   }
 });
@@ -162,12 +165,26 @@ export default defineComponent({
     overflow: visible;
     transition: background 0.15s ease;
 
-    &:hover,
-    &:active {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+    min-height: 48px; // a thumb-sized row on phones
+    -webkit-tap-highlight-color: transparent;
 
-      &::before {
+    @media (hover: hover) {
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+    }
+
+    &:active,
+    &:focus-visible {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 4px;
+    }
+
+    // The pointing cursor only where a pointer can hover; touch highlights the row instead
+    @media (hover: hover) {
+      &:hover::before,
+      &:active::before {
         content: "";
         position: absolute;
         left: -2px;
@@ -202,6 +219,20 @@ export default defineComponent({
       text-overflow: ellipsis;
       margin-top: 4px; // Slight adjustment for Earthbound font baseline
       letter-spacing: 2px;
+    }
+
+    .item-badge {
+      margin-left: auto;
+      min-width: 1.4rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--ion-color-danger, #e8402a);
+      color: #fff;
+      font-family: "StatusPlz", monospace;
+      font-size: 0.75rem;
+      line-height: 1.2rem;
+      text-align: center;
+      box-shadow: 0 0 0 2px #280828;
     }
   }
 

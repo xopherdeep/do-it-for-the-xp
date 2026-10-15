@@ -1,6 +1,7 @@
 import {
   computed,
   defineComponent,
+  ref,
 } from "vue";
 import {
   IonApp,
@@ -43,14 +44,37 @@ import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/app/SideMenu/SideMenu.vue";
 import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
+import XpStudioSplash from "@/components/organisms/Splash/XpStudioSplash.vue";
+import { claimStudioSplash } from "@/components/organisms/Splash/splash";
+import XpSceneTransition from "@/components/organisms/SceneTransition/XpSceneTransition.vue";
+import { isActive as sceneTransitionActive } from "@/components/organisms/SceneTransition/sceneTransitionController";
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
+import XpRewardsOverlay from "@/components/organisms/RewardsOverlay/XpRewardsOverlay.vue";
 import debug from "@/lib/utils/debug";
+import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
+import { useFamilyStore } from "@/lib/store/stores/family";
+import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
+import { play$fx } from "@/assets/fx";
+import { useProStore } from "@/lib/store/stores/pro";
+import { allowedGameStyle } from "@/lib/utils/gameStyle";
+
+const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
+  const isBelowMinimum = requestedTrack < 0;
+  if (isBelowMinimum) {
+    return maxTrackIndex;
+  }
+  const isAboveMaximum = requestedTrack > maxTrackIndex;
+  if (isAboveMaximum) {
+    return 0;
+  }
+  return requestedTrack;
+};
 
 export default defineComponent({
   name: "App",
@@ -72,10 +96,15 @@ export default defineComponent({
     IonSplitPane,
     XpSideMenu,
     XpAudioPermissionModal,
+    XpStudioSplash,
     XpGlobalDialog,
+    XpRewardsOverlay,
+    XpSceneTransition,
   },
   data() {
     return {
+      // Studio splash: once per launch, skipped by ?nosplash or localStorage.xpSkipSplash = "1"
+      studioSplash: claimStudioSplash(),
       isBMGOn: false,
       bgmBookmark: {
         track: null as number | null,
@@ -103,7 +132,9 @@ export default defineComponent({
       return this.theme.ui;
     },
     rpgTheme() {
-      return this.theme.rpg;
+      // A Pro game style shows only while the family has Pro; the saved license is read first so a Pro family never flashes Earthbound
+      const { proStore, proChecked } = this as any;
+      return proChecked ? allowedGameStyle(this.theme.rpg, proStore.isPro) : this.theme.rpg;
     },
   },
   mounted() {
@@ -112,6 +143,10 @@ export default defineComponent({
     const $fx = audioStore.bgm.$fx;
     const theme = gameStore.theme.rpg;
     
+    // The route guard has usually picked this route's music already (the intro's song): only start the title theme when it has not
+    const hasRouteMusic = Boolean(audioStore.bgm.tracks?.length);
+    if (hasRouteMusic) return;
+
     // Use the new AudioEngine for the initial BGM
     changeBGMAdapter(audioStore, { 
       tracks: $fx.rpg[theme].BGM.startScreen,
@@ -124,8 +159,7 @@ export default defineComponent({
     changeBGM(payload: any) { return this.audioStore.changeBGM(payload) },
     turnMusicOnOff() { return this.audioStore.turnMusicOnOff() },
     clickSound() {
-      // Cast this to any as a workaround for TS2339
-      (this as any).audioStore.bgm.$fx.ui[(this as any).gameStore.theme.ui].select.play();
+      play$fx('select');
     },
     getAudioPlayer() {
       return this.bgm.audio;
@@ -180,7 +214,8 @@ export default defineComponent({
       // Set time to bookmarked audio 
 
       // Here set bookmarks if need to be saved and current
-      if (bgm.saveBookmark)
+      const shouldSaveBookmark = bgm.saveBookmark
+      if (shouldSaveBookmark)
         this.bgmBookmark.currentTime = currentTime
 
       changeBGM({ audio }).then(addEventNextSong);
@@ -203,23 +238,28 @@ export default defineComponent({
         bgm,
         playAudio,
       } = (this as any);
-      const maxTrackIndex = -1 + bgm.tracks.length;
-      let track = bgm.track + inc;
-      const cantGoBack = track < 0;
-      const hasNextTrack = track <= maxTrackIndex && !cantGoBack;
-      track = cantGoBack ? maxTrackIndex : hasNextTrack ? track : 0;
+      const maxTrackIndex = bgm.tracks.length - 1;
+      const track = resolveNextTrackIndex(bgm.track + inc, maxTrackIndex);
       this.changeBGM({ track, is_on: true }).then(playAudio);
     },
 
     playAudio() {
       const { bgm: { track, is_on } } = this
 
-      if (this.bgm.audio) {
+      const hasAudio = Boolean(this.bgm.audio)
+      if (hasAudio) {
         this.bgm.audio.pause();
         this.loadBGM(track, this.bgm.audio.currentTime);
         this.bgm.audio.load();
-        if (is_on)
-          this.bgm.audio.play();
+        if (is_on) {
+          const playPromise = this.bgm.audio.play();
+          const canCatchRefusal = playPromise && typeof playPromise.catch === "function";
+          if (canCatchRefusal) {
+            playPromise.catch((err: unknown) => {
+              debug.warn("BGM playback was prevented:", err);
+            });
+          }
+        }
       }
     },
   },
@@ -263,6 +303,8 @@ export default defineComponent({
     const battleStore = useBattleStore();
     
     useQueryProvider();
+    // Android's Back button goes up from a page with no history instead of quitting the app
+    useHardwareBack();
 
     const labels = [
       "Family",
@@ -275,13 +317,32 @@ export default defineComponent({
 
     userStore.loadUsers();
 
+    // Multiplayer ships hidden: with the flag off nothing here runs and no request is made
+    const isMultiplayerOn = multiplayerEnabled();
+    if (isMultiplayerOn) {
+      useFamilyStore()
+        .init()
+        .catch((error) => debug.warn("The family could not start:", error));
+    }
+
     const bgm = computed(() => audioStore.bgm);
 
+    const proStore = useProStore();
+    const proChecked = ref(false);
+    proStore
+      .init()
+      .catch(() => undefined)
+      .finally(() => (proChecked.value = true));
+
     return {
+      // Ionic's own page slide stays off while a scene transition plays over it
+      sceneTransitionActive,
       audioStore,
       userStore,
       gameStore,
       battleStore,
+      proStore,
+      proChecked,
       archiveOutline,
       archiveSharp,
       bgm,

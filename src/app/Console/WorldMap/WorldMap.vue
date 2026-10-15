@@ -13,9 +13,27 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <div class="world-map-plaza" ref="plazaRef">
+        <xp-draggable-spot
+          v-for="node in stageNodes"
+          :key="node.stageId"
+          screen="world-map"
+          :spot-id="node.stageId"
+          :default-x="node.defaultX"
+          :default-y="node.defaultY"
+        >
+          <xp-stage-model
+            :stage-id="node.stageId"
+            :size="100"
+            :interactive="false"
+            :navigate-on-click="false"
+            @click="handleStageTravel(node.stageId)"
+          />
+        </xp-draggable-spot>
+      </div>
     </ion-content>
   </ion-page>
 </template>
 
-<script src="./WorldMap" />
+<script lang="ts" src="./WorldMap.ts" />
 <style lang="scss" src="./_WorldMap.scss" scoped />

@@ -1,34 +1,42 @@
 import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "vue";
 import { play$fx } from "@/assets/fx";
-import { modalController } from "@ionic/vue";
+import { modalController, toastController } from "@ionic/vue";
 import { useRoute } from "vue-router";
 import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
+import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "../SwitchProfile.vue";
+import type { NewProfileForm } from "@/lib/databases/ProfileDb";
+import { profileStorage } from "@/lib/databases/profileStorage";
+import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
+import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
-import AvatarSelector from "./components/AvatarSelector.vue";
 
 import ionic from "@/lib/mixins/ionic";
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
+import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
+import { profileToSave } from "@/lib/utils/User/user";
 import debug from "@/lib/utils/debug";
 
 export const AddProfile = defineComponent({
-  props: ["id", "profile", "showIsAdult"],
+  // presetGameMaster (new profiles only): true starts the Game Master toggle on ("Add Adult"),
+  // false starts it off ("Add Kid"), undefined keeps the default.
+  props: ["id", "profile", "presetGameMaster", "startTab"],
   mixins: [ionic],
   components: {
     InputSettings,
     XpGp,
-    GamerCard,
-    AvatarSelector
+    XpHeroFanfare,
+    GamerCard
   },
   methods: {
     async loadProfile() {
@@ -37,7 +45,8 @@ export const AddProfile = defineComponent({
     moveFocus(event: Event, nextInput: string) {
       const target = event.target as HTMLInputElement;
       const el = this.$refs[nextInput] as HTMLInputElement;
-      if (target.value.length === 1 && el && typeof el.focus === 'function') {
+      const canFocusNextInput = target.value.length === 1 && el && typeof el.focus === 'function';
+      if (canFocusNextInput) {
         el.focus();
       }
     },
@@ -45,21 +54,46 @@ export const AddProfile = defineComponent({
       const paddedIdx = index.toString().padStart(3, "0");
       return this.requireAvatar(`./${paddedIdx}-gamer.svg`);
     },
-    selectAvatar(index: number) {
-      this.avatarIndex = index;
-      this.isAvatarSelectorOpen = false; // Close the modal after selecting
-    },
     async clickSaveProfile() {
-      const profile = this.storage.newProfile(this.newProfile);
-      await this.storage.setProfile(profile);
+      // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
+      const isGameMasterEditLocked = this.gameMasterEditLocked;
+      if (isGameMasterEditLocked) return;
 
-      // Show success splash
-      this.showSuccessSplash = true;
+      // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
+      const passcodeError = this.passcodeError;
+      if (passcodeError) {
+        this.activeSegment = "account";
+        const toast = await toastController.create({
+          message: passcodeError,
+          duration: 2500,
+          position: "top",
+          color: "warning",
+        });
+        await toast.present();
+        return;
+      }
 
-      // Play Now, Let's Go! BGM
+      // An edit lays the form's fields over the stored hero, so equipment, inventory, quest effects
+      // and the rest survive; a new hero is built from the form (see profileToSave)
+      const profile = await profileToSave(this.storage, this.newProfile, this.$props.profile);
+      await this.storage.setProfile(profile as NewProfileForm);
+
+      // An edit has nothing to announce: back to the family
+      if (this.isEditing) {
+        this.play$fx('yes');
+        modalController.dismiss({ profileAdded: true });
+        return;
+      }
+
+      // A new hero joins the party: the reveal plays the stinger and its song, and hands back on its button
+      this.showFanfare = true;
+    },
+    // The reveal's big moment: the song for a new adventure starts under its stinger
+    playAdventureSong() {
       const rpgTheme = this.gameStore.theme?.rpg || 'earthbound';
       const BGM = this.audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
-      if (BGM && BGM.nowLetsGo) {
+      const hasNowLetsGoTrack = BGM && BGM.nowLetsGo;
+      if (hasNowLetsGoTrack) {
         changeBGM(this.audioStore, {
           tracks: BGM.nowLetsGo,
           track: 0,
@@ -68,15 +102,11 @@ export const AddProfile = defineComponent({
           saveBookmark: false
         });
       }
-
-      // Play fanfare sound using the mixin method
-      this.play$fx('levelUp');
-
-      // Hide splash after 3 seconds
-      setTimeout(() => {
-        this.showSuccessSplash = false;
-        modalController.dismiss({ profileAdded: true });
-      }, 3000);
+    },
+    // "Begin your adventure": the modal closes and the list of heroes reloads
+    finishFanfare() {
+      this.showFanfare = false;
+      modalController.dismiss({ profileAdded: true });
     }
   },
 
@@ -93,9 +123,46 @@ export const AddProfile = defineComponent({
     );
 
     const storage = new ProfileDb(profileStorage);
+    const userStore = useUserStore();
     const email = ref("");
     const passcode = ref("");
+    // What the Game Master toggle is set to. Off unless someone turns it on, except for the first
+    // profile on a device and the "Add Adult" preset. Read isGameMaster for what the form really holds.
     const isAdult = ref(false);
+    // Set once the person touches the toggle (or a preset picks a side), so the first-profile
+    // default never overrides the choice
+    const gameMasterChosen = ref(false);
+    // The profile being edited already is a Game Master
+    const wasGameMaster = ref(false);
+    // The profile being edited is a Game Master saved without a usable PIN (from before the rule)
+    const legacyGameMaster = ref(false);
+    // True once the device's profiles are known; until then the toggle stays locked, so a slow
+    // load can never leave it open by accident
+    const profilesLoaded = ref(false);
+    // Only a Game Master may switch the flag (anybody may while the device has no Game Master yet)
+    const canSetFlag = computed(() => profilesLoaded.value && canSetGameMaster(userStore));
+    // What the form really holds. Without permission the flag stays as the profile already had it
+    // (off for a new profile), whatever the toggle says, so a preset cannot be a back door.
+    const isGameMaster = computed(() => (canSetFlag.value ? isAdult.value : wasGameMaster.value));
+    // A Game Master's profile, and above all its PIN, is only editable by a Game Master
+    // (unless it is a legacy Game Master with no 4-digit PIN, which has nothing to protect and must be fixed)
+    const gameMasterEditLocked = computed(
+      () => wasGameMaster.value && !canSetFlag.value && !legacyGameMaster.value
+    );
+    // Why the passcode cannot be saved yet, or null: a Game Master must have a 4-digit PIN
+    const passcodeError = computed(() => passcodeProblem(passcode.value, isGameMaster.value));
+    // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
+    // holds it off when the person has no say). Applied once, before the first render.
+    const isEditingProfile = () => Boolean(props.id || props.profile);
+    // An existing hero is being edited, not made (the props never change while the form is open)
+    const isEditing = isEditingProfile();
+    const applyPresetGameMaster = () => {
+      const hasNoPresetToApply = isEditingProfile() || typeof props.presetGameMaster !== "boolean";
+      if (hasNoPresetToApply) return;
+      isAdult.value = props.presetGameMaster;
+      gameMasterChosen.value = true;
+    };
+    applyPresetGameMaster();
     const avatarIndex = ref(1);
     const fullName = ref("");
     const favoriteFood = ref("");
@@ -104,15 +171,26 @@ export const AddProfile = defineComponent({
     const jobClass = ref("");
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
     const maxAvatarIndex = requireAvatar.keys().length;
-    const isAvatarSelectorOpen = ref(false);
-    const showSuccessSplash = ref(false);
+    // The 3D hero built in the look builder (GamerCard), and the picture of its face; none until they build one
+    const look = ref<HeroLook | undefined>(undefined);
+    const avatarImage = ref<string | undefined>(undefined);
+    // What an existing hero holds: it lends the 3D hero its hands in the look builder
+    const equipment = ref<Record<string, unknown> | undefined>(undefined);
+    const gamerCard = ref<{ openAvatarPicker: () => void } | null>(null);
+    // The new-hero reveal is playing
+    const showFanfare = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
     );
 
-    const currentAvatar = computed(() =>
-      requireAvatar(`./${paddedIndex.value}-gamer.svg`)
+    // The face shown on the avatar row: the 3D hero's picture when there is one, else the preset portrait
+    const currentAvatar = computed(
+      () =>
+        heroAvatarSrc(
+          { avatar: `${paddedIndex.value}-gamer`, avatarImage: avatarImage.value },
+          (key: string) => requireAvatar(key)
+        ) || undefined
     );
 
     const closeModal = () => {
@@ -129,35 +207,80 @@ export const AddProfile = defineComponent({
       favoriteFood.value = "";
       jobClass.value = "";
       avatarIndex.value = 1;
+      look.value = undefined;
+      avatarImage.value = undefined;
+      equipment.value = undefined;
       email.value = "";
       passcode.value = "";
     };
 
     const previousAvatar = () => {
-      if (avatarIndex.value > 1) {
+      const hasPreviousAvatar = avatarIndex.value > 1;
+      if (hasPreviousAvatar) {
         avatarIndex.value--;
       }
     };
 
     const nextAvatar = () => {
-      if (avatarIndex.value < maxAvatarIndex) {
+      const hasNextAvatar = avatarIndex.value < maxAvatarIndex;
+      if (hasNextAvatar) {
         avatarIndex.value++;
       }
     };
 
     const setProfile = (profile) => {
-      if (!profile.name) return;
+      const name = profile.name;
+      if (!name) return;
       passcode.value = profile.passcode || '';
       email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
       favoriteFood.value = profile.favoriteFood;
       jobClass.value = profile.jobClass;
-      isAdult.value = profile.isAdult;
+      isAdult.value = profile.isAdult === true;
+      wasGameMaster.value = profile.isAdult === true;
+      legacyGameMaster.value = needsGameMasterPasscode(profile);
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
+      look.value = isHeroLook(profile.look) ? { ...profile.look } : undefined;
+      avatarImage.value = heroAvatarImage(profile) || undefined;
+      equipment.value = profile.equipment || undefined;
     };
 
-    const activeSegment = ref("info")
+    const setGameMaster = (event: CustomEvent<{ checked: boolean }>) => {
+      // Backstop: the toggle is disabled for anyone without a say, but never trust the UI alone
+      if (!canSetFlag.value) return;
+      gameMasterChosen.value = true;
+      isAdult.value = event.detail.checked === true;
+    };
+
+    // The toggle unlocks only once the device's profiles are known (the store may not have
+    // caught up yet), the same load the Game Master route guard does before it decides.
+    const loadProfilesForGameMasterCheck = async () => {
+      try {
+        const hasNoProfilesLoaded = Object.keys(userStore.users).length === 0;
+        if (hasNoProfilesLoaded) await userStore.loadUsers();
+        profilesLoaded.value = true;
+      } catch (error) {
+        // Could not tell who is a Game Master, so the toggle stays locked
+        debug.error("Could not load the profiles to check Game Master access", error);
+      }
+    };
+
+    // There must be a parent: the first profile created on a device starts as a Game Master.
+    // Anyone else, and anyone being edited, is left exactly as they are.
+    const defaultFirstProfileToGameMaster = async () => {
+      if (isEditingProfile()) return;
+      try {
+        const profiles = await storage.getProfiles();
+        const isFirstProfileUnchosen = profiles.length === 0 && !gameMasterChosen.value;
+        if (isFirstProfileUnchosen) isAdult.value = true;
+      } catch (error) {
+        // Could not tell, so stay off: a kid must never become a Game Master by accident
+        debug.error("Could not check for existing profiles", error);
+      }
+    };
+
+    const activeSegment = ref(props.startTab === "account" ? "account" : "info")
 
     // Play sound when switching tabs
     watch(activeSegment, () => {
@@ -187,23 +310,33 @@ export const AddProfile = defineComponent({
       passcode: passcode.value,
       name: { full: fullName.value },
       avatar: `${paddedIndex.value}-gamer`,
+      look: look.value,
+      avatarImage: avatarImage.value,
       favoriteThing: favoriteThing.value,
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
-      isAdult: isAdult.value,
+      isAdult: isGameMaster.value,
       stats: props.profile?.stats || new Stats(),
     }))
+
+    const hasMissingRequiredField = computed(
+      () => !favoriteFood.value || !favoriteThing.value || !jobClass.value || !fullName.value
+    );
+    const isSaveDisabled = computed(() => hasMissingRequiredField.value || gameMasterEditLocked.value);
 
     const audioStore = useAudioStore();
     const gameStore = useGameStore();
     const route = useRoute();
 
     onMounted(() => {
+      loadProfilesForGameMasterCheck();
       // If creating a new profile (no id or profile prop)
-      if (!props.id && !props.profile) {
+      if (!isEditingProfile()) {
+        defaultFirstProfileToGameMaster();
         const rpgTheme = gameStore.theme?.rpg || 'earthbound';
         const BGM = audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
-        if (BGM && BGM.createProfile) {
+        const hasCreateProfileTrack = BGM && BGM.createProfile;
+        if (hasCreateProfileTrack) {
           debug.log('Playing createProfile music');
           changeBGM(audioStore, {
             tracks: BGM.createProfile,
@@ -231,6 +364,10 @@ export const AddProfile = defineComponent({
       arrowForward,
       closeOutline,
       avatarIndex,
+      look,
+      avatarImage,
+      equipment,
+      gamerCard,
       closeModal,
       currentAvatar,
       email,
@@ -240,13 +377,19 @@ export const AddProfile = defineComponent({
       foodOptions,
       fullName,
       hidePasscode,
-      isAdult,
+      isGameMaster,
+      canSetFlag,
+      profilesLoaded,
+      gameMasterEditLocked,
+      isSaveDisabled,
+      passcodeError,
       jobClass,
       jobClassOptions,
       maxAvatarIndex,
       nextAvatar,
       passcodeType,
       previousAvatar,
+      setGameMaster,
       setProfile,
       storage,
       toggleBattles,
@@ -254,8 +397,8 @@ export const AddProfile = defineComponent({
       toggleGoal,
       toggleReward,
       profileAdded,
-      isAvatarSelectorOpen,
-      showSuccessSplash,
+      showFanfare,
+      isEditing,
       requireAvatar,
       audioStore,
       gameStore

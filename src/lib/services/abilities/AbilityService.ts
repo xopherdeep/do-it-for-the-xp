@@ -14,6 +14,47 @@ import {
   TIME_MAGE_PRESETS,
   TECH_MAGE_PRESETS,
 } from "./AbilityPresets";
+import { useUserStore } from "@/lib/store/stores/user";
+import { isGrounded } from "@/lib/services/gp/wallet";
+import { format } from "date-fns";
+import { getCastLogDb, type CastLogEntry } from "@/lib/databases/CastLogDb";
+import { FAMILY_CHAT_ROOM, useChatStore } from "@/lib/store/stores/chat";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { POWER_CAST_ALERT_ID, showAlert } from "@/lib/services/notifications/alertBridge";
+import debug from "@/lib/utils/debug";
+
+/** The criteria `getFilteredAbilities` narrows by */
+interface AbilityFilters {
+  type?: AbilityType;
+  class?: string;
+  frequency?: TimePeriod;
+  isPreset?: boolean;
+}
+
+/** The hero's AP, overall and per period, for an unlock check */
+interface HeroApTotals {
+  total: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  quarterly?: number;
+  yearly?: number;
+}
+
+/**
+ * What a cast came to: `grounded` when the hero owes the Hospital (checked first), `mp` when the hero could not afford
+ * it, `unknown` when there is no such ability or hero.
+ * A successful cast carries the Cast Log entry it left behind (absent only if the log could not be written).
+ */
+export type UseAbilityResult = { ok: true; entry?: CastLogEntry } | { ok: false; reason: "grounded" | "mp" | "unknown" };
+
+/** The hero's MP right now, whether stats keep it as `{ now, max }` or a bare number. */
+const currentMp = (stats: { mp?: { now?: number } | number } | undefined): number => {
+  const mp = stats?.mp;
+  const isBareNumber = typeof mp === "number";
+  if (isBareNumber) return mp;
+  return typeof mp?.now === "number" ? mp.now : 0;
+};
 /**
  *
  * Service for handling abilities and their effects
@@ -28,14 +69,16 @@ export class AbilityService {
   }
 
   public static initialize(db: AbilitiesDb): AbilityService {
-    if (!AbilityService.instance) {
+    const isInitialized = Boolean(AbilityService.instance);
+    if (!isInitialized) {
       AbilityService.instance = new AbilityService(db);
     }
     return AbilityService.instance;
   }
 
   public static getInstance(): AbilityService {
-    if (!AbilityService.instance) {
+    const isInitialized = Boolean(AbilityService.instance);
+    if (!isInitialized) {
       throw new Error(
         "AbilityService not initialized. Call initialize() first."
       );
@@ -162,12 +205,7 @@ export class AbilityService {
   /**
    * Gets filtered abilities based on various criteria
    */
-  async getFilteredAbilities(filters: {
-    type?: AbilityType;
-    class?: string;
-    frequency?: TimePeriod;
-    isPreset?: boolean;
-  }): Promise<Ability[]> {
+  async getFilteredAbilities(filters: AbilityFilters): Promise<Ability[]> {
     return await this.db.getFilteredAbilities(filters);
   }
 
@@ -176,14 +214,7 @@ export class AbilityService {
    */
   async checkAbilityUnlock(
     ability: Ability,
-    userAp: {
-      total: number;
-      daily: number;
-      weekly: number;
-      monthly: number;
-      quarterly?: number;
-      yearly?: number;
-    },
+    userAp: HeroApTotals,
     characterLevel: number,
     characterClasses: { [className: string]: number },
     unlockedAbilityIds: string[]
@@ -216,29 +247,34 @@ export class AbilityService {
     if (!hasEnoughAp) return false;
 
     // Check character level requirement
-    if (
+    const isBelowRequiredLevel =
       ability.characterRequirement?.level &&
-      characterLevel < ability.characterRequirement.level
-    ) {
+      characterLevel < ability.characterRequirement.level;
+    if (isBelowRequiredLevel) {
       return false;
     }
 
     // Check character class requirements
-    if (ability.characterRequirement?.class) {
+    const classRequirements = ability.characterRequirement?.class;
+    if (classRequirements) {
       for (const [className, requiredLevel] of Object.entries(
-        ability.characterRequirement.class
+        classRequirements
       )) {
         const userClassLevel = characterClasses[className] || 0;
-        if (userClassLevel < requiredLevel) {
+        const isUnderClassLevel = userClassLevel < requiredLevel;
+        if (isUnderClassLevel) {
           return false;
         }
       }
     }
 
     // Check prerequisites
-    if (ability.prerequisites && ability.prerequisites.length > 0) {
-      for (const prereqId of ability.prerequisites) {
-        if (!unlockedAbilityIds.includes(prereqId)) {
+    const { prerequisites } = ability;
+    const hasPrerequisites = prerequisites && prerequisites.length > 0;
+    if (hasPrerequisites) {
+      for (const prereqId of prerequisites) {
+        const isPrereqUnlocked = unlockedAbilityIds.includes(prereqId);
+        if (!isPrereqUnlocked) {
           return false;
         }
       }
@@ -260,7 +296,8 @@ export class AbilityService {
       return AbilityStatus.Locked;
     }
 
-    if (mpAvailable < ability.mpCost) {
+    const isShortOfMp = mpAvailable < ability.mpCost;
+    if (isShortOfMp) {
       return AbilityStatus.Unlocked; // Unlocked but not enough MP to use
     }
 
@@ -331,49 +368,107 @@ export class AbilityService {
     ability: Ability,
     characterStats: { [stat: string]: number }
   ): number {
-    if (!ability.scaling) {
+    const { scaling } = ability;
+    if (!scaling) {
       return 1; // No scaling, return base value
     }
 
-    const attributeValue = characterStats[ability.scaling.attribute] || 0;
-    return 1 + attributeValue * ability.scaling.rate;
+    const attributeValue = characterStats[scaling.attribute] || 0;
+    return 1 + attributeValue * scaling.rate;
   }
 
   /**
-   * Use an ability and record its usage
+   * Cast an ability: charge its MP cost to the hero through the user store, stamp `lastUsed`, and leave a
+   * record the parent sees (Cast Log entry, Town Crier line, Game Master notifications, one OS alert).
+   * Refuses (and charges nothing) when the hero is grounded by an unpaid hospital bill (docs/Quest-Rooms-Spec.md 5.8,
+   * checked before anything else), when the ability is unknown, or when the hero has less MP than it costs.
+   * Battle spells never pass through here, so a grounded hero keeps casting in a fight.
    */
-  async useAbility(
-    abilityId: string,
-    userId: string,
-    mpAvailable: number
-  ): Promise<{ success: boolean; message: string; mpCost: number }> {
+  async useAbility(abilityId: string, userId: string): Promise<UseAbilityResult> {
+    const userStore = useUserStore();
+    const hero = userStore.users[userId];
+    if (isGrounded(hero?.stats?.gp)) return { ok: false, reason: "grounded" };
+
     const ability = await this.getAbilityById(abilityId);
+    if (!ability) return { ok: false, reason: "unknown" };
 
-    if (!ability) {
-      return {
-        success: false,
-        message: "Ability not found",
-        mpCost: 0,
-      };
-    }
+    const cost = Math.max(0, Number(ability.mpCost) || 0);
+    if (!hero) return { ok: false, reason: "unknown" };
 
-    if (mpAvailable < ability.mpCost) {
-      return {
-        success: false,
-        message: "Not enough MP",
-        mpCost: ability.mpCost,
-      };
-    }
+    const isShortOfMp = currentMp(hero.stats) < cost;
+    if (isShortOfMp) return { ok: false, reason: "mp" };
 
-    // Update ability with usage timestamp
+    const hasCost = cost > 0;
+    if (hasCost) userStore.updateUserMP({ userId, amount: -cost });
+
     ability.lastUsed = new Date().toISOString();
     await this.saveAbility(ability);
 
-    return {
-      success: true,
-      message: `Successfully used ${ability.name}`,
-      mpCost: ability.mpCost,
-    };
+    // The ledger: the cast is already paid for, so nothing below may undo it
+    let entry: CastLogEntry | undefined;
+    try {
+      entry = await getCastLogDb().logCast({
+        userId,
+        abilityId,
+        abilityName: ability.name,
+        abilityType: ability.type,
+        mpPaid: cost,
+      });
+    } catch (error) {
+      debug.warn("The cast could not be logged", error);
+      return { ok: true };
+    }
+
+    await this.tellTheFamily(entry, ability, hero, userId, cost);
+    return { ok: true, entry };
+  }
+
+  /**
+   * Announce a cast: a Town Crier line in the family chat, a notification for every other Game Master and one OS alert.
+   * Each step stands alone; a failure is logged and never reaches the caller.
+   */
+  private async tellTheFamily(
+    entry: CastLogEntry,
+    ability: Ability,
+    hero: { name?: { nick?: string; first?: string } },
+    userId: string,
+    cost: number
+  ): Promise<void> {
+    const heroName = hero.name?.nick || hero.name?.first || "A hero";
+    const time = format(new Date(entry.castAt), "h:mma").toLowerCase();
+    const title = `${ability.name} cast`;
+    const body = `${heroName} · ${time}`;
+
+    try {
+      const line = `${heroName} cast ${ability.name}${cost > 0 ? ` · ${cost} MP` : ""} · ${time}`;
+      await useChatStore().postSystemLine(FAMILY_CHAT_ROOM, line);
+    } catch (error) {
+      debug.warn("The Town Crier could not post the cast", error);
+    }
+
+    try {
+      const notifications = useNotificationsStore();
+      for (const gm of Object.values(useUserStore().users)) {
+        const shouldSkipHero = gm?.isAdult !== true || gm.id === userId;
+        if (shouldSkipHero) continue;
+        notifications.push({
+          heroId: gm.id,
+          kind: "power-cast",
+          title,
+          body,
+          refId: entry.id,
+          link: "/game-master/chat",
+        });
+      }
+    } catch (error) {
+      debug.warn("The Game Masters could not be notified of the cast", error);
+    }
+
+    try {
+      void showAlert({ id: POWER_CAST_ALERT_ID, title, body }).catch(() => undefined);
+    } catch (error) {
+      debug.warn("The cast alert could not be shown", error);
+    }
   }
   /**
    * Load ability presets by type

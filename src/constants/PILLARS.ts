@@ -5,6 +5,10 @@
  * - Colors, icons, descriptions
  * - Associated stats (3 per pillar = 15 total stats)
  * - Currency association (HP, MP, AP, GP, XP)
+ *
+ * Every stat description below is a promise the code keeps (docs/Stats-Contract.md, StatEffects.ts).
+ * "Per point trained" means the points earned at level-ups; the class's starting number is already
+ * folded into its base HP/MP and passive. A stat that changes nothing yet says "flavour for now".
  */
 
 export type PillarType = 'physical' | 'mental' | 'vibrational' | 'relational' | 'eternal';
@@ -33,9 +37,9 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'HP',
     description: 'Vitality and endurance',
     stats: {
-      defense: { name: 'Defense', description: 'Increases Maximum HP capacity' },
-      strength: { name: 'Strength', description: 'Decreases HP loss when taking damage' },
-      endurance: { name: 'Endurance', description: 'Boosts HP recovery and restoration' }
+      defense: { name: 'Defense', description: 'Adds 1 HP to your maximum per point trained' },
+      strength: { name: 'Strength', description: 'Every beast strike lands 1% softer per point trained (up to 25%)' },
+      endurance: { name: 'Endurance', description: 'Adds HP to your maximum per point trained; how much depends on your class (a Warrior gets 3)' }
     }
   },
   mental: {
@@ -46,9 +50,9 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'MP',
     description: 'Focus and wisdom',
     stats: {
-      perception: { name: 'Perception', description: 'Increases Maximum MP capacity' },
-      intelligence: { name: 'Intelligence', description: 'Decreases MP cost for active abilities' },
-      wisdom: { name: 'Wisdom', description: 'Boosts MP recovery and meditation rate' }
+      perception: { name: 'Perception', description: 'Sharper eyes: +2% chance per point trained to find something when you search a temple room (up to +30%)' },
+      intelligence: { name: 'Intelligence', description: 'Adds MP to your maximum per point trained (a Mage gets 3), and takes 1% off every MP cost (up to 25%)' },
+      wisdom: { name: 'Wisdom', description: 'Adds MP to your maximum per point trained (a Mage gets 2)' }
     }
   },
   vibrational: {
@@ -59,9 +63,9 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'AP',
     description: 'Energy and attention',
     stats: {
-      agility: { name: 'Agility', description: 'Gain more AP when completing tasks' },
-      focus: { name: 'Focus', description: 'Influence chances of receiving bonus AP points' },
-      flow: { name: 'Flow', description: 'Reduces AP cost for active abilities' }
+      agility: { name: 'Agility', description: 'Per point trained: +1% chance to dodge the parting strike when you run and +1 second per chore on the battle clock; 8 or more clears temple traps' },
+      focus: { name: 'Focus', description: 'Steadies the mind. Flavour for now: it changes nothing yet' },
+      flow: { name: 'Flow', description: 'Keeps you moving. Flavour for now: abilities have no AP cost yet' }
     }
   },
   relational: {
@@ -72,9 +76,9 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'GP',
     description: 'Social presence and trade',
     stats: {
-      awareness: { name: 'Awareness', description: 'Influences the amount of GP awarded' },
-      presence: { name: 'Presence', description: 'Influences GP to $ conversion and trade rates' },
-      charisma: { name: 'Charisma', description: 'Reduces the GP cost of items in shops' }
+      awareness: { name: 'Awareness', description: '+1% GP from temple chests, searches and gates per point trained (up to +25%)' },
+      presence: { name: 'Presence', description: 'How you carry yourself. Flavour for now: GP has no exchange rate yet' },
+      charisma: { name: 'Charisma', description: 'Shop prices drop 1% per point trained (up to 20%), in town and in temple shops' }
     }
   },
   eternal: {
@@ -85,9 +89,9 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'XP',
     description: 'Lasting legacy and growth',
     stats: {
-      guts: { name: 'Guts', description: 'Influences the amount of XP awarded' },
-      luck: { name: 'Luck', description: 'Influence chances of receiving bonus XP points' },
-      mastery: { name: 'Mastery', description: 'Reduces the XP threshold required to reach the next Level' }
+      guts: { name: 'Guts', description: 'Defend blocks 1% more of a strike per point trained (up to 25%), and each point adds half an HP to your maximum' },
+      luck: { name: 'Luck', description: 'Temple chests and searches can pay more: the top of the GP range grows 2% per point trained (up to +50%)' },
+      mastery: { name: 'Mastery', description: 'The mark of a seasoned hero. Flavour for now: the XP curve is the same for everyone' }
     }
   }
 };
@@ -104,7 +108,8 @@ export const getPillarColor = (pillar: PillarType): string => {
 // Helper: Map stat name to its pillar
 export const getStatPillar = (stat: string): PillarType | null => {
   for (const [pillarKey, pillar] of Object.entries(PILLARS)) {
-    if (stat in pillar.stats) {
+    const isPillarStat = stat in pillar.stats;
+    if (isPillarStat) {
       return pillarKey as PillarType;
     }
   }

@@ -39,7 +39,8 @@ export function handleLogoutGuard(
   to: RouteLocationNormalized,
   router: Router
 ): boolean {
-  if (to.name !== "log-out" || to.params.confirm) return false;
+  const needsNoLogoutConfirm = to.name !== "log-out" || to.params.confirm;
+  if (needsNoLogoutConfirm) return false;
 
   const userStore = useUserStore();
 

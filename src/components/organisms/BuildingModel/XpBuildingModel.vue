@@ -1,0 +1,442 @@
+<template>
+  <div
+    class="xp-building-model-wrapper"
+    :class="{ 'is-locked': isPegasus && !isUnlocked }"
+    :style="wrapperStyle"
+    @click="handleClick"
+    :title="`Enter ${displayName}`"
+    role="button"
+    tabindex="0"
+    @keydown.enter="handleClick"
+    @keydown.space.prevent="handleClick"
+  >
+    <div class="canvas-box" :style="canvasStyle">
+      <canvas ref="canvasRef" class="building-canvas"></canvas>
+    </div>
+
+    <xp-landmark-badge
+      v-if="showBadge"
+      :title="displayName"
+      :cue="displaySublabel"
+    />
+  </div>
+</template>
+
+<script lang="ts">
+import { computed, defineComponent, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useUserStore } from "@/lib/store/stores/user";
+import { pegasusOfWorld } from "@/lib/services/temples/TemplePegasus";
+import { getShopMetadata } from "@/lib/engine/core/shopRegistry";
+import { getHotelByWorld } from "@/lib/engine/core/hotelRegistry";
+import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
+import { useBuildingScene } from "./useBuildingScene";
+import { aimAt } from "@/components/organisms/SceneTransition/sceneTransitionController";
+import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
+
+const HOMETOWN_NAMES: Record<string, string> = {
+  "hero-home": "Hero's Home",
+  "my-home": "Hero's Home",
+  "hometown-market": "Market",
+  shop: "Shop",
+  hospital: "Hospital",
+  hotel: "Hotel",
+  bank: "Gold Bank",
+  "town-hall": "Town Hall",
+  "home-town": "Hometown",
+  hometown: "Hometown",
+  pegasus: "Travel World",
+  "home-calendar": "My Calendar",
+  calendar: "My Calendar",
+  "home-storage": "My Storage",
+  storage: "My Storage",
+  "home-workbench": "My Workbench",
+  "craft-item": "My Workbench",
+  "home-kitchen": "My Kitchen",
+  "cook-food": "My Kitchen",
+  "home-bed": "Cozy Bed",
+  bed: "Cozy Bed",
+  "home-door": "Front Door",
+  "front-door": "Front Door",
+  "world-plains": "The Plains",
+  plains: "The Plains",
+};
+
+export default defineComponent({
+  name: "xp-building-model",
+  components: {
+    XpLandmarkBadge,
+  },
+  props: {
+    buildingId: {
+      type: String,
+      required: true,
+    },
+    world: {
+      type: String,
+      default: "",
+    },
+    size: {
+      type: Number,
+      default: 120,
+    },
+    interactive: {
+      type: Boolean,
+      default: true,
+    },
+    showBadge: {
+      type: Boolean,
+      default: true,
+    },
+    label: {
+      type: String,
+      default: "",
+    },
+    sublabel: {
+      type: String,
+      default: "",
+    },
+  },
+  emits: ["click"],
+  setup(props, { emit }) {
+    const canvasRef = ref<HTMLCanvasElement | null>(null);
+    const router = useRouter();
+    const route = useRoute();
+    const userStore = useUserStore();
+
+    const isPegasus = computed(() => {
+      const isPegasusShrine = props.buildingId === "pegasus" || props.buildingId.startsWith("pegasus-");
+      const isRanchShop = props.buildingId === "pegasus-ranch";
+      return isPegasusShrine && !isRanchShop;
+    });
+
+    const activeWorld = computed(() => {
+      const world = props.world;
+      if (world) return world.toLowerCase();
+      const routeName = String(route.name ?? "");
+      const match = routeName.match(/world-([a-z]+)/);
+      if (match) return match[1];
+      const isMoonRoute = routeName === "the-moon";
+      if (isMoonRoute) return "moon";
+      return "";
+    });
+
+    const pegasus = computed(() => {
+      if (!isPegasus.value) return undefined;
+      return pegasusOfWorld(activeWorld.value);
+    });
+
+    const isUnlocked = computed(() => {
+      if (!isPegasus.value) return true;
+      if (!pegasus.value) return true;
+      const userId = (route.params.userId as string) || userStore.currentUser?.id;
+      const user = (userId ? userStore.getUserById(userId) : null) ?? userStore.currentUser;
+      return Boolean(user?.stats?.pegasi?.[pegasus.value.index]);
+    });
+
+    const isHotel = computed(() => {
+      const isNamedHotel = props.buildingId === "hotel";
+      const isSuffixHotel = props.buildingId.endsWith("-hotel");
+      return isNamedHotel || isSuffixHotel;
+    });
+
+    const sceneBuildingId = computed(() => {
+      if (!isPegasus.value) {
+        return isHotel.value ? "hotel" : props.buildingId;
+      }
+      const peg = pegasus.value;
+      if (!peg) return "pegasus";
+      const slug = peg.name.toLowerCase();
+      return isUnlocked.value ? `pegasus-${slug}` : `pegasus-${slug}-locked`;
+    });
+
+    useBuildingScene(canvasRef, sceneBuildingId, {
+      interactive: props.interactive,
+    });
+
+    const isShop = computed(() => {
+      return ![
+        "hero-home",
+        "my-home",
+        "hospital",
+        "hotel",
+        "bank",
+        "town-hall",
+        "home-town",
+        "hometown",
+        "pegasus",
+        "home-calendar",
+        "calendar",
+        "home-storage",
+        "storage",
+        "home-workbench",
+        "craft-item",
+        "home-kitchen",
+        "cook-food",
+        "home-bed",
+        "bed",
+        "home-door",
+        "front-door",
+        "world-plains",
+        "plains",
+      ].includes(props.buildingId) && !isPegasus.value && !isHotel.value;
+    });
+
+    const displayName = computed(() => {
+      const label = props.label;
+      if (label) return label;
+      if (isPegasus.value) {
+        const stablePegasus = pegasus.value;
+        const isPegasusAwake = isUnlocked.value && stablePegasus;
+        if (isPegasusAwake) {
+          return stablePegasus.name;
+        }
+        return "Travel World";
+      }
+      if (isHotel.value) {
+        const hotelMeta = getHotelByWorld(activeWorld.value);
+        return hotelMeta?.badgeLabel || hotelMeta?.name || "Hotel";
+      }
+      const hometownName = HOMETOWN_NAMES[props.buildingId];
+      if (hometownName) return hometownName;
+      const shopMeta = getShopMetadata(props.buildingId);
+      return shopMeta?.name || props.buildingId;
+    });
+
+    const isBuilding = (...ids: string[]) => ids.includes(props.buildingId);
+
+    const displaySublabel = computed(() => {
+      const sublabel = props.sublabel;
+      if (sublabel) return sublabel;
+      if (isBuilding("home-town", "hometown")) {
+        return "Return home";
+      }
+      if (isPegasus.value) {
+        if (isUnlocked.value) {
+          return "Fly to World Map";
+        }
+        return pegasus.value ? `${pegasus.value.name} is asleep` : "Locked in Temple";
+      }
+      if (isHotel.value) {
+        return "Pay to rest";
+      }
+      if (isBuilding("home-calendar", "calendar")) {
+        return "View schedule";
+      }
+      if (isBuilding("home-storage", "storage")) {
+        return "Open vault";
+      }
+      if (isBuilding("home-workbench", "craft-item")) {
+        return "Craft gear";
+      }
+      if (isBuilding("home-kitchen", "cook-food")) {
+        return "Cook meals";
+      }
+      if (isBuilding("home-bed", "bed")) {
+        return "Rest & heal";
+      }
+      if (isBuilding("home-door", "front-door")) {
+        return "Go outside";
+      }
+      if (isBuilding("world-plains", "plains")) {
+        return "Leave town";
+      }
+      return isShop.value ? "Tap to shop" : "Tap to enter";
+    });
+
+    const wrapperStyle = computed(() => ({
+      width: `${props.size}px`,
+    }));
+
+    const canvasStyle = computed(() => ({
+      width: `${props.size}px`,
+      height: `${props.size}px`,
+    }));
+
+    /** The door sits low in the middle of the model: the scene transition pushes the camera in there. */
+    const aimAtDoor = () => {
+      const box = canvasRef.value?.getBoundingClientRect();
+      const hasNoDoorBox = !box || !box.width;
+      if (hasNoDoorBox) return;
+      aimAt({ x: box.left + box.width / 2, y: box.top + box.height * 0.68, size: box.width * 0.3 });
+    };
+
+    const handleClick = () => {
+      aimAtDoor();
+      try {
+        play$fx("select");
+      } catch (error) {
+        // audio optional
+        debug.warn("[XpBuildingModel] select sound failed", error);
+      }
+      emit("click", props.buildingId);
+
+      const userId = route.params.userId;
+      if (!userId) return;
+
+      if (isPegasus.value) {
+        router.push({ name: "world-map", params: { userId } });
+        return;
+      }
+
+      switch (props.buildingId) {
+        case "hero-home":
+        case "my-home":
+          router.push({ name: "my-home", params: { userId } });
+          break;
+        case "home-town":
+        case "hometown":
+          router.push({ name: "home-town", params: { userId } });
+          break;
+        case "home-calendar":
+        case "calendar":
+          router.push({ name: "calendar", params: { userId } });
+          break;
+        case "home-storage":
+        case "storage":
+          router.push({ name: "storage", params: { userId } });
+          break;
+        case "home-workbench":
+        case "craft-item":
+          router.push({ name: "craft-item", params: { userId } });
+          break;
+        case "home-kitchen":
+        case "cook-food":
+          router.push({ name: "cook-food", params: { userId } });
+          break;
+        case "home-door":
+        case "front-door":
+          router.push({ name: "home-town", params: { userId } });
+          break;
+        case "home-bed":
+        case "bed":
+          // Emitted click handled by caller (restInBed)
+          break;
+        case "old-house":
+          // The Moving House pack's temple: the caller walks the hero in (HomeTown.enterOldHouse)
+          break;
+        case "hometown-market":
+        case "shop":
+          router.push({ name: "shop", params: { userId } });
+          break;
+        case "hospital":
+          router.push({ name: "hospital", params: { userId } });
+          break;
+        case "hotel":
+          router.push({
+            name: "hotel",
+            params: {
+              userId,
+              world: activeWorld.value || undefined,
+            },
+          });
+          break;
+        case "bank":
+          router.push({ name: "bank", params: { userId } });
+          break;
+        case "town-hall":
+          router.push({ name: "town-hall", params: { userId } });
+          break;
+        case "world-plains":
+        case "plains":
+          router.push({ name: "world-plains", params: { userId } });
+          break;
+        default: {
+          if (isHotel.value) {
+            router.push({
+              name: "hotel",
+              params: {
+                userId,
+                world: activeWorld.value || undefined,
+              },
+            });
+            break;
+          }
+          // Land world shop
+          router.push({
+            name: "shop",
+            params: {
+              merchant: props.buildingId,
+              userId,
+            },
+          });
+          break;
+        }
+      }
+    };
+
+    return {
+      canvasRef,
+      displayName,
+      displaySublabel,
+      isPegasus,
+      isUnlocked,
+      wrapperStyle,
+      canvasStyle,
+      handleClick,
+    };
+  },
+});
+</script>
+
+<style lang="scss" scoped>
+.xp-building-model-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: pan-y;
+  outline: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+
+  &:hover {
+    transform: translateY(-4px) scale(1.05);
+
+    :deep(.xp-landmark-badge) {
+      .landmark-title {
+        color: #ffffff;
+        transform: scale(1.08);
+        text-shadow:
+          -2px -2px 0 #000,
+          2px -2px 0 #000,
+          -2px 2px 0 #000,
+          2px 2px 0 #000,
+          0 0 10px rgba(255, 215, 0, 0.8),
+          0 3px 6px rgba(0, 0, 0, 0.95);
+      }
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+
+  &.is-locked {
+    opacity: 0.45;
+    filter: grayscale(60%) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+
+    &:hover {
+      opacity: 0.7;
+      filter: grayscale(30%) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+    }
+  }
+
+  .canvas-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+
+    .building-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+  }
+}
+</style>

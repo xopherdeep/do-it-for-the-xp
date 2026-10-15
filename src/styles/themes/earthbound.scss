@@ -37,12 +37,13 @@ $eb-color-white: #ffffff;
 }
 
 // Mixins
+// The box follows the chosen Game Style: the other themes set --gs-* on ion-app (themes/_gameStyle.scss)
 @mixin eb-box() {
-  border-radius: 1px;
-  box-shadow: 0 0 0 5px $eb-color-medium-purple, 0 0 0 10px $eb-color-minty-blue,
-    0 0 0 12px $eb-color-pale-yellow, 0 0 0 16px $eb-color-slate;
-  background-color: $eb-color-dark-purple;
-  color: $eb-color-cream;
+  border-radius: var(--gs-radius, 1px);
+  box-shadow: var(--gs-frame, 0 0 0 5px #{$eb-color-medium-purple}, 0 0 0 10px #{$eb-color-minty-blue},
+    0 0 0 12px #{$eb-color-pale-yellow}, 0 0 0 16px #{$eb-color-slate});
+  background: var(--gs-window, #{$eb-color-dark-purple});
+  color: var(--gs-text, #{$eb-color-cream});
 }
 
 @mixin eb-checkerboard-config($bg-color, $pattern-color) {
@@ -209,6 +210,11 @@ ion-app {
         --bg-slide-base: #5a5a2e;
         --bg-slide-pattern: #6b6b3a;
       }
+
+      &.bg-slide-equipment {
+        --bg-slide-base: #1a1220;
+        --bg-slide-pattern: #22182a;
+      }
     }
 
     // Typography
@@ -344,6 +350,199 @@ ion-app {
       ion-textarea {
         font-family: $eb-font-status;
         border: none;
+      }
+    }
+
+    // Settings pages: titles in a readable mixed-case pixel font instead of
+    // the all-caps Twoson; the toolbar title keeps the branding font
+    .xp-settings-page ion-content {
+      // The card's border is a 16px box-shadow drawn outside it: size and space
+      // the cards so the gap between stacked cards equals the gap around them
+      // (the page's 16px ion-padding)
+      ion-card {
+        width: calc(100% - 32px);
+        margin: 16px auto;
+
+        & ~ ion-card {
+          margin-top: 48px;
+        }
+      }
+
+      // a page that lays its cards out in a grid keeps the same page edge
+      > ion-grid {
+        padding: 0;
+      }
+
+      ion-card-title,
+      ion-list-header,
+      ion-list-header ion-label,
+      ion-item-divider,
+      ion-item-divider ion-label,
+      ion-card ion-item ion-label,
+      ion-card ion-item ion-label h1,
+      ion-card ion-item ion-label h2,
+      ion-card ion-item ion-label h3 {
+        font-family: "Orange Kid", $eb-font-status, sans-serif;
+        text-transform: none;
+        letter-spacing: 0.5px;
+      }
+
+      ion-card-title {
+        font-size: 22px;
+      }
+
+      // Section headers inside a card: a light caption with a hairline under it,
+      // not a solid bar
+      ion-list-header,
+      ion-item-divider {
+        --background: transparent;
+        --color: #{$eb-color-minty-blue};
+        --padding-start: 16px;
+        --inner-padding-end: 16px;
+        min-height: 0;
+        margin-top: 0;
+        padding-top: 0;
+        font-size: 18px;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba($eb-color-minty-blue, 0.35);
+
+        ion-label {
+          margin: 10px 0 8px;
+        }
+      }
+
+      ion-card > ion-list {
+        padding-top: 0;
+      }
+
+      ion-item-group + ion-item-group ion-item-divider {
+        margin-top: 8px;
+      }
+
+      // One setting per row: title and description stacked on the left, the
+      // control on the right, centred on the row
+      ion-card ion-item {
+        --background: transparent;
+        --padding-start: 16px;
+        --inner-padding-end: 16px;
+        --padding-top: 10px;
+        --padding-bottom: 10px;
+        --min-height: 64px;
+        --border-color: #{rgba($eb-color-cream, 0.12)};
+        align-items: center;
+
+        > ion-label {
+          flex: 1 1 auto;
+          min-width: 0;
+          margin: 0;
+          white-space: normal;
+        }
+
+        > ion-select,
+        > ion-toggle,
+        > ion-badge,
+        > ion-button {
+          flex: 0 0 auto;
+          align-self: center;
+          margin: 0 0 0 16px;
+        }
+
+        > ion-select {
+          width: auto;
+          max-width: 45%;
+          font-family: "Orange Kid", $eb-font-status, sans-serif;
+          font-size: 20px;
+          color: $eb-color-pale-yellow;
+          --placeholder-color: #{$eb-color-pale-yellow};
+        }
+
+        // an off switch still shows its track on the dark window
+        > ion-toggle {
+          --track-background: #{rgba($eb-color-cream, 0.28)};
+        }
+
+        // a slider spans the rest of the row beside its short label
+        > ion-range {
+          flex: 1 1 60%;
+          margin-left: 16px;
+        }
+      }
+
+      // A row with a dropdown: the title and description take the full width,
+      // the choice sits under them as a full-width box
+      ion-card ion-item.setting-stacked {
+        --padding-top: 14px;
+        --padding-bottom: 16px;
+
+        .setting-stacked__body {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .setting-stacked__body > ion-label {
+          margin: 0;
+          white-space: normal;
+        }
+
+        .setting-stacked__select {
+          width: 100%;
+          max-width: none;
+          min-height: 44px;
+          padding: 0 12px;
+          font-family: "Orange Kid", $eb-font-status, sans-serif;
+          font-size: 20px;
+          color: $eb-color-pale-yellow;
+          background: rgba($eb-color-cream, 0.06);
+          border: 2px solid rgba($eb-color-minty-blue, 0.6);
+          border-radius: 4px;
+          position: relative;
+
+          // the arrow sits at the box's right edge, not beside the text
+          &::part(icon) {
+            display: none;
+          }
+
+          &::after {
+            content: "";
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            margin-top: -3px;
+            border: 7px solid transparent;
+            border-bottom: 0;
+            border-top-color: $eb-color-minty-blue;
+            pointer-events: none;
+          }
+        }
+      }
+
+      ion-card ion-item ion-label {
+        h1,
+        h2 {
+          margin: 0;
+          font-size: 20px;
+          line-height: 1.1;
+          color: $eb-color-pale-yellow;
+        }
+
+        h3 {
+          font-size: 18px;
+          color: $eb-color-pale-yellow;
+        }
+
+        // descriptions: a clean, compact font (the pixel body font is hard to read small)
+        p {
+          margin-top: 4px;
+          font-family: "Orange Kid", $eb-font-status, sans-serif;
+          font-size: 17px;
+          line-height: 1.2;
+          letter-spacing: 0.3px;
+          color: rgba($eb-color-cream, 0.82);
+          white-space: normal;
+        }
       }
     }
 
@@ -1185,13 +1384,25 @@ ion-app {
                 background: $eb-color-medium-purple;
               }
 
+              // Cancel is the safe way out: calm cream, never alarm red
               &.action-sheet-cancel {
                 background: transparent;
-                color: var(--ion-color-danger);
+                color: $eb-color-cream;
                 font-family: $eb-font-primary;
 
                 &:hover {
                   background: color.adjust($eb-color-slate, $lightness: -5%);
+                }
+              }
+
+              // A destructive choice (role: "destructive", e.g. Delete) is the red one; a light red,
+              // because the theme's danger red is too dark to read on the purple box
+              &.action-sheet-destructive {
+                color: #ff7b6b;
+
+                .action-sheet-button-inner,
+                .action-sheet-icon {
+                  color: #ff7b6b !important;
                 }
               }
 
@@ -1275,5 +1486,66 @@ ion-app {
         }
       }
     }
+
+    &.xp-equipment-modal {
+      // Opaque, not frosted: a modal never blurs the page under it (styles/_frost.scss)
+      &::part(content) {
+        background-color: rgba(20, 6, 24, 0.92);
+      }
+
+      ion-header {
+        ion-toolbar {
+          --background: rgba(35, 8, 40, 0.85);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+
+      ion-content.bg-slide {
+        --bg-slide-base: rgba(18, 18, 24, 0.6);
+        --bg-slide-pattern: rgba(255, 255, 255, 0.07);
+      }
+    }
+  }
+}
+// ============================================================
+// Toasts: an RPG message box centered on screen with a close button
+// ============================================================
+ion-toast {
+  --background: #280828;
+  --color: #e7e6b3;
+  --border-radius: 2px;
+  --box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55;
+  --button-color: #f7e8a8;
+  --start: 14px;
+  --end: 14px;
+  --min-height: 52px;
+  --max-width: 520px;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+
+  &::part(container) {
+    padding: 2px 4px;
+  }
+
+  &::part(message) {
+    line-height: 1.25;
+  }
+
+  &::part(button) {
+    font-family: "Apple Kid", sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+    text-transform: none;
+  }
+
+  &::part(icon) {
+    color: #f7e8a8;
+  }
+
+  // The rings need room: keep the box off the very edge of the screen
+  &.toast-top,
+  &[position="top"] {
+    --top: 14px;
   }
 }

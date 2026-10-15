@@ -59,10 +59,10 @@
 
       // Update the text based on current index
       const updateCurrentText = () => {
-        if (
+        const hasBlockToShow =
           props.textBlocks.length > 0 &&
-          currentBlockIndex.value < props.textBlocks.length
-        ) {
+          currentBlockIndex.value < props.textBlocks.length;
+        if (hasBlockToShow) {
           currentText.value = props.textBlocks[currentBlockIndex.value];
           isTyping.value = true;
         } else {
@@ -107,7 +107,8 @@
       };
 
       const nextBlock = () => {
-        if (currentBlockIndex.value < props.textBlocks.length - 1) {
+        const hasNextBlock = currentBlockIndex.value < props.textBlocks.length - 1;
+        if (hasNextBlock) {
           currentBlockIndex.value++;
           updateCurrentText();
           if (typingText.value) {
@@ -179,7 +180,6 @@
     cursor: pointer;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
       inset 0 0 20px rgba(var(--ion-color-primary-rgb), 0.1);
-    backdrop-filter: blur(8px);
 
     .dialog-content {
       color: #fff;

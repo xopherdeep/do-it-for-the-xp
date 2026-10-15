@@ -44,7 +44,8 @@ export class ChestSystem {
    * Get the ChestSystem instance
    */
   public static getInstance(): ChestSystem {
-    if (!ChestSystem.instance) {
+    const hasInstance = Boolean(ChestSystem.instance);
+    if (!hasInstance) {
       ChestSystem.instance = new ChestSystem();
     }
     return ChestSystem.instance;
@@ -73,9 +74,10 @@ export class ChestSystem {
    */
   public getChestByPosition(position: [number, number], dungeonId?: string): Chest | undefined {
     return Object.values(this.chests).find(chest => {
-      if (!chest.position) return false;
+      const chestPosition = chest.position;
+      if (!chestPosition) return false;
       
-      const samePosition = chest.position[0] === position[0] && chest.position[1] === position[1];
+      const samePosition = chestPosition[0] === position[0] && chestPosition[1] === position[1];
       if (dungeonId) {
         return samePosition && chest.id.startsWith(dungeonId);
       }
@@ -91,7 +93,8 @@ export class ChestSystem {
   public openChest(chestId: string): ChestContent | undefined {
     const chest = this.chests[chestId];
     
-    if (!chest || chest.isEmpty) {
+    const hasNothingInside = !chest || chest.isEmpty;
+    if (hasNothingInside) {
       return undefined;
     }
     
@@ -110,34 +113,44 @@ export class ChestSystem {
    */
   public removeItemsFromChest(chestId: string, items: string[]): void {
     const chest = this.chests[chestId];
-    if (!chest || chest.isEmpty) return;
+    const hasNothingInside = !chest || chest.isEmpty;
+    if (hasNothingInside) return;
     
     let allItemsRemoved = true;
     
     // Handle standard items
-    if (chest.content.items) {
+    const chestItems = chest.content.items;
+    if (chestItems) {
       // Remove the selected items
-      chest.content.items = chest.content.items.filter(item => !items.includes(item));
+      chest.content.items = chestItems.filter(item => !items.includes(item));
       
       // If there are still items left, not all items are removed
-      if (chest.content.items.length > 0) {
+      const hasItemsLeft = chest.content.items.length > 0;
+      if (hasItemsLeft) {
         allItemsRemoved = false;
       }
     }
     
     // Handle dungeon items like map or compass
-    if (chest.content.dungeon && items.includes(chest.content.dungeon)) {
+    const isDungeonItemTaken = chest.content.dungeon && items.includes(chest.content.dungeon);
+    const hasDungeonItem = Boolean(chest.content.dungeon);
+    if (isDungeonItemTaken) {
       delete chest.content.dungeon;
-    } else if (chest.content.dungeon) {
+    } else if (hasDungeonItem) {
       allItemsRemoved = false;
     }
     
     // Handle gold
     items.forEach(item => {
-      if (item.startsWith('gold:')) {
+      const isGold = item.startsWith('gold:');
+      if (isGold) {
         delete chest.content.gold;
       }
     });
+    const hasGoldLeft = Boolean(chest.content.gold);
+    if (hasGoldLeft) {
+      allItemsRemoved = false;
+    }
     
     // If all items are gone, mark the chest as empty
     if (allItemsRemoved) {
@@ -166,12 +179,14 @@ export class ChestSystem {
   public unlockChest(chestId: string, keyType: string): boolean {
     const chest = this.chests[chestId];
     
-    if (!chest || !chest.isLocked) {
+    const hasNothingToUnlock = !chest || !chest.isLocked;
+    if (hasNothingToUnlock) {
       return false;
     }
     
     // Check if the key matches the required key type
-    if (chest.requiresKey && chest.requiresKey !== keyType) {
+    const isWrongKey = chest.requiresKey && chest.requiresKey !== keyType;
+    if (isWrongKey) {
       return false;
     }
     
@@ -225,6 +240,7 @@ export class ChestSystem {
     // Clear contents and mark as empty
     chest.content.items = [];
     chest.content.dungeon = undefined;
+    delete chest.content.gold;
     chest.isEmpty = true;
     
     return true;

@@ -194,5 +194,5 @@
   </ion-page>
 </template>
 
-<script src="./LogIn" />
+<script lang="ts" src="./LogIn.ts" />
 <style lang="scss" src="./_LogIn.scss" scoped />

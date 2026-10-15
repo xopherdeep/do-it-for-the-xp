@@ -93,7 +93,8 @@ export const useItemFetcher = (initialType: string = "", initialParams: any = {}
 
   const getImgObj = (id: string) => {
     const img = getSingleMediaById(id)
-    if (img && img.source_url) {
+    const hasSourceUrl = img && img.source_url;
+    if (hasSourceUrl) {
       return {
         src: img.source_url,
         alt: img.alt_text || '',

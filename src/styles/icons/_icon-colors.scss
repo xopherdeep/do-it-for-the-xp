@@ -418,3 +418,11 @@
   }
 }
 
+
+// The Master Room's golden Pegasus Egg (ROOM_ICONS.master in src/lib/engine/dungeons/roomTypes.ts). A plain class,
+// not nested under `.icon-colors`, so the picker, the room editor, the temple creator grid and the dungeon map all gild it.
+.icon-master-egg {
+  --fa-primary-color: #f7e8a8;
+  --fa-secondary-color: #c9a227;
+  --fa-secondary-opacity: 1;
+}

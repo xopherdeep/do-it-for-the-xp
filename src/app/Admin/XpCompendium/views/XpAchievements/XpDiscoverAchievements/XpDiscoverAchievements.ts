@@ -1,12 +1,12 @@
 import { useInfiniteQuests } from "@/hooks/useQuests";
+import { useTimers } from "@/hooks/useTimers";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
-import { useRouter } from "vue-router";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
 // import ionic from "@/lib/mixins/ionic";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import {
-  IonBackButton,
   IonButton,
   IonButtons,
   IonCol,
@@ -48,7 +48,8 @@ import { mapStores } from "pinia";
 
 import MyTask from "@/app/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
-import Swiper, { Controller, Navigation } from "swiper";
+import type Swiper from "swiper";
+import { Controller, Navigation } from "swiper/modules";
 import { useQuery } from "vue-query";
 
 import XpAchievementDetails from "./XpAchievementDetails.vue"
@@ -66,7 +67,6 @@ export const XpDiscoverAchievements = defineComponent({
   mixins: [],
   props: ["userId"], // Added missing prop
   components: {
-    IonBackButton,
     IonButton,
     IonButtons,
     IonCol,
@@ -130,7 +130,8 @@ export const XpDiscoverAchievements = defineComponent({
     fetchWPItems(request: any) { return (this as any).gameStore.fetchWPItems(request.type, request.params) },
     // Add the missing play$fx method
     play$fx(soundType) {
-      if (this.$fx?.rpg && this.$fx?.theme?.rpg) {
+      const hasRpgSoundTheme = this.$fx?.rpg && this.$fx?.theme?.rpg;
+      if (hasRpgSoundTheme) {
         const sound = this.$fx.rpg[this.$fx.theme.rpg][soundType];
         if (sound) sound.play();
       }
@@ -148,9 +149,10 @@ export const XpDiscoverAchievements = defineComponent({
     },
     async shouldSaveAchievement(achievement) {
       const showToast = () => this.achievementDb.showSuccessToast("Achievement Saved")
-      if (achievement.data) {
+      const data = achievement.data;
+      if (data) {
         await this.achievementDb
-          .setTask(achievement.data)
+          .setTask(data)
           .then(showToast)
       }
     },
@@ -159,20 +161,14 @@ export const XpDiscoverAchievements = defineComponent({
       this.page++
       this.fetchNextPage()
 
-      setTimeout(() => {
+      this.timers.startTimeout(1000, () => {
         if (!this.isLoading) {
           ev.target.complete();
         }
-      }, 1000)
+      })
 
     },
 
-    clickBack() {
-      const hasHistory = this.$historyCount - window.history.length;
-      // console.log("hashistory", hasHistory);
-      if (hasHistory) this.router.go(-1);
-      else this.router.push(`/my-portal/${this.userId}`);
-    },
     clickItem(item) {
       this.activeModal = item.id;
     },
@@ -254,6 +250,7 @@ export const XpDiscoverAchievements = defineComponent({
   },
   setup() {
     const gameStore = useGameStore();
+    const timers = useTimers();
     const params = reactive({
       page: 1,
       search: "",
@@ -271,7 +268,6 @@ export const XpDiscoverAchievements = defineComponent({
     const queryClient = useQueryClient();
     const nTotalTasks = ref(0);
     const nTotalPages = ref(0);
-    const router = useRouter();
     const controlledSwiper = ref({} as Swiper);
     const setControlledSwiper = swiper => controlledSwiper.value = swiper;
 
@@ -302,6 +298,7 @@ export const XpDiscoverAchievements = defineComponent({
     const achievementDb = new AchievementDb(achievementStorage)
     return {
       gameStore,
+      timers,
       achievementDb,
       fetchNextPage,
       useTasks,
@@ -318,7 +315,6 @@ export const XpDiscoverAchievements = defineComponent({
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
-      router,
       chevronBack,
       chevronForward,
       stop,
@@ -337,6 +333,7 @@ export const XpDiscoverAchievements = defineComponent({
       medalOutline,
       ribbonOutline,
       checkmarkDone,
+      sanitizeHtml,
     };
 
     function useTasks(page, params) {

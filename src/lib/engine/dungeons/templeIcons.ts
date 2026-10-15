@@ -10,6 +10,9 @@ export const TEMPLE_ICON_MAP: Record<string, string> = {
   "ice-temple": "fad fa-snowflake",
   "light-temple": "fad fa-sun",
   "shadow-temple": "fad fa-moon",
+  "moon-temple": "fad fa-moon-stars",
+  "storm-temple": "fad fa-bolt",
+  // Older saves named the clouds temple this
   "lightning-temple": "fad fa-bolt",
 };
 
@@ -26,7 +29,5 @@ export function getTempleIcon(templeId: string): string {
  * Gets the wall icon for a temple (which is often the same as the temple icon)
  */
 export function getTempleWallIcon(templeId: string): string {
-  // If we want to return just the fa- class without fad/fas
-  const fullIcon = getTempleIcon(templeId);
-  return fullIcon;
+  return getTempleIcon(templeId);
 }

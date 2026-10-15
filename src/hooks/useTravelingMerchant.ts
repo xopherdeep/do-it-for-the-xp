@@ -1,40 +1,21 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { isMerchantIn } from '@/lib/services/shops/travelingMerchant'
 
+// Boobeedeedle turns up in a different world every day (src/lib/services/shops/travelingMerchant.ts);
+// the world pages show the balloon itself (XpTravelingMerchant), this hook offers the shop as a page action.
 export const useTravelingMerchant = () => {
   const router = useRouter()
 
-  const merchant = ref({
+  const merchant = {
     label: "Boobeedeedle",
     faIcon: "wagon-covered",
     side: "bottom",
-    travels: {
-      sunday: 'world-plains',
-      monday: 'world-islands',
-      tuesday: 'world-forest',
-      wednesday: 'world-swamps',
-      thursday: 'world-mountains',
-      friday: 'world-sands',
-      saturday: 'world-ice',
-    } as Record<string, string>,
-  })
-
-  const dayOfTheWeek = computed(() => {
-    const today = new Date()
-    return today
-      .toLocaleDateString('en-US', { weekday: 'long' })
-      .toLowerCase()
-  })
-
-  const areaWhereMerchantIs = computed(() => {
-    return merchant.value.travels[dayOfTheWeek.value]
-  })
-
-  const isMerchantInArea = (area: string) => {
-    return areaWhereMerchantIs.value === area
   }
 
-  const goToMerchantShop = () => {
+  const isMerchantInArea = (area: string) => isMerchantIn(area)
+
+  const openMerchantShop = () => {
     router.push({
       name: "shop",
       params: {
@@ -43,29 +24,18 @@ export const useTravelingMerchant = () => {
     })
   }
 
-  const merchantAction = computed(() => {
-    const { label, faIcon, side } = merchant.value
-    return {
-      label,
-      side,
-      faIcon,
-      click: goToMerchantShop
-    }
-  })
+  const merchantAction = computed(() => ({
+    ...merchant,
+    click: openMerchantShop
+  }))
 
-  function maybeAddMerchantToActionsIfInArea(payload: { actions: any[], area: string }) {
+  function addMerchantActionIfInArea(payload: { actions: any[], area: string }) {
     if (isMerchantInArea(payload.area)) {
       payload.actions.push(merchantAction.value)
     }
   }
 
   return {
-    merchant,
-    dayOfTheWeek,
-    areaWhereMerchantIs,
-    isMerchantInArea,
-    merchantAction,
-    maybeAddMerchantToActionsIfInArea,
-    goToMerchantShop
+    addMerchantActionIfInArea
   }
 }

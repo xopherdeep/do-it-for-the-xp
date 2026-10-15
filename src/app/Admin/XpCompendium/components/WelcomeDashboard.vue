@@ -1,9 +1,11 @@
 <template>
+  <!-- Each accent is the color its icon actually renders in (icon-colors / user-hud duotones), so the border matches the area -->
   <XpDashboardGrid :cols="3">
     <!-- Row 1: Welcome, Bestiary, Vitals -->
     <XpDashboardTile>
       <XpNavTile
         label="Welcome"
+        accent="var(--xp-color-yellow)"
         iconName="fa-question-square"
         color="medium"
         @click="$emit('reset')"
@@ -12,6 +14,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Bestiary"
+        accent="var(--xp-color-purple)"
         iconName="fa-hand-holding-heart"
         color="danger"
         @click="$emit('navigate', 1)"
@@ -20,6 +23,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Vitals"
+        accent="var(--xp-color-hp)"
         iconName="fa-heartbeat"
         color="primary"
         @click="$emit('navigate', 2)"
@@ -30,6 +34,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Powers"
+        accent="var(--xp-color-ap)"
         iconName="fa-hand-holding-magic"
         color="tertiary"
         @click="$emit('navigate', 3)"
@@ -38,6 +43,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Economy"
+        accent="var(--xp-color-gp)"
         iconName="fa-hand-holding-box"
         color="warning"
         @click="$emit('navigate', 5)"
@@ -46,6 +52,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Quests"
+        accent="var(--xp-color-xp)"
         iconName="fa-hand-holding-seedling"
         color="success"
         @click="$emit('navigate', 6)"
@@ -56,6 +63,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Police Box"
+        accent="var(--xp-color-blue)"
         iconName="fa-police-box"
         color="tardis"
         @click="navigateTo('xp-do-this-not-that')"
@@ -64,6 +72,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Temples"
+        accent="var(--xp-color-blueLight)"
         iconName="fa-hand-holding-water"
         color="secondary"
         @click="$emit('navigate', 4)"
@@ -72,6 +81,7 @@
     <XpDashboardTile>
       <XpNavTile
         label="Chat"
+        accent="var(--ion-color-tertiary)"
         iconName="fa-comments-alt"
         color="tertiary"
         @click="navigateTo('xp-chat')"
@@ -87,7 +97,6 @@
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
   import Ionic from "@/lib/mixins/ionic";
-  // import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 
   export default defineComponent({
     name: "WelcomeDashboard",
@@ -98,7 +107,7 @@
       XpDashboardTile,
     },
     props: {
-      // Stats prop can be removed or kept optional if parent still passes it
+      // The slideshow passes the system counts to every slide; this one only has doors
       stats: {
         type: Object,
         default: () => ({}),

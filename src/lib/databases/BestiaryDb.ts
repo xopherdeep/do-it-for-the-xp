@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 import debug from '@/lib/utils/debug';
+import type { TempleTheme } from '@/lib/services/temples/templeThemes';
 
 import { Drivers, Storage } from "@ionic/storage";
 import { toastController } from '@ionic/vue';
@@ -22,10 +23,13 @@ export interface Beast {
   imageUrl?: string;
   localImage?: string;
   avatar?: number;
+  variantAvatar?: number;  // A second look (NNN.webp) for elite or shadow encounters, from the beast library
   achievementIds?: string[];
   bg1?: number;            // Background layer 1 for earthbound battle backgrounds
   bg2?: number;            // Background layer 2 for earthbound battle backgrounds
   aspectRatio?: number;    // Aspect ratio for battle background display
+  element?: string;        // Region element (worldRegistry): random encounters there prefer beasts of it
+  theme?: TempleTheme;     // The temple whose chores this beast belongs to (not the art element); copied from the library
 }
 
 export interface BackgroundPreset {
@@ -62,17 +66,23 @@ export class BestiaryDb extends DbStorageApi {
     }
   }
 
+  /**
+   * Saves a beast, merged into the record stored under its id: the form sends only the fields it owns, and the rest
+   * (achievementIds, element, theme, variantAvatar) stays. A beast with no stored record starts from the defaults.
+   */
   public async setBeast(beast: Beast) {
     const id = beast.id ? beast.id : uuidv4()
+    const stored = beast.id ? await this.get(id) : null
     await this.set(id, {
       ...this.createBeast(),
+      ...stored,
       ...beast,
       id
     })
   }
 
   public async deleteBeast(beast: Beast) {
-    this.remove(beast.id)
+    await this.remove(beast.id)
     return await this.getBeasts()
   }
 
@@ -81,14 +91,14 @@ export class BestiaryDb extends DbStorageApi {
       const clone = {
         ...beast,
         id: uuidv4(),
-        beastName: `${beast.name} (clone)`
+        name: `${beast.name} (clone)`,
+        achievementIds: [] // quests stay attached to the original; a clone starts unattached
       }
       const cloneToast = () => this.showSuccessToast("Clone Successful!")
       return await this.setBeast(clone).then(cloneToast)
     }
 
-    const clone = await this.getBeasts().then(cloneFromBeasts)
-    return clone
+    return this.getBeasts().then(cloneFromBeasts)
   }
 
   public async getBeastById(id) {
@@ -98,8 +108,7 @@ export class BestiaryDb extends DbStorageApi {
   }
 
   public async getBeasts() {
-    const beasts = await this.getAll()
-    return beasts
+    return this.getAll()
   }
 
   // NEW IMPORT/EXPORT FUNCTIONALITY
@@ -113,7 +122,8 @@ export class BestiaryDb extends DbStorageApi {
       // Get all beasts
       const beasts = await this.getBeasts();
       
-      if (beasts.length === 0) {
+      const hasNoBeasts = beasts.length === 0;
+      if (hasNoBeasts) {
         this.showWarningToast("No beasts to export!");
         return;
       }
@@ -185,16 +195,19 @@ export class BestiaryDb extends DbStorageApi {
       // Set up file change handler
       fileInput.onchange = async (event) => {
         const target = event.target as HTMLInputElement;
-        if (!target || !target.files || target.files.length === 0) return;
+        const files = target?.files;
+        const hasNoFileChosen = !files || files.length === 0;
+        if (hasNoFileChosen) return;
         
-        const file = target.files[0];
+        const file = files[0];
         if (!file) return;
         
         const reader = new FileReader();
         
         reader.onload = async (e) => {
           try {
-            if (!e.target || e.target.result === null) {
+            const isReadEmpty = !e.target || e.target.result === null;
+            if (isReadEmpty) {
               this.showErrorToast("Failed to read file");
               return;
             }
@@ -207,7 +220,8 @@ export class BestiaryDb extends DbStorageApi {
             let backgroundPresets: BackgroundPreset[] = [];
             let bestiaryBgSettings: BgSettings | null = null;
             
-            if (importedData.beasts && Array.isArray(importedData.beasts)) {
+            const isNewFormat = importedData.beasts && Array.isArray(importedData.beasts);
+            if (isNewFormat) {
               // New format
               beasts = importedData.beasts;
               backgroundPresets = importedData.backgroundPresets || [];
@@ -224,13 +238,15 @@ export class BestiaryDb extends DbStorageApi {
             let importMsg = '';
             
             // Import beasts if any available
-            if (beasts.length > 0) {
+            const hasBeasts = beasts.length > 0;
+            if (hasBeasts) {
               const beastCount = await this.importBeastsData(beasts);
               importMsg += `${beastCount} beasts `;
             }
             
             // Import background presets if any available
-            if (backgroundPresets.length > 0) {
+            const hasBackgroundPresets = backgroundPresets.length > 0;
+            if (hasBackgroundPresets) {
               const presetCount = await this.importBackgroundPresets(backgroundPresets, bestiaryBgSettings);
               if (importMsg) {
                 importMsg += 'and ';
@@ -307,7 +323,8 @@ export class BestiaryDb extends DbStorageApi {
   public async importBackgroundPresets(presets: BackgroundPreset[], bgSettings: BgSettings | null): Promise<number> {
     try {
       // If no presets to import, skip
-      if (!presets || presets.length === 0) {
+      const hasNoPresets = !presets || presets.length === 0;
+      if (hasNoPresets) {
         return 0;
       }
       
@@ -395,6 +412,7 @@ export class BestiaryDb extends DbStorageApi {
         message: `Background preset "${name}" saved!`,
         duration: 2000,
         position: 'top',
+        cssClass: 'rpg-toast',
         color: 'success'
       }).then(toast => toast.present());
       
@@ -405,6 +423,7 @@ export class BestiaryDb extends DbStorageApi {
         message: 'Failed to save background preset',
         duration: 2000,
         position: 'top',
+        cssClass: 'rpg-toast',
         color: 'danger'
       }).then(toast => toast.present());
       

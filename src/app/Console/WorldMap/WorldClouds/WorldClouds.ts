@@ -6,10 +6,11 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-clouds",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
@@ -76,21 +77,10 @@ export default dC({
     const startThunderSounds = () => {
       // Play thunder sounds at random intervals with varying intensities
       thunderInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.6) { // 40% chance of thunder on each interval
+        const isThunderClap = Math.random() > 0.6;
+        if (isThunderClap) { // 40% chance of thunder on each interval
           const thunderIndex = Math.floor(Math.random() * thunderAudio.value.length);
           const thunder = thunderAudio.value[thunderIndex];
-
-          // Create flash effect for loud thunders
-          if (thunderIndex === 0) {
-            const flash = document.createElement('div');
-            flash.className = 'lightning-flash-overlay';
-            document.body.appendChild(flash);
-
-            // Remove flash effect after animation
-            setTimeout(() => {
-              document.body.removeChild(flash);
-            }, 1000);
-          }
 
           // Add slight volume variation
           thunder.volume = 0.5 + (Math.random() * 0.3);
@@ -146,11 +136,11 @@ export default dC({
       },
       {
         label: "Sky Temple",
-        id: "sky-temple",
+        id: "storm-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = "sky-temple";
+          const temple = "storm-temple";
           router.push({
             name: "temple",
             params: {

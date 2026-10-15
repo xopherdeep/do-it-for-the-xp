@@ -38,6 +38,12 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
+    path: "/town-hall/:userId/chat",
+    name: "town-hall-chat",
+    component: () => import("@/app/Admin/XpChat/XpChat.vue"),
+    props: true,
+  },
+  {
     path: "/user-stats/:userId?/",
     name: "view-stats",
     component: () =>
@@ -53,7 +59,7 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
   },
 
   {
-    path: "/hotel/:userId?/",
+    path: "/hotel/:userId?/:world?",
     name: "hotel",
     component: () => import("@/app/Console/MyPortal/HomeTown/HotelHub/HotelHub.vue"),
     props: true,

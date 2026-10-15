@@ -13,6 +13,7 @@ export interface WorldMetadata {
   bgImage: string;   // Background image filename
   templeId: string;  // Associated temple ID
   shopId: string;    // Associated shop ID
+  hotelId?: string;  // Associated hotel ID
 }
 
 export const WORLD_METADATA: Record<string, WorldMetadata> = {
@@ -23,9 +24,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "wind",
     icon: "tornado",
     color: "primary",
-    bgImage: "world-plains.jpg",
+    bgImage: "world-plains.webp",
     templeId: "wind-temple",
-    shopId: "pegasus-ranch"
+    shopId: "pegasus-ranch",
+    hotelId: "plains-hotel"
   },
   "islands": {
     id: "islands",
@@ -34,9 +36,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "water",
     icon: "island-tropical",
     color: "tertiary",
-    bgImage: "world-islands.jpg",
+    bgImage: "world-islands.webp",
     templeId: "water-temple",
-    shopId: "wrecked-ship"
+    shopId: "wrecked-ship",
+    hotelId: "islands-hotel"
   },
   "forest": {
     id: "forest",
@@ -45,9 +48,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "earth",
     icon: "trees",
     color: "success",
-    bgImage: "world-forest.jpg",
+    bgImage: "world-forest.webp",
     templeId: "earth-temple",
-    shopId: "hermits-tent"
+    shopId: "hermits-tent",
+    hotelId: "forest-hotel"
   },
   "mountains": {
     id: "mountains",
@@ -56,9 +60,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "fire",
     icon: "mountains",
     color: "danger",
-    bgImage: "world-mountains.jpg",
+    bgImage: "world-mountains.webp",
     templeId: "fire-temple",
-    shopId: "crystal-caverns"
+    shopId: "crystal-caverns",
+    hotelId: "mountains-hotel"
   },
   "desert": {
     id: "desert",
@@ -67,9 +72,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "light",
     icon: "cactus",
     color: "warning",
-    bgImage: "world-desert.jpg",
+    bgImage: "world-desert.webp",
     templeId: "sun-temple",
-    shopId: "pond-of-life"
+    shopId: "pond-of-life",
+    hotelId: "desert-hotel"
   },
   "swamps": {
     id: "swamps",
@@ -78,9 +84,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "moon",
     icon: "skull-crossbones",
     color: "dark",
-    bgImage: "world-swamps.jpg",
+    bgImage: "world-swamps.webp",
     templeId: "moon-temple",
-    shopId: "witchs-hut"
+    shopId: "witchs-hut",
+    hotelId: "swamps-hotel"
   },
   "ice": {
     id: "ice",
@@ -89,9 +96,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "ice",
     icon: "igloo",
     color: "medium",
-    bgImage: "world-ice.jpg",
+    bgImage: "world-ice.webp",
     templeId: "frozen-fortress",
-    shopId: "snow-shack"
+    shopId: "snow-shack",
+    hotelId: "ice-hotel"
   },
   "clouds": {
     id: "clouds",
@@ -100,9 +108,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "lightning",
     icon: "bolt",
     color: "secondary",
-    bgImage: "world-clouds.jpg",
+    bgImage: "world-clouds.webp",
     templeId: "sky-temple",
-    shopId: "cloud-market"
+    shopId: "cloud-market",
+    hotelId: "clouds-hotel"
   },
   "moon": {
     id: "moon",
@@ -111,9 +120,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "shadow",
     icon: "moon",
     color: "dark",
-    bgImage: "world-moon.jpg",
+    bgImage: "world-moon.webp",
     templeId: "moon-temple", // Note: shares with swamps in current config
-    shopId: "theia-city"
+    shopId: "theia-city",
+    hotelId: "moon-hotel"
   },
   "hometown": {
     id: "hometown",
@@ -122,9 +132,10 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "neutral",
     icon: "archway",
     color: "rpg",
-    bgImage: "hometown.jpg",
+    bgImage: "hometown.webp",
     templeId: "",
-    shopId: "hometown-market"
+    shopId: "hometown-market",
+    hotelId: "hometown-hotel"
   }
 };
 
@@ -138,15 +149,20 @@ export const getWorldMetadata = (worldId: string): WorldMetadata => {
     element: "none",
     icon: "question",
     color: "medium",
-    bgImage: "world-map.jpg",
+    bgImage: "world-map.webp",
     templeId: "",
-    shopId: ""
+    shopId: "",
+    hotelId: ""
   };
 };
 
 export const getAllWorlds = (): WorldMetadata[] => {
   return Object.values(WORLD_METADATA);
 };
+
+/** The Ionic colour a world's screens wear (its shop's bars, its clerk); a shop with no world of its own gets purple. */
+export const worldColor = (worldId: string | null | undefined): string =>
+  WORLD_METADATA[worldId ?? ""]?.color || "secondary";
 
 export const getWorldByShopId = (shopId: string): WorldMetadata | undefined => {
   return Object.values(WORLD_METADATA).find(w => w.shopId === shopId);

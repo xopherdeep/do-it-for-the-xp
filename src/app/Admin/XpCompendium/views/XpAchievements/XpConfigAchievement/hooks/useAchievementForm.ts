@@ -1,6 +1,6 @@
 import { ref, computed, watch, InjectionKey } from "vue";
 import { useRouter } from "vue-router";
-import { alertController, toastController, modalController } from "@ionic/vue";
+import { toastController, modalController } from "@ionic/vue";
 import { debounce } from "lodash";
 
 import AchievementDb, {
@@ -14,7 +14,7 @@ import AchievementDb, {
 import BestiaryDb, { Beast, beastStorage } from "@/lib/databases/BestiaryDb";
 import ProfileDb from "@/lib/databases/ProfileDb";
 import User from "@/lib/utils/User";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
 import appConfig from "@/app.config";
 import {
@@ -25,14 +25,43 @@ import {
 } from "@/constants";
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
 import { formatQuestName } from "@/lib/utils/format";
+import debug from "@/lib/utils/debug";
+import { withoutEmptyTimes } from "./timesOfDayEditor";
+import { useProStore } from "@/lib/store/stores/pro";
+import { withoutUnsetMinutes } from "@/lib/services/quests/questFormRules";
+import { useQuestEffort, useQuestTier } from "./useQuestEffort";
+import { useBeastSuggestion } from "./useBeastSuggestion";
+import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
   const nameB = b.name.toLowerCase();
-  if (nameA < nameB) return -1;
-  if (nameA > nameB) return 1;
+  const isBefore = nameA < nameB;
+  if (isBefore) return -1;
+  const isAfter = nameA > nameB;
+  if (isAfter) return 1;
   return 0;
 };
+
+const resolveLegacyAdventureType = (hasBeast: boolean, hasSubAchievements: boolean): "beast" | "chain" | "simple" => {
+  if (hasBeast) {
+    return "beast";
+  }
+  if (hasSubAchievements) {
+    return "chain";
+  }
+  return "simple";
+};
+
+// "new" is the route placeholder for a quest that has no saved id yet
+const isSavedQuestId = (questId?: string) =>
+  Boolean(questId && questId !== "new");
+
+/** What opening a quest found: whether it was already saved, and whether it was still a draft (the wizard opens by it). */
+export interface LoadedQuest {
+  isSaved: boolean;
+  wasDraft: boolean;
+}
 
 export const AchievementFormInjectionKey: InjectionKey<
   ReturnType<typeof useAchievementForm>
@@ -52,20 +81,23 @@ export function useAchievementForm() {
 
   // State
   // State
-  const achievement = ref<Achievement>(AchievementDb.getDefault());
+  // timesOfDay starts as an empty list so the Schedule tab's chips have something to toggle;
+  // withoutEmptyTimes drops it again on save while no time is picked
+  const achievement = ref<Achievement>({ ...AchievementDb.getDefault(), timesOfDay: [] });
 
   const achievements = ref<Achievement[]>([]);
   const beasts = ref<Beast[]>([]);
   const categories = ref<AchievementCategoryInterface[]>([]);
   const users = ref<User[]>([]);
 
-  const loading = ref(false);
+  const isLoading = ref(false);
   const saving = ref(false);
+  /** What the editor's save chip says: draft = saved but hidden from heroes until the quest is complete */
+  const saveState = ref<"idle" | "saving" | "saved" | "draft" | "error">("idle");
   const isGeneratingSchedule = ref(false);
   const lastSavedState = ref("");
 
   // UI State
-  const activeSegment = ref("dashboard");
   const addCategoryModalOpen = ref(false);
   const endsModalOpen = ref(false);
   const startsModalOpen = ref(false);
@@ -95,28 +127,7 @@ export function useAchievementForm() {
   ];
   const fibonacciIndex = ref(0);
 
-  const segments = computed(() => {
-    const type = achievement.value.adventureType;
-    let typeIcon = "fa-shapes"; // valid fad icon? yes.
-
-    if (type === "beast") {
-      typeIcon = "fa-paw-claws";
-    } else if (type === "chain") {
-      typeIcon = "fa-link";
-    }
-
-    return [
-      { name: "How", icon: typeIcon, path: "quest-type" },
-      { name: "Who", icon: "fa-users", path: "heros" },
-      { name: "What", icon: "fa-cubes", path: "dashboard" },
-
-      { name: "When", icon: "fa-calendar", path: "when" },
-
-      { name: "Why", icon: "fa-hand-holding-medical", path: "points" },
-    ];
-  });
-
-  // Achievement types for bottom tab bar
+  // The three kinds of quest (step one's Normal / Beast / Chain segments are QUEST_KINDS in questConfigWizard)
   const achievementTypes = [
     {
       name: "Basic Task",
@@ -197,24 +208,28 @@ export function useAchievementForm() {
   const isDepthSelected = computed(() => !!achievement.value.adventureType);
 
   const activeBeast = computed(() => {
-    if (!achievement.value.beastId) return null;
-    return beasts.value.find((b) => b.id === achievement.value.beastId);
+    const beastId = achievement.value.beastId;
+    if (!beastId) return null;
+    return beasts.value.find((b) => b.id === beastId);
   });
 
   const beastAvatarUrl = computed(() => {
-    if (!activeBeast.value?.avatar) return null;
+    const avatar = activeBeast.value?.avatar;
+    if (!avatar) return null;
     try {
-      const pad = activeBeast.value.avatar.toString().padStart(3, "0");
-      return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url)
-        .href;
+      // webpack resolves require(); new URL("/src/...") never pointed at a bundled file
+      const pad = avatar.toString().padStart(3, "0");
+      return require(`@/assets/images/beasts/${pad}.webp`);
     } catch {
       return null;
     }
   });
 
   const subAchievements = computed(() => {
-    if (!achievement.value.subAchievementIds?.length) return [];
-    return achievement.value.subAchievementIds
+    const subAchievementIds = achievement.value.subAchievementIds ?? [];
+    const hasNoSubAchievements = subAchievementIds.length === 0;
+    if (hasNoSubAchievements) return [];
+    return subAchievementIds
       .map((id: string) => achievements.value.find((a) => a.id === id))
       .filter(Boolean);
   });
@@ -227,11 +242,15 @@ export function useAchievementForm() {
 
   const scheduleSummary = computed(() => {
     const a = achievement.value;
-    if (a.basicSchedule === "once") return "One-time";
-    if (a.basicSchedule === "daily") return "Daily";
-    if (a.basicSchedule === "weekly") {
+    const isOnce = a.basicSchedule === "once";
+    if (isOnce) return "One-time";
+    const isDaily = a.basicSchedule === "daily";
+    if (isDaily) return "Daily";
+    const isWeekly = a.basicSchedule === "weekly";
+    if (isWeekly) {
       const days = a.repeatOnDays || [];
-      if (days.length === 0) return "Weekly";
+      const hasNoDays = days.length === 0;
+      if (hasNoDays) return "Weekly";
 
       const getLocalAbbreviation = (dayValue: string) => {
         const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -247,7 +266,9 @@ export function useAchievementForm() {
 
       return `Weekly\n${activeDays}`;
     }
-    if (a.basicSchedule === "custom" || a.scheduleType === "custom") {
+    const isCustomSchedule =
+      a.basicSchedule === "custom" || a.scheduleType === "custom";
+    if (isCustomSchedule) {
       return `${a.customFrequency}x Every ${a.customPeriodNumber} ${
         a.customPeriodType
       }${a.customPeriodNumber > 1 ? "s" : ""}`;
@@ -264,19 +285,22 @@ export function useAchievementForm() {
   });
 
   const scheduleTagline = computed(() => {
-    if (achievement.value.basicSchedule === "once")
+    const isOnce = achievement.value.basicSchedule === "once";
+    if (isOnce)
       return "A one-time adventure.";
     return "The quest board refreshes on this rotation.";
   });
 
   // Toggle hero function
   const toggleHero = (userId: string) => {
-    if (achievement.value.type === "asNeeded") return;
+    const isOpenBounty = achievement.value.type === "asNeeded";
+    if (isOpenBounty) return;
 
     const assignees = achievement.value.assignee || [];
     const index = assignees.indexOf(userId);
 
-    if (index > -1) {
+    const isAssigned = index > -1;
+    if (isAssigned) {
       achievement.value.assignee = assignees.filter(
         (id: string) => id !== userId
       );
@@ -291,8 +315,10 @@ export function useAchievementForm() {
     return [...users.value].sort((a, b) => {
       const aActive = assignees.includes(a.id);
       const bActive = assignees.includes(b.id);
-      if (aActive && !bActive) return -1;
-      if (!aActive && bActive) return 1;
+      const isOnlyFirstAssigned = aActive && !bActive;
+      if (isOnlyFirstAssigned) return -1;
+      const isOnlySecondAssigned = !aActive && bActive;
+      if (isOnlySecondAssigned) return 1;
       return a.name.first.localeCompare(b.name.first);
     });
   });
@@ -301,17 +327,14 @@ export function useAchievementForm() {
   watch(
     () => achievement.value.type,
     (newType) => {
-      if (newType === "asNeeded") {
+      const isOpenBounty = newType === "asNeeded";
+      if (isOpenBounty) {
         achievement.value.assignee = [];
-        // If currently on Heros tab, switch to Quest tab
-        if (activeSegment.value === "heros") {
-          activeSegment.value = "dashboard";
-        }
       }
     }
   );
 
-  const displayFibonacciValue = (index: number) => {
+  const formatFibonacciValue = (index: number) => {
     const value = fibonacciArray[index];
     return value ? value.toString() : "0";
   };
@@ -347,14 +370,16 @@ export function useAchievementForm() {
     );
   });
 
-  const increaseDifficulty = () => {
-    if (fibonacciIndex.value < fibonacciArray.length - 1) {
+  const incrementDifficulty = () => {
+    const canIncrease = fibonacciIndex.value < fibonacciArray.length - 1;
+    if (canIncrease) {
       fibonacciIndex.value++;
     }
   };
 
-  const decreaseDifficulty = () => {
-    if (fibonacciIndex.value > 0) {
+  const decrementDifficulty = () => {
+    const canDecrease = fibonacciIndex.value > 0;
+    if (canDecrease) {
       fibonacciIndex.value--;
     }
   };
@@ -366,15 +391,19 @@ export function useAchievementForm() {
   // Section Completeness
   const isStrategyComplete = computed(() => {
     const type = achievement.value.adventureType;
-    if (type === "simple") return true;
-    if (type === "beast") return !!achievement.value.beastId;
-    if (type === "chain")
+    const isSimple = type === "simple";
+    if (isSimple) return true;
+    const isBeast = type === "beast";
+    if (isBeast) return !!achievement.value.beastId;
+    const isChain = type === "chain";
+    if (isChain)
       return (achievement.value.subAchievementIds?.length || 0) > 0;
     return false;
   });
 
   const isPartyComplete = computed(() => {
-    if (achievement.value.type === "asNeeded") return true;
+    const isOpenBounty = achievement.value.type === "asNeeded";
+    if (isOpenBounty) return true;
     return (achievement.value.assignee?.length || 0) > 0;
   });
 
@@ -393,42 +422,30 @@ export function useAchievementForm() {
     );
   });
 
-  // Validation
-  const isValidAdventure = computed(() => {
-    const a = achievement.value;
-    if (!a.achievementName?.trim()) return false;
-    if (!a.categoryId) return false;
-    if (!a.difficulty) return false;
+  // Validation: the rules are one list, shared with the wizard's steps (questConfigWizard.ts)
+  const isValidAdventure = computed(() => isQuestReady(achievement.value));
 
-    return isStrategyComplete.value && isPartyComplete.value;
+  // The How hard? step's tier chip and minutes, and the chore step's suggested beast (docs/Quest-Rooms-Spec.md section 9)
+  const effort = useQuestEffort(achievement);
+  const tier = useQuestTier(achievement);
+  const { applySuggestedBeast, resetPick, ...suggestionForTabs } = useBeastSuggestion({
+    achievement,
+    beasts,
+    bestiaryDb,
+    isLive: isValidAdventure,
   });
 
-  const getValidationMessage = () => {
-    const messages: string[] = [];
-    if (!achievement.value.achievementName?.trim())
-      messages.push("• Name your achievement");
-    if (!achievement.value.categoryId) messages.push("• Select a category");
-    if (!achievement.value.difficulty)
-      messages.push("• Set the difficulty level");
-
-    if (
-      achievement.value.adventureType === "beast" &&
-      !achievement.value.beastId
-    ) {
-      messages.push("• Choose a beast to challenge");
-    }
-    if (
-      achievement.value.adventureType === "chain" &&
-      !achievement.value.subAchievementIds?.length
-    ) {
-      messages.push("• Add achievements to your quest chain");
-    }
-    return messages.join("\n");
-  };
+  /** What the quest still needs before heroes see it, one "• line" each (the Save chip's list) */
+  const getValidationMessage = () =>
+    questMissing(achievement.value)
+      .map((line) => `• ${line}`)
+      .join("\n");
 
   // Actions
-  const loadData = async (routeId?: string) => {
-    loading.value = true;
+  const loadData = async (routeId?: string): Promise<LoadedQuest> => {
+    isLoading.value = true;
+    resetPick();
+    let loaded: LoadedQuest = { isSaved: false, wasDraft: false };
     try {
       // Update ID if provided
       if (routeId) {
@@ -436,7 +453,7 @@ export function useAchievementForm() {
       } else {
         // Fallback to route param if not set (legacy support)
         const paramId = router.currentRoute.value.params.id as string;
-        if (paramId && paramId !== "new") {
+        if (isSavedQuestId(paramId)) {
           id.value = paramId;
         }
       }
@@ -454,27 +471,26 @@ export function useAchievementForm() {
       categories.value = allCategories.sort(sortCategoryByName);
       users.value = allUsers;
 
-      if (id.value && id.value !== "new") {
+      if (isSavedQuestId(id.value)) {
         const task = await achievementDb.getTaskById(id.value);
         if (task) {
+          loaded = { isSaved: true, wasDraft: task.draft === true };
           achievement.value = { ...achievement.value, ...task };
 
           // Honor stored adventureType, or infer if legacy
-          if (!task.adventureType) {
-            const hasBeast = !!task.beastId;
-            const hasSub =
-              task.subAchievementIds && task.subAchievementIds.length > 0;
-            achievement.value.adventureType = hasBeast
-              ? "beast"
-              : hasSub
-              ? "chain"
-              : "simple";
+          const storedAdventureType = task.adventureType;
+          if (!storedAdventureType) {
+            const hasBeast = Boolean(task.beastId);
+            const hasSub = Boolean(task.subAchievementIds && task.subAchievementIds.length > 0);
+            achievement.value.adventureType = resolveLegacyAdventureType(hasBeast, hasSub);
           }
 
           // Set fib index
-          if (task.difficulty) {
-            const index = fibonacciArray.indexOf(task.difficulty);
-            if (index !== -1) fibonacciIndex.value = index;
+          const storedDifficulty = task.difficulty;
+          if (storedDifficulty) {
+            const index = fibonacciArray.indexOf(storedDifficulty);
+            const isFibonacciStep = index !== -1;
+            if (isFibonacciStep) fibonacciIndex.value = index;
           }
         } else {
           // ID provided but not found? Treat as new or use the ID for a new task?
@@ -485,63 +501,98 @@ export function useAchievementForm() {
         fibonacciIndex.value = 0;
         updatePoints();
         // Ensure ID is set on the object
-        if (id.value && id.value !== "new") achievement.value.id = id.value;
+        if (isSavedQuestId(id.value)) achievement.value.id = id.value;
       }
 
       // Store initial state for change detection
       lastSavedState.value = JSON.stringify(achievement.value);
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
+    return loaded;
   };
 
-  // Debounced Autosave
-  const autosave = debounce(async () => {
-    const currentState = JSON.stringify(achievement.value);
-    if (currentState === lastSavedState.value) return;
+  /** What goes to storage: no empty times of day, no unusable minutes */
+  const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
 
-    // Auto-save regardless of validity? Or only valid?
-    // Let's save as draft if we can, but since DB structure is simple,
-    // maybe we just save it.
-    // User requested "form needs to be saved or autosave".
+  // Debounced Autosave. An incomplete quest is saved as a draft, which heroes never see
+  // (QuestEngine.filterQuests); it goes live by itself the moment it is complete.
+  const autosave = debounce(async () => {
+    const isUnchanged = JSON.stringify(achievement.value) === lastSavedState.value;
+    if (isUnchanged) return;
+    // A quest without a name has nothing worth keeping yet
+    const trimmedName = achievement.value.achievementName?.trim();
+    if (!trimmedName) {
+      saveState.value = "draft";
+      return;
+    }
 
     saving.value = true;
+    saveState.value = "saving";
     try {
       achievement.value.achievementName = formatQuestName(
         achievement.value.achievementName
       );
-      await achievementDb.setTask(achievement.value);
-      lastSavedState.value = currentState;
-      // Optional: show subtle indicator
-    } catch {
-      // Autosave failed - silently ignore or handle error
+      achievement.value.draft = !isValidAdventure.value;
+      await applySuggestedBeast();
+      await achievementDb.setTask(questForStorage());
+      // Taken after the edits above, so they don't trigger another save
+      lastSavedState.value = JSON.stringify(achievement.value);
+      saveState.value = achievement.value.draft ? "draft" : "saved";
+    } catch (error) {
+      debug.error("Quest autosave failed:", error);
+      saveState.value = "error";
     } finally {
       saving.value = false;
     }
   }, 2000); // 2 second debounce
 
-  const saveManual = async () => {
-    if (!isValidAdventure.value) {
-      const alert = await alertController.create({
-        header: "Incomplete Adventure",
-        message: getValidationMessage(),
-        buttons: ["OK"],
-      });
-      await alert.present();
-      return;
-    }
+  /** Save now (the chip's retry after a failed save) */
+  const saveNow = async () => {
+    lastSavedState.value = "";
+    autosave();
+    await autosave.flush();
+  };
 
-    achievement.value.achievementName = formatQuestName(
-      achievement.value.achievementName
-    );
-    await achievementDb.setTask(achievement.value);
-    const toast = await toastController.create({
-      message: "Achievement Saved!",
-      duration: 2000,
-      color: "success",
-    });
-    await toast.present();
-    router.go(-1);
+  /** Quests per category id, so a category that is still in use can't be deleted */
+  const categoryQuestCounts = computed(() =>
+    achievements.value.reduce((counts, quest) => {
+      const categoryId = quest.categoryId;
+      if (categoryId) counts[categoryId] = (counts[categoryId] || 0) + 1;
+      return counts;
+    }, {} as Record<string, number>)
+  );
+
+  /** Save the pending edit now (leaving the page before the 2 second timer runs) */
+  const savePending = async () => {
+    await autosave.flush();
+  };
+
+  /**
+   * The last step's verb: the quest is complete, so mark it Ready (no longer a draft) and save it for good. Returns
+   * false, saving nothing, while it is not complete; the wizard keeps the verb shut until then. The page says "Ready".
+   */
+  const confirmReady = async (): Promise<boolean> => {
+    if (!isValidAdventure.value) return false;
+    saving.value = true;
+    saveState.value = "saving";
+    try {
+      achievement.value.achievementName = formatQuestName(
+        achievement.value.achievementName
+      );
+      achievement.value.draft = false;
+      await applySuggestedBeast();
+      await achievementDb.setTask(questForStorage());
+      lastSavedState.value = JSON.stringify(achievement.value);
+      saveState.value = "saved";
+      return true;
+    } catch (error) {
+      debug.error("Quest could not be marked Ready:", error);
+      saveState.value = "error";
+      return false;
+    } finally {
+      saving.value = false;
+    }
   };
 
   // Watchers
@@ -554,10 +605,13 @@ export function useAchievementForm() {
   );
 
   watch(fibonacciIndex, (newIndex) => {
-    if (newIndex >= 0 && newIndex < fibonacciArray.length) {
+    const isValidDifficultyStep =
+      newIndex >= 0 && newIndex < fibonacciArray.length;
+    if (isValidDifficultyStep) {
       const targetDiff = fibonacciArray[newIndex];
       // Only update if changed prevents loop
-      if (achievement.value.difficulty !== targetDiff) {
+      const isDifficultyChanged = achievement.value.difficulty !== targetDiff;
+      if (isDifficultyChanged) {
         achievement.value.difficulty = targetDiff;
         updatePoints();
       }
@@ -582,11 +636,14 @@ export function useAchievementForm() {
     categories,
     users,
     id,
-    loading,
+    isLoading,
     saving,
+    saveState,
+    saveNow,
+    categoryQuestCounts,
+    getValidationMessage,
 
     // UI
-    activeSegment,
     adventureType: computed({
       get: () => achievement.value.adventureType,
       set: (val) => (achievement.value.adventureType = val),
@@ -598,8 +655,10 @@ export function useAchievementForm() {
     fibonacciIndex,
     fibonacciArray,
     fibonacciDescriptions,
-    displayFibonacciValue,
-    segments,
+    formatFibonacciValue,
+    ...effort,
+    ...tier,
+    ...suggestionForTabs,
     achievementTypes,
     assignmentTypes,
     toggleHero,
@@ -662,10 +721,11 @@ export function useAchievementForm() {
 
     // Actions
     loadData,
-    saveManual,
+    confirmReady,
+    savePending,
     updatePoints,
-    increaseDifficulty,
-    decreaseDifficulty,
+    incrementDifficulty,
+    decrementDifficulty,
     handleDifficultyChange,
     toggleApproval,
     toggleBonus,
@@ -674,7 +734,9 @@ export function useAchievementForm() {
       // Flush autosave to ensure current state is persisted before navigation
       autosave.flush();
 
-      if (achievement.value.adventureType === "beast") {
+      const isBeastQuest = achievement.value.adventureType === "beast";
+      const isChainQuest = achievement.value.adventureType === "chain";
+      if (isBeastQuest) {
         const selectionStore = useBestiarySelectionStore();
         selectionStore.startSelection(
           achievement.value.beastId ? [achievement.value.beastId] : [],
@@ -682,11 +744,11 @@ export function useAchievementForm() {
           (ids) => {
             achievement.value.beastId = ids[0] || "";
             // Immediately save when a beast is selected to prevent loss during route transitions
-            achievementDb.setTask(achievement.value);
+            achievementDb.setTask(questForStorage());
           }
         );
         router.push({ name: "xp-bestiary-select" });
-      } else if (achievement.value.adventureType === "chain") {
+      } else if (isChainQuest) {
         // For chains, we still use the reorder modal or a similar mechanism
         // But the user might want a separate selection flow later.
         // For now, let's just trigger the reorder if they have items,
@@ -712,13 +774,26 @@ export function useAchievementForm() {
     showBonusModal,
 
     // Category Actions
-    addCategory: async (cat: any) => {
-      await categoryDb.setCategory(cat);
+    /** Tapping a category in the modal files the quest under it */
+    selectCategory: (cat: AchievementCategoryInterface) => {
+      achievement.value.categoryId = cat.id;
+    },
+    /** A typed name that is already a category (any case or spacing) is picked, never added a second time */
+    addCategory: async (cat: AchievementCategoryInterface) => {
+      const existing = findCategory(categories.value, cat.name);
+      if (existing) {
+        achievement.value.categoryId = existing.id;
+        return;
+      }
+      await categoryDb.setCategory({ ...cat, name: cleanCategoryName(cat.name) });
       const all = await categoryDb.getAll();
       categories.value = all.sort(sortCategoryByName);
       achievement.value.categoryId = cat.id;
     },
     deleteCategory: async (cat: any) => {
+      // The category modal refuses this already; never leave a quest pointing at a deleted category
+      const questCount = categoryQuestCounts.value[cat.id];
+      if (questCount) return;
       await categoryDb.remove(cat.id);
       const all = await categoryDb.getAll();
       categories.value = all.sort(sortCategoryByName);
@@ -733,7 +808,7 @@ export function useAchievementForm() {
     dismissModal: () => {
       modalController.dismiss();
     },
-    clickReorder: async () => {
+    openReorder: async () => {
       const achievementChain = (achievement.value.subAchievementIds || [])
         .map((id: string) => achievements.value.find((a) => a.id === id))
         .filter(Boolean);
@@ -754,25 +829,20 @@ export function useAchievementForm() {
 
     // AI Scheduler
     isGeneratingSchedule,
-    generateScheduleWithAI: async () => {
+    createScheduleWithAI: async () => {
       // Lazy import to avoid circular dependency issues if any, or just standard import usage
       const { generateSchedule, isGeminiConfigured } = await import(
         "@/lib/services/ai/GeminiService"
       );
 
       if (!isGeminiConfigured()) {
-        const toast = await toastController.create({
-          message:
-            "AI not configured. Add VUE_APP_GEMINI_API_KEY to your .env file.",
-          duration: 3000,
-          color: "warning",
-          position: "top",
-        });
-        await toast.present();
+        // AI helpers are XP Pro: show the upsell instead of a "not configured" message
+        await useProStore().requirePro("aiHelpers");
         return;
       }
 
-      if (!achievement.value.achievementName) {
+      const questName = achievement.value.achievementName;
+      if (!questName) {
         const toast = await toastController.create({
           message: "Please name your quest first!",
           duration: 2000,
@@ -787,14 +857,17 @@ export function useAchievementForm() {
       let beastName;
       let checklist: string[] = [];
 
+      const isChallengingBeast =
+        achievement.value.adventureType === "beast" && activeBeast.value;
+      const isChainQuest = achievement.value.adventureType === "chain";
       // If Beast
-      if (achievement.value.adventureType === "beast" && activeBeast.value) {
+      if (isChallengingBeast) {
         beastName = activeBeast.value.name;
         checklist = activeBeast.value.checklist || [];
       }
 
       // If Chain
-      else if (achievement.value.adventureType === "chain") {
+      else if (isChainQuest) {
         checklist = subAchievements.value
           .map((s) => s?.achievementName) // Safe access
           .filter((name): name is string => !!name);
@@ -808,12 +881,15 @@ export function useAchievementForm() {
           checklist,
         });
 
-        if (result.success && result.scheduleType) {
+        const scheduleType = result.scheduleType;
+        const hasSuggestion = result.success && !!scheduleType;
+        if (hasSuggestion) {
           // Reset relevant fields
           achievement.value.customFrequency = 1;
           achievement.value.customPeriodNumber = 1;
 
-          if (result.scheduleType === "custom") {
+          const isCustom = scheduleType === "custom";
+          if (isCustom) {
             achievement.value.basicSchedule = "custom";
             achievement.value.scheduleType = "custom";
             achievement.value.customFrequency = result.frequency || 1;
@@ -821,21 +897,21 @@ export function useAchievementForm() {
             achievement.value.customPeriodType = result.periodType || "week";
           } else {
             // Basic types (daily, weekly, once)
-            achievement.value.basicSchedule = result.scheduleType;
+            achievement.value.basicSchedule = scheduleType;
             achievement.value.scheduleType = "basic";
 
             // Map frequency if provided (e.g. 2 times daily)
-            if (result.frequency && result.frequency > 1) {
-              achievement.value.customFrequency = result.frequency;
+            const frequency = result.frequency;
+            const isRepeated = !!frequency && frequency > 1;
+            if (isRepeated) {
+              achievement.value.customFrequency = frequency;
             }
 
             // Map days for weekly
-            if (
-              result.scheduleType === "weekly" &&
-              result.days &&
-              result.days.length > 0
-            ) {
-              achievement.value.repeatOnDays = result.days;
+            const days = result.days;
+            const hasWeeklyDays = scheduleType === "weekly" && !!days && days.length > 0;
+            if (hasWeeklyDays) {
+              achievement.value.repeatOnDays = days;
             }
           }
 

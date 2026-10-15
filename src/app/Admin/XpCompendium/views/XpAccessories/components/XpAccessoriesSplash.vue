@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <i class="fad fa-2x fa-shopping-basket" slot="start" />
         <ion-title> Shops & Accessories </ion-title>
@@ -79,7 +79,8 @@
   import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-  const requireBg = require.context("@/assets/images/backgrounds/");
+  // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
+  const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
   export default defineComponent({
     name: "XpAccessoriesSplash",
@@ -110,14 +111,14 @@
 
       const getBgImage = (world: string) => {
         try {
-          return requireBg(`./world-${world}.jpg`);
+          return requireBg(`./world-${world}.webp`);
         } catch (error) {
-          debug.warn(`Could not load world-${world}.jpg`, error);
+          debug.warn(`Could not load world-${world}.webp`, error);
           try {
-            return requireBg("./world-map.jpg");
+            return requireBg("./world-map.webp");
           } catch (error) {
-            debug.warn("Could not load world-map.jpg fallback", error);
-            return requireBg("./hometown.jpg");
+            debug.warn("Could not load world-map.webp fallback", error);
+            return requireBg("./hometown.webp");
           }
         }
       };

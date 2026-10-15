@@ -31,4 +31,9 @@
     --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity:.7 
   }
+  &bed {
+    --fa-primary-color: var(--xp-color-blue);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.8;
+  }
 }

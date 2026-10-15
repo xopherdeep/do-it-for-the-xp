@@ -1,5 +1,5 @@
 <template>
-  <xp-rpg-page title="Economy" headerIcon="fa-hand-holding-box" backButtonHref="/game-master/compendium"
+  <xp-rpg-page title="Economy" headerIcon="fa-hand-holding-box"
     class="xp-economy-dashboard" :hideHeader="true">
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
@@ -26,6 +26,13 @@
         </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
+
+    <!-- New Shop / New Item, like the other Compendium sections' centre button -->
+    <ion-fab slot="fixed" vertical="bottom" horizontal="center" class="economy-fab">
+      <ion-fab-button color="rpg" aria-label="New shop or item" title="New shop or item" @click="presentActionSheet">
+        <i class="fad fa-hand-holding-box fa-2x" />
+      </ion-fab-button>
+    </ion-fab>
   </xp-rpg-page>
 </template>
 

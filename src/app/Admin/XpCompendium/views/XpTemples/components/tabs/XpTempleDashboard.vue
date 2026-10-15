@@ -109,9 +109,9 @@ import { IonPage, IonContent, IonButton } from "@ionic/vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
 import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
-import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
+import { TEMPLE_METADATA, metadataFor, metadataForAsync, type TempleMetadata } from "@/lib/engine/temples/templeRegistry";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
-import { inject } from "vue";
+import { inject, ref, watch } from "vue";
 
 export default defineComponent({
   name: "XpTempleDashboard",
@@ -144,8 +144,20 @@ export default defineComponent({
     // We could add an onIonViewWillEnter to refresh if needed, 
     // but the parent's useTempleData already handles it on mount.
 
+    // A generated temple (gen-<slug>) is resolved from the TempleDb; registry temples are known at once
+    const resolvedMetadata = ref<TempleMetadata | undefined>(metadataFor(props.templeId));
+    watch(() => props.templeId, (id) => {
+      resolvedMetadata.value = metadataFor(id);
+      const isGenerated = id.startsWith('gen-');
+      if (!isGenerated) return;
+      void metadataForAsync(id).then((meta) => {
+        const isStillShown = id === props.templeId;
+        if (isStillShown) resolvedMetadata.value = meta;
+      });
+    }, { immediate: true });
+
     const templeMetadata = computed(() => {
-      return TEMPLE_METADATA[props.templeId] || {
+      return resolvedMetadata.value || {
         ...TEMPLE_METADATA['wind-temple'],
         name: props.templeId,
         id: props.templeId,
@@ -154,12 +166,14 @@ export default defineComponent({
     });
 
     const templeName = computed(() => {
-      if (templeData.value?.customName) return templeData.value.customName;
+      const customName = templeData.value?.customName;
+      if (customName) return customName;
       return templeMetadata.value.name;
     });
 
     const templeDescription = computed(() => {
-      if (templeData.value?.customDescription) return templeData.value.customDescription;
+      const customDescription = templeData.value?.customDescription;
+      if (customDescription) return customDescription;
       return templeMetadata.value.description;
     });
 

@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Dialog System Demo</ion-title>
       </ion-toolbar>
@@ -45,7 +45,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import XpDialog from '@/components/molecules/Dialog/XpDialog.vue';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonButtons, IonBackButton } from '@ionic/vue';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonButtons } from '@ionic/vue';
 import debug from '@/lib/utils/debug';
 
 export default defineComponent({
@@ -62,8 +62,7 @@ export default defineComponent({
     IonCardTitle,
     IonCardContent,
     IonButton,
-    IonButtons,
-    IonBackButton
+    IonButtons
   },
   setup() {
     const dialog = ref<InstanceType<typeof XpDialog> | null>(null);

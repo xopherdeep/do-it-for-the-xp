@@ -4,8 +4,28 @@ import { BackgroundLayer, Engine } from "earthbound-battle-backgrounds";
 // Define constants for valid background range
 const MIN_BG_INDEX = 0;
 const MAX_BG_INDEX = 325; // Based on the library's available backgrounds
+/** The SNES frame the earthbound-battle-backgrounds engine renders; CSS scales it to the page. */
+const ENGINE_FRAME_WIDTH = 256;
+const ENGINE_FRAME_HEIGHT = 224;
 const DEFAULT_BG1 = 219; // Default background 1 (Starman Junior)
 const DEFAULT_BG2 = 218; // Default background 2
+
+interface BackgroundInitOptions {
+  canvasSelector?: string;
+  canvasElement?: HTMLCanvasElement;
+  bg1?: number;
+  bg2?: number;
+  aspectRatio?: number;
+  handleResize?: boolean;
+  page?: string; // Identifier for the page/component using this background
+}
+
+interface BackgroundUpdateOptions {
+  bg1?: number;
+  bg2?: number;
+  aspectRatio?: number;
+  page?: string;
+}
 
 /**
  * BackgroundManager
@@ -35,7 +55,8 @@ class BackgroundManager {
    * Get the singleton instance
    */
   public static getInstance(): BackgroundManager {
-    if (!BackgroundManager.instance) {
+    const hasInstance = Boolean(BackgroundManager.instance);
+    if (!hasInstance) {
       BackgroundManager.instance = new BackgroundManager();
     }
     return BackgroundManager.instance;
@@ -49,8 +70,9 @@ class BackgroundManager {
    */
   private validateBackgroundIndex(index: number | undefined, defaultValue: number): number {
     // Check if index is a number and within valid range
-    if (typeof index === 'number' && !isNaN(index) &&
-      index >= MIN_BG_INDEX && index <= MAX_BG_INDEX) {
+    const isValidIndex = typeof index === 'number' && !isNaN(index) &&
+      index >= MIN_BG_INDEX && index <= MAX_BG_INDEX;
+    if (isValidIndex) {
       return index;
     }
 
@@ -64,45 +86,43 @@ class BackgroundManager {
    * @param options Configuration options
    * @returns boolean indicating success
    */
-  public initBackground(options: {
-    canvasSelector?: string;
-    canvasElement?: HTMLCanvasElement;
-    bg1?: number;
-    bg2?: number;
-    aspectRatio?: number;
-    handleResize?: boolean;
-    page?: string; // Identifier for the page/component using this background
-  } = {}): boolean {
+  public initBackground(options: BackgroundInitOptions = {}): boolean {
     // Clean up any existing background first
     this.cleanupBackground();
 
     // Get canvas element either from selector or direct element reference
-    if (options.canvasElement) {
-      this.canvasElement = options.canvasElement;
-    } else if (options.canvasSelector) {
-      const el = document.querySelector(options.canvasSelector);
-      if (el && el instanceof HTMLCanvasElement) {
+    const { canvasElement, canvasSelector } = options;
+    if (canvasElement) {
+      this.canvasElement = canvasElement;
+    } else if (canvasSelector) {
+      const el = document.querySelector(canvasSelector);
+      const isCanvasElement = el && el instanceof HTMLCanvasElement;
+      if (isCanvasElement) {
         this.canvasElement = el;
       }
     } else {
       // Default to .battle-bg if no selector provided
       const el = document.querySelector(".battle-bg");
-      if (el && el instanceof HTMLCanvasElement) {
+      const isCanvasElement = el && el instanceof HTMLCanvasElement;
+      if (isCanvasElement) {
         this.canvasElement = el;
       }
     }
 
     // Exit if we don't have a valid canvas
-    if (!this.canvasElement) {
+    const canvas = this.canvasElement;
+    if (!canvas) {
       debug.error("BackgroundManager: No canvas element found");
       return false;
     }
 
     // Track active page if provided
-    if (options.page) {
-      this.activePage = options.page;
+    const page = options.page;
+    if (page) {
+      this.activePage = page;
     }
 
+    const shouldHandleResize = options.handleResize;
     try {
       // Update background settings with validation
       this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
@@ -116,12 +136,13 @@ class BackgroundManager {
       // Create animation engine
       this.backgroundEngine = new Engine([layer1, layer2], {
         aspectRatio: this.aspectRatio,
-        canvas: this.canvasElement,
+        canvas,
       });
 
       // Restore tick state if we have a preserved one and we're likely using the same/similar background
       // Note: We might want to check if bg1/bg2 changed significantly, but usually continuing is smoother.
-      if (this.lastTick > 0) {
+      const hasPreservedTick = this.lastTick > 0;
+      if (hasPreservedTick) {
         (this.backgroundEngine as any).tick = this.lastTick;
       }
 
@@ -129,7 +150,7 @@ class BackgroundManager {
       this.backgroundEngine.animate();
 
       // Set up resize handler if requested
-      if (options.handleResize) {
+      if (shouldHandleResize) {
         this.setupResizeHandler();
       }
 
@@ -147,12 +168,12 @@ class BackgroundManager {
 
         this.backgroundEngine = new Engine([layer1, layer2], {
           aspectRatio: this.aspectRatio,
-          canvas: this.canvasElement,
+          canvas,
         });
 
         this.backgroundEngine.animate();
 
-        if (options.handleResize) {
+        if (shouldHandleResize) {
           this.setupResizeHandler();
         }
 
@@ -169,19 +190,22 @@ class BackgroundManager {
    */
   public cleanupBackground(): void {
     // Stop the animation engine if it exists
-    if (this.backgroundEngine) {
+    const engine = this.backgroundEngine;
+    if (engine) {
       // Capture current tick before stopping/destroying
-      this.lastTick = (this.backgroundEngine as any).tick || 0;
+      this.lastTick = (engine as any).tick || 0;
 
-      if (typeof this.backgroundEngine.stop === 'function') {
-        this.backgroundEngine.stop();
+      const canStop = typeof engine.stop === 'function';
+      if (canStop) {
+        engine.stop();
       }
       this.backgroundEngine = null;
     }
 
     // Remove resize listener if it exists
-    if (this.resizeListener) {
-      window.removeEventListener('resize', this.resizeListener);
+    const listener = this.resizeListener;
+    if (listener) {
+      window.removeEventListener('resize', listener);
       this.resizeListener = null;
     }
 
@@ -198,23 +222,23 @@ class BackgroundManager {
    * @param options New background options
    * @returns boolean indicating success
    */
-  public updateBackground(options: {
-    bg1?: number;
-    bg2?: number;
-    aspectRatio?: number;
-    page?: string;
-  } = {}): boolean {
+  public updateBackground(options: BackgroundUpdateOptions = {}): boolean {
     // Update the settings with validation
-    if (options.bg1 !== undefined) this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
-    if (options.bg2 !== undefined) this.bg2 = this.validateBackgroundIndex(options.bg2, this.bg2);
-    if (options.aspectRatio !== undefined) this.aspectRatio = options.aspectRatio;
-    if (options.page) this.activePage = options.page;
+    const { bg1, bg2, aspectRatio, page } = options;
+    const hasBg1 = bg1 !== undefined;
+    if (hasBg1) this.bg1 = this.validateBackgroundIndex(bg1, this.bg1);
+    const hasBg2 = bg2 !== undefined;
+    if (hasBg2) this.bg2 = this.validateBackgroundIndex(bg2, this.bg2);
+    const hasAspectRatio = aspectRatio !== undefined;
+    if (hasAspectRatio) this.aspectRatio = aspectRatio;
+    if (page) this.activePage = page;
 
     // If we have an active canvas, reinitialize the background with new settings
-    if (this.canvasElement) {
+    const canvas = this.canvasElement;
+    if (canvas) {
       const handleResize = !!this.resizeListener;
       return this.initBackground({
-        canvasElement: this.canvasElement,
+        canvasElement: canvas,
         bg1: this.bg1,
         bg2: this.bg2,
         aspectRatio: this.aspectRatio,
@@ -252,9 +276,7 @@ class BackgroundManager {
    */
   public setAspectRatio(aspectRatio: number): void {
     this.aspectRatio = aspectRatio;
-    if (this.backgroundEngine) {
-      this.backgroundEngine.setAspectRatio(aspectRatio);
-    }
+    this.backgroundEngine?.setAspectRatio(aspectRatio);
   }
 
   /**
@@ -268,7 +290,8 @@ class BackgroundManager {
   public animateAspectRatio(targetAspectRatio: number, duration: number = 1500, callback?: () => void): Promise<void> {
     return new Promise<void>((resolve) => {
       // If no background engine is active, just resolve immediately
-      if (!this.backgroundEngine) {
+      const hasEngine = Boolean(this.backgroundEngine);
+      if (!hasEngine) {
         if (callback) callback();
         resolve();
         return;
@@ -297,7 +320,8 @@ class BackgroundManager {
         this.backgroundEngine.aspectRatio = currentValue;
 
         // Continue animation if not complete
-        if (progress < 1) {
+        const isAnimating = progress < 1;
+        if (isAnimating) {
           requestAnimationFrame(animate);
         } else {
           // Animation complete
@@ -336,11 +360,14 @@ class BackgroundManager {
       }
 
       timeout = setTimeout(() => {
-        if (this.canvasElement && this.backgroundEngine) {
-          // Update canvas dimensions
-          this.canvasElement.width = window.innerWidth;
-          this.canvasElement.height = window.innerHeight;
-          // The engine will adapt automatically to the new canvas size
+        const canvas = this.canvasElement;
+        const isEngineDrawing = canvas && this.backgroundEngine;
+        if (isEngineDrawing) {
+          // The engine paints a fixed 256x224 SNES frame and CSS stretches the canvas to the page, so
+          // the backing store must keep the engine's size. Resizing it to the window used to leave the
+          // frame in the top-left corner and the rest of the arena black after any resize event.
+          canvas.width = ENGINE_FRAME_WIDTH;
+          canvas.height = ENGINE_FRAME_HEIGHT;
         }
       }, 250);
     };
@@ -382,7 +409,8 @@ class BackgroundManager {
   public clearState(id: string): void {
     this.stateRegistry.delete(id);
     const pooledEngine = this.enginePool.get(id);
-    if (pooledEngine && typeof pooledEngine.stop === 'function') {
+    const isStoppable = pooledEngine && typeof pooledEngine.stop === 'function';
+    if (isStoppable) {
       pooledEngine.stop();
     }
     this.enginePool.delete(id);
@@ -399,10 +427,12 @@ class BackgroundManager {
       this.enginePool.set(id, engine);
     } else {
       // Update canvas and other properties if they differ
-      if (options.canvas && (engine as any).canvas !== options.canvas) {
+      const hasNewCanvas = options.canvas && (engine as any).canvas !== options.canvas;
+      if (hasNewCanvas) {
         (engine as any).canvas = options.canvas;
       }
-      if (options.aspectRatio !== undefined) {
+      const hasAspectRatio = options.aspectRatio !== undefined;
+      if (hasAspectRatio) {
         (engine as any).aspectRatio = options.aspectRatio;
       }
     }

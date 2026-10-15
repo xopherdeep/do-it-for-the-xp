@@ -1,105 +1,69 @@
 <template>
-  <ion-page>
+  <ion-page :class="rootClass" :style="rootStyle">
     <ion-header>
-      <ion-toolbar class="rpg-box">
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}my-home`"></ion-back-button>
-          <!-- <ion-icon :icon="fastFoodOutline" slot="icon-only" /> -->
-          <!-- Using FontAwesome icon -->
-          <i class="fad fa-utensils-alt fa-lg" />
-        </ion-buttons>
-        <ion-title> My Kitchen </ion-title>
+      <ion-toolbar>
+        <xp-app-header title="Kitchen" icon="utensils-alt" :meta="foodsMeta">
+          <template #start>
+            <xp-back-button />
+          </template>
+        </xp-app-header>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-foods">
-      <ion-item lines="full">
-        <ion-label> Category </ion-label>
-        <ion-select
-          @ionChange="selectCategory"
-          :value="selectedCategory"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="Select One"
+      <!-- The pantry as grouped list rows, one section per kind of food -->
+      <xp-app-section v-for="section in foodSections" :key="section.id" :label="section.label">
+        <xp-app-row
+          v-for="food in section.foods"
+          :key="food.id"
+          :title="food.name"
+          :subtitle="food.description"
+          :icon="foodIcon(food)"
+          :chevron="false"
         >
-          <ion-select-option value="all"> All Foods </ion-select-option>
-          <ion-select-option value="favorites"> Favorites </ion-select-option>
-          <ion-select-option value="meal"> Meals </ion-select-option>
-          <ion-select-option value="snack"> Snacks </ion-select-option>
-          <ion-select-option value="dessert"> Desserts </ion-select-option>
-          <ion-select-option value="ingredient"> Ingredients </ion-select-option>
-        </ion-select>
-      </ion-item>
+          <template #chips>
+            <xp-app-chip kind="tag" :value="categoryLabel(food.category)" />
+          </template>
+          <!-- The hero's favourite food from their profile wears the star -->
+          <template #trailing>
+            <i v-if="isFavorite(food)" class="fad fa-star food-star" title="Your favorite" />
+          </template>
+        </xp-app-row>
+      </xp-app-section>
 
-      <!-- Display Filtered Foods -->
-      <ion-grid>
-        <ion-row>
-          <!-- Message if no foods match filters -->
-           <ion-col size="12" v-if="!filteredFoods.length" class="ion-text-center ion-padding-top">
-             <ion-text color="medium">
-               <p>No food items found matching your criteria.</p>
-               <p v-if="selectedCategory === 'favorites' && !userFavoriteFood">You haven't set a favorite food in your profile!</p>
-             </ion-text>
-           </ion-col>
+      <!-- Message if no foods match filters -->
+      <xp-app-empty v-if="!filteredFoods.length" icon="utensils-alt" :text="emptyText" />
 
-          <!-- Food Item Cards -->
-          <ion-col
-            size="6"
-            v-for="food in filteredFoods"
-            :key="food.id"
-            class="ion-no-padding"
-          >
-            <ion-card class="item ion-no-padding">
-              <ion-card-header class="ion-no-padding ion-padding-horizontal ion-padding-top">
-                 <!-- Use food.name directly -->
-                <ion-card-subtitle>{{ food.name }}</ion-card-subtitle>
-                <!-- Optional: Add title if needed -->
-                <!-- <ion-card-title>{{ food.name }}</ion-card-title> -->
-              </ion-card-header>
-               <!-- Use standard img tag with src -->
-              <ion-img :src="getFoodImageUrl(food.imageUrl)" :alt="food.name"></ion-img>
-
-              <ion-card-content class="ion-padding-horizontal ion-padding-bottom">
-                 <!-- Display food description or other details -->
-                 <p class="ion-text-wrap ion-font-size-small">{{ food.description }}</p>
-                 <!-- Example Badges (replace with actual data/logic if needed) -->
-                <!-- <ion-badge color="primary" class="ion-margin-end">
-                  {{ food.category }}
-                </ion-badge> -->
-                 <!-- Add other info like cooking time, etc. -->
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab
-        vertical="bottom"
-        horizontal="center"
-        slot="fixed"
-        @click.stop="presentActionSheet"
-      >
-        <ion-fab-button color="primary">
-           <!-- Use Ionicons or FontAwesome -->
-           <ion-icon :icon="fastFoodOutline" />
-           <!-- <i class="fad fa-utensils-alt fa-lg" /> -->
+      <!-- FAB button (the same one the town's buildings use) to open the kitchen actions -->
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button color="warning" aria-label="Kitchen actions" @click="presentActionSheet">
+          <i class="fad fa-hat-chef fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
 
-    <!-- Footer with Search Bar -->
-    <ion-footer>
-      <ion-toolbar color="secondary">
-         <ion-searchbar
-            color="light"
-            placeholder="Search Foods..."
+    <ion-footer class="foods-footer">
+      <div class="xp-app-bar">
+        <label class="xp-app-search">
+          <i class="fad fa-search" aria-hidden="true"></i>
+          <input
             v-model="searchTerm"
-            :debounce="300"
-          ></ion-searchbar>
-      </ion-toolbar>
+            type="search"
+            placeholder="Search Foods..."
+            aria-label="Search foods"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+        </label>
+      </div>
+      <xp-app-bottom-nav
+        :tabs="foodTabs"
+        v-model="selectedCategory"
+        aria-label="Kitchen Navigation"
+      />
     </ion-footer>
   </ion-page>
 </template>
 
-<script src="./MyFoods.ts" />
+<script lang="ts" src="./MyFoods.ts" />
 <style lang="scss" src="./_MyFoods.scss" scoped />

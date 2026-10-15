@@ -2,6 +2,14 @@
   --background: transparent;
   --box-shadow: none;
 
+  // The swiper is a flex item sized by its slides, which are 100% of it: Chrome settles that loop at
+  // 33,554,432px, and the card and the fab (Fight!, Magic, Goods) end up off screen
+  .swiper {
+    width: 100%;
+    // Fill the modal, so each slide's fab sits at the bottom of the screen (in thumb reach), not at the foot of the card
+    height: 100%;
+  }
+
   swiper-slides {
     height: 100%;
 
@@ -140,6 +148,20 @@
     }
   }
 
+  // Weekday chips on the quest card: dim the days the quest does not repeat on
+  .week ion-chip.off {
+    opacity: 0.35;
+  }
+
+  // Shown on the complete slide when the Game Master still has to approve the claim
+  .claim-pending {
+    ion-card-title,
+    ion-card-subtitle,
+    ion-card-content {
+      color: var(--ion-color-warning-contrast);
+    }
+  }
+
   ion-card {
     text-align: left;
 
@@ -203,6 +225,21 @@ ion-fab-button{
 }
     &.click-loot{
 
+    }
+  }
+
+  // The hero's fab on the quest card: centred (Ionic's own rule, which the right-edge rule above undoes), and each
+  // side's buttons stack in a column, so Fight! Magic | avatar | Goods Run all stay on a 320px phone
+  ion-fab.hero-fab {
+    left: 0;
+    margin-inline-start: auto;
+
+    ion-fab-list {
+      height: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      margin-inline: calc(100% + 6px);
     }
   }
 }

@@ -22,14 +22,16 @@
       </ion-toolbar>
     </ion-header>
 
-    <!-- <ion-content class="icon-colors bg-slide bg-slide-modal"> -->
-    <ion-content class="icon-colors bg-slide bg-slide-dark">
+    <ion-content class="icon-colors bg-slide bg-slide-equipment">
       <ion-grid>
         <ion-row>
           <ion-col size="12" class="ion-flex ion-flex-column">
             <equipment-grid
               :items="specialItems"
               :equipped-items="equippedItemsArray"
+              :locked-items="lockedItemsArray"
+              :lock-hint="lockHint"
+              :no-drag="isBattle"
               @display-info="openItemInfo"
               @equip-item="equipItem"
             />
@@ -44,6 +46,7 @@
         :left-hand-items="equipmentOnLeft"
         :right-hand-items="equipmentOnRight"
         :job-class="user?.jobClass"
+        :readonly="isBattle"
         @equip="handleEquipRequest"
         @select-item="openItemInfo"
         @change-class="openClassSelector"
@@ -54,42 +57,43 @@
     <item-info-modal
       v-if="selectedItem"
       :is-open="itemInfoOpen"
-      :item="selectedItem"
+      :item="infoItem"
       :is-equipped="isSelectedItemEquipped"
       :left-hand-slots="leftHandSlots"
       :right-hand-slots="rightHandSlots"
+      :mode="mode"
+      :battle-card="selectedBattleCard"
       @close="closeItemInfo"
       @equip="handleEquipFromModal"
       @unequip="handleUnequipFromModal"
+      @use="useSelectedItem"
     />
 
-    <!-- Class Selector Modal -->
-    <xp-stat-selector-modal
+    <!-- Class Codex: the full-screen class guide and picker -->
+    <xp-class-codex
       :is-open="classSelectorOpen"
-      title="Choose Your Class"
-      :options="classOptions"
-      :columns="2"
-      :fullscreen="false"
-      height="55vh"
-      :selected-value="user?.jobClass || 'Adventurer'"
+      :user="user"
       @close="classSelectorOpen = false"
-      @select="onClassSelect"
+      @chosen="onClassSelect"
     />
   </ion-modal>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from "vue";
+  import { defineComponent, ref, computed, watch, PropType } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { useEquipmentItems, EquipmentItem } from "./equipment/EquipmentItems";
   import EquipmentGrid from "./equipment/EquipmentGrid.vue";
   import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
   import ItemInfoModal from "./equipment/ItemInfoModal.vue";
-  import XpStatSelectorModal from "./XpStatSelectorModal.vue";
+  import XpClassCodex from "./ClassCodex/XpClassCodex.vue";
   import { toastController } from "@ionic/vue";
   import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
-  import { JOB_CLASS_OPTIONS } from "@/constants";
   import { useUserStore } from "@/lib/store/stores/user";
+  import { play$fx } from "@/assets/fx";
+  import { isItemUnlocked, unlockHintOf } from "@/lib/services/quests/ItemEffects";
+  import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
+  import { describeItem, itemRule } from "@/lib/services/items/ItemRules";
 
   export default defineComponent({
     name: "xp-equipment-modal",
@@ -97,7 +101,7 @@
       EquipmentGrid,
       EquippedItemsCard,
       ItemInfoModal,
-      XpStatSelectorModal,
+      XpClassCodex,
       XpCloseButton,
     },
     props: {
@@ -113,8 +117,22 @@
         type: Object,
         default: () => ({}),
       },
+      // 'battle' is the Goods bag in a fight: Use instead of Equip, hands read-only
+      mode: {
+        type: String as PropType<"equip" | "battle">,
+        default: "equip",
+      },
+      // The fight page answers these, so the bag holds no battle rules
+      battleCard: {
+        type: Function as PropType<((item: EquipmentItem) => BattleItemCard | null) | null>,
+        default: null,
+      },
+      opensDirectly: {
+        type: Function as PropType<(item: EquipmentItem) => boolean>,
+        default: () => false,
+      },
     },
-    emits: ["close", "equip-item", "open-pegasus-modal"],
+    emits: ["close", "equip-item", "open-pegasus-modal", "use-item"],
     mixins: [ionic],
     setup(props, { emit }) {
       const equipmentItems = useEquipmentItems({
@@ -125,7 +143,6 @@
 
       // Class selector state
       const classSelectorOpen = ref(false);
-      const classOptions = JOB_CLASS_OPTIONS;
 
       // Item Info Modal state
       const itemInfoOpen = ref(false);
@@ -135,6 +152,29 @@
       const leftHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
       const rightHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
       const equippedItems = ref(new Set<string>());
+
+      const isBattle = computed(() => props.mode === "battle");
+
+      // Equip mode keeps the hands it edits; battle mode only shows what the hero already holds
+      watch(
+        () => (isBattle.value ? (props.equipment as (EquipmentItem & { slotIndex?: number })[]) : null),
+        (held) => {
+          if (!held) return;
+          const hands: Record<string, (EquipmentItem | null)[]> = { left: [null, null], right: [null, null] };
+          equippedItems.value = new Set<string>();
+          held.forEach((entry) => {
+            const slots = hands[entry.hand ?? ""];
+            const index = entry.slotIndex ?? 0;
+            const hasNoFreeHandSlot = !slots || index > 1;
+            if (hasNoFreeHandSlot) return;
+            slots[index] = equipmentItems.specialItems.find((item) => item.faIcon === entry.faIcon) ?? entry;
+            equippedItems.value.add(entry.faIcon);
+          });
+          leftHandSlots.value = hands.left;
+          rightHandSlots.value = hands.right;
+        },
+        { immediate: true, deep: true }
+      );
 
       const equipmentOnLeft = computed(
         () =>
@@ -159,13 +199,75 @@
         return equippedItems.value.has(selectedItem.value.faIcon);
       });
 
+      // Items the hero has not unlocked yet (a profile without an unlockedItems list holds everything)
+      const lockedItemsArray = computed(() =>
+        specialItems.value
+          .filter((item) => !isItemUnlocked(props.user, item.name))
+          .map((item) => item.faIcon)
+      );
+      const isLocked = (item: EquipmentItem) => lockedItemsArray.value.includes(item.faIcon);
+      const lockHint = (item: EquipmentItem) => unlockHintOf(item.name);
+
+      // A locked item says how it is earned instead of opening or equipping
+      const refuseLocked = async (item: EquipmentItem) => {
+        play$fx("no");
+        const toast = await toastController.create({
+          message: lockHint(item),
+          duration: 2200,
+          position: "top",
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
+      };
+
       const openItemInfo = (item: EquipmentItem) => {
+        if (isBattle.value) {
+          // Bottles, Goods and the Book Of Spells open their own sheet on the fight page; a locked one
+          // opens its card instead, where the page says why it cannot be used
+          const canUseDirectly = !isLocked(item) && props.opensDirectly(item);
+          if (canUseDirectly) {
+            emit("use-item", item);
+            return;
+          }
+        } else if (isLocked(item)) {
+          void refuseLocked(item);
+          return;
+        }
         selectedItem.value = item;
         itemInfoOpen.value = true;
       };
 
       const closeItemInfo = () => {
         itemInfoOpen.value = false;
+      };
+
+      // The host can close the bag with a card or the codex still up (a beast's strike, hardware back,
+      // leaving the view). Ionic does not dismiss nested modals with their parent, so close them here,
+      // or they stay on screen cut off from the bag and the stale card pops up again next time
+      watch(
+        () => props.isOpen,
+        (open) => {
+          if (open) return;
+          itemInfoOpen.value = false;
+          classSelectorOpen.value = false;
+        }
+      );
+
+      // The card reads the rules table, not the text a hero's old copy of the item stored; the grid and the dock keep their items
+      const infoItem = computed(() => {
+        const item = selectedItem.value;
+        if (!item) return null;
+        return { ...item, desc: describeItem(item.name) ?? item.desc, mpCost: itemRule(item.name)?.mp ?? item.mpCost };
+      });
+
+      const selectedBattleCard = computed(() =>
+        isBattle.value && props.battleCard && selectedItem.value ? props.battleCard(selectedItem.value) : null
+      );
+
+      const useSelectedItem = () => {
+        if (!selectedItem.value) return;
+        emit("use-item", selectedItem.value);
+        closeItemInfo();
       };
 
       const handleEquipFromModal = async (
@@ -189,31 +291,41 @@
         hand?: string,
         index?: number
       ) => {
-        if (item === null && !hand) return;
+        if (isBattle.value) return; // the hands are read-only in a fight
+        const isUnequipWithoutHand = item === null && !hand;
+        if (isUnequipWithoutHand) return;
 
         if (item) {
-          if (equippedItems.value.has(item.faIcon)) {
+          const shouldRefuseLockedItem = isLocked(item) && !equippedItems.value.has(item.faIcon);
+          if (shouldRefuseLockedItem) {
+            await refuseLocked(item);
+            return;
+          }
+          const isEquipped = equippedItems.value.has(item.faIcon);
+          if (isEquipped) {
             // Already equipped - unequip it
-            const leftIndex = leftHandSlots.value.findIndex(
-              (slot) => slot?.faIcon === item.faIcon
-            );
-            const rightIndex = rightHandSlots.value.findIndex(
-              (slot) => slot?.faIcon === item.faIcon
-            );
-            if (leftIndex !== -1) await performUnequip("left", leftIndex);
-            if (rightIndex !== -1) await performUnequip("right", rightIndex);
+            const leftIndex = leftHandSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+            const rightIndex = rightHandSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+            const isInLeftHand = leftIndex !== -1;
+            if (isInLeftHand) await performUnequip("left", leftIndex);
+            const isInRightHand = rightIndex !== -1;
+            if (isInRightHand) await performUnequip("right", rightIndex);
             return;
           }
 
-          if (hand !== undefined && index !== undefined) {
-            if (index === 0) {
+          const isHandSlotChosen = hand !== undefined && index !== undefined;
+          if (isHandSlotChosen) {
+            const isPrimarySlot = index === 0;
+            if (isPrimarySlot) {
               await performEquip(item, hand, index);
             }
           } else {
             // Auto-equip logic: find first available primary slot
-            if (leftHandSlots.value[0] === null) {
+            const isLeftFree = leftHandSlots.value[0] === null;
+            const isRightFree = rightHandSlots.value[0] === null;
+            if (isLeftFree) {
               await performEquip(item, "left", 0);
-            } else if (rightHandSlots.value[0] === null) {
+            } else if (isRightFree) {
               await performEquip(item, "right", 0);
             } else {
               await performEquip(item, "left", 0); // Replace left by default
@@ -231,13 +343,14 @@
         let replacedItemName: string | null = null;
 
         // Check if already equipped elsewhere
-        if (equippedItems.value.has(item.faIcon)) {
+        const isEquippedElsewhere = equippedItems.value.has(item.faIcon);
+        if (isEquippedElsewhere) {
           const otherHand = hand === "left" ? "right" : "left";
           const otherSlots = hand === "left" ? rightHandSlots : leftHandSlots;
-          const otherIndex = otherSlots.value.findIndex(
-            (slot) => slot?.faIcon === item.faIcon
-          );
-          if (otherIndex !== -1) {
+          const otherIndex = otherSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
+
+          const isInOtherHand = otherIndex !== -1;
+          if (isInOtherHand) {
             await performUnequip(otherHand, otherIndex, false);
           }
         }
@@ -310,10 +423,11 @@
         classSelectorOpen.value = true;
       };
 
+      // The store refuses a sealed class and saves the hero
       const onClassSelect = (val: string) => {
-        if (props.user?.id && userStore.users[props.user.id]) {
-          userStore.users[props.user.id].jobClass = val;
-        }
+        const heroId = props.user?.id;
+        if (heroId) userStore.setJobClass(heroId, val);
+
         classSelectorOpen.value = false;
       };
 
@@ -324,19 +438,24 @@
         specialItems,
         itemInfoOpen,
         selectedItem,
+        infoItem,
         equippedItemsArray,
+        lockedItemsArray,
+        lockHint,
         isSelectedItemEquipped,
         leftHandSlots,
         rightHandSlots,
+        isBattle,
+        selectedBattleCard,
         openItemInfo,
         closeItemInfo,
+        useSelectedItem,
         handleEquipFromModal,
         handleUnequipFromModal,
         handleEquipRequest,
         equipItem,
         close,
         classSelectorOpen,
-        classOptions,
         openClassSelector,
         onClassSelect,
         modal,
@@ -348,6 +467,11 @@
 
 <style lang="scss" scoped>
   .xp-equipment-modal {
+    ion-header ion-toolbar {
+      --background: #230828;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
     ion-content {
       --background: transparent;
       overflow: visible;

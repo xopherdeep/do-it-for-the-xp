@@ -1,6 +1,9 @@
 import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useProStore } from "@/lib/store/stores/pro";
 import XpBonus from "./components/XpBonus.vue";
+import XpGroundedForgive from "./components/XpGroundedForgive.vue";
+import XpPowerTimerEnd from "./components/XpPowerTimerEnd.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import AchievementDb, {
   achievementStorage,
@@ -8,6 +11,8 @@ import AchievementDb, {
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
 import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import {
   toastController,
@@ -15,6 +20,15 @@ import {
   actionSheetController,
 } from "@ionic/vue";
 import { RecycleScroller } from "vue-virtual-scroller";
+import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
+import {
+  close,
+  colorWandOutline,
+  heartOutline,
+  leafOutline,
+  personAddOutline,
+  waterOutline,
+} from "ionicons/icons";
 import debug from "@/lib/utils/debug";
 import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
 
@@ -30,6 +44,8 @@ export default defineComponent({
     // XpDoThisNotThat,
     // XpTemples,
     XpStatBox,
+    XpGroundedForgive,
+    XpPowerTimerEnd,
     RecycleScroller,
     XpDashboardGrid:
       require("@/components/molecules/StatGrid/XpDashboardGrid.vue").default,
@@ -50,7 +66,8 @@ export default defineComponent({
       ];
 
       // Map all users to profile items if masquerade is active
-      if (this.showMasquerade) {
+      const isMasquerading = this.showMasquerade;
+      if (isMasquerading) {
         const userItems = this.usersAz.map((user) => ({
           id: `user-${user.id}`,
           type: "user",
@@ -126,13 +143,6 @@ export default defineComponent({
       this.stats.dos = systemStats.dos;
       this.stats.donts = systemStats.donts;
 
-      // Get approvals data from XpActionItems
-      this.approvals = {
-        chores: 10, // This would come from actual data
-        rewards: 5, // This would come from actual data
-        total: 15, // This would come from actual data
-      };
-
       // Get rewards data from XpRewardShelf
       this.rewards = {
         active: 10, // This would come from actual data
@@ -141,6 +151,8 @@ export default defineComponent({
         cashed: 0, // This would come from actual data
         total: 15, // This would come from actual data
       };
+
+      await this.loadPendingApprovals();
     },
     openFamilySettings() {
       this.$router.push({ name: "xp-settings-family" });
@@ -203,13 +215,15 @@ export default defineComponent({
 
     async presentActionSheet() {
       const actionSheet = await actionSheetController.create({
+        // The same sheet the buildings open: an ionicon beside each choice, echoing the dashboard's area icons
+        ...appSheet(undefined, "dashboard-action-sheet"),
         header: "Create New...",
-        cssClass: "dashboard-action-sheet",
         mode: "ios",
         buttons: [
           {
             text: "New Profile",
             cssClass: "action-profile",
+            icon: personAddOutline,
             handler: () => {
               this.openNewProfileModal();
             },
@@ -217,6 +231,7 @@ export default defineComponent({
           {
             text: "New Ability",
             cssClass: "action-ability",
+            icon: colorWandOutline,
             handler: () => {
               this.navigateTo({ name: "xp-add-ability" });
             },
@@ -224,6 +239,7 @@ export default defineComponent({
           {
             text: "New Beast",
             cssClass: "action-beast",
+            icon: heartOutline,
             handler: () => {
               this.navigateTo({ name: "xp-add-beast" });
             },
@@ -231,6 +247,7 @@ export default defineComponent({
           {
             text: "New Quest",
             cssClass: "action-quest",
+            icon: leafOutline,
             handler: () => {
               this.navigateTo({ name: "xp-achievement-config" });
             },
@@ -238,9 +255,12 @@ export default defineComponent({
           {
             text: "New Temple",
             cssClass: "action-temple",
-            handler: () => {
+            icon: waterOutline,
+            handler: async () => {
+              const hasPro = await useProStore().requirePro("templeCreator");
+              if (!hasPro) return;
               this.navigateTo({
-                name: "xp-temple-creator",
+                name: "xp-temple-settings",
                 params: { templeId: "new" },
               });
             },
@@ -249,6 +269,7 @@ export default defineComponent({
             text: "Cancel",
             role: "cancel",
             cssClass: "action-cancel",
+            icon: close,
           },
         ],
       });
@@ -316,6 +337,25 @@ export default defineComponent({
     // Add abilities ref with explicit typing to fix the TypeScript error
     const abilities = ref<any[]>([]);
 
+    // Everything waiting on the Game Master: quest completions (Quest Log entries still
+    // "pending") and shop purchases to deliver (Purchase Log entries still "pending")
+    const loadPendingApprovals = async () => {
+      // Count each log on its own so one unreadable store can't zero the other's number.
+      const countPending = async (read: () => Promise<unknown[]>, what: string) => {
+        try {
+          return (await read()).length;
+        } catch (error) {
+          debug.error(`Failed to load pending ${what}:`, error);
+          return 0;
+        }
+      };
+      const [chores, rewards] = await Promise.all([
+        countPending(() => getQuestLogDb().getPending(), "quest approvals"),
+        countPending(() => getPurchaseLogDb().getPending(), "accessory purchases"),
+      ]);
+      approvals.value = { chores, rewards, total: chores + rewards };
+    };
+
     const loadDashboardData = async () => {
       isLoading.value = true;
       try {
@@ -328,6 +368,8 @@ export default defineComponent({
         stats.value.dos = systemStats.dos;
         stats.value.donts = systemStats.donts;
         stats.value.users = systemStats.users;
+
+        await loadPendingApprovals();
 
         // Load abilities data
         try {
@@ -349,6 +391,7 @@ export default defineComponent({
       userStore,
       stats,
       approvals,
+      loadPendingApprovals,
       rewards,
       achievementDb,
       bestiaryDb,

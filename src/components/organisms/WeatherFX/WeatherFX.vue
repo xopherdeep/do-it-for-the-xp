@@ -1,181 +1,126 @@
 <template>
-  <div class="weather-fx" :class="[type, { active }]">
-    <component 
-      v-if="active"
-      :is="currentEffect" 
-      v-bind="effectProps"
-      @effect-loaded="onEffectLoaded"
-    />
+  <div class="weather-fx" :class="[type, { active }]" aria-hidden="true">
+    <canvas ref="canvasRef" class="weather-canvas"></canvas>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, watch, onUnmounted } from 'vue';
-import type { WeatherType, WeatherEffectProps, WeatherSoundType } from './types';
-import TropicalFx from './fx/TropicalFx.vue';
-import RainyFx from './fx/RainyFx.vue';
-import CloudyFx from './fx/CloudyFx.vue';
-import PlainsFx from './fx/PlainsFx.vue';
-import { useWeatherFX } from './useWeatherFX';
-
-type WeatherMapType = {
-  [K in WeatherType]: {
-    component: typeof TropicalFx | typeof RainyFx | typeof CloudyFx | typeof PlainsFx | null;
-    sound: WeatherSoundType | null;
-  };
-};
+import { defineComponent, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue";
+import type { PropType } from "vue";
+import { useWeatherCanvas } from "./engine/useWeatherCanvas";
+import { weatherPresets } from "./presets";
+import { useWeatherFX } from "./useWeatherFX";
+import type { WeatherType } from "./types";
 
 export default defineComponent({
-  name: 'weather-fx',
-  components: {
-    TropicalFx,
-    RainyFx,
-    CloudyFx,
-    PlainsFx
-  },
+  name: "weather-fx",
   props: {
     type: {
-      type: String as () => WeatherType,
-      default: 'tropical'
+      type: String as PropType<WeatherType>,
+      default: "tropical",
     },
     active: {
       type: Boolean,
-      default: true
+      default: true,
     },
     intensity: {
       type: Number,
       default: 5,
-      validator: (value: number) => value >= 0 && value <= 10
+      validator: (value: number) => value >= 0 && value <= 10,
     },
     soundEnabled: {
       type: Boolean,
-      default: true
+      default: true,
     },
     soundVolume: {
       type: Number,
       default: 0.3,
-      validator: (value: number) => value >= 0 && value <= 1
+      validator: (value: number) => value >= 0 && value <= 1,
     },
+    /** Kept for API compatibility with the DOM based effects; the canvas presets ignore it. */
     customEffectProps: {
-      type: Object,
-      default: () => ({})
-    }
+      type: Object as PropType<Record<string, unknown>>,
+      default: () => ({}),
+    },
   },
-  emits: ['effect-loaded', 'effect-changed', 'sound-loaded'],
+  emits: ["effect-loaded", "effect-changed"],
   setup(props, { emit }) {
-    const { 
-      playWeatherSound, 
-      stopWeatherSound,
-      setWeatherSoundVolume
-    } = useWeatherFX();
-    
-    const isLoaded = ref(false);
-    const currentWeatherSound = ref<WeatherSoundType | null>(null);
+    const canvasRef = ref<HTMLCanvasElement | null>(null);
+    const { playSound, stopSound, setVolume } = useWeatherFX();
 
-    const weatherTypeMap: WeatherMapType = {
-      tropical: {
-        component: TropicalFx,
-        sound: 'ocean'
-      },
-      rainy: {
-        component: RainyFx,
-        sound: 'rain'
-      },
-      cloudy: {
-        component: CloudyFx,
-        sound: null
-      },
-      sunny: {
-        component: null,
-        sound: 'ambient'
-      },
-      stormy: {
-        component: RainyFx,
-        sound: 'thunder'
-      },
-      snowy: {
-        component: null,
-        sound: null
-      },
-      plains: {
-        component: PlainsFx,
-        sound: 'wind'
-      },
-      none: {
-        component: null,
-        sound: null
+    const engine = useWeatherCanvas(
+      canvasRef,
+      toRef(props, "type"),
+      toRef(props, "intensity"),
+      toRef(props, "active")
+    );
+
+    /** The ambient loop the current preset asks for, or null when it is silent. */
+    const presetSound = () => weatherPresets[props.type]?.sound ?? null;
+
+    const syncSound = () => {
+      const sound = presetSound();
+      const shouldPlayLoop = props.active && props.soundEnabled && !!sound;
+      if (shouldPlayLoop) {
+        playSound(sound, props.soundVolume);
+      } else {
+        stopSound();
       }
     };
 
-    const currentEffect = computed(() => {
-      return weatherTypeMap[props.type]?.component || null;
-    });
-
-    const effectProps = computed(() => {
-      const baseProps: WeatherEffectProps = {
-        intensity: props.intensity,
-        soundEnabled: props.soundEnabled,
-        soundVolume: props.soundVolume
-      };
-
-      if (props.type === 'stormy') {
-        return {
-          ...baseProps,
-          intensity: Math.min(props.intensity + 2, 10),
-          ...props.customEffectProps
-        };
-      }
-
-      return {
-        ...baseProps,
-        ...props.customEffectProps
-      };
-    });
+    // Re-evaluate the loop when the weather, the on/off switches or the preset change.
+    watch(() => [props.type, props.active, props.soundEnabled] as const, syncSound);
+    watch(
+      () => props.soundVolume,
+      (volume) => setVolume(volume)
+    );
 
     watch(
-      () => [props.type, props.active, props.soundEnabled, props.soundVolume] as const, 
-      ([newType, newActive, newSoundEnabled, newVolume]) => {
-        if (currentWeatherSound.value) {
-          stopWeatherSound(currentWeatherSound.value);
-          currentWeatherSound.value = null;
-        }
-        
-        if (newActive && newSoundEnabled) {
-          const soundType = weatherTypeMap[newType as WeatherType].sound;
-          if (soundType) {
-            currentWeatherSound.value = soundType;
-            playWeatherSound(soundType, newVolume);
-          }
-        }
-        
-        emit('effect-changed', { type: newType, active: newActive });
-      },
+      () => [props.type, props.active] as const,
+      ([type, active]) => emit("effect-changed", { type, active }),
       { immediate: true }
     );
 
-    watch(() => props.soundVolume, (newVolume) => {
-      if (currentWeatherSound.value && props.soundEnabled) {
-        setWeatherSoundVolume(currentWeatherSound.value, newVolume);
+    // The first painted frame after mount (or after the layer is switched on) counts as loaded.
+    let frameHandle: number | null = null;
+    const cancelFrame = () => {
+      if (frameHandle !== null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(frameHandle);
       }
-    });
-
-    const onEffectLoaded = () => {
-      isLoaded.value = true;
-      emit('effect-loaded');
+      frameHandle = null;
+    };
+    const announceLoaded = () => {
+      cancelFrame();
+      const canRequestFrames = typeof requestAnimationFrame === "function";
+      if (!canRequestFrames) {
+        emit("effect-loaded");
+        return;
+      }
+      // Two frames: one for the engine to start, one for its first draw to land.
+      frameHandle = requestAnimationFrame(() => {
+        frameHandle = requestAnimationFrame(() => {
+          frameHandle = null;
+          emit("effect-loaded");
+        });
+      });
     };
 
-    onUnmounted(() => {
-      if (currentWeatherSound.value) {
-        stopWeatherSound(currentWeatherSound.value);
-      }
+    onMounted(() => {
+      const isActive = props.active;
+      if (isActive) announceLoaded();
+      // Never autoplay on mount unless the preset asks for it and sound is enabled.
+      nextTick(syncSound);
     });
+    watch(
+      () => props.active,
+      (active) => {
+        if (active) announceLoaded();
+      }
+    );
+    onBeforeUnmount(cancelFrame);
 
-    return {
-      currentEffect,
-      effectProps,
-      onEffectLoaded
-    };
-  }
+    return { canvasRef, engine };
+  },
 });
 </script>
 
@@ -192,6 +137,15 @@ export default defineComponent({
 
   &:not(.active) {
     display: none;
+  }
+
+  .weather-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
   }
 }
 </style>

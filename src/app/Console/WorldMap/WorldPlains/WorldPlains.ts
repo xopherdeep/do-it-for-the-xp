@@ -4,18 +4,22 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
+import { useToast } from "@/hooks/useToast";
+import { FIRST_FLIGHT_LINE, canFly } from "@/lib/services/travel/flight";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-plains",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
     const { setActions } = useUserActions();
+    const { showToast } = useToast();
 
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
@@ -37,7 +41,8 @@ export default dC({
 
       // Occasionally play grasshopper/cricket sounds
       grasshopperInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.7) {
+        const isCricketChirp = Math.random() > 0.7;
+        if (isCricketChirp) {
           const cricketSound = new Audio();
           cricketSound.src = "https://freesound.org/data/previews/425/425556_7552848-lq.mp3"; // Cricket/grasshopper sound
           cricketSound.volume = 0.2 + (Math.random() * 0.2); // Random volume for variety
@@ -75,6 +80,11 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
+          // On foot the hero stays in Hometown and the Plains until the first Pegasus is free
+          if (!canFly(user.value ?? userStore.currentUser)) {
+            showToast(FIRST_FLIGHT_LINE, 2500, "bottom").catch((e) => { debug.warn("Could not show the first flight toast:", e); });
+            return;
+          }
           router.push({ name: "world-map", params: { userId } });
         },
       },

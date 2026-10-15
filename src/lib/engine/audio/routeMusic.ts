@@ -8,6 +8,7 @@
  */
 
 import { AudioEngine } from './AudioEngine';
+import { streamUrl } from './remoteBgm';
 import { useAudioStore } from '@/lib/store/stores/audio';
 import debug from '@/lib/utils/debug';
 
@@ -21,23 +22,40 @@ export interface BGMPayload {
   _usingNewAudioEngine?: boolean; // Flag to prevent double playback
 }
 
+/** The delayed start of the latest route's song; a newer route cancels it so a stale song never lands late. */
+let pendingStart: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Cancel any pending delayed route music start
+ */
+export function cancelPendingRouteMusic(): void {
+  if (pendingStart) {
+    clearTimeout(pendingStart);
+    pendingStart = undefined;
+  }
+}
+
 /**
  * Process BGM payload from the router and play using the new audio engine
  * @param payload The BGM payload from the router
  */
 export function playRouteMusic(payload: BGMPayload): void {
-  if (!payload || !payload.tracks || !Array.isArray(payload.tracks) || payload.tracks.length === 0) {
+  const isInvalidPayload = !payload || !payload.tracks || !Array.isArray(payload.tracks) || payload.tracks.length === 0;
+  if (isInvalidPayload) {
     debug.warn('Invalid BGM payload:', payload);
     return;
   }
 
+  cancelPendingRouteMusic();
+
   const engine = AudioEngine.getInstance();
   const audioStore = useAudioStore();
 
-  // If BGM is toggled off in settings, stop current music and don't start new music
-  if (audioStore.bgm && audioStore.bgm.is_on === false) {
-    debug.log('BGM is toggled off, stopping playback');
-    engine.stopAllMusic(500);
+  // If BGM is toggled off in settings or engine is muted, stop current music and don't start new music
+  const isBgmToggledOff = (audioStore.bgm && audioStore.bgm.is_on === false) || engine.state.muted;
+  if (isBgmToggledOff) {
+    debug.log('BGM is toggled off or muted, stopping playback');
+    engine.stopAllMusic(0);
     return;
   }
 
@@ -58,11 +76,13 @@ export function playRouteMusic(payload: BGMPayload): void {
     let trackTitle: string | undefined;
     let trackId: string;
 
-    if (typeof trackInfo === 'string') {
+    const isUrlOnly = typeof trackInfo === 'string';
+    if (isUrlOnly) {
       // If it's just a string URL
       trackSrc = trackInfo;
-      // Create a unique ID based on the track source
-      const uniquePart = trackSrc.split('/').pop() || '';
+      // Create a unique ID based on the track source; the slot's fallback tag is left out so two slots
+      // that share one song share one track and keep playing it across routes
+      const uniquePart = streamUrl(trackSrc).split('/').pop() || '';
       // DON'T include the index in the ID if we want seamless transitions between different routes using the same file
       trackId = `route-music-${uniquePart}`;
       trackTitle = uniquePart.replace(/\..+$/, '').replace(/[-_]/g, ' ');
@@ -71,7 +91,7 @@ export function playRouteMusic(payload: BGMPayload): void {
       trackSrc = trackInfo.src;
       trackTitle = trackInfo.title;
       // Create a unique ID based on the track source
-      const uniquePart = trackSrc.split('/').pop() || '';
+      const uniquePart = streamUrl(trackSrc).split('/').pop() || '';
       trackId = `route-music-${uniquePart}`;
     }
 
@@ -94,17 +114,20 @@ export function playRouteMusic(payload: BGMPayload): void {
   }
 
   // Set up the track sequence for auto-advancing when non-repeating
-  if (!shouldRepeat && trackIds.length > 1) {
+  const isPlayingInSequence = !shouldRepeat && trackIds.length > 1;
+  if (isPlayingInSequence) {
     engine.setTrackSequence(trackIds);
   }
 
   const currentTrackId = trackIds[trackIndex];
 
   // Play the track with delay
-  if (delay > 0) {
-    setTimeout(() => {
-      // Check again after delay to ensure BGM wasn't toggled off
-      if (audioStore.bgm && audioStore.bgm.is_on !== false) {
+  const isDelayed = delay > 0;
+  if (isDelayed) {
+    pendingStart = setTimeout(() => {
+      // Check again after delay to ensure BGM wasn't toggled off or muted
+      const isBgmStillOn = (!audioStore.bgm || audioStore.bgm.is_on !== false) && !engine.state.muted;
+      if (isBgmStillOn) {
         engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
       }
     }, delay);

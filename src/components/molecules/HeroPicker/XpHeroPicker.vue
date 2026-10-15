@@ -48,6 +48,8 @@
 import { getCurrentInstance } from 'vue';
 import { IonAvatar } from '@ionic/vue';
 import User from '@/lib/utils/User';
+import debug from '@/lib/utils/debug';
+import { initialAvatar } from '@/lib/utils/initialAvatar';
 
 // Access global properties via getCurrentInstance
 const instance = getCurrentInstance();
@@ -83,20 +85,21 @@ const isSelected = (userId: string) => props.modelValue.includes(userId);
 
 const getAvatarUrl = (user: User) => {
   // Try to use global $getUserAvatar if available
-  if (globalProps?.$getUserAvatar) {
+  const hasAvatarHelper = !!globalProps?.$getUserAvatar;
+  if (hasAvatarHelper) {
     try {
       const avatar = globalProps.$getUserAvatar(user);
       if (avatar) return avatar;
-    } catch {
-      // Fall through to fallback
+    } catch (error) {
+      debug.warn('[XpHeroPicker] $getUserAvatar failed, using the generated avatar', error);
     }
   }
-  // Fallback to UI Avatars API
-  return `https://ui-avatars.com/api/?name=${user.name?.first || 'H'}&background=random&size=96`;
+  return initialAvatar(user.name?.first);
 };
 
 const toggleHero = (userId: string) => {
-  if (props.multiple) {
+  const isMultiple = props.multiple;
+  if (isMultiple) {
     const newValue = isSelected(userId)
       ? props.modelValue.filter(id => id !== userId)
       : [...props.modelValue, userId];

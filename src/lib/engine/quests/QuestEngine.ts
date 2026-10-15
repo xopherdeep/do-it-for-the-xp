@@ -1,9 +1,24 @@
 import AchievementDb, { Achievement, achievementStorage } from "@/lib/databases/AchievementDb";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import {
+    getQuestProgressFor,
+    hasPendingClaimFor,
+    isDayOff,
+    isQuestOverdue,
+    questCompletersFor,
+    questMatchesSegment,
+    questTimesOfDay,
+    slotsFor,
+    type HeroQuestEffects,
+    type QuestProgress,
+    type QuestSlot,
+    type TimeOfDay,
+} from "@/lib/engine/quests/QuestSchedule";
 
 export interface QuestFilter {
     userId?: string | number;
     search?: string;
-    segment?: 'all' | 'morning' | 'noon' | 'evening' | 'night';
+    segment?: 'all' | TimeOfDay;
 }
 
 /**
@@ -18,10 +33,12 @@ class QuestEngine {
     }
 
     /**
-     * Get all quests from local database
+     * Every quest a hero may see. Drafts (quests the Game Master saved before finishing them in the
+     * Compendium) stay out of every hero view: the board, the calendar, the Town Hall and battles.
      */
     async getAllQuests(): Promise<Achievement[]> {
-        return this.achievementDb.getTasks();
+        const quests = await this.achievementDb.getTasks();
+        return quests.filter((quest) => !quest.draft);
     }
 
     /**
@@ -47,19 +64,11 @@ class QuestEngine {
     }
 
     /**
-     * Get the segment a quest belongs to based on its dueByTime
-     * Returns 'all' if no time is set
+     * Get the segment a quest belongs to: the first part of the day it is timed for (its timesOfDay, else the
+     * one its dueByTime falls in). Returns 'all' if it has no time.
      */
-    getQuestSegment(quest: Achievement): 'all' | 'morning' | 'noon' | 'evening' | 'night' {
-        const time = quest.dueByTime;
-        if (!time) return 'all';
-
-        const hour = parseInt(time.split(':')[0]);
-        if (hour >= 6 && hour < 12) return 'morning';
-        if (hour >= 12 && hour < 18) return 'noon';
-        if (hour >= 18 && hour < 24) return 'evening';
-        if (hour >= 0 && hour < 6) return 'night';
-        return 'all';
+    getQuestSegment(quest: Achievement): 'all' | TimeOfDay {
+        return questTimesOfDay(quest)[0] ?? 'all';
     }
 
     /**
@@ -68,28 +77,30 @@ class QuestEngine {
     filterQuests(quests: Achievement[], filter: QuestFilter): Achievement[] {
         return quests.filter(quest => {
             // 1. User-based filter
-            if (filter.userId !== undefined) {
-                if (!this.isVisibleToUser(quest, filter.userId)) {
+            const { userId } = filter;
+            const hasUserFilter = userId !== undefined;
+            if (hasUserFilter) {
+                if (!this.isVisibleToUser(quest, userId)) {
                     return false;
                 }
             }
 
-            // 2. Search filter
-            if (filter.search) {
-                const query = filter.search.toLowerCase();
+            // 2. Typed text: a quest stays only when its name holds it, in any case
+            const { search } = filter;
+            if (search) {
+                const query = search.toLowerCase();
                 const name = (quest.achievementName || '').toLowerCase();
-                if (!name.includes(query)) {
+                const isNameMatch = name.includes(query);
+                if (!isNameMatch) {
                     return false;
                 }
             }
 
-            // 3. Segment filter (skip if 'all')
-            if (filter.segment && filter.segment !== 'all') {
-                const questSegment = this.getQuestSegment(quest);
-                // Quests with no time (segment 'all') show in every segment
-                if (questSegment !== 'all' && questSegment !== filter.segment) {
-                    return false;
-                }
+            // 3. Segment filter: a tab lists the quests timed for it; a quest with no time shows only under 'all'
+            const { segment } = filter;
+            const isOutsideSegment = segment && !questMatchesSegment(quest, segment);
+            if (isOutsideSegment) {
+                return false;
             }
 
             return true;
@@ -103,7 +114,93 @@ class QuestEngine {
         const allQuests = await this.getAllQuests();
         return this.filterQuests(allQuests, { userId, ...filter });
     }
+
+    private static resolveBoardStatus(progress: QuestProgress | null): QuestBoardStatus {
+        if (!progress) return 'notDue';
+        if (progress.isOpen) return 'open';
+        return 'done';
+    }
+
+    /**
+     * Every quest visible to the hero, tagged with today's completion state:
+     * open (can still be done), done (window used up), notDue (not scheduled for this day).
+     * `pending` is set when a claim in the current window still waits for the Game Master; it counts
+     * toward the allowance, so a done quest with `pending` is awaiting approval rather than tamed.
+     * `effects` are the hero's own Power effects (Snooze, Extra Time; old saves may still carry a pull-in or a
+     * pause); `overdue` is set on an open quest whose deadline has passed (QuestSchedule.effectiveDeadline: due
+     * on a window's last day).
+     * A shared quest (Team Effort, Rat Race) reads the same for every assignee: one hero's clear makes it done
+     * for all of them, and `doneBy` says who.
+     */
+    async getQuestBoardForUser(
+        userId: string,
+        date: Date = new Date(),
+        filter?: Partial<QuestFilter>,
+        effects?: HeroQuestEffects
+    ): Promise<QuestBoardItem[]> {
+        const [quests, entries] = await Promise.all([
+            this.getQuestsForUser(userId, filter),
+            // Every hero's log: a shared quest counts its other assignees' clears (the rules filter by hero)
+            getQuestLogDb().getEntries(),
+        ]);
+        // An old saved day off hides every chore (nothing writes one now; the Quiet Day Power only stops ambushes)
+        if (isDayOff(effects, date)) return [];
+        return quests.map((quest) => {
+            const progress = getQuestProgressFor(quest, entries, userId, date, effects);
+            const status: QuestBoardStatus = QuestEngine.resolveBoardStatus(progress);
+            const pending = hasPendingClaimFor(quest, entries, userId, date, effects);
+            const overdue = status === 'open' && isQuestOverdue(quest, effects, date);
+            const doneBy = questCompletersFor(quest, entries, userId, date, effects);
+            return { quest, status, progress, pending, overdue, doneBy, slots: slotsFor(quest, progress) };
+        });
+    }
+
+    /** Only the quests the hero can still complete on `date`. */
+    async getOpenQuestsForUser(
+        userId: string,
+        date: Date = new Date(),
+        filter?: Partial<QuestFilter>,
+        effects?: HeroQuestEffects
+    ): Promise<QuestBoardItem[]> {
+        const board = await this.getQuestBoardForUser(userId, date, filter, effects);
+        return board.filter((item) => item.status === 'open');
+    }
 }
+
+export type QuestBoardStatus = 'open' | 'done' | 'notDue';
+
+export interface QuestBoardItem {
+    quest: Achievement;
+    status: QuestBoardStatus;
+    progress: QuestProgress | null;
+    /** The hero has a claim in the current window that the Game Master has not approved or rejected yet */
+    pending: boolean;
+    /** Open, and its deadline has passed (on a window's last day, after the hero's Extra Time Power and any old saved pause) */
+    overdue: boolean;
+    /**
+     * The heroes whose completions fill the current window, in the order they did them: the hero (or nobody) for
+     * an individual quest, any assignee for a shared one. Set by getQuestBoardForUser; hand-built items may leave it out.
+     */
+    doneBy?: string[];
+    /**
+     * The quest's times of day and which are done in the current window (see QuestSchedule.slotsFor); empty for
+     * a quest with no listed times. Always set by getQuestBoardForUser; hand-built items may leave it out.
+     */
+    slots?: QuestSlot[];
+}
+
+/**
+ * How a board item reads under a calendar tab. "all" (and a quest with no slot for that time) keeps the
+ * item's own status; under a time tab a quest that lists that time is done when its slot is, otherwise open.
+ * A quest that is not due stays not due.
+ */
+export const boardStatusInSegment = (item: QuestBoardItem, segment: 'all' | TimeOfDay): QuestBoardStatus => {
+    const shouldKeepOwnStatus = segment === 'all' || item.status === 'notDue';
+    if (shouldKeepOwnStatus) return item.status;
+    const slot = item.slots?.find(({ time }) => time === segment);
+    if (!slot) return item.status;
+    return slot.done ? 'done' : 'open';
+};
 
 // Singleton instance
 let questEngineInstance: QuestEngine | null = null;

@@ -38,7 +38,8 @@ export const useAudioStore = defineStore('audio', () => {
     bgm.repeat = !bgm.repeat;
     
     // Update audio element
-    if (bgm.audio) {
+    const hasAudio = Boolean(bgm.audio);
+    if (hasAudio) {
       bgm.audio.loop = bgm.repeat;
     }
     
@@ -55,7 +56,8 @@ export const useAudioStore = defineStore('audio', () => {
   function turnMusicOnOff() {
     const engine = AudioEngine.getInstance();
     
-    if (bgm.audio) {
+    const hasAudio = Boolean(bgm.audio);
+    if (hasAudio) {
       if (bgm.is_on) {
         bgm.audio.play().catch(err => debug.warn('BGM play failed:', err));
       } else {
@@ -76,11 +78,13 @@ export const useAudioStore = defineStore('audio', () => {
     // Update state with any new track data
     Object.assign(bgm, payload);
     
-    if (payload._usingNewAudioEngine) {
+    const isUsingNewEngine = Boolean(payload._usingNewAudioEngine);
+    if (isUsingNewEngine) {
       return;
     }
 
-    if (!bgm.is_on || !bgm.tracks || !bgm.tracks.length) {
+    const hasNothingToPlay = !bgm.is_on || !bgm.tracks || !bgm.tracks.length;
+    if (hasNothingToPlay) {
       return;
     }
 
@@ -89,7 +93,8 @@ export const useAudioStore = defineStore('audio', () => {
 
     const src = typeof targetTrack === 'string' ? targetTrack : targetTrack.src;
     
-    if (!bgm.audio) {
+    const hasAudio = Boolean(bgm.audio);
+    if (!hasAudio) {
       debug.warn('Audio element not initialized');
       return;
     }

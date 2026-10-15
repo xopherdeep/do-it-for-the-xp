@@ -1,109 +1,95 @@
 <template>
-  <ion-page class="achievement-type-tab">
-    <ion-content
-      class="bg-slide bg-slide-dark"
-      :fullscreen="true"
-    >
-      <!-- Loading State -->
-      <div
-        v-if="loading"
-        class="loading-wrapper"
-      >
-        <XpLoading />
-      </div>
+  <!-- Step 5, Ready?: the quest as the heroes will meet it, the READY / DRAFT ribbon, and a tile per answer that jumps
+       back to the step that owns it. The verb at the bottom marks the quest Ready. -->
+  <div class="quest-dashboard-tab" data-test="step-ready">
+    <button type="button" class="ready-title" data-test="ready-title" @click="go('chore')">
+      <i :class="['fad', 'fa-2x', activeLoreCombo.icon]" aria-hidden="true"></i>
+      <span class="ready-title__name">{{ achievement.achievementName?.trim() || 'Nameless quest' }}</span>
+      <span class="ready-title__tagline">{{ activeLoreCombo.tagline }}</span>
+    </button>
 
-      <div
-        v-if="!loading"
-        class="content-wrapper"
-      >
-        <!-- Splash Header -->
-        <XpSplashHeader
-          v-model="achievement.achievementName"
-          :icon="activeLoreCombo.icon"
-          :tagline="activeLoreCombo.tagline"
-          placeholder="Name Your Quest..."
-        />
-        <AchievementSummaryCard
-          :achievement="achievement"
-          :is-ready="isValidAdventure"
-          :active-adventure-type="activeAdventureType"
-          :active-party-type="activePartyType"
-          :schedule-summary="scheduleSummary"
-          :active-schedule-icon="activeScheduleIcon"
-          :categories="categories"
-          :hero-count="achievement.assignee?.length || 0"
-          :is-open-bounty="achievement.type === 'asNeeded'"
-          @navigate="goToTab"
-          @open-category-modal="addCategoryModalOpen = true"
-          @open-category-help="showCategoryHelp"
-          @open-type-modal="showQuestTypeSelector = true"
-          @open-approval-modal="showApprovalModal = true"
-          @open-bonus-modal="showBonusModal = true"
-          class="type-tab-content"
-        />
-      </div>
-    </ion-content>
-  </ion-page>
+    <AchievementSummaryCard
+      :achievement="achievement"
+      :is-ready="isValidAdventure"
+      :active-adventure-type="activeAdventureType"
+      :active-party-type="activePartyType"
+      :schedule-summary="scheduleSummary"
+      :active-schedule-icon="activeScheduleIcon"
+      :categories="categories"
+      :hero-count="achievement.assignee?.length || 0"
+      :is-open-bounty="achievement.type === 'asNeeded'"
+      @navigate="onTile"
+      @open-category-modal="go('chore')"
+      @open-approval-modal="go('hard')"
+      @open-bonus-modal="go('hard')"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { inject } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { IonPage, IonContent } from '@ionic/vue';
 import AchievementSummaryCard from "../AchievementSummaryCard.vue";
-import XpSplashHeader from "@/components/atoms/SplashHeader/XpSplashHeader.vue";
-import XpLoading from '@/components/molecules/Loading/XpLoading.vue';
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
+import { stepForSegment } from "../../../questConfigWizard";
+import type { QuestStepId } from "../../../questConfigWizard";
 
-const router = useRouter();
-const route = useRoute();
+const emit = defineEmits<{
+  /** A tile or the name was tapped: the page jumps to the step that owns the answer */
+  go: [step: QuestStepId];
+}>();
+
 const {
   achievement,
-  loading,
   isValidAdventure,
   activeAdventureType,
   activePartyType,
   activeLoreCombo,
   scheduleSummary,
   activeScheduleIcon,
-  categories,
-  addCategoryModalOpen,
-  showQuestTypeSelector,
-  showApprovalModal,
-  showBonusModal
+  categories
 } = inject(AchievementFormInjectionKey)!;
 
-import { alertController } from '@ionic/vue';
-
-const goToTab = (tabRelative: string) => {
-  const base = route.path.substring(0, route.path.lastIndexOf('/'));
-  router.push(`${base}/${tabRelative}`);
-};
-
-const showCategoryHelp = async () => {
-  const alert = await alertController.create({
-    header: 'Categories & Stats',
-    message: 'Categories determine which stats you earn:\n\n• STR: Physical Tasks\n• INT: Mental/Learning\n• CHA: Social/Networking\n• DEX: Precision/Speed\n\nChoose wisely to build the character you want to become!',
-    buttons: ['Got it']
-  });
-  await alert.present();
-};
+const go = (step: QuestStepId) => emit("go", step);
+const onTile = (segment: string) => go(stepForSegment(segment));
 </script>
 
 <style lang="scss" scoped>
-  .transparent-content {
-    --background: transparent;
-  }
+.quest-dashboard-tab {
+  padding: 0 0 8px;
+  color: var(--xp-app-text);
+}
 
-  .loading-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100%;
-    padding: 24px;
-  }
+// The quest's name and its lore line; a tap goes back to rename it
+.ready-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 95%;
+  margin: 4px auto 14px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
 
-  .content-wrapper {
-    width: 100%;
+  i {
+    color: var(--xp-app-accent);
   }
+}
+
+.ready-title__name {
+  font-family: var(--xp-app-font-title);
+  font-size: 1.3rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-transform: var(--xp-app-title-transform);
+}
+
+.ready-title__tagline {
+  color: var(--xp-app-text-dim);
+  font-size: 0.85rem;
+}
 </style>

@@ -5,13 +5,15 @@
  * @returns A string representing the abbreviated number
  */
 export function abbreviateNumber(value: number, decimals: number = 0): string {
-  if (value === null || value === undefined) return "0";
+  const hasNoValue = value === null || value === undefined;
+  if (hasNoValue) return "0";
   if (isNaN(value)) return "0";
 
   const suffixes = ["", "k", "M", "G", "T", "P", "E"];
   const tier = (Math.log10(Math.abs(value)) / 3) | 0;
 
-  if (tier === 0) return value.toString();
+  const isUnderThousand = tier === 0;
+  if (isUnderThousand) return value.toString();
 
   const suffix = suffixes[tier];
   const scale = Math.pow(10, tier * 3);
@@ -27,7 +29,8 @@ export function abbreviateNumber(value: number, decimals: number = 0): string {
  * @returns A formatted string
  */
 export function formatCurrency(value: number): string {
-  if (value >= 10000) {
+  const isAbbreviated = value >= 10000;
+  if (isAbbreviated) {
     return abbreviateNumber(value, 1);
   }
   return value.toLocaleString();

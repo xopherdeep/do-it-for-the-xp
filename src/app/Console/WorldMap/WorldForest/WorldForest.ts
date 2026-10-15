@@ -6,10 +6,11 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-forest",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
@@ -64,11 +65,11 @@ export default dC({
       },
       {
         label: "Forest Temple",
-        id: "forest-temple",
+        id: "earth-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = "forest-temple"
+          const temple = "earth-temple"
           router.push({
             name: "temple",
             params: {

@@ -3,7 +3,7 @@
     <ion-header v-if="!hideHeader" :class="[headerClass]" :style="headerStyle">
       <ion-toolbar :class="[headerClass]">
         <ion-buttons slot="start">
-           <ion-back-button :default-href="backButtonHref" />
+           <xp-back-button :default-href="backButtonHref" />
         </ion-buttons>
         
         <!-- Standard Title Logic -->
@@ -26,7 +26,8 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle } from '@ionic/vue';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonTitle } from '@ionic/vue';
+import XpBackButton from '@/components/atoms/BackButton/XpBackButton.vue';
 import XpLoading from '@/components/molecules/Loading/XpLoading.vue';
 
 
@@ -37,8 +38,8 @@ export default defineComponent({
     IonHeader,
     IonToolbar,
     IonButtons,
-    IonBackButton,
     IonTitle,
+    XpBackButton,
     XpLoading
   },
   props: {
@@ -66,6 +67,7 @@ export default defineComponent({
       type: Boolean,
       default: false
     },
+    // Where Back goes with no history; empty = the place this page belongs to (src/router/parentOf.ts)
     backButtonHref: {
       type: String,
       default: ''

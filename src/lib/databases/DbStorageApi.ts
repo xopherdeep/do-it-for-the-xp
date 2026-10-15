@@ -18,8 +18,7 @@ export class DbStorageApi {
   }
 
   public async get(key: string) {
-    const value = await this.storage.get(key)
-    return value;
+    return this.storage.get(key);
   }
 
   public async remove(key: string) {

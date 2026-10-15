@@ -110,7 +110,8 @@ export default defineComponent({
     };
 
     const nextBlock = () => {
-      if (currentBlockIndex.value < textBlocks.value.length - 1) {
+      const hasNextBlock = currentBlockIndex.value < textBlocks.value.length - 1;
+      if (hasNextBlock) {
         currentBlockIndex.value++;
         currentText.value = textBlocks.value[currentBlockIndex.value];
         hasMoreBlocks.value = currentBlockIndex.value < textBlocks.value.length - 1;
@@ -121,9 +122,11 @@ export default defineComponent({
     };
 
     const handleClick = () => {
-      if (isTyping.value && typingText.value) {
+      const typingComponent = typingText.value;
+      const isMidSentence = isTyping.value && typingComponent;
+      if (isMidSentence) {
         // Complete the typing immediately
-        typingText.value.completeTyping?.();
+        typingComponent.completeTyping?.();
       } else if (hasMoreBlocks.value) {
         nextBlock();
       } else {
@@ -134,7 +137,8 @@ export default defineComponent({
 
     const onTypingComplete = () => {
       isTyping.value = false;
-      if (autoDismiss.value && !hasMoreBlocks.value) {
+      const shouldAutoDismiss = autoDismiss.value && !hasMoreBlocks.value;
+      if (shouldAutoDismiss) {
         dismissTimeout.value = window.setTimeout(() => {
           hide();
         }, 2000);
@@ -203,7 +207,6 @@ export default defineComponent({
       padding: 1rem 1.25rem;
       position: relative;
       cursor: pointer;
-      backdrop-filter: blur(10px);
 
       .dialog-close {
         position: absolute;

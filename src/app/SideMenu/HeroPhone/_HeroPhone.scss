@@ -1,0 +1,65 @@
+.hero-phone-page {
+  --background: var(--ion-background-color, #121824);
+
+  .hero-phone-content {
+    --background: transparent;
+  }
+
+  .hero-phone-grid {
+    padding-top: 24px;
+  }
+
+  .unlinked-card {
+    background: var(--ion-card-background, #1a2332);
+    border: 1px solid rgba(224, 90, 122, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+    .unlinked-text {
+      display: block;
+      color: #ff94b0;
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .start-fresh-btn {
+      --background: var(--ion-color-danger, #eb445a);
+      --color: #ffffff;
+    }
+  }
+
+  .hero-card {
+    background: var(--ion-card-background, #1a2332);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+
+    .model-box {
+      width: 100%;
+      height: 260px;
+      position: relative;
+    }
+
+    .hero-nickname {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ion-text-color, #ffffff);
+    }
+
+    .hero-details {
+      font-size: 1rem;
+      color: var(--ion-color-step-600, #94a3b8);
+      margin-top: 4px;
+    }
+
+    .quests-elsewhere {
+      display: block;
+      color: var(--ion-color-step-500, #a0aec0);
+      font-size: 0.95rem;
+      line-height: 1.4;
+      font-style: italic;
+      margin-top: 12px;
+    }
+  }
+}

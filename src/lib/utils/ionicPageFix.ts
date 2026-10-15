@@ -16,13 +16,15 @@ export function fixPageTransitions() {
     );
     
     // If we have multiple visible pages, we need to fix it
-    if (currentPages.length > 1) {
+    const hasStackedPages = currentPages.length > 1;
+    if (hasStackedPages) {
       // Get the top-most page (the one that should be visible)
       const lastPage = pages[pages.length - 1];
       
       // Hide all pages except the top one
       pages.forEach(page => {
-        if (page !== lastPage) {
+        const isBuried = page !== lastPage;
+        if (isBuried) {
           page.classList.add('ion-page-hidden');
         } else {
           page.classList.remove('ion-page-hidden');

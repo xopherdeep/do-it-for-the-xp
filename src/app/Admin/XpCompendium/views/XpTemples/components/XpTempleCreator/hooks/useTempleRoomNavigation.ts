@@ -3,25 +3,51 @@
  * 
  * Handles room navigation, adjacent room detection, and door state management.
  */
-import { ref, computed, ComputedRef, Ref } from 'vue';
+import { ref, computed, watch, ComputedRef, Ref } from 'vue';
 import { useIonRouter, createAnimation, toastController } from '@ionic/vue';
+import { useBack } from '@/hooks/useBack';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { ROOM_ICONS, ____ } from '@/lib/engine/dungeons/roomTypes';
 import { Room } from '@/lib/engine/core/dungeons/types';
-import { getSideState } from '@/lib/engine/dungeons/roomIcons';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
+import { facingSide, leadsToBoss, type Side } from '@/lib/services/temples/authoredDoors';
+import {
+  DOOR_STATE_INFO,
+  defaultSides,
+  doorClassFor,
+  doorIconFor,
+  doorToastIcon,
+  nextDoorState,
+  type AdjacentRooms,
+  type Direction
+} from './grid/doorSides';
+import { floorSlice, levelIdAfterLoad, type MazeData } from './grid/floorLayers';
+import {
+  canLocateRoom,
+  computeAdjacency,
+  getAdjacentCoords,
+  isWallRoom,
+  navigableCells,
+  noAdjacentRooms,
+  wallOffMissingSides
+} from './grid/neighbourLinks';
 
 // No-op animation for instant navigation
 const noAnimation = () => createAnimation();
 
-export type Direction = 'north' | 'east' | 'south' | 'west';
+export type { Direction, AdjacentRooms };
 
-export interface AdjacentRooms {
-  north: boolean;
-  east: boolean;
-  south: boolean;
-  west: boolean;
-}
+/**
+ * The floor the room editor works on. The address names one (rooms/2F/1/2), so a room on another floor opens its own
+ * cell; an old two-part address (rooms/1/2) names none and keeps the floor the creator was on. A named floor the
+ * loaded maze lacks is corrected like any loaded floor; a maze still loading cannot be checked yet, and the loader
+ * corrects it afterwards.
+ */
+export const floorForAddress = (maze: MazeData, named: string | undefined, current: string): string => {
+  if (!named) return current;
+  const isMazeLoaded = Array.isArray(maze) ? maze.length > 0 : Object.keys(maze).length > 0;
+  return isMazeLoaded ? levelIdAfterLoad(maze, named) : named;
+};
 
 export interface UseTempleRoomNavigationProps {
   templeId: string;
@@ -29,6 +55,8 @@ export interface UseTempleRoomNavigationProps {
   colIdx: ComputedRef<number>;
   roomData: Ref<Room | null>;
   saveToStore: () => void;
+  /** The floor the address names; absent for an old two-part address */
+  floor?: Ref<string | undefined>;
 }
 
 export interface UseTempleRoomNavigationReturn {
@@ -39,9 +67,9 @@ export interface UseTempleRoomNavigationReturn {
   unvisitedRooms: ComputedRef<{ row: number; col: number }[]>;
   
   // Methods
-  calculateAdjacency: () => void;
+  updateAdjacency: () => void;
   canNavigate: (direction: 'prev' | 'next') => boolean;
-  navigateRoom: (direction: 'prev' | 'next') => void;
+  stepRoom: (direction: 'prev' | 'next') => void;
   handleDoorClick: (dir: string) => void;
   toggleLock: (dir: string) => void;
   getDoorIcon: (dir: string) => string;
@@ -50,13 +78,15 @@ export interface UseTempleRoomNavigationReturn {
   getAdjacentRoomIcon: (dir: string) => string;
   getAdjacentRoomLabel: (dir: string) => string;
   getAdjacentRoomType: (dir: string) => string;
-  goBack: () => void;
-  goToCell: (row: number, col: number) => void;
+  stepBack: () => void;
+  selectCell: (row: number, col: number) => void;
   apply: () => void;
 }
 
 export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): UseTempleRoomNavigationReturn {
   const ionRouter = useIonRouter();
+  // Back from a room goes back, or up to the temple's rooms when the editor was opened with no history behind it
+  const { stepBack: back } = useBack();
   const store = useTempleCreatorStore();
   
   const adjacentRooms = ref<AdjacentRooms>({ 
@@ -67,53 +97,46 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
   });
 
   // Get maze helper
-  const getMaze = (): string[][] => {
-    const allMaze = store.templeMaze;
-    return Array.isArray(allMaze) 
-      ? allMaze 
-      : (allMaze as Record<string, string[][]>)[store.currentLevelId] || [];
+  const getMaze = (): string[][] => floorSlice(store.templeMaze, store.currentLevelId);
+
+  // The editor reads its floor from the store, so the address's floor goes there before the room loads
+  const adoptAddressFloor = () => {
+    store.currentLevelId = floorForAddress(store.templeMaze, props.floor?.value, store.currentLevelId);
   };
+  adoptAddressFloor();
+  watch(() => props.floor?.value, adoptAddressFloor);
+
+  // The address of a room on the floor being edited
+  const roomAddress = (name: string, row: number, col: number) => ({
+    name,
+    params: {
+      templeId: props.templeId,
+      floor: store.currentLevelId,
+      row: row.toString(),
+      col: col.toString()
+    }
+  });
 
   // Calculate adjacency for current room
-  const calculateAdjacency = () => {
+  const updateAdjacency = () => {
     const maze = getMaze();
     const r = props.rowIdx.value;
     const c = props.colIdx.value;
     
     // Safety check - if maze isn't loaded or coords are invalid, set all to false
-    if (!maze || !maze.length || !maze[0] || isNaN(r) || isNaN(c) || r < 0 || c < 0) {
-      adjacentRooms.value = { north: false, east: false, south: false, west: false };
+    if (!canLocateRoom(maze, r, c)) {
+      adjacentRooms.value = noAdjacentRooms();
       return;
     }
     
-    const rows = maze.length;
-    const cols = maze[0]?.length || 0;
-    
-    // Additional bounds check
-    if (r >= rows || c >= cols) {
-      adjacentRooms.value = { north: false, east: false, south: false, west: false };
-      return;
-    }
-    
-    adjacentRooms.value = {
-      north: r > 0 && !!maze[r - 1],
-      east: c < cols - 1 && !!maze[r][c + 1],
-      south: r < rows - 1 && !!maze[r + 1],
-      west: c > 0 && !!maze[r][c - 1]
-    };
+    adjacentRooms.value = computeAdjacency(maze, r, c);
 
     // Edge-to-Wall normalization: If no neighbor exists, this side MUST be a wall in the data
-    if (props.roomData.value) {
-      if (!props.roomData.value.sides) {
-        props.roomData.value.sides = { north: 'door', east: 'door', south: 'door', west: 'door' };
-      }
+    const room = props.roomData.value;
+    if (room) {
+      room.sides ??= defaultSides();
       
-      const sides = props.roomData.value.sides;
-      Object.keys(adjacentRooms.value).forEach(dir => {
-        if (!adjacentRooms.value[dir as keyof AdjacentRooms]) {
-          sides[dir as Direction] = 'wall';
-        }
-      });
+      wallOffMissingSides(room.sides, adjacentRooms.value);
     }
   };
 
@@ -123,14 +146,18 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const rows = maze.length;
     const cols = maze[0]?.length || 0;
 
-    switch (dir) {
-      case 'north': return props.rowIdx.value > 0 ? { row: props.rowIdx.value - 1, col: props.colIdx.value } : null;
-      case 'south': return props.rowIdx.value < rows - 1 ? { row: props.rowIdx.value + 1, col: props.colIdx.value } : null;
-      case 'east': return props.colIdx.value < cols - 1 ? { row: props.rowIdx.value, col: props.colIdx.value + 1 } : null;
-      case 'west': return props.colIdx.value > 0 ? { row: props.rowIdx.value, col: props.colIdx.value - 1 } : null;
-      default: return null;
-    }
+    return getAdjacentCoords(props.rowIdx.value, props.colIdx.value, dir, rows, cols);
   };
+
+  // The room on the other side of a door, as the store holds it
+  const neighbourRoom = (dir: string): Room | undefined => {
+    const coords = getRelativeRoom(dir);
+    const symbol = coords ? getMaze()[coords.row]?.[coords.col] : undefined;
+    return symbol ? store.roomsData[symbol] : undefined;
+  };
+
+  // The side as the room page shows it: any door into or out of a boss room is the Boss Lock (the skull)
+  const sideOf = (dir: string): string => facingSide(props.roomData.value, neighbourRoom(dir), dir as Side);
 
   // Get the adjacent room's icon
   const getAdjacentRoomIcon = (dir: string): string => {
@@ -144,7 +171,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     if (isWallToken(symbol)) return 'DYNAMIC_WALL';
 
     const roomType = store.roomsData[symbol]?.type || 'empty';
-    if (roomType === 'wall') return 'DYNAMIC_WALL';
+    const isWallType = roomType === 'wall';
+    if (isWallType) return 'DYNAMIC_WALL';
     return ROOM_ICONS[roomType as keyof typeof ROOM_ICONS] || ROOM_ICONS.empty;
   };
 
@@ -163,7 +191,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     if (isWallToken(symbol)) return 'Wall';
     
     const roomType = store.roomsData[symbol]?.type || 'empty';
-    if (roomType === 'wall') return 'Wall';
+    const isWallType = roomType === 'wall';
+    if (isWallType) return 'Wall';
     return roomType.charAt(0).toUpperCase() + roomType.slice(1);
   };
 
@@ -186,63 +215,52 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return;
     
-    // Save current room data before navigating
-    const maze = getMaze();
-    const symbol = maze[props.rowIdx.value][props.colIdx.value];
-    if (props.roomData.value) {
-      store.roomsData[symbol] = { ...props.roomData.value };
+    // Save current room data before navigating, the way every other way out of the room does: a cell on a shared token
+    // (the wall, the entrance, a config token) gets its own symbol first, so the edit never lands on every cell.
+    // A wall nobody changed has nothing of its own to save.
+    const symbol = getMaze()[props.rowIdx.value]?.[props.colIdx.value];
+    const isUntouchedWall = isWallToken(symbol) && props.roomData.value?.type === 'wall';
+    if (!isUntouchedWall) {
+      props.saveToStore();
     }
     
     // Navigate to adjacent room
     const coords = getRelativeRoom(dir);
     if (coords) {
-      ionRouter.replace(
-        {
-          name: 'xp-temple-room-editor',
-          params: {
-            templeId: props.templeId,
-            row: coords.row.toString(),
-            col: coords.col.toString()
-          }
-        },
-        noAnimation
-      );
+      ionRouter.replace(roomAddress('xp-temple-room-editor', coords.row, coords.col), noAnimation);
     }
   };
 
   // Toggle lock state for a door (local state only - sync happens on save)
   const toggleLock = async (dir: string) => {
-    if (!adjacentRooms.value[dir as keyof typeof adjacentRooms.value]) return;
-    if (!props.roomData.value) return;
+    const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
+    if (!hasAccess) return;
+    const room = props.roomData.value;
+    if (!room) return;
     
-    if (!props.roomData.value.sides) {
-      props.roomData.value.sides = { north: 'door', east: 'door', south: 'door', west: 'door' };
+    room.sides ??= defaultSides();
+
+    // Every door into a boss room is the Boss door: it stays the skull, whatever is tapped
+    const isBossDoor = sideOf(dir) === 'masterlocked' && leadsToBoss(room, neighbourRoom(dir));
+    if (isBossDoor) {
+      const toast = await toastController.create({
+        message: 'Boss Lock: only the Boss Key opens it',
+        duration: 1400,
+        position: 'top',
+        color: 'danger',
+        cssClass: 'door-state-toast',
+        icon: 'skull'
+      });
+      toast.present();
+      return;
     }
 
-    const currentState = props.roomData.value.sides[dir] || 'door';
-    const states = ['door', 'locked', 'bombable', 'wall'];
-    const nextIdx = (states.indexOf(currentState) + 1) % states.length;
-    const newState = states[nextIdx];
-    props.roomData.value.sides[dir] = newState;
+    const currentState = room.sides[dir] || 'door';
+    const newState = nextDoorState(currentState);
+    room.sides[dir] = newState;
     
     // Toast messages for each state
-    const stateInfo: Record<string, { icon: string; label: string; color: string }> = {
-      door: { icon: 'far fa-tombstone-alt', label: 'Open Passage', color: 'success' },
-      locked: { icon: 'fas fa-lock', label: 'Locked Door', color: 'warning' },
-      bombable: { icon: 'fal fa-bomb', label: 'Bombable Wall', color: 'secondary' },
-      wall: { icon: 'DYNAMIC_WALL', label: 'Solid Wall', color: 'medium' }
-    };
-    
-    const info = stateInfo[newState];
-    const resolvedIcon = info.icon === 'DYNAMIC_WALL' ? (store.roomsData[____]?.type === 'wall' ? 'fa-wind' : 'fa-dungeon') : info.icon;
-    
-    // We try to get the real wall icon if available in store
-    let finalIcon = resolvedIcon;
-    if (info.icon === 'DYNAMIC_WALL') {
-      // In useTempleRoomNavigation, we don't have direct access to the dynamicRoomIcons computation 
-      // but we can look it up similarly.
-      finalIcon = 'fa-wind'; // Default fallback, usually overridden by component
-    }
+    const info = DOOR_STATE_INFO[newState];
 
     const toast = await toastController.create({
       message: info.label,
@@ -250,7 +268,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
       position: 'top',
       color: info.color,
       cssClass: 'door-state-toast',
-      icon: finalIcon.replace('fad ', '').replace('fas ', '').replace('fal ', '')
+      icon: doorToastIcon(info.icon, store.roomsData[____]?.type)
     });
     toast.present();
     
@@ -262,35 +280,20 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return 'DYNAMIC_WALL';
 
-    const state = getSideState(dir, props.roomData.value);
+    const state = sideOf(dir);
     
     // Check if the adjacent room is actually a wall
     const coords = getRelativeRoom(dir);
     const maze = getMaze();
     const neighborSymbol = coords ? maze[coords.row]?.[coords.col] : null;
-    const isNeighborWall = neighborSymbol && store.roomsData[neighborSymbol]?.type === 'wall';
-    
-    // Boss/miniboss rooms are always trapped, regular monster rooms check lockOnEnter
-    const roomType = props.roomData.value?.type;
-    const isTrapped = (roomType === 'boss' || roomType === 'miniboss' || props.roomData.value?.content?.lockOnEnter);
-    
-    // If it's a solid wall config OR the neighbor is a wall, show the wall icon
-    if (state === 'wall' || isNeighborWall) {
-      return 'DYNAMIC_WALL';
-    }
-    
-    if (isTrapped && state !== 'bombable') {
-      const adjType = getAdjacentRoomType(dir);
-      const isEntrance = adjType === 'entrance';
-      return `fad fa-dungeon${isEntrance ? ' entrance-variant' : ''}`;
-    }
-    
-    switch (state) {
-      case 'locked': return 'fas fa-lock';
-      case 'bombable': return 'fal fa-bomb';
-      case 'wall': return 'DYNAMIC_WALL';
-      default: return 'far fa-tombstone-alt';
-    }
+
+    return doorIconFor({
+      state,
+      neighborIsWall: isWallRoom(neighborSymbol, store.roomsData),
+      roomType: props.roomData.value?.type,
+      lockOnEnter: props.roomData.value?.content?.lockOnEnter,
+      adjacentType: getAdjacentRoomType(dir)
+    });
   };
 
   // Get door CSS class based on state
@@ -298,50 +301,32 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return 'state-wall state-banned';
     
-    const state = getSideState(dir, props.roomData.value);
+    const state = sideOf(dir);
     
     const coords = getRelativeRoom(dir);
     const maze = getMaze();
     const neighborSymbol = coords ? maze[coords.row]?.[coords.col] : null;
-    const isNeighborWall = neighborSymbol && store.roomsData[neighborSymbol]?.type === 'wall';
-    
-    if (state === 'wall' || isNeighborWall) {
-      return 'state-wall';
-    }
-    
-    const roomType = props.roomData.value?.type;
-    const isTrapped = (roomType === 'boss' || roomType === 'miniboss' || props.roomData.value?.content?.lockOnEnter);
-    
-    if (isTrapped && state !== 'bombable') {
-      return 'state-trapped';
-    }
-    
-    return `state-${state}`;
+
+    return doorClassFor({
+      state,
+      neighborIsWall: isWallRoom(neighborSymbol, store.roomsData),
+      roomType: props.roomData.value?.type,
+      lockOnEnter: props.roomData.value?.content?.lockOnEnter
+    });
   };
 
   // Navigation helpers - navigate through rooms in reading order
-  const unvisitedRooms = computed(() => {
-    const maze = getMaze();
-    const coords: { row: number; col: number }[] = [];
-    for (let r = 0; r < maze.length; r++) {
-      for (let c = 0; c < (maze[r]?.length || 0); c++) {
-        const symbol = maze[r][c];
-        if (symbol && store.roomsData[symbol]?.type !== 'wall') {
-          coords.push({ row: r, col: c });
-        }
-      }
-    }
-    return coords;
-  });
+  const unvisitedRooms = computed(() => navigableCells(getMaze(), store.roomsData));
 
   const canNavigate = (direction: 'prev' | 'next'): boolean => {
     const coords = unvisitedRooms.value;
     const currentIdx = coords.findIndex(c => c.row === props.rowIdx.value && c.col === props.colIdx.value);
-    if (direction === 'prev') return currentIdx > 0;
+    const isBackward = direction === 'prev';
+    if (isBackward) return currentIdx > 0;
     return currentIdx < coords.length - 1;
   };
 
-  const navigateRoom = (direction: 'prev' | 'next') => {
+  const stepRoom = (direction: 'prev' | 'next') => {
     if (!canNavigate(direction)) return;
     
     props.saveToStore();
@@ -352,42 +337,22 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const target = coords[targetIdx];
     
     if (target) {
-      ionRouter.replace(
-        {
-          name: 'xp-temple-room-editor',
-          params: {
-            templeId: props.templeId,
-            row: target.row.toString(),
-            col: target.col.toString()
-          }
-        },
-        noAnimation
-      );
+      ionRouter.replace(roomAddress('xp-temple-room-editor', target.row, target.col), noAnimation);
     }
   };
 
   const apply = () => {
     props.saveToStore();
-    ionRouter.back();
+    back();
   };
 
-  const goBack = () => {
-    ionRouter.back();
+  const stepBack = () => {
+    back();
   };
 
   // Navigate to specific cell coordinates (for mini-map)
-  const goToCell = (row: number, col: number) => {
-    ionRouter.replace(
-      {
-        name: 'xp-room-editor',
-        params: {
-          templeId: props.templeId,
-          row: row.toString(),
-          col: col.toString()
-        }
-      },
-      noAnimation
-    );
+  const selectCell = (row: number, col: number) => {
+    ionRouter.replace(roomAddress('xp-room-editor', row, col), noAnimation);
   };
 
   return {
@@ -398,9 +363,9 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     unvisitedRooms,
     
     // Methods
-    calculateAdjacency,
+    updateAdjacency,
     canNavigate,
-    navigateRoom,
+    stepRoom,
     handleDoorClick,
     toggleLock,
     getDoorIcon,
@@ -409,8 +374,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     getAdjacentRoomIcon,
     getAdjacentRoomLabel,
     getAdjacentRoomType,
-    goBack,
-    goToCell,
+    stepBack,
+    selectCell,
     apply
   };
 }

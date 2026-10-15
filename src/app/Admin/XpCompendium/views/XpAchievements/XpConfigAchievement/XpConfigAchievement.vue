@@ -1,51 +1,165 @@
 <template>
   <ion-page
-    :class="$options.name"
-    class="bg-transparent"
+    :class="[$options.name, rootClass]"
+    :style="rootStyle"
   >
-    <ion-tabs>
-      <XpWizardCoach :active-tab="activeTab" />
-      <ion-router-outlet></ion-router-outlet>
+    <!-- The Game Master's quest config as steps (docs: compendium-wizards-design, W4). The header, dots, guide line,
+         Back / Next and the verb are the shared XpWizardShell; the rules and the words of each step live in
+         ../questConfigWizard.ts; each step's body is one of the old tabs. Autosave stays the draft mechanism. -->
+    <xp-wizard-shell
+      v-if="isOpen"
+      v-model:index="position"
+      :steps="steps"
+      :draft="achievement"
+      icon="scroll"
+      verb="Ready"
+      verb-icon="shield-check"
+      :busy="isFinishing"
+      @close="leave"
+      @submit="makeReady"
+    >
+      <!-- 1. WHAT'S THE CHORE: the category, what the kind means, the beast or the chain -->
+      <template #chore>
+        <quest-type-tab />
+      </template>
 
-      <!-- Single bottom tab bar -->
-      <ion-tab-bar
-        slot="bottom"
-        class="icon-colors"
-      >
-        <ion-tab-button
-          v-for="segment in segments"
-          :key="segment.name"
-          :tab="segment.path"
-          :href="`/game-master/compendium/achievements/config/${achievement.id}/${segment.path}`"
-          :selected="activeTab === segment.path"
+      <!-- 2. WHO DOES IT: the heroes (the five ways to share are at the bottom) -->
+      <template #who>
+        <quest-heros-tab />
+      </template>
+
+      <!-- 3. WHEN: start, end, due time, times of day, repeat -->
+      <template #when>
+        <quest-schedule-tab />
+      </template>
+
+      <!-- 4. HOW HARD: what the difficulty decides, the pay, approval and priority (the slider is at the bottom) -->
+      <template #hard>
+        <quest-rewards-tab />
+      </template>
+
+      <!-- 5. READY: the quest as the heroes will meet it; a tile jumps back to the step that owns it -->
+      <template #ready>
+        <quest-dashboard-tab @go="goToStep" />
+      </template>
+
+      <!-- The step's field sits at the bottom, above Back / Next, in thumb reach -->
+      <template #above-nav="{ step }">
+        <!-- Autosave state; a draft is saved but hidden from heroes until the quest is complete -->
+        <button
+          v-if="saveChip"
+          type="button"
+          class="save-chip"
+          :class="`save-chip--${saveState}`"
+          :aria-label="`${saveChip.label}: tap for details`"
+          data-test="save-chip"
+          @click="clickSaveChip"
         >
-          <i
-            v-if="segment.name === 'What'"
-            :class="activeLoreCombo.icon"
-            class="fad fa-2x mb-1"
-          />
-          <i
-            v-else-if="segment.name === 'Who'"
-            :class="activePartyType.icon"
-            class="fad fa-2x mb-1"
-          />
-          <i
-            v-else-if="segment.name === 'When'"
-            :class="activeScheduleIcon"
-            class="fad fa-2x mb-1"
-          />
-          <i
-            v-else
-            :class="segment.icon"
-            class="fad fa-2x mb-1"
-          />
-          <ion-label>{{ segment.name }}</ion-label>
-        </ion-tab-button>
-      </ion-tab-bar>
-    </ion-tabs>
+          <i :class="['fad', saveChip.icon]" aria-hidden="true"></i>
+          <span>{{ saveChip.label }}</span>
+        </button>
 
-    <!-- Shared Modals (moved inside ion-page but outside ion-tabs if they are truly global) -->
-    <!-- Or keep them in the parent so children can trigger them via the shared state -->
+        <template v-if="step.id === 'chore'">
+          <div
+            class="xp-app-segments qc-segments"
+            role="group"
+            aria-label="Kind of chore"
+          >
+            <button
+              v-for="kind in QUEST_KINDS"
+              :key="kind.value"
+              type="button"
+              class="xp-app-segment"
+              :class="{ 'is-active': adventureType === kind.value }"
+              :aria-pressed="adventureType === kind.value"
+              :data-test="`kind-${kind.value}`"
+              @click="pickKind(kind.value)"
+            >
+              <i
+                :class="['fad', `fa-${kind.icon}`]"
+                aria-hidden="true"
+              ></i>
+              {{ kind.label }}
+            </button>
+          </div>
+          <label class="xp-app-search">
+            <i
+              class="fad fa-scroll"
+              aria-hidden="true"
+            ></i>
+            <input
+              v-model="achievement.achievementName"
+              type="text"
+              autocomplete="off"
+              enterkeyhint="done"
+              maxlength="80"
+              placeholder="Name of the chore"
+              aria-label="Name of the chore"
+              data-test="name"
+              @keyup.enter="closeKeyboard"
+            />
+          </label>
+        </template>
+
+        <div
+          v-else-if="step.id === 'who'"
+          class="xp-app-segments qc-segments"
+          role="group"
+          aria-label="How the quest is shared"
+        >
+          <button
+            v-for="choice in ASSIGNMENT_CHOICES"
+            :key="choice.value"
+            type="button"
+            class="xp-app-segment"
+            :class="{ 'is-active': achievement.type === choice.value }"
+            :aria-pressed="achievement.type === choice.value"
+            :data-test="`assignment-${choice.value}`"
+            @click="pickAssignment(choice.value)"
+          >
+            {{ choice.label }}
+          </button>
+        </div>
+
+        <!-- The one difficulty control: the Fibonacci steps, 1 to 144 -->
+        <div
+          v-else-if="step.id === 'hard'"
+          class="qc-difficulty"
+        >
+          <ion-range
+            class="qc-range"
+            aria-label="Difficulty"
+            :value="fibonacciIndex"
+            :min="0"
+            :max="fibonacciArray.length - 1"
+            :snaps="true"
+            :ticks="true"
+            :pin="true"
+            :pin-formatter="displayFibonacciValue"
+            data-test="difficulty-range"
+            @ionChange="handleDifficultyChange"
+          >
+            <span slot="start">{{ fibonacciArray[0] }}</span>
+            <span slot="end">{{ fibonacciArray[fibonacciArray.length - 1] }}</span>
+          </ion-range>
+        </div>
+      </template>
+    </xp-wizard-shell>
+
+    <ion-content v-else>
+      <xp-loading />
+    </ion-content>
+
+    <!-- A new quest is ready: the fanfare, then the quest list -->
+    <xp-hero-fanfare
+      :open="showFanfare"
+      :name="achievement.achievementName"
+      :subtitle="fanfareSubtitle"
+      title="A new quest appears!"
+      action-text="To the quest list"
+      :portrait="beastAvatarUrl || ''"
+      @done="finishFanfare"
+    />
 
     <!-- DateTime Modals -->
     <ion-modal
@@ -128,22 +242,14 @@
       </ion-datetime>
     </ion-modal>
 
-    <!-- Type Selector Modals -->
-
-
-    <xp-type-selector-modal
-      :is-open="showPartyTypeSelector"
-      title="Quest Assignment"
-      :options="assignmentTypes"
-      :current-selection="achievement.type"
-      @close="showPartyTypeSelector = false"
-      @select="(val) => achievement.type = val"
-    />
-
+    <!-- The category list: a tap files the quest under it, a typed name that exists is picked, not added twice -->
     <xp-add-category-modal
       :is-open="addCategoryModalOpen"
       :categories="categories"
+      :quest-counts="categoryQuestCounts"
+      :current="achievement.categoryId"
       @dismiss="addCategoryModalOpen = false"
+      @pick-category="pickCategory"
       @add-category="addCategory"
       @edit-categories="editCategories"
       @delete-category="deleteCategory"
@@ -188,128 +294,6 @@
       @close="showBonusModal = false"
       @save="(val) => { toggleBonus(val); showBonusModal = false }"
     />
-
-    <!-- Preview Modal -->
-    <ion-modal
-      trigger="preview-achievement"
-      :keep-contents-mounted="true"
-      :backdrop-dismiss="true"
-      mode="ios"
-    >
-      <ion-card>
-        <ion-list>
-          <ion-item-sliding lines="none">
-            <ion-item-options side="start">
-              <ion-item-option color="success">
-                <i class="fad fa-flag mr-1" />
-                <ion-datetime-button datetime="starts-on" />
-              </ion-item-option>
-              <ion-item-option color="danger">
-                <i class="fad fa-flag-checkered mr-1" />
-                <ion-datetime-button datetime="ends-on" />
-              </ion-item-option>
-              <ion-item-option color="warning">
-                <i class="fad fa-stopwatch mr-1" />
-                <ion-datetime-button datetime="due-by" />
-              </ion-item-option>
-            </ion-item-options>
-            <xp-achievement-item
-              :achievement="achievement"
-              :categories="categories"
-            />
-          </ion-item-sliding>
-
-          <ion-item
-            lines="none"
-            v-if="achievement.type !== 'asNeeded' && achievement.assignee.length"
-          >
-            <ion-label position="stacked">The Chosen Heros</ion-label>
-            <ion-select
-              label=""
-              v-model="achievement.assignee"
-              multiple
-              mode="ios"
-            >
-              <ion-select-option
-                v-for="user in users"
-                :key="user.id"
-                :value="user.id"
-              >
-                {{ user.name.first }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-
-          <!-- Points Preview -->
-          <ion-list>
-            <ion-item
-              lines="none"
-              v-if="achievement.xp"
-            >
-              <i
-                class="fad fa-hand-holding-seedling fa-2x mr-3"
-                slot="start"
-                style="color: var(--ion-color-success)"
-              />
-              <ion-label>Experience Points (XP)</ion-label>
-              <ion-badge
-                color="success"
-                slot="end"
-              >
-                {{ achievement.xp }}
-                <i class="fad fa-hand-holding-seedling ml-2" />
-              </ion-badge>
-            </ion-item>
-            <ion-item
-              lines="none"
-              v-if="achievement.gp"
-            >
-              <i
-                class="fad fa-hand-holding-usd fa-2x mr-3"
-                slot="start"
-                style="color: var(--ion-color-warning)"
-              />
-              <ion-label>Gold Points (GP)</ion-label>
-              <ion-badge
-                color="warning"
-                slot="end"
-              >
-                {{ achievement.gp }}
-                <i class="fad fa-hand-holding-usd ml-2" />
-              </ion-badge>
-            </ion-item>
-            <ion-item
-              lines="none"
-              v-if="achievement.ap"
-            >
-              <i
-                class="fad fa-hand-holding-magic fa-2x mr-3"
-                slot="start"
-                style="color: var(--ion-color-danger)"
-              />
-              <ion-label>Ability Points (AP)</ion-label>
-              <ion-badge
-                color="danger"
-                slot="end"
-              >
-                {{ achievement.ap }}
-                <i class="fad fa-hand-holding-magic ml-2" />
-              </ion-badge>
-            </ion-item>
-          </ion-list>
-        </ion-list>
-
-        <ion-buttons class="ion-float-right">
-          <ion-button @click="dismissModal">
-            Dismiss
-            <i class="fad fa-times fa-lg ml-2" />
-          </ion-button>
-        </ion-buttons>
-      </ion-card>
-    </ion-modal>
-
-
-
   </ion-page>
 </template>
 

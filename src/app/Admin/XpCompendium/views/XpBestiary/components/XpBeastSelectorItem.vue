@@ -10,7 +10,7 @@
       <canvas ref="bgCanvas" class="beast-bg"></canvas>
       <div class="beast-avatar-container">
         <i v-if="icon" :class="['fad', icon, 'fa-3x', 'beast-icon']"></i>
-        <img v-else-if="avatarUrl" :src="avatarUrl" class="beast-avatar" />
+        <img v-else-if="avatarUrl" :src="avatarUrl" :alt="name" class="beast-avatar" />
         <div v-else class="beast-placeholder">?</div>
       </div>
       <div v-if="selected" class="selection-overlay">
@@ -25,6 +25,7 @@
 import { defineComponent, ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { BackgroundLayer } from "earthbound-battle-backgrounds";
 import { backgroundManager } from '@/lib/engine/core/BackgroundManager';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'XpBeastSelectorItem',
@@ -44,17 +45,24 @@ export default defineComponent({
     const isHovered = ref(false);
 
     const avatarUrl = computed(() => {
-      if (!props.avatar) return null;
+      const avatar = props.avatar;
+      if (!avatar) return null;
       try {
-        const pad = props.avatar.toString().padStart(3, '0');
-        return require(`@/assets/images/beasts/${pad}.png`);
+        const pad = avatar.toString().padStart(3, '0');
+        return require(`@/assets/images/beasts/${pad}.webp`);
       } catch {
         return null;
       }
     });
 
+    const canAnimateEngine = () =>
+      Boolean(engine && typeof engine.animate === 'function');
+    const canStopEngine = () =>
+      Boolean(engine && typeof engine.stop === 'function');
+
     const initEngine = () => {
-      if (!bgCanvas.value || !props.id) return;
+      const isMissingCanvasOrBeastId = !bgCanvas.value || !props.id;
+      if (isMissingCanvasOrBeastId) return;
 
       try {
         const layer1 = new BackgroundLayer(props.bg1);
@@ -69,21 +77,22 @@ export default defineComponent({
         // If we found an existing engine, it might already have a tick 
         // that's more accurate than our lastTick ref.
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to init EB engine for beast item:', err);
+        debug.warn('[BeastSelectorItem] failed to init EB engine for beast item', err);
       }
     };
 
     const startAnimation = () => {
       isHovered.value = true;
-      if (engine && typeof engine.animate === 'function') {
+      if (canAnimateEngine()) {
         // Synchronously prime the canvas to avoid the black flash
-        if (props.id && bgCanvas.value) {
+        const canPrimeCanvas = props.id && bgCanvas.value;
+        if (canPrimeCanvas) {
           backgroundManager.renderFrame(props.id, bgCanvas.value);
         }
         
         // Ensure the engine is using our current canvas
-        if (engine.canvas !== bgCanvas.value) {
+        const isOtherCanvas = engine.canvas !== bgCanvas.value;
+        if (isOtherCanvas) {
           engine.canvas = bgCanvas.value;
         }
         engine.animate();
@@ -92,7 +101,7 @@ export default defineComponent({
 
     const stopAnimation = () => {
       isHovered.value = false;
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
     };
@@ -101,9 +110,10 @@ export default defineComponent({
       initEngine();
       
       // Render first frame then stop for "freeze frame" effect
-      if (engine && typeof engine.animate === 'function') {
+      if (canAnimateEngine()) {
         // Synchronously render the first static frame to avoid initial black flash
-        if (props.id && bgCanvas.value) {
+        const canPrimeCanvas = props.id && bgCanvas.value;
+        if (canPrimeCanvas) {
           backgroundManager.renderFrame(props.id, bgCanvas.value);
         }
 
@@ -112,7 +122,8 @@ export default defineComponent({
         // A very short delay to ensure the engine re-captures the canvas 
         // and draws at least one frame before we freeze.
         requestAnimationFrame(() => {
-          if (!isHovered.value && engine && typeof engine.stop === 'function') {
+          const shouldFreezeFrame = !isHovered.value && canStopEngine();
+          if (shouldFreezeFrame) {
             engine.stop();
           }
         });
@@ -120,14 +131,14 @@ export default defineComponent({
     });
 
     onUnmounted(() => {
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
     });
 
     // Re-init if background settings change
     watch(() => [props.bg1, props.bg2], () => {
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
       initEngine();

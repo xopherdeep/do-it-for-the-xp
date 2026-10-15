@@ -129,6 +129,8 @@
     }
   }
 
+  let progressTimer: ReturnType<typeof setInterval> | null = null;
+
   export default defineComponent({
     name: "XpMusicPlayer",
     mixins: [ionic],
@@ -202,8 +204,9 @@
 
       showTrackInfoTemporarily() {
         // Clear any existing timeout
-        if (this.infoVisibilityTimeoutId !== null) {
-          clearTimeout(this.infoVisibilityTimeoutId);
+        const infoTimeoutId = this.infoVisibilityTimeoutId;
+        if (infoTimeoutId) {
+          clearTimeout(infoTimeoutId);
           this.infoVisibilityTimeoutId = null;
         }
 
@@ -211,9 +214,9 @@
         this.isInfoVisible = true;
 
         // Set timeout to hide it after the specified duration
-        this.infoVisibilityTimeoutId = setTimeout(() => {
+        this.infoVisibilityTimeoutId = window.setTimeout(() => {
           this.isInfoVisible = false;
-        }, this.infoVisibilityDuration) as unknown as number;
+        }, this.infoVisibilityDuration);
       },
 
       toggleMusic(event: CustomEvent) {
@@ -240,8 +243,16 @@
         this.simulateProgressUpdate();
       },
 
+      hasPlaybackPosition(): boolean {
+        return Boolean(this.audioElement && this.audioElement.currentTime);
+      },
+
+      hasKnownDuration(): boolean {
+        return Boolean(this.audioElement && this.audioElement.duration);
+      },
+
       rewind() {
-        if (this.audioElement && this.audioElement.currentTime) {
+        if (this.hasPlaybackPosition()) {
           // Rewind by seekAmount seconds, but don't go below 0
           this.audioElement.currentTime = Math.max(
             0,
@@ -250,17 +261,17 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
       },
 
       fastForward() {
-        if (this.audioElement && this.audioElement.currentTime) {
+        if (this.hasPlaybackPosition()) {
           // Fast forward by seekAmount seconds, but don't exceed duration
           const newTime = this.audioElement.currentTime + this.seekAmount;
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.audioElement.currentTime = Math.min(
               newTime,
               this.audioElement.duration
@@ -271,14 +282,14 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
       },
 
       updateProgressFromAudio() {
-        if (this.audioElement && this.audioElement.duration) {
+        if (this.hasKnownDuration()) {
           this.progressPercentage =
             (this.audioElement.currentTime / this.audioElement.duration) * 100;
         }
@@ -286,10 +297,11 @@
 
       simulateProgressUpdate() {
         // Clear any existing interval
-        if (this.intervalId !== null) {
-          clearInterval(this.intervalId);
-          this.intervalId = null;
+        if (progressTimer) {
+          clearInterval(progressTimer);
+          progressTimer = null;
         }
+        this.intervalId = null;
 
         // Only start progress simulation if music is playing
         if (this.isPlaying) {
@@ -297,15 +309,16 @@
           this.updateProgressFromAudio();
 
           // Then set up interval for regular updates
-          this.intervalId = setInterval(() => {
-            if (this.audioElement && this.audioElement.duration) {
+          progressTimer = setInterval(() => {
+            if (this.hasKnownDuration()) {
               // Use actual audio progress if available
               this.updateProgressFromAudio();
             } else {
               // Fallback to simulation
               this.progressPercentage = (this.progressPercentage + 0.5) % 100;
             }
-          }, 1000) as unknown as number;
+          }, 1000);
+          this.intervalId = progressTimer as unknown as number;
         }
       },
 
@@ -316,15 +329,18 @@
 
       getTrackTitle() {
         // First try to get the track title from the tracks array if available
-        if (this.bgm && this.bgm.tracks && this.bgm.track !== undefined) {
+        const hasCurrentTrackListed = this.bgm && this.bgm.tracks && this.bgm.track !== undefined;
+        if (hasCurrentTrackListed) {
           const currentTrack = this.bgm.tracks[this.bgm.track];
-          if (currentTrack && currentTrack.title) {
+          const hasTrackTitle = currentTrack && currentTrack.title;
+          if (hasTrackTitle) {
             return currentTrack.title;
           }
         }
 
         // If no title in tracks array, try to extract from the audio source URL
-        if (this.audioElement && this.audioElement.src) {
+        const hasAudioSource = this.audioElement && this.audioElement.src;
+        if (hasAudioSource) {
           const url = this.audioElement.src;
 
           // Extract the filename from the URL
@@ -344,7 +360,8 @@
           filename = filename.split("#")[0]; // Remove hash
 
           // Remove extension
-          if (filename.includes(".")) {
+          const hasExtension = filename.includes(".");
+          if (hasExtension) {
             filename = filename.substring(0, filename.lastIndexOf("."));
           }
 
@@ -387,7 +404,8 @@
             ".xp-music-player .track-title"
           );
 
-          if (titleEl && containerEl) {
+          const canMeasureTitle = titleEl && containerEl;
+          if (canMeasureTitle) {
             this.shouldMarquee =
               titleEl.scrollWidth > containerEl.clientWidth - 80; // Account for the BGM ON/OFF label
           }
@@ -427,7 +445,8 @@
       }
 
       // Listen for changes in the audio source
-      if (this.audioElement) {
+      const hasAudioElement = Boolean(this.audioElement);
+      if (hasAudioElement) {
         // Using watch instead of MutationObserver since it won't work directly on Audio element
         debug.log("Audio element available, using watch for changes instead");
       }
@@ -440,11 +459,11 @@
       document.addEventListener("audio-engine:nextTrack", this.handleNextTrack);
       document.addEventListener(
         "audio-engine:seekBackward",
-        this.handleSeekBackward as unknown as (ev: Event) => void
+        this.handleSeekBackward
       );
       document.addEventListener(
         "audio-engine:seekForward",
-        this.handleSeekForward as unknown as (ev: Event) => void
+        this.handleSeekForward
       );
     },
 
@@ -460,20 +479,27 @@
       );
       document.removeEventListener(
         "audio-engine:seekBackward",
-        this.handleSeekBackward as unknown as (ev: Event) => void
+        this.handleSeekBackward
       );
       document.removeEventListener(
         "audio-engine:seekForward",
-        this.handleSeekForward as unknown as (ev: Event) => void
+        this.handleSeekForward
       );
 
       // Clear intervals and timeouts
-      if (this.intervalId !== null) {
-        clearInterval(this.intervalId);
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
       }
 
-      if (this.infoVisibilityTimeoutId !== null) {
-        clearTimeout(this.infoVisibilityTimeoutId);
+      const intervalId = this.intervalId;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+
+      const infoTimeoutId = this.infoVisibilityTimeoutId;
+      if (infoTimeoutId) {
+        clearTimeout(infoTimeoutId);
       }
     },
 
@@ -496,116 +522,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  .xp-music-player {
-    width: 100%;
-    padding: 0;
-
-    .music-player-container {
-      padding: 0;
-    }
-
-    .music-control-item {
-      --padding-start: 0;
-      --inner-padding-end: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .music-label {
-      opacity: 0.8;
-      margin-left: 5px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      /* background-color: rgba(var(--ion-color-primary-rgb), 0.15); */
-    }
-
-    .player-buttons {
-      display: flex;
-      justify-content: space-evenly;
-      align-items: center;
-      width: 100%;
-      padding: 8px 0;
-
-      .control-button {
-        --padding-start: 8px;
-        --padding-end: 8px;
-        height: 40px;
-        margin: 0;
-
-        ion-icon {
-          font-size: 18px;
-        }
-      }
-
-      .play-pause-button {
-        height: 48px;
-
-        ion-icon {
-          font-size: 22px;
-        }
-      }
-    }
-
-    .track-info {
-      padding: 4px 16px 8px;
-      overflow: hidden;
-
-      .track-title {
-        position: relative;
-        font-size: 1.4rem;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 8px;
-        padding: 4px 0;
-
-        &.marquee {
-          animation: marquee 10s linear infinite;
-
-          .marquee-duplicate {
-            position: absolute;
-            left: 100%;
-            margin-left: 20px;
-          }
-        }
-      }
-
-      ion-progress-bar {
-        --buffer-background: rgba(var(--ion-color-primary-rgb), 0.2);
-        --progress-background: var(--ion-color-primary);
-        height: 4px;
-        border-radius: 2px;
-      }
-    }
-
-    // Animation classes
-    .slide-fade-enter-active {
-      transition: all 0.3s ease-out;
-    }
-
-    .slide-fade-leave-active {
-      transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1);
-    }
-
-    .slide-fade-enter-from {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-
-    .slide-fade-leave-to {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-  }
-
-  @keyframes marquee {
-    0% {
-      transform: translate(0, 0);
-    }
-    100% {
-      transform: translate(-100%, 0);
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpMusicPlayer.scss" />

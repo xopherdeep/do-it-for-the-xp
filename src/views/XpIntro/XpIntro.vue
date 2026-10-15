@@ -18,6 +18,7 @@
         @skip="onSkip"
       />
     </ion-content>
+    <div class="app-version">v{{ version }}</div>
   </ion-page>
 </template>
 
@@ -28,6 +29,10 @@
   import { XpIntroSplash } from "@/components/organisms/IntroSplash";
   import type { SplashScreen } from "@/components/organisms/IntroSplash";
   import Ionic from "@/lib/mixins/ionic";
+  import { useTimers } from "@/hooks/useTimers";
+  import { play$fx } from "@/assets/fx";
+  // The auto-bump workflow rewrites package.json's version on every push to master.
+  import packageInfo from "@/../package.json";
 
   export default defineComponent({
     name: "XpIntro",
@@ -39,6 +44,7 @@
     },
     setup() {
       const router = useRouter();
+      const timers = useTimers();
       // const ionRouter = useIonRouter();
       const viewActive = ref(false);
       const duration = 2500; // Default duration for each splash screen
@@ -46,60 +52,60 @@
       // Define the splash screens for the intro sequence
       const splashScreens = ref<SplashScreen[]>([
         {
-          image: require("@/assets/images/about/welcome.png"),
-          text: "Welcome to 'Do it for the XP' - Your life's level-up & reward system!",
+          image: require("@/assets/images/about/welcome.webp"),
+          text: "Welcome to Do It For The XP! Here, your chores make you a hero.",
           alt: "Do it for the XP Logo",
           duration,
           soundEffect: "splash.intro",
         },
         {
-          image: require("@/assets/images/about/peace.png"),
-          text: "Long ago, the sacred pegasi maintained balance in our world, bringing harmony to every corner of life.",
+          image: require("@/assets/images/about/peace.webp"),
+          text: "Long ago, magic horses called pegasi kept our world happy and clean.",
           alt: "World Lore",
           duration,
         },
         {
-          image: require("@/assets/images/about/darkness.png"),
-          text: "But the dark forces of chaos - Dust Bunnies and Grease Dragons - have risen to power, capturing the pegasi and imprisoning them in dragon eggs.",
+          image: require("@/assets/images/about/darkness.webp"),
+          text: "Then the Dust Bunnies and Grease Dragons came. They locked the pegasi in dragon eggs!",
           alt: "Villains",
           duration,
         },
         {
-          image: require("@/assets/images/about/temples.png"),
-          text: "These temples - once sacred grounds of order - now lie in disarray. The Wind Temple, the Earth Temple, the Water Temple, the Fire & Frozen Temples, and the Sun & Moon Temples have fallen to chaos.",
+          image: require("@/assets/images/about/temples.webp"),
+          text: "Their homes, the temples, are a big mess now. Wind, Earth, Water, Fire, Ice, Sun and Moon.",
           alt: "Temples",
           duration,
         },
         {
-          image: require("@/assets/images/about/chosen.png"),
-          text: "As the Chosen One, you must cleanse these temples, defeat the forces of disorder, and rescue the pegasi to restore balance to your world.",
+          image: require("@/assets/images/about/chosen.webp"),
+          text: "You are the hero. Clean up the temples. Beat the mess monsters. Set the pegasi free!",
           alt: "Hero's Journey",
           duration,
         },
         {
-          image: require("@/assets/images/about/order.png"),
-          text: "Each completed task brings order to chaos, frees a pegasus, and strengthens your resolve for the battles ahead.",
+          image: require("@/assets/images/about/order.webp"),
+          text: "Every chore you finish beats a monster. Every chore makes you stronger.",
           duration,
         },
         {
-          image: require("@/assets/images/about/xp.png"),
-          text: "XP (Experience Points) represents how much you've grown in your quest for balance. Fueling up as you complete quests and vanquish the forces of chaos.",
+          image: require("@/assets/images/about/xp.webp"),
+          text: "XP shows how much you have grown. Do quests, win fights, go up a level!",
           alt: "XP Icon",
           duration,
         },
         {
-          image: require("@/assets/images/about/gp.png"),
-          text: "GP (Gold Points) are the currency you use to buy treasures you collect along your journey, to be spent on rewards and tools to aid your quest.",
+          image: require("@/assets/images/about/gp.webp"),
+          text: "GP is your gold. Spend it on treats and tools.",
           duration,
         },
         {
-          image: require("@/assets/images/about/ap.png"),
-          text: "AP (Ability Points) are used to unlock new abilities and skills, enhancing your powers and making you a formidable force against the forces of chaos.",
+          image: require("@/assets/images/about/ap.webp"),
+          text: "AP is your power. Earn it to unlock cool powers, like Video Games time.",
           duration,
         },
         {
-          image: require("@/assets/images/about/splash-4.png"),
-          text: "Will you answer the call? The fate of the pegasi - and the balance of your realm - rests in your hands.",
+          image: require("@/assets/images/about/splash-4.webp"),
+          text: "Will you help the pegasi? The world needs you. Let's go!",
           duration,
         },
       ]);
@@ -120,43 +126,56 @@
       };
 
       return {
+        version: packageInfo.version,
         viewActive,
         splashScreens,
         onComplete,
         onSkip,
         navigateTo,
+        timers,
       };
     },
 
     // Use Ionic-specific lifecycle hooks
     beforeMount() {
       // Play sound if needed
-      if (
-        typeof this.$fx?.ui?.[this.$fx.theme.ui]?.options?.play === "function"
-      ) {
-        this.$fx.ui[this.$fx.theme.ui].options.play();
-      }
+      play$fx("options");
     },
 
     // This is called every time the view is entered - Ionic specific
     ionViewWillEnter() {
       // Ensure intro will play when entering the view
       this.viewActive = false;
+      this.timers.cancelAll();
       // Short delay to ensure a clean start
-      setTimeout(() => {
+      this.timers.startTimeout(100, () => {
         this.viewActive = true;
-      }, 100);
+      });
     },
 
     // This is called when leaving the view - Ionic specific
     ionViewWillLeave() {
       // Deactivate the component when navigating away
       this.viewActive = false;
+      this.timers.cancelAll();
     },
   });
 </script>
 
 <style scoped>
+  /* Above the splash overlay (z-index 1000), clear of the bottom-centre skip button. */
+  .app-version {
+    position: fixed;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 1001;
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+  }
+
   .intro-container {
     max-width: 800px;
     margin: 0 auto;

@@ -6,269 +6,195 @@
           :default-href="`/game-master/do-this-not-that`"
           @click="dismiss"
         />
-        <!-- <ion-icon :icon="medalOutline" size="large" /> -->
       </ion-buttons>
-      <ion-title> Add {{ form.type }}</ion-title>
+      <ion-title>Add {{ isDo ? "Do" : "Don't" }}</ion-title>
     </ion-toolbar>
   </ion-header>
-  <ion-content class="bg-slide">
-    <ion-card>
-      <ion-card-content>
-        <i
-          class="fad fa-2x mx-3 ion-float-right"
-          :style="{
-            color:
-              form.type === 'do'
-                ? 'var(--ion-color-success)'
-                : 'var(--ion-color-danger)',
-          }"
-          :class="{
-            'fa-thumbs-up': form.type === 'do',
-            'fa-thumbs-down': form.type === 'dont',
-          }"
-        ></i>
-        To Do or Not to Do?
-        <p>Choose between the two.</p>
-        <ion-segment mode="ios" v-model="form.type" @ionChange="updatePoints">
-          <ion-segment-button value="do" color="success">
-            Do
-          </ion-segment-button>
-          <ion-segment-button value="dont" color="danger">
-            Don't
-          </ion-segment-button>
-        </ion-segment>
-      </ion-card-content>
-    </ion-card>
-    <ion-list>
-      <ion-item>
-        <ion-avatar slot="start">
-          <ion-skeleton-text></ion-skeleton-text>
-        </ion-avatar>
-        <ion-label>
-          What is the
-          {{ form.type === "do" ? "Bonus" : "Penalty" }}
-          for?
-        </ion-label>
-        <ion-input v-model="form.whatFor" />
-      </ion-item>
-      <ion-item>
-        <ion-label>
-          Amount
-          {{ form.type === "do" ? "Awarded" : "Penalized" }}
-        </ion-label>
-        <i
-          slot="end"
-          class="fad fa-2x"
-          :style="isFibonacci ? { color: 'var(--ion-color-warning)' } : {}"
-        />
-        <ion-select
-          v-model="form.difficulty"
-          placeholder="Outside Golden Ratio"
+  <ion-content class="bg-slide do-dont">
+    <div class="do-dont-form" :class="isDo ? 'is-do' : 'is-dont'">
+      <section class="do-dont-panel do-dont-type">
+        <div class="do-dont-type-head">
+          <div>
+            <h2 class="do-dont-title">To Do or Not to Do?</h2>
+            <p class="do-dont-hint">
+              {{
+                isDo
+                  ? "A Do pays out when a hero does something good."
+                  : "A Don't takes points when a hero slips up."
+              }}
+            </p>
+          </div>
+          <i
+            class="fad fa-2x do-dont-thumb"
+            :class="isDo ? 'fa-thumbs-up' : 'fa-thumbs-down'"
+          />
+        </div>
+        <ion-segment
           mode="ios"
-        >
-          <ion-select-option
-            v-for="effort in efforts"
-            :key="effort.value"
-            :value="effort.value"
-          >
-            {{ effort.name }}
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
-      <ion-item>
-        <ion-button
-          :disabled="form.difficulty === 1"
-          @click="decreaseDifficulty"
-          color="danger"
-        >
-          <i class="fas fa-minus"></i>
-        </ion-button>
-        <ion-range
-          v-model="form.difficulty"
-          mode="ios"
-          min="0"
-          max="13"
-          :pin="true"
-          step="1"
-          :snaps="isFibonacci"
-          :ticks="isFibonacci"
-          color="warning"
+          v-model="form.type"
           @ionChange="updatePoints"
         >
-          <ion-label slot="start">
-            <p>Min</p>
-          </ion-label>
-          <ion-label slot="end">
-            <p>Max</p>
-          </ion-label>
-        </ion-range>
-        <ion-button
-          :disabled="form.difficulty === 13"
-          @click="increaseDifficulty"
-          color="success"
-        >
-          <i class="fas fa-plus"></i>
-        </ion-button>
-      </ion-item>
-      <ion-list-header>
-        Amount of Points to
-        {{ form.type === "do" ? "Award" : "Penalize" }}
-      </ion-list-header>
-      <ion-row>
-        <ion-col>
-          <ion-item :color="form.awardPoints.ap ? 'danger' : ''">
-            <ion-label>
-              <i class="fad fa-hand-holding-magic"></i> AP
-            </ion-label>
-            <ion-checkbox
-              v-model="form.awardPoints.ap"
-              color="danger"
-            ></ion-checkbox>
-          </ion-item>
-        </ion-col>
-        <ion-col>
-          <ion-item :color="form.awardPoints.gp ? 'warning' : ''">
-            <ion-label> <i class="fad fa-hand-holding-usd"></i> GP </ion-label>
-            <ion-checkbox
-              v-model="form.awardPoints.gp"
-              color="warning"
-            ></ion-checkbox>
-          </ion-item>
-        </ion-col>
-        <ion-col>
-          <ion-item :color="form.awardPoints.xp ? 'success' : ''">
-            <ion-label>
-              <i class="fad fa-hand-holding-seedling"></i> XP
-            </ion-label>
-            <ion-checkbox
-              v-model="form.awardPoints.xp"
-              color="success"
-            ></ion-checkbox>
-          </ion-item>
-        </ion-col>
-      </ion-row>
-      <ion-item-sliding v-if="form.awardPoints.ap">
-        <ion-item-options side="end">
-          <ion-item-option color="danger">
-            <i class="fad fa-hand-holding-magic fa-2x" />
-            <ion-input
-              class="ion-text-right text-xl"
-              v-model="form.points.ap"
-              type="number"
-              placeholder="Enter AP"
-            ></ion-input>
-            <ion-label slot="end"> AP </ion-label>
-          </ion-item-option>
-        </ion-item-options>
-        <ion-item>
-          <i
-            class="fad fa-hand-holding-magic fa-2x mr-3"
-            slot="start"
-            style="color: var(--ion-color-danger)"
-          />
-          <ion-label>
-            Ability Points (AP)
-            <p>Unlocks abilities, encourages strategic planning.</p>
-          </ion-label>
-          <ion-badge
-            class="ion-float-right text-sm px-2"
+          <ion-segment-button value="do">
+            <ion-label>Do</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="dont">
+            <ion-label>Don't</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </section>
+
+      <section class="do-dont-panel">
+        <ion-input
+          v-model="form.whatFor"
+          class="do-dont-input"
+          :label="`What is the ${isDo ? 'bonus' : 'penalty'} for?`"
+          label-placement="stacked"
+          fill="outline"
+          :placeholder="
+            isDo ? 'Made the bed without being asked' : 'Left dishes on the table'
+          "
+          :maxlength="80"
+        />
+      </section>
+
+      <section class="do-dont-panel">
+        <div class="do-dont-row">
+          <h3 class="do-dont-label">
+            Amount {{ isDo ? "Awarded" : "Penalized" }}
+          </h3>
+          <ion-select
+            v-model="form.difficulty"
+            class="do-dont-effort"
+            aria-label="Effort"
+            placeholder="Outside Golden Ratio"
+            interface="action-sheet"
+            :interface-options="{ header: 'How big is it?' }"
+            @ionChange="updatePoints"
+          >
+            <ion-select-option
+              v-for="effort in efforts"
+              :key="effort.value"
+              :value="effort.value"
+            >
+              {{ effort.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+        <div class="do-dont-row do-dont-range">
+          <ion-button
+            size="small"
             color="danger"
-            slot="end"
+            aria-label="Less"
+            :disabled="form.difficulty <= 1"
+            @click="decreaseDifficulty"
           >
-            {{ form.points.ap }}
-            <i class="fad fa-hand-holding-magic ml-2" />
-          </ion-badge>
-          <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
-        </ion-item>
-      </ion-item-sliding>
-      <ion-item-sliding v-if="form.awardPoints.gp">
-        <ion-item-options side="end">
-          <ion-item-option color="warning">
-            <i class="fad fa-hand-holding-usd fa-2x" />
-            <ion-input
-              slot="end"
-              v-model="form.points.gp"
-              type="number"
-              class="ion-text-right text-xl"
-              placeholder="Enter GP"
-            ></ion-input>
-            <ion-label slot="end"> GP </ion-label>
-          </ion-item-option>
-        </ion-item-options>
-        <ion-item>
-          <i
-            class="fad fa-hand-holding-usd fa-2x mr-3"
-            slot="start"
-            style="color: var(--ion-color-warning)"
-          />
-          <ion-label>
-            Gold Points (GP)
-            <p>In-app currency, teaching financial literacy.</p>
-          </ion-label>
-          <ion-badge
-            class="ion-float-right text-sm px-2"
+            <i class="fas fa-minus" />
+          </ion-button>
+          <ion-range
+            v-model="form.difficulty"
+            aria-label="Amount"
+            mode="ios"
+            :min="1"
+            :max="13"
+            :step="1"
+            :pin="true"
+            :snaps="isFibonacci"
+            :ticks="isFibonacci"
             color="warning"
-            slot="end"
+            @ionChange="updatePoints"
           >
-            <xp-gp :gp="form.points.gp" />
-            <i class="fad fa-hand-holding-usd ml-2" />
-          </ion-badge>
-          <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
-        </ion-item>
-      </ion-item-sliding>
-      <ion-item-sliding v-if="form.awardPoints.xp">
-        <ion-item-options side="end">
-          <ion-item-option color="success">
-            <i class="fad fa-hand-holding-seedling fa-2x" slot="end" />
-            <ion-input
-              slot="end"
-              v-model="form.points.xp"
-              type="number"
-              placeholder="Enter XP"
-              class="ion-text-right"
-            ></ion-input>
-            <ion-label slot="end"> XP </ion-label>
-          </ion-item-option>
-        </ion-item-options>
-        <ion-item>
-          <i
-            class="fad fa-hand-holding-seedling fa-2x mr-3"
-            slot="start"
-            style="color: var(--ion-color-success)"
-          />
-          <ion-label>
-            Experience Points (XP)
-            <p>Motivates and tracks skill growth.</p>
-          </ion-label>
-          <ion-badge
-            class="ion-float-right text-sm px-2"
+            <span slot="start" class="do-dont-range-end">Min</span>
+            <span slot="end" class="do-dont-range-end">Max</span>
+          </ion-range>
+          <ion-button
+            size="small"
             color="success"
-            slot="end"
+            aria-label="More"
+            :disabled="form.difficulty >= 13"
+            @click="increaseDifficulty"
           >
-            {{ form.points.xp }}
-            <i class="fad fa-hand-holding-seedling ml-2" />
-          </ion-badge>
-          <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
-        </ion-item>
-      </ion-item-sliding>
-      <ion-item>
-        <ion-label position="floating">Notes</ion-label>
-        <ion-textarea v-model="form.notes" rows="5"></ion-textarea>
-      </ion-item>
-    </ion-list>
+            <i class="fas fa-plus" />
+          </ion-button>
+        </div>
+      </section>
+
+      <section class="do-dont-panel">
+        <h3 class="do-dont-label">
+          Points to {{ isDo ? "Award" : "Penalize" }}
+        </h3>
+        <div class="do-dont-chips">
+          <button
+            v-for="stat in stats"
+            :key="stat.key"
+            type="button"
+            class="do-dont-chip"
+            :class="[`chip-${stat.color}`, { on: form.awardPoints[stat.key] }]"
+            :aria-pressed="form.awardPoints[stat.key]"
+            @click="form.awardPoints[stat.key] = !form.awardPoints[stat.key]"
+          >
+            <i class="fad" :class="stat.icon" />
+            {{ stat.short }}
+            <i
+              class="fas do-dont-chip-check"
+              :class="form.awardPoints[stat.key] ? 'fa-check' : 'fa-plus'"
+            />
+          </button>
+        </div>
+
+        <template v-for="stat in stats" :key="`${stat.key}-row`">
+          <div
+            v-if="form.awardPoints[stat.key]"
+            class="do-dont-points"
+            :class="`chip-${stat.color}`"
+          >
+            <i class="fad fa-2x do-dont-points-icon" :class="stat.icon" />
+            <div class="do-dont-points-text">
+              <strong>{{ stat.name }}</strong>
+              <span>{{ stat.blurb }}</span>
+            </div>
+            <ion-input
+              v-model="form.points[stat.key]"
+              class="do-dont-points-input"
+              type="number"
+              inputmode="numeric"
+              fill="outline"
+              :aria-label="stat.name"
+            >
+              <span slot="end" class="do-dont-points-unit">{{ stat.short }}</span>
+            </ion-input>
+          </div>
+        </template>
+        <p v-if="!anyPoints" class="do-dont-hint">
+          Pick at least one kind of points.
+        </p>
+      </section>
+
+      <section class="do-dont-panel">
+        <ion-textarea
+          v-model="form.notes"
+          class="do-dont-input"
+          label="Notes"
+          label-placement="stacked"
+          fill="outline"
+          placeholder="Anything the heroes should know (optional)"
+          :rows="4"
+          :auto-grow="true"
+        />
+      </section>
+    </div>
   </ion-content>
-  <ion-footer>
+  <ion-footer class="do-dont-footer">
     <ion-toolbar>
-      <ion-buttons slot="start">
-        <i class="fad fa-times fa-lg mx-1" />
-        <ion-button @click="dismiss">Cancel</ion-button>
-      </ion-buttons>
-      <ion-buttons slot="end">
-        <ion-button expand="full" @click="submitForm">
-          <i class="fad fa-save fa-lg mx-1" />
-          Save
+      <div class="do-dont-actions">
+        <ion-button fill="clear" color="medium" @click="dismiss">
+          <i class="fad fa-times fa-lg mr-2" />
+          Cancel
         </ion-button>
-      </ion-buttons>
+        <ion-button :color="accent" @click="submitForm">
+          <i class="fad fa-save fa-lg mr-2" />
+          Save {{ isDo ? "Do" : "Don't" }}
+        </ion-button>
+      </div>
     </ion-toolbar>
   </ion-footer>
 </template>
@@ -282,6 +208,45 @@
   import EFFORTS from "@/constants/EFFORTS";
 
   const dosDontsDb = new DosDontsDb();
+
+  type StatKey = "ap" | "gp" | "xp";
+
+  interface StatOption {
+    key: StatKey;
+    short: string;
+    name: string;
+    blurb: string;
+    icon: string;
+    color: string;
+  }
+
+  // The three kinds of points, in the order the rest of the Admin shows them
+  const STATS: StatOption[] = [
+    {
+      key: "ap",
+      short: "AP",
+      name: "Ability Points",
+      blurb: "Unlocks abilities, encourages planning.",
+      icon: "fa-hand-holding-magic",
+      color: "danger",
+    },
+    {
+      key: "gp",
+      short: "GP",
+      name: "Gold Points",
+      blurb: "In-app gold, teaches money sense.",
+      icon: "fa-hand-holding-usd",
+      color: "warning",
+    },
+    {
+      key: "xp",
+      short: "XP",
+      name: "Experience Points",
+      blurb: "Tracks and rewards growth.",
+      icon: "fa-hand-holding-seedling",
+      color: "success",
+    },
+  ];
 
   export default defineComponent({
     name: "XpAddDoDont",
@@ -298,6 +263,7 @@
     data() {
       return {
         efforts: EFFORTS,
+        stats: STATS,
         form: {
           type: this.do ? "do" : "dont",
           whatFor: "",
@@ -318,6 +284,19 @@
       };
     },
     computed: {
+      isDo(): boolean {
+        return this.form.type === "do";
+      },
+
+      accent(): string {
+        return this.isDo ? "success" : "danger";
+      },
+
+      anyPoints(): boolean {
+        const { ap, gp, xp } = this.form.awardPoints;
+        return ap || gp || xp;
+      },
+
       isFibonacci() {
         return this.fibonacciArray.includes(this.form.difficulty);
       },
@@ -354,14 +333,18 @@
       },
       increaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex < this.fibonacciArray.length - 1) {
+        const canIncrease = currentIndex < this.fibonacciArray.length - 1;
+        if (canIncrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex + 1];
+          this.updatePoints();
         }
       },
       decreaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex > 0) {
+        const canDecrease = currentIndex > 0;
+        if (canDecrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex - 1];
+          this.updatePoints();
         }
       },
     },
@@ -370,3 +353,5 @@
     },
   });
 </script>
+
+<style lang="scss" scoped src="./_XpAddDoDont.scss" />

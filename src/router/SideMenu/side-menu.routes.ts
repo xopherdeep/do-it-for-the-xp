@@ -17,19 +17,41 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
     component: () =>
       import("@/app/SideMenu/SwitchProfile/SwitchProfile.vue"),
     meta: {
-      // requiresAuth: false
+      // The profile chooser is the way back in after Log Out, so it must not require auth
+      requiresAuth: false,
+    },
+  },
+  // Hero phone link route
+  {
+    path: "/link",
+    name: "link-phone",
+    component: () =>
+      import("@/app/SideMenu/HeroPhone/LinkPhone.vue"),
+    meta: {
+      requiresAuth: false,
+    },
+  },
+  // Hero phone kid-mode route
+  {
+    path: "/hero-phone",
+    name: "hero-phone",
+    component: () =>
+      import("@/app/SideMenu/HeroPhone/HeroPhone.vue"),
+    meta: {
+      requiresAuth: false,
     },
   },
   // Game Master route - imported from separate file
   {
     path: "/xp-membership",
+    name: "xp-membership",
     component: () =>
       import("@/app/SideMenu/XpMembership/XpMembership.vue"),
   },
   {
+    // The Help Desk lives at /xp-support (support.routes.ts); this older address leads there
     path: "/support",
-    name: "support",
-    component: () => import("@/app/SideMenu/XpSupport/XpSupport.vue"),
+    redirect: "/xp-support",
   },
   {
     path: "/tell-a-friend",

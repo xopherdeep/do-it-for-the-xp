@@ -1,0 +1,80 @@
+# The Town Hall rehearsal network (TH7): a throwaway WordPress multisite that stands in for
+# the live forthexp.com network, so nothing here ever touches the real site.
+#
+#   docker compose -f tools/townhall-rehearsal/docker-compose.yml up -d
+#   tools/townhall-rehearsal/setup.sh
+#
+# The project name keeps the containers, network and volumes apart from any other stack on
+# this machine (the owner's My Compass stack included). Plugins are bind-mounted read-only
+# from the COMPASS checkout; nothing here changes them.
+name: townhall-rehearsal
+
+x-wordpress-env: &wordpress-env
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_USER: wordpress
+  WORDPRESS_DB_PASSWORD: rehearsal-db
+  WORDPRESS_DB_NAME: wordpress
+  WORDPRESS_TABLE_PREFIX: wp_
+  WORDPRESS_DEBUG: "1"
+  # Application Passwords over plain http need a "local" environment type. A subdirectory
+  # network needs WP_ALLOW_MULTISITE; setup.sh adds the MULTISITE constants after the install.
+  WORDPRESS_CONFIG_EXTRA: |
+    define( 'WP_ENVIRONMENT_TYPE', 'local' );
+    define( 'WP_ALLOW_MULTISITE', true );
+    define( 'WP_DEBUG_LOG', true );
+    define( 'WP_DEBUG_DISPLAY', false );
+
+x-wordpress-volumes: &wordpress-volumes
+  - wp_html:/var/www/html
+  - ../../../Xophz-COMPASS/wp-content/plugins/xophz-compass:/var/www/html/wp-content/plugins/xophz-compass:ro
+  - ../../../Xophz-COMPASS/wp-content/plugins/xophz-compass-xp:/var/www/html/wp-content/plugins/xophz-compass-xp:ro
+  - ../../../Xophz-COMPASS/wp-content/plugins/xophz-compass-bulletin-board:/var/www/html/wp-content/plugins/xophz-compass-bulletin-board:ro
+  - ../../../Xophz-COMPASS/wp-content/plugins/xophz-compass-bugnet:/var/www/html/wp-content/plugins/xophz-compass-bugnet:ro
+
+services:
+  db:
+    image: mariadb:11
+    # A throwaway: it never comes back by itself after a reboot
+    restart: "no"
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: rehearsal-db
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    # This machine only: the rehearsal's test accounts and passwords never face the network
+    ports:
+      - "127.0.0.1:8090:80"
+    environment: *wordpress-env
+    volumes: *wordpress-volumes
+
+  # The WP-CLI runner for setup.sh (docker compose run --rm wpcli wp ...). It runs as the
+  # web server's user (uid 33) so the files it writes stay writable for Apache.
+  wpcli:
+    image: wordpress:cli-php8.2
+    profiles: ["tools"]
+    user: "33:33"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *wordpress-env
+      HOME: /tmp
+    volumes: *wordpress-volumes
+
+volumes:
+  wp_html:
+  db_data:

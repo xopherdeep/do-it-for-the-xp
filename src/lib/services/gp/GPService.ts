@@ -1,6 +1,7 @@
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import StorageService from '@/lib/services/core/StorageService';
+import { hospitalBillOf } from '@/lib/services/gp/wallet';
 
 /**
  * GPService handles all GP (Gold Points) operations in the game
@@ -17,7 +18,8 @@ export class GPService {
    * Initialize the GPService
    */
   public static initialize(): GPService {
-    if (!GPService.instance) {
+    const isUninitialized = !GPService.instance;
+    if (isUninitialized) {
       GPService.instance = new GPService();
     }
     return GPService.instance;
@@ -27,7 +29,8 @@ export class GPService {
    * Get the GPService instance
    */
   public static getInstance(): GPService {
-    if (!GPService.instance) {
+    const isUninitialized = !GPService.instance;
+    if (isUninitialized) {
       this.initialize();
     }
     return GPService.instance;
@@ -68,15 +71,27 @@ export class GPService {
   }
 
   /**
+   * Get what the hero still owes the Hospital (a bill above 0 means the hero is grounded)
+   * @param userId User ID
+   */
+  public getHospitalBill(userId: string): number {
+    const userStore = this.getUserStore();
+    const user = userStore.getUserById(userId);
+    return hospitalBillOf(user?.stats?.gp);
+  }
+
+  /**
    * Deposit GP from wallet to savings
    */
   public async depositToSavings(userId: string, amount: number): Promise<void> {
-    if (amount <= 0) {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
       throw new Error('Amount must be greater than 0');
     }
 
     const walletBalance = this.getWalletBalance(userId);
-    if (amount > walletBalance) {
+    const isOverWallet = amount > walletBalance;
+    if (isOverWallet) {
       throw new Error('Insufficient funds in wallet');
     }
 
@@ -92,12 +107,14 @@ export class GPService {
    * Withdraw GP from savings to wallet
    */
   public async withdrawFromSavings(userId: string, amount: number): Promise<void> {
-    if (amount <= 0) {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
       throw new Error('Amount must be greater than 0');
     }
 
     const savingsBalance = this.getSavingsBalance(userId);
-    if (amount > savingsBalance) {
+    const isOverSavings = amount > savingsBalance;
+    if (isOverSavings) {
       throw new Error('Insufficient funds in savings');
     }
 
@@ -113,18 +130,21 @@ export class GPService {
    * Pay off debt using wallet funds
    */
   public async payDebtFromWallet(userId: string, amount: number): Promise<void> {
-    if (amount <= 0) {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
       throw new Error('Amount must be greater than 0');
     }
 
     const walletBalance = this.getWalletBalance(userId);
     const debtBalance = this.getDebtBalance(userId);
     
-    if (amount > walletBalance) {
+    const isOverWallet = amount > walletBalance;
+    if (isOverWallet) {
       throw new Error('Insufficient funds in wallet');
     }
     
-    if (amount > debtBalance) {
+    const isOverDebt = amount > debtBalance;
+    if (isOverDebt) {
       throw new Error('Amount exceeds debt balance');
     }
 
@@ -137,10 +157,38 @@ export class GPService {
   }
 
   /**
+   * Pay the hospital bill using wallet funds (docs/Quest-Rooms-Spec.md 5.8). The grounding lifts when it reaches 0.
+   */
+  public async payHospitalBillFromWallet(userId: string, amount: number): Promise<void> {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    const isOverWallet = amount > this.getWalletBalance(userId);
+    if (isOverWallet) {
+      throw new Error('Insufficient funds in wallet');
+    }
+
+    const isOverBill = amount > this.getHospitalBill(userId);
+    if (isOverBill) {
+      throw new Error('Amount exceeds hospital bill');
+    }
+
+    const userStore = this.getUserStore();
+    return userStore.updateUserGP({
+      userId,
+      wallet: -amount,
+      hospitalBill: -amount
+    });
+  }
+
+  /**
    * Add GP to the user's wallet
    */
   public async addToWallet(userId: string, amount: number): Promise<void> {
-    if (amount <= 0) {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
       throw new Error('Amount must be greater than 0');
     }
 
@@ -155,12 +203,14 @@ export class GPService {
    * Remove GP from the user's wallet
    */
   public async removeFromWallet(userId: string, amount: number): Promise<void> {
-    if (amount <= 0) {
+    const isInvalidAmount = amount <= 0;
+    if (isInvalidAmount) {
       throw new Error('Amount must be greater than 0');
     }
 
     const walletBalance = this.getWalletBalance(userId);
-    if (amount > walletBalance) {
+    const isOverWallet = amount > walletBalance;
+    if (isOverWallet) {
       throw new Error('Insufficient funds in wallet');
     }
 

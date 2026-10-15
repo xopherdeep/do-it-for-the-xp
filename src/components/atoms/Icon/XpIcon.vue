@@ -33,11 +33,13 @@ export default defineComponent({
     const customStyle = computed(() => {
       const style: Record<string, string> = {};
       
-      if (props.primary) {
-        style['--fa-primary-color'] = `var(--xp-color-${props.primary})`;
+      const primary = props.primary;
+      if (primary) {
+        style['--fa-primary-color'] = `var(--xp-color-${primary})`;
       }
-      if (props.secondary) {
-        style['--fa-secondary-color'] = `var(--xp-color-${props.secondary})`;
+      const secondary = props.secondary;
+      if (secondary) {
+        style['--fa-secondary-color'] = `var(--xp-color-${secondary})`;
         style['--fa-secondary-opacity'] = '1';
       }
       

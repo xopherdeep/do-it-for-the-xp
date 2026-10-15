@@ -65,6 +65,7 @@
   import { FOOD_OPTIONS } from "@/constants";
   import { closeOutline } from "ionicons/icons";
   import ionic from "@/lib/mixins/ionic";
+  import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
     name: "FoodSelector",
@@ -82,13 +83,14 @@
     emits: ["update:modelValue", "close"],
     setup(props, { emit }) {
       const foodOptions = ref(FOOD_OPTIONS);
+      const timers = useTimers();
 
       const selectFood = (foodValue: string) => {
         emit("update:modelValue", foodValue);
         // Small delay for visual feedback before auto-closing
-        setTimeout(() => {
+        timers.startTimeout(200, () => {
           emit("close");
-        }, 200);
+        });
       };
 
       return {

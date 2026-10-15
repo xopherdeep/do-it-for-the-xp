@@ -49,15 +49,134 @@
 
     </template>
 
+    <!-- Preview as: the lock marks below are this hero's real progress, never an invented hero's -->
+    <!-- Only once there is something to preview: an empty list keeps its Add from Presets button clear of the FAB -->
+    <section
+      v-if="hasPreviewHero && abilities.length > 0"
+      class="preview-as"
+    >
+      <h2 class="preview-title">Preview as</h2>
+      <div
+        class="hero-chips"
+        role="radiogroup"
+        aria-label="Preview the Powers as this hero"
+      >
+        <button
+          v-for="hero in heroes"
+          :key="hero.id"
+          type="button"
+          role="radio"
+          class="hero-chip"
+          :class="{ active: previewHero?.id === hero.id }"
+          :aria-checked="previewHero?.id === hero.id"
+          @click="selectPreviewHero(hero)"
+        >
+          {{ heroName(hero) }}
+        </button>
+      </div>
+      <p
+        v-if="previewSnapshot"
+        class="preview-stats"
+      >
+        <span>Lv {{ previewSnapshot.level }}</span>
+        <span>{{ previewSnapshot.mp }} MP</span>
+        <span>{{ previewSnapshot.ap.daily }} AP today</span>
+        <span>{{ previewSnapshot.ap.weekly }} AP this week</span>
+        <span>{{ previewSnapshot.ap.total }} AP in all</span>
+      </p>
+      <p class="preview-note">Marks show what this hero has really earned so far.</p>
+    </section>
+    <section
+      v-else-if="abilities.length > 0"
+      class="preview-as preview-as--empty"
+    >
+      <p class="preview-note">No heroes yet, so there are no lock marks. Add a hero to see who can use which ability.</p>
+    </section>
+
     <!-- Enhanced Ability Manager Component -->
     <XpAbilityManager
       :abilities="filteredAbilities"
       :view-mode="viewMode"
       :ability-statuses="abilityStatuses"
       :unlock-statuses="unlockStatuses"
+      :show-status="hasPreviewHero"
+      :empty-title="emptyTitle"
+      :empty-hint="emptyHint"
       @edit-ability="navigateToEditAbility"
       @view-mode-change="viewMode = $event"
-    />
+    >
+      <template
+        v-if="currentFilter !== 'presets'"
+        #empty-actions
+      >
+        <div class="empty-actions">
+          <ion-button
+            size="small"
+            color="rpg"
+            @click="openPresetModal"
+          >
+            Add from Presets
+          </ion-button>
+        </div>
+      </template>
+    </XpAbilityManager>
+
+    <!-- Presets segment: the catalogue, one tap to add -->
+    <section
+      v-if="currentFilter === 'presets' && unaddedPresetGroups.length > 0"
+      class="preset-catalogue"
+    >
+      <h2 class="catalogue-title">Preset catalogue</h2>
+      <div
+        v-for="group in unaddedPresetGroups"
+        :key="group.key"
+        class="catalogue-group"
+      >
+        <h3 class="catalogue-group-title">{{ group.label }}</h3>
+        <ul class="catalogue-list">
+          <li
+            v-for="preset in group.presets"
+            :key="preset.id"
+            class="catalogue-row"
+          >
+            <i
+              v-if="preset.iconPrefix"
+              :class="['catalogue-icon', preset.iconPrefix, `fa-${preset.icon}`]"
+              aria-hidden="true"
+            />
+            <ion-icon
+              v-else
+              :icon="getAbilityIcon(preset)"
+              class="catalogue-icon"
+            />
+            <div class="catalogue-info">
+              <strong>{{ preset.name }}</strong>
+              <span class="catalogue-cost">
+                {{ preset.apRequirement.amount }} AP<template v-if="preset.mpCost"> / {{ preset.mpCost }} MP</template>
+              </span>
+              <p>{{ preset.description }}</p>
+              <p
+                v-if="presetNeeds(preset).length > 0"
+                class="catalogue-needs"
+              >
+                Needs {{ presetNeeds(preset).join(', ') }} first
+              </p>
+            </div>
+            <ion-button
+              size="small"
+              color="rpg"
+              :aria-label="`Add ${preset.name}`"
+              @click="addPresetFromCatalogue(preset)"
+            >
+              Add
+            </ion-button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Keeps the last card clear of the floating spellbook button -->
+    <div class="fab-clearance" />
 
     <!-- Icon Picker Modal -->
     <ion-modal
@@ -97,92 +216,27 @@
       </ion-header>
       <ion-content>
         <ion-list>
-          <ion-item-group>
+          <ion-item-group
+            v-for="group in presetGroups"
+            :key="group.key"
+          >
             <ion-item-divider>
-              <ion-label>Time Mage Abilities</ion-label>
+              <ion-label>{{ group.label }}</ion-label>
             </ion-item-divider>
             <ion-item
-              v-for="preset in timeMagePresets"
+              v-for="preset in group.presets"
               :key="preset.id"
               button
               @click="addPreset(preset)"
             >
-              <ion-icon
-                :icon="getAbilityIcon(preset)"
+              <i
+                v-if="preset.iconPrefix"
+                :class="[preset.iconPrefix, `fa-${preset.icon}`, 'fa-lg', 'mr-3']"
                 slot="start"
+                aria-hidden="true"
               />
-              <ion-label>
-                <h2>{{ preset.name }}</h2>
-                <p>{{ preset.description }}</p>
-              </ion-label>
-              <ion-checkbox
-                slot="end"
-                :checked="isPresetAdded(preset.id)"
-              ></ion-checkbox>
-            </ion-item>
-          </ion-item-group>
-
-          <ion-item-group>
-            <ion-item-divider>
-              <ion-label>Technician Abilities</ion-label>
-            </ion-item-divider>
-            <ion-item
-              v-for="preset in techMagePresets"
-              :key="preset.id"
-              button
-              @click="addPreset(preset)"
-            >
               <ion-icon
-                :icon="getAbilityIcon(preset)"
-                slot="start"
-              />
-              <ion-label>
-                <h2>{{ preset.name }}</h2>
-                <p>{{ preset.description }}</p>
-              </ion-label>
-              <ion-checkbox
-                slot="end"
-                :checked="isPresetAdded(preset.id)"
-              ></ion-checkbox>
-            </ion-item>
-          </ion-item-group>
-
-          <ion-item-group>
-            <ion-item-divider>
-              <ion-label>Real Life Rewards</ion-label>
-            </ion-item-divider>
-            <ion-item
-              v-for="preset in realLifePresets"
-              :key="preset.id"
-              button
-              @click="addPreset(preset)"
-            >
-              <ion-icon
-                :icon="getAbilityIcon(preset)"
-                slot="start"
-              />
-              <ion-label>
-                <h2>{{ preset.name }}</h2>
-                <p>{{ preset.description }}</p>
-              </ion-label>
-              <ion-checkbox
-                slot="end"
-                :checked="isPresetAdded(preset.id)"
-              ></ion-checkbox>
-            </ion-item>
-          </ion-item-group>
-
-          <ion-item-group v-if="hybridPresets.length > 0">
-            <ion-item-divider>
-              <ion-label>Multi-Class Abilities</ion-label>
-            </ion-item-divider>
-            <ion-item
-              v-for="preset in hybridPresets"
-              :key="preset.id"
-              button
-              @click="addPreset(preset)"
-            >
-              <ion-icon
+                v-else
                 :icon="getAbilityIcon(preset)"
                 slot="start"
               />

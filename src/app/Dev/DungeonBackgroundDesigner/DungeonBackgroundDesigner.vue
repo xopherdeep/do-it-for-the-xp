@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Dungeon Background Designer</ion-title>
         <ion-buttons slot="end">
@@ -18,8 +18,8 @@
       <div class="dungeon-designer">
         <canvas
           ref="dungeonCanvas"
-          :width="canvasWidth"
-          :height="canvasHeight"
+          :width="canvasSize.width"
+          :height="canvasSize.height"
           class="dungeon-canvas"
         ></canvas>
 
@@ -84,13 +84,12 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButtons, IonBackButton, IonButton, IonIcon, IonAlert, IonToast,
+  IonButtons, IonButton, IonIcon, IonAlert, IonToast,
   actionSheetController, alertController
 } from '@ionic/vue';
 import {
   settingsOutline} from 'ionicons/icons';
 
-// Import components
 import RoomInfoDisplay from './components/RoomInfoDisplay.vue';
 import NavigationControls from './components/NavigationControls.vue';
 import RoomActionButton from './components/RoomActionButton.vue';
@@ -107,6 +106,7 @@ import { useCanvasRenderer } from './hooks/useCanvasRenderer';
 import { ROOM_ICONS } from './utils/roomIcons';
 import { Direction, RoomDefinition } from './types';
 import debug from '@/lib/utils/debug';
+import { useTimers } from '@/hooks/useTimers';
 
 // Initialize temple data hook
 const { 
@@ -122,6 +122,7 @@ const {
 } = useTempleData();
 
 // UI state
+const timers = useTimers();
 const showControlsModal = ref(false);
 
 // Message display system
@@ -132,9 +133,9 @@ const displayMessage = (message: string) => {
   currentMessage.value = message;
   showMessage.value = true;
   
-  setTimeout(() => {
+  timers.startTimeout(2000, () => {
     showMessage.value = false;
-  }, 2000);
+  });
 };
 
 // Initialize door locks hook
@@ -155,12 +156,10 @@ const styles = styleConfig;
 // Extract all needed canvas variables and functions
 const {
   dungeonCanvas,
-  canvasWidth,
-  canvasHeight,
-  drawRoom,
+  canvasSize,
+  showRoom,
   exportBackground,
-  initCanvasResizeHandling,
-  resizeCanvas
+  initCanvasResizeHandling
 } = useCanvasRenderer();
 
 // Redraw the current room
@@ -192,7 +191,7 @@ const redrawRoom = (styleChange?: { type: string; value: string }) => {
   const temple = templeData.value[selectedTemple.value];
   const room = getCurrentRoom();
   
-  drawRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
+  showRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
 };
 
 // Get appropriate header for each room type
@@ -260,7 +259,8 @@ const showChestContentsDialog = async (room: RoomDefinition) => {
       {
         text: 'Loot',
         handler: (selectedItems) => {
-          if (selectedItems && selectedItems.length > 0) {
+          const hasSelectedItems = selectedItems && selectedItems.length > 0;
+          if (hasSelectedItems) {
             processChestItems(selectedItems, room);
           }
         }
@@ -280,21 +280,24 @@ const handleTeleport = () => {
   
   // Get the current room for context
   const currentRoom = getCurrentRoom();
-  if (!currentRoom || currentRoom.type !== 'teleport') return false;
+  const isNotOnTeleport = !currentRoom || currentRoom.type !== 'teleport';
+  if (isNotOnTeleport) return false;
   
   // Find all teleport rooms
   const teleportRooms: [number, number][] = [];
   temple.maze.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const cellRoom = temple.rooms[cell];
-      if (cellRoom && cellRoom.type === 'teleport' && 
-          !(rowIndex === currentPosition.value[0] && colIndex === currentPosition.value[1])) {
+      const isOtherTeleportRoom = cellRoom && cellRoom.type === 'teleport' &&
+          !(rowIndex === currentPosition.value[0] && colIndex === currentPosition.value[1]);
+      if (isOtherTeleportRoom) {
         teleportRooms.push([rowIndex, colIndex]);
       }
     });
   });
   
-  if (teleportRooms.length > 0) {
+  const hasTeleportRooms = teleportRooms.length > 0;
+  if (hasTeleportRooms) {
     // Choose a random teleport destination
     const destination = teleportRooms[Math.floor(Math.random() * teleportRooms.length)];
     currentPosition.value = destination;
@@ -400,7 +403,7 @@ const {
   canMoveDown,
   canMoveLeft,
   canMoveRight,
-  moveDirection
+  stepDirection
 } = useNavigation(templeData, selectedTemple, currentPosition, isValidRoom);
 
 // Handle movement between rooms
@@ -412,7 +415,7 @@ const handleMove = (direction: Direction) => {
   }
 
   // Attempt to move
-  const success = moveDirection(direction, isDoorLocked);
+  const success = stepDirection(direction, isDoorLocked);
   
   // If movement was successful, update room info and redraw
   if (success) {
@@ -432,11 +435,8 @@ const toggleControlsModal = () => {
 
 // Initialize
 onMounted(() => {
-  // Set up the canvas resize handler
+  // Set up the canvas resize handler; it also sizes the canvas to the window now
   const cleanup = initCanvasResizeHandling();
-  
-  // Resize canvas to fit current window dimensions
-  resizeCanvas();
   
   // Load the initial temple and draw the room
   loadSelectedTemple().then(() => {

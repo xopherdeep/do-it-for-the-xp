@@ -1,8 +1,10 @@
-import { defineComponent, PropType, computed } from "vue";
+import { defineComponent, PropType, computed, toRef } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { JOB_CLASS_OPTIONS, FOOD_OPTIONS } from "@/constants";
+import { useHeroBuilder } from "@/hooks/useHeroBuilder";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
+import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
+import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, PILLARS } from "@/constants";
 import {
-  IonBackButton,
   IonButton,
   IonIcon,
   IonButtons,
@@ -107,9 +109,9 @@ export default defineComponent({
           color: 'danger',
           icon: fitnessOutline,
           stats: {
-            strength: 'Use less HP when completing a task',
-            defense: 'Influences max HP',
-            endurance: 'Influences HP restore rate',
+            strength: PILLARS.physical.stats.strength.description,
+            defense: PILLARS.physical.stats.defense.description,
+            endurance: PILLARS.physical.stats.endurance.description,
           }
         },
         mental: {
@@ -117,27 +119,27 @@ export default defineComponent({
           color: 'tertiary',
           icon: colorWand,
           stats: {
-            intelligence: 'Use less MP when casting abilities',
-            perception: 'Influences max MP',
-            wisdom: 'Influences MP restore rate',
+            intelligence: PILLARS.mental.stats.intelligence.description,
+            perception: PILLARS.mental.stats.perception.description,
+            wisdom: PILLARS.mental.stats.wisdom.description,
           }
         },
         social: {
           color: 'warning',
           icon: serverOutline,
           stats: {
-            charisma: 'Influences GP discounts on items',
-            awareness: 'Gain more GP when completing tasks',
-            presence: 'Influences GP to $ conversion rate',
+            charisma: PILLARS.relational.stats.charisma.description,
+            awareness: PILLARS.relational.stats.awareness.description,
+            presence: PILLARS.relational.stats.presence.description,
           }
         },
         misc: {
           color: 'success',
           icon: sparklesOutline,
           stats: {
-            agility: 'Gain more AP when completing tasks',
-            guts: 'Gain more XP when completing tasks',
-            luck: 'Influence chances of receiving bonus points'
+            agility: PILLARS.vibrational.stats.agility.description,
+            guts: PILLARS.eternal.stats.guts.description,
+            luck: PILLARS.eternal.stats.luck.description
           }
         }
       }
@@ -152,7 +154,6 @@ export default defineComponent({
     IonItemDivider,
     IonLabel,
     IonNote,
-    IonBackButton,
     IonButtons,
     IonButton,
     IonContent,
@@ -171,7 +172,8 @@ export default defineComponent({
     IonImg,
     IonBadge,
     IonProgressBar,
-    IonChip
+    IonChip,
+    XpHeroBuilderModal
   },
 
   setup(props) {
@@ -182,11 +184,27 @@ export default defineComponent({
     const user = computed((): UserData => {
       const userData = userStore.getUserById(props.userId) || {} as UserData;
       // Ensure stats exists to prevent "Cannot read properties of undefined (reading 'stats')" error
-      if (!userData.stats) {
+      const stats = userData.stats;
+      if (!stats) {
         userData.stats = {};
       }
       return userData;
     });
+
+    // The snapshot of the hero's look when they have saved one, else their avatar SVG
+    const avatarSrc = computed(
+      () => heroAvatarSrc(user.value, requireAvatar) || requireAvatar("./001-gamer.svg")
+    );
+
+    // My Look opens the hero builder over the page (destructured so the template sees the refs unwrapped)
+    const {
+      isOpen: isBuilderOpen,
+      open: openMyLook,
+      close: closeBuilder,
+      look: builderLook,
+      equipment: builderEquipment,
+      save: saveBuilderLook,
+    } = useHeroBuilder(toRef(props, "userId"));
 
     // Helper to get class icon
     const getClassIcon = (className: string | undefined): string => {
@@ -214,16 +232,17 @@ export default defineComponent({
     };
 
     // Helper to calculate area total
+    // Special stats live under stats.special; older profiles kept them at the top level
     const getAreaTotal = (area: Area, stats: UserStats): number => {
-      return Object.keys(area.stats).reduce((total, stat) => {
-        return total + (stats[stat] || 0);
-      }, 0);
+      const special = (stats as any)?.special || {};
+      return Object.keys(area.stats).reduce((total, stat) => total + Number(special[stat] ?? stats[stat] ?? 0), 0);
     };
 
     // Experience Progress calculation
     const xpProgress = computed(() => {
       const stats = user.value?.stats;
-      if (!stats || !stats.xp) return 0;
+      const hasNoXp = !stats || !stats.xp;
+      if (hasNoXp) return 0;
 
       const now = stats.xp.now || stats.xp.current || 0;
       const next = stats.xp.next_level || stats.xp.max || 100;
@@ -234,6 +253,13 @@ export default defineComponent({
     return {
       user,
       requireAvatar,
+      avatarSrc,
+      isBuilderOpen,
+      openMyLook,
+      closeBuilder,
+      builderLook,
+      builderEquipment,
+      saveBuilderLook,
       $requireAvatar: requireAvatar,
       modalController,
       getClassIcon,

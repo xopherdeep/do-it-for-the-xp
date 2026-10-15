@@ -1,18 +1,19 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
+      <div class="temple-docked-xp" v-if="user && user.stats">
+        <XpPurseBar :stats="user.stats" />
+        <XpVitalsBar :stats="user.stats" />
+      </div>
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="end">
-          <ion-button color="rpg">
-            <i class="fad fa-key-skeleton m-0 mr-2 fa-2x ion-float-right" />
-            {{ playerKeys }}
+          <ion-button color="rpg" data-cy="temple-keys" :aria-label="`Small keys: ${playerKeys}`">
+            <!-- The small keys in hand; the Boss Key (fa-key-skeleton) is another thing -->
+            <i class="fad fa-key m-0 mr-2 fa-2x ion-float-right" />
+            <!-- Keyed on the pulse: a key spent or picked up replays the roll (down red, up green) -->
+            <span :key="keyPulse" class="temple-key-count" :class="keyChange ? `is-${keyChange}` : ''" data-cy="temple-keys-count">{{ playerKeys }}</span>
           </ion-button>
         </ion-buttons>
-        <!-- <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <i class="fad fa-2x fa-place-of-worship" />
-        </ion-buttons> -->
-        <!-- <ion-title v-html="templeName" /> -->
         <ion-buttons slot="start">
 
           <ion-button
@@ -45,19 +46,35 @@
             <ion-title>x{{ currentPosition[1] + 1 }} y{{ currentPosition[0] + 1 }}</ion-title>
           </ion-button>
         </ion-buttons>
+        <!-- Where in the house the hero stands: the room's name, when it has one -->
+        <ion-title v-if="currentRoom?.content?.name" class="temple-room-name" data-cy="temple-room-name">{{ currentRoom.content.name }}</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
+      ref="gameArea"
       :style="{
         overflow: 'hidden',
   position: 'relative'
 }"
       id="game-area"
+      :class="{ 'temple-shake': isShaking }"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
     >
+      <!-- Each step: dust streams past and the temple's light breathes as the new room slides in -->
+      <temple-room-arrival :arrival="arrival" :element="templeElement" />
+
+      <!-- A boss or guardian waiting in the room: the room dims, shakes and a banner names it -->
+      <temple-boss-banner :banner="bossBanner" :element="templeElement" @dismiss="dismissBossBanner" />
+
+      <!-- Lantern light breathing over the room, dust in the air -->
+      <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
+
       <!-- Background grid container with all rooms -->
       <div
         id="background-container"
         class="background-container"
+        :class="{ 'is-lurching': isLurching }"
         :style="{
           position: 'absolute',
           top: 0,
@@ -66,7 +83,7 @@
           height: '100%',
           zIndex: 0,
           transform: `translate(${backgroundPosition.x}px, ${backgroundPosition.y}px)`,
-          transition: 'transform 0.5s ease-in-out'
+          transition: 'transform 0.65s ease-in-out'
         }"
       >
         <!-- Create background cells -->
@@ -77,33 +94,71 @@
           <div
             v-for="(cell, colIndex) in row"
             :key="`cell-${rowIndex}-${colIndex}`"
+            class="temple-room-cell"
             :style="{
               position: 'absolute',
               top: `${rowIndex * tileHeight}px`,
               left: `${colIndex * tileWidth}px`,
               width: `${tileWidth}px`,
               height: `${tileHeight}px`,
-              backgroundImage: `url(${getBgImage(`[${rowIndex},${colIndex}]`)})`,
+              backgroundImage: getBgImage(`[${rowIndex},${colIndex}]`) ? `url(${getBgImage(`[${rowIndex},${colIndex}]`)})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }"
-          ></div>
+          >
+            <!-- Procedural floor tile for rooms without a pre-rendered background image -->
+            <temple-floor
+              v-if="rooms[cell]?.type !== 'wall' && !getBgImage(`[${rowIndex},${colIndex}]`)"
+              :room="rooms[cell]"
+              :element="templeElement"
+              :temple="temple"
+            />
+            <!-- Each room carries its own walls, doors and gates, so they scroll with the floor -->
+            <temple-walls
+              v-if="isNearHero(rowIndex, colIndex)"
+              :exits="exitsAt(rowIndex, colIndex)"
+              :element="temple === 'moving-house' ? 'home' : templeElement"
+            />
+          </div>
         </template>
       </div>
 
-      <ion-fab
-        vertical="center"
-        horizontal="center"
+      <!-- 3D Voxel Monster roaming in the room -->
+      <xp-monster-model
+        v-if="showVoxelMonster"
+        :key="`monster-${currentLevel}-${currentPosition[0]}-${currentPosition[1]}`"
+        :monster-name="activeMonster.name"
+        :avatar-src="activeMonster.avatar"
+        @click="showRoomActions"
+      />
+
+      <!-- Interactive 3D Voxel Room Model: retired room action FAB placeholder -->
+      <div
+        v-if="!showVoxelMonster"
         id="room-action"
+        class="room-action-voxel"
         @click="showRoomActions"
       >
-        <ion-fab-button :color="actionColor">
-          <i
-            class="fad fa-2x"
-            :class="currentRoom ? ROOM_ICONS[currentRoom.type] : ''"
-          />
-        </ion-fab-button>
-      </ion-fab>
+        <xp-dungeon-room-model
+          :key="`room-voxel-${currentLevel}-${currentPosition[0]}-${currentPosition[1]}-${currentRoom?.type}-${currentRoom?.isEmpty}`"
+          :room="currentRoom"
+          :cleared="isCombatRoomCleared"
+          @click="showRoomActions"
+        />
+        <!-- The beasts in this room have been beaten -->
+        <i
+          v-if="isCombatRoomCleared"
+          class="fas fa-check-circle cleared-mark"
+          title="Cleared"
+        />
+        <!-- Accessible button so older test queries (#room-action ion-fab-button) still resolve -->
+        <ion-fab-button
+          class="room-action-sr-button"
+          aria-hidden="true"
+          tabindex="-1"
+          @click.stop="showRoomActions"
+        />
+      </div>
 
       <!-- Navigation buttons and other UI components -->
       <ion-fab
@@ -111,7 +166,7 @@
         horizontal="start"
         v-if="hasMap"
       >
-        <ion-fab-button @click="openMap">
+        <ion-fab-button class="temple-map-fab" @click="openMap">
           <i
             class="fad fa-2x"
             :class="{ 'fa-map': !hasCompass, 'fa-map-marked': hasCompass }"
@@ -121,9 +176,18 @@
           :isOpen="isMapOpen"
           @didDismiss="closeMap"
           backdropDismiss="true"
+          class="temple-map-modal"
         >
-          <ion-card class="maze-container icon-colors">
-            <ion-grid>
+          <ion-card class="maze-container temple-map icon-colors">
+            <div class="temple-map__title">
+              <span class="temple-map__name">{{ templeName }}</span>
+              <span class="temple-map__floor">{{ currentLevel }}</span>
+              <!-- The rose sits where a modal's X sits: it closes the map -->
+              <button type="button" class="temple-map__rose-btn" aria-label="Close the map" @click="closeMap">
+                <i class="fad fa-compass temple-map__rose" aria-hidden="true"></i>
+              </button>
+            </div>
+            <ion-grid class="temple-map__grid">
               <ion-row
                 v-for="(row, rowIndex) in maze"
                 :key="rowIndex"
@@ -134,71 +198,15 @@
                   :key="colIndex"
                   :class="getMapTileClass(rowIndex, colIndex)"
                 >
-                  <!-- Show appropriate content based on map/compass state -->
-                  <template v-if="getRoomVisibility(rowIndex, colIndex) !== 'none'">
-                    <!-- Current position always shows the player icon when we have a map -->
-                    <i
-                      v-if="isCurrentRoom(rowIndex, colIndex)"
-                      class="fad fa-2x fa-walking"
-                      :class="{ 'pulse-animation': true }"
-                    />
-                    <!-- Walls are always visible with the map, using the thematic icon with increased dimness -->
-                    <i
-                      v-else-if="rooms[cell]?.type === 'wall'"
-                      class="fad fa-2x"
-                      :class="{
-                        [ROOM_ICONS.wall]: true,
-                        'opacity-10': true
-                      }"
-                    ></i>
-                    <!-- Show room details if we have compass or have visited the room -->
-                    <i
-                      v-else-if="showRoomDetails(rowIndex, colIndex)"
-                      :class="{
-                        [getRoomIcon(rowIndex, colIndex)]: true,
-                        'fal': rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty,
-                        'fad': !(rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty),
-                        'opacity-45': !isRoomVisited(rowIndex, colIndex) && hasCompass
-                      }"
-                      class="fa-2x"
-                    ></i>
-                    <!-- Show a dimmed question mark for rooms we know exist but haven't visited -->
-                    <i
-                      v-else
-                      class="fad fa-2x fa-question-circle opacity-40"
-                    ></i>
-                  </template>
-                  <!-- Show nothing if we don't have the map -->
-                  <template v-else>
-                    <i class="fad fa-2x fa-solid opacity-0"></i>
-                  </template>
+                  <!-- The cell's icon from the map and compass: the hero, a wall, the room, a question mark or nothing -->
+                  <i :class="mapCellIcon(rowIndex, colIndex, cell)"></i>
                 </ion-col>
               </ion-row>
             </ion-grid>
-            <div class="map-legend float-right flex flex-row">
-              <ion-chip
-                class="legend-item"
-                v-if="hasMap"
-              >
-                <i class="fad fa-walking fa-lg mr-2"></i>
-                <span>You are here</span>
-              </ion-chip>
-              <ion-chip
-                class="legend-item"
-                v-if="hasCompass"
-              >
-                <i class="fad fa-compass fa-lg mr-2"></i>
-                <span>Reveals rooms</span>
-              </ion-chip>
+            <div class="temple-map__legend">
+              <span v-if="hasMap" class="legend-item"><i class="fad fa-walking"></i> You are here</span>
+              <span v-if="hasCompass" class="legend-item"><i class="fad fa-compass"></i> Compass reveals rooms</span>
             </div>
-            <ion-buttons>
-              <ion-button
-                @click="closeMap"
-                class="rounded"
-              >
-                Close Map
-              </ion-button>
-            </ion-buttons>
           </ion-card>
         </ion-modal>
       </ion-fab>
@@ -214,10 +222,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0], currentPosition[1] + 1)
-              ? 'fa-lock'
-              : 'fa-arrow-alt-right'
-  "
+            :class="moveIcons.east"
           />
         </ion-fab-button>
       </ion-fab>
@@ -233,10 +238,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0], currentPosition[1] - 1)
-              ? 'fa-lock'
-              : ' fa-arrow-alt-left'
-  "
+            :class="moveIcons.west"
           />
         </ion-fab-button>
       </ion-fab>
@@ -252,25 +254,11 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0] + 1, currentPosition[1])
-              ? 'fa-lock'
-              : 'fa-arrow-alt-down'
-  "
+            :class="moveIcons.south"
           />
         </ion-fab-button>
       </ion-fab>
 
-      <XpMainHud
-        v-if="user && user.stats"
-        :stats="user.stats"
-      >
-        <template #avatar>
-          <XpFabUserHud
-            :user="user"
-            :isUserFabOn="true"
-          />
-        </template>
-      </XpMainHud>
       <ion-fab
         v-if="canMoveUp"
         vertical="top"
@@ -282,10 +270,7 @@
         >
           <i
             class="fad fa-2x"
-            :class="isDoorLocked(currentPosition[0] - 1, currentPosition[1])
-              ? 'fa-lock'
-              : ' fa-arrow-alt-up'
-  "
+            :class="moveIcons.north"
           />
         </ion-fab-button>
       </ion-fab>
@@ -293,81 +278,127 @@
 
 
 
-      <!-- Toast for messages -->
-      <ion-toast
-        :is-open="showMessage"
-        :message="currentMessage"
-        position="middle"
-        :duration="2000"
-      ></ion-toast>
     </ion-content>
-    <ion-footer>
-      <!-- Docked XP Bar above toolbar -->
-      <div
-        class="footer-docked-xp"
-        v-if="user && user.stats"
-      >
-        <XpXpBar
-          :stats="user.stats"
-          :hairline="true"
-        />
-      </div>
-      <ion-toolbar>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option color="primary">
-              <div class="flex flex-col items-center justify-center h-full">
-                <i
-                  v-if="leftHandItem"
-                  :class="`fa-${leftHandItem.faIcon}`"
-                  class="fad fa-2x mb-1"
-                />
-                <i
-                  v-else
-                  class="fad fa-hand-paper fa-flip-horizontal fa-2x mb-1 opacity-30"
-                />
-                <span class="text-xs">Left Hand</span>
-              </div>
-            </ion-item-option>
-          </ion-item-options>
 
-          <ion-item lines="none">
-            <div class="flex justify-center w-full icon-colors h-16 items-center gap-10">
-              <i
-                class="fad fa-book-dead fa-2x cursor-pointer"
-                @click="$router.push(`/my-tasks/${userId}`)"
-              />
-              <i
-                class="fad fa-backpack fa-2x cursor-pointer"
-                @click="$router.push(`/my-inventory/${userId}`)"
-              />
-              <i
-                class="fad fa-book-spells fa-2x cursor-pointer"
-                @click="$router.push(`/my-abilities/${userId}`)"
-              />
-            </div>
-          </ion-item>
+    <!-- No HP / MP HUD in a temple: the room needs the space; vitals and purse ride hairlines at the top -->
 
-          <ion-item-options side="end">
-            <ion-item-option color="primary">
-              <div class="flex flex-col items-center justify-center h-full">
-                <i
-                  v-if="rightHandItem"
-                  :class="`fa-${rightHandItem.faIcon}`"
-                  class="fad fa-2x mb-1"
-                />
-                <i
-                  v-else
-                  class="fad fa-hand-paper fa-2x mb-1 opacity-30"
-                />
-                <span class="text-xs">Right Hand</span>
-              </div>
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-toolbar>
+    <ion-footer class="temple-footer">
+      <!-- The same nav as the portal: Profile | left hand | Area (the equipment) | right hand | Party -->
+      <xp-bottom-nav
+        :profile-label="user?.name?.nick || 'Hero'"
+        :area-label="templeShortName"
+        area-icon="place-of-worship"
+        :left-hand="leftHandItem"
+        :right-hand="rightHandItem"
+        active="area"
+        @open-profile="isProfileOpen = true"
+        @open-area="openEquipment"
+        @open-party="$router.push(`/my-portal/${userId}/my-party`)"
+        @use-hand="useHand"
+      />
     </ion-footer>
+
+    <!-- The painted floors load before the hero walks in; this covers the whole screen, and only when they are slow -->
+    <temple-loading
+      :open="isLoadingShown"
+      :name="templeName"
+      :element="templeElement"
+      :done="loadedFloors"
+      :total="totalFloors"
+    />
+
+    <!-- The equipment, the profile sheet and the Pegasus map, the same ones the portal shows -->
+    <xp-equipment-modal :isOpen="isEquipmentOpen" :equipment="equipment" :user="user" @equip-item="clickItem"
+      @close="isEquipmentOpen = false" @open-pegasus-modal="isPegasusOpen = true" />
+    <user-profile-modal :is-open="isProfileOpen" :user="user" @close="isProfileOpen = false" />
+    <xp-world-map-modal :is-open="isPegasusOpen" @close="isPegasusOpen = false" />
+
+    <!-- A chest comes up shut: Open makes the lid fly and the loot rise out of it; Leave closes it again -->
+    <temple-chest-reveal :open="isChestOpen" :loot="chestLootShown" :closed="isChestClosed" @take="takeChestLoot" @leave="leaveChest" />
+
+    <!-- The riddle on the wall, the shopkeeper's wares and a room's actions, in the same pixel style -->
+    <temple-choice-reveal
+      v-if="choiceReveal"
+      :key="choiceRevealKey"
+      :open="choiceReveal.open"
+      :kind="choiceReveal.kind"
+      :title="choiceReveal.title"
+      :subtitle="choiceReveal.subtitle"
+      :body="choiceReveal.body"
+      :choices="choiceReveal.choices"
+      :cancel-label="choiceReveal.cancelLabel"
+      :art="choiceReveal.art"
+      :sprite="choiceReveal.sprite"
+      :element="templeElement"
+      @choose="chooseReveal"
+      @leave="leaveReveal"
+    />
+
+    <!-- A locked door close up: the key goes in, the lock drops and the doors swing open -->
+    <temple-door-reveal
+      :open="isDoorOpen"
+      :door="doorShown"
+      :element="templeElement"
+      :result="doorResult"
+      @unlock="unlockShownDoor"
+      @leave="isDoorOpen = false"
+      @done="finishShownDoor"
+    />
+
+    <!-- A cracked wall close up: a Bomb in a hand blows it open, the stone crumbles and the way shows -->
+    <temple-wall-reveal
+      :open="isWallOpen"
+      :wall="wallShown"
+      :element="templeElement"
+      :result="wallResult"
+      @bomb="triggerWallBlast"
+      @leave="closeShownWall"
+      @done="finishShownWall"
+    />
+
+    <!-- The temple is cleared: the egg cracks, the Pegasus is free and the reward counts up; Fly home walks out -->
+    <temple-pegasus-reveal
+      :open="isPegasusRevealOpen"
+      :pegasus="pegasusShown"
+      :reward="pegasusReward"
+      :level-up="pegasusLevelUp"
+      @done="finishTempleCleared"
+    />
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />
+<style lang="scss">
+// The small-key counter in the header: the number rolls in from above when a key is spent and from below when one is
+// picked up, with a flash of red or green, then settles
+.temple-key-count {
+  display: inline-block;
+
+  &.is-down {
+    animation: temple-key-roll-down 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &.is-up {
+    animation: temple-key-roll-up 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes temple-key-roll-down {
+  0% { transform: translateY(-70%) scale(1.5); opacity: 0; color: var(--xp-color-hp, #e53935); }
+  60% { transform: translateY(8%) scale(1.15); opacity: 1; color: var(--xp-color-hp, #e53935); }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes temple-key-roll-up {
+  0% { transform: translateY(70%) scale(1.5); opacity: 0; color: var(--xp-color-xp, #43a047); }
+  60% { transform: translateY(-8%) scale(1.15); opacity: 1; color: var(--xp-color-xp, #43a047); }
+  100% { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .temple-key-count.is-down,
+  .temple-key-count.is-up {
+    animation: none;
+  }
+}
+</style>
 <style lang="scss" src="./_TempleGrounds.scss" />

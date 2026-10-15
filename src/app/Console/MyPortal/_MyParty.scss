@@ -1,0 +1,31 @@
+// MyParty styles
+
+ion-avatar {
+  position: relative;
+}
+
+ion-chip {
+  margin: 0 4px 4px 0;
+
+  i {
+    margin-right: 4px;
+  }
+}
+
+.text-success {
+  color: var(--ion-color-success);
+}
+
+.text-warning {
+  color: var(--ion-color-warning);
+}
+
+.text-medium {
+  color: var(--ion-color-medium);
+}
+
+ion-card-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

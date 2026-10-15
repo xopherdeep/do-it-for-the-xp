@@ -1,5 +1,5 @@
 <template>
-  <xp-rpg-page title="Bestiary" header-icon="fa-hand-holding-heart" :loading="isLoading" back-button-href="/game-master"
+  <xp-rpg-page title="Bestiary" header-icon="fa-hand-holding-heart" :loading="isLoading"
     :on-refresh="handleRefresh">
     <template #actions>
       <ion-button @click="saveBackgroundPreset" fill="clear" color="light" size="small">
@@ -55,6 +55,7 @@ import {
   actionSheetController,
   alertController,
   modalController,
+  toastController,
   IonGrid,
   IonRow,
   IonCol,
@@ -74,6 +75,10 @@ import XpBeastSelectorItem from "./components/XpBeastSelectorItem.vue";
 import BeastTaskListModal from "./components/BeastTaskListModal.vue";
 
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
+import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
+import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
+import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -97,7 +102,7 @@ export default defineComponent({
       const actionSheet = await actionSheetController.create({
         header: beast.name,
         subHeader: `${beast.checklist?.length || 0} Checks | ${beast.achievementIds?.length || 0
-          } Achievements`,
+          } Quests`,
         mode: "ios",
         buttons: [
           {
@@ -115,7 +120,7 @@ export default defineComponent({
             },
           },
           {
-            text: "Attach to Achievements",
+            text: "Attach to Quests",
             icon: attachOutline,
             handler: () => {
               this.clickAttachBeast(beast);
@@ -137,11 +142,59 @@ export default defineComponent({
       });
       await actionSheet.present();
     },
+    async toast(message: string, color?: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
+        color,
+      });
+      await toast.present();
+    },
+    // The quests and temples as they are stored now: what a delete would touch
+    async loadBeastRecords() {
+      const [quests, temples] = await Promise.all([
+        this.achievementDb.getTasks(),
+        templeDb.getAll() as Promise<TempleInterface[]>,
+      ]);
+      return { quests, temples: temples.filter((temple) => temple?.id) };
+    },
+    // Take the beast off every quest and temple room that uses it, and save only the records that changed
+    async detachBeast(beast: Beast) {
+      const { quests, temples } = await this.loadBeastRecords();
+      const changed = unlink(beast.id, quests, temples);
+      for (const quest of changed.quests) await this.achievementDb.setTask(quest);
+      for (const temple of changed.temples) await templeDb.setTemple(temple);
+      const hasChangedTemples = changed.temples.length > 0;
+      if (!hasChangedTemples) return;
+
+      // The temple creator keeps its own copy of the temple it has open and the bestiary it listed; neither may
+      // hand the deleted beast back
+      const creator = useTempleCreatorStore();
+      creator.cachedBestiary = [];
+      const isOpenInCreator = changed.temples.some((temple) => temple.id === creator.loadedTempleId);
+      if (isOpenInCreator) creator.reset();
+    },
     async clickDeleteBeast(beast: Beast) {
+      let usage = "";
+      try {
+        const { quests, temples } = await this.loadBeastRecords();
+        usage = usageNote(linksTo(beast.id, quests, temples));
+      } catch (error) {
+        // Without knowing what uses it, a delete could leave quests and rooms pointing at nothing
+        debug.error("Error checking where the beast is used:", error);
+        await this.toast("Could not check where this beast is used, so it was not deleted", "danger");
+        return;
+      }
+      const detaching = usage
+        ? `<br><br>${escapeHtml(usage)}.<br>Deleting it takes the beast off them first: quests become plain quests and temple rooms fall back to a random beast.`
+        : "";
+
       const alert = await alertController.create({
         header: "Delete Beast",
         mode: "ios",
-        message: `Are you sure you want to delete ${beast.name}?`,
+        message: `Are you sure you want to delete ${escapeHtml(beast.name)}?${detaching}`,
         buttons: [
           {
             text: "Cancel",
@@ -159,10 +212,17 @@ export default defineComponent({
       alert.present();
     },
     async deleteBeast(beast: Beast) {
-      await this.bestiary
-        .deleteBeast(beast)
-        .then(() => this.loadBeasts())
-        .then(this.bestiary.showDeleteToast);
+      try {
+        // Unlink first: if that fails the beast is still here, and nothing points at a beast that is gone
+        await this.detachBeast(beast);
+        await this.bestiary.deleteBeast(beast);
+        await this.loadBeasts();
+        await this.bestiary.showDeleteToast();
+      } catch (error) {
+        debug.error("Error deleting beast:", error);
+        await this.loadBeasts(true);
+        await this.toast("There was a problem deleting the beast", "danger");
+      }
     },
     async clickAddBeast(beast?: Beast) {
       if (beast) {
@@ -218,7 +278,7 @@ export default defineComponent({
 
     getAvatar(id: number | string) {
       const pad = id.toString().padStart(3, "0");
-      return require(`@/assets/images/beasts/${pad}.png`);
+      return require(`@/assets/images/beasts/${pad}.webp`);
     },
 
     async loadBeasts(silent = false) {
@@ -334,6 +394,7 @@ export default defineComponent({
 
   setup() {
     const bestiary = new BestiaryDb(beastStorage);
+    const achievementDb = new AchievementDb(achievementStorage);
     const beasts = ref([] as Beast[]);
     const router = useRouter();
     const searchQuery = ref("");
@@ -360,6 +421,7 @@ export default defineComponent({
     return {
       beasts,
       bestiary,
+      achievementDb,
       router,
       searchQuery,
       filteredBeasts,
@@ -373,121 +435,6 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-/* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
+<style lang="scss" scoped src="./_XpBestiary.scss" />
 
-p {
-  font-family: "StatusPlz" !important;
-  font-size: 0.75em;
-}
-
-h2 {
-  font-size: 0.75em;
-  font-family: "Press Start 2P" !important;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-}
-
-ion-content {
-  position: relative;
-
-  .bestiary-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background: transparent;
-  }
-
-  .search-container {
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .search-box {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-
-    i {
-      position: absolute;
-      left: 12px;
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .beast-search-input {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      border-radius: 30px;
-      padding: 10px 16px 10px 40px;
-      color: #fff;
-      font-family: "StatusPlz";
-      font-size: 1rem;
-      outline: none;
-      transition: all 0.2s ease;
-
-      &:focus {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--ion-color-primary);
-        box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.3);
-      }
-    }
-  }
-
-  .beast-count {
-    font-family: "Press Start 2P";
-    font-size: 0.6rem;
-    color: var(--ion-color-primary);
-    background: rgba(var(--ion-color-primary-rgb), 0.1);
-    padding: 8px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
-  }
-
-  .beast-grid {
-    flex: 1;
-    padding: 10px;
-  }
-
-  .no-results {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.3);
-    text-align: center;
-
-    i {
-      margin-bottom: 16px;
-    }
-
-    p {
-      font-family: "Press Start 2P";
-      font-size: 0.8rem;
-    }
-  }
-
-  .add-new-card {
-    --card-border: 2px dashed rgba(0, 0, 0, 0.4);
-    --card-bg: rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      --card-border: 2px dashed var(--ion-color-primary);
-    }
-  }
-}
-</style>
-
-<style lang="scss">
-/* Global styles for action sheet are now handled in earthbound.scss */
-</style>
+<style lang="scss" src="./_XpBestiary.global.scss" />

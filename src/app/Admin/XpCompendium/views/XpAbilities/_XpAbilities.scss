@@ -21,6 +21,172 @@
   }
 }
 
+// Earthbound palette (src/styles/themes/earthbound.scss): dark purple panel, cream text, pale-yellow highlight
+$eb-purple: #280828;
+$eb-purple-mid: #383050;
+$eb-slate: #3d3c55;
+$eb-minty: #68d0b8;
+$eb-cream: #e7e6b3;
+$eb-yellow: #f7e8a8;
+$eb-sky: #68a8d8;
+
+// The "Preview as" hero picker and the empty-state / catalogue panels share one retro frame
+%eb-panel {
+  margin: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
+  background: $eb-purple;
+  color: $eb-cream;
+  border-radius: 1px;
+  box-shadow: 0 0 0 3px $eb-purple-mid, 0 0 0 5px $eb-minty;
+}
+
+.preview-as {
+  @extend %eb-panel;
+
+  .preview-title {
+    margin: 0 0 0.5rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: $eb-yellow;
+  }
+
+  .hero-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .hero-chip {
+    min-height: 44px;
+    padding: 0.25rem 0.9rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 1rem;
+    color: $eb-cream;
+    background: $eb-slate;
+    border: 2px solid $eb-purple-mid;
+    border-radius: 1px;
+    cursor: pointer;
+
+    &.active {
+      color: $eb-purple;
+      background: $eb-yellow;
+      border-color: $eb-minty;
+
+      &::before {
+        content: "\25B6  ";
+        font-size: 0.7em;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid $eb-sky;
+      outline-offset: 2px;
+    }
+  }
+
+  .preview-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.75rem 0 0;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.95rem;
+    color: $eb-yellow;
+  }
+
+  .preview-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    color: rgba($eb-cream, 0.75);
+  }
+
+  &--empty .preview-note {
+    margin: 0;
+  }
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.fab-clearance {
+  height: 96px;
+}
+
+.preset-catalogue {
+  @extend %eb-panel;
+
+  .catalogue-title {
+    margin: 0 0 0.5rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: $eb-yellow;
+  }
+
+  .catalogue-group-title {
+    margin: 1rem 0 0.25rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.95rem;
+    font-weight: normal;
+    color: $eb-minty;
+  }
+
+  .catalogue-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .catalogue-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed $eb-purple-mid;
+  }
+
+  .catalogue-icon {
+    flex: none;
+    font-size: 1.5rem;
+    color: $eb-yellow;
+  }
+
+  .catalogue-info {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      margin-right: 0.5rem;
+      font-family: "StatusPlz", monospace;
+      color: $eb-yellow;
+    }
+
+    p {
+      margin: 0.15rem 0 0;
+      font-size: 0.85rem;
+      color: rgba($eb-cream, 0.85);
+    }
+  }
+
+  .catalogue-cost {
+    font-size: 0.8rem;
+    color: $eb-sky;
+  }
+
+  .catalogue-info .catalogue-needs {
+    color: $eb-minty;
+  }
+
+  ion-button {
+    flex: none;
+    min-height: 44px;
+  }
+}
+
 ion-fab-list {
   ion-fab-button {
     &::before {

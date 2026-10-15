@@ -15,9 +15,7 @@
           <i class="fad fa-minus-circle fa-2x mr-2"></i>
           Subtract Points
         </ion-button>
-        <ion-button v-else @click="clickAward" :disabled="members.length === 0 ||
-          (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-          ">
+        <ion-button v-else @click="clickAward" :disabled="cannotAwardPoints">
           <i class="fad fa-gift fa-2x mr-2"></i>
           Award Points
         </ion-button>
@@ -175,9 +173,7 @@
                 <i class="fad fa-minus-circle mr-2"></i>
                 Subtract Points
               </ion-button>
-              <ion-button expand="block" v-else @click="clickAward" :disabled="members.length === 0 ||
-                (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-                ">
+              <ion-button expand="block" v-else @click="clickAward" :disabled="cannotAwardPoints">
                 <i class="fad fa-gift mr-2"></i>
                 Award Points
               </ion-button>
@@ -195,7 +191,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 import ionic from "@/lib/mixins/ionic";
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 
 export default defineComponent({
   props: {
@@ -212,6 +208,11 @@ export default defineComponent({
     },
     usersAz() {
       return (this as any).userStore.usersAz;
+    },
+    cannotAwardPoints(): boolean {
+      const hasNoRecipients = this.members.length === 0;
+      const hasNoPoints = this.gPoints === 0 && this.xpPoints === 0 && this.apPoints === 0;
+      return hasNoRecipients || hasNoPoints;
     },
   },
   data() {
@@ -233,43 +234,26 @@ export default defineComponent({
     };
   },
   methods: {
-    clickAward() {
-      this.members.forEach(async (id: any) => {
-        const profile = this.users[id];
+    async clickAward() {
+      const rawGp = Math.round(Number(this.gPoints) || 0);
+      const gp = this.isPenalty ? -Math.abs(rawGp) : rawGp;
+      const xp = this.isPenalty ? 0 : Math.round(Number(this.xpPoints) || 0);
+      const ap = this.isPenalty ? 0 : Math.round(Number(this.apPoints) || 0);
 
-        // Update GP for both bonus and penalty
-        const { wallet } = profile.stats.gp;
-        profile.stats.gp.wallet = Math.round(
-          Number(wallet) + Number(this.gPoints)
-        );
+      const hasGp = gp !== 0;
+      const hasXp = xp > 0;
+      const hasAp = ap > 0;
 
-        // Only update XP and AP in bonus mode (not penalty)
-        if (!this.isPenalty) {
-          // Update XP if any awarded
-          if (Number(this.xpPoints) > 0) {
-            const { total } = profile.stats.xp;
-            profile.stats.xp.total = Math.round(
-              Number(total) + Number(this.xpPoints)
-            );
-          }
+      // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
+      for (const id of this.members as string[]) {
+        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp });
+        if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
+        if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
+      }
 
-          // Update AP if any awarded
-          if (Number(this.apPoints) > 0) {
-            const { total } = profile.stats.ap;
-            profile.stats.ap.total = Math.round(
-              Number(total) + Number(this.apPoints)
-            );
-          }
-        }
-
-        await this.profileDb.setProfile(profile).then(() => {
-          const message = this.isPenalty
-            ? "Points Subtracted"
-            : "Bonus Awarded";
-          this.profileDb.showSuccessToast(message);
-          this.dismiss();
-        });
-      });
+      const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
+      this.profileDb.showSuccessToast(message);
+      this.dismiss();
     },
     onRadioChange() {
       // console.log("onRadioChange", val);
@@ -281,7 +265,8 @@ export default defineComponent({
       return this.isPenalty ? number * -1 : number;
     },
     toggleMember(userId: string) {
-      if (this.members.includes(userId)) {
+      const isMember = this.members.includes(userId);
+      if (isMember) {
         this.members = this.members.filter((id) => id !== userId);
       } else {
         this.members.push(userId);

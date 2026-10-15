@@ -1,0 +1,203 @@
+// The Earthbound palette the Hometown pages share (src/styles/themes/earthbound.scss)
+$th-purple: #280828;
+$th-cream: #e7e6b3;
+$th-yellow: #f7e8a8;
+$th-minty: #68d0b8;
+$th-rose: #ffb4b4;
+
+.town-hall {
+  // The tabs and the board picker: a dark menu bar under the page, ringed in the same mint as the cards
+  .th-footer ion-toolbar {
+    --background: #{$th-purple};
+    --color: #{$th-cream};
+    --border-width: 0;
+    --min-height: 0;
+  }
+
+  .th-boards {
+    border-top: 2px solid $th-minty;
+
+    .th-boards__chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 4px 8px;
+    }
+
+    ion-chip {
+      --background: transparent;
+      --color: #{$th-cream};
+      min-height: 40px;
+      margin: 4px;
+      border: 1px solid $th-minty;
+
+      &.is-on {
+        --background: #{$th-yellow};
+        --color: #{$th-purple};
+        border-color: $th-yellow;
+      }
+    }
+  }
+
+  .th-tabs {
+    border-top: 2px solid $th-minty;
+
+    ion-segment {
+      --background: transparent;
+    }
+
+    ion-segment-button {
+      --color: #{$th-cream};
+      --color-checked: #{$th-purple};
+      --background-checked: #{$th-yellow};
+      --indicator-color: transparent;
+      min-height: 56px;
+    }
+  }
+
+  // Room under the last card for the clerk's button
+  .th-body {
+    padding-bottom: 88px;
+  }
+
+  .th-post__image {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+
+    ion-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .th-post__tags {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+
+    ion-chip {
+      --background: rgba(104, 208, 184, 0.2);
+      --color: #{$th-cream};
+      margin: 4px 4px 4px 0;
+    }
+  }
+
+  .th-post__actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .th-comments {
+    margin-top: 8px;
+    border-top: 1px solid $th-minty;
+  }
+
+  .th-comments__note {
+    margin: 8px 0 0;
+    font-style: italic;
+  }
+
+  .th-comment {
+    padding: 8px 0;
+
+    .th-comment__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    p {
+      margin: 4px 0 0;
+    }
+  }
+
+  .th-more {
+    margin: 1rem 1.25rem 0;
+  }
+
+  // The hero's own posts the site does not have yet, above the Board
+  .th-waiting__body {
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    // Long posts show their first lines only
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .th-waiting__status {
+    --background: transparent;
+    --color: #{$th-cream};
+    margin: 0;
+    height: auto;
+    min-height: 32px;
+    border: 1px solid $th-minty;
+
+    ion-label {
+      white-space: normal;
+    }
+
+    &.is-awaiting-gm {
+      --color: #{$th-yellow};
+      border-color: $th-yellow;
+    }
+
+    &.is-rejected,
+    &.is-failed {
+      --color: #{$th-rose};
+      border-color: $th-rose;
+    }
+  }
+
+  .th-waiting__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  // What WordPress sends can hold images and embeds wider than a phone
+  .th-post__excerpt,
+  .th-topic,
+  .th-patch-note {
+    img,
+    figure,
+    iframe {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  .wp-block-image img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  // The Earthbound theme styles these with an id in the selector, so the page's own rules need one too
+  #earthbound & {
+    // A card's ring is as wide as the margin between cards: leave a gap so the rings do not touch
+    ion-card {
+      margin-bottom: 2rem;
+    }
+
+    // The tab names are set in the wide status font: smaller, so all four fit on a phone
+    ion-segment-button ion-label {
+      font-size: 0.7rem;
+      letter-spacing: 0;
+      color: inherit;
+    }
+
+    ion-segment-button.segment-button-checked ion-label,
+    ion-segment-button.segment-button-checked ion-icon {
+      color: $th-purple;
+    }
+  }
+}

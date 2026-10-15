@@ -10,23 +10,44 @@ import {
   handLeftOutline,
   calculatorOutline
 } from "ionicons/icons";
-import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import { useBack } from "@/hooks/useBack";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
-import Stats from "@/lib/utils/User/stats";
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
-import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
+import {
+  type BankMove,
+  type Purse,
+  depositToSavings,
+  hospitalBillOf,
+  payDownBills,
+  withdrawFromSavings
+} from "@/lib/services/gp/wallet";
+import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
+import {
+  type BankAction,
+  bankMove,
+  storageMaxed,
+  bankReceipt,
+  bankRefusal,
+  gold,
+  storageOffer,
+  storageQuestion,
+  storageReceipt,
+  storageRefusal,
+  storageTopUpQuestion
+} from "@/lib/services/gp/bankTeller";
+import { BANKER, amountAsk, bankMenuPrompt, noticePrompt, type BankMenuId } from "@/lib/services/gp/bankPrompts";
+import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { copyIn, useVoice } from "@/hooks/useVoice";
 import ATMModal from "./components/ATMModal.vue";
-import debug from "@/lib/utils/debug";
+import { walletLimitOf } from "@/lib/services/gp/wallet";
+import { shopHintFor } from "@/lib/services/gp/walletShops";
 
-// Define the interface for XpTypingText instance methods
-interface XpTypingTextInstance {
-  isTyping: boolean;
-  startTyping: () => void;
-  completeTyping: () => void;
-  resetTyping: () => void;
-  pauseTyping: () => void;
-  resumeTyping: () => void;
+/** What the ATM hands back: the amount picked on its stepper */
+interface GpAmount {
+  gp?: number | string;
 }
 
 export default defineComponent({
@@ -34,19 +55,15 @@ export default defineComponent({
   name: "gold-bank",
   mixins: [ionic],
   components: {
-    XpTypingText,
+    XpRevealPrompt,
     ATMModal
   },
   data() {
     return {
       isLoading: false,
       shelves: ['affordable'],
-      // Dialog state properties
-      isDialogVisible: false,
-      currentDialogIndex: 0,
-      currentDialogText: "",
-      hasMoreDialog: true,
-      isTyping: false,
+      /** The banker is talking: the FAB does nothing until the conversation ends */
+      isTalking: false,
       showAtm: false
     };
   },
@@ -58,57 +75,21 @@ export default defineComponent({
       return this.getUserById(this.userId)
     },
     dialogBlocks() {
+      const bill = hospitalBillOf(this.user?.stats?.gp);
+      const nextStorage = nextStorageTier(this.user);
+      const t = this.t;
       return [
-        "Welcome to the Gold Bank! I'm the bank manager. How can I assist you with your finances today?",
-        "We offer several banking services including deposits, withdrawals, and debt management.",
-        "Our secure ATM is also available if you need to access your accounts or perform transactions."
-      ];
-    },
-    actionButtons() {
-      return [
-        {
-          text: 'Use ATM',
-          icon: calculatorOutline,
-          handler: () => {
-            this.openATM();
-          },
-        },
-        {
-          text: 'Withdraw from Savings',
-          icon: walletOutline,
-          handler: this.clickWithdraw,
-        },
-        {
-          text: 'Deposit to Savings',
-          icon: addCircleOutline,
-          handler: this.clickDeposit,
-        },
-        {
-          text: 'Pay down Debt',
-          icon: removeCircleOutline,
-          handler: this.clickPayDebt,
-        },
-        {
-          text: "Leave Bank",
-          icon: handLeftOutline,
-          handler: () => {
-            this.$router.go(-1)
-          }
-        },
-        {
-          text: 'Cancel',
-          icon: close,
-          role: 'cancel',
-          handler: () => {
-            // Cancel action
-          },
-        }
+        t("bank.greet.welcome"),
+        // The Hospital's bill sits on its own line above the other debt; paying it to 0 lifts the grounding
+        ...(bill > 0 ? [t("bank.greet.bill", { bill: gold(bill) })] : []),
+        t("bank.greet.services"),
+        // The bank does not sell wallets: it tells the hero how big theirs is and where a bigger one is sold
+        t("bank.greet.wallet", { limit: `₲${walletLimitOf(this.user?.stats?.gp)}`, hint: shopHintFor(this.user?.stats?.gp) }).trim(),
+        // Room at home is sold here: the next storage on offer, or that there is no bigger one
+        nextStorage ? t("bank.greet.storage", { offer: storageOffer(nextStorage) }) : storageMaxed(this.words),
+        t("bank.greet.atm")
       ];
     }
-  },
-  mounted() {
-    // Set initial dialog text
-    this.currentDialogText = this.dialogBlocks[0];
   },
   methods: {
     loadUsers() { return (this as any).userStore.loadUsers() },
@@ -121,344 +102,168 @@ export default defineComponent({
       this.showAtm = true;
     },
 
-    // Dialog methods
-    showBankerDialog() {
-      // Play a sound effect for immersion
-      this.play$fx("select");
-
-      // Reset and show the dialog
-      this.currentDialogIndex = 0;
-      this.currentDialogText = this.dialogBlocks[0];
-      this.hasMoreDialog = this.dialogBlocks.length > 1;
-      this.isDialogVisible = true;
-      this.isTyping = true;
+    /**
+     * The banker's conversation, in the game's own dialog: his lines type out, then the menu. After each errand he asks
+     * if there is anything else, until the hero leaves (back out of the bank) or steps away (Escape, or the ATM).
+     */
+    async showBankerDialog() {
+      if (this.isTalking) return;
+      this.isTalking = true;
+      try {
+        this.play$fx("select");
+        let lines = this.dialogBlocks;
+        for (;;) {
+          const pick = (await this.reveal.showPrompt(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick === "leave" || pick === "atm";
+          if (isWalkingAway) {
+            this.walkAway(pick);
+            return;
+          }
+          await this.runErrand(pick);
+          lines = [this.t("npc.more")];
+        }
+      } finally {
+        this.isTalking = false;
+      }
     },
 
-    advanceDialog() {
-      // If typing is in progress, complete the current text immediately
-      if (this.isTyping) {
-        this.isTyping = false;
-        // Skip typing animation by immediately showing the full text
-        const typingComponent = this.$refs.bankerDialogText as XpTypingTextInstance;
-        if (typingComponent) {
-          typingComponent.completeTyping();
-        }
+    /** Leave the counter: out of the bank, or over to the ATM. */
+    walkAway(pick: "leave" | "atm") {
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
+      else this.openATM();
+    },
+
+    /** One errand from the menu. */
+    async runErrand(pick: Exclude<BankMenuId, "atm" | "leave">) {
+      const isStorageErrand = pick === "storage";
+      if (isStorageErrand) return this.storageCounter();
+      return this.moneyErrand(pick);
+    },
+
+    /** A deposit, a withdrawal or a payment: how much (on the stepper), then the move and its receipt. */
+    async moneyErrand(action: BankAction) {
+      const ask = amountAsk(action, this.user.stats.gp, undefined, this.words);
+      const isRefused = "refusal" in ask;
+      if (isRefused) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(noticePrompt(ask.refusal));
         return;
       }
-
-      // If not typing, advance to next dialog block
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.currentDialogIndex++;
-        this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
-        this.hasMoreDialog = this.currentDialogIndex < this.dialogBlocks.length - 1;
-        this.isTyping = true;
-      } else {
-        // End of dialog, close and show options
-        this.isDialogVisible = false;
-        this.presentActionSheet();
-      }
+      const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt);
+      const isCancelled = id !== "ok" || !amount;
+      if (isCancelled) return;
+      const gp = this.user.stats.gp;
+      const move = bankMove(action, gp, amount);
+      await this.applyMove(action, move);
     },
 
-    onTypingComplete() {
-      // The current text block has finished typing
-      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
-      this.isTyping = false;
-
-      // Play subtle sound effect between blocks if there are more blocks
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.play$fx("text");
-      }
-    },
-
-    async presentActionSheet() {
-      const actionSheet = await actionSheetController
-        .create({
-          header: 'How can we assist you with your banking today?',
-          cssClass: 'bank-action-sheet',
-          buttons: [
-            {
-              text: 'Use ATM',
-              icon: calculatorOutline,
-              handler: () => {
-                this.openATM();
-              },
-            },
-            {
-              text: 'Withdraw from Savings',
-              icon: walletOutline,
-              handler: () => {
-                document.getElementById('withdraw-trigger')?.click();
-              },
-            },
-            {
-              text: 'Deposit to Savings',
-              icon: addCircleOutline,
-              handler: () => {
-                document.getElementById('deposit-trigger')?.click();
-              },
-            },
-            {
-              text: 'Pay down Debt',
-              icon: removeCircleOutline,
-              handler: () => {
-                document.getElementById('pay-debt-trigger')?.click();
-              },
-            },
-            {
-              text: "Leave Bank",
-              icon: handLeftOutline,
-              handler: () => {
-                this.$router.go(-1)
-              }
-            },
-            {
-              text: 'Cancel',
-              icon: close,
-              role: 'cancel',
-            }
-          ],
-          mode: 'ios',
-        });
-      await actionSheet.present();
-
-      await actionSheet.onDidDismiss();
-    },
-
-    async clickPayDebt() {
-      const { wallet, debt } = this.user.stats.gp
-      const isWalletEmpty = wallet <= 0
-      if (isWalletEmpty) {
-        const alert = await alertController.create({
-          header: "Your wallet is empty!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const alert = await alertController.create({
-          header: `Pay Down Debt (₲${debt}.00)`,
-          buttons: [{
-            text: "Cancel",
-            role: "cancel",
-            cssClass: "secondary",
-            handler: () => {
-              // debug.log("Confirm Cancel:", blah);
-            },
-          }, {
-            text: "Pay",
-            handler: this.payDebt,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: "gp",
-            max: wallet < debt ? wallet : debt,
-            min: 0
-          }],
-        })
-        alert.present()
-      }
-    },
-
-    payDebt({ gp }: Stats) {
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      const debt = Math.round(Number(this.user.stats.gp.debt) - Number(gp))
-      const updatedUser = {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          debt
-        }
-      }
-
-      const showToast = () => this.showToast(`Thank you for your payment of ${gp}. Your new balance is: ${debt}`)
-
-      this.profileDb
-        .updateStats(this.userId, updatedUser)
-        .then(this.loadUsers)
-        .then(showToast)
-
-    },
-
-    async clickWithdraw() {
-      const { limit, wallet, savings } = this.user.stats.gp
-      const isWalletFull = wallet >= limit
-      if (isWalletFull) {
-        const alert = await alertController.create({
-          header: "Your wallet is full!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const holdLimit = limit - wallet
-        const alert = await alertController.create({
-          header: `Withdraw from Savings: (₲${this.user.stats.gp.savings}.00)`,
-          buttons: [{
-            text: "Withdraw",
-            handler: this.withdrawSavings,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: 'gp',
-            max: holdLimit >= savings ? savings : holdLimit,
-            min: 0
-          }],
-        })
-        alert.present()
-      }
-
-    },
-
-    async clickDeposit() {
-      const { wallet, savings } = this.user.stats.gp
-      const isWalletEmpty = wallet <= 0
-      if (isWalletEmpty) {
-        const alert = await alertController.create({
-          header: "Your wallet is empty!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const alert = await alertController.create({
-          header: `Deposit to Savings: (₲${savings}.00)`,
-          buttons: [{
-            text: "Deposit",
-            handler: this.depositGp,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: 'gp',
-            max: wallet,
-            min: 1
-          }],
-        })
-        alert.present()
-      }
-    },
-
-    withdrawSavings({ gp }: Stats) {
-      // If amount not provided (like from ATM), show dialog
-      if (!gp) {
-        this.clickWithdraw();
+    /**
+     * The storage counter, in the banker's voice. The price comes out of the wallet; when the wallet is short but the
+     * savings would cover the rest, he offers them (the hero is standing in the bank). A sale shows the chest rising.
+     */
+    async storageCounter() {
+      const next = nextStorageTier(this.user);
+      const purse = this.user.stats?.gp;
+      const wallet = Number(purse?.wallet) || 0;
+      const savings = Number(purse?.savings) || 0;
+      const sale = storagePurchase(this.user, wallet, savings, false);
+      if (!next) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(noticePrompt(storageMaxed(this.words), "chestOpen"));
         return;
       }
-
-      const savings = Math.round(Number(this.user.stats.gp.savings) - Number(gp))
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) + Number(gp))
-
-      const debt = savings < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(savings))
-        : this.user.stats.gp.debt
-
-
-      const updatedUser = {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          savings: savings > 0 ? savings : 0,
-          debt
-        }
-      }
-
-      const showToast = () => this.showToast(`₲${gp} GP Withdrawn. New Balance: ₲${savings}.`)
-
-      this.profileDb.updateStats(this.user.id, updatedUser)
-        .then(this.loadUsers)
-        .then(showToast)
-    },
-
-    depositGp({ gp }: any) {
-      // If amount not provided (like from ATM), show dialog
-      if (!gp) {
-        this.clickDeposit();
+      const question = storageQuestion(next, this.words);
+      const isTooPoor = !sale.ok && sale.reason === "gp" && !sale.canTopUp;
+      if (isTooPoor) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(noticePrompt(`${question} ${storageRefusal(sale, this.words)}`, "chest"));
         return;
       }
+      const needsSavings = !sale.ok && sale.reason === "gp";
+      const lines = needsSavings ? [question, storageTopUpQuestion(sale, this.words)] : [question];
+      const yes = needsSavings ? "Use savings" : "Buy it";
+      const no = needsSavings ? "Not now" : "No thanks";
+      const pick = await this.reveal.showPrompt({
+        speaker: BANKER,
+        accent: "bank",
+        sprite: "chest",
+        lines,
+        choices: [
+          { id: "yes", label: yes, icon: needsSavings ? "piggy-bank" : "coins", tone: "primary" },
+          { id: "no", label: no, icon: "times", tone: "ghost" }
+        ],
+        cancelId: "no"
+      });
+      const isAccepted = pick === "yes";
+      if (isAccepted) await this.sellStorage(needsSavings);
+    },
 
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      const savings = Math.round(Number(this.user.stats.gp.savings) + Number(gp))
-      const debt = wallet < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(wallet))
-        : this.user.stats.gp.debt
+    /** The sale itself: the store re-checks the purse, so a refusal here is read out the same way. */
+    async sellStorage(useSavings: boolean) {
+      const sale = this.userStore.buyStorageTier(this.user.id, useSavings);
+      const isRefused = !sale.ok;
+      if (isRefused) {
 
-      const updatedUser = {
+        this.play$fx("no");
+        await this.reveal.showPrompt(noticePrompt(storageRefusal(sale, this.words) ?? storageMaxed(this.words), "chest"));
+        return;
+      }
+      this.play$fx("buyItem");
+      await this.reveal.showPrompt({
+        speaker: BANKER,
+        accent: "bank",
+        sprite: "chestOpen",
+        glow: "gold",
+        sound: "newItem",
+        lines: [storageReceipt(sale, this.words)],
+        choices: [{ id: "ok", label: "Great!", icon: "check", tone: "primary" }],
+        cancelId: "ok"
+      });
+    },
+
+    // The ATM's steppers hand over an amount; the move and its receipt are the bank's
+    async withdrawSavings({ gp }: GpAmount) {
+      await this.applyMove("withdraw", withdrawFromSavings(this.user.stats.gp, Number(gp)))
+    },
+
+    async depositGp({ gp }: GpAmount) {
+      await this.applyMove("deposit", depositToSavings(this.user.stats.gp, Number(gp)))
+    },
+
+    async payDebt({ gp }: GpAmount) {
+      await this.applyMove("payDebt", payDownBills(this.user.stats.gp, Number(gp)))
+    },
+
+    /** Every money move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
+    async applyMove(action: BankAction, move: BankMove) {
+      const before = this.user.stats.gp
+      const refusal = bankRefusal(action, before, move, this.words)
+      if (refusal) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(noticePrompt(refusal))
+        return
+      }
+      this.play$fx("countCoins");
+      // The bill reaching 0 lifts the grounding at once; the family hears of it after the purse is saved
+      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0
+      const heroId = this.user.id
+      const receipt = bankReceipt(action, before, move, this.words)
+      await this.savePurse(move.gp)
+      if (clearsBill) announceBillPaid(heroId)
+      // The coins rise with the receipt
+      await this.reveal.showPrompt(noticePrompt(receipt, "coins"))
+    },
+
+    savePurse(purse: Purse) {
+      const updatedStats = {
         ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet: wallet > 0 ? wallet : 0,
-          savings,
-          debt
-        }
+        // keep the GP ledger and anything else the purse carries; the rules only speak for the four numbers
+        gp: { ...this.user.stats.gp, ...purse }
       }
-
-      const showToast = () => this.showToast(`Thank you for your deposit of ₲${gp}. Your new balance is: ₲${savings}`)
-
-      this.profileDb.updateStats(this.user.id, updatedUser)
-        .then(this.loadUsers)
-        .then(showToast)
-    },
-
-    async showToast(message: string) {
-      const toast = await toastController.create({
-        message,
-        duration: 3000,
-        position: 'bottom'
-      })
-      toast.present()
-    },
-
-    // Alert handlers for declarative alerts
-    handleDeposit(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        this.depositGp({ gp: amount });
-      }
-    },
-
-    handleWithdraw(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        // Create a minimal Stats object with just the gp property needed
-        const statsObj = {
-          level: 1,
-          xp: { now: 0, next_level: 100, ledger: [] },
-          gp: amount,
-          hp: { now: 0, max: 0, min: 0 },
-          mp: { now: 0, max: 0, min: 0 },
-          ap: { hour: [], day: [], week: [], month: [], year: [], total: 0, ledger: [] },
-          special: {
-            ledger: [],
-            strength: 0, defense: 0, endurance: 0, intelligence: 0, perception: 0,
-            wisdom: 0, charisma: 0, awareness: 0, presence: 0, agility: 0, guts: 0, luck: 0
-          },
-          ailments: []
-        };
-        this.withdrawSavings(statsObj);
-      }
-    },
-
-    handlePayDebt(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        // Create a minimal Stats object with just the gp property needed
-        const statsObj = {
-          level: 1,
-          xp: { now: 0, next_level: 100, ledger: [] },
-          gp: amount,
-          hp: { now: 0, max: 0, min: 0 },
-          mp: { now: 0, max: 0, min: 0 },
-          ap: { hour: [], day: [], week: [], month: [], year: [], total: 0, ledger: [] },
-          special: {
-            ledger: [],
-            strength: 0, defense: 0, endurance: 0, intelligence: 0, perception: 0,
-            wisdom: 0, charisma: 0, awareness: 0, presence: 0, agility: 0, guts: 0, luck: 0
-          },
-          ailments: []
-        };
-        this.payDebt(statsObj);
-      }
+      return this.profileDb.updateStats(this.user.id, updatedStats).then(this.loadUsers)
     },
   },
   setup(props) {
@@ -472,10 +277,22 @@ export default defineComponent({
 
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
+    // Leaving the bank goes back, or up to Home Town when the bank was opened with no history behind it
+    const { stepBack: goBack } = useBack();
+    // The banker talks, offers and answers in the game's own dialog, not in native alerts
+    const reveal = useRevealPrompt();
+    // The banker's words follow the hero's voice (simple, adventure or classic)
+    const { voice: words } = useVoice();
+    const t = copyIn(words);
 
     return {
+      t,
+      words,
+      goBack,
       profileDb,
       userStore,
+      reveal,
+      prompt: reveal.prompt,
       // Icons for use in template
       walletOutline,
       removeCircleOutline,

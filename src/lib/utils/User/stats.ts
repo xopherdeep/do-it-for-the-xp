@@ -1,4 +1,4 @@
-
+import { DEFAULT_WALLET_LIMIT } from "@/lib/services/gp/wallet";
 interface XPStats {
   now: number;
   next_level: number;
@@ -8,6 +8,8 @@ interface XPStats {
 interface GPStats {
   limit: number;
   debt: number;
+  /** What the hero owes the Hospital; above 0 the hero is grounded (docs/Quest-Rooms-Spec.md 5.8) */
+  hospitalBill?: number;
   wallet: number;
   savings: number;
   ledger: Entry[]
@@ -58,6 +60,17 @@ export interface SpecialStats {
   luck: number;
 }
 
+interface StatsInit {
+  level?: number,
+  xp: XPStats,
+  gp?: GPStats,
+  hp?: HPMPStats,
+  mp?: HPMPStats,
+  ap?: APStats,
+  special?: SpecialStats
+  ailments?: Ailment[]
+}
+
 export default class Stats {
   level: number;
   xp: XPStats;
@@ -70,16 +83,7 @@ export default class Stats {
 
   constructor({
     level, xp, gp, hp, mp, ap, special, ailments
-  }: {
-    level?: number,
-    xp: XPStats,
-    gp?: GPStats,
-    hp?: HPMPStats,
-    mp?: HPMPStats,
-    ap?: APStats,
-    special?: SpecialStats
-    ailments?: Ailment[]
-  } = {
+  }: StatsInit = {
       xp: {
         now: 0,
         next_level: 100,
@@ -99,9 +103,10 @@ export default class Stats {
       ledger: xp?.ledger,
     };
     this.gp = {
-      limit: gp?.limit || 100,
+      limit: gp?.limit || DEFAULT_WALLET_LIMIT,
       // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
       debt: (Number(gp?.debt) || 0) + Number(debt),
+      hospitalBill: Math.max(0, Number(gp?.hospitalBill) || 0),
       wallet: gp?.wallet ?? 0,
       savings: gp?.savings ?? 100,
       ledger: gp?.ledger ?? [],

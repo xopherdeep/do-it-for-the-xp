@@ -29,6 +29,7 @@
   import { XpIntroSplash } from '@/components/organisms/IntroSplash';
   import type { SplashScreen } from '@/components/organisms/IntroSplash';
   import debug from '@/lib/utils/debug';
+  import { useTimers } from '@/hooks/useTimers';
 
   // Extended splash screen interface that includes our custom properties
   interface ExtendedSplashScreen extends SplashScreen {
@@ -54,6 +55,7 @@
     },
     setup() {
       const router = useRouter();
+      const timers = useTimers();
       // const ionRouter = useIonRouter();
       const viewActive = ref(false);
       const duration = 1300; // Duration for each splash screen - longer to read text
@@ -61,7 +63,7 @@
       // Define the splash screens for the demo sequence with richer content
       const splashScreens = ref<ExtendedSplashScreen[]>([
         {
-          image: require('@/assets/images/backgrounds/world-plains.jpg'),
+          image: require('@/assets/images/backgrounds/world-plains.webp'),
           text: "The Plains of Wisdom\n\nVast grasslands where new adventurers begin their journey. Home to gentle creatures and abundant resources.",
           alt: "Plains World",
           duration: duration + 300,
@@ -69,7 +71,7 @@
           additionalClass: 'plains-theme'
         },
         // {
-        //   image: require('@/assets/images/backgrounds/wind-temple/[5,2].jpg'),
+        //   image: require('@/assets/images/backgrounds/wind-temple/[5,2].webp'),
         //   text: "The Ancient Wind Temple\n\nA sacred place of trials and wisdom. Mastering the elements is key to your success.",
         //   alt: "Wind Temple",
         //   duration: duration + 300,
@@ -77,7 +79,7 @@
         //   additionalClass: 'temple-theme'
         // },
         {
-          image: require('@/assets/images/backgrounds/world-islands.jpg'),
+          image: require('@/assets/images/backgrounds/world-islands.webp'),
           text: "The Tropical Islands\n\nParadise surrounded by azure waters. These islands hold ancient secrets and hidden pirate treasures.",
           alt: "Islands World",
           duration,
@@ -85,7 +87,7 @@
           additionalClass: 'island-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-forest.jpg'),
+          image: require('@/assets/images/backgrounds/world-forest.webp'),
           text: "The Ancient Forest\n\nMystic woodlands filled with secrets and ancient magic. Listen carefully for whispers among the trees.",
           alt: "Forest World",
           duration,
@@ -93,7 +95,7 @@
           additionalClass: 'forest-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-swamps.jpg'),
+          image: require('@/assets/images/backgrounds/world-swamps.webp'),
           text: "The Murky Swamps\n\nA realm of mist and mystery. Strange creatures lurk beneath the surface, waiting for unwary travelers.",
           alt: "Swamp World",
           duration,
@@ -101,7 +103,7 @@
           additionalClass: 'swamp-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-mountains.jpg'),
+          image: require('@/assets/images/backgrounds/world-mountains.webp'),
           text: "The Forbidden Mountains\n\nTreacherous peaks hiding valuable treasures. Only the bravest adventurers dare to climb these heights.",
           alt: "Mountain World",
           duration,
@@ -109,7 +111,7 @@
           additionalClass: 'mountain-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-desert.jpg'),
+          image: require('@/assets/images/backgrounds/world-desert.webp'),
           text: "The Endless Sands\n\nA harsh desert where survival is tested. Ancient ruins lie buried beneath the shifting dunes.",
           alt: "Desert World",
           duration,
@@ -117,7 +119,7 @@
           additionalClass: 'desert-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-ice.jpg'),
+          image: require('@/assets/images/backgrounds/world-ice.webp'),
           text: "The Frozen Peaks\n\nAn eternally frozen realm with treasures locked in ice. The most powerful magic items are found here.",
           alt: "Ice World",
           duration,
@@ -125,7 +127,7 @@
           additionalClass: 'ice-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-clouds.jpg'),
+          image: require('@/assets/images/backgrounds/world-clouds.webp'),
           text: "The Sky Kingdom\n\nFloating islands among the clouds. Home to rare creatures and advanced technology.",
           alt: "Cloud World",
           duration,
@@ -133,7 +135,7 @@
           additionalClass: 'cloud-theme'
         },
         {
-          image: require('@/assets/images/backgrounds/world-moon.jpg'),
+          image: require('@/assets/images/backgrounds/world-moon.webp'),
           text: "The Moonlit Realm\n\nA mystical world where the moonlight reveals hidden paths. Secrets of the universe await those who dare to explore.",
           alt: "Moon World",
           duration,
@@ -142,7 +144,7 @@
         },
         // Credits screen with hometown image
         {
-          image: require('@/assets/images/backgrounds/hometown.jpg'),
+          image: require('@/assets/images/backgrounds/hometown.webp'),
           text: "DO IT FOR THE XP\n\nCreated by X.P.\n\nMusic by Earthbound\nSound Effects by Nintendo\n\nThank you for playing!",
           alt: "Opening Credits",
           duration: duration, // Extended duration for credits
@@ -160,12 +162,15 @@
 
         // Play corresponding sound effect for the current screen
         const screen = splashScreens.value[index];
-        if (screen && screen.soundEffect) {
-          playSoundEffect(screen.soundEffect);
+        const soundEffect = screen?.soundEffect;
+        const hasSoundEffect = screen && soundEffect;
+        if (hasSoundEffect) {
+          playSoundEffect(soundEffect);
         }
 
         // Change background music based on world category - special case for credits
-        if (index === splashScreens.value.length - 1) {
+        const isCreditsScreen = index === splashScreens.value.length - 1;
+        if (isCreditsScreen) {
           playCreditsMusic();
         } else {
           changeBackgroundMusic(index);
@@ -175,7 +180,8 @@
       // Special function to play credits music
       const playCreditsMusic = () => {
         const $fx = window.$fx as unknown as FXObject | undefined;
-        if (!$fx || !$fx.rpg || !$fx.theme) return;
+        const hasNoFxTheme = !$fx || !$fx.rpg || !$fx.theme;
+        if (hasNoFxTheme) return;
 
         stopBGM();
 
@@ -184,7 +190,8 @@
           const creditsTracks = $fx.rpg[String($fx.theme.rpg)]?.BGM?.credits ||
             $fx.rpg[String($fx.theme.rpg)]?.BGM?.demo;
 
-          if (creditsTracks && Array.isArray(creditsTracks) && creditsTracks.length > 0) {
+          const hasCreditsTracks = creditsTracks && Array.isArray(creditsTracks) && creditsTracks.length > 0;
+          if (hasCreditsTracks) {
             const trackIndex = Math.floor(Math.random() * creditsTracks.length);
             const audio = new Audio(creditsTracks[trackIndex]);
             audio.volume = 0.6;
@@ -207,7 +214,8 @@
         try {
           // Try to find the sound in RPG sound effects
           const rpgSound = $fx.rpg[String($fx.theme.rpg)]?.[effectName];
-          if (rpgSound && typeof rpgSound.play === 'function') {
+          const canPlayRpgSound = rpgSound && typeof rpgSound.play === 'function';
+          if (canPlayRpgSound) {
             rpgSound.currentTime = 0;
             rpgSound.play().catch(err => debug.error('Error playing sound effect:', err));
             return;
@@ -215,7 +223,8 @@
 
           // Try UI sounds if RPG sound not found
           const uiSound = $fx.ui[String($fx.theme.ui)]?.[effectName];
-          if (uiSound && typeof uiSound.play === 'function') {
+          const canPlayUiSound = uiSound && typeof uiSound.play === 'function';
+          if (canPlayUiSound) {
             uiSound.currentTime = 0;
             uiSound.play().catch(err => debug.error('Error playing UI sound:', err));
             return;
@@ -228,7 +237,8 @@
       // Change background music based on world type
       const changeBackgroundMusic = (index: number) => {
         const $fx = window.$fx as unknown as FXObject | undefined;
-        if (!$fx || !$fx.rpg || !$fx.theme) return;
+        const hasNoFxTheme = !$fx || !$fx.rpg || !$fx.theme;
+        if (hasNoFxTheme) return;
 
         // Stop any currently playing BGM
         stopBGM();
@@ -255,7 +265,8 @@
             const bgmTracks = $fx.rpg[String($fx.theme.rpg)]?.BGM?.[bgmCategory] ||
               ($fx.rpg[String($fx.theme.rpg)]?.BGM?.worlds?.terrains?.[bgmCategory]);
 
-            if (bgmTracks && Array.isArray(bgmTracks) && bgmTracks.length > 0) {
+            const hasBgmTracks = bgmTracks && Array.isArray(bgmTracks) && bgmTracks.length > 0;
+            if (hasBgmTracks) {
               const trackIndex = Math.floor(Math.random() * bgmTracks.length);
               const audio = new Audio(bgmTracks[trackIndex]);
               audio.volume = 0.6;
@@ -286,7 +297,7 @@
       const onComplete = () => {
         stopBGM();
         playSoundEffect('finish');
-        setTimeout(() => navigateTo('/log-in'), 1000);
+        timers.startTimeout(1000, () => navigateTo('/log-in'));
       };
 
       // Handle demo skip
@@ -306,7 +317,8 @@
         onComplete,
         onSkip,
         onScreenChange,
-        navigateTo
+        navigateTo,
+        timers
       };
     },
 
@@ -320,16 +332,19 @@
     ionViewWillEnter() {
       // Ensure demo will play when entering the view
       this.viewActive = false;
+      this.timers.cancelAll();
       // Short delay to ensure a clean start
-      setTimeout(() => {
+      this.timers.startTimeout(100, () => {
         this.viewActive = true;
-      }, 100);
+      });
     },
 
     // This is called when leaving the view - Ionic specific
     ionViewWillLeave() {
       // Deactivate the component when navigating away
       this.viewActive = false;
+      // A pending start or the delayed hop to the log-in screen must not fire after we left
+      this.timers.cancelAll();
 
       // Ensure all audio is stopped
       const audio = (this as any).bgmAudio;

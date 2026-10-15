@@ -2,7 +2,7 @@
   <ion-header>
     <ion-toolbar class="rpg-box">
       <ion-buttons slot="start">
-        <ion-back-button :default-href="backHref" />
+        <xp-back-button />
       </ion-buttons>
 
       <ion-title>
@@ -65,6 +65,19 @@
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
+
+    <!-- What the temple still needs to be finished; tap to open the audit -->
+    <button
+      v-if="missingBanner"
+      type="button"
+      class="audit-banner"
+      data-test="audit-banner"
+      @click="openAudit"
+    >
+      <i class="fad fa-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ missingBanner }}</span>
+      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </button>
   </ion-header>
 </template>
 
@@ -72,15 +85,19 @@
 import { defineComponent, computed } from 'vue';
 import { 
   IonHeader, IonToolbar, IonTitle, IonButtons, 
-  IonBackButton, IonButton,
-  alertController
+  IonButton,
+  alertController, useIonRouter
 } from '@ionic/vue';
+import { play$fx } from '@/assets/fx';
+import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
+import { auditTemple, missingNames, shortList } from '@/lib/services/temples/templeAudit';
+import { readGridSide } from './hooks/grid/gridSize';
 
 export default defineComponent({
   name: 'XpTempleCreatorHeader',
   components: {
     IonHeader, IonToolbar, IonTitle, IonButtons,
-    IonBackButton, IonButton
+    IonButton
   },
   props: {
     templeId: { type: String, required: true },
@@ -89,24 +106,55 @@ export default defineComponent({
     gridSize: { type: String, default: '6x6' },
     entranceDisplay: { type: String, default: '1x 1y' },
     showPreview: { type: Boolean, default: false },
-    backHref: { type: String, default: '/game-master/compendium/temples' },
     currentLevelId: { type: String, default: '1F' },
     floors: { type: Array as () => string[], default: () => ['1F'] }
   },
   emits: ['update:gridSize', 'update:currentLevelId', 'resize', 'toggle-preview', 'save', 'floor-change', 'add-floor', 'remove-floor'],
   setup(props, { emit }) {
+    const store = useTempleCreatorStore();
+    const ionRouter = useIonRouter();
+
+    // "2 missing: Entrance, Master Room". Only once this temple's layout is in the editor, so it never flashes while loading.
+    const missingBanner = computed(() => {
+      if (!store.isLoaded(props.templeId)) return '';
+      const result = auditTemple({ dungeonLayout: { maze: store.templeMaze, rooms: store.roomsData } });
+      const isFinishable = result.passed;
+      if (isFinishable) return '';
+      const names = missingNames(result);
+      return `${names.length} missing: ${shortList(names)}`;
+    });
+
+    const openAudit = () => {
+      play$fx('select');
+      ionRouter.push(`/game-master/compendium/temples/${props.templeId}/attributes/audit`);
+    };
+
     const gridHeight = computed(() => props.gridSize.split('x')[0]);
     const gridWidth = computed(() => props.gridSize.split('x')[1]);
 
+    // A side that is not a whole number from 1 to 50 (cleared field, 0, -3, 99) keeps the last good size: the field
+    // goes back to it by hand, as the bound value did not change and Vue will not redraw it
+    const typedSide = (event: Event, lastGoodSide: string): number | null => {
+      const input = event.target as HTMLInputElement;
+      const side = readGridSide(input.value);
+      const isUnreadable = side === null;
+      if (isUnreadable) input.value = lastGoodSide;
+      return side;
+    };
+
     const updateHeight = (event: Event) => {
-      const val = (event.target as HTMLInputElement).value;
-      emit('update:gridSize', `${val}x${gridWidth.value}`);
+      const side = typedSide(event, gridHeight.value);
+      const isUnreadable = side === null;
+      if (isUnreadable) return;
+      emit('update:gridSize', `${side}x${gridWidth.value}`);
       emit('resize');
     };
 
     const updateWidth = (event: Event) => {
-      const val = (event.target as HTMLInputElement).value;
-      emit('update:gridSize', `${gridHeight.value}x${val}`);
+      const side = typedSide(event, gridWidth.value);
+      const isUnreadable = side === null;
+      if (isUnreadable) return;
+      emit('update:gridSize', `${gridHeight.value}x${side}`);
       emit('resize');
     };
 
@@ -128,8 +176,9 @@ export default defineComponent({
           {
             text: 'Add',
             handler: (data) => {
-              if (data.floorName) {
-                emit('add-floor', data.floorName);
+              const floorName = data.floorName;
+              if (floorName) {
+                emit('add-floor', floorName);
               }
             }
           }
@@ -140,6 +189,8 @@ export default defineComponent({
     };
 
     return {
+      missingBanner,
+      openAudit,
       gridHeight,
       gridWidth,
       updateHeight,
@@ -230,5 +281,30 @@ export default defineComponent({
 
   .mr-2 {
     margin-right: 0.5rem;
+  }
+
+  .audit-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 6px 16px;
+    border: 0;
+    border-top: 2px solid var(--xp-color-gp);
+    background: rgba(0, 0, 0, 0.75);
+    color: var(--xp-color-gp);
+    font-family: "StatusPlz";
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+
+    span {
+      flex: 1;
+    }
+
+    &:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
   }
 </style>

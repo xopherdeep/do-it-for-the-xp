@@ -2,7 +2,7 @@ import { RouteRecordRaw } from 'vue-router';
 
 const supportRoutes: Array<RouteRecordRaw> = [
   {
-    path: '/xp-support', // Changed path to match the side menu link
+    path: '/xp-support',
     name: 'support',
     component: () => import('@/app/SideMenu/XpSupport/XpSupport.vue')
   },
@@ -12,9 +12,9 @@ const supportRoutes: Array<RouteRecordRaw> = [
     component: () => import('@/app/SideMenu/XpSupport/FAQ/FAQ.vue')
   },
   {
+    // There are no help videos yet: the old link opens the manual
     path: '/support/help-videos',
-    name: 'support-help-videos',
-    component: () => import('@/app/SideMenu/XpSupport/HelpVideos/HelpVideos.vue')
+    redirect: { name: 'support-user-manual' }
   },
   {
     path: '/support/user-manual',
@@ -38,4 +38,7 @@ const supportRoutes: Array<RouteRecordRaw> = [
   }
 ];
 
-export default supportRoutes;
+// Dev Tools is only registered outside production builds
+export default process.env.NODE_ENV === 'production'
+  ? supportRoutes.filter(route => route.name !== 'dev-tools')
+  : supportRoutes;

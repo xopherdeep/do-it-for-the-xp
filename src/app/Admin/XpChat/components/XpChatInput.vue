@@ -30,7 +30,8 @@ export default defineComponent({
         const text = ref('');
 
         const handleSend = () => {
-            if (!text.value.trim()) return;
+            const message = text.value.trim();
+            if (!message) return;
             emit('send', text.value.trim());
             text.value = '';
         };

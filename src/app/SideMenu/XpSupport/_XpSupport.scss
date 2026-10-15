@@ -1,5 +1,35 @@
 .xp-support {
+  // Two cards per row, an odd last card spans the row. Each card's border is a
+  // 16px box-shadow drawn outside it, so the grid pads 16px and gaps 48px:
+  // every visible gap (edges, between columns, between rows) is 16px
+  ion-grid {
+    padding: 16px;
+  }
+
+  ion-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 48px;
+  }
+
+  ion-col {
+    display: flex;
+    padding: 0;
+    margin: 0;
+    // ion-col sizes itself with inline width and flex; the grid sizes it here
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+
+    &.full-row {
+      grid-column: 1 / -1;
+    }
+  }
+
   .support-card {
+    // beat the theme's ion-card width and margin (set under ion-app#earthbound)
+    width: 100% !important;
+    margin: 0 !important;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     
@@ -10,7 +40,13 @@
   }
 
   ion-card-header {
-    padding-bottom: 10px;
+    padding: 1rem 0.5rem 10px;
+  }
+
+  ion-card-title {
+    // the theme's 20px card title is too wide for a half-width card
+    font-size: 15px !important;
+    overflow-wrap: break-word;
   }
 
   i.fad {
@@ -26,5 +62,13 @@
   ion-card-content {
     padding-top: 15px;
     min-height: 80px;
+  }
+
+  .version-info {
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    text-align: right;
   }
 }

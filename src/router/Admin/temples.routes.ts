@@ -8,8 +8,9 @@ export const TempleRoutes: RouteRecordRaw[] = [
       import("@/app/Admin/XpCompendium/views/XpTemples"),
   },
   {
-    path: "temples/creator/:templeId/rooms/:row/:col",
+    path: "temples/creator/:templeId/rooms/:floor?/:row/:col",
     name: "xp-room-editor",
+    meta: { pro: "templeCreator" },
     component: () =>
       import(
         "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
@@ -32,6 +33,8 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "dashboard",
         name: "xp-temple-dashboard",
+        // existing temples stay viewable; only creating a new one is Pro
+        meta: { proWhenNew: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleDashboard.vue"
@@ -41,6 +44,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "layout",
         name: "xp-temple-layout",
+        meta: { pro: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleLayout.vue"
@@ -50,6 +54,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "rooms",
         name: "xp-temple-rooms",
+        meta: { pro: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleRooms.vue"
@@ -59,6 +64,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "beasts",
         name: "xp-temple-beasts",
+        meta: { pro: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleBeasts.vue"
@@ -81,15 +87,18 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "general",
             name: "xp-temple-attributes-general",
+            meta: { pro: "templeCreator" },
+            // General is the temple wizard (Name and theme, Check and open); Audit and Navigator stay the attributes page
             component: () =>
               import(
-                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
+                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributesWizard.vue"
               ),
             props: (route) => ({ templeId: route.params.templeId, tab: 'general' }),
           },
           {
             path: "audit",
             name: "xp-temple-attributes-audit",
+            meta: { pro: "templeCreator" },
             component: () =>
               import(
                 "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
@@ -99,6 +108,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "navigator",
             name: "xp-temple-attributes-navigator",
+            meta: { pro: "templeCreator" },
             component: () =>
               import(
                 "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
@@ -108,8 +118,10 @@ export const TempleRoutes: RouteRecordRaw[] = [
         ]
       },
       {
-        path: "rooms/:row/:col",
+        // The floor comes first; an old two-part address (rooms/1/2) has none and opens the floor the creator was on
+        path: "rooms/:floor?/:row/:col",
         name: "xp-temple-room-editor",
+        meta: { pro: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"

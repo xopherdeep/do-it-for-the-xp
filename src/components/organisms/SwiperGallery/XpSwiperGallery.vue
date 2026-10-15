@@ -37,7 +37,7 @@
               </ion-card-title>
               <ion-card-title
                 v-else
-                v-html="item.title.rendered"
+                v-html="sanitizeHtml(item.title.rendered)"
               ></ion-card-title>
 
               <ion-thumbnail v-if="isFetching">
@@ -91,10 +91,11 @@
 
 <script lang="ts">
   import { defineComponent } from "vue";
-  import { Controller, Navigation } from "swiper";
+  import { Controller, Navigation } from "swiper/modules";
   import { IonicSlides } from "@ionic/vue";
   import { useItemFetcher } from "@/hooks/useItemFetcher";
   import ionic from "@/lib/mixins/ionic";
+  import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
   export default defineComponent({
     props: ["items", "nTotalPages", "nTotal", "isFetching", "params"],
@@ -167,6 +168,7 @@
       };
 
       return {
+        sanitizeHtml,
         setControlledSwiper,
         getSingleMediaById,
         modules: [IonicSlides, Navigation, Controller],

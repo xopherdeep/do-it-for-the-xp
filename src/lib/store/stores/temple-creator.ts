@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { ____, _00_ } from "@/lib/engine/dungeons/roomTypes";
+import { isEntranceToken, isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import { Room } from "@/lib/engine/core/dungeons/types";
 import defaultTemples from "@/lib/engine/temples";
 import debug from "@/lib/utils/debug";
 
-// Visual tokens for JSON readability (5 characters to match X0000 format)
-const WALL_TOKEN = "_____";
-const ENTRANCE_TOKEN = "_00__";
+// Visual tokens for JSON readability (5 characters to match X0000 format); the JSON import writes the same spellings
+export const WALL_TOKEN = "_____";
+export const ENTRANCE_TOKEN = "_00__";
 
 export const useTempleCreatorStore = defineStore("temple-creator", () => {
   const templeId = ref<string | null>(null);
@@ -119,7 +119,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     roomsData.value = JSON.parse(JSON.stringify(defaultData.rooms));
 
     // Standardize entrance
-    if (defaultData.entrance) {
+    const hasEntrance = Boolean(defaultData.entrance);
+    if (hasEntrance) {
       entrancePosition.value = defaultData.entrance.join(",");
     }
 
@@ -127,15 +128,14 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     const firstFloor = Array.isArray(defaultData.maze)
       ? defaultData.maze
       : (Object.values(defaultData.maze)[0] as string[][]);
-    if (firstFloor && firstFloor.length > 0) {
+    const hasMazeRows = firstFloor && firstFloor.length > 0;
+    if (hasMazeRows) {
       const rows = firstFloor.length;
       const cols = firstFloor[0].length;
       gridSize.value = `${rows}x${cols}`;
     }
 
-    // Reset metadata
-    symbolCounter.value = 0; // Will be recalced on next migrate/save if needed
-    usedSymbols.value = new Set(Object.keys(roomsData.value));
+    rebuildSymbols();
 
     // Identify current floor
     if (Array.isArray(defaultData.maze)) {
@@ -147,12 +147,27 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     return true;
   }
 
+  /**
+   * Lists every symbol the maze and the room records hold as used, and sets the counter to the highest R### among them.
+   * Whatever puts a stored maze and its rooms into the store calls this, or the next R### could reissue a stored room's.
+   */
+  function rebuildSymbols() {
+    const used = new Set<string>([WALL_TOKEN, ENTRANCE_TOKEN, ...Object.keys(roomsData.value)]);
+    const floors = Array.isArray(templeMaze.value) ? [templeMaze.value] : Object.values(templeMaze.value);
+    floors.forEach((grid) => grid.forEach((row) => row.forEach((cell) => used.add(cell))));
+
+    const counterNumbers = [...used].map((symbol) => /^R(\d{3})$/.exec(symbol)).map((found) => (found ? Number(found[1]) : 0));
+    symbolCounter.value = Math.max(0, ...counterNumbers);
+    usedSymbols.value = used;
+  }
+
   function generateUniqueSymbol(
     row?: number,
     col?: number,
     type: string = "empty"
   ): string {
-    if (row !== undefined && col !== undefined) {
+    const hasCoordinates = row !== undefined && col !== undefined;
+    if (hasCoordinates) {
       // Use coordinates TXXYY (e.g. M0104 for monster at x1, y4)
       const prefix = typePrefixes[type] || "R";
       const xx = col.toString().padStart(2, "0");
@@ -165,7 +180,7 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     do {
       symbolCounter.value++;
       newSymbol = `R${symbolCounter.value.toString().padStart(3, "0")}`;
-    } while (usedSymbols.value.has(newSymbol));
+    } while (usedSymbols.value.has(newSymbol) || roomsData.value[newSymbol]);
     usedSymbols.value.add(newSymbol);
     return newSymbol;
   }
@@ -177,31 +192,29 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
   function migrateTokens() {
     debug.log("Starting token migration to coordinate-based system...");
 
-    const newRoomsData: Record<string, Room> = {
-      [WALL_TOKEN]: roomsData.value[WALL_TOKEN] ||
-        roomsData.value[____] || { type: "wall" },
-      [ENTRANCE_TOKEN]: roomsData.value[ENTRANCE_TOKEN] ||
-        roomsData.value[_00_] || { type: "entrance", visited: true },
+    // The shared record under the store's token, else under any older spelling of it ('____', '_', '_00_', 'E', ...)
+    const sharedRecord = (isShared: (token: string) => boolean, own: string, fallback: Room): Room => {
+      const spelling = [own, ...Object.keys(roomsData.value).filter(isShared)].find((key) => roomsData.value[key]);
+      return (spelling && roomsData.value[spelling]) || fallback;
     };
-
-    const tokenMap = new Map<string, string>();
-    tokenMap.set(WALL_TOKEN, WALL_TOKEN);
-    tokenMap.set(____, WALL_TOKEN); // Legacy support
-    tokenMap.set(ENTRANCE_TOKEN, ENTRANCE_TOKEN);
-    tokenMap.set(_00_, ENTRANCE_TOKEN); // Legacy support
+    const newRoomsData: Record<string, Room> = {
+      [WALL_TOKEN]: sharedRecord(isWallToken, WALL_TOKEN, { type: "wall" }),
+      [ENTRANCE_TOKEN]: sharedRecord(isEntranceToken, ENTRANCE_TOKEN, { type: "entrance", visited: true }),
+    };
 
     const processedMaze = JSON.parse(JSON.stringify(templeMaze.value));
 
     const processMazeGrid = (grid: string[][]) => {
       return grid.map((row, rIdx) =>
         row.map((cell, cIdx) => {
-          // Normalize legacy tokens to 4-char versions
-          if (cell === ____ || cell === WALL_TOKEN) return WALL_TOKEN;
-          if (cell === _00_ || cell === ENTRANCE_TOKEN) return ENTRANCE_TOKEN;
+          // Every spelling of the wall and the entrance ('_', 'E', '____', '_00_', ...) is the shared token, never a room
+          if (isWallToken(cell)) return WALL_TOKEN;
+          if (isEntranceToken(cell)) return ENTRANCE_TOKEN;
 
           // WALL NORMALIZATION: If this cell's room has type 'wall', replace with WALL_TOKEN
           const existingRoom = roomsData.value[cell];
-          if (existingRoom?.type === "wall") {
+          const isWallRoom = existingRoom?.type === "wall";
+          if (isWallRoom) {
             // Delete the spurious wall entry from roomsData (we'll use shared WALL_TOKEN)
             delete roomsData.value[cell];
             return WALL_TOKEN;
@@ -212,21 +225,24 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
 
           let newKey = cell;
           // If it starts with R or is a legacy token, we migrate it to the current coordinate.
-          if (!isCoordToken || cell.startsWith("R")) {
+          const shouldMigrateToken = !isCoordToken || cell.startsWith("R");
+          if (shouldMigrateToken) {
             const room = roomsData.value[cell];
             const type = room?.type || "empty";
             newKey = generateUniqueSymbol(rIdx, cIdx, type);
 
             // Only copy data if we haven't already moved this room definition
             // (Handles cases where multiple maze cells used the same token)
-            if (roomsData.value[cell] && !newRoomsData[newKey]) {
+            const hasUnmovedRoomDefinition = roomsData.value[cell] && !newRoomsData[newKey];
+            if (hasUnmovedRoomDefinition) {
               newRoomsData[newKey] = JSON.parse(
                 JSON.stringify(roomsData.value[cell])
               );
             }
           } else {
             // It's already a coord token, just ensure it's in the new room data
-            if (roomsData.value[cell]) {
+            const hasRoom = Boolean(roomsData.value[cell]);
+            if (hasRoom) {
               newRoomsData[cell] = JSON.parse(
                 JSON.stringify(roomsData.value[cell])
               );
@@ -250,8 +266,7 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
 
     roomsData.value = newRoomsData;
 
-    // Update used symbols
-    usedSymbols.value = new Set(Object.keys(newRoomsData));
+    rebuildSymbols();
     debug.log("Token migration complete.");
   }
 
@@ -277,6 +292,7 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     resetToDefault,
     updateDbSnapshot, // Exposure
     generateUniqueSymbol,
+    rebuildSymbols,
     migrateTokens,
     isLoaded,
     markAsLoaded,

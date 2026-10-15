@@ -22,15 +22,16 @@
       <ion-grid class="max-w-5xl rpg-box">
         <ion-row>
           <ion-col
-            size="12"
-            size-md="4"
-            v-for="item in settingsItems"
+            v-for="(item, index) in settingsItems"
+            :size="isFullRow(index) ? '12' : '6'"
+            :class="{ 'full-row': isFullRow(index) }"
             :key="item.id"
           >
             <ion-card
               button
               :routerLink="item.route"
               class="settings-card"
+              :class="{ 'settings-card--soon': item.soon }"
             >
               <ion-card-header class="ion-text-center">
                 <ion-thumbnail class="mx-auto">
@@ -39,6 +40,7 @@
                 <ion-card-title>
                   {{ item.title }}
                 </ion-card-title>
+                <ion-badge v-if="item.soon" color="medium" class="soon-badge">Coming soon</ion-badge>
               </ion-card-header>
               <hr />
               <ion-card-content class="rpg-box">
@@ -52,5 +54,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSettingsHome" />
+<script lang="ts" src="./XpSettingsHome.ts" />
 <style lang="scss" src="./_XpSettingsHome.scss" scoped />

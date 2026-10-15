@@ -2,13 +2,15 @@ import { defineComponent } from "vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useUserActions } from "@/hooks/useUserActions";
 import ionic from "@/lib/mixins/ionic";
-import { modalController, toastController } from "@ionic/vue";
+import { alertController, modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
+import { quoteBedRest } from "@/lib/services/hometown/Lodging";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 
-const requireAvatar = require.context("@/assets/images/avatars/");
+const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
   name: "my-home",
@@ -33,7 +35,7 @@ export default defineComponent({
       const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,
-        position: 'middle',
+        position: 'top',
         cssClass: 'rpg-toast',
         buttons: [
           // {
@@ -94,11 +96,68 @@ export default defineComponent({
     };
 
     const userAvatar = computed(() => {
-      return (user.value?.avatar) ? requireAvatar(`./${user.value.avatar}.svg`) : '';
+      return heroAvatarSrc(user.value, requireAvatar);
     });
+
+    const restInBed = async () => {
+      // Once a real day: quoteBedRest() decides, the store remembers the stamp.
+      const quote = quoteBedRest(user.value?.stats, user.value?.bedRestAt);
+      if (!quote.canRest) {
+        const toast = await toastController.create({
+          message: quote.reason === "rested" ? "You're not sleepy yet. Come back tomorrow." : "You are already fully rested!",
+          duration: 2500,
+          position: "top",
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
+        return;
+      }
+
+      const alert = await alertController.create({
+        header: "Rest in Bed",
+        message: "Sleep in your cozy bed to restore all HP and MP? Once a day.",
+        buttons: [
+          {
+            text: "Not now",
+            role: "cancel",
+            cssClass: "alert-cancel",
+          },
+          {
+            text: "Rest",
+            role: "confirm",
+            cssClass: "alert-confirm",
+            handler: async () => {
+              const hasHpGain = quote.hpGain > 0;
+              if (hasHpGain) {
+                userStore.updateUserHP({ userId: userId as string, amount: quote.hpGain });
+              }
+              const hasMpGain = quote.mpGain > 0;
+              if (hasMpGain) {
+                userStore.updateUserMP({ userId: userId as string, amount: quote.mpGain });
+              }
+              userStore.setBedRestAt(userId as string, new Date().toISOString());
+              const canPlayFx = typeof (window as any).play$fx === "function";
+              if (canPlayFx) {
+
+                (window as any).play$fx("restoreAll");
+              }
+              const toast = await toastController.create({
+                message: "You rested comfortably. Full HP & MP restored!",
+                duration: 2500,
+                position: "top",
+                cssClass: "rpg-toast",
+              });
+              await toast.present();
+            },
+          },
+        ],
+      });
+      await alert.present();
+    };
 
     return {
       userAvatar,
+      restInBed,
       closeModal,
       clickSave,
       user,
@@ -134,11 +193,6 @@ export default defineComponent({
             router.push({ name: 'calendar', params: { userId } })
           }
         },
-        // {
-        //   id: 'rest',
-        //   label: "Rest",
-        //   faIcon: "bed",
-        // },
         {
           label: "My Workbench",
           id: 'craft',
@@ -155,6 +209,15 @@ export default defineComponent({
           side: "end",
           click() {
             router.push({ name: 'cook-food', params: { userId } })
+          }
+        },
+        {
+          label: "Rest in Bed",
+          id: 'rest',
+          faIcon: "bed",
+          side: "bottom",
+          click() {
+            restInBed();
           }
         },
         {

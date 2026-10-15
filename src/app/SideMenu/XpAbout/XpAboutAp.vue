@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="tertiary">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/about-xp" />
+          <xp-back-button />
           <i class="fad fa-hand-holding-magic fa-lg mr-2"></i>
         </ion-buttons>
         <ion-title>About Ability Points</ion-title>
@@ -15,7 +15,7 @@
       <div class="ap-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-magic fa-10x"></i> AP
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab v-show="!isDialogVisible" vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button color="tertiary" @click="showApDialog">
             <i class="fad fa-hand-holding-magic fa-lg"></i>
           </ion-fab-button>
@@ -46,9 +46,6 @@
             class="ap-text"
             :has-more-text="hasMoreDialog"
           />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
     </div>
@@ -91,8 +88,9 @@
     computed: {
       dialogBlocks() {
         // Return custom blocks if available, otherwise return default blocks
-        if ((this as any)._dialogBlocks) {
-          return (this as any)._dialogBlocks;
+        const customBlocks = (this as any)._dialogBlocks;
+        if (customBlocks) {
+          return customBlocks;
         }
 
         return [
@@ -182,7 +180,8 @@
         }
 
         // If not typing, advance to next dialog block
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.currentDialogIndex++;
           this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
           this.hasMoreDialog =
@@ -201,7 +200,8 @@
         this.isTyping = false;
 
         // Play subtle sound effect between blocks if there are more blocks
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.play$fx("text");
         }
       },

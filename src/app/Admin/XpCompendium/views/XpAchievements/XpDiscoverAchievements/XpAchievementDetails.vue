@@ -19,7 +19,7 @@
                 <ion-img v-bind="getFeaturedImg(achievement?._embedded)" />
               </ion-thumbnail>
               <ion-card-title
-                v-html="achievement.title.rendered"
+                v-html="sanitizeHtml(achievement.title.rendered)"
                 class="ion-text-center"
               />
             </ion-card-header>
@@ -84,6 +84,7 @@
   import { defineComponent } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { modalController } from "@ionic/vue";
+  import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
   export default defineComponent({
     props: ["achievement"],
@@ -112,6 +113,7 @@
         closeAchievement,
         saveAchievement,
         getFeaturedImg,
+        sanitizeHtml,
       };
     },
   });

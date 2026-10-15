@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1040052365869",
+    "project_id": "do-it-for-the-xp",
+    "storage_bucket": "do-it-for-the-xp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1040052365869:android:9babce7067c3ccdb05a6a4",
+        "android_client_info": {
+          "package_name": "com.forthexp.doit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBw_UNmVcZBiLTXu0y5ImFbtylSeVXrfzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1040052365869:android:1314328dcfdb48f005a6a4",
+        "android_client_info": {
+          "package_name": "com.midnightnerd.xp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBw_UNmVcZBiLTXu0y5ImFbtylSeVXrfzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

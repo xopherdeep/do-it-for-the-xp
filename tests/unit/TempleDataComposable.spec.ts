@@ -1,0 +1,969 @@
+/**
+ * Characterization of useTempleData (XpTemples/hooks/useTempleData.ts), the Game Master temple screens' data
+ * composable: it loads a temple, tallies its rooms, beasts and key items, saves it, and applies raw JSON with the
+ * token migration to coordinate symbols. These specs drive the composable through a mounted component with the
+ * temple, bestiary and category databases mocked, and pin what it returns today.
+ */
+import { mount, flushPromises } from "@vue/test-utils";
+import { defineComponent, nextTick } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+import {
+  TempleDataInjectionKey,
+  useTempleData,
+} from "@/app/Admin/XpCompendium/views/XpTemples/hooks/useTempleData";
+import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
+import debug from "@/lib/utils/debug";
+
+const mockDb: {
+  temples: Record<string, any>;
+  saved: any[];
+  beasts: any[];
+  categories: any[];
+  runs: Record<string, any>;
+  failSave: boolean;
+} = { temples: {}, saved: [], beasts: [], categories: [], runs: {}, failSave: false };
+const mockToastCreate = jest.fn();
+
+jest.mock("@/lib/databases/TempleDb", () => ({
+  __esModule: true,
+  templeStorage: {},
+  TempleDb: class {
+    getTempleById = async (id: string) =>
+      mockDb.temples[id] ? JSON.parse(JSON.stringify(mockDb.temples[id])) : null;
+    setTemple = async (temple: any) => {
+      if (mockDb.failSave) throw new Error("disk full");
+      mockDb.saved.push(JSON.parse(JSON.stringify(temple)));
+      mockDb.temples[temple.id] = temple;
+    };
+  },
+}));
+jest.mock("@/lib/databases/AchievementDb", () => ({
+  __esModule: true,
+  achievementCategoryStorage: {},
+  AchievementCategoryDb: class {
+    getAll = async () => mockDb.categories.slice();
+  },
+}));
+jest.mock("@/lib/databases/BestiaryDb", () => ({
+  __esModule: true,
+  beastStorage: {},
+  default: class {
+    getBeasts = async () => mockDb.beasts.slice();
+  },
+}));
+jest.mock("@/lib/engine/core/dungeons/importAllTemples", () => ({
+  __esModule: true,
+  ensureBuiltInTemples: async () => undefined,
+}));
+jest.mock(
+  "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/hooks/useAchievementForm",
+  () => ({
+    __esModule: true,
+    sortCategoryByName: (a: any, b: any) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    },
+  })
+);
+jest.mock("@/lib/engine/core/dungeons/TempleSystem", () => ({
+  __esModule: true,
+  TempleSystem: { getInstance: () => ({ getTempleState: (id: string) => mockDb.runs[id] }) },
+}));
+jest.mock("@ionic/vue", () => ({
+  __esModule: true,
+  toastController: { create: (options: unknown) => mockToastCreate(options) },
+}));
+jest.mock("@/lib/utils/debug", () => ({
+  __esModule: true,
+  default: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+}));
+
+const W = "____";
+// What a JSON Apply writes for them: the creator store's own spellings of the wall and entrance (temple-creator.ts)
+const WALL = "_____";
+const ENTRANCE = "_00__";
+
+// 6 x 5 floor: every kind of cell the tallies look at, a void ".", a token without a room record and a blank cell
+const grid1F = () => [
+  [W, W, W, W, W, W],
+  [W, "_00_", "M0101", "L0201", "L0301", W],
+  [W, "B0102", "m0202", "K0302", "S0402", W],
+  [W, ".", "T0103", "R0203", "X0303", W],
+  [W, "?ZZ0", "", "H0104", "C0204", W],
+  [W, W, W, W, W, W],
+];
+const grid2F = () => [
+  [W, W, W],
+  [W, "L0101", W],
+  [W, "M0201", W],
+  [W, "D0301", W],
+  [W, W, W],
+];
+const roomDefs = (): Record<string, any> => ({
+  [W]: { type: "wall" },
+  _00_: { type: "entrance", visited: true },
+  M0101: { type: "monster", visited: true, content: { monsterType: "Medium", beasts: ["b1", "b2"] } },
+  L0201: { type: "loot", content: { chest: "dungeon", dungeon: "map" }, opened: true },
+  L0301: { type: "loot", content: { chest: "dungeon", dungeon: "compass" } },
+  B0102: { type: "boss", content: { beasts: ["b3"] }, sides: { east: "locked" } },
+  m0202: { type: "miniboss" },
+  K0302: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" }, sides: { west: "locked", north: "door" } },
+  S0402: { type: "shop" },
+  T0103: { type: "teleport" },
+  R0203: { type: "empty" },
+  X0303: { type: "monster" },
+  H0104: { type: "health" },
+  C0204: { type: "chest", visited: true },
+  L0101: { type: "loot", content: { chest: "dungeon", dungeon: "key" }, sides: { south: "locked" } },
+  M0201: { type: "monster", content: { monsterType: "LARGE", beasts: ["b9"] } },
+});
+const templeRecord = (id: string, maze: any, rooms: Record<string, any> = roomDefs()) => ({
+  id,
+  categoryIds: ["c1"],
+  level: 3,
+  customName: "Custom",
+  hasBossKey: true,
+  dungeonLayout: { entrance: [1, 1], maze, rooms },
+});
+
+const mountTempleData = async (id: string, record: any = null) => {
+  setActivePinia(createPinia());
+  mockDb.temples = record ? { [id]: record } : {};
+  mockDb.saved = [];
+  mockDb.failSave = false;
+  mockDb.beasts = [
+    { id: "b1", name: "One", checklist: [] },
+    { id: "b3", name: "Three", checklist: [] },
+    { id: "b9", name: "Nine", checklist: [] },
+  ];
+  mockDb.categories = [
+    { id: "c2", name: "zeta", color: "danger" },
+    { id: "c1", name: "Alpha" },
+    { id: "c3", name: "beta", color: "tertiary" },
+  ];
+  let api!: ReturnType<typeof useTempleData>;
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        api = useTempleData(id);
+        return () => null;
+      },
+    })
+  );
+  await flushPromises();
+  return { api, wrapper, store: useTempleCreatorStore() };
+};
+
+const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+beforeEach(() => {
+  mockDb.runs = {};
+  mockToastCreate.mockReset();
+  mockToastCreate.mockResolvedValue({ present: jest.fn(async () => undefined) });
+  (debug.log as jest.Mock).mockClear();
+  (debug.error as jest.Mock).mockClear();
+});
+
+describe("useTempleData API", () => {
+  it("returns the same 27 members in the same order", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(Object.keys(api)).toEqual([
+      "temple",
+      "templeState",
+      "categories",
+      "dungeonStats",
+      "composition",
+      "previewMaze",
+      "loadCategories",
+      "loadTemple",
+      "saveTemple",
+      "getPowerRating",
+      "getBeastsByTier",
+      "getCategoryColor",
+      "getCategoryName",
+      "getTempleIcon",
+      "getTempleColor",
+      "getTempleBg",
+      "getDisplayName",
+      "isRoom",
+      "getRoomTypeIcon",
+      "getMonsterIcon",
+      "templeBeastsWithDetails",
+      "allBeasts",
+      "getItemIcon",
+      "dungeonAudit",
+      "itemMapData",
+      "isLoading",
+      "applyRawJson",
+    ]);
+  });
+
+  it("keeps the injection key the screens provide and inject", () => {
+    expect(typeof TempleDataInjectionKey).toBe("symbol");
+    expect(String(TempleDataInjectionKey)).toBe("Symbol(TempleData)");
+  });
+});
+
+describe("a temple with nothing saved", () => {
+  it("starts with an empty temple, empty tallies and a power of 10", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(plain(api.temple.value)).toEqual({ id: "wind-temple", categoryIds: [], level: 1 });
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 0, visitedRooms: 0, totalTreasures: 0, foundTreasures: 0 });
+    expect(plain(api.templeState.value)).toEqual({
+      hasMap: false,
+      hasCompass: false,
+      hasBossKey: false,
+      playerKeys: 0,
+      visitedPositions: {},
+    });
+    expect(plain(api.composition.value)).toEqual({ hasRooms: false, roomTypes: [], keyItems: [], monsters: [] });
+    expect(api.previewMaze.value).toBeNull();
+    expect(api.templeBeastsWithDetails.value).toEqual([]);
+    expect(api.itemMapData.value).toEqual({});
+    expect(api.getPowerRating()).toBe(10);
+    expect([api.getBeastsByTier("boss"), api.getBeastsByTier("miniboss"), api.getBeastsByTier("other")]).toEqual([[], [], []]);
+    expect(api.isLoading.value).toBe(false);
+  });
+
+  it("audits an empty temple as missing the five required checks", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    const audit = api.dungeonAudit.value;
+    expect(audit.passed).toBe(false);
+    expect(audit.summary).toBe("0 of 7 checks passed");
+    expect(audit.missing).toEqual(["Entrance", "Exit", "Boss", "Boss Key", "Master Room"]);
+    expect([audit.hasMap, audit.hasCompass, audit.hasBossKey]).toEqual([false, false, false]);
+    expect([audit.totalKeys, audit.totalLockedDoors, audit.keyBalance]).toEqual([0, 0, 0]);
+  });
+
+  it("loads categories sorted by name and the bestiary on mount", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(plain(api.categories.value).map((category: any) => category.id)).toEqual(["c1", "c3", "c2"]);
+    expect(plain(api.allBeasts.value).map((beast: any) => beast.id)).toEqual(["b1", "b3", "b9"]);
+  });
+
+  it("does nothing for a missing temple or a blank id", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    await api.loadTemple("");
+    await api.loadTemple("nope");
+    expect(plain(api.temple.value)).toEqual({ id: "wind-temple", categoryIds: [], level: 1 });
+    expect(api.isLoading.value).toBe(false);
+  });
+
+  it("does not load anything on mount for an empty temple id", async () => {
+    const { api, store } = await mountTempleData("", templeRecord("", grid1F()));
+    expect(api.temple.value.dungeonLayout).toBeUndefined();
+    expect(store.loadedTempleId).toBeNull();
+  });
+});
+
+describe("a saved temple with two floors", () => {
+  const load = () => {
+    mockDb.runs = {
+      "wind-temple": {
+        hasMap: true,
+        hasCompass: false,
+        playerKeys: 2,
+        visitedRooms: new Set(["1F:1,1"]),
+        hasMasterKey: true,
+        "hasPegasus whistle": true,
+      },
+    };
+    return mountTempleData("wind-temple", templeRecord("wind-temple", { "1F": grid1F(), "2F": grid2F() }));
+  };
+
+  it("merges the saved record into the temple and loads the creator store from it", async () => {
+    const { api, store } = await load();
+    expect(api.temple.value.customName).toBe("Custom");
+    expect(api.temple.value.level).toBe(3);
+    expect(plain(store.templeMaze)).toEqual({ "1F": grid1F(), "2F": grid2F() });
+    expect(plain(store.roomsData)).toEqual(roomDefs());
+    expect(store.loadedTempleId).toBe("wind-temple");
+  });
+
+  it("reads the run state of the temple and the boss key off the record", async () => {
+    const { api } = await load();
+    expect(api.templeState.value.hasMap).toBe(true);
+    expect(api.templeState.value.hasCompass).toBe(false);
+    expect(api.templeState.value.hasBossKey).toBe(true);
+    expect(api.templeState.value.playerKeys).toBe(2);
+    expect([...api.templeState.value.visitedPositions]).toEqual(["1F:1,1"]);
+  });
+
+  it("counts the 1F rooms and the room records that were visited or hold treasure", async () => {
+    const { api } = await load();
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 14, visitedRooms: 3, totalTreasures: 5, foundTreasures: 2 });
+  });
+
+  it("previews 1F", async () => {
+    const { api } = await load();
+    expect(plain(api.previewMaze.value)).toEqual(grid1F());
+  });
+
+  it("tallies the room types, key items and monsters of every floor", async () => {
+    const { api } = await load();
+    expect(plain(api.composition.value)).toEqual({
+      hasRooms: true,
+      roomTypes: [
+        { type: "entrance", count: 1 },
+        { type: "monster", count: 3 },
+        { type: "loot", count: 4 },
+        { type: "boss", count: 1 },
+        { type: "miniboss", count: 1 },
+        { type: "shop", count: 1 },
+        { type: "teleport", count: 1 },
+        { type: "health", count: 1 },
+        { type: "chest", count: 1 },
+      ],
+      keyItems: [
+        { name: "Map", icon: "fa-map", found: true },
+        { name: "Compass", icon: "fa-compass", found: false },
+        { name: "Boss Key", icon: "fa-key-skeleton", found: true },
+        { name: "Key", icon: "fa-key", found: false },
+      ],
+      monsters: [
+        { size: "medium", count: 1 },
+        { size: "boss", count: 1 },
+        { size: "miniboss", count: 1 },
+        { size: "small", count: 1 },
+        { size: "large", count: 1 },
+      ],
+    });
+  });
+
+  it("rates the power from the level and the monster sizes", async () => {
+    const { api } = await load();
+    // level 3 -> 30; 0.5 * (1 medium + 10 boss + 5 miniboss + 0.5 small + 2 large) = 9.25
+    expect(api.getPowerRating()).toBe(39);
+  });
+
+  it("splits the monsters by tier", async () => {
+    const { api } = await load();
+    expect(api.getBeastsByTier("boss")).toEqual([{ size: "boss", count: 1 }]);
+    expect(api.getBeastsByTier("miniboss")).toEqual([{ size: "miniboss", count: 1 }]);
+    expect(api.getBeastsByTier("other")).toEqual([
+      { size: "medium", count: 1 },
+      { size: "small", count: 1 },
+      { size: "large", count: 1 },
+    ]);
+  });
+
+  it("lists the beasts of every battle room, bosses first, with the bestiary entry or null", async () => {
+    const { api } = await load();
+    expect(plain(api.templeBeastsWithDetails.value)).toEqual([
+      { beast: { id: "b3", name: "Three", checklist: [] }, beastId: "b3", tier: "boss", roomSymbol: "B0102", floor: "1F", row: 2, col: 1 },
+      { beast: null, beastId: "", tier: "miniboss", roomSymbol: "m0202", floor: "1F", row: 2, col: 2 },
+      { beast: { id: "b1", name: "One", checklist: [] }, beastId: "b1", tier: "monster", roomSymbol: "M0101", floor: "1F", row: 1, col: 2 },
+      { beast: null, beastId: "b2", tier: "monster", roomSymbol: "M0101", floor: "1F", row: 1, col: 2 },
+      { beast: null, beastId: "", tier: "monster", roomSymbol: "X0303", floor: "1F", row: 3, col: 4 },
+      { beast: { id: "b9", name: "Nine", checklist: [] }, beastId: "b9", tier: "monster", roomSymbol: "M0201", floor: "2F", row: 2, col: 1 },
+    ]);
+  });
+
+  it("audits the temple and counts the keys and the locked doors once per door", async () => {
+    const { api } = await load();
+    const audit = api.dungeonAudit.value;
+    expect(audit.passed).toBe(false);
+    expect(audit.summary).toBe("6 of 7 checks passed");
+    expect(audit.missing).toEqual(["Master Room"]);
+    expect([audit.hasMap, audit.hasCompass, audit.hasBossKey]).toEqual([true, true, true]);
+    // three room records hold a locked side: ceil(3 / 2) = 2 doors; one chest holds a key
+    expect([audit.totalKeys, audit.totalLockedDoors, audit.keyBalance]).toEqual([1, 2, -1]);
+    expect(audit.checks.map((check) => [check.id, check.ok])).toEqual([
+      ["entrance", true],
+      ["exit", true],
+      ["boss", true],
+      ["bossKey", true],
+      ["masterRoom", false],
+      ["map", true],
+      ["compass", true],
+    ]);
+  });
+
+  it("builds the item map of every floor", async () => {
+    const { api } = await load();
+    const itemMap = plain(api.itemMapData.value);
+    expect(Object.keys(itemMap)).toEqual(["1F", "2F"]);
+    expect(itemMap["1F"]).toHaveLength(6);
+    expect(itemMap["1F"][0]).toEqual(Array(6).fill({ isRoom: false }));
+    const none = { north: false, east: false, south: false, west: false };
+    expect(itemMap["1F"][1][1]).toEqual({ isRoom: true, item: null, isBoss: false, isEntrance: true, lockedEdges: none });
+    expect(itemMap["1F"][1][3]).toEqual({ isRoom: true, item: "map", isBoss: false, isEntrance: false, lockedEdges: none });
+    expect(itemMap["1F"][1][4]).toEqual({ isRoom: true, item: "compass", isBoss: false, isEntrance: false, lockedEdges: none });
+    expect(itemMap["1F"][2][1]).toEqual({
+      isRoom: true,
+      item: null,
+      isBoss: true,
+      isEntrance: false,
+      lockedEdges: { north: false, east: true, south: false, west: false },
+    });
+    expect(itemMap["1F"][2][3]).toEqual({
+      isRoom: true,
+      item: "master-key",
+      isBoss: false,
+      isEntrance: false,
+      lockedEdges: { north: false, east: false, south: false, west: true },
+    });
+    // a token with a room record missing still draws as a room; the void and the blank cell do not
+    expect(itemMap["1F"][4].map((cell: any) => cell.isRoom)).toEqual([false, true, false, true, true, false]);
+    expect(itemMap["1F"][4][1]).toEqual({ isRoom: true, item: null, isBoss: false, isEntrance: false, lockedEdges: none });
+    expect(itemMap["1F"][3][1]).toEqual({ isRoom: false });
+    expect(itemMap["2F"][1][1]).toEqual({
+      isRoom: true,
+      item: "key",
+      isBoss: false,
+      isEntrance: false,
+      lockedEdges: { north: false, east: false, south: true, west: false },
+    });
+    expect(itemMap["2F"][3][1]).toEqual({ isRoom: true, item: null, isBoss: false, isEntrance: false, lockedEdges: none });
+  });
+});
+
+describe("a saved temple with one floor", () => {
+  const load = () => mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+
+  it("tallies the same rooms with nothing found while no run is in progress", async () => {
+    const { api } = await load();
+    expect(plain(api.templeState.value)).toEqual({ hasMap: false, hasCompass: false, hasBossKey: false, playerKeys: 0, visitedPositions: {} });
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 14, visitedRooms: 3, totalTreasures: 5, foundTreasures: 2 });
+    expect(plain(api.composition.value).keyItems).toEqual([
+      { name: "Map", icon: "fa-map", found: false },
+      { name: "Compass", icon: "fa-compass", found: false },
+      { name: "Boss Key", icon: "fa-key-skeleton", found: false },
+    ]);
+    expect(plain(api.composition.value).monsters).toEqual([
+      { size: "medium", count: 1 },
+      { size: "boss", count: 1 },
+      { size: "miniboss", count: 1 },
+      { size: "small", count: 1 },
+    ]);
+    expect(api.getPowerRating()).toBe(38);
+  });
+
+  it("lists the beasts on floor 1F and builds an item map for 1F only", async () => {
+    const { api } = await load();
+    expect(plain(api.templeBeastsWithDetails.value).map((beast: any) => [beast.tier, beast.roomSymbol, beast.floor])).toEqual([
+      ["boss", "B0102", "1F"],
+      ["miniboss", "m0202", "1F"],
+      ["monster", "M0101", "1F"],
+      ["monster", "M0101", "1F"],
+      ["monster", "X0303", "1F"],
+    ]);
+    expect(Object.keys(api.itemMapData.value)).toEqual(["1F"]);
+  });
+
+  it("previews the grid itself", async () => {
+    const { api } = await load();
+    expect(plain(api.previewMaze.value)).toEqual(grid1F());
+  });
+});
+
+describe("previewMaze", () => {
+  const preview = async (maze: any) => {
+    const { api } = await mountTempleData("wind-temple");
+    api.temple.value.dungeonLayout = { entrance: [0, 0], maze, rooms: {} };
+    return api.previewMaze.value;
+  };
+
+  it("is 1F of a floor map", async () => {
+    expect(await preview({ "2F": [["b"]], "1F": [["a"]] })).toEqual([["a"]]);
+  });
+
+  it("is the first floor of a floor map without 1F", async () => {
+    expect(await preview({ B1: [["b"]], B2: [["c"]] })).toEqual([["b"]]);
+  });
+
+  it("is null for a floor map with no floors", async () => {
+    expect(await preview({})).toBeNull();
+  });
+
+  it("is the grid for a single grid", async () => {
+    expect(await preview([["a", "b"]])).toEqual([["a", "b"]]);
+  });
+});
+
+describe("dungeon stats of a temple whose preview is not a single grid", () => {
+  it("counts the room records instead of the cells", async () => {
+    const { api } = await mountTempleData("wind-temple", templeRecord("wind-temple", {}));
+    expect(api.previewMaze.value).toBeNull();
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 16, visitedRooms: 3, totalTreasures: 5, foundTreasures: 2 });
+    expect(plain(api.composition.value)).toEqual({ hasRooms: true, roomTypes: [], keyItems: [], monsters: [] });
+  });
+});
+
+describe("isRoom", () => {
+  it("is false for blank, wall and void cells and true for any other token", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(["", "____", "_____", "WALL", "_", "."].map(api.isRoom)).toEqual([false, false, false, false, false, false]);
+    expect(["_00_", "M0101", "s", "k", "O", "unknown"].map(api.isRoom)).toEqual([true, true, true, true, true, true]);
+  });
+});
+
+describe("icons and names", () => {
+  it("picks a room type icon, falling back to a square", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(api.getRoomTypeIcon("loot")).toBe("fa-treasure-chest");
+    expect(api.getRoomTypeIcon("boss")).toBe("fa-dragon");
+    expect(api.getRoomTypeIcon("zzz")).toBe("fa-square");
+    expect(api.getRoomTypeIcon("")).toBe("fa-square");
+  });
+
+  it("picks a monster icon by size, falling back to a ghost", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(["boss", "miniboss", "large", "medium", "small", "tiny", ""].map(api.getMonsterIcon)).toEqual([
+      "fa-crown",
+      "fa-helmet-battle",
+      "fa-dragon",
+      "fa-skull",
+      "fa-ghost",
+      "fa-ghost",
+      "fa-ghost",
+    ]);
+  });
+
+  it("picks an item icon by name ignoring case, falling back to a chest", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(["map", "Compass", "KEY", "master", "master-key", "Pegasus Whistle", "bomb"].map(api.getItemIcon)).toEqual([
+      "fa-map",
+      "fa-compass",
+      "fa-key",
+      "fa-key-skeleton",
+      "fa-key-skeleton",
+      "fa-megaphone",
+      "fa-treasure-chest",
+    ]);
+  });
+
+  it.each([
+    ["wind-temple", "fad fa-wind", "primary"],
+    ["earth-temple", "fad fa-mountain", "success"],
+    ["water-temple", "fad fa-water", "tertiary"],
+    ["fire-temple", "fad fa-fire", "danger"],
+    ["ice-temple", "fad fa-snowflake", "light"],
+    ["light-temple", "fad fa-sun", "warning"],
+    ["shadow-temple", "fad fa-moon", "dark"],
+    ["custom-temple", "fad fa-place-of-worship", "medium"],
+  ])("gives %s the icon %s and the colour %s", async (id, icon, color) => {
+    const { api } = await mountTempleData(id);
+    expect(api.getTempleIcon()).toBe(icon);
+    expect(api.getTempleColor()).toBe(color);
+    expect(api.getTempleBg()).toMatch(/^url\(/);
+  });
+
+  it("names the temple by its custom name, else its id", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(api.getDisplayName()).toBe("wind-temple");
+    api.temple.value.customName = "Gale Keep";
+    expect(api.getDisplayName()).toBe("Gale Keep");
+  });
+
+  it("reads a category colour and name, with 'medium' and 'Unknown' for a missing one", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(api.getCategoryColor("c3")).toBe("tertiary");
+    expect(api.getCategoryColor("c1")).toBe("medium");
+    expect(api.getCategoryColor("nope")).toBe("medium");
+    expect(api.getCategoryName("c2")).toBe("zeta");
+    expect(api.getCategoryName("nope")).toBe("Unknown");
+  });
+});
+
+describe("loadTemple", () => {
+  it("sanitizes the wall record before it reaches the creator store", async () => {
+    const rooms = roomDefs();
+    rooms[W] = { type: "wall", extra: true };
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F(), rooms));
+    expect(store.roomsData[W]).toEqual({ type: "wall" });
+    expect(api.temple.value.dungeonLayout?.rooms[W]).toEqual({ type: "wall" });
+  });
+
+  it("reuses the creator store layout when the temple is already loaded there", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.roomsData = { ...store.roomsData, extra: { type: "empty" } };
+    mockDb.temples["wind-temple"] = { ...templeRecord("wind-temple", grid1F()), customName: "Renamed" };
+    await api.loadTemple("wind-temple");
+    expect(api.temple.value.customName).toBe("Renamed");
+    expect(api.temple.value.dungeonLayout?.maze).toBe(store.templeMaze);
+    expect(api.temple.value.dungeonLayout?.rooms).toBe(store.roomsData);
+    expect(Object.keys(store.roomsData)).toContain("extra");
+  });
+
+  it("reloads the creator store from the database when forced", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.roomsData = { ...store.roomsData, extra: { type: "empty" } };
+    await api.loadTemple("wind-temple", true);
+    expect(Object.keys(store.roomsData)).not.toContain("extra");
+  });
+
+  // Added with #1358: the load copied the maze and the rooms only, so the creator opened on the store's default entrance
+  // (5,2) and grid (6x6) and its Save moved the hero's start off the grid
+  it("adopts the entrance with its floor, the grid size and the floor of the record into the creator store", async () => {
+    const record = templeRecord("wind-temple", { "1F": grid2F(), "2F": grid2F() });
+    record.dungeonLayout.entrance = [0, 1, 1];
+    const { store } = await mountTempleData("wind-temple", record);
+    expect(store.entrancePosition).toBe("0,1,1");
+    expect(store.gridSize).toBe("5x3");
+    expect(store.currentLevelId).toBe("1F");
+    expect(store.templeName).toBe("Custom");
+  });
+
+  it("puts a floor the maze does not have back on one it has", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", { "1F": grid1F(), "2F": grid2F() }));
+    store.currentLevelId = "9F";
+    await api.loadTemple("wind-temple", true);
+    expect(store.currentLevelId).toBe("1F");
+  });
+
+  it("leaves the store matching the database, so the creator does not see edits", async () => {
+    const { store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    expect(store.dbStateSnapshot).toBe(
+      JSON.stringify({ maze: store.templeMaze, rooms: store.roomsData, gridSize: store.gridSize, entrance: store.entrancePosition })
+    );
+  });
+
+  it("merges a record without a layout and does not mark it loaded", async () => {
+    const { api, store } = await mountTempleData("wind-temple", { id: "wind-temple", categoryIds: ["c1"], customName: "Bare" });
+    expect(api.temple.value.customName).toBe("Bare");
+    expect(store.loadedTempleId).toBeNull();
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 0, visitedRooms: 0, totalTreasures: 0, foundTreasures: 0 });
+  });
+});
+
+describe("keeping the temple in step with the creator store", () => {
+  it("copies room and maze changes of the loaded temple into the layout", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.roomsData = { ...store.roomsData, Q9999: { type: "shop" } };
+    store.templeMaze = [["Q9999"]];
+    await nextTick();
+    expect(api.temple.value.dungeonLayout?.rooms.Q9999).toEqual({ type: "shop" });
+    expect(api.temple.value.dungeonLayout?.maze).toEqual([["Q9999"]]);
+  });
+
+  it("starts a layout for a loaded temple that has none", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    store.markAsLoaded("wind-temple");
+    store.roomsData = { Q9999: { type: "shop" } };
+    await nextTick();
+    expect(plain(api.temple.value.dungeonLayout)).toEqual({ entrance: [0, 0], maze: [], rooms: { Q9999: { type: "shop" } } });
+  });
+
+  it("ignores changes while another temple is loaded in the store", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    store.markAsLoaded("earth-temple");
+    store.roomsData = { Q9999: { type: "shop" } };
+    store.templeMaze = [["Q9999"]];
+    await nextTick();
+    expect(api.temple.value.dungeonLayout).toBeUndefined();
+  });
+});
+
+// #1387: the loader rebuilds the creator store's symbols, so a later 'Unique Config' cannot reissue one a stored room holds
+describe("symbols of a loaded temple", () => {
+  const stored = (id: string) => {
+    const maze = [[WALL, "R001", "R002"], [WALL, ENTRANCE, WALL]];
+    const rooms = { [WALL]: { type: "wall" }, [ENTRANCE]: { type: "entrance" }, R001: { type: "monster", marker: "first" } };
+    return templeRecord(id, maze, rooms);
+  };
+
+  it("loadTemple lists the maze tokens and the room keys as used and sets the counter to the highest R###", async () => {
+    const { store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    ["R001", "R002", WALL, ENTRANCE].forEach((symbol) => expect(store.usedSymbols.has(symbol)).toBe(true));
+    expect(store.symbolCounter).toBe(2);
+    expect(store.generateUniqueSymbol()).toBe("R003");
+    expect(plain(store.roomsData.R001)).toEqual({ type: "monster", marker: "first" });
+  });
+
+  it("applyRawJson rebuilds them from the pasted layout, not the one the store held", async () => {
+    const { api, store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    expect(store.symbolCounter).toBe(2);
+    const layout = { entrance: [0, 1], maze: [[WALL, "M0101"]], rooms: { M0101: { type: "monster" } } };
+    await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: layout }));
+    expect(store.usedSymbols.has("M0101")).toBe(true);
+    expect(store.usedSymbols.has("R001")).toBe(false);
+    expect(store.symbolCounter).toBe(0);
+    expect(store.generateUniqueSymbol()).toBe("R001");
+  });
+
+  it("a later load of another temple starts from that temple's symbols, not the first one's", async () => {
+    const { api, store } = await mountTempleData("wind-temple", stored("wind-temple"));
+    expect(store.usedSymbols.has("R001")).toBe(true);
+    mockDb.temples["fire-temple"] = templeRecord("fire-temple", [[WALL, "M0101"]], { M0101: { type: "monster" } });
+    await api.loadTemple("fire-temple", true);
+    expect(store.usedSymbols.has("R001")).toBe(false);
+    expect(store.symbolCounter).toBe(0);
+  });
+});
+
+describe("saveTemple", () => {
+  it("writes the temple with the creator store's maze and rooms and says so in a toast", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.templeMaze = [[W, "_00_"]];
+    await api.saveTemple();
+    expect(mockDb.saved).toHaveLength(1);
+    expect(mockDb.saved[0].id).toBe("wind-temple");
+    expect(mockDb.saved[0].customName).toBe("Custom");
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([1, 1]);
+    expect(mockDb.saved[0].dungeonLayout.maze).toEqual([[W, "_00_"]]);
+    expect(mockDb.saved[0].dungeonLayout.rooms).toEqual(plain(store.roomsData));
+    expect(mockToastCreate).toHaveBeenCalledWith({
+      message: "Temple settings saved!",
+      duration: 2000,
+      position: "bottom",
+      color: "success",
+      icon: expect.any(String),
+    });
+  });
+
+  // Added with #1358: the save wrote the entrance of its own copy of the record, undoing an entrance moved in the creator
+  it("writes the entrance the creator store holds, not the record's own copy", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.entrancePosition = "3,2";
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([3, 2]);
+  });
+
+  it("writes the floor of the entrance when the maze has floors", async () => {
+    const record = templeRecord("wind-temple", { "1F": grid1F(), "2F": grid2F() });
+    record.dungeonLayout.entrance = [1, 2, 1];
+    const { api } = await mountTempleData("wind-temple", record);
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([1, 2, 1]);
+  });
+
+  it("keeps the record's own entrance for a temple the store does not hold", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    api.temple.value.dungeonLayout = { entrance: [2, 4], maze: [], rooms: {} };
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([2, 4]);
+  });
+
+  it("brings the store's snapshot up to what it wrote", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    store.entrancePosition = "3,2";
+    await api.saveTemple();
+    expect(store.dbStateSnapshot).toContain('"entrance":"3,2"');
+  });
+
+  // Changed with #1411: a temple the store does not hold has no layout of its own to take from it, so a new temple is saved without one
+  // (the creator then starts it from the new-temple defaults) instead of with the store's maze and rooms
+  it("saves a temple without a layout without one", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    await api.saveTemple();
+    expect(mockDb.saved[0].dungeonLayout).toBeUndefined();
+  });
+
+  // Changed with #1411: claiming the store for a temple it never loaded would make the creator keep the store's data as this temple's
+  it("counts the rooms again and leaves a creator store that holds no temple alone", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    api.temple.value.dungeonLayout = { entrance: [0, 0], maze: [["O__O", W]], rooms: { O__O: { type: "empty", visited: true } } };
+    await api.saveTemple();
+    expect(store.loadedTempleId).toBeNull();
+    expect(plain(api.dungeonStats.value)).toEqual({ totalRooms: 1, visitedRooms: 1, totalTreasures: 0, foundTreasures: 0 });
+  });
+
+  // #1411: the Game Master edited the Fire Temple's layout, then saved another temple's attributes before opening its Layout tab
+  describe("while the creator store holds another temple", () => {
+    const holdFireTemple = (store: ReturnType<typeof useTempleCreatorStore>) => {
+      store.templeMaze = grid1F();
+      store.roomsData = roomDefs();
+      store.entrancePosition = "3,2";
+      store.markAsLoaded("fire-temple");
+    };
+
+    it("saves a new temple without the other temple's maze and rooms", async () => {
+      const { api, store } = await mountTempleData("new-temple", { id: "new-temple", categoryIds: ["c1"], customName: "Fresh" });
+      holdFireTemple(store);
+      api.temple.value.customName = "Frost Keep";
+      await api.saveTemple();
+      expect(mockDb.saved).toHaveLength(1);
+      expect(mockDb.saved[0].id).toBe("new-temple");
+      expect(mockDb.saved[0].customName).toBe("Frost Keep");
+      expect(mockDb.saved[0].dungeonLayout).toBeUndefined();
+    });
+
+    it("saves a temple that has a layout with its own, not the other temple's", async () => {
+      const own = templeRecord("ice-temple", { "1F": grid2F(), "2F": grid2F() });
+      own.dungeonLayout.entrance = [1, 2, 1];
+      const { api, store } = await mountTempleData("ice-temple", own);
+      holdFireTemple(store);
+      await api.saveTemple();
+      expect(mockDb.saved[0].dungeonLayout).toEqual(plain(own.dungeonLayout));
+    });
+
+    it("leaves the other temple's working copy and its claim on the store as they were", async () => {
+      const { api, store } = await mountTempleData("new-temple", { id: "new-temple", categoryIds: ["c1"] });
+      holdFireTemple(store);
+      store.updateDbSnapshot();
+      const snapshot = store.dbStateSnapshot;
+      await api.saveTemple();
+      expect(store.loadedTempleId).toBe("fire-temple");
+      expect(store.templeMaze).toEqual(grid1F());
+      expect(store.entrancePosition).toBe("3,2");
+      expect(store.dbStateSnapshot).toBe(snapshot);
+    });
+  });
+});
+
+describe("applyRawJson", () => {
+  it("refuses JSON that cannot be parsed", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    const result: any = await api.applyRawJson("{not json");
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(debug.error).toHaveBeenCalledWith("applyRawJson failed", expect.any(Error));
+    expect(mockDb.saved).toEqual([]);
+  });
+
+  it("refuses JSON without an id", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(await api.applyRawJson(JSON.stringify({ customName: "x" }))).toEqual({
+      success: false,
+      error: "Invalid JSON: templeId is required",
+    });
+    expect(mockDb.saved).toEqual([]);
+  });
+
+  it("reports a failed save", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    mockDb.failSave = true;
+    expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple" }))).toEqual({ success: false, error: "disk full" });
+  });
+
+  it("applies a temple without a layout and saves it", async () => {
+    const { api } = await mountTempleData("wind-temple");
+    expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple", customName: "Hello", level: 7 }))).toEqual({ success: true });
+    expect(api.temple.value.customName).toBe("Hello");
+    expect(api.temple.value.level).toBe(7);
+    expect(mockDb.saved).toHaveLength(1);
+    expect(mockDb.saved[0].customName).toBe("Hello");
+    expect(debug.log).not.toHaveBeenCalledWith(expect.stringContaining("Normalized"));
+  });
+
+  it("adopts the entrance, grid size and floors of the JSON into the creator store, and saves that entrance", async () => {
+    const { api, store } = await mountTempleData("wind-temple", templeRecord("wind-temple", grid1F()));
+    const maze = { "1F": [[W, "M0101", W], [W, W, W]], "2F": [[W, W, W], [W, W, W]] };
+    const rooms = { M0101: { type: "monster" } };
+    expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 1, 0], maze, rooms } }))).toEqual({
+      success: true,
+    });
+    expect(store.entrancePosition).toBe("0,1,0");
+    expect(store.gridSize).toBe("2x3");
+    expect(store.currentLevelId).toBe("1F");
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([0, 1, 0]);
+  });
+
+  it("moves legacy tokens to coordinate tokens and renames the room records to match", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    const maze = [
+      ["WALL", "_", "____", "EXIT"],
+      ["$12", "L123", "M12", "H"],
+      ["M", "V", "K", "P"],
+      [".", "0", "ABCD", "xyz"],
+      ["A1234", "Z", "?", ""],
+    ];
+    const rooms = {
+      [W]: { type: "wall", note: "kept apart" },
+      L123: { type: "loot" },
+      HEAL: { type: "health" },
+      MANA: { type: "mana" },
+      SAVE: { type: "savepoint" },
+      MKEY: { type: "key" },
+      R000: { type: "empty", label: "shared" },
+      A1234: { type: "trap" },
+    };
+    const result = await api.applyRawJson(
+      JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [1, 1], maze, rooms } })
+    );
+    expect(result).toEqual({ success: true });
+
+    const migratedMaze = [
+      [WALL, WALL, WALL, ENTRANCE],
+      ["L12", "L0101", "M12", "H0301"],
+      ["A0002", "V0102", "K0202", "R0302"],
+      ["R0003", "R0103", "R0203", WALL],
+      ["A1234", "R0104", "R0204", WALL],
+    ];
+    expect(plain(store.templeMaze)).toEqual(migratedMaze);
+    // the shared R000 record goes to every cell that held it (R0003 and R0103), each with its own copy (changed with #1217:
+    // it used to follow only the last cell, leaving R0003 with no record)
+    expect(plain(store.roomsData)).toEqual({
+      [WALL]: { type: "wall" },
+      L0101: { type: "loot" },
+      H0301: { type: "health" },
+      A0002: { type: "mana" },
+      V0102: { type: "savepoint" },
+      K0202: { type: "key" },
+      R0003: { type: "empty", label: "shared" },
+      R0103: { type: "empty", label: "shared" },
+      A1234: { type: "trap" },
+    });
+    expect(debug.log).toHaveBeenCalledWith("Normalized 10 room tokens in layout import.");
+
+    expect(mockDb.saved).toHaveLength(1);
+    expect(mockDb.saved[0].dungeonLayout.maze).toEqual(migratedMaze);
+    expect(Object.keys(mockDb.saved[0].dungeonLayout.rooms).sort()).toEqual(Object.keys(plain(store.roomsData)).sort());
+    expect(mockDb.saved[0].dungeonLayout.entrance).toEqual([1, 1]);
+    expect(plain(api.temple.value.dungeonLayout?.maze)).toEqual(migratedMaze);
+  });
+
+  it("normalizes every floor of a floor map and keeps tokens it need not rename", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    const maze = { "1F": [["WALL", "O1234", "T123"]], "2F": [["EXIT", "_", "xy"]] };
+    const rooms = { T123: { type: "teleport" }, O1234: { type: "empty" } };
+    expect(await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 0], maze, rooms } }))).toEqual({
+      success: true,
+    });
+    expect(plain(store.templeMaze)).toEqual({ "1F": [[WALL, "O1234", "T0200"]], "2F": [[ENTRANCE, WALL, WALL]] });
+    expect(plain(store.roomsData)).toEqual({ T0200: { type: "teleport" }, O1234: { type: "empty" } });
+    expect(debug.log).toHaveBeenCalledWith("Normalized 1 room tokens in layout import.");
+  });
+
+  it("leaves the room records alone when no token needed renaming", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    const maze = [[W, "M0101"]];
+    const rooms = { M0101: { type: "monster" }, [W]: { type: "wall", x: 1 } };
+    await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 0], maze, rooms } }));
+    expect(plain(store.templeMaze)).toEqual([[WALL, "M0101"]]);
+    expect(plain(store.roomsData)).toEqual({ M0101: { type: "monster" }, [WALL]: { type: "wall" } });
+    expect(debug.log).not.toHaveBeenCalledWith(expect.stringContaining("Normalized"));
+  });
+
+  // #1384: Apply without editing a layout the GM just painted ('E' = the editor's entrance, '_' = a blank cell)
+  it("keeps an entrance the creator painted as 'E' an entrance, and the blank cells walls", async () => {
+    const { api, store } = await mountTempleData("wind-temple");
+    const maze = [["_", "_", "_"], ["_", "E", "M0101"], ["_", "_", "_"]];
+    await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [1, 1], maze, rooms: { M0101: { type: "monster" } } } }));
+    expect(plain(store.templeMaze)).toEqual([[WALL, WALL, WALL], [WALL, ENTRANCE, "M0101"], [WALL, WALL, WALL]]);
+    expect(mockDb.saved[0].dungeonLayout.maze[1][1]).toBe(ENTRANCE);
+  });
+
+  // #1386: the next creator Save runs store.migrateTokens; it must read what Apply wrote as walls and an entrance, not as rooms
+  describe("then the next creator Save (store.migrateTokens)", () => {
+    const savedMaze = (store: ReturnType<typeof useTempleCreatorStore>) => plain(store.templeMaze) as string[][];
+
+    it.each([
+      ["blank cells '_'", "_", "E"],
+      ["DSL names", "WALL", "EXIT"],
+      ["4-character tokens", "____", "_00_"],
+    ])("keeps every wall and the entrance for a layout with %s", async (_label, wall, door) => {
+      const { api, store } = await mountTempleData("wind-temple");
+      const maze = [[wall, wall, wall, wall], [wall, door, "M0101", wall], [wall, wall, wall, wall]];
+      await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [1, 1], maze, rooms: { M0101: { type: "monster" } } } }));
+      store.migrateTokens();
+      expect(savedMaze(store)).toEqual([[WALL, WALL, WALL, WALL], [WALL, ENTRANCE, "M0101", WALL], [WALL, WALL, WALL, WALL]]);
+      expect(Object.keys(plain(store.roomsData)).sort()).toEqual([ENTRANCE, WALL, "M0101"].sort());
+      expect(savedMaze(store).flat().filter((token) => /^R\d+$/.test(token))).toEqual([]);
+    });
+
+    it("keeps the wall and entrance records the pasted rooms held under the 4-character names", async () => {
+      const { api, store } = await mountTempleData("wind-temple");
+      const maze = [[W, "_00_"]];
+      const rooms = { [W]: { type: "wall" }, _00_: { type: "entrance", visited: true } };
+      await api.applyRawJson(JSON.stringify({ id: "wind-temple", dungeonLayout: { entrance: [0, 1], maze, rooms } }));
+      store.migrateTokens();
+      expect(savedMaze(store)).toEqual([[WALL, ENTRANCE]]);
+      expect(plain(store.roomsData)).toEqual({ [WALL]: { type: "wall" }, [ENTRANCE]: { type: "entrance", visited: true } });
+    });
+  });
+});

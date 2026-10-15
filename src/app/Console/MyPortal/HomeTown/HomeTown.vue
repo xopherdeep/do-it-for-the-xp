@@ -13,7 +13,41 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-    <ion-modal trigger="adventure-time"
+      <div class="hometown-plaza">
+        <xp-draggable-spot screen="home-town" spot-id="town-hall" :default-x="20" :default-y="24">
+          <xp-building-model building-id="town-hall" label="Town Hall" :size="105" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="world-plains" :default-x="50" :default-y="20">
+          <xp-stage-model stage-id="world-plains" label="The Plains" sublabel="Leave town" :size="105" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="bank" :default-x="80" :default-y="24">
+          <xp-building-model building-id="bank" label="Gold Bank" :size="105" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="shop" :default-x="22" :default-y="48">
+          <xp-building-model building-id="shop" label="Market" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="hospital" :default-x="78" :default-y="48">
+          <xp-building-model building-id="hospital" label="Hospital" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="hero-home" :default-x="24" :default-y="74">
+          <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot v-if="hasOldHouse" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
+          <xp-building-model building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="hotel" :default-x="76" :default-y="74">
+          <xp-building-model building-id="hotel" label="Hotel" :size="115" />
+        </xp-draggable-spot>
+      </div>
+
+      <ion-modal trigger="adventure-time"
         :breakpoints="[.9]"
         :initialBreakpoint=".9"
     >
@@ -82,5 +116,5 @@
   </ion-page>
 </template>
 
-<script src="./HomeTown" />
+<script lang="ts" src="./HomeTown.ts" />
 <style lang="scss" src="./_HomeTown.scss" scoped />

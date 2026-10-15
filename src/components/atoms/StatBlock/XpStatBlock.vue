@@ -58,15 +58,19 @@ defineOptions({
 });
 
 const displayValue = computed(() => {
-  if (props.value === undefined || props.value === null) return '';
-  if (typeof props.value === 'number') {
-    return props.value.toLocaleString();
+  const hasNoValue = props.value === undefined || props.value === null;
+  if (hasNoValue) return '';
+  const value = props.value;
+  const isNumber = typeof value === 'number';
+  if (isNumber) {
+    return value.toLocaleString();
   }
   return props.value;
 });
 
 const handleClick = () => {
-  if (props.clickable) {
+  const isClickable = props.clickable;
+  if (isClickable) {
     emit('click');
   }
 };

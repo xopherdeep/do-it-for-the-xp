@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="wing-icon-col">
-          <i :class="`fad ${POINT_ICONS.hp.icon} hp-icon`" :style="heartStyle"></i>
+          <i :class="`fad ${POINT_ICONS.hp.icon} hp-icon`"></i>
         </div>
       </div>
 
@@ -31,6 +31,10 @@
         <div class="avatar-anchor">
           <slot name="avatar"></slot>
         </div>
+        <!-- Owes the Hospital: grounded, and a tap goes to the Gold Bank (nothing shows for a free hero) -->
+        <xp-grounded-chip class="center-bottom" :stats="stats" />
+        <!-- Days in a row with a quest done; a tap explains chests and shields (nothing shows without a streak) -->
+        <xp-streak-chip class="center-bottom" />
       </div>
 
       <!-- RIGHT WING: MP -->
@@ -65,10 +69,12 @@
 import { defineComponent, computed } from "vue";
 import { POINT_ICONS } from "@/constants";
 import XpHudBar from "./XpHudBar.vue";
+import XpGroundedChip from "./XpGroundedChip.vue";
+import XpStreakChip from "./XpStreakChip.vue";
 
 export default defineComponent({
   name: "xp-main-hud",
-  components: { XpHudBar },
+  components: { XpHudBar, XpGroundedChip, XpStreakChip },
   props: {
     stats: {
       type: Object,
@@ -77,20 +83,18 @@ export default defineComponent({
   },
   setup(props) {
     const hpProgress = computed(() => {
-      if (!props.stats?.hp) return 0;
-      return (props.stats.hp.now / Math.max(props.stats.hp.max, 1)) * 100;
+      const hp = props.stats?.hp;
+      if (!hp) return 0;
+      return (hp.now / Math.max(hp.max, 1)) * 100;
     });
 
     const mpProgress = computed(() => {
-      if (!props.stats?.mp) return 0;
-      return (props.stats.mp.now / Math.max(props.stats.mp.max, 1)) * 100;
+      const mp = props.stats?.mp;
+      if (!mp) return 0;
+      return (mp.now / Math.max(mp.max, 1)) * 100;
+
     });
 
-
-    const heartStyle = computed(() => {
-      // We can add the pulse logic here if needed, or keep it in SCSS
-      return {};
-    });
 
     const formatNumber = (num: number) => {
       return num ? num.toLocaleString() : "0";
@@ -100,7 +104,6 @@ export default defineComponent({
       POINT_ICONS,
       hpProgress,
       mpProgress,
-      heartStyle,
       formatNumber
     };
   }
@@ -110,7 +113,7 @@ export default defineComponent({
 <style lang="scss" scoped>
 .xp-main-hud {
   position: fixed;
-  top: 10px;
+  top: 32px;
   left: 0;
   right: 0;
   display: flex;
@@ -266,40 +269,13 @@ export default defineComponent({
       --fa-secondary-color: #ff0000;
       --fa-secondary-opacity: 1;
       --fa-primary-color: #880000; // Base EKG color
-      animation: heartbeat 2s infinite ease-in-out;
       transform-origin: center;
     }
 
     &.mp-icon {
       color: var(--ion-color-tertiary);
-      animation: mp-glow 3s infinite alternate ease-in-out;
+      filter: drop-shadow(0 0 6px rgba(var(--ion-color-tertiary-rgb), 0.5));
     }
   }
-}
-
-@keyframes heartbeat {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 2px rgba(80, 0, 0, 0.5));
-    --fa-primary-color: #660000;
-    --fa-primary-opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 15px rgba(220, 20, 60, 0.8)); // Crimson glow
-    --fa-primary-color: #ff3333;
-    --fa-primary-opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 2px rgba(80, 0, 0, 0.5));
-    --fa-primary-color: #660000;
-    --fa-primary-opacity: 0.6;
-  }
-}
-
-@keyframes mp-glow {
-  0% { transform: rotate(-5deg); filter: drop-shadow(0 0 5px rgba(var(--ion-color-tertiary-rgb), 0.4)); }
-  100% { transform: rotate(5deg); filter: drop-shadow(0 0 15px rgba(var(--ion-color-tertiary-rgb), 0.8)); }
 }
 </style>

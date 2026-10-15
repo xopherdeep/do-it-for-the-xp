@@ -8,97 +8,30 @@
 
       <div v-else class="content-wrapper">
         <div class="segment-content">
-          <!-- General Settings -->
-          <div v-show="activeTab === 'general'" class="glass-card basic-info">
-            <h3 class="section-title">Temple Metadata</h3>
-            
-            <div class="input-group">
-              <ion-label>Temple Name</ion-label>
-              <div class="custom-input">
-                <input v-model="temple.customName" placeholder="Enter custom name" />
-              </div>
-            </div>
-
-            <div class="input-group">
-              <ion-label>Description</ion-label>
-              <div class="custom-input">
-                <textarea v-model="temple.customDescription" placeholder="Enter description" rows="3"></textarea>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <ion-label>Associated Domains</ion-label>
-              <ion-select
-                v-model="temple.categoryIds"
-                placeholder="Select categories..."
-                interface="popover"
-                :multiple="true"
-                class="custom-select"
-              >
-                <ion-select-option
-                  v-for="cat in categories"
-                  :value="cat.id"
-                  :key="cat.id"
-                >
-                  {{ cat.name }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <div class="category-chips" v-if="temple.categoryIds && temple.categoryIds.length">
-              <ion-chip 
-                v-for="catId in temple.categoryIds" 
-                :key="catId"
-                :class="getCategoryColor(catId)"
-                outline
-              >
-                <ion-icon :icon="getCategoryIcon(catId)"></ion-icon>
-                <ion-label>{{ getCategoryName(catId) }}</ion-label>
-              </ion-chip>
-            </div>
-
-            <ion-button expand="block" color="primary" @click="saveTemple" class="save-btn">
-              <ion-icon :icon="saveOutline" slot="start"></ion-icon>
-              Save Configuration
-            </ion-button>
-          </div>
-
           <!-- Dungeon Audit -->
           <div v-show="activeTab === 'audit'" class="glass-card dungeon-audit-full">
             <h3 class="section-title">Dungeon Audit</h3>
-            
+            <p class="audit-summary" :class="{ 'is-ready': dungeonAudit.passed }">
+              {{ dungeonAudit.summary }}
+              <template v-if="dungeonAudit.passed"> · Ready to play</template>
+            </p>
+
             <div class="audit-grid-full">
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasMap }">
+              <div
+                v-for="check in dungeonAudit.checks"
+                :key="check.id"
+                class="audit-item"
+                :class="{ 'passed': check.ok }"
+                :data-check="check.id"
+              >
                 <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('map')]"></i>
+                  <i :class="['fad', auditIcon(check.id)]"></i>
                 </div>
                 <div class="audit-info">
-                  <span class="audit-label">Dungeon Map</span>
-                  <span class="audit-status">{{ dungeonAudit.hasMap ? 'Placed' : 'Missing' }}</span>
+                  <span class="audit-label">{{ check.label }}</span>
+                  <span class="audit-status">{{ check.detail }}</span>
                 </div>
-                <ion-icon :icon="dungeonAudit.hasMap ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
-              </div>
-
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasCompass }">
-                <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('compass')]"></i>
-                </div>
-                <div class="audit-info">
-                  <span class="audit-label">Compass</span>
-                  <span class="audit-status">{{ dungeonAudit.hasCompass ? 'Placed' : 'Missing' }}</span>
-                </div>
-                <ion-icon :icon="dungeonAudit.hasCompass ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
-              </div>
-
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasBossKey }">
-                <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('master')]"></i>
-                </div>
-                <div class="audit-info">
-                  <span class="audit-label">Big Key</span>
-                  <span class="audit-status">{{ dungeonAudit.hasBossKey ? 'Placed' : 'Missing' }}</span>
-                </div>
-                <ion-icon :icon="dungeonAudit.hasBossKey ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
+                <ion-icon :icon="check.ok ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
               </div>
             </div>
 
@@ -135,27 +68,7 @@
                   class="floor-item-map"
                 >
                   <div class="floor-label">{{ floorId }}</div>
-                  <div class="compact-map">
-                    <div v-for="(row, y) in grid" :key="y" class="map-row">
-                      <div 
-                        v-for="(cell, x) in row" 
-                        :key="x" 
-                        class="map-cell"
-                        :class="{ 
-                          'is-room': cell.isRoom,
-                          'has-item': !!cell.item,
-                          'lock-n': cell.lockedEdges?.north,
-                          'lock-e': cell.lockedEdges?.east,
-                          'lock-s': cell.lockedEdges?.south,
-                          'lock-w': cell.lockedEdges?.west
-                        }"
-                      >
-                        <i v-if="cell.isEntrance" class="fas fa-door-open entrance-icon"></i>
-                        <i v-else-if="cell.isBoss" class="fad fa-crown boss-icon"></i>
-                        <i v-else-if="cell.item" :class="['fad', getItemIcon(cell.item === 'master-key' ? 'master' : cell.item)]"></i>
-                      </div>
-                    </div>
-                  </div>
+                  <XpTempleItemMap :grid="grid" />
                 </div>
               </div>
             </div>
@@ -169,19 +82,19 @@
 <script lang="ts">
 import { defineComponent, computed } from "vue";
 import { useRoute } from "vue-router";
-import { 
-  IonPage, IonContent, IonButton, IonIcon, IonLabel, IonSelect, IonSelectOption, IonChip
-} from "@ionic/vue";
-import { 
-  saveOutline, cloudOutline, leafOutline, waterOutline,
-  flameOutline, snowOutline, sunnyOutline, moonOutline,
-  homeOutline, diamondOutline, flashOutline, starOutline,
-  checkmarkCircle, closeCircle, warningOutline, informationCircleOutline
-} from 'ionicons/icons';
+import { IonPage, IonContent, IonIcon } from "@ionic/vue";
+import { checkmarkCircle, closeCircle, warningOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import XpTempleItemMap from "./XpTempleItemMap.vue";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
+import { AUDIT_ICONS } from "../../templeWizard";
+import type { AuditCheckId } from "@/lib/services/temples/templeAudit";
 
+/**
+ * The Audit and Navigator tabs of Config. The General tab is the temple wizard (XpTempleAttributesWizard.vue); the
+ * audit icons it shares with this page live in templeWizard.ts.
+ */
 export default defineComponent({
   name: "xp-temple-attributes",
   props: {
@@ -191,67 +104,39 @@ export default defineComponent({
     },
     tab: {
       type: String,
-      default: 'general'
+      default: 'audit'
     }
   },
-  components: { 
-    IonPage, IonContent, IonButton, IonIcon, IonLabel, 
-    IonSelect, IonSelectOption, IonChip,
-    XpLoading
+  components: {
+    IonPage, IonContent, IonIcon,
+    XpLoading,
+    XpTempleItemMap
   },
   setup(props) {
     const route = useRoute();
-    
-    // Use the prop 'tab' if provided, otherwise check route params
-    const activeTab = computed(() => props.tab || (route.params.tab as string) || 'general');
 
-    const { 
-      temple, 
-      categories, 
-      saveTemple, 
-      getCategoryColor, 
-      getCategoryName,
+    // Use the prop 'tab' if provided, otherwise check route params
+    const activeTab = computed(() => props.tab || (route.params.tab as string) || 'audit');
+
+    const {
       dungeonAudit,
       itemMapData,
       getItemIcon,
       isLoading
     } = inject(TempleDataInjectionKey)!;
 
-    // TODO: move this mapping to a shared location or update useTempleData to return icons
-    const getCategoryIcon = (catId: string) => {
-      const iconMap: Record<string, string> = {
-        'combat': flashOutline,
-        'crafting': diamondOutline,
-        'magic': starOutline,
-        'dungeon': homeOutline,
-        'wind': cloudOutline,
-        'water': waterOutline,
-        'fire': flameOutline,
-        'earth': leafOutline,
-        'ice': snowOutline,
-        'light': sunnyOutline,
-        'shadow': moonOutline
-      };
-      return iconMap[catId] || starOutline;
-    };
+    const auditIcon = (id: AuditCheckId) => AUDIT_ICONS[id];
 
     return {
-      temple,
-      categories,
-      saveTemple,
-      getCategoryColor,
-      getCategoryName,
-      getCategoryIcon,
       dungeonAudit,
+      auditIcon,
       itemMapData,
       getItemIcon,
       activeTab,
       isLoading,
-      saveOutline,
       checkmarkCircle,
       closeCircle,
-      warningOutline,
-      informationCircleOutline
+      warningOutline
     };
   }
 });
@@ -299,6 +184,15 @@ export default defineComponent({
 }
 
 /* Auditing Full View */
+.audit-summary {
+  margin: -12px 0 16px;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.5);
+
+  &.is-ready { color: var(--ion-color-success); }
+}
+
 .audit-grid-full {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -341,7 +235,7 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     .audit-label { font-size: 1rem; color: white; }
-    .audit-status { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+    .audit-status { font-size: 0.75rem; line-height: 1.3; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.5px; }
   }
 
   .status-indicator { font-size: 1.5rem; }
@@ -424,76 +318,5 @@ export default defineComponent({
     margin-bottom: 16px;
     text-align: center;
   }
-}
-
-.compact-map {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-
-  .map-row { display: flex; gap: 2px; }
-
-  .map-cell {
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    position: relative;
-    box-sizing: border-box;
-
-    &.is-room {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-    }
-
-    &.has-item {
-      color: var(--ion-color-primary);
-    }
-
-    /* Locked Door Edges */
-    &[class*="lock-"]::before {
-      content: '';
-      position: absolute;
-      background: var(--ion-color-danger);
-      box-shadow: 0 0 8px var(--ion-color-danger);
-      z-index: 5;
-    }
-
-    &.lock-n::before { top: -2px; left: 20%; right: 20%; height: 3px; }
-    &.lock-e::before { right: -2px; top: 20%; bottom: 20%; width: 3px; }
-    &.lock-s::before { bottom: -2px; left: 20%; right: 20%; height: 3px; }
-    &.lock-w::before { left: -2px; top: 20%; bottom: 20%; width: 3px; }
-
-    .entrance-icon { font-size: 0.7rem; color: #fff; }
-    .boss-icon { color: var(--ion-color-warning); font-size: 1.1rem; }
-  }
-}
-
-/* Inputs */
-.input-group {
-  margin-bottom: 20px;
-  ion-label { font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; display: block; }
-  .custom-input, .custom-select { background: rgba(0, 0, 0, 0.3); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);
-    input, textarea { width: 100%; background: transparent; border: none; padding: 12px; color: white; font-family: inherit; resize: none; font-size: 1rem; }
-  }
-}
-
-.category-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.save-btn {
-  margin-top: 20px;
-  --border-radius: 12px;
-  height: 50px;
-  font-family: var(--xp-font-heading);
 }
 </style>

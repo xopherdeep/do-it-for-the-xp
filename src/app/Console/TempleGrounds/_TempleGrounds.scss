@@ -92,6 +92,48 @@
     &.room-type-teleport {
       border-color: rgba(0, 255, 255, 0.5);
     }
+
+    // Combat room whose beasts have been beaten
+    &.cleared-cell::after {
+      content: "\2713";
+      position: absolute;
+      top: 1px;
+      right: 3px;
+      font-size: 0.75rem;
+      line-height: 1;
+      color: var(--ion-color-success, #2dd36f);
+    }
+  }
+
+  // Room action 3D voxel model container (retired FAB placeholder)
+  #room-action {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+
+    .room-action-sr-button {
+      display: none;
+    }
+
+    .cleared-mark {
+      position: absolute;
+      top: 2px;
+      right: 12px;
+      z-index: 20;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--ion-color-success, #2dd36f);
+      background: #000;
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
+    }
   }
 
   // Map legend styling
@@ -138,5 +180,428 @@
     50% {
       transform: translateY(-5px);
     }
+  }
+}
+
+
+// ============================================================
+// The temple map: a parchment unrolled in the middle of the screen (the modal lives outside the page)
+// ============================================================
+ion-modal.temple-map-modal {
+  --width: min(92vw, 440px);
+  --height: auto;
+  --max-height: 86vh;
+  --background: transparent;
+  --box-shadow: none;
+  --border-radius: 0;
+  --backdrop-opacity: 0.55;
+  align-items: center;
+  justify-content: center;
+
+  &::part(content) {
+    overflow: visible;
+  }
+}
+
+ion-modal.temple-map-modal .temple-map,
+.temple-map {
+  margin: 0;
+  padding: 16px 18px 24px;
+  max-height: 86vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  --color: #3a2a14;
+  color: #3a2a14 !important;
+  background:
+    radial-gradient(ellipse at 28% 18%, rgba(255, 255, 255, 0.28), transparent 55%),
+    radial-gradient(ellipse at 72% 85%, rgba(110, 70, 25, 0.28), transparent 60%),
+    repeating-linear-gradient(115deg, rgba(90, 60, 20, 0.035) 0 3px, transparent 3px 11px),
+    linear-gradient(160deg, #eadcb3, #d9c18c 55%, #c8a76b);
+  box-shadow:
+    inset 0 0 0 2px rgba(90, 60, 20, 0.55),
+    inset 0 0 0 6px rgba(234, 220, 179, 0.9),
+    inset 0 0 0 8px rgba(90, 60, 20, 0.35),
+    inset 0 0 56px rgba(70, 40, 10, 0.55);
+  clip-path: polygon(0.0% 0.5%, 7.1% 0.2%, 14.3% 0.9%, 21.4% 0.1%, 28.6% 0.8%, 35.7% 0.5%, 42.9% 0.1%, 50.0% 0.7%, 57.1% 0.1%, 64.3% 0.6%, 71.4% 0.1%, 78.6% 0.1%, 85.7% 0.6%, 92.9% 1.2%, 99.8% 0.0%, 99.7% 7.1%, 99.1% 14.3%, 98.7% 21.4%, 99.2% 28.6%, 99.4% 35.7%, 98.6% 42.9%, 99.9% 50.0%, 98.8% 57.1%, 99.6% 64.3%, 99.8% 71.4%, 99.8% 78.6%, 99.6% 85.7%, 98.9% 92.9%, 100.0% 99.7%, 92.9% 99.2%, 85.7% 99.1%, 78.6% 99.5%, 71.4% 99.2%, 64.3% 99.9%, 57.1% 99.9%, 50.0% 99.7%, 42.9% 99.0%, 35.7% 99.4%, 28.6% 99.6%, 21.4% 99.2%, 14.3% 99.4%, 7.1% 99.6%, 1.1% 100.0%, 1.0% 92.9%, 0.3% 85.7%, 0.8% 78.6%, 0.7% 71.4%, 1.2% 64.3%, 1.0% 57.1%, 0.4% 50.0%, 1.4% 42.9%, 0.2% 35.7%, 0.6% 28.6%, 1.1% 21.4%, 0.2% 14.3%, 0.7% 7.1%);
+  border-radius: 0;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.65));
+
+  &__title {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 6px 6px;
+    border-bottom: 2px solid rgba(90, 60, 20, 0.45);
+    font-family: "Onett", "Apple Kid", serif;
+    color: #3a2a14;
+  }
+
+  &__name {
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+    color: #3a2a14;
+  }
+
+  &__floor {
+    margin-left: auto;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.95rem;
+    opacity: 0.8;
+    color: #3a2a14;
+  }
+
+  &__rose {
+    font-size: 1.6rem;
+    --fa-primary-color: #7a2b1c;
+    --fa-secondary-color: #3a2a14;
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &__grid {
+    padding: 0;
+  }
+
+  .maze-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  .maze-cell {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border: 1px solid rgba(60, 40, 10, 0.3);
+    color: #3a2a14;
+    transition: background-color 0.2s ease;
+
+    i {
+      color: #3a2a14;
+      --fa-primary-color: #3a2a14;
+      --fa-secondary-color: #7a5a2a;
+    }
+
+    &.hidden-cell {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &.wall-cell {
+      background-color: rgba(60, 40, 10, 0.18);
+    }
+
+    &.visited-cell {
+      background-color: rgba(255, 255, 255, 0.18);
+    }
+
+    &.detailed-cell {
+      background-color: rgba(255, 215, 0, 0.12);
+    }
+
+    &.current-position {
+      background-color: rgba(120, 180, 60, 0.25);
+      border-color: rgba(60, 100, 20, 0.7);
+      box-shadow: 0 0 0 2px rgba(120, 180, 60, 0.35);
+    }
+
+    &.room-type-loot {
+      border-color: rgba(180, 130, 20, 0.8);
+    }
+
+    &.room-type-entrance {
+      border-color: rgba(40, 120, 40, 0.8);
+    }
+
+    &.room-type-boss {
+      border-color: rgba(150, 30, 20, 0.85);
+    }
+
+    &.cleared-cell::after {
+      content: "\2713";
+      position: absolute;
+      top: 1px;
+      right: 3px;
+      font-size: 0.75rem;
+      line-height: 1;
+      color: #2d6b2d;
+    }
+  }
+
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 24px;
+    margin-top: 8px;
+    padding: 4px 10px 6px;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.85rem;
+    color: #3a2a14;
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #3a2a14;
+    }
+  }
+
+  // Every icon on the parchment is ink, the compass included (the app-wide icon colours would paint it blue)
+  i.fad,
+  i.fal,
+  .maze-cell i,
+  &__rose,
+  &__legend i {
+    color: #3a2a14 !important;
+    --fa-primary-color: #3a2a14 !important;
+    --fa-secondary-color: #7a5a2a !important;
+    --fa-secondary-opacity: 0.7;
+  }
+}
+
+// The compass rose is the map's close control: it sits where a modal's X sits, and is a full 48px tap target
+// (its negative margins keep the title row as slim as it was)
+ion-modal.temple-map-modal .temple-map__rose-btn,
+.temple-map__rose-btn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  margin: -10px -6px -10px 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    transform: scale(0.92);
+    background: rgba(90, 60, 20, 0.14);
+  }
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: 2px dashed #7a2b1c;
+    outline-offset: -4px;
+  }
+}
+
+// The map button wears the parchment it opens
+ion-fab-button.temple-map-fab {
+  --background: linear-gradient(160deg, #eadcb3, #c8a76b);
+  --background-hover: #d9c18c;
+  --background-focused: #d9c18c;
+  --background-activated: #c8a76b;
+  --color: #3a2a14;
+  --box-shadow:
+    inset 0 0 0 2px rgba(90, 60, 20, 0.55),
+    inset 0 0 0 6px rgba(234, 220, 179, 0.9),
+    0 4px 10px rgba(0, 0, 0, 0.5);
+
+  i {
+    color: #3a2a14;
+    --fa-primary-color: #7a2b1c;
+    --fa-secondary-color: #3a2a14;
+    --fa-secondary-opacity: 0.8;
+  }
+}
+
+// The fold button sits under the parchment at the bottom centre of the screen
+ion-modal.temple-map-modal .temple-map__close,
+.temple-map__close {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 10px 22px;
+  border: 2px solid #f7e8a8;
+  border-radius: 3px;
+  background: #280828;
+  color: #f7e8a8;
+  font-family: "Apple Kid", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px #383050, 0 10px 24px rgba(0, 0, 0, 0.6);
+
+  &:active {
+    background: #383050;
+  }
+}
+
+
+// ============================================================
+// Dungeon footer: the shared bottom nav, XP hairline underneath
+// ============================================================
+.temple-footer {
+  // Pinned above the rooms: nothing in the dungeon scrolls or slides behind it
+  position: relative;
+  z-index: 1000;
+  background: #000;
+
+  .temple-nav {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 4px 6px 2px;
+    background: #000;
+    border-top: 2px solid #383050;
+  }
+
+  .temple-nav__button,
+  .temple-nav__hand {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 54px;
+    padding: 4px 2px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #e7e6b3;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    -webkit-tap-highlight-color: transparent;
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+
+  .temple-nav__button {
+    cursor: pointer;
+
+    &:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+
+  // Wide enough for a twelve-letter item name
+  .temple-nav__hand {
+    flex: 0 0 76px;
+    min-width: 0;
+    color: #a8a8a8;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+
+    span {
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 0.64rem;
+      letter-spacing: 0;
+    }
+
+    // Nothing in the hand: the label is dimmed with the icon
+    &.is-empty {
+      i,
+      span {
+        opacity: 0.35;
+      }
+    }
+
+    // Something in the hand: a tap uses it
+    &.is-equipped {
+      cursor: pointer;
+      color: #e7e6b3;
+      border-style: solid;
+      border-color: rgba(231, 230, 179, 0.35);
+
+      &:active {
+        background: rgba(231, 230, 179, 0.12);
+      }
+    }
+  }
+}
+
+// XP | GP and HP | MP hairlines on the header, docked at the top of the dungeon
+.temple-docked-xp {
+  background: #000;
+  position: relative;
+  z-index: 1000;
+}
+
+// The room's name on the header, so a hero knows where in the house they stand: a small cream plate between the map
+// buttons and the key count, on one line, cut with an ellipsis when it is too long to fit
+.temple-room-name {
+  --color: #e7e6b3; // $eb-color-cream
+  min-width: 0;
+  padding: 0 6px;
+  // The theme's `ion-app#earthbound ion-title` rule sets the title font and outranks a class, hence the !important
+  font-family: "StatusPlz", monospace !important;
+  font-size: 0.95rem;
+  color: #e7e6b3; // $eb-color-cream
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+// The game area shakes for 400 ms when a trap bites or a bomb goes off
+#game-area.temple-shake {
+  animation: temple-shake 0.4s linear;
+}
+
+@keyframes temple-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-6px, 3px);
+  }
+  30% {
+    transform: translate(5px, -4px);
+  }
+  45% {
+    transform: translate(-4px, -2px);
+  }
+  60% {
+    transform: translate(4px, 3px);
+  }
+  75% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+// A step to the next room: the camera pulls back a touch as the floor slides, then settles on the new room.
+// It uses the separate `scale` property so it rides on top of the slide's transform.
+.background-container.is-lurching {
+  animation: temple-room-lurch 0.65s cubic-bezier(0.3, 0, 0.3, 1);
+}
+
+@keyframes temple-room-lurch {
+  0%,
+  100% {
+    scale: 1;
+  }
+  45% {
+    scale: 0.96;
+  }
+  80% {
+    scale: 1.01;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #game-area.temple-shake,
+  .background-container.is-lurching {
+    animation: none;
   }
 }

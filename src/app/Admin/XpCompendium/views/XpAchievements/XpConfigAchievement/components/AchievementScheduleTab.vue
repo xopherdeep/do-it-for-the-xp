@@ -10,12 +10,17 @@
           class="ai-oracle-btn"
           fill="clear"
           size="small"
-          @click="generateScheduleWithAI"
+          @click="askOracle"
           :disabled="isGeneratingSchedule"
         >
           <i
             v-if="isGeneratingSchedule"
             class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else-if="!pro.isPro"
+            class="fad fa-lock mr-1"
+            data-cy="oracle-lock"
           ></i>
           <i
             v-else
@@ -84,6 +89,38 @@
           </xp-glass-card>
         </div>
       </div>
+
+      <!-- Times of day: which calendar tabs list this chore. Several means it is done that many times a day. -->
+      <div class="times-of-day">
+        <div class="date-label">TIMES OF DAY</div>
+        <div
+          class="times-row"
+          role="group"
+          aria-label="Times of day"
+        >
+          <button
+            v-for="time in TIMES_OF_DAY"
+            :key="time"
+            type="button"
+            class="time-chip"
+            :class="{ 'is-on': hasTime(time) }"
+            :aria-pressed="hasTime(time)"
+            @click="toggleTime(time)"
+          >
+            <i
+              v-if="!pro.isPro"
+              class="fad fa-lock time-chip__icon"
+              data-cy="time-lock"
+            ></i>
+            <i
+              v-else
+              :class="['fad', hasTime(time) ? 'fa-check' : TIME_OF_DAY_ICONS[time], 'time-chip__icon']"
+            ></i>
+            <span class="time-chip__name">{{ TIME_OF_DAY_LABELS[time] }}</span>
+          </button>
+        </div>
+        <p class="times-note">Picks which calendar tabs list this chore. Two or more mean it is done that many times a day.</p>
+      </div>
     </div>
 
     <div class="schedule-section">
@@ -100,7 +137,13 @@
           @click="updateSchedule(type)"
         >
           <i :class="['fad', icon, 'frequency-card__icon']"></i>
-          <span class="frequency-card__name">{{ type.charAt(0).toUpperCase() + type.slice(1) }}</span>
+          <span class="frequency-card__name">
+            <i
+              v-if="type === 'custom' && !pro.isPro"
+              class="fad fa-lock mr-1"
+              data-cy="custom-lock"
+            ></i>{{ type.charAt(0).toUpperCase() + type.slice(1) }}
+          </span>
         </xp-glass-card>
       </div>
 
@@ -142,9 +185,14 @@
                   <input
                     type="number"
                     :value="achievement.customFrequency"
-                    @input="updateField('customFrequency', parseInt(($event.target as HTMLInputElement).value))"
+                    @input="updateTimesPerDay($event.target as HTMLInputElement)"
                     min="1"
+                    data-cy="times-per-day"
                   />
+                  <i
+                    v-if="!pro.isPro"
+                    class="fad fa-lock ml-1"
+                  ></i>
                   <span class="unit">Time(s)</span>
                 </div>
               </div>
@@ -193,8 +241,11 @@
                 <div class="custom-input-group">
                   <input
                     type="number"
+                    data-cy="custom-repeat"
                     :value="achievement.customFrequency"
-                    @input="updateField('customFrequency', parseInt(($event.target as HTMLInputElement).value))"
+                    :readonly="!pro.isPro"
+                    @click="lockedTap"
+                    @input="updateCustomField('customFrequency', $event.target as HTMLInputElement)"
                     min="1"
                   />
                   <span class="unit">Time(s)</span>
@@ -208,21 +259,30 @@
                 <div class="custom-input-group">
                   <input
                     type="number"
+                    data-cy="custom-interval"
                     :value="achievement.customPeriodNumber"
-                    @input="updateField('customPeriodNumber', parseInt(($event.target as HTMLInputElement).value))"
+                    :readonly="!pro.isPro"
+                    @click="lockedTap"
+                    @input="updateCustomField('customPeriodNumber', $event.target as HTMLInputElement)"
                     min="1"
                   />
-                  <ion-select
-                    :value="achievement.customPeriodType"
-                    @ionChange="updateField('customPeriodType', $event.detail.value)"
-                    mode="ios"
-                    class="interval-select"
+                  <div
+                    class="interval-select-wrap"
+                    data-cy="custom-period"
+                    @click.capture="lockedTap"
                   >
-                    <ion-select-option value="day">Day(s)</ion-select-option>
-                    <ion-select-option value="week">Week(s)</ion-select-option>
-                    <ion-select-option value="month">Month(s)</ion-select-option>
-                    <ion-select-option value="year">Year(s)</ion-select-option>
-                  </ion-select>
+                    <ion-select
+                      :value="achievement.customPeriodType"
+                      @ionChange="pro.isPro && updateField('customPeriodType', $event.detail.value)"
+                      mode="ios"
+                      class="interval-select"
+                    >
+                      <ion-select-option value="day">Day(s)</ion-select-option>
+                      <ion-select-option value="week">Week(s)</ion-select-option>
+                      <ion-select-option value="month">Month(s)</ion-select-option>
+                      <ion-select-option value="year">Year(s)</ion-select-option>
+                    </ion-select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -251,16 +311,22 @@ import {
 } from '@ionic/vue';
 import { BASIC_SCHEDULE_ICONS } from "@/constants";
 import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
+import { play$fx } from "@/assets/fx";
+import { TIMES_OF_DAY, type TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { AchievementFormInjectionKey } from "../hooks/useAchievementForm";
+import { useProStore } from "@/lib/store/stores/pro";
+import { TIME_OF_DAY_ICONS, TIME_OF_DAY_LABELS, toggleTimeOfDay } from "../hooks/timesOfDayEditor";
 
 const {
   achievement,
   startsModalOpen,
   endsModalOpen,
   dueModalOpen,
-  generateScheduleWithAI,
+  createScheduleWithAI: generateScheduleWithAI,
   isGeneratingSchedule
 } = inject(AchievementFormInjectionKey) as any;
+
+const pro = useProStore();
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return 'Not Set';
@@ -280,7 +346,8 @@ const formatDate = (dateStr?: string) => {
 const formatTime = (timeStr?: string) => {
   if (!timeStr) return null;
   try {
-    if (timeStr.includes('T') || timeStr.includes('-')) {
+    const isDateTimeString = timeStr.includes('T') || timeStr.includes('-');
+    if (isDateTimeString) {
       const date = new Date(timeStr);
       if (isNaN(date.getTime())) return timeStr;
       return date.toLocaleTimeString(undefined, { 
@@ -311,7 +378,14 @@ const daysOfWeek = [
   { label: getLocalDayName(6), value: 'sat', color: 'blue', symbol: '♄' },
 ];
 
-const updateSchedule = (value: string) => {
+// XP Pro: custom repeats, the times-of-day chips and "times per day" above 1 are Pro. A free family can still
+// see (and keep) what a saved quest already has; only changing it opens the upsell.
+const updateSchedule = async (value: string) => {
+  const isSwitchingToCustom = value === 'custom' && achievement.value.basicSchedule !== 'custom';
+  if (isSwitchingToCustom) {
+    const hasPro = await pro.requirePro('advancedSchedule');
+    if (!hasPro) return;
+  }
   achievement.value.basicSchedule = value;
   achievement.value.scheduleType = value === 'custom' ? 'custom' : 'basic';
 };
@@ -320,11 +394,29 @@ const updateField = (field: string, value: unknown) => {
   achievement.value[field] = value;
 };
 
+// A free family sees the saved custom schedule but cannot change it: the inputs are read-only and a tap asks for Pro.
+const lockedTap = (event: Event) => {
+  if (pro.isPro) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void pro.requirePro('advancedSchedule');
+};
+
+const updateCustomField = (field: string, input: HTMLInputElement) => {
+  if (!pro.isPro) {
+    input.value = String(achievement.value[field] ?? '');
+    void pro.requirePro('advancedSchedule');
+    return;
+  }
+  updateField(field, parseInt(input.value));
+};
+
 const toggleDay = (day: string) => {
   const current = achievement.value.repeatOnDays || [];
   const index = current.indexOf(day);
   let next;
-  if (index > -1) {
+  const isSelected = index > -1;
+  if (isSelected) {
     next = current.filter((d: string) => d !== day);
   } else {
     next = [...current, day];
@@ -332,10 +424,37 @@ const toggleDay = (day: string) => {
   achievement.value.repeatOnDays = next;
 };
 
+const hasTime = (time: TimeOfDay) => Boolean(achievement.value.timesOfDay?.includes(time));
+
+const toggleTime = async (time: TimeOfDay) => {
+  const hasPro = await pro.requirePro('advancedSchedule');
+  if (!hasPro) return;
+  achievement.value.timesOfDay = toggleTimeOfDay(achievement.value.timesOfDay, time);
+  play$fx('select');
+};
+
+const updateTimesPerDay = async (input: HTMLInputElement) => {
+  const value = parseInt(input.value);
+  const isLockedByPro = value > 1 && !pro.isPro;
+  if (isLockedByPro) {
+    input.value = String(achievement.value.customFrequency || 1);
+    await pro.requirePro('advancedSchedule');
+    return;
+  }
+  updateField('customFrequency', value);
+};
+
+const askOracle = async () => {
+  const hasPro = await pro.requirePro('aiHelpers');
+  if (!hasPro) return;
+  generateScheduleWithAI();
+};
+
 const scheduleSummary = computed(() => {
   const { customFrequency, customPeriodNumber, customPeriodType, basicSchedule } = achievement.value;
   
-  if (basicSchedule !== 'custom') return '';
+  const isCustom = basicSchedule === 'custom';
+  if (!isCustom) return '';
 
   const freq = customFrequency || 1;
   const period = customPeriodNumber || 1;
@@ -359,9 +478,9 @@ const scheduleSummary = computed(() => {
   }
 
   .section-header {
-    font-family: "Press Start 2P";
-    font-size: 0.7rem;
-    color: var(--ion-color-medium);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.8rem;
+    color: var(--xp-app-text-dim);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -424,6 +543,65 @@ const scheduleSummary = computed(() => {
 
   .text-muted {
     opacity: 0.5;
+  }
+
+  .times-of-day {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .times-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  // Toggle chip: muted until picked, then AP blue with a check
+  .time-chip {
+    min-height: 56px;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ion-color-medium);
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    opacity: 0.75;
+    transition: all 0.2s ease;
+
+    &.is-on {
+      color: #10101c;
+      background: var(--xp-color-ap);
+      border-color: var(--xp-color-ap);
+      box-shadow: 0 0 8px var(--xp-color-ap);
+      opacity: 1;
+
+      .time-chip__icon {
+        color: #10101c;
+      }
+    }
+  }
+
+  .time-chip__icon {
+    font-size: 1.25rem;
+  }
+
+  .time-chip__name {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .times-note {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--ion-color-medium);
   }
 
 

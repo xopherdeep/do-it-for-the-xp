@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- viewport-fit=cover lets env(safe-area-inset-*) reach the battle screen and the HUDs on notched phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#280828">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Do It For XP">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="<%= BASE_URL %>favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="<%= BASE_URL %>icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<%= BASE_URL %>apple-touch-icon.png">
+    <link rel="manifest" href="<%= BASE_URL %>manifest.webmanifest">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+
+    <!-- Link previews: crawlers do not run JS, so the title, description and image must be static here.
+         og:image and og:url are absolute because chat apps will not resolve a relative URL. -->
+    <meta name="description" content="Chores become quests in a retro RPG for the whole family. Kids battle through the to-do list and earn XP and gold for every job done.">
+    <link rel="canonical" href="https://app.forthexp.com/">
+    <meta property="og:site_name" content="Do It For The XP">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://app.forthexp.com/">
+    <meta property="og:title" content="Do It For The XP: chores become quests">
+    <meta property="og:description" content="Chores become quests in a retro RPG for the whole family. Kids battle through the to-do list and earn XP and gold for every job done.">
+    <meta property="og:image" content="https://app.forthexp.com/share/og-card.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Do It For The XP: a winged white pegasus on a pixel-art world map beside the words Chores Are Quests.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Do It For The XP: chores become quests">
+    <meta name="twitter:description" content="Chores become quests in a retro RPG for the whole family. Kids battle through the to-do list and earn XP and gold for every job done.">
+    <meta name="twitter:image" content="https://app.forthexp.com/share/og-card.png">
+    <meta name="twitter:image:alt" content="Do It For The XP: a winged white pegasus on a pixel-art world map beside the words Chores Are Quests.">
+  </head>
+  <body>
+    <noscript>
+      <strong>Do It For The XP needs JavaScript to run. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+</html>

@@ -15,7 +15,7 @@
             :key="ability.id"
             button
             @click="editAbility(ability)"
-            :class="{ 'ability-unlocked': isUnlocked(ability.id) }"
+            :class="{ 'ability-unlocked': showStatus && isUnlocked(ability.id) }"
           >
             <ion-icon
               :icon="getAbilityIcon(ability)"
@@ -28,21 +28,20 @@
               slot="start"
               class="fa-lg mr-2"
             ></i>
-            <ion-label>
+            <ion-label class="ion-text-wrap">
               <h2>{{ ability.name }}</h2>
               <p>{{ ability.description }}</p>
+              <!-- Under the text, not beside it: at phone width three end badges squeezed the name to a sliver -->
+              <div class="ability-badges">
+                <ion-badge color="warning">{{ ability.apRequirement.amount }} AP</ion-badge>
+                <ion-badge color="tertiary" v-if="ability.mpCost">{{ ability.mpCost }} MP</ion-badge>
+                <ion-badge
+                  v-if="showStatus"
+                  :color="getStatusColor(getAbilityStatus(ability.id))"
+                  >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge
+                >
+              </div>
             </ion-label>
-            <ion-badge slot="end" color="warning"
-              >{{ ability.apRequirement.amount }} AP</ion-badge
-            >
-            <ion-badge slot="end" color="tertiary" v-if="ability.mpCost"
-              >{{ ability.mpCost }} MP</ion-badge
-            >
-            <ion-badge
-              slot="end"
-              :color="getStatusColor(getAbilityStatus(ability.id))"
-              >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge
-            >
           </ion-item>
         </ion-item-group>
       </ion-list>
@@ -146,7 +145,7 @@
             <div class="tooltip-frequency" v-if="ability.frequency">
               {{ formatFrequency(ability.frequency) }}
             </div>
-            <div class="tooltip-status">
+            <div class="tooltip-status" v-if="showStatus">
               {{ formatStatus(getAbilityStatus(ability.id)) }}
             </div>
           </div>
@@ -174,14 +173,14 @@
     <!-- Empty State -->
     <ion-card
       v-if="abilities.length === 0"
-      class="empty-state max-w-[80%] mx-auto my-4 h-auto max-h-[200px] text-center"
+      class="empty-state max-w-[80%] mx-auto my-4 h-auto text-center"
     >
       <ion-card-title class="flex flex-row gap-2 items-center justify-center">
-        <h2>No Abilities Created Yet</h2>
+        <h2>{{ emptyTitle }}</h2>
       </ion-card-title>
       <ion-card-content>
-        Abilities are special skills or privileges you can use in your game.
-        Start by adding your first ability using the + button below
+        {{ emptyHint }}
+        <slot name="empty-actions" />
       </ion-card-content>
       <ion-icon :icon="colorWandOutline" size="large"></ion-icon>
     </ion-card>
@@ -223,6 +222,16 @@
   } from "ionicons/icons";
   import Ionic from "@/lib/mixins/ionic";
 
+  interface AbilityConnection {
+    id: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    status: string;
+    path: string;
+  }
+
   export default defineComponent({
     name: "XpAbilityManager",
     mixins: [Ionic],
@@ -243,6 +252,20 @@
         type: Object as PropType<{ [abilityId: string]: boolean }>,
         default: () => ({}),
       },
+      // False when there is no hero to judge the abilities for: no lock, cooldown or unlocked marks at all
+      showStatus: {
+        type: Boolean,
+        default: true,
+      },
+      emptyTitle: {
+        type: String,
+        default: "No Abilities Created Yet",
+      },
+      emptyHint: {
+        type: String,
+        default:
+          "Abilities are special skills or privileges you can use in your game. Start by adding your first ability using the + button below",
+      },
     },
     emits: ["edit-ability", "view-mode-change"],
     setup(props, { emit }) {
@@ -253,18 +276,11 @@
       const startPanPosition = ref({ x: 0, y: 0 });
       const startPanOffset = ref({ x: 0, y: 0 });
       const abilityConnections = ref<
-        Array<{
-          id: string;
-          startX: number;
-          startY: number;
-          endX: number;
-          endY: number;
-          status: string;
-          path: string;
-        }>
+        Array<AbilityConnection>
       >([]);
 
       // Computed properties
+      const hidesStatus = computed(() => !props.showStatus);
       const abilitiesByFrequency = computed(() => {
         return (Object.values(TimePeriod) as TimePeriod[])
           .map((period) => ({
@@ -280,7 +296,8 @@
       const toggleViewMode = () => {
         const newMode = props.viewMode === "list" ? "grid" : "list";
         emit("view-mode-change", newMode);
-        if (newMode === "grid") {
+        const isSwitchingToGrid = newMode === "grid";
+        if (isSwitchingToGrid) {
           calculateConnections();
         }
       };
@@ -383,36 +400,49 @@
       };
 
       const getClassNameFromAbility = (ability: Ability): string => {
-        if (ability.characterRequirement?.class) {
+        const classRequirement = ability.characterRequirement?.class;
+        if (classRequirement) {
           // Return the first class requirement
-          return Object.keys(ability.characterRequirement.class)[0] || "";
+          return Object.keys(classRequirement)[0] || "";
         }
         return "";
       };
 
       const hasConnections = (ability: Ability): boolean => {
-        if (!ability.prerequisites || ability.prerequisites.length === 0) {
+        const hasNoPrerequisites = !ability.prerequisites || ability.prerequisites.length === 0;
+        if (hasNoPrerequisites) {
           return false;
         }
         return true;
       };
 
+      // An ability with no place on the board yet gets a random one
+      const ensurePosition = (ability: Ability) => {
+        ability.position ??= {
+          x: Math.floor(Math.random() * 800),
+          y: Math.floor(Math.random() * 600),
+        };
+        return ability.position;
+      };
+
       const getNodeStyle = (ability: Ability) => {
         // Return style for positioning the node in grid view
-        if (!ability.position) {
-          ability.position = {
-            x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600),
-          };
-        }
+        const position = ensurePosition(ability);
 
         return {
-          left: `${ability.position.x}px`,
-          top: `${ability.position.y}px`,
+          left: `${position.x}px`,
+          top: `${position.y}px`,
         };
       };
 
+      // A line between two nodes: green once its prerequisite is unlocked, grey dashes while locked, plain grey with no hero
+      const getConnectionStatus = (prereqId: string): string => {
+        if (hidesStatus.value) return "neutral";
+        return isUnlocked(prereqId) ? "unlocked" : "locked";
+      };
+
       const getNodeStatusClass = (abilityId: string): string => {
+        if (hidesStatus.value) return "";
         const status = getAbilityStatus(abilityId);
         switch (status) {
           case AbilityStatus.Available:
@@ -430,36 +460,20 @@
 
       const calculateConnections = () => {
         // Calculate SVG lines for connections between abilities
-        const connections: Array<{
-          id: string;
-          startX: number;
-          startY: number;
-          endX: number;
-          endY: number;
-          status: string;
-          path: string;
-        }> = [];
+        const connections: Array<AbilityConnection> = [];
 
         props.abilities.forEach((ability) => {
           // Initialize position if it doesn't exist
-          if (!ability.position) {
-            ability.position = {
-              x: Math.floor(Math.random() * 800),
-              y: Math.floor(Math.random() * 600),
-            };
-          }
+          ensurePosition(ability);
 
-          if (ability.prerequisites && ability.prerequisites.length > 0) {
-            ability.prerequisites.forEach((prereqId) => {
+          const prerequisiteIds = ability.prerequisites;
+          const hasPrerequisites = prerequisiteIds && prerequisiteIds.length > 0;
+          if (hasPrerequisites) {
+            prerequisiteIds.forEach((prereqId) => {
               const prereq = props.abilities.find((a) => a.id === prereqId);
               if (prereq) {
                 // Initialize position for prereq if it doesn't exist
-                if (!prereq.position) {
-                  prereq.position = {
-                    x: Math.floor(Math.random() * 800),
-                    y: Math.floor(Math.random() * 600),
-                  };
-                }
+                ensurePosition(prereq);
 
                 // TypeScript needs to know both positions are now defined
                 const abilityPosition = ability.position!;
@@ -472,7 +486,7 @@
                 const path = `M${startX},${startY} L${endX},${endY}`;
 
                 // Determine connection status based on prereq being unlocked
-                const status = isUnlocked(prereqId) ? "unlocked" : "locked";
+                const status = getConnectionStatus(prereqId);
 
                 connections.push({
                   id: `${prereqId}-${ability.id}`,
@@ -533,7 +547,8 @@
 
       const handleZoom = (event) => {
         event.preventDefault();
-        if (event.deltaY < 0) {
+        const isScrollingUp = event.deltaY < 0;
+        if (isScrollingUp) {
           zoomIn();
         } else {
           zoomOut();
@@ -549,16 +564,11 @@
 
       const getMiniNodeStyle = (ability: Ability) => {
         // Initialize position if it doesn't exist
-        if (!ability.position) {
-          ability.position = {
-            x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600),
-          };
-        }
+        const position = ensurePosition(ability);
 
         return {
-          left: `${ability.position.x / 10}px`,
-          top: `${ability.position.y / 10}px`,
+          left: `${position.x / 10}px`,
+          top: `${position.y / 10}px`,
         };
       };
 
@@ -572,9 +582,11 @@
         };
       };
 
+      const isShowingGrid = () => props.viewMode === "grid";
+
       // Effects
       onMounted(() => {
-        if (props.viewMode === "grid") {
+        if (isShowingGrid()) {
           calculateConnections();
         }
       });
@@ -582,7 +594,7 @@
       watch(
         () => props.abilities,
         () => {
-          if (props.viewMode === "grid") {
+          if (isShowingGrid()) {
             calculateConnections();
           }
         },
@@ -592,7 +604,7 @@
       watch(
         () => props.unlockStatuses,
         () => {
-          if (props.viewMode === "grid") {
+          if (isShowingGrid()) {
             calculateConnections();
           }
         },
@@ -644,325 +656,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  .ability-manager {
-    height: 100%;
-  }
-
-  .ability-unlocked {
-    --ion-item-background: rgba(0, 255, 0, 0.1);
-  }
-
-  .ability-grid-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #1a1a2e;
-    padding: 20px;
-  }
-
-  .grid-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .ability-canvas {
-    position: relative;
-    width: 1000px;
-    height: 800px;
-    transform-origin: 0 0;
-  }
-
-  .ability-node {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 10;
-
-    &.real-life {
-      background-color: #3498db;
-
-      &:hover {
-        box-shadow: 0 0 15px #3498db;
-      }
-    }
-
-    &.in-game {
-      background-color: #9b59b6;
-
-      &:hover {
-        box-shadow: 0 0 15px #9b59b6;
-      }
-    }
-
-    &.time-mage {
-      background-color: #1abc9c;
-
-      &:hover {
-        box-shadow: 0 0 15px #1abc9c;
-      }
-    }
-
-    &.black-mage {
-      background-color: #e74c3c;
-
-      &:hover {
-        box-shadow: 0 0 15px #e74c3c;
-      }
-    }
-
-    &.white-mage {
-      background-color: #f1c40f;
-
-      &:hover {
-        box-shadow: 0 0 15px #f1c40f;
-      }
-    }
-
-    &.technician {
-      background-color: #3498db;
-
-      &:hover {
-        box-shadow: 0 0 15px #3498db;
-      }
-    }
-
-    // Status classes
-    &.status-available {
-      border: 3px solid #2ecc71;
-    }
-
-    &.status-unlocked {
-      border: 3px solid #f39c12;
-    }
-
-    &.status-used,
-    &.status-cooling {
-      border: 3px solid #7f8c8d;
-      opacity: 0.7;
-    }
-
-    &.status-locked {
-      border: 3px solid transparent;
-      opacity: 0.5;
-    }
-
-    .node-icon {
-      font-size: 24px;
-      color: white;
-    }
-
-    .node-tooltip {
-      position: absolute;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      width: 200px;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      display: none;
-
-      .tooltip-title {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-
-      .tooltip-class {
-        font-size: 0.9em;
-        margin-bottom: 5px;
-      }
-
-      .tooltip-description {
-        font-size: 0.9em;
-        margin-bottom: 5px;
-      }
-
-      .tooltip-cost {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8em;
-
-        span {
-          padding: 2px 5px;
-          border-radius: 3px;
-
-          &:first-child {
-            background-color: #f39c12;
-          }
-
-          &:last-child {
-            background-color: #9b59b6;
-          }
-        }
-      }
-
-      .tooltip-frequency {
-        font-size: 0.8em;
-        margin-top: 5px;
-      }
-
-      .tooltip-status {
-        font-size: 0.8em;
-        margin-top: 5px;
-        font-weight: bold;
-      }
-    }
-
-    &:hover .node-tooltip {
-      display: block;
-    }
-  }
-
-  .ability-paths {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 5;
-
-    path {
-      stroke-width: 3px;
-      fill: none;
-
-      &.locked {
-        stroke: #7f8c8d;
-        stroke-dasharray: 5, 5;
-      }
-
-      &.unlocked {
-        stroke: #2ecc71;
-      }
-
-      &.active {
-        stroke: #f1c40f;
-        animation: pulse 2s infinite;
-      }
-    }
-  }
-
-  @keyframes pulse {
-    0% {
-      stroke-width: 3px;
-    }
-
-    50% {
-      stroke-width: 6px;
-    }
-
-    100% {
-      stroke-width: 3px;
-    }
-  }
-
-  .mini-map {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 200px;
-    height: 160px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid #fff;
-    border-radius: 5px;
-    overflow: hidden;
-    z-index: 20;
-  }
-
-  .mini-map-content {
-    position: relative;
-    width: 1000px;
-    height: 800px;
-    transform-origin: 0 0;
-  }
-
-  .mini-node {
-    position: absolute;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-
-    &.real-life {
-      background-color: #3498db;
-    }
-
-    &.in-game {
-      background-color: #9b59b6;
-    }
-
-    &.time-mage {
-      background-color: #1abc9c;
-    }
-
-    &.black-mage {
-      background-color: #e74c3c;
-    }
-
-    &.white-mage {
-      background-color: #f1c40f;
-    }
-
-    &.technician {
-      background-color: #3498db;
-    }
-
-    &.status-available {
-      border: 1px solid #2ecc71;
-    }
-
-    &.status-unlocked {
-      border: 1px solid #f39c12;
-    }
-
-    &.status-used,
-    &.status-cooling {
-      opacity: 0.5;
-    }
-
-    &.status-locked {
-      opacity: 0.3;
-    }
-  }
-
-  .view-rectangle {
-    position: absolute;
-    border: 1px solid #fff;
-    box-sizing: border-box;
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--ion-color-medium);
-
-    ion-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
-    }
-
-    h2 {
-      margin-bottom: 8px;
-    }
-
-    p {
-      text-align: center;
-      max-width: 300px;
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpAbilityManager.scss" />

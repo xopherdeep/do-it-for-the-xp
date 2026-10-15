@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <i slot="start" class="fad fa-hand-holding-usd fa-2x" />
         <ion-title> Shops & Accessories </ion-title>
@@ -134,6 +134,8 @@
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   import { useRouter } from "vue-router";
+  import { useTimers } from "@/hooks/useTimers";
+  import { useBack } from "@/hooks/useBack";
 
   import AccessoriesDb, {
     Accessory,
@@ -169,11 +171,11 @@
             loading.present();
 
             // After loading finishes, navigate to discover page
-            setTimeout(() => {
+            this.timers.startTimeout(1600, () => {
               this.$router.push({
                 name: "xp-discover-accessories",
               });
-            }, 1600);
+            });
           });
       },
       async loadAccessories() {
@@ -215,6 +217,8 @@
     setup() {
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
+      const { stepBack: back } = useBack();
+      const timers = useTimers();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);
       const filterType = ref("all");
@@ -231,7 +235,8 @@
       const toggleSelection = (accessory: Accessory) => {
         const currentSelected = [...itemSelectionStore.selectedItemIds];
         const index = currentSelected.indexOf(accessory.id);
-        if (index > -1) {
+        const isSelected = index > -1;
+        if (isSelected) {
           currentSelected.splice(index, 1);
         } else {
           currentSelected.push(accessory.id);
@@ -249,17 +254,18 @@
 
       const confirmSelection = () => {
         itemSelectionStore.confirmSelection();
-        router.back();
+        back();
       };
 
       const cancelSelection = () => {
         itemSelectionStore.clear();
-        router.back();
+        back();
       };
 
       const filteredAccessories = computed(() => {
         let filtered = accessories.value;
-        if (filterType.value !== "all") {
+        const isFilteringByType = filterType.value !== "all";
+        if (isFilteringByType) {
           filtered = filtered.filter((item) => {
             const isRealLife = item.type?.toLowerCase() === "real";
             return (
@@ -309,6 +315,7 @@
       };
 
       return {
+        timers,
         isSelectionMode,
         selectedIds,
         handleAccessoryClick,

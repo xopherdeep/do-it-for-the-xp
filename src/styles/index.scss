@@ -3,6 +3,10 @@
 @use "ionic";
 @use "menu";
 @use "card";
+@use "frost";
+
+// Phone apps kit (XpApp*): tokens and rules for the retro and modern skins
+@use "@/components/organisms/XpApp/xp-app";
 
 // Themes
 @use "icons";

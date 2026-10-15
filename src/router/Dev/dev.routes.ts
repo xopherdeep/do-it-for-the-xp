@@ -38,30 +38,17 @@ const DevRoutes: Array<RouteRecordRaw> = [
     component: () => import("@/app/Dev/IntroSplashDemo.vue"),
   },
   {
+    path: "/dev/voxels",
+    name: "voxel-lab",
+    component: () => import("@/app/Dev/VoxelLab.vue"),
+  },
+  {
     path: "/dev/dungeon-background",
     name: "dungeon-background-designer",
     component: () =>
       import(
         "@/app/Dev/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue"
       ),
-  },
-  {
-    path: "/dev/battle-field",
-    name: "battle-field-dev",
-    component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: {
-      devMode: true
-    }
-  },
-  {
-    path: "/dev/battle-field/:beastIds/:userIds?",
-    name: "battle-field-dev-with-params",
-    component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: (route) => ({
-      devMode: true,
-      beastIds: route.params.beastIds,
-      userIds: route.params.userIds
-    })
   },
 ];
 

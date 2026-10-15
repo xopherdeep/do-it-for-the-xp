@@ -59,8 +59,9 @@ export function convertLegacyAbility(legacy: LegacyAbility): Ability {
   };
 
   // Map legacy type to new type
-  if (legacy.type) {
-    switch (legacy.type.toLowerCase()) {
+  const legacyType = legacy.type;
+  if (legacyType) {
+    switch (legacyType.toLowerCase()) {
       case 'real-life':
       case 'real life':
       case 'irl':
@@ -77,8 +78,9 @@ export function convertLegacyAbility(legacy: LegacyAbility): Ability {
   }
 
   // Map legacy frequency to new frequency
-  if (legacy.frequency) {
-    switch (legacy.frequency.toLowerCase()) {
+  const legacyFrequency = legacy.frequency;
+  if (legacyFrequency) {
+    switch (legacyFrequency.toLowerCase()) {
       case 'hourly':
         ability.frequency = TimePeriod.Hourly;
         break;
@@ -113,8 +115,9 @@ export function convertLegacyAbility(legacy: LegacyAbility): Ability {
   }
 
   // Map legacy AP type to new AP period
-  if (legacy.apType) {
-    switch (legacy.apType.toLowerCase()) {
+  const legacyApType = legacy.apType;
+  if (legacyApType) {
+    switch (legacyApType.toLowerCase()) {
       case 'hourly':
         ability.apRequirement.period = TimePeriod.Hourly;
         break;
@@ -163,7 +166,8 @@ export function migrateLocalStorageAbilities(): void {
       const item = storageMap[key];
       
       // Skip if not an object
-      if (!item || typeof item !== 'object') continue;
+      const isMalformedEntry = !item || typeof item !== 'object';
+      if (isMalformedEntry) continue;
 
       // If it doesn't match our new ability structure, migrate it
       if (!isAbility(item)) {

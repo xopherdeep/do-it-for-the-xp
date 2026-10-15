@@ -1,224 +1,99 @@
 <template>
-  <ion-page v-if="user">
+  <ion-page :class="rootClass" :style="rootStyle">
     <ion-header>
-      <ion-toolbar
-        color="tertiary"
-        v-if="user.stats"
-      >
-        <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}`"
-            :icon="arrowBack"
-          ></ion-back-button>
-          <!-- <ion-icon :icon="colorWand" size="large" /> -->
-          <i class="fad fa-book-spells fa-lg" />
-        </ion-buttons>
-        <ion-title> My Powers </ion-title>
-      </ion-toolbar>
       <ion-toolbar>
-        <ion-segment
-          @ionChange="segmentChanged($event)"
-          color="tertiary"
-          scrollable
-          value="all"
-        >
-          <ion-segment-button value="all">
-            <ion-icon :icon="colorWandOutline"></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="">
-            <ion-icon :icon="accessibilityOutline"></ion-icon>
-            Now
-          </ion-segment-button>
-          <ion-segment-button value="unlocked">
-            <ion-icon :icon="lockOpenOutline"></ion-icon>
-            Ready
-          </ion-segment-button>
-          <ion-segment-button value="locked">
-            <ion-icon :icon="lockClosedOutline"></ion-icon>
-            Next
-          </ion-segment-button>
-        </ion-segment>
+        <xp-app-header title="Powers" icon="book-spells" :meta="mpMeta">
+          <template #start>
+            <ion-buttons>
+              <xp-back-button :icon="arrowBack"></xp-back-button>
+            </ion-buttons>
+          </template>
+        </xp-app-header>
       </ion-toolbar>
-
-      <!-- <ion-progress-bar
-        v-if="user.stats"
-        color="tertiary"
-        :value="user.stats.mp.now / user.stats.mp.max"
-      ></ion-progress-bar> -->
     </ion-header>
 
     <ion-content class="my-abilities">
+      <xp-power-timer-bar v-if="heroId" :hero-id="heroId" />
       <XpLoading v-if="isLoading" />
-      <xp-swiper-gallery
-        v-else
-        :nTotalPages="nTotalPages"
-        :nTotal="nTotal"
-        :items="items"
-        :isFetching="isFetching"
-        params
-        @next="slideNext"
-        @prev="slidePrev"
-        @changePage="changePage"
+      <xp-app-empty
+        v-else-if="!groups.length"
+        class="powers-empty"
+        icon="book-spells"
+        :text="!abilities.length ? t('powers.empty.none') : t('powers.empty.filter')"
       />
-      <!-- <ion-grid v-else >
-        <ion-row>
-          <ion-col size="6" size-lg="3" v-for="item in items" :key="item.id" class="ion-no-padding">
-            <ion-card class="item ion-no-padding" >
-              <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
-
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <ion-badge color="warning">
-                  {{item.meta._xp_achievement_gp}}
-                  &nbsp;
-                  <strong>GP</strong>
-                </ion-badge>
-                <ion-badge color="tertiary">
-                  {{item.meta._xp_achievement_ap}}
-                  &nbsp;
-                  <strong>AP</strong>
-                </ion-badge>
-                <ion-badge color="success">
-                  {{item.meta._xp_achievement_xp}}
-                  &nbsp;
-                  <strong>XP</strong>
-                </ion-badge>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
-        <ion-router-outlet></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronBack"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${userId}/deeds`">
-            <ion-icon :icon="medalOutline" color="success"></ion-icon>
-            <ion-label>Advents</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/inventory`">
-            <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
-            <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-home" :href="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronForward"></ion-icon>
-          </ion-tab-button>
-
-        </ion-tab-bar>
-      </ion-tabs> -->
+      <div v-else class="powers-list">
+        <xp-app-section v-for="group in groups" :key="group.type" :label="group.label">
+          <xp-app-row
+            v-for="row in group.rows"
+            :key="row.id"
+            class="power-row"
+            :class="{ 'is-locked': row.locked, 'is-open': openId === row.id }"
+            :data-ability-id="row.id"
+            :title="row.name"
+            :subtitle="row.description"
+            :icon="row.icon"
+            :chevron="false"
+            :active="openId === row.id"
+            @click="toggleOpen(row.id)"
+          >
+            <template #chips>
+              <div v-if="row.needed > 0" class="power-ap">
+                <div
+                  class="power-meter"
+                  role="progressbar"
+                  aria-label="AP toward this Power"
+                  aria-valuemin="0"
+                  :aria-valuemax="row.needed"
+                  :aria-valuenow="Math.min(row.earned, row.needed)"
+                >
+                  <div class="power-meter-fill" :style="{ width: row.meterWidth }" />
+                </div>
+                <span class="power-ap-text">{{ row.apText }}</span>
+              </div>
+              <xp-app-chip kind="tag" :value="row.typeLabel" />
+              <xp-app-chip kind="mp" :value="row.mpCost" />
+              <xp-app-chip kind="tag" :value="row.frequencyLabel" />
+              <xp-app-chip v-if="row.timerLabel" kind="tag" :value="row.timerLabel" />
+              <p v-if="row.stateLine" class="power-state">{{ row.stateLine }}</p>
+            </template>
+            <template #trailing>
+              <button
+                type="button"
+                class="xp-app-btn cast-btn"
+                :disabled="!row.canCast"
+                :aria-label="`Cast ${row.name}`"
+                @click="cast(row.id)"
+              >
+                Cast
+              </button>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
+      </div>
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="tertiary">
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="light"
-                @keypress="playTextSound"
-                @keyUp="resetTextSound"
-                @ionChange="searchChanged"
-                v-model="searchText"
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                id="swiper-back"
-                :disabled="page == 1"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col
-              class="total-pages"
-              v-if="isLoading"
-            >
-              <ion-skeleton-text
-                :animated="true"
-                style="width: 60%;"
-              ></ion-skeleton-text>
-              <ion-skeleton-text
-                :animated="true"
-                style="width: 20%"
-              ></ion-skeleton-text>
-            </ion-col>
-            <ion-col
-              class="total-pages"
-              v-else
-            >
-              <ion-text class="ion-text-align-center">
-                Viewing: {{ pageNumbers?.min }} - {{ pageNumbers?.max }} of {{ nTotal }}
-              </ion-text>
-              <ion-text>
-                <small>
-                  Page: {{ page }} of {{ nTotalPages }}
-                </small>
-              </ion-text>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                id="swiper-forward"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronForward"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-        <!-- <ion-grid >
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" @ionChange="request.params.page = 1" v-model="request.params.search"></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                @click="request.params.page--"
-                :disabled="request.params.page == 1"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid> -->
-      </ion-toolbar>
+
+    <ion-footer class="abilities-footer">
+      <div class="xp-app-bar">
+        <label class="xp-app-search">
+          <i class="fad fa-search" aria-hidden="true"></i>
+          <input
+            v-model="search"
+            type="search"
+            placeholder="Search Powers"
+            aria-label="Search Powers"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+        </label>
+      </div>
+      <xp-app-bottom-nav
+        :tabs="powerTabs"
+        v-model="filter"
+        aria-label="Powers Navigation"
+      />
     </ion-footer>
   </ion-page>
 </template>
 
-<script src="./MyAbilities" />
+<script lang="ts" src="./MyAbilities.ts" />
 <style lang="scss" src="./_MyAbilities.scss" scoped />

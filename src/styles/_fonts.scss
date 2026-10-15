@@ -133,3 +133,45 @@
     font-style: normal;
     font-display: swap;
 }
+
+@font-face {
+    font-family: "Pixel Takhisis";
+    src: url("@/assets/fonts/earthbound/pixel-takhisis.otf");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+// Game Style fonts (SIL Open Font License, from Google Fonts; latin subset)
+@font-face {
+    font-family: "Jersey 15";
+    src: url("@/assets/fonts/game-styles/Jersey15.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Tiny5";
+    src: url("@/assets/fonts/game-styles/Tiny5.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "DotGothic16";
+    src: url("@/assets/fonts/game-styles/DotGothic16-latin.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Silkscreen";
+    src: url("@/assets/fonts/game-styles/Silkscreen.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}

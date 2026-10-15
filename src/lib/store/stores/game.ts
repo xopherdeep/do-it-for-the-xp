@@ -1,20 +1,18 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import XpApi from "@/lib/api/doit.forthexp.com.api";
+import { loadThemeChoice, saveThemeChoice } from "@/lib/utils/gameStyle";
 
 export const useGameStore = defineStore('game', () => {
   // --- Global UI State ---
   const devMode = ref(false);
   const area = ref<any>(null);
-  const theme = reactive({
-    ui: 'nintendo',
-    rpg: 'earthbound'
-  });
+  const theme = reactive(loadThemeChoice());
   const userActions = ref<any[]>([]);
   
   // FAB Style: 'retro' (centered menu) or 'modern' (radial shortcuts)
   const fabStyle = ref<'retro' | 'modern'>(
-    (localStorage.getItem('fabStyle') as 'retro' | 'modern') || 'retro'
+    (localStorage.getItem('fabStyle') as 'retro' | 'modern') || 'modern'
   );
 
   // --- Entity Collections (Caching) ---
@@ -51,7 +49,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addEntity(type: string, item: any) {
-    if (!item || !type) return;
+    const hasNothingToAdd = !item || !type;
+    if (hasNothingToAdd) return;
     
     if (type === 'xp_ability') abilities[item.id] = item;
     else if (type === 'xp_accessory') accessories[item.id] = item;
@@ -60,32 +59,10 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addRequest(type: string, request: any) {
-    if (requests[type]) {
+    const isTrackedType = Boolean(requests[type]);
+    if (isTrackedType) {
       requests[type].push(request);
     }
-  }
-
-  async function fetchItems(type: string, params: any) {
-    const dejaVu = findRequest(type, params);
-    
-    const runApi = async () => {
-      const response = await XpApi.get(type, params);
-      const { data } = response;
-      
-      // addRequest
-      const ids = data.results.map((i: any) => i.id);
-      addRequest(type, { params: { ...params }, ids, total: data.total, total_pages: data.total_pages });
-      
-      // addData
-      addData(type, data);
-      
-      return response;
-    };
-
-    if (dejaVu) {
-      return new Promise((resolve) => setTimeout(() => resolve(runApi()), 5000));
-    }
-    return runApi();
   }
 
   async function fetchWPItems(type: string, params: any) {
@@ -114,7 +91,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addData(type: string, data: any) {
-    if (data.results && Array.isArray(data.results)) {
+    const hasResultList = data.results && Array.isArray(data.results);
+    if (hasResultList) {
       data.results.forEach((item: any) => addEntity(type, item));
     }
   }
@@ -122,15 +100,18 @@ export const useGameStore = defineStore('game', () => {
   function changeSoundFX(payload: { ui: string, rpg: string }) {
     theme.ui = payload.ui;
     theme.rpg = payload.rpg;
+    saveThemeChoice(theme);
   }
 
   // --- Getters (Functional) ---
 
   function findRequest(type: string, params: any) {
-    if (!type || !requests[type]) return undefined;
+    const hasNoRequestsOfType = !type || !requests[type];
+    if (hasNoRequestsOfType) return undefined;
     
     return requests[type].find((request: any) => {
-      if (Object.keys(request.params).length === Object.keys(params).length) {
+      const hasSameParamCount = Object.keys(request.params).length === Object.keys(params).length;
+      if (hasSameParamCount) {
         return Object.keys(request.params).every((key) => {
           return request.params[key] == params[key];
         });
@@ -186,7 +167,6 @@ export const useGameStore = defineStore('game', () => {
     addEntity,
     addRequest,
     changeSoundFX,
-    fetchItems,
     fetchWPItems,
     addData,
 

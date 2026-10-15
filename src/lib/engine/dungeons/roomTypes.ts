@@ -40,6 +40,13 @@ export const SCRT = '?';  // Secret Room - Hidden until discovered
 // Special Recovery
 export const CAMP = 'C';  // Camp Room - Restores health and mana
 
+/**
+ * The Master Room is the temple's last chamber, the one that holds the Pegasus Egg, so its icon is a golden egg.
+ * The class list is the one place the icon is named; the two golds are the `.icon-master-egg` rule in
+ * src/styles/icons/_icon-colors.scss (every renderer draws `['fad', ROOM_ICONS[type]]`, so the colour follows).
+ */
+export const MASTER_EGG_ICON = 'fa-egg icon-master-egg';
+
 export const ROOM_ICONS = {
   entrance: 'fa-dungeon',          // Entrance (dungeon door)
   empty: 'fa-th',                // Empty Room
@@ -55,7 +62,7 @@ export const ROOM_ICONS = {
   key: 'fa-key',                 // Key Room
   health: 'fa-heart',            // Healing Room
   mana: 'fa-flask-potion',       // Mana Room
-  master: 'fa-triangle',            // Master Room
+  master: MASTER_EGG_ICON,       // Master Room (the Pegasus Egg)
   puzzle: 'fa-puzzle-piece',     // Puzzle Room
   secret: 'fa-mask',             // Secret Room
   teleport: 'fa-transporter',
@@ -63,11 +70,11 @@ export const ROOM_ICONS = {
   save: 'fa-monument',           // Save Point
   gate: 'fa-door-closed',        // Exit Gate
   
-  pit: 'fa-hole',                // Pit Hazard
+  pit: 'fa-dot-circle',          // Pit Hazard (Font Awesome 5.15 has no fa-hole)
   void: 'fa-eclipse',            // Void Space
   
-  'stairs-up': 'fa-stairs',      // Stairs Up
-  'stairs-down': 'fa-stairs-down', // Stairs Down
+  'stairs-up': 'fa-arrow-alt-circle-up',     // Stairs Up (no fa-stairs in the bundled Font Awesome 5.15)
+  'stairs-down': 'fa-arrow-alt-circle-down', // Stairs Down (no fa-stairs-down either)
   camp: 'fa-campfire',           // Camp Room
   lock: 'fa-lock',               // Locked Chest 
 };

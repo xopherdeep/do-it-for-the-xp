@@ -1,102 +1,81 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/xp-settings"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title>Theme Settings</ion-title>
+        <ion-title>Theme</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide">
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
       <ion-card class="max-w-2xl">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>UI Theme</ion-label>
+              <ion-label>Look</ion-label>
             </ion-item-divider>
 
-            <ion-item>
-              <ion-label>Interface Style</ion-label>
-              <ion-select
-                :value="theme.ui"
-                interface="action-sheet"
-                @ionChange="changeUISound"
-              >
-                <ion-select-option value="nintendo">Nintendo</ion-select-option>
-                <ion-select-option value="playstation"
-                  >PlayStation</ion-select-option
+            <!-- Option rows stack: the words get the full width, the choice sits under them -->
+            <ion-item class="setting-stacked">
+              <div class="setting-stacked__body">
+                <ion-label>
+                  <h2>Game style</h2>
+                  <p>The look of every window and menu. Styles marked Pro come with XP Pro.</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  :value="theme.rpg"
+                  interface="action-sheet"
+                  aria-label="Game style"
+                  @ionChange="changeRPGSound"
                 >
-                <ion-select-option value="xbox">Xbox</ion-select-option>
-              </ion-select>
+                  <ion-select-option
+                    v-for="style in gameStyles"
+                    :key="style"
+                    :value="style"
+                    >{{ gameStyleLabel(style) }}</ion-select-option
+                  >
+                </ion-select>
+              </div>
             </ion-item>
           </ion-item-group>
 
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>RPG Theme</ion-label>
+              <ion-label>Sound</ion-label>
             </ion-item-divider>
 
-            <ion-item>
-              <ion-label>Game Style</ion-label>
-              <ion-select
-                :value="theme.rpg"
-                interface="action-sheet"
-                @ionChange="changeRPGSound"
-              >
-                <ion-select-option value="chronoTrigger"
-                  >Chrono Trigger</ion-select-option
+            <ion-item lines="none" class="setting-stacked">
+              <div class="setting-stacked__body">
+                <ion-label>
+                  <h2>Menu sounds</h2>
+                  <p>The clicks and chimes as you move through menus</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  :value="theme.ui"
+                  interface="action-sheet"
+                  aria-label="Menu sounds"
+                  @ionChange="changeUISound"
                 >
-                <ion-select-option value="finalFantasy"
-                  >Final Fantasy</ion-select-option
-                >
-                <ion-select-option value="zelda"
-                  >Legend of Zelda</ion-select-option
-                >
-              </ion-select>
-            </ion-item>
-          </ion-item-group>
-
-          <ion-item-group>
-            <ion-item-divider>
-              <ion-label>Display</ion-label>
-            </ion-item-divider>
-
-            <ion-item>
-              <ion-label>
-                <h2>Dark Mode</h2>
-                <p>Enable dark theme across the app</p>
-              </ion-label>
-              <ion-toggle
-                v-model="themeSettings.darkMode"
-                @ionChange="toggleDarkMode"
-              ></ion-toggle>
-            </ion-item>
-
-            <ion-item>
-              <ion-label>Color Theme</ion-label>
-              <ion-select
-                v-model="themeSettings.colorTheme"
-                interface="action-sheet"
-                @ionChange="updateColorTheme"
-              >
-                <ion-select-option value="default">Default</ion-select-option>
-                <ion-select-option value="fantasy">Fantasy</ion-select-option>
-                <ion-select-option value="retro"
-                  >Retro Gaming</ion-select-option
-                >
-              </ion-select>
+                  <ion-select-option value="nintendo">Nintendo</ion-select-option>
+                  <ion-select-option value="sony">PlayStation</ion-select-option>
+                </ion-select>
+              </div>
             </ion-item>
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <xp-coming-soon-card title="Display" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent } from "vue";
   import { useGameStore } from "@/lib/store/stores/game";
   import {
     IonPage,
@@ -107,17 +86,23 @@
     IonList,
     IonItem,
     IonLabel,
-    IonToggle,
     IonCard,
-    IonBackButton,
     IonButtons,
     IonSelect,
     IonSelectOption,
     IonItemGroup,
     IonItemDivider,
-    toastController,
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
+  import { useProStore } from "@/lib/store/stores/pro";
+  import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import { THEME_COMING_SOON } from "./comingSoon";
+  import {
+    GAME_STYLES,
+    GAME_STYLE_NAMES,
+    GameStyle,
+    isProGameStyle,
+  } from "@/lib/utils/gameStyle";
 
   export default defineComponent({
     name: "ThemeSettings",
@@ -130,14 +115,13 @@
       IonList,
       IonItem,
       IonLabel,
-      IonToggle,
       IonCard,
-      IonBackButton,
       IonButtons,
       IonSelect,
       IonSelectOption,
       IonItemGroup,
       IonItemDivider,
+      XpComingSoonCard,
     },
     mixins: [ionic],
     computed: {
@@ -147,37 +131,19 @@
     },
     setup() {
       const gameStore = useGameStore();
-
-      const themeSettings = ref({
-        darkMode: false,
-        colorTheme: "default",
-      });
-
-      // Load saved settings
-      const savedSettings = localStorage.getItem("themeSettings");
-      if (savedSettings) {
-        themeSettings.value = JSON.parse(savedSettings);
-        // Apply saved dark mode
-        document.body.classList.toggle("dark", themeSettings.value.darkMode);
-      }
+      const pro = useProStore();
+      pro.init().catch(() => undefined);
 
       return {
-        themeSettings,
         gameStore,
+        pro,
+        gameStyles: GAME_STYLES,
+        comingSoon: THEME_COMING_SOON,
       };
     },
     methods: {
       changeSoundFX(payload: { ui: string; rpg: string }) {
         return Promise.resolve(this.gameStore.changeSoundFX(payload));
-      },
-
-      async showToast(message: string) {
-        const toast = await toastController.create({
-          message,
-          duration: 2000,
-          position: "bottom",
-        });
-        await toast.present();
       },
 
       update$fx({ rpg, ui }) {
@@ -195,34 +161,25 @@
         });
       },
 
-      changeRPGSound(ev) {
-        const { ui } = this.theme;
+      gameStyleLabel(style: GameStyle) {
+        const isLocked = isProGameStyle(style) && !this.pro.isPro;
+        return `${GAME_STYLE_NAMES[style]}${isLocked ? " (Pro)" : ""}`;
+      },
+
+      async changeRPGSound(ev) {
+        const { ui, rpg } = this.theme;
+        const isSameStyle = ev.detail.value === rpg;
+        if (isSameStyle) return;
+        // A Pro style without Pro opens the upsell and the picker goes back to the current style
+        const isLocked = isProGameStyle(ev.detail.value) && !(await this.pro.requirePro("gameStyles"));
+        if (isLocked) {
+          ev.target.value = rpg;
+          return;
+        }
         this.update$fx({
           rpg: ev.detail.value,
           ui,
         });
-      },
-
-      toggleDarkMode() {
-        document.body.classList.toggle("dark", this.themeSettings.darkMode);
-        this.saveSettings();
-        this.showToast(
-          `Dark mode ${this.themeSettings.darkMode ? "enabled" : "disabled"}`
-        );
-      },
-
-      updateColorTheme() {
-        this.saveSettings();
-        this.showToast(
-          `Color theme changed to ${this.themeSettings.colorTheme}`
-        );
-      },
-
-      saveSettings() {
-        localStorage.setItem(
-          "themeSettings",
-          JSON.stringify(this.themeSettings)
-        );
       },
     },
   });

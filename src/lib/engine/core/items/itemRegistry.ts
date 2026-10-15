@@ -82,7 +82,7 @@ const PEGASUS_ITEMS: ItemMetadata[] = [
   {
     id: 'wind-whistle',
     name: 'Wind Whistle',
-    description: 'A mystical whistle gifted by Ventus. Summon the Pegasi for fast travel!',
+    description: 'A mystical whistle from the Wind Temple. Summon the Sacred Pegasi for fast travel!',
     icon: 'whistle',
     category: 'pegasus',
     unlockEvent: 'pegasus:ventus',
@@ -119,7 +119,7 @@ const DUNGEON_ITEMS: ItemMetadata[] = [
   },
   {
     id: 'master-key',
-    name: 'Master Key',
+    name: 'Boss Key',
     description: 'The ornate key to the boss chamber. One per dungeon.',
     icon: 'key-skeleton',
     category: 'dungeon',

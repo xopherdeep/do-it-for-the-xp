@@ -13,21 +13,31 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="sandstorm-container">
-        <div class="sand-overlay"></div>
-        <div class="sand-particles">
-          <div v-for="n in 30" :key="n" class="sand-particle"></div>
+      <WeatherFX type="desert" :intensity="5" :sound-enabled="false" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <xp-draggable-spot screen="world-sands" spot-id="pond-of-life" :default-x="70" :default-y="50">
+            <xp-building-model building-id="pond-of-life" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="light-temple" :default-x="27" :default-y="71">
+            <xp-temple-model temple-id="light-temple" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="pegasus" :default-x="72" :default-y="74">
+            <xp-building-model building-id="pegasus" world="desert" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="merchant" :default-x="48" :default-y="56">
+            <xp-traveling-merchant world="desert" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="hotel" :default-x="28" :default-y="38">
+            <xp-building-model building-id="hotel" world="desert" :size="105" />
+          </xp-draggable-spot>
         </div>
-        <div class="dust-cloud dust-cloud1"></div>
-        <div class="dust-cloud dust-cloud2"></div>
-        <div class="dust-cloud dust-cloud3"></div>
-        <div class="dust-cloud dust-cloud4"></div>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
-<script src="./WorldDesert" />
+<script lang="ts" src="./WorldDesert.ts" />
 <style lang="scss" src="./_WorldDesert.scss" scoped />
 <style lang="scss">
   #sun-temple{

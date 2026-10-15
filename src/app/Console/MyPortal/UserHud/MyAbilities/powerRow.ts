@@ -1,0 +1,145 @@
+import type { Ability, AbilityStatus, TimePeriod } from "@/types/abilities";
+import type { HeroAbilitySnapshot, HeroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
+import { toFaClass } from "@/lib/utils/faIcon";
+import { durationLabel, timerMinutesOf } from "@/lib/services/abilities/PowerTimers";
+
+/**
+ * What one Power says on its row of the Powers app: the kind, the AP it asks for and how far the hero has come, the
+ * cost and frequency, the one line that says why it cannot be cast right now, and whether Cast works.
+ * Pure: the page owns the hero, the statuses and the casting. The same words as the Power card of a fight uses
+ * (components/XpPowerCard.vue), which stays as it is for the battle sheet.
+ */
+
+/** "this week" and friends, for the line that names the AP the Power asks for */
+const PERIOD_LABEL: Partial<Record<TimePeriod, string>> = {
+  daily: "today",
+  weekly: "this week",
+  monthly: "this month",
+  quarterly: "this quarter",
+  yearly: "this year",
+};
+
+/** Which AP window the meter reads; periods without a window of their own read the lifetime total */
+const AP_WINDOW: Partial<Record<TimePeriod, keyof HeroApWindows>> = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  quarterly: "quarterly",
+  yearly: "yearly",
+};
+
+const FREQUENCY_LABEL: Record<TimePeriod, string> = {
+  hourly: "once an hour",
+  daily: "once a day",
+  weekly: "once a week",
+  monthly: "once a month",
+  quarterly: "once a quarter",
+  biannual: "twice a year",
+  yearly: "once a year",
+  flat: "anytime",
+};
+
+/** When a cooling Power is back, by how often it can be cast */
+const BACK_LABEL: Record<TimePeriod, string> = {
+  hourly: "in an hour",
+  daily: "tomorrow",
+  weekly: "next week",
+  monthly: "next month",
+  quarterly: "next quarter",
+  biannual: "in six months",
+  yearly: "next year",
+  flat: "soon",
+};
+
+/** Whole numbers stay whole; a fraction of AP shows one decimal */
+export const fmtAp = (n: number): string => String(Math.round(n * 10) / 10);
+
+/** Why a Power that is not ready says so: the AP still to earn, the MP it needs, when it is back, or just its state. */
+export const stateLineOf = (ability: Ability, status: AbilityStatus, earned: number, needed: number): string => {
+  const lines: Partial<Record<AbilityStatus, () => string>> = {
+    locked: () => (earned < needed ? `${fmtAp(needed - earned)} AP to go` : "Locked"),
+    unlocked: () => `Need ${ability.mpCost} MP`,
+    cooling: () => `Cooling · back ${BACK_LABEL[ability.frequency] ?? BACK_LABEL.flat}`,
+    used: () => "Used",
+    active: () => "Active",
+  };
+  return lines[status]?.() ?? "";
+};
+
+export interface PowerRow {
+  id: string;
+  name: string;
+  description: string;
+  /** Font Awesome icon class for the leading tile (`fa-film`) */
+  icon: string;
+  type: Ability["type"];
+  /** "Spell" or "Privilege" */
+  typeLabel: string;
+  mpCost: number;
+  /** "once a day", "anytime" ... */
+  frequencyLabel: string;
+  /** "30 min" for a timed privilege, empty when the Power has no timer */
+  timerLabel: string;
+  /** True while the Power's timer runs (it cannot be cast again until it ends) */
+  running: boolean;
+  /** AP the Power asks for in its window (0 when it asks for none) */
+  needed: number;
+  earned: number;
+  /** "3/10 AP today" */
+  apText: string;
+  /** CSS width of the meter fill, "0%" to "100%" */
+  meterWidth: string;
+  /** Why the Power cannot be cast right now (empty when it can) */
+  stateLine: string;
+  canCast: boolean;
+  locked: boolean;
+}
+
+export interface PowerRowOptions {
+  /** Set while the hero owes the Hospital: Cast stays disabled and says why */
+  groundedReason?: string | null;
+  /** This Power is being cast right now, so a double tap cannot charge the MP twice */
+  casting?: boolean;
+  /** The countdown of the Power's running timer ("24:13"); a running Power cannot be cast again until it ends */
+  timerLeft?: string | null;
+}
+
+export const buildPowerRow = (
+  ability: Ability,
+  status: AbilityStatus,
+  snapshot: HeroAbilitySnapshot,
+  options: PowerRowOptions = {}
+): PowerRow => {
+  const { groundedReason = null, casting = false, timerLeft = null } = options;
+  const minutes = timerMinutesOf(ability);
+  const running = Boolean(timerLeft);
+  const needed = Number(ability.apRequirement?.amount) || 0;
+  const period: TimePeriod = ability.apRequirement?.period ?? "flat";
+  const periodLabel = PERIOD_LABEL[period] ?? "in all";
+  const earned = snapshot.ap[AP_WINDOW[period] ?? "total"] ?? 0;
+  const ratio = needed > 0 ? Math.min(earned / needed, 1) : 1;
+
+  // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
+  const restingLine = groundedReason && status === "available" ? groundedReason : stateLineOf(ability, status, earned, needed);
+  const stateLine = running ? `Running · ${timerLeft} left` : restingLine;
+
+  return {
+    id: ability.id,
+    name: ability.name,
+    description: ability.description ?? "",
+    icon: toFaClass(ability.icon, "fa-sparkles"),
+    type: ability.type,
+    typeLabel: ability.type === "in-game" ? "Spell" : "Privilege",
+    mpCost: Number(ability.mpCost) || 0,
+    frequencyLabel: FREQUENCY_LABEL[ability.frequency] ?? FREQUENCY_LABEL.flat,
+    timerLabel: minutes > 0 ? durationLabel(minutes) : "",
+    running,
+    needed,
+    earned,
+    apText: `${fmtAp(earned)}/${fmtAp(needed)} AP ${periodLabel}`,
+    meterWidth: `${Math.round(ratio * 100)}%`,
+    stateLine,
+    canCast: status === "available" && !groundedReason && !casting && !running,
+    locked: status === "locked",
+  };
+};

@@ -13,18 +13,31 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="night-sky">
-        <div class="shooting-star shooting-star1"></div>
-        <div class="shooting-star shooting-star2"></div>
-        <div class="shooting-star shooting-star3"></div>
-        <div class="shooting-star shooting-star4"></div>
-        <div class="shooting-star shooting-star5"></div>
+      <WeatherFX type="moon" :intensity="5" :sound-enabled="false" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <xp-draggable-spot screen="the-moon" spot-id="pegasus" :default-x="70" :default-y="54">
+            <xp-building-model building-id="pegasus" world="moon" :size="90" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="moon-temple" :default-x="64" :default-y="72">
+            <xp-temple-model temple-id="moon-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="theia-city" :default-x="30" :default-y="80">
+            <xp-building-model building-id="theia-city" :size="110" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="merchant" :default-x="36" :default-y="52">
+            <xp-traveling-merchant world="moon" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="hotel" :default-x="28" :default-y="34">
+            <xp-building-model building-id="hotel" world="moon" :size="105" />
+          </xp-draggable-spot>
+        </div>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
-<script src="./WorldMoon" />
+<script lang="ts" src="./WorldMoon.ts" />
 <style lang="scss" src="./_WorldMoon.scss" scoped />
 
 <style lang="scss">

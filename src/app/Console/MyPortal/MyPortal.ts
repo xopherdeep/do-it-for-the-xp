@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, ref, onBeforeMount } from "vue";
+import { computed, defineComponent, ref, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -8,6 +8,19 @@ import { modalController } from "@ionic/vue";
 
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useUserActions } from "@/hooks/useUserActions";
+import { useHeroEquipment } from "@/hooks/useHeroEquipment";
+import { useEquipmentItems } from "./UserHud/components/equipment/EquipmentItems";
+import { toastController } from "@ionic/vue";
+import { play$fx } from "@/assets/fx";
+import { itemCardLine } from "@/lib/services/items/ItemRules";
+import { lanternOverdue } from "@/lib/services/quests/ItemEffects";
+import { startQuestWatch } from "@/lib/services/notifications/questWatch";
+import { canFly } from "@/lib/services/travel/flight";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
+import XpPowerTimerBar from "@/components/organisms/PowerTimers/XpPowerTimerBar.vue";
+import XpFirstRunTour from "@/components/organisms/FirstRunTour/XpFirstRunTour.vue";
+import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
 
 // Define interface for equipment items
 interface EquipmentItem {
@@ -40,11 +53,12 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage },
+  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour },
   mixins: [ionic],
   name: "my-portal",
   data() {
@@ -54,7 +68,6 @@ export default defineComponent({
       battleInterval: null,
       isRPGBoxOpen: false,
       isUserProfileModalOpen: false,
-      isPegasusModalOpen: false,  // Wind Whistle modal
       currentTerrain: "plains",
     };
   },
@@ -86,22 +99,14 @@ export default defineComponent({
     isImpersonating() {
       return (this as any).userStore.currentUser.isImpersonating;
     },
+    activeNavTab(): "profile" | "area" | "party" | "" {
+      return navTabFor(this.route, this.isUserProfileModalOpen);
+    },
   },
   methods: {
-    resetBattleTimer() { return (this as any).battleStore.resetBattleTimer() },
-    stopBattleTimer() { return (this as any).battleStore.stopBattleTimer() },
     loginUser(user: any) { return (this as any).userStore.loginUser(user) },
-    ACTIVATE_BATTLE() { return (this as any).battleStore.setActive(true) },
     getUserAvatar(user) {
-      // console.log(user.avatar);
-      const avatar = `./${user.avatar}.svg`;
-      // console.log(avatar);
-      return this.$requireAvatar(avatar);
-    },
-    enterBattle() {
-      // Type assertion for outlet ref
-      const outlet = this.$refs?.outlet as { enterBattle: () => void } | undefined;
-      outlet?.enterBattle();
+      return heroAvatarSrc(user, (key: string) => this.$requireAvatar(key));
     },
     async dismissRPGBox() {
       this.isRPGBoxOpen = false;
@@ -117,121 +122,20 @@ export default defineComponent({
     closeUserProfileModal() {
       this.isUserProfileModalOpen = false;
     },
-    openPegasusModal() {
-      this.isPegasusModalOpen = true;
+    // The Area tab opens the equipment, or walks back to the remembered place when Party is open
+    openAreaMenu() {
+      if (isPartyRoute(this.route)) {
+        this.router.push(this.compass.link);
+        return;
+      }
+      this.isRPGBoxOpen = true;
       this.play$fx('openMenu');
-    },
-    closePegasusModal() {
-      this.isPegasusModalOpen = false;
-    },
-    updateCompass(name) {
-      const { userId } = this;
-      const worlds = {
-        "world-map": {
-          name: "The World",
-          icon: "pegasus",
-          link: `/my-portal/${userId}/world-map`,
-        },
-        "home-town": {
-          name: "Hometown",
-          icon: "archway",
-          link: `/my-portal/${userId}/home-town`,
-        },
-        "my-home": {
-          name: "My Home",
-          icon: "house-user",
-          link: `/my-portal/${userId}/my-home`,
-        },
-        "world-plains": {
-          name: "Plains",
-          icon: "tornado",
-          link: `/my-portal/${userId}/plains`,
-        },
-        "world-islands": {
-          name: "Islands",
-          icon: "island-tropical",
-          link: `/my-portal/${userId}/islands`,
-        },
-        "world-forest": {
-          name: "Forests",
-          icon: "trees",
-          link: `/my-portal/${userId}/forest`,
-        },
-        "world-swamps": {
-          name: "Swamps",
-          icon: "skull-crossbones",
-          link: `/my-portal/${userId}/world-ice`,
-        },
-        "world-mountains": {
-          name: "Mountains",
-          icon: "mountains",
-          link: `/my-portal/${userId}/mountains`,
-        },
-        "world-sands": {
-          name: "Sands",
-          icon: "cactus",
-          link: `/my-portal/${userId}/desert`,
-        },
-        "world-ice": {
-          name: "Tundras",
-          icon: "igloo",
-          link: `/my-portal/${userId}/world-ice`,
-        },
-        "world-clouds": {
-          name: "Clouds",
-          icon: "cloud",
-          link: `/my-portal/${userId}/world-clouds`,
-        },
-        "the-moon": {
-          name: "The Moon",
-          icon: "moon",
-          link: `/my-portal/${userId}/the-moon`,
-        },
-      };
-      const world = worlds[name];
-      if (world) this.compass = world;
     },
 
     stopImpersonating() {
       (this as any).userStore.stopImpersonating();
       this.play$fx("start");
       this.router.push({ name: "xp-dashboard" });
-    },
-  },
-  created() {
-    this.updateCompass(this.routeName);
-  },
-  watch: {
-    routeName(name) {
-      this.updateCompass(name);
-    },
-    battleCounter(
-      /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-      counter
-    ) {
-      /* eslint-disable @typescript-eslint/no-unused-vars */
-      const {
-        router,
-        userId,
-        ACTIVATE_BATTLE,
-        stopBattleTimer,
-        resetBattleTimer
-      } = this;
-      /* eslint-enable @typescript-eslint/no-unused-vars */
-
-      // UNCOMMENT TO TURN ON BATTLES
-      // if (counter <= 0) {
-      //   // return false;
-      //   this.play$fx("enterBattle");
-      //   router
-      //     .push({
-      //       name: "battle-field",
-      //       params: { userId },
-      //     })
-      //     .then(stopBattleTimer)
-      //     .then(resetBattleTimer)
-      //     .then(ACTIVATE_BATTLE);
-      // }
     },
   },
   setup() {
@@ -260,7 +164,6 @@ export default defineComponent({
     const user = computed(() => userStore.getUserById(userId as string));
 
     onBeforeMount(async () => {
-      console.log('MyPortal: Checking user hydration...');
       if (!user.value) {
         await userStore.loadUsers();
         if (!user.value) {
@@ -268,55 +171,70 @@ export default defineComponent({
         }
       }
     });
-    const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
-    const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
-      // If we're removing an item from a specific slot
-      if (item === null && hand) {
-        equipment.value = equipment.value.filter(
-          (i) => !(i.hand === hand && i.slotIndex === index)
-        );
-        return;
-      }
 
-      // Item is not null at this point, so we can safely use it
-      // First, check if this item is already equipped somewhere else
-      const alreadyEquippedIndex = equipment.value.findIndex(
-        (i) => i.faIcon === item?.faIcon
-      );
+    // The quest watch: the hero's feed (and the device, on a phone) hears about quests due within two
+    // hours and quests overdue, once per quest per day, on mount and every five minutes while the portal is up
+    const notificationsStore = useNotificationsStore();
+    let stopQuestWatch: (() => void) | null = null;
+    onMounted(() => {
+      if (!userId) return;
+      void notificationsStore.load(String(userId));
+      stopQuestWatch = startQuestWatch(String(userId));
+    });
+    onBeforeUnmount(() => {
+      stopQuestWatch?.();
+      stopQuestWatch = null;
+    });
+    // The hero's hands: read from the profile, saved on every change (shared with the temples)
+    const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(userId));
 
-      // If it's already equipped, remove it first
-      if (alreadyEquippedIndex !== -1) {
-        equipment.value.splice(alreadyEquippedIndex, 1);
-      }
-
-      // Check if there's already an item in the target slot
-      const slotOccupiedIndex = equipment.value.findIndex(
-        (i) => i.hand === hand && i.slotIndex === index
-      );
-
-      // If the slot is occupied, remove that item
-      if (slotOccupiedIndex !== -1) {
-        equipment.value.splice(slotOccupiedIndex, 1);
-      }
-
-      // Create a copy of the item with the click handler preserved
-      const itemToEquip = { ...item, hand, slotIndex: index } as EquipmentItem;
-
-      // Ensure the click handler is properly preserved
-      // Functions don't get copied with spread operator, so we need to explicitly assign it
-      if (item?.click && typeof item.click === "function") {
-        itemToEquip.click = item.click;
-      }
-
-      // Add the new item
-      equipment.value.push(itemToEquip);
+    const say = async (message: string, duration = 1800) => {
+      const toast = await toastController.create({ message, duration, position: "top", cssClass: "rpg-toast" });
+      await toast.present();
     };
 
-    const compass = reactive({
-      name: "Home",
-      icon: "house-user",
-      link: `/my-portal/${userId}/my-home`,
-    });
+    const isPegasusModalOpen = ref(false);
+    const openPegasusModal = () => {
+      isPegasusModalOpen.value = true;
+      play$fx("openMenu");
+    };
+    const closePegasusModal = () => {
+      isPegasusModalOpen.value = false;
+    };
+
+    const { specialItems } = useEquipmentItems({ onOpenPegasusModal: openPegasusModal });
+
+    // Tapping an equipped item outside a temple: navigation items navigate, the Lantern lists the overdue quests,
+    // and every other tool shows its card (its temple use, fight use and MP). Items bend no real chore: that is
+    // the real-life Powers' job (docs/superpowers/specs/2026-10-13-equipment-rules-design.md, 1)
+    const useHand = async (item: EquipmentItem | null) => {
+      if (!item) return;
+      play$fx("select");
+      const live = specialItems.find((candidate: EquipmentItem) =>
+        (item.faIcon && candidate.faIcon === item.faIcon) ||
+        (item.name && candidate.name === item.name)
+      );
+      const liveClick = live?.click;
+      if (liveClick) {
+        liveClick.call(live);
+        return;
+      }
+      const name = String(item.name ?? live?.name ?? "");
+      if (!name) return;
+      const isLantern = name === "Lantern";
+      if (isLantern) {
+        const result = await lanternOverdue(String(userId));
+        play$fx(result.sound);
+        return say(result.line, 2600);
+      }
+      return say(itemCardLine(name), 4000);
+    };
+
+    const openParty = () => router.push(`/my-portal/${userId}/my-party`);
+
+    // The Area tab: where the hero stands, or the last place they stood while Party or Profile is open
+    // (on foot the overworld is the Plains: the first Pegasus unlocks it)
+    const compass = computed(() => areaTabFor(route, canFly(user.value), String(userId || "")));
 
     const pageIcon = computed(() => route.meta.faIcon);
     const fabStyle = computed(() => gameStore.fabStyle);
@@ -324,6 +242,13 @@ export default defineComponent({
     return {
       userId,
       clickItem,
+      leftHandItem,
+      rightHandItem,
+      useHand,
+      openParty,
+      isPegasusModalOpen,
+      openPegasusModal,
+      closePegasusModal,
       compass,
       pageIcon,
       fabStyle,

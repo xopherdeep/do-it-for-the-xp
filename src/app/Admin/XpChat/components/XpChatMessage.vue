@@ -1,8 +1,12 @@
 <template>
-    <div class="xp-chat-message" :class="{ 'is-own': isOwn }">
+    <div v-if="message.kind === 'system'" class="xp-chat-message is-system">
+        <div class="system-line">{{ message.text }} <span class="timestamp">{{ formattedTime }}</span></div>
+    </div>
+
+    <div v-else class="xp-chat-message" :class="{ 'is-own': isOwn }">
         <div class="message-avatar" v-if="!isOwn">
             <ion-avatar>
-                <img :src="avatarUrl" />
+                <img :src="avatarUrl" :alt="message.senderName" />
             </ion-avatar>
         </div>
 
@@ -20,7 +24,7 @@
 
         <div class="message-avatar" v-if="isOwn">
             <ion-avatar>
-                <img :src="avatarUrl" />
+                <img :src="avatarUrl" :alt="message.senderName" />
             </ion-avatar>
         </div>
     </div>
@@ -31,6 +35,7 @@ import { defineComponent, PropType, computed } from 'vue';
 import { ChatMessage } from '@/lib/databases/ChatDb';
 import { chatEngine } from '@/lib/engine/core/ChatEngine';
 import { useUserStore } from '@/lib/store/stores/user';
+import { heroAvatarImage } from '@/lib/hero-look/look';
 import ionic from "@/lib/mixins/ionic";
 
 export default defineComponent({
@@ -48,8 +53,12 @@ export default defineComponent({
         const isOwn = computed(() => props.message.senderId === userStore.currentUser.id);
 
         const avatarUrl = computed(() => {
-            if (props.message.avatar) {
-                return require(`@/assets/images/avatars/${props.message.avatar}.svg`);
+            // The sender's rendered look, read from their profile so messages stay small
+            const snapshot = heroAvatarImage(userStore.getUserById(props.message.senderId));
+            if (snapshot) return snapshot;
+            const avatar = props.message.avatar;
+            if (avatar) {
+                return require(`@/assets/images/avatars/${avatar}.svg`);
             }
             return require('@/assets/images/avatars/001-gamer.svg');
         });
@@ -75,6 +84,26 @@ export default defineComponent({
 
     &.is-own {
         justify-content: flex-end;
+    }
+
+    // The Town Crier: a centred line of news, not a bubble
+    &.is-system {
+        justify-content: center;
+
+        .system-line {
+            max-width: 90%;
+            text-align: center;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #f5ecd0;
+            opacity: 0.7;
+            word-break: break-word;
+
+            .timestamp {
+                margin-left: 0.25rem;
+                opacity: 0.8;
+            }
+        }
     }
 
     .message-avatar {

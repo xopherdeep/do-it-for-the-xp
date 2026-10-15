@@ -74,6 +74,22 @@
         />
 
         <ion-item
+          v-if="canInstall"
+          @click="installApp"
+          lines="none"
+          detail="false"
+          button
+        >
+          <ion-icon
+            slot="start"
+            :ios="icons.downloadOutline"
+            :md="icons.downloadSharp"
+            class="ml-2"
+          />
+          <ion-label>Install App</ion-label>
+        </ion-item>
+
+        <ion-item
           @click="
             setMenuItem(-1);
             $fx.ui[$fx.theme.ui].select.play();
@@ -105,7 +121,14 @@
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
   import { useRoute } from "vue-router";
+  import { useProStore } from "@/lib/store/stores/pro";
+  import { proMenuIcon } from "@/lib/services/pro/membershipStatus";
+  import { GM_PATH, canAccessGameMaster } from "@/router/_Guards/gm.guard";
+  import { alertController } from "@ionic/vue";
+  import { installState, installSteps, promptInstall } from "@/lib/services/pwa/installApp";
   import {
+    downloadOutline,
+    downloadSharp,
     logInOutline,
     logInSharp,
     lockClosedOutline,
@@ -124,6 +147,8 @@
     moonSharp,
     pizzaOutline,
     pizzaSharp,
+    ribbonOutline,
+    ribbonSharp,
     sunnyOutline,
     sunnySharp,
   } from "ionicons/icons";
@@ -138,9 +163,10 @@
 
     data() {
       return {
-        isAnnual: true,
         activeMenuItem: 0, // Changed back to number
         icons: {
+          downloadOutline,
+          downloadSharp,
           lockClosedOutline,
           lockClosedSharp,
         },
@@ -192,13 +218,12 @@
             title: "",
           },
           {
-            title: "Membership",
+            title: "XP Pro",
             url: "/xp-membership",
-            // iosIcon: fitnessOutline,
-            // mdIcon: fitnessSharp,
-            // moon if monthly or sun if yearly
-            iosIcon: this.isAnnual ? moonOutline : sunnyOutline,
-            mdIcon: this.isAnnual ? moonSharp : sunnySharp,
+            // the icon follows the real plan: see proMenuIcon
+            iosIcon: ribbonOutline,
+            mdIcon: ribbonSharp,
+            proIcon: true,
 
             lines: "none",
           },
@@ -273,8 +298,15 @@
         },
       },
       getCurrentMenu() {
-        const { appPages, appPagesAnon, isLoggedIn } = this;
-        return isLoggedIn ? appPages : appPagesAnon;
+        const { appPagesAnon, isLoggedIn, canOpenGameMaster, proIcon } = this;
+        if (!isLoggedIn) return appPagesAnon;
+        // XP Pro shows the sun (yearly, lifetime), the moon (monthly) or a ribbon (free)
+        const appPages = this.appPages.map((page: any) => (page.proIcon ? { ...page, ...proIcon } : page));
+        // The Compendium (/game-master) is for Game Masters; everyone else never sees the entry.
+        // The router guard enforces it, hiding it just keeps the door out of sight.
+        return canOpenGameMaster
+          ? appPages
+          : appPages.filter((page) => page.url !== GM_PATH);
       },
       bgmToggle($event) {
         // Call the store action directly instead of just emitting
@@ -299,6 +331,19 @@
         // Still emit the event for any parent components
         this.$emit("changeBGM", direction);
       },
+      // Chrome, Edge and Android show their own install dialog; Safari only installs from its menus, so show the steps
+      async installApp() {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+        const isPromptRoute = installState.route === "prompt";
+        if (isPromptRoute) {
+          await promptInstall();
+          return;
+        }
+        const steps = installSteps(installState.route);
+        if (!steps) return;
+        const alert = await alertController.create({ ...steps, buttons: ["Got it"] });
+        await alert.present();
+      },
       navigateToGpPage() {
         this.$fx.ui[this.$fx.theme.ui].select.play();
         this.$router.push("/about-xp/gp");
@@ -318,8 +363,23 @@
       const gameStore = useGameStore();
       const route = useRoute();
 
+      const proStore = useProStore();
+      const proIcon = computed(() => {
+        const kind = proMenuIcon(proStore.isPro, proStore.plan);
+        const isSun = kind === "sun";
+        if (isSun) return { iosIcon: sunnyOutline, mdIcon: sunnySharp };
+        const isMoon = kind === "moon";
+        if (isMoon) return { iosIcon: moonOutline, mdIcon: moonSharp };
+        return { iosIcon: ribbonOutline, mdIcon: ribbonSharp };
+      });
+
       return {
+        proIcon,
+        // Shown until the game runs installed, and only where this browser can install it
+        canInstall: computed(() => ["prompt", "ios", "mac-safari"].includes(installState.route)),
         isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
+        // Same rule as the /game-master router guard, so the menu never offers a door that is locked
+        canOpenGameMaster: computed(() => canAccessGameMaster(userStore)),
         route,
         userStore,
         audioStore,
@@ -333,6 +393,11 @@
     watch: {
       // Update active menu item when route changes
       $route() {
+        this.activeMenuItem = this.initialIndex();
+      },
+      // Compendium appears or disappears (profiles finish loading, someone switches profile),
+      // which shifts every index after it, so find the highlighted row again
+      canOpenGameMaster() {
         this.activeMenuItem = this.initialIndex();
       },
     },

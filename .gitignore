@@ -32,8 +32,21 @@ npm-debug.log*
 /www
 .aider*
 
-
 src/assets/images/backgrounds/ai/*
 src/assets/images/backgrounds/old/*
 src/assets/images/backgrounds/gaia/*
 .env
+# Chemical X local telemetry & audit history
+.chemx/
+
+# Cypress run artifacts
+cypress/
+tests/e2e/screenshots/
+tests/e2e/videos/
+
+__pycache__/
+*.pyc
+
+# tools/art generators: review output (world_backgrounds.py)
+tools/art/out/
+tools/For the xp/

@@ -9,11 +9,13 @@ import { AudioEngine, MusicTrack } from './AudioEngine';
 import debug from '@/lib/utils/debug';
 
 /**
- * Default album artwork for the game
+ * Default album artwork for the game. Bundled through webpack so the URL
+ * follows the runtime public path (the repo-root `assets/` folder is a
+ * Capacitor resource and never reaches the web build).
  */
 const DEFAULT_ARTWORK = [
   {
-    src: '/assets/icon-only.png',
+    src: require('@/assets/images/brand/icon-512.png') as string,
     sizes: '512x512',
     type: 'image/png'
   }
@@ -24,15 +26,15 @@ const DEFAULT_ARTWORK = [
  */
 export class MediaSessionHandler {
   private engine: AudioEngine;
-  private mediaSessionAvailable: boolean;
+  private hasMediaSession: boolean;
   private currentTrackId: string | null = null;
   private trackData = new Map<string, Partial<MusicTrack>>();
 
   constructor(engine: AudioEngine) {
     this.engine = engine;
-    this.mediaSessionAvailable = 'mediaSession' in navigator;
+    this.hasMediaSession = 'mediaSession' in navigator;
     
-    if (!this.mediaSessionAvailable) {
+    if (!this.hasMediaSession) {
       debug.warn('Media Session API not available in this browser');
     } else {
       debug.log('Media Session API available, initializing...');
@@ -53,15 +55,16 @@ export class MediaSessionHandler {
    * Set up media session action handlers
    */
   private setupMediaSession(): void {
-    if (!this.mediaSessionAvailable) return;
+    if (!this.hasMediaSession) return;
     
     const mediaSession = navigator.mediaSession;
     
     // Set action handlers for media controls
     mediaSession.setActionHandler('play', () => {
       debug.log('Media Session: Play');
-      if (this.currentTrackId) {
-        this.engine.playMusic(this.currentTrackId);
+      const trackId = this.currentTrackId;
+      if (trackId) {
+        this.engine.playMusic(trackId);
       }
     });
     
@@ -114,7 +117,7 @@ export class MediaSessionHandler {
    * @param id Track identifier
    */
   public updateMetadata(id: string): void {
-    if (!this.mediaSessionAvailable) return;
+    if (!this.hasMediaSession) return;
     
     // Save current track ID
     this.currentTrackId = id;
@@ -145,7 +148,7 @@ export class MediaSessionHandler {
    * @param state 'playing' or 'paused'
    */
   public updatePlaybackState(state: MediaSessionPlaybackState): void {
-    if (!this.mediaSessionAvailable) return;
+    if (!this.hasMediaSession) return;
     
     try {
       navigator.mediaSession.playbackState = state;

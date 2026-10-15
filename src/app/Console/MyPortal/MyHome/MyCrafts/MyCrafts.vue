@@ -1,179 +1,107 @@
 <template>
-  <ion-page>
+  <ion-page
+    class="my-crafts"
+    :class="rootClass"
+    :style="rootStyle"
+  >
     <ion-header>
-      <ion-toolbar class="rpg-box">
-        <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/my-home`"
-          ></ion-back-button>
-          <!-- <ion-icon :icon="calendarOutline" slot="icon-only" /> -->
-        </ion-buttons>
-        <ion-title>
-          <i class="fad fa-tools" />
-          My Workbench
-        </ion-title>
-      </ion-toolbar>
       <ion-toolbar>
-        <ion-segment
-          @ionChange="segmentChanged($event)"
-          color="primary"
-          scrollable
-          value="all"
+        <xp-app-header
+          title="Workbench"
+          icon="tools"
+          :meta="metaText"
         >
-          <ion-segment-button value="all">
-            <ion-icon :icon="appsOutline" color="primary"></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="hp">
-            <ion-icon :icon="bedOutline" color=""></ion-icon>
-            Furniture
-          </ion-segment-button>
-          <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color=""></ion-icon>
-            Accessories
-          </ion-segment-button>
-          <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color=""></ion-icon>
-            Weapons
-          </ion-segment-button>
-          <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color=""></ion-icon>
-            Key
-          </ion-segment-button>
-        </ion-segment>
+          <template #start>
+            <xp-back-button></xp-back-button>
+          </template>
+        </xp-app-header>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="my-calendar">
+    <ion-content class="my-crafts__content">
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-row>
-          <ion-col
-            size="6"
-            v-for="item in items"
+      <template v-else>
+        <xp-app-section
+          v-if="listItems.length"
+          :label="sectionLabel"
+        >
+          <xp-app-row
+            v-for="item in listItems"
             :key="item.id"
-            class="ion-no-padding"
+            :title="itemTitle(item)"
+            :subtitle="itemSubtitle(item)"
+            :image="itemImage(item)"
+            icon="tools"
+            :chevron="false"
+          />
+        </xp-app-section>
+        <div
+          v-if="listItems.length && hasNextPage"
+          class="my-crafts__more"
+        >
+          <button
+            type="button"
+            class="xp-app-btn xp-app-btn--ghost"
+            @click="loadMore"
           >
-            <ion-card class="item ion-no-padding">
-              <ion-card-header>
-                <ion-card-subtitle
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                />
-                <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
-              </ion-card-header>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+            More
+          </button>
+        </div>
+        <xp-app-empty
+          v-if="!listItems.length"
+          icon="tools"
+          :text="emptyText"
+        />
+      </template>
 
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <!-- <ion-badge color="warning">
-                  {{item.meta._xp_achievement_gp}}
-                  &nbsp;
-                  <strong>GP</strong>
-                </ion-badge>
-                <ion-badge color="tertiary">
-                  {{item.meta._xp_achievement_ap}}
-                  &nbsp;
-                  <strong>AP</strong>
-                </ion-badge>
-                <ion-badge color="success">
-                  {{item.meta._xp_achievement_xp}}
-                  &nbsp;
-                  <strong>XP</strong>
-                </ion-badge> -->
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
+      <!-- The buildings' FAB (as in the Gold Bank): bottom center, above the search bar and the dock -->
       <ion-fab
         vertical="bottom"
         horizontal="center"
         slot="fixed"
-        @click="actionSheetOpen = true"
       >
-        <ion-fab-button>
-          <i class="fad fa-tools fa-lg" />
+        <ion-fab-button
+          class="crafts-fab"
+          aria-label="Workbench options"
+          @click="actionSheetOpen = true"
+        >
+          <i class="fad fa-tools fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
+
       <ion-action-sheet
+        v-bind="sheetAttrs"
         :is-open="actionSheetOpen"
         :header="'Workbench Options'"
-        :buttons="[
-          {
-            text: 'Materials Inventory',
-            icon: cubeOutline,
-            handler: handleInventoryClick,
-          },
-          {
-            text: 'Crafting History',
-            icon: bookOutline, // You can update this with a more suitable icon
-            handler: () => {
-              // Navigate to Crafting History or execute related function
-              // console.log('Crafting History clicked')
-            },
-          },
-          {
-            text: 'Quick Tutorials',
-            icon: videocamOutline, // You can update this with a more suitable icon
-            handler: () => {
-              // Play or Navigate to Quick Tutorials
-              // console.log('Quick Tutorials clicked')
-            },
-          },
-          {
-            text: 'Cancel',
-            icon: close,
-            role: 'cancel',
-          },
-        ]"
+        :buttons="actionSheetButtons"
         @didDismiss="actionSheetOpen = false"
       />
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="secondary">
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="light"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                @click="request.params.page--"
-                :disabled="request.params.page == 1"
-                color="light"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-          <ion-col>
-            <ion-button
-              @click="request.params.page++"
-              :disabled="!hasNextPage"
-              color="light"
-              expand="block"
-            >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
 
-<script src="./MyCrafts" />
+    <ion-footer class="crafts-footer">
+      <div class="xp-app-bar">
+        <label class="xp-app-search">
+          <i class="fad fa-search"></i>
+          <input
+            type="search"
+            v-model="request.params.search"
+            placeholder="Search Workbench"
+            aria-label="Search Workbench"
+            autocomplete="off"
+            @input="onSearch"
+          />
+        </label>
+      </div>
+
+      <xp-app-bottom-nav
+        :tabs="workbenchTabs"
+        v-model="activeTab"
+        aria-label="Workbench Navigation"
+        @change="onTabChange"
+      />
+    </ion-footer>
+  </ion-page>
+</template>
+
+<script lang="ts" src="./MyCrafts.ts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

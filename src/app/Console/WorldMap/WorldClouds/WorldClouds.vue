@@ -13,45 +13,31 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="thunderstorm-container">
-        <!-- Enhanced lightning effect -->
-        <div class="lightning-container">
-          <div class="lightning"></div>
-          <div class="lightning"></div>
-          <div class="lightning"></div>
-          <!-- Visible lightning bolts with content -->
-          <div class="lightning-bolt lightning-bolt-1"></div>
-          <div class="lightning-bolt lightning-bolt-2"></div>
+      <WeatherFX type="cloudy" :intensity="5" :sound-enabled="false" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <xp-draggable-spot screen="world-clouds" spot-id="storm-temple" :default-x="66" :default-y="55">
+            <xp-temple-model temple-id="storm-temple" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="cloud-market" :default-x="25" :default-y="68">
+            <xp-building-model building-id="cloud-market" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="pegasus" :default-x="45" :default-y="84">
+            <xp-building-model building-id="pegasus" world="clouds" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="merchant" :default-x="34" :default-y="46">
+            <xp-traveling-merchant world="clouds" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="hotel" :default-x="68" :default-y="32">
+            <xp-building-model building-id="hotel" world="clouds" :size="105" />
+          </xp-draggable-spot>
         </div>
-        
-        <!-- Completely revamped rain effect -->
-        <div class="rain-container">
-          <!-- Remove the rain layers causing the static effect -->
-          <!-- Only use actual rain drops with improved styling -->
-          <div v-for="n in 100" :key="n" class="raindrop"></div>
-        </div>
-        
-        <!-- Enhanced clouds with more variety and dynamic positions -->
-        <div class="cloud-container">
-          <div class="cloud cloud1"></div>
-          <div class="cloud cloud2"></div>
-          <div class="cloud cloud3"></div>
-          <div class="cloud cloud4"></div>
-          <div class="cloud cloud5"></div>
-          <div class="cloud cloud6"></div>
-          <div class="cloud cloud-dark cloud7"></div>
-          <div class="cloud cloud-dark cloud8"></div>
-          <div class="cloud cloud-dark cloud9"></div>
-        </div>
-        
-        <!-- Fog/mist layer for depth -->
-        <div class="fog-layer"></div>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
-<script src="./WorldClouds" />
+<script lang="ts" src="./WorldClouds.ts" />
 <style lang="scss" src="./_WorldClouds.scss" scoped />
 <style lang="scss">
   #sky-temple{

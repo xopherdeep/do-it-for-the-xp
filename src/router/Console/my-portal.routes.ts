@@ -11,7 +11,8 @@ const MyPortalRoutes = [{
     const userId = to.params.userId as string;
 
     // Check if user is already loaded
-    if (userStore.getUserById(userId)) {
+    const isKnownUser = Boolean(userStore.getUserById(userId));
+    if (isKnownUser) {
       next();
       return;
     }
@@ -19,7 +20,8 @@ const MyPortalRoutes = [{
     // Try to load users if not found (e.g. hard refresh)
     await userStore.loadUsers();
 
-    if (userStore.getUserById(userId)) {
+    const isFoundAfterLoad = Boolean(userStore.getUserById(userId));
+    if (isFoundAfterLoad) {
       next();
     } else {
       // If still not found, redirect to profile selection
@@ -45,6 +47,7 @@ const MyPortalRoutes = [{
   },
   {
     path: "my-party",
+    name: "my-party",
     meta: {
       faIcon: "fort-awesome",
       hideUserFab: true,
@@ -77,6 +80,8 @@ const MyPortalRoutes = [{
     component: () => import('@/app/Console/MyPortal/UserProfile/UserProfile.vue'),
     props: true
   },
+  // The My Look page is retired: the hero builder opens over My Profile; old links and bookmarks land there
+  { path: "my-look", redirect: (to) => ({ name: "my-profile", params: to.params }) },
   ...WorldMapRoutes
   ],
 }];

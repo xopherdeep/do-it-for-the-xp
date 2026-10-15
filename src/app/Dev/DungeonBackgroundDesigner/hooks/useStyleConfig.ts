@@ -176,12 +176,14 @@ export function useStyleConfig() {
     const era = selectedEraStyle.value;
     const eraColors = eraPalettes[era as keyof typeof eraPalettes];
 
-    if (eraColors && eraColors[type] && typeof eraColors[type][style] === 'string') {
+    const hasEraColor = eraColors && eraColors[type] && typeof eraColors[type][style] === 'string';
+    if (hasEraColor) {
       return eraColors[type][style];
     }
 
     // Fallback to default colors
-    if (styleColors[type] && typeof styleColors[type][style] === 'string') {
+    const hasDefaultColor = styleColors[type] && typeof styleColors[type][style] === 'string';
+    if (hasDefaultColor) {
       return styleColors[type][style];
     }
 

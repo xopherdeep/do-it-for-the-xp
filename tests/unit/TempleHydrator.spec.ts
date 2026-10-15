@@ -1,10 +1,10 @@
-import { TempleHydrator } from '@/lib/engine/core/dungeons/TempleHydrator';
+import { TempleHydrator } from './helpers/dslTemple';
 
-describe('TempleHydrator', () => {
+describe('TempleHydrator (DSL test helper)', () => {
   const testBlueprint = `
     EXIT  ____  M01_
     ____  BOSS  ____
-    $GP$  ____  EXIT
+    $001  ____  EXIT
   `;
 
   it('should hydrate a valid dungeon from a DSL string with EXIT as entrance/exit', () => {

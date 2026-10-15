@@ -1,0 +1,766 @@
+// The phone apps kit (XpAppHeader, XpAppSection, XpAppRow, XpAppChip, XpAppEmpty).
+//
+// One kit, two skins that follow the Retro / Modern toggle (useGameStore().fabStyle). A page puts the classes of
+// useAppSkin().rootClass (`xp-app xp-app--retro|modern`) and the style of useAppSkin().rootStyle (`--xp-app-accent`) on
+// its ion-page root. The markup of the components is the same in both skins: the skins only differ in the tokens and in
+// a few rules marked below.
+//
+//   modern = "Pocket OS": dark surface, inset grouped sections with a 14px radius, hairline dividers, soft chips.
+//   retro  = PDA + menu window: one thin square pixel frame per section, dotted row dividers, a blinking cursor on
+//            the focused row, StatusPlz everywhere, cream text on deep navy, the accent as a flat fill.
+//
+// Imported once, globally, from src/styles/index.scss.
+
+// ---- Tokens ----------------------------------------------------------------------------------------------------
+
+// Modern is the base, so anything inside .xp-app that lacks a skin class still renders as a phone app.
+.xp-app,
+.xp-app--modern {
+  --xp-app-bg: #14111c;
+  --xp-app-surface: #1e1a2b;
+  --xp-app-surface-2: #2a2539;
+  --xp-app-text: #f2eefb;
+  --xp-app-text-dim: rgba(242, 238, 251, 0.62);
+  --xp-app-on-accent: var(--ion-color-rpg, #f7e8a8); // the RPG cream on every accent fill (owner 2026-10-13)
+  --xp-app-on-accent-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 1px 0 0 rgba(0, 0, 0, 0.35);
+  --xp-app-line: rgba(255, 255, 255, 0.09);
+  --xp-app-frame: transparent;
+
+  --xp-app-font-title: "StatusPlz", "Apple Kid", sans-serif;
+  --xp-app-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --xp-app-title-transform: none;
+  --xp-app-text-shadow: none;
+
+  --xp-app-radius-section: 14px;
+  --xp-app-radius-tile: 10px;
+  --xp-app-radius-chip: 999px;
+  --xp-app-radius-control: 10px;
+
+  --xp-app-section-border: 1px solid rgba(255, 255, 255, 0.05);
+  --xp-app-row-pad-x: 12px;
+  --xp-app-tile-bg: var(--xp-app-surface-2);
+  --xp-app-tile-fg: var(--xp-app-accent);
+  --xp-app-tile-border: 0;
+  --xp-app-cursor: var(--xp-app-accent);
+  --xp-app-press: rgba(255, 255, 255, 0.07);
+  --xp-app-bar-bg: rgba(20, 17, 28, 0.92);
+}
+
+// Retro overrides every token above (declared after, same specificity).
+.xp-app--retro {
+  --xp-app-bg: #0b1030;
+  --xp-app-surface: #121a45;
+  --xp-app-surface-2: #1b2660;
+  --xp-app-text: #e7e6b3;
+  --xp-app-text-dim: rgba(231, 230, 179, 0.62);
+  --xp-app-on-accent: var(--ion-color-rpg, #f7e8a8);
+  --xp-app-line: rgba(231, 230, 179, 0.5);
+  --xp-app-frame: #e7e6b3;
+  --xp-app-bar-edge: 2px solid #0b1030;
+
+  --xp-app-font-title: "StatusPlz", "Apple Kid", monospace;
+  --xp-app-font-body: "StatusPlz", "Apple Kid", monospace;
+  --xp-app-title-transform: uppercase;
+  --xp-app-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+
+  --xp-app-radius-section: 0px;
+  --xp-app-radius-tile: 0px;
+  --xp-app-radius-chip: 0px;
+  --xp-app-radius-control: 0px;
+
+  --xp-app-section-border: 2px solid var(--xp-app-frame);
+  --xp-app-row-pad-x: 12px;
+  --xp-app-tile-bg: var(--xp-app-surface-2);
+  --xp-app-tile-fg: #f7e8a8;
+  --xp-app-tile-border: 1px solid rgba(231, 230, 179, 0.55);
+  --xp-app-cursor: #f7e8a8;
+  --xp-app-press: rgba(247, 232, 168, 0.12);
+  --xp-app-bar-bg: #0b1030;
+}
+
+// ---- The page --------------------------------------------------------------------------------------------------
+
+.xp-app {
+  background: var(--xp-app-bg);
+  color: var(--xp-app-text);
+  font-family: var(--xp-app-font-body);
+  --ion-font-family: var(--xp-app-font-body);
+  text-shadow: var(--xp-app-text-shadow);
+
+  // The app bar wears the app's accent (owner 2026-10-13: each app keeps its colour); no shadow line under it.
+  ion-header::after {
+    display: none;
+  }
+
+  ion-header ion-toolbar {
+    --background: transparent;
+    --color: var(--xp-app-text);
+    --border-width: 0;
+    --padding-start: 0;
+    --padding-end: 0;
+    --padding-top: 0;
+    --padding-bottom: 0;
+    --min-height: 0;
+  }
+
+  ion-header ion-toolbar:first-of-type {
+    --background: var(--xp-app-accent);
+    --color: var(--xp-app-on-accent);
+    border-bottom: var(--xp-app-bar-edge, 0);
+  }
+
+  ion-content {
+    --background: var(--xp-app-bg);
+    --color: var(--xp-app-text);
+    font-family: var(--xp-app-font-body);
+  }
+
+  // The building FAB that opens an app's sheet wears the app's accent, whatever color= the page gave it (owner 2026-10-13).
+  ion-fab ion-fab-button {
+    --background: var(--xp-app-accent);
+    --background-activated: var(--xp-app-accent);
+    --background-hover: var(--xp-app-accent);
+    --color: var(--xp-app-on-accent);
+    --ion-color-base: var(--xp-app-accent) !important;
+    --ion-color-contrast: var(--xp-app-on-accent) !important;
+    --ion-color-shade: var(--xp-app-accent) !important;
+    --ion-color-tint: var(--xp-app-accent) !important;
+    --fa-primary-color: var(--xp-app-on-accent);
+    --fa-secondary-color: var(--xp-app-on-accent);
+    text-shadow: var(--xp-app-on-accent-shadow);
+  }
+
+  ion-content::part(scroll) {
+    padding-top: 8px;
+    padding-bottom: 16px;
+  }
+}
+
+// ---- Header ----------------------------------------------------------------------------------------------------
+
+.xp-app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+  background: var(--xp-app-accent);
+  color: var(--xp-app-on-accent);
+  text-shadow: var(--xp-app-on-accent-shadow);
+
+  &__start,
+  &__end {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    color: var(--xp-app-on-accent);
+    --color: var(--xp-app-on-accent);
+    --fa-primary-color: var(--xp-app-on-accent);
+    --fa-secondary-color: var(--xp-app-on-accent);
+
+    ion-button,
+    ion-back-button,
+    button {
+      --color: var(--xp-app-on-accent);
+      color: var(--xp-app-on-accent);
+    }
+  }
+
+  &__tile {
+    display: grid;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.32);
+    border: var(--xp-app-tile-border);
+    border-radius: var(--xp-app-radius-tile);
+    color: var(--xp-app-accent);
+    font-size: 1rem;
+    --fa-primary-color: var(--xp-app-accent);
+    --fa-secondary-color: var(--xp-app-accent);
+    --fa-secondary-opacity: 0.55;
+  }
+
+  &__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--xp-app-on-accent);
+    font-family: var(--xp-app-font-title);
+    font-size: 1.2rem;
+    font-weight: normal;
+    line-height: 1.1;
+    letter-spacing: 0.3px;
+    text-overflow: ellipsis;
+    text-transform: var(--xp-app-title-transform);
+    white-space: nowrap;
+  }
+
+  &__meta {
+    flex: 0 0 auto;
+    color: var(--xp-app-on-accent);
+    opacity: 0.8;
+    font-family: var(--xp-app-font-title);
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+    text-transform: var(--xp-app-title-transform);
+    white-space: nowrap;
+  }
+}
+
+.xp-app--modern .xp-app-header__meta {
+  padding: 3px 10px;
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 999px;
+  opacity: 1;
+}
+
+// ---- Section ---------------------------------------------------------------------------------------------------
+
+.xp-app-section {
+  margin: 0 12px 18px;
+
+  &__label {
+    margin: 0 0 6px 4px;
+    color: var(--xp-app-text-dim);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.72rem;
+    font-weight: normal;
+    letter-spacing: 0.8px;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  // The grouped list. Modern: an inset rounded group. Retro: one thin square frame, nothing else.
+  &__rows {
+    overflow: hidden;
+    background: var(--xp-app-surface);
+    border: var(--xp-app-section-border);
+    border-radius: var(--xp-app-radius-section);
+    box-shadow: none;
+  }
+}
+
+// ---- Row -------------------------------------------------------------------------------------------------------
+
+.xp-app-row {
+  --xp-app-divider-inset: var(--xp-app-row-pad-x);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px var(--xp-app-row-pad-x);
+  color: var(--xp-app-text);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.12s ease;
+
+  // Divider between rows (the top edge of every row after the first).
+  & + &::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--xp-app-divider-inset);
+    height: 1px;
+    background: var(--xp-app-line);
+    content: "";
+    pointer-events: none;
+  }
+
+  &--tile {
+    --xp-app-divider-inset: calc(var(--xp-app-row-pad-x) + 40px + 12px);
+  }
+
+  // Active row: the accent tints the row (an overlay, so any accent colour works).
+  &.is-active::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--xp-app-accent);
+    content: "";
+    opacity: 0.16;
+    pointer-events: none;
+  }
+
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &__tile {
+    position: relative;
+    display: grid;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    overflow: hidden;
+    background: var(--xp-app-tile-bg);
+    border: var(--xp-app-tile-border);
+    border-radius: var(--xp-app-radius-tile);
+    box-sizing: border-box;
+    color: var(--xp-app-tile-fg);
+    font-size: 1.2rem;
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &__body {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    overflow: hidden;
+    font-family: var(--xp-app-font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    text-transform: var(--xp-app-title-transform);
+    white-space: nowrap;
+  }
+
+  &__subtitle {
+    overflow: hidden;
+    color: var(--xp-app-text-dim);
+    font-size: 0.82rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  &__trailing {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    color: var(--xp-app-text-dim);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  &__chevron {
+    font-size: 0.8rem;
+    opacity: 0.55;
+    --fa-primary-color: currentColor;
+    --fa-secondary-color: currentColor;
+    --fa-secondary-opacity: 0.35;
+  }
+
+  &__cursor {
+    display: none;
+  }
+}
+
+// Modern: press and keyboard focus.
+.xp-app--modern .xp-app-row {
+  &:active:not(.is-disabled) {
+    background: var(--xp-app-press);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--xp-app-accent);
+  }
+
+  &__tile {
+    --fa-primary-color: var(--xp-app-accent);
+    --fa-secondary-color: var(--xp-app-accent);
+    --fa-secondary-opacity: 0.5;
+  }
+}
+
+@media (hover: hover) {
+  .xp-app--modern .xp-app-row:hover:not(.is-disabled):not(:active) {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+// Retro: dotted dividers and the blinking cursor on the hovered / focused / pressed row.
+.xp-app--retro .xp-app-row {
+  --xp-app-divider-inset: 0px;
+
+  padding-left: 24px;
+
+  &__title {
+    letter-spacing: 0.3px;
+  }
+
+  &__cursor {
+    position: absolute;
+    top: 50%;
+    left: 7px;
+    display: block;
+    color: var(--xp-app-cursor);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.7rem;
+    line-height: 1;
+    transform: translateY(-50%);
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  &:active:not(.is-disabled),
+  &:focus-visible {
+    background: var(--xp-app-press);
+  }
+}
+
+.xp-app--retro .xp-app-row + .xp-app-row::after {
+  height: 0;
+  background: none;
+  border-top: 1px dotted var(--xp-app-line);
+}
+
+.xp-app--retro .xp-app-row.is-active .xp-app-row__cursor {
+  visibility: visible;
+}
+
+.xp-app--retro .xp-app-row:focus-visible .xp-app-row__cursor,
+.xp-app--retro .xp-app-row:active:not(.is-disabled) .xp-app-row__cursor {
+  visibility: visible;
+  animation: xp-app-cursor-blink 0.9s steps(1) infinite;
+}
+
+@media (hover: hover) {
+  .xp-app--retro .xp-app-row:hover:not(.is-disabled) {
+    background: var(--xp-app-press);
+  }
+
+  .xp-app--retro .xp-app-row:hover:not(.is-disabled) .xp-app-row__cursor {
+    visibility: visible;
+    animation: xp-app-cursor-blink 0.9s steps(1) infinite;
+  }
+}
+
+@keyframes xp-app-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-app--retro .xp-app-row__cursor {
+    animation: none !important;
+  }
+}
+
+// ---- Chip ------------------------------------------------------------------------------------------------------
+
+.xp-app-chip {
+  --chip-rgb: 231, 230, 179;
+
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(var(--chip-rgb), 0.16);
+  border: 0;
+  border-radius: var(--xp-app-radius-chip, 999px);
+  color: rgb(var(--chip-rgb));
+  font-family: var(--xp-app-font-title, "StatusPlz", sans-serif);
+  font-size: 0.68rem;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  text-shadow: none;
+  white-space: nowrap;
+
+  &__unit {
+    font-size: 0.85em;
+    opacity: 0.8;
+  }
+
+  &--xp {
+    --chip-rgb: 95, 217, 122;
+  }
+
+  &--gp {
+    --chip-rgb: 242, 193, 78;
+  }
+
+  &--ap {
+    --chip-rgb: 127, 208, 240;
+  }
+
+  &--mp {
+    --chip-rgb: 181, 149, 240;
+  }
+
+  &--hp {
+    --chip-rgb: 255, 107, 94;
+  }
+
+  &--qty,
+  &--tag {
+    --chip-rgb: 242, 238, 251;
+  }
+}
+
+// Retro chips are square, flat and outlined with 1px.
+.xp-app--retro .xp-app-chip {
+  padding: 1px 5px;
+  background: transparent;
+  border: 1px solid rgba(var(--chip-rgb), 0.85);
+  text-transform: uppercase;
+
+  &--qty,
+  &--tag {
+    --chip-rgb: 231, 230, 179;
+  }
+}
+
+// ---- Empty state -----------------------------------------------------------------------------------------------
+
+.xp-app-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 24px;
+  text-align: center;
+
+  &__tile {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    background: var(--xp-app-accent);
+    border: var(--xp-app-tile-border);
+    border-radius: var(--xp-app-radius-tile);
+    box-sizing: border-box;
+    color: var(--xp-app-on-accent);
+    font-size: 1.8rem;
+    --fa-primary-color: var(--xp-app-on-accent);
+    --fa-secondary-color: var(--xp-app-on-accent);
+    --fa-secondary-opacity: 0.55;
+  }
+
+  &__text {
+    max-width: 28ch;
+    margin: 0;
+    color: var(--xp-app-text-dim);
+    font-family: var(--xp-app-font-body);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    text-transform: var(--xp-app-title-transform);
+  }
+}
+
+// ---- Controls (buttons and the bottom bar above the dock) -----------------------------------------------------
+
+// A small button for a row's trailing slot or a bar: accent fill, `--ghost` for the quiet one.
+.xp-app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 14px;
+  background: var(--xp-app-accent);
+  border: 1px solid transparent;
+  border-radius: var(--xp-app-radius-chip);
+  color: var(--xp-app-on-accent);
+  text-shadow: var(--xp-app-on-accent-shadow);
+  cursor: pointer;
+  font-family: var(--xp-app-font-title);
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
+  text-shadow: none;
+  text-transform: var(--xp-app-title-transform);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active:not(:disabled) {
+    filter: brightness(0.88);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  &--ghost {
+    background: transparent;
+    border-color: var(--xp-app-accent);
+    color: var(--xp-app-accent);
+  }
+}
+
+.xp-app--retro .xp-app-btn {
+  min-height: 30px;
+  border-color: var(--xp-app-frame);
+  border-radius: 0;
+
+  &--ghost {
+    background: transparent;
+    color: var(--xp-app-text);
+  }
+}
+
+// The strip above the dock that holds the search field and the segments (controls stay in thumb reach).
+.xp-app-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--xp-app-bar-bg);
+  border-top: 1px solid var(--xp-app-line);
+}
+
+.xp-app-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-control);
+  box-sizing: border-box;
+  color: var(--xp-app-text-dim);
+
+  input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--xp-app-text);
+    font-family: var(--xp-app-font-body);
+    font-size: 1rem;
+    outline: none;
+
+    &::placeholder {
+      color: var(--xp-app-text-dim);
+    }
+  }
+
+  &:focus-within {
+    border-color: var(--xp-app-accent);
+  }
+}
+
+.xp-app-segments {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  overflow-x: auto;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-control);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.xp-app-segment {
+  flex: 1 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--xp-app-radius-control) - 2px);
+  color: var(--xp-app-text-dim);
+  cursor: pointer;
+  font-family: var(--xp-app-font-title);
+  font-size: 0.76rem;
+  letter-spacing: 0.3px;
+  text-shadow: none;
+  text-transform: var(--xp-app-title-transform);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+
+  &.is-active {
+    background: var(--xp-app-accent);
+    color: var(--xp-app-on-accent);
+    text-shadow: var(--xp-app-on-accent-shadow);
+  }
+}
+
+// ---- App sheets ------------------------------------------------------------------------------------------------
+
+// An app's action sheet (opened from its FAB) keeps the Earthbound box but trades the minty ring and the title rule
+// for the app's accent (owner 2026-10-13). appSheet() in useAppSkin.ts adds xp-app-sheet--<app>, mapped below.
+// Keep in step with XP_APP_ACCENTS in useAppSkin.ts.
+$xp-app-sheet-accents: (
+  quests: #8a63d2,
+  goods: #d9483b,
+  spells: #3a8fe6,
+  workbench: #e08a2e,
+  storage: #2fa9a0,
+  kitchen: #c9971f,
+  calendar: #3fbf5f,
+);
+
+// A building's sheet (a shop's shelves) takes the building's accent the same way: appSheet(undefined, `xp-app-sheet--<name>`).
+// Keep in step with BUILDING_ACCENTS in RevealPrompt/revealPrompt.ts.
+$xp-building-sheet-accents: (
+  bank: #d4a017,
+  atm: #d4a017,
+  hospital: #e05a7a,
+  hotel: #e2783c,
+  townHall: #b8864b,
+  accessoryShop: #3f6fd8,
+  plains: #6cbf4a,
+  forest: #2f8f4e,
+  islands: #2fb8c8,
+  swamps: #7f8f3a,
+  mountains: #8a94a8,
+  sands: #d9b25f,
+  tundra: #8fd3f0,
+  clouds: #a8c8f0,
+  moon: #b39ddb,
+);
+
+@each $name, $color in map-merge($xp-app-sheet-accents, $xp-building-sheet-accents) {
+  ion-action-sheet.xp-app-sheet--#{$name} {
+    --xp-app-accent: #{$color};
+  }
+}
+
+ion-action-sheet.xp-app-sheet {
+  .action-sheet-container {
+    box-shadow: 0 0 0 5px #383050, 0 0 0 10px var(--xp-app-accent, #68d0b8), 0 0 0 12px #f7e8a8, 0 0 0 16px #3d3c55 !important;
+  }
+
+  .action-sheet-title {
+    border-bottom-color: var(--xp-app-accent, #68d0b8) !important;
+  }
+
+  .action-sheet-button.activated,
+  .action-sheet-button:focus-visible {
+    background: color-mix(in srgb, var(--xp-app-accent, #68d0b8) 35%, transparent) !important;
+  }
+}

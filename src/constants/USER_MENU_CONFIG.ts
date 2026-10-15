@@ -10,7 +10,7 @@ export const USER_MENU_CONFIG = {
     id: "wallet"
   },
   quests: {
-    label: "Quests",
+    label: "Beast Log",
     icon: "fa-book-dead",
     id: "staff"
   },
@@ -33,6 +33,11 @@ export const USER_MENU_CONFIG = {
     label: "Notifications",
     icon: "fa-bell-exclamation",
     id: "notifications"
+  },
+  pegasus: {
+    label: "Pegasus",
+    icon: "fa-pegasus",
+    action: "openPegasus"
   },
   saveQuit: {
     label: "Save & Quit",

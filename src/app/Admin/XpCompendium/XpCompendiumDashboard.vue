@@ -1,6 +1,11 @@
 <template>
   <xp-rpg-page title="Setup XP" :headerIcon="slides[activeSlideIndex].icon"
     :class="['bg-slide', getBgClass(activeSlideIndex)]">
+    <!-- Primary Toolbar Actions -->
+    <template #start-actions>
+      <ion-menu-button @click="play$fx('select')" />
+    </template>
+
     <!-- Native Navigation FABs in fixed slot -->
     <ion-fab slot="fixed" vertical="bottom" horizontal="start" class="nav-fab-container" v-if="activeSlideIndex > 0">
       <ion-fab-button color="light" @click.stop="swiperInstance?.slidePrev()" class="rpg-box">
@@ -65,7 +70,8 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { Swiper as SwiperClass, Pagination, Navigation } from "swiper";
+import type { Swiper as SwiperClass } from "swiper";
+import { Pagination, Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import "swiper/css/pagination";
@@ -85,8 +91,9 @@ import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import Ionic from "@/lib/mixins/ionic";
 import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import { play$fx } from "@/assets/fx";
+import { useTimers } from "@/hooks/useTimers";
 
-// Define tutorial completed key
 const TUTORIAL_COMPLETED_KEY = "xp_compendium_tutorial_completed";
 
 // Define SlideData interface
@@ -118,10 +125,12 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
+    const timers = useTimers();
     const activeSlideIndex = ref(0);
     const slidesViewed = ref<boolean[]>([]);
     const swiperInstance = ref<SwiperClass | null>(null);
-    const autoAdvance = ref(true);
+    // The Game Master moves between slides with the arrows or a swipe; closing a dialog never jumps ahead
+    const autoAdvance = ref(false);
 
     // Access dialog system from game engine
     const dialogSystem = useDialogSystem();
@@ -135,105 +144,6 @@ export default defineComponent({
       shops: 0,
     });
 
-    // Define all slides data in a single array
-    // const slides = ref<SlideData[]>([
-    //   {
-    //     icon: "fa-game-console-handheld",
-    //     iconClass: "",
-    //     title: "Welcome to the Adventure!",
-    //     dialogContent: [
-    //       "Welcome to your gamified journey into recurring task management!",
-    //       "This tutorial will guide you through the different systems in our app.",
-    //       "You'll learn how to transform everyday tasks into exciting adventures."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-staff " + ["quest", "fire", "ice"][Math.floor(Math.random() * 3)],
-    //     iconClass: "xp-icon",
-    //     title: "Experience Points (XP)",
-    //     dialogContent: [
-    //       "Experience Points (XP) represent time and effort spent on tasks.",
-    //       "Think of it as 10 XP is about 1 minute of good effort.",
-    //       "As you accumulate XP, you'll level up, unlocking new abilities (privileges) and increasing your maximum HP and MP."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-usd",
-    //     iconClass: "gp-icon",
-    //     title: "Gold Points (GP)",
-    //     dialogContent: [
-    //       "Gold Points (GP) are the in-game currency, used for things like purchasing items and rewards.",
-    //       "GP is automatically deposited into your savings after completing tasks and battles.",
-    //       "You can make limited withdrawals from your wallet. Wallets come in a few sizes, each with a different limit."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-magic",
-    //     iconClass: "ap-icon",
-    //     title: "Ability Points (AP)",
-    //     dialogContent: [
-    //       "Ability Points (AP) unlock special abilities and privileges.",
-    //       "AP is awarded for daily streaks, weekly achievements, and monthly milestones.",
-    //       "For example. There may be a ability/privilege that requires the user to have accumulated 100 AP in the last 7 days to unlock.",
-    //       "This encourages users to keep their AP streaks ",
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-heartbeat",
-    //     iconClass: "character-stats-icon",
-    //     title: "Character Stats (HP/MP)",
-    //     dialogContent: [
-    //       "Like any RPG character, you have Health Points (HP) and Mana Points (MP).",
-    //       "HP represents your physical energy and is consumed by completing tasks.",
-    //       "MP represents your mental energy, used for focus-intensive activities.",
-    //       "Both regenerate with proper rest and self-care."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-heart",
-    //     iconClass: "beast-icon",
-    //     title: "Beasts & Challenges",
-    //     dialogContent: [
-    //       "Beasts represent challenges in your life.",
-    //       "From procrastination dragons to distraction demons, each has unique patterns and weaknesses.",
-    //       "Develop strategies to overcome these beasts and earn special bonuses for conquering particularly difficult challenges."
-    //     ]
-    //   },
-    //   {
-    //     // random element
-    //     icon: "fa-hand-holding-seedling",
-    //     iconClass: "quest-icon",
-    //     title: "Quests & Adventures",
-    //     dialogContent: [
-    //       "Your daily tasks become quests in this adventure!",
-    //       "Complete quests to earn XP, AP, and GP.",
-    //       "Quests can be categorized by difficulty, urgency, and type.",
-    //       "Creating balanced quest logs ensures steady progress in all areas of your life."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-water",
-    //     iconClass: "temple-icon",
-    //     title: "Temples & Training",
-    //     dialogContent: [
-    //       "Temples are where you develop your skills and attributes.",
-    //       "Invest AP to gain permanent bonuses to your abilities.",
-    //       "Each temple represents an area of personal growth, such as fitness, creativity, knowledge, or social skills."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-store",
-    //     iconClass: "shop-icon",
-    //     title: "Shops & Marketplace",
-    //     dialogContent: [
-    //       "Shops let you spend your hard-earned GP on rewards!",
-    //       "From digital items to real-world treats, shops turn your productivity into tangible benefits.",
-    //       "Shop inventories expand as you progress, offering more valuable rewards at higher levels."
-    //     ],
-    //     isFinal: true
-    //   }
-    // ]);
-
     // ---------------------------------------------------------
     // PARENT ONBOARDING: Hook → Stakes → Defense → Training → Economy → Payoff
     // ---------------------------------------------------------
@@ -244,9 +154,9 @@ export default defineComponent({
         iconClass: "",
         title: "GameMaster™",
         dialogContent: [
-          "Welcome to the ultimate parenting life-hack.",
-          "We are going to replace 'Nagging' with 'Game Mechanics'.",
-          "This system automates consequences and rewards effort.",
+          "Welcome, Game Master. This is your Compendium: the rulebook for your family's game.",
+          "Chores become quests and beasts. Heroes earn XP, Gold and Ability Points for doing them.",
+          "The game keeps score, so you don't have to nag.",
         ],
       },
       // 1: Beasts - THE HOOK
@@ -255,10 +165,10 @@ export default defineComponent({
         iconClass: "beast-icon",
         title: "Beasts & Battles",
         dialogContent: [
-          "Chores become Beasts that attack when it's time to do them.",
-          "The Beast hits constantly, draining HP until the task is DONE.",
-          "Players can 'Run Away'... but the Beast chases them.",
-          "Next time they open the app? SNEAK ATTACK for massive damage!",
+          "A Beast is a chore with a checklist. The Socktopus: sort the socks, match the pairs, put them away.",
+          "In battle every checklist item is an attack. Finish them all and the Beast is defeated.",
+          "Each Beast has a clock. Let it run out and the Beast strikes, and the hero loses HP.",
+          "Heroes can always Run Away, but the Beast gets one parting strike as they go, and the chore stays on their quest board.",
         ],
       },
       // 2: HP/MP - THE STAKES
@@ -267,10 +177,10 @@ export default defineComponent({
         iconClass: "character-stats-icon",
         title: "Health & Mana",
         dialogContent: [
-          "HP is their 'Freedom Meter'. When it hits 0, they are 'Grounded'.",
-          "All Abilities and Privileges lock until they heal with Potions or rest.",
-          "MP is their mental energy, used to cast Abilities like Time Extensions.",
-          "The app does the nagging, so you don't have to.",
+          "HP is the hero's stamina. Beast strikes take it away, and the damage lasts after the fight.",
+          "At 0 HP the hero blacks out and wakes up at the Hospital, where healing costs Gold.",
+          "MP is the hero's focus. Using an Ability costs MP.",
+          "Potions, rest in town and the Hospital bring HP and MP back.",
         ],
       },
       // 3: Powers/AP - THE DEFENSE
@@ -279,10 +189,10 @@ export default defineComponent({
         iconClass: "ap-icon",
         title: "Abilities & Powers",
         dialogContent: [
-          "Abilities are special powers unlocked through consistency.",
-          "They can cast 'Time Spells' (ask for extensions) or 'Heal Spells' (recover HP).",
-          "But using Abilities costs MP, and MP regenerates slowly.",
-          "Ability Points (AP) measure consistency—lose the streak, lose the power.",
+          "Powers are privileges you define: real-life ones like extra screen time, or in-game spells.",
+          "Each Power unlocks with Ability Points (AP) earned in a window: today, this week or this month.",
+          "AP measures steady effort. Let it slip and the Power locks again.",
+          "Using a Power costs MP, so heroes choose when to spend it.",
         ],
       },
       // 4: Temples - THE TRAINING
@@ -291,10 +201,10 @@ export default defineComponent({
         iconClass: "temple-icon",
         title: "Temples & Dungeons",
         dialogContent: [
-          "Temples are where consistency is forged into power.",
-          "Each Temple represents an area of growth: Fitness, Creativity, Knowledge, Social Skills.",
-          "Regular training at a Temple unlocks permanent bonuses.",
-          "This is where habits become superpowers.",
+          "Every region of the world map has a Temple: a maze of rooms with beasts, locked doors and treasure.",
+          "Chests hold Gold and key items, like the wands that bend the rules of a chore.",
+          "A mini-boss guards the boss key, and a Pegasus waits past the boss.",
+          "Edit any room here, roll a new Temple from a seed, or raise a Blood Moon to reset one.",
         ],
       },
       // 5: GP/Economy - THE RESOURCES
@@ -303,10 +213,10 @@ export default defineComponent({
         iconClass: "gp-icon",
         title: "Gold & Shops",
         dialogContent: [
-          "Gold Points (GP) are earned by completing tasks.",
-          "They can spend GP at Shops on real rewards or survival items like Potions.",
-          "If they procrastinate, they'll spend fun money on Potions just to survive.",
-          "This forces smart budgeting and teaches financial responsibility.",
+          "Quests pay Gold Points (GP) into the hero's wallet. The Gold Bank keeps their savings.",
+          "Shops sell what you stock: real rewards at prices you set, potions and gear.",
+          "Healing costs Gold, so putting chores off gets expensive.",
+          "Saving up teaches budgeting without a lecture.",
         ],
       },
       // 6: XP - THE PAYOFF
@@ -315,10 +225,9 @@ export default defineComponent({
         iconClass: "xp-icon",
         title: "Experience & Leveling",
         dialogContent: [
-          "Experience Points (XP) are the permanent record of effort.",
-          "XP never decreases. Every completed task adds to their legacy.",
-          "As they Level Up, their maximum HP and MP increase—they get stronger!",
-          "Are you ready to be the GameMaster?",
+          "Experience Points (XP) are the permanent record of effort. They never go down.",
+          "Every level raises the hero's max HP and MP and grows their class.",
+          "Ready? Start with a Beast or a Quest from the tabs below.",
         ],
         isFinal: true,
       },
@@ -338,15 +247,16 @@ export default defineComponent({
 
     // Function to handle slide 0 enter (animation + sound)
     const handleSlide0Enter = () => {
-      setTimeout(() => {
+      // 2200ms: synchronize with the end of the slower animation
+      timers.startTimeout(2200, () => {
         // Verify we are still on slide 0 before playing
-        if (
+        const canPlayIntroSound =
           activeSlideIndex.value === 0 &&
-          typeof window["play$fx"] === "function"
-        ) {
+          typeof window["play$fx"] === "function";
+        if (canPlayIntroSound) {
           window["play$fx"]("GameBoy");
         }
-      }, 2200); // Synchronize with the end of the slower animation
+      });
     };
 
     // Initialize slidesViewed array based on slides length and tutorial completion status
@@ -360,9 +270,9 @@ export default defineComponent({
 
       // Auto-start dialog for first slide after a short delay if tutorial not completed
       if (!tutorialCompleted) {
-        setTimeout(() => {
+        timers.startTimeout(500, () => {
           showSlideDialog(0);
-        }, 500);
+        });
       }
 
       // Trigger slide 0 enter effect
@@ -398,12 +308,14 @@ export default defineComponent({
       activeSlideIndex.value = swiper.activeIndex;
 
       // Trigger slide 0 enter effect if returning to slide 0
-      if (activeSlideIndex.value === 0) {
+      const isFirstSlide = activeSlideIndex.value === 0;
+      if (isFirstSlide) {
         handleSlide0Enter();
       }
 
       // Automatically show dialog when reaching a new slide that hasn't been viewed yet
-      if (!slidesViewed.value[activeSlideIndex.value]) {
+      const isSlideViewed = slidesViewed.value[activeSlideIndex.value];
+      if (!isSlideViewed) {
         showSlideDialog(activeSlideIndex.value);
       }
     };
@@ -417,17 +329,18 @@ export default defineComponent({
           autoDismiss: false,
           onDismiss: () => {
             // Logic from onDialogComplete
-            if (slidesViewed.value.every((viewed) => viewed)) {
+            const isEverySlideViewed = slidesViewed.value.every((viewed) => viewed);
+            if (isEverySlideViewed) {
               markTutorialCompleted();
             }
 
-            if (
+            const shouldAdvanceToNextSlide =
               autoAdvance.value &&
-              activeSlideIndex.value < slides.value.length - 1
-            ) {
-              setTimeout(() => {
+              activeSlideIndex.value < slides.value.length - 1;
+            if (shouldAdvanceToNextSlide) {
+              timers.startTimeout(500, () => {
                 goToSlide(activeSlideIndex.value + 1);
-              }, 500);
+              });
             }
           },
         }
@@ -437,7 +350,8 @@ export default defineComponent({
       slidesViewed.value[slideIndex] = true;
 
       // Play a sound effect for immersion when dialog is shown
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("select");
       }
     };
@@ -454,7 +368,8 @@ export default defineComponent({
       showSlideDialog(activeSlideIndex.value);
 
       // Play sound effect
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("system");
       }
 
@@ -498,7 +413,7 @@ export default defineComponent({
     };
 
     return {
-      requireIcon: require.context("@/assets/icons/"),
+      requireIcon: require.context("@/assets/icons/", false, /\.svg$/),
       modules: [Pagination, Navigation],
       activeSlideIndex,
       slidesViewed,
@@ -513,211 +428,10 @@ export default defineComponent({
       getDashboardComponent,
       getBgClass,
       swiperInstance,
+      play$fx,
     };
   },
 });
 </script>
 
-<style lang="scss" scoped>
-.ion-page {
-  transition: all 0.5s ease;
-
-  ion-content {
-    .slideshow-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-
-      .main-slideshow {
-        width: 100%;
-        height: 100%;
-        position: relative;
-
-        .swiper-slide {
-          padding-bottom: 100px;
-          overflow-y: auto;
-          overflow-x: hidden;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-      }
-    }
-
-    .nav-fab-container {
-      margin-bottom: 60px;
-      z-index: 1000;
-      --color: var(--eb-color-pale-yellow);
-
-      &[horizontal="start"] {
-        margin-left: 16px;
-      }
-
-      &[horizontal="end"] {
-        margin-right: 16px;
-      }
-
-      ion-fab-button {
-        --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        --border-color: rgba(255, 255, 255, 0.2);
-        --border-width: 1px;
-        --border-style: solid;
-      }
-    }
-
-    .nav-pagination-container {
-      position: absolute;
-      bottom: 45px;
-      left: 0;
-      right: 0;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 48px;
-      pointer-events: none;
-      z-index: 2000;
-    }
-
-    .swiper-pagination-custom {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      gap: 25px;
-      width: auto;
-      pointer-events: auto;
-
-      :deep(.swiper-pagination-bullet) {
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.25);
-        opacity: 1;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        margin: 0 !important;
-        transform: rotate(45deg);
-        border-radius: 1px;
-      }
-
-      :deep(.swiper-pagination-bullet-active) {
-        background: var(--eb-color-pale-yellow);
-        transform: rotate(45deg) scale(1.6);
-        border-radius: 1px;
-        box-shadow: 0 0 15px var(--eb-color-pale-yellow),
-          0 0 5px rgba(255, 255, 255, 0.8);
-        border-color: #fff;
-      }
-    }
-  }
-}
-
-/* Premium Hero Styles */
-.hero-content {
-  width: 92%;
-  max-width: 600px;
-  margin: 1.5rem auto 1rem;
-  transition: all 0.4s ease;
-}
-
-.icon-wrapper {
-  background: radial-gradient(circle,
-      rgba(255, 255, 255, 0.08) 0%,
-      transparent 70%);
-  padding: 16px;
-  border-radius: 50%;
-
-  i {
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25));
-  }
-}
-
-.get-started-btn {
-  --border-radius: 8px;
-  --background: linear-gradient(135deg,
-      var(--ion-color-success),
-      var(--ion-color-success-shade));
-  font-weight: 700;
-  font-size: 1rem;
-  height: 50px;
-  width: 80%;
-  box-shadow: 0 4px 15px rgba(var(--ion-color-success-rgb), 0.3);
-
-  &:hover {
-    --box-shadow: 0 6px 20px rgba(var(--ion-color-success-rgb), 0.4);
-  }
-}
-
-/* Animations */
-.hero-card-container {
-  width: 100%;
-  opacity: 0;
-  transform: scale(0.9) translateY(20px);
-  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  &.animate-in {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.dashboard-container {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease-out;
-  transition-delay: 0.2s;
-  display: flex;
-
-  &.animate-up {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.xp-icon {
-  color: var(--ion-color-success);
-}
-
-.gp-icon {
-  color: var(--ion-color-warning);
-}
-
-.ap-icon {
-  color: var(--ion-color-tertiary);
-}
-
-.character-stats-icon {
-  color: var(--ion-color-danger);
-}
-
-.beast-icon {
-  color: var(--ion-color-danger-shade);
-}
-
-.temple-icon {
-  color: var(--ion-color-secondary);
-}
-
-.shop-icon {
-  color: #e599f7;
-  text-shadow: 0 0 10px rgba(190, 75, 219, 0.6);
-}
-
-/* GameMaster Title Specific Animation */
-.gamemaster-title-animate {
-  animation: dropIn 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  display: inline-block;
-}
-
-@keyframes dropIn {
-  0% {
-    transform: translateY(-200px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpCompendiumDashboard.scss" />

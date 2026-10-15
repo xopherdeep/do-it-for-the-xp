@@ -1,7 +1,14 @@
 <template>
   <transition name="fade">
     <div v-if="showModal" class="xp-audio-permission-overlay">
-      <div class="permission-card rpg-box" @click="enableAudio">
+      <div
+        class="permission-card rpg-box"
+        role="button"
+        tabindex="0"
+        @click="enableAudio"
+        @keydown.enter="enableAudio"
+        @keydown.space.prevent="enableAudio"
+      >
         <div class="icon-wrapper">
           <i class="fal fa-music main-pulse-icon"></i>
         </div>
@@ -11,7 +18,14 @@
         
       </div>
       
-      <div class="silent-option" @click.stop="continueSilently">
+      <div
+        class="silent-option"
+        role="button"
+        tabindex="0"
+        @click.stop="continueSilently"
+        @keydown.enter="continueSilently"
+        @keydown.space.prevent="continueSilently"
+      >
         <span class="silent-text">Continue Silently</span>
         <i class="fal fa-music-slash mute-icon"></i>
       </div>
@@ -22,11 +36,14 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import { AudioEngine } from '@/lib/engine/audio/AudioEngine';
+import { useAudioStore } from '@/lib/store/stores/audio';
+import { cancelPendingRouteMusic } from '@/lib/engine/audio/routeMusic';
 
 export default defineComponent({
   name: 'XpAudioPermissionModal',
   setup() {
     const audioEngine = AudioEngine.getInstance();
+    const audioStore = useAudioStore();
     
     // We show the modal if audio is NOT ready/granted
     const showModal = computed(() => {
@@ -35,16 +52,26 @@ export default defineComponent({
     });
 
     const enableAudio = async () => {
+      audioStore.bgm.is_on = true;
+      const isMuted = audioEngine.state.muted;
+      if (isMuted) {
+        audioEngine.unmute();
+      }
       await audioEngine.resumeContext();
+      const currentMusic = audioEngine.state.currentMusic;
+      if (currentMusic) {
+        audioEngine.playMusic(currentMusic);
+      }
     };
 
     const continueSilently = () => {
-        // Mute the engine
-        audioEngine.mute();
-        // Grant permission (conceptually) so the modal closes, but context remains suspended/muted until later interaction
-        audioEngine.state.audioPermissionGranted = true;
-        // Clear pending music so it doesn't try to auto-play if they unmute later without selecting a track
-        audioEngine.state.pendingMusicId = null; 
+      cancelPendingRouteMusic();
+      audioEngine.mute();
+      audioEngine.stopAllMusic(0);
+      audioStore.bgm.is_on = false;
+      audioStore.turnMusicOnOff();
+      audioEngine.state.audioPermissionGranted = true;
+      audioEngine.state.pendingMusicId = null; 
     };
 
     return {
@@ -63,8 +90,8 @@ export default defineComponent({
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
+  /* An opaque scrim, not a blur: this sits over every page, and a blur over a page that frosts freezes iOS Safari */
+  background-color: rgba(8, 6, 14, 0.85);
   z-index: 99999; /* Top level */
   display: flex;
   flex-direction: column;
@@ -85,11 +112,23 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: 0 0 30px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.3);
-  animation: pulse-border 2s infinite;
+  position: relative;
+  box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.2);
   cursor: pointer;
   color: white;
   font-family: "Press Start 2P", cursive;
+}
+
+/* The pulsing glow is a layer that fades in and out: opacity runs on the compositor, an animated box-shadow repaints every frame */
+.permission-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 25px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.6);
+  opacity: 0;
+  pointer-events: none;
+  animation: pulse-glow 2s infinite;
 }
 
 .silent-option {
@@ -150,10 +189,9 @@ export default defineComponent({
 }
 
 /* Animations */
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.2); }
-  50% { box-shadow: 0 0 25px rgba(var(--ion-color-primary-rgb), 0.6); }
-  100% { box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.2); }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 @keyframes pulse-opacity {

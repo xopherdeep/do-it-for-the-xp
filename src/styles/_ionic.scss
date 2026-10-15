@@ -298,6 +298,178 @@ ion-modal.save-quit-modal {
   }
 }
 
+/* RPG Toast - Themed Earthbound RPG message box */
+ion-toast.rpg-toast,
+.rpg-toast {
+  --background: #280828;
+  --color: #e7e6b3;
+  --border-radius: 2px;
+  --box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55;
+  --button-color: #f7e8a8;
+  --start: 14px;
+  --end: 14px;
+  --min-height: 52px;
+  --max-width: 520px;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+
+  &::part(container) {
+    background: #280828 !important;
+    color: #e7e6b3 !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55 !important;
+    padding: 2px 4px;
+    border: none;
+  }
+
+  &::part(message) {
+    color: #e7e6b3 !important;
+    line-height: 1.25;
+    font-family: "Apple Kid", "StatusPlz", sans-serif;
+  }
+
+  // The X that dismisses the box (a cancel button): cream, a finger-sized target, never uppercase
+  &::part(button) {
+    font-family: "Apple Kid", sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+    text-transform: none;
+    color: #f7e8a8 !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  &::part(icon) {
+    color: #f7e8a8 !important;
+    font-size: 1.6rem;
+  }
+
+  &.toast-top,
+  &[position="top"] {
+    --top: 14px;
+  }
+}
+
+/* RPG Alert - confirm dialogs in the same Earthbound message box as rpg-toast.
+ * Bodies come from dialogMessage(): a lead line, short bulleted lists, one note. */
+ion-alert.rpg-alert {
+  --background: #280828;
+  --width: calc(100% - 48px);
+  --max-width: 360px;
+  --max-height: calc(100% - 48px);
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  letter-spacing: 0.5px;
+
+  .alert-wrapper {
+    border-radius: 2px;
+    box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55;
+    color: #e7e6b3;
+  }
+
+  .alert-head {
+    padding: 16px 18px 6px;
+    text-align: left;
+  }
+
+  .alert-title {
+    font-family: inherit;
+    font-size: 1.5rem;
+    font-weight: normal;
+    line-height: 1.15;
+    text-transform: none;
+    color: #f7e8a8;
+  }
+
+  .alert-sub-title {
+    margin-top: 2px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #68d0b8;
+  }
+
+  // Short enough to fit: the body never scrolls on its own
+  .alert-message {
+    max-height: none;
+    padding: 4px 18px 10px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    line-height: 1.25;
+    color: #e7e6b3;
+  }
+
+  .rpg-alert__lead {
+    margin: 0 0 8px;
+  }
+
+  .rpg-alert__title {
+    margin: 8px 0 2px;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    color: #68d0b8;
+  }
+
+  .rpg-alert__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      position: relative;
+      padding-left: 1.3em;
+      margin: 2px 0;
+    }
+
+    li::before {
+      position: absolute;
+      left: 0;
+      content: "•";
+      color: #f7e8a8;
+    }
+  }
+
+  .rpg-alert__list--add li::before { content: "+"; color: #80d890; }
+  .rpg-alert__list--keep li::before { content: "✓"; color: #68d0b8; }
+  .rpg-alert__list--warn li::before { content: "!"; color: #f7a868; }
+
+  // Store counts are short, so two columns keep a long backup list on screen
+  .rpg-alert__list--info {
+    columns: 2;
+    column-gap: 12px;
+
+    li { break-inside: avoid; }
+  }
+
+  .rpg-alert__note {
+    margin: 10px 0 0;
+    padding-top: 8px;
+    border-top: 1px dashed #3d3c55;
+    color: #f7e8a8;
+  }
+
+  .alert-button-group {
+    padding: 4px 10px 10px;
+  }
+
+  .alert-button {
+    font-family: inherit;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    text-transform: none;
+    color: #f7e8a8;
+    min-height: 44px;
+  }
+
+  .alert-button[role="cancel"],
+  .alert-button.alert-button-role-cancel {
+    color: #b8b4c8;
+  }
+
+  &.rpg-alert--danger .alert-button.alert-button-role-destructive {
+    color: #ff8a80;
+  }
+}
+
 /* 
  * Active Tab Highlighting (Navigational Depth Clarification)
  * When a tab is selected, all other siblings in that ion-tab-bar are dimmed and desaturated.
@@ -370,5 +542,52 @@ ion-tab-bar {
 swiper-slide {
   overflow-x: hidden !important;
   max-width: 100vw;
+}
+
+/*
+ * A world's landmarks stand on its painted background. The scene is the background's own box (2:3, like the
+ * world art) laid over the page the way `center / cover` lays the art on a phone: full height, centred, the
+ * sides cropped. So a spot's --x / --y are percentages of the painting and a landmark lands on the clearing,
+ * islet or cloud painted for it. Wider than 2:3 (tablets, desktop) the scene stays full height and centred,
+ * so every landmark stays on screen. --y is where the model stands (its base), not its top.
+ */
+.world-scene-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.world-scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 2 / 3;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  .world-spot {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    z-index: var(--z, 1);
+    // `translate`, not `transform`: the models lift and squash with their own hover / press `transform`,
+    // which would otherwise replace this offset and jump the landmark off its spot when tapped.
+    translate: -50% -78%;
+    pointer-events: auto;
+  }
+}
+
+.temple-landmark-layer {
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 80px);
+  left: 20%;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
 }
 

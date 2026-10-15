@@ -1,16 +1,17 @@
 <template>
   <span ref="textContainer" :class="['xp-typing-text  rpg-box', {'rpg-text': isRpgStyled}]">
     <slot v-if="showSlot"></slot>
-    <span v-else v-html="displayedText"></span>
+    <span v-else v-html="sanitizeHtml(displayedText)"></span>
     <span v-if="isTyping && cursorVisible" class="typing-cursor">|</span>
-    <!-- Only show the caret when typing is complete and there's more text to read -->
-    <i v-if="!isTyping && hasMoreText" class="fad fa-caret-down fa-2x float-right mt-3 animate-bounce" />
+    <!-- Only show the continue marker when typing is complete and there's more text to read -->
+    <span v-if="!isTyping && hasMoreText" class="typing-more-marker" aria-hidden="true">&#9660;</span>
   </span>
 </template>
 
 <script lang="ts">
 import { play$fx } from '@/assets/fx';
 import { defineComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 export default defineComponent({
   name: 'XpTypingText',
@@ -54,6 +55,11 @@ export default defineComponent({
     hasMoreText: {
       type: Boolean,
       default: false
+    },
+    /** Tapping the text finishes (or restarts) the typing. Hosts that own the tap, like the battle dialog, turn this off. */
+    interactive: {
+      type: Boolean,
+      default: true
     }
   },
 
@@ -70,8 +76,12 @@ export default defineComponent({
     let accumulatedTime: number = 0;
     const startDelayTimeout = ref<number | null>(null);
 
+    const isSoundOn = () => props.playSound;
+    const isAutoStart = () => props.autoStart;
+
     const typeNextChar = (timestamp: number) => {
-      if (!isTyping.value || isPaused.value) {
+      const isTypingOnHold = !isTyping.value || isPaused.value;
+      if (isTypingOnHold) {
         lastFrameTime = timestamp;
         animationFrameId = window.requestAnimationFrame(typeNextChar);
         return;
@@ -83,21 +93,28 @@ export default defineComponent({
 
       accumulatedTime += deltaTime;
 
-      if (accumulatedTime >= props.speed) {
+      const isCharDue = accumulatedTime >= props.speed;
+      if (isCharDue) {
         // How many characters to type in this frame (handle lag spikes)
         // With looping sound, we can type as fast as needed without audio issues
         let charsToType = Math.floor(accumulatedTime / props.speed);
         
         // Cap catch-up to 5 chars per frame to prevent freezing/massive jumps
-        if (charsToType > 5) charsToType = 5; 
+        const isCatchUpTooBig = charsToType > 5;
+        if (isCatchUpTooBig) charsToType = 5; 
         
         while (charsToType > 0 && isTyping.value) {
-           if (charIndex.value < props.text.length) {
+           const hasCharsLeft = charIndex.value < props.text.length;
+           if (hasCharsLeft) {
             const char = props.text[charIndex.value];
             displayedText.value += char;
-            
-            // Per-character sound removed in favor of looping background sound
-            
+
+            // One short blip every other visible character, like the SNES text box
+            const shouldBlip = props.playSound && char !== ' ' && charIndex.value % 2 === 0;
+            if (shouldBlip) {
+              play$fx(props.soundType);
+            }
+
             charIndex.value++;
             emit('typing-char', charIndex.value, char);
             charsToType--;
@@ -105,7 +122,7 @@ export default defineComponent({
              isTyping.value = false;
              
              // Stop looping sound when finished
-             if (props.playSound) {
+             if (isSoundOn()) {
                 play$fx(props.soundType, { stop: true });
              }
              
@@ -133,11 +150,6 @@ export default defineComponent({
       charIndex.value = 0;
       displayedText.value = '';
       emit('typing-start');
-      
-      // Start looping sound
-      if (props.playSound) {
-         play$fx(props.soundType, { loop: true });
-      }
       
       startDelayTimeout.value = window.setTimeout(() => {
         lastFrameTime = 0;
@@ -167,7 +179,7 @@ export default defineComponent({
       charIndex.value = 0;
       
       // Stop sound if resetting
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
     };
@@ -183,7 +195,7 @@ export default defineComponent({
       isTyping.value = false;
       
       // Stop sound
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
       
@@ -193,7 +205,7 @@ export default defineComponent({
     const pauseTyping = () => {
       isPaused.value = true;
       // Stop sound when paused
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
     };
@@ -202,12 +214,8 @@ export default defineComponent({
       isPaused.value = false;
       lastFrameTime = 0; // Reset frame time so we don't jump
       
-      // Resume sound if we are still typing
-      if (isTyping.value && props.playSound) {
-         play$fx(props.soundType, { loop: true });
-      }
-      
-      if (isTyping.value && !animationFrameId) {
+      const needsFrameLoop = isTyping.value && !animationFrameId;
+      if (needsFrameLoop) {
          animationFrameId = window.requestAnimationFrame(typeNextChar);
       }
     };
@@ -224,26 +232,33 @@ export default defineComponent({
     // Watch for text changes and restart animation
     watch(() => props.text, () => {
       resetTyping();
-      if (props.autoStart) {
+      if (isAutoStart()) {
         startTyping();
       }
     });
 
     // Start typing on mount if autoStart is true
     onMounted(() => {
-      if (props.autoStart) {
+      if (isAutoStart()) {
         startTyping();
       }
       
-      if (textContainer.value) {
-        textContainer.value.addEventListener('click', handleClick);
+      const container = textContainer.value;
+      const canTapToSkip = props.interactive && container;
+      if (canTapToSkip) {
+        container.addEventListener('click', handleClick);
       }
     });
 
     // Clean up on unmount
     onBeforeUnmount(() => {
-       resetTypingState();
-      
+      resetTypingState();
+      // Leaving mid-line must not leave the typewriter blip looping
+      const shouldSilenceBlip = isTyping.value && props.playSound;
+      if (shouldSilenceBlip) {
+        play$fx(props.soundType, { stop: true });
+      }
+
       if (textContainer.value) {
         textContainer.value.removeEventListener('click', handleClick);
       }
@@ -260,7 +275,8 @@ export default defineComponent({
       resetTyping,
       pauseTyping,
       resumeTyping,
-      showSlot
+      showSlot,
+      sanitizeHtml,
     };
   }
 });
@@ -282,6 +298,26 @@ export default defineComponent({
     display: inline-block;
     animation: blink 0.7s infinite;
     margin-left: 2px;
+  }
+
+  .typing-more-marker {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 0.85em;
+    color: #ffd84a;
+    vertical-align: baseline;
+    animation: marker-bounce 0.9s ease-in-out infinite;
+  }
+}
+
+@keyframes marker-bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 0.5;
   }
 }
 

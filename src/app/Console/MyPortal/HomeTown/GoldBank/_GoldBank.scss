@@ -21,64 +21,12 @@
   }
 
   ion-content{
-    --background: url("@/assets/images/midjourney/bank.png") center / cover no-repeat;
+    --background: url("@/assets/images/midjourney/bank.webp") center / cover no-repeat;
   }
   
 }
 
 
-
-// Banker Dialog Styling
-.banker-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  // background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem;
-  z-index: 100000; /* Higher than FAB and other elements */
-}
-
-.banker-dialog-box {
-  width: 100%;
-  max-width: 600px;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 2px solid #fbbf24;
-  color: white;
-  
-  .dialog-header {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background-color: #fbbf24;
-    color: #000;
-  }
-  
-  .dialog-content {
-    padding: 1rem;
-    min-height: 80px;
-  }
-  
-  .dialog-indicator {
-    text-align: center;
-    padding-bottom: 0.5rem;
-    
-    .blink {
-      animation: blink 1s infinite;
-    }
-  }
-}
-
-// For the banker's text container
-.banker-text {
-  font-family: 'Roboto', sans-serif;
-  font-size: 1.1rem;
-  line-height: 1.5;
-}
 
 // ATM action sheet styling is now handled globally via .atm-action-sheet in earthbound.scss
 
@@ -116,14 +64,4 @@
       radial-gradient(circle at center, rgba(230, 193, 113, 0.3), rgba(212, 175, 55, 0.3));
     z-index: -1;
   }
-}
-
-.hidden-trigger {
-  display: none;
-  visibility: hidden;
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  pointer-events: none;
 }

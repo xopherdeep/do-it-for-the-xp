@@ -1,240 +1,125 @@
 <template>
   <ion-page class="accessory-shop">
     <ion-header>
-      <ion-toolbar class="rpg-box">
+      <ion-toolbar :color="shopColor">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <i
-            class="fa fa-2x"
-            :class="`fa-${shopIcon}`"
-          />
+          <xp-back-button :default-href="backHref" />
+          <i :class="shopIconClass" class="shop-title-icon" />
         </ion-buttons>
-        <ion-title>
-          {{ shopName }}
-        </ion-title>
+        <ion-title class="shop-title">{{ shopName }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="openATM" color="rpg">
-            <i class="fad fa-hand-holding-usd fa-2x"></i>
-          </ion-button>
+          <button class="header-wallet-btn" title="Open ATM" @click="openATM">
+            <i class="fad fa-coins" />
+            <span class="wallet-amount"><xp-gp :gp="wallet" /></span>
+          </button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :style="dynamicShopBackground" >
+    <ion-content class="shop-content" :scroll-y="false" :style="dynamicShopBackground">
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-card>
-          <ion-card-title>
-            {{ shopkeeper }}
-          </ion-card-title>
-          <ion-toast
-            :is-open="isThankYouOpenRef"
-            @didDismiss="setThankYouOpen(false)"
-            message="Thank you for your purchase!"
-            :duration="1500"
-          ></ion-toast>
-          <ion-card-content class="rpg-box">
-            <!-- Welcome! What shelves can I interest you looking at today? -->
-            {{ shopGreeting }}
-            <!-- Filters -->
-            <ion-item>
-              <ion-label> Shelves </ion-label>
-              <ion-select
-                @ionChange="selectShelf"
-                :value="shelves"
-                :interface-options="customAlertOptions"
-                interface="alert"
-                placeholder="..."
-                multiple
-              >
-                <ion-select-option
-                  value="out-of-budget"
-                  checked
-                >
-                  Can't Afford
-                </ion-select-option>
-                <ion-select-option value="wish-list">
-                  Wish List
-                </ion-select-option>
-                <ion-select-option
-                  value="affordable"
-                  selected
-                >
-                  Can Afford
-                </ion-select-option>
-                <ion-select-option value="purchased">
-                  Purchased
-                </ion-select-option>
-                <ion-select-option value="favorites">
-                  Favorites
-                </ion-select-option>
-              </ion-select>
-            </ion-item>
-          </ion-card-content>
-        </ion-card>
-        <!-- Hero -->
-        <ion-row>
-          <ion-col
-            size-md="3"
-            size="6"
-            v-for="item in items"
-            :key="`${shopIcon}-${item.id}`"
-            class="ion-no-padding"
-          >
-            <ion-modal
-              :ref="`modal-${item.id}`"
-              :trigger="`${shopIcon}-${item.id}`"
-            >
-              <ion-card>
-                <ion-card-title
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                ></ion-card-title>
-                <ion-grid>
-                  <ion-row>
-                    <ion-col size="6">
-                      <ion-img
-                        v-bind="getImgObj(item.featured_media)"
-                        class="featured-media"
-                      ></ion-img>
-                    </ion-col>
-                    <ion-col>
-                      <ion-card-content>
-                        {{ item.content.rendered }}
-                        Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi
-                        sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix
-                        ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam
-                        utamur malorum maluisset.
-                      </ion-card-content>
-                    </ion-col>
-                  </ion-row>
-                  <hr />
-                  <ion-row>
-                    <ion-col size="12">
-                      <ion-card-title>
-                        Would you like to buy this?
-                        <ion-badge color="warning">
-                          <i class="fa fa-coins" />
-                          {{ item.meta._xp_achievement_gp }}
-                          100
-                          <strong>GP</strong>
-                        </ion-badge>
-                      </ion-card-title>
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-                    <ion-col>
-                      <ion-button
-                        @click.stop="buyItem(item.id)"
-                        color="success"
-                        expand="block"
-                      >
-                        Yes
-                        <i class="fa fad fa-lg fa-thumbs-up" />
-                      </ion-button>
-                    </ion-col>
-                    <ion-col>
-                      <ion-button
-                        @click.stop="closeModal(item.id)"
-                        color="danger"
-                        expand="block"
-                      >
-                        <i class="fa fad fa-lg fa-thumbs-down" />
-                        No
-                      </ion-button>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-card>
-            </ion-modal>
-            <ion-card
-              class="item ion-no-padding"
-              :id="`${shopIcon}-${item.id}`"
-            >
-              <ion-card-title
-                v-if="item.title"
-                v-html="item.title.rendered"
-              ></ion-card-title>
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <ion-img
-                  v-bind="getImgObj(item.featured_media)"
-                  class="featured-media"
-                ></ion-img>
-              </ion-card-content>
-              <ion-button
-                size="large"
-                expand="fill"
-              >
-                <i class="fa fa-lg fa-eye" />
-                &nbsp; Look Closer
-              </ion-button>
-              <ion-badge color="warning">
-                <i class="fa fa-coins" />
-                {{ item.meta._xp_achievement_gp }}
-                100
-                <strong>GP</strong>
-              </ion-badge>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      
-      <!-- ATM Modal -->
-      <ATMModal 
-        :is-open="showAtm"
-        :user="user"
-        @update:isOpen="showAtm = $event"
-        @deposit="clickDeposit"
-        @withdraw="clickWithdraw"
-        @pay-debt="clickPayDebt"
-      />
+      <div v-else class="shop-floor">
+        <!-- A shut door: the picture dims behind a store-hours sign -->
+        <div v-if="!isOpen" class="shop-closed">
+          <div class="closed-sign rpg-box" role="status">
+            <div class="closed-title"><i class="fad fa-door-closed" />Closed</div>
+            <div class="closed-next">{{ opensAt }}</div>
+            <div class="closed-hours">
+              <span class="hours-label">Store hours</span>
+              <span class="hours-range">{{ hoursLine }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="!visibleItems.length && !shelfWalletWare" class="shop-sign rpg-box">
+          <i class="fad fa-box-open" />
+          <template v-if="shelf.length === 0">The shelves are bare. Ask the Game Master to stock this shop!</template>
+          <template v-else>Nothing on the shelves matches. Try another search or filter.</template>
+        </div>
+        <shop-shelf-slider
+          v-else
+          ref="shelfRef"
+          :items="visibleItems"
+          :wallet="wallet"
+          :wallet-ware="shelfWalletWare"
+          :wallet-ware-affordable="walletWareAffordable"
+          :wallet-ware-short-by="walletWareShort"
+          @inspect="openInspect"
+          @buy-wallet="buyWallet"
+          @position="shelfPosition = $event"
+        />
+      </div>
+
+      <!-- Talk to the clerk, like the bank manager, the nurse and the concierge -->
+      <ion-fab slot="fixed" vertical="bottom" horizontal="center">
+        <ion-fab-button :color="shopColor" class="clerk-fab" :aria-label="`Talk to ${shopkeeper}`" @click="talkToClerk">
+          <i class="fad fa-comment-dots fa-2x" />
+        </ion-fab-button>
+      </ion-fab>
     </ion-content>
-    
+
+    <!-- Like the Calendar: search on top, then < the shelf filter > -->
     <ion-footer>
-      <ion-toolbar>
+      <ion-toolbar :color="shopColor">
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="dark"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
-              ></ion-searchbar>
+              <ion-searchbar v-model="search" color="light" placeholder="Search the shelves" :disabled="!isOpen" />
             </ion-col>
           </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                @click="request.params.page--"
-                :disabled="request.params.page == 1"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
+          <ion-row class="ion-align-items-center">
+            <ion-col size="3">
+              <ion-button color="light" expand="block" :disabled="!canGoBack" aria-label="Previous item" @click="shelfRef?.prev()">
+                <ion-icon :icon="chevronBack" slot="icon-only" />
               </ion-button>
             </ion-col>
-            <ion-col>
-              <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
+            <ion-col size="6">
+              <!-- The picked shelves on a button; the choices rise as the game's sheet, in thumb reach -->
+              <button
+                type="button"
+                class="shelf-filter"
+                data-test="shelf-filter"
+                aria-label="Which shelves"
+                :disabled="!isOpen"
+                @click="openShelfFilter"
               >
-                <ion-icon
-                  :icon="chevronForward"
-                  slot="icon-only"
-                />
+                <span>{{ shelfFilterLabel }}</span>
+                <i class="fad fa-chevron-up" aria-hidden="true" />
+              </button>
+            </ion-col>
+            <ion-col size="3">
+              <ion-button color="light" expand="block" :disabled="!canGoForward" aria-label="Next item" @click="shelfRef?.next()">
+                <ion-icon :icon="chevronForward" slot="icon-only" />
               </ion-button>
             </ion-col>
           </ion-row>
         </ion-grid>
       </ion-toolbar>
     </ion-footer>
+
+    <!-- The clerk, the wallet and the receipts speak in the game's own dialog, in the shop's colours -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
+
+    <!-- Item Inspection and Purchase Modal -->
+    <shop-item-modal
+      :is-open="!!inspectedItem"
+      :item="inspectedItem"
+      :can-afford="inspectedItem ? canAfford(inspectedItem.price) : false"
+      :wallet="wallet"
+      :is-buying="isBuying"
+      @close="closeInspect"
+      @buy="buyItem"
+    />
+
+    <ATMModal
+      :is-open="showAtm"
+      :user="user"
+      @update:isOpen="showAtm = $event"
+      @deposit="clickDeposit"
+      @withdraw="clickWithdraw"
+      @pay-debt="clickPayDebt"
+    />
   </ion-page>
 </template>
 
-<script src="./AccessoryShop.ts" />
+<script lang="ts" src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

@@ -1,5 +1,19 @@
-.home-town{
-  ion-content{
-    --background: url("@/assets/images/backgrounds/hometown.jpg") center center/cover no-repeat;
+.home-town {
+  ion-content {
+    --background: url("@/assets/images/backgrounds/hometown-ground.png") center center/cover no-repeat;
+    image-rendering: pixelated;
+
+    .hometown-plaza {
+      position: relative;
+      width: 100%;
+      max-width: 620px;
+      height: 100%;
+      min-height: 100%;
+      margin: 0 auto;
+      box-sizing: border-box;
+      pointer-events: none;
+      overflow: hidden;
+    }
   }
 }
+

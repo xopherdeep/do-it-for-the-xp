@@ -77,6 +77,10 @@
                 <div class="xp-badge">₲{{ user.stats?.gp.wallet || 0 }}</div>
               </div>
               <div class="username">{{ user.name.nick }}</div>
+              <!-- Owes the Hospital: the Game Master can forgive the bill from the hero's card -->
+              <xp-grounded-forgive :user="user" />
+              <!-- A timed privilege running (30 minutes of games...): the Game Master can end it early -->
+              <xp-power-timer-end :user="user" />
             </div>
           </div>
           <small class="block text-center mt-2 text-white/50 text-xs">

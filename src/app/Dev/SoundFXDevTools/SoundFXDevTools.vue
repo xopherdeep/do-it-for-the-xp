@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Sound FX Dev Tools</ion-title>
       </ion-toolbar>
@@ -152,7 +152,7 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonItem, IonLabel, IonList, IonSelect, IonSelectOption,
   IonRange, IonAccordionGroup, IonAccordion, IonButton,
-  IonBackButton, IonButtons, IonIcon
+  IonButtons, IonIcon
 } from '@ionic/vue';
 import { 
   volumeHighOutline, volumeLowOutline, playOutline, 
@@ -183,7 +183,7 @@ export default defineComponent({
     IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
     IonItem, IonLabel, IonList, IonSelect, IonSelectOption,
     IonRange, IonAccordionGroup, IonAccordion, IonButton,
-    IonBackButton, IonButtons, IonIcon
+    IonButtons, IonIcon
   },
   setup() {
     const gameStore = useGameStore();
@@ -196,13 +196,15 @@ export default defineComponent({
 
     // Get UI and RPG sound effects from the $fx object
     const uiSoundEffects = computed(() => {
-      if (!window.$fx?.ui?.[selectedUITheme.value]) return {};
-      return window.$fx.ui[selectedUITheme.value];
+      const themeEffects = window.$fx?.ui?.[selectedUITheme.value];
+      if (!themeEffects) return {};
+      return themeEffects;
     });
 
     const rpgSoundEffects = computed(() => {
-      if (!window.$fx?.rpg?.[selectedRPGTheme.value]) return {};
-      return window.$fx.rpg[selectedRPGTheme.value];
+      const themeEffects = window.$fx?.rpg?.[selectedRPGTheme.value];
+      if (!themeEffects) return {};
+      return themeEffects;
     });
 
     // Get music tracks from the $fx object using type assertion
@@ -232,7 +234,8 @@ export default defineComponent({
       filename = filename.split('.')[0].replace(/%20/g, ' ');
       
       // Handle numbered tracks from Earthbound - fixed regex to avoid unnecessary escapes
-      if (filename.match(/^\d+- *Earthbound *- */i)) {
+      const isEarthboundTrack = /^\d+- *Earthbound *- */i.test(filename);
+      if (isEarthboundTrack) {
         return filename.replace(/^\d+- *Earthbound *- */i, '');
       }
       
@@ -270,7 +273,8 @@ export default defineComponent({
     const playRPGSound = (soundName: string) => {
       try {
         const sound = window.$fx?.rpg?.[selectedRPGTheme.value]?.[soundName];
-        if (sound && typeof sound === 'object' && 'play' in sound) {
+        const isPlayableSound = sound && typeof sound === 'object' && 'play' in sound;
+        if (isPlayableSound) {
           // Reset the sound to start from beginning
           sound.currentTime = 0;
           sound.volume = fxVolume.value / 100;
@@ -291,7 +295,8 @@ export default defineComponent({
         const fx = window.$fx as unknown as FXObject;
         const tracks = fx?.rpg?.[selectedRPGTheme.value]?.BGM?.[category];
         
-        if (tracks && tracks[index]) {
+        const hasTrack = tracks && tracks[index];
+        if (hasTrack) {
           const track = tracks[index];
           currentTrack.value = track;
           
@@ -316,9 +321,11 @@ export default defineComponent({
       }
     };
 
+    const hasFxTheme = () => Boolean(window.$fx && window.$fx.theme);
+
     // Change UI theme
     const changeUITheme = () => {
-      if (window.$fx && window.$fx.theme) {
+      if (hasFxTheme()) {
         // Use type assertion to avoid type error
         const fx = window.$fx as unknown as FXObject;
         fx.theme.ui = selectedUITheme.value;
@@ -332,7 +339,7 @@ export default defineComponent({
 
     // Change RPG theme
     const changeRPGTheme = () => {
-      if (window.$fx && window.$fx.theme) {
+      if (hasFxTheme()) {
         // Use type assertion to avoid type error
         const fx = window.$fx as unknown as FXObject;
         fx.theme.rpg = selectedRPGTheme.value;
@@ -362,7 +369,8 @@ export default defineComponent({
 
     // Initialize themes from store on mount
     onMounted(() => {
-      if (window.$fx?.theme) {
+      const hasStoredTheme = Boolean(window.$fx?.theme);
+      if (hasStoredTheme) {
         // Use type assertion and ensure string conversion
         const fx = window.$fx as unknown as FXObject;
         selectedUITheme.value = String(fx.theme.ui);

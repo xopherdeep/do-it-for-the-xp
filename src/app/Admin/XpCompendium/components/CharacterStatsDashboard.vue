@@ -1,65 +1,64 @@
 <template>
   <XpDashboardGrid :cols="2">
-    <XpDashboardTile>
-      <XpStatBox
-        :value="85"
-        label="Avg HP/Users"
-        iconName="fa-heartbeat"
-        iconColor="danger"
-        :progress="0.85"
-        :forecast="0.6"
-        direction="rtl"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+    <template v-if="vitals">
+      <XpDashboardTile>
+        <XpStatBox
+          :value="vitals.avgHp"
+          label="Avg HP/Users"
+          iconName="fa-heartbeat"
+          iconColor="danger"
+          :progress="vitals.hpFill"
+          direction="rtl"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
 
-    <XpDashboardTile>
-      <XpStatBox
-        :value="70"
-        label="Avg MP/Users"
-        iconName="fa-spa"
-        iconColor="tertiary"
-        :progress="0.7"
-        :forecast="0.9"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="vitals.avgMp"
+          label="Avg MP/Users"
+          iconName="fa-spa"
+          iconColor="tertiary"
+          :progress="vitals.mpFill"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
 
-    <XpDashboardTile>
-      <XpStatBox
-        :value="12"
-        label="HP Drop Rate"
-        ribbon="To 0: 5h 30m"
-        ribbonColor="danger"
-        iconName="fa-heart-rate"
-        iconColor="warning"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="8"
-        label="MP Regen Rate"
-        ribbon="To Max: 2h 15m"
-        ribbonColor="success"
-        iconName="fa-cauldron"
-        iconColor="secondary"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="vitals.avgLevel"
+          label="Avg Level"
+          iconName="fa-chevron-double-up"
+          iconColor="success"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="vitals.wounded"
+          label="Wounded Heroes"
+          iconName="fa-heart-rate"
+          iconColor="warning"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+    </template>
   </XpDashboardGrid>
 </template>
 
 <script lang="ts">
   import Ionic from "@/lib/mixins/ionic";
-  import { defineComponent } from "vue";
+  import { defineComponent, onMounted, ref } from "vue";
   import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
+  import type { VitalsFigures } from "@/lib/services/stats/CompendiumStats";
+  import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "CharacterStatsDashboard",
@@ -79,33 +78,19 @@
         default: 0,
       },
     },
-    data() {
-      return {
-        // Mock data - these would be replaced with actual values when connected to character systems
-        avgHP: 85,
-        avgMP: 70,
-        avgHPRegen: 10,
-        avgMPRegen: 8,
-        totalHPLost: -12500,
-        avgHPLostPerQuest: -25,
-        hpLostToday: -175,
-        hpLostThisWeek: -625,
-        hpLostThisMonth: -2250,
-      };
+    setup() {
+      // The figures come from the heroes' profiles; the boxes wait for them
+      const vitals = ref<VitalsFigures | null>(null);
+      onMounted(async () => {
+        try {
+          vitals.value = (await getEngineStatsService().getCompendiumStats()).vitals;
+        } catch (error) {
+          debug.error("Compendium vitals failed to load", error);
+        }
+      });
+
+      return { vitals };
     },
-    // TODO: Implement methods to fetch real data from character systems
-    // Example:
-    /*
-  created() {
-    // Example implementation when we have a character tracking system
-    const characterStats = getCharacterTrackingSystem();
-    this.totalHPLost = characterStats.getTotalHPLost();
-    this.avgHPLostPerQuest = characterStats.getAverageHPLostPerQuest();
-    this.hpLostToday = characterStats.getHPLostToday();
-    this.hpLostThisWeek = characterStats.getHPLostThisWeek();
-    this.hpLostThisMonth = characterStats.getHPLostThisMonth();
-  }
-  */
   });
 </script>
 

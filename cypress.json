@@ -1,3 +1,13 @@
 {
-  "pluginsFile": "tests/e2e/plugins/index.js"
+  "pluginsFile": "tests/e2e/plugins/index.js",
+  "viewportWidth": 390,
+  "viewportHeight": 844,
+  "defaultCommandTimeout": 20000,
+  "pageLoadTimeout": 120000,
+  "requestTimeout": 20000,
+  "responseTimeout": 60000,
+  "video": false,
+  "trashAssetsBeforeRuns": false,
+  "screenshotOnRunFailure": true,
+  "retries": { "runMode": 0, "openMode": 0 }
 }

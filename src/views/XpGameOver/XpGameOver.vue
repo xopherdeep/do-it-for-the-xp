@@ -16,6 +16,7 @@ import { IonPage, IonContent } from "@ionic/vue";
 import { XpIntroSplash } from "@/components/organisms/IntroSplash";
 import type { SplashScreen } from "@/components/organisms/IntroSplash";
 import Ionic from "@/lib/mixins/ionic";
+import { useTimers } from "@/hooks/useTimers";
 
 export default defineComponent({
     name: "XpGameOver",
@@ -27,20 +28,21 @@ export default defineComponent({
     },
     setup() {
         const router = useRouter();
+        const timers = useTimers();
         const viewActive = ref(false);
         const duration = 3000;
 
         // Define the splash screens for the game over sequence
         const splashScreens = ref<SplashScreen[]>([
             {
-                image: require("@/assets/images/about/darkness.png"),
+                image: require("@/assets/images/about/darkness.webp"),
                 text: "You have been defeated...",
                 alt: "Game Over",
                 duration,
                 soundEffect: "defeat",
             },
             {
-                image: require("@/assets/images/midjourney/hospital.png"),
+                image: require("@/assets/images/midjourney/hospital.webp"),
                 text: "The hospital will patch you up.",
                 alt: "To the hospital",
                 duration,
@@ -67,6 +69,7 @@ export default defineComponent({
             splashScreens,
             onComplete,
             onSkip,
+            timers,
         };
     },
 
@@ -74,16 +77,18 @@ export default defineComponent({
     ionViewWillEnter() {
         // Ensure intro will play when entering the view
         this.viewActive = false;
+        this.timers.cancelAll();
         // Short delay to ensure a clean start
-        setTimeout(() => {
+        this.timers.startTimeout(100, () => {
             this.viewActive = true;
-        }, 100);
+        });
     },
 
     // This is called when leaving the view - Ionic specific
     ionViewWillLeave() {
         // Deactivate the component when navigating away
         this.viewActive = false;
+        this.timers.cancelAll();
     },
 });
 </script>

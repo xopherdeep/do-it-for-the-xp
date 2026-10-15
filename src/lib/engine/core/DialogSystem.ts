@@ -34,7 +34,8 @@ export class DialogSystem {
    * Get the singleton instance of DialogSystem
    */
   public static getInstance(): DialogSystem {
-    if (!DialogSystem.instance) {
+    const hasInstance = Boolean(DialogSystem.instance);
+    if (!hasInstance) {
       DialogSystem.instance = new DialogSystem();
     }
     return DialogSystem.instance;
@@ -50,7 +51,8 @@ export class DialogSystem {
     debug.log(`Registered dialog display function for context: ${context}`);
     
     // Set as default if no default exists yet
-    if (this.defaultDisplayFn === null) {
+    const hasNoDefault = this.defaultDisplayFn === null;
+    if (hasNoDefault) {
       this.defaultDisplayFn = displayFn;
     }
   }
@@ -60,7 +62,8 @@ export class DialogSystem {
    * @param context - The context to use as default
    */
   public setDefaultDisplayFunction(context: string): void {
-    if (this.displayFunctions.has(context)) {
+    const isRegistered = this.displayFunctions.has(context);
+    if (isRegistered) {
       this.defaultDisplayFn = this.displayFunctions.get(context)!;
       debug.log(`Set default dialog display function to context: ${context}`);
     } else {
@@ -86,14 +89,16 @@ export class DialogSystem {
     const finalOptions = { ...defaultOptions, ...options };
     
     // Use the specified context's display function if it exists
-    if (context && this.displayFunctions.has(context)) {
+    const hasContextDisplay = context && this.displayFunctions.has(context);
+    if (hasContextDisplay) {
       this.displayFunctions.get(context)!(message, finalOptions);
       return;
     }
     
     // Fall back to the default display function if available
-    if (this.defaultDisplayFn) {
-      this.defaultDisplayFn(message, finalOptions);
+    const hasDefaultDisplay = this.defaultDisplayFn !== null;
+    if (hasDefaultDisplay) {
+      this.defaultDisplayFn?.(message, finalOptions);
       return;
     }
     
@@ -106,12 +111,14 @@ export class DialogSystem {
    * @param context - The context to unregister
    */
   public unregisterDisplayFunction(context: string): void {
-    if (this.displayFunctions.has(context)) {
+    const isRegistered = this.displayFunctions.has(context);
+    if (isRegistered) {
       this.displayFunctions.delete(context);
       debug.log(`Unregistered dialog display function for context: ${context}`);
       
       // If this was the default, set a new default or null
-      if (this.defaultDisplayFn === this.displayFunctions.get(context)) {
+      const isDefault = this.defaultDisplayFn === this.displayFunctions.get(context);
+      if (isDefault) {
         this.defaultDisplayFn = this.displayFunctions.size > 0 
           ? this.displayFunctions.values().next().value || null
           : null;

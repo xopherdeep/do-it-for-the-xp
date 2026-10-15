@@ -150,6 +150,7 @@ export default {
   static: require("@/assets/audio/nintendo/earthbound/static.wav"),
   statsdown: require("@/assets/audio/nintendo/earthbound/statsdown.wav"),
   statsup: require("@/assets/audio/nintendo/earthbound/statsup.wav"),
+  step: require("@/assets/audio/nintendo/earthbound/step.wav"),
   steps: require("@/assets/audio/nintendo/earthbound/steps.wav"),
   storm1: require("@/assets/audio/nintendo/earthbound/storm1.wav"),
   storm2: require("@/assets/audio/nintendo/earthbound/storm2.wav"),

@@ -5,17 +5,20 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
+import { useTimers } from "@/hooks/useTimers";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-desert",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
     const { setActions } = useUserActions();
+    const timers = useTimers();
 
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
@@ -38,7 +41,8 @@ export default dC({
 
       // Occasionally increase wind intensity
       windInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.7) { // 30% chance of wind gust
+        const isGust = Math.random() > 0.7;
+        if (isGust) { // 30% chance of wind gust
           const originalVolume = windAudio.value?.volume || 0.4;
 
           // Increase volume for wind gust
@@ -46,11 +50,11 @@ export default dC({
             windAudio.value.volume = Math.min(0.8, originalVolume * 1.5);
 
             // Return to normal volume after 2 seconds
-            setTimeout(() => {
+            timers.startTimeout(2000, () => {
               if (windAudio.value) {
                 windAudio.value.volume = originalVolume;
               }
-            }, 2000);
+            });
           }
         }
       }, 10000); // Check every 10 seconds
@@ -88,11 +92,11 @@ export default dC({
       },
       {
         label: "Sun Pyramid",
-        id: "sun-temple",
+        id: "light-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = 'sun-temple'
+          const temple = 'light-temple'
           router.push({
             name: "temple",
             params: {

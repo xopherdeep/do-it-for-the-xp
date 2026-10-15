@@ -5,6 +5,7 @@
  * @since 1.0.0
  */
 import debug from '@/lib/utils/debug';
+import type { ApiConfig } from './apiHost';
 
 export interface ApiType {
   url: string;
@@ -19,24 +20,28 @@ export interface ApiParams {
 
 export default class Api {
   uri: string;
+  nonce?: string;
   private static instance: Api | null = null;
 
-  constructor({ protocol, url, base }: { protocol?: string, url: string, base: string }) {
+  constructor({ protocol, url, base, nonce }: ApiConfig) {
     this.uri = protocol ? `${protocol}://${url}/${base}` : `${url}/${base}`;
+    this.nonce = nonce;
   }
 
   /**
    * Get a singleton instance of the API
    * @param config Configuration for the API
    */
-  static getInstance(config?: { protocol?: string, url: string, base: string }): Api {
-    if (!Api.instance && config) {
+  static getInstance(config?: ApiConfig): Api {
+    const shouldCreateInstance = !Api.instance && config;
+    if (shouldCreateInstance) {
       Api.instance = new Api(config);
     }
-    if (!Api.instance) {
+    const instance = Api.instance;
+    if (!instance) {
       throw new Error('API instance not initialized. Call with config first.');
     }
-    return Api.instance;
+    return instance;
   }
 
   /**
@@ -44,13 +49,6 @@ export default class Api {
    */
   static get(type: string, params?: string | string[][] | ApiParams | URLSearchParams | undefined) {
     return Api.getInstance().get(type, params);
-  }
-
-  /**
-   * Static convenience method that delegates to the instance
-   */
-  static post(type: string, params: any) {
-    return Api.getInstance().post(type, params);
   }
 
   get(
@@ -67,10 +65,12 @@ export default class Api {
     
     // Handle different parameter types
     if (params) {
-      if (typeof params === 'object' && !(params instanceof URLSearchParams) && !Array.isArray(params)) {
+      const isRecordParams = typeof params === 'object' && !(params instanceof URLSearchParams) && !Array.isArray(params);
+      if (isRecordParams) {
         // Handle record objects with various value types
         Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          const hasValue = value !== undefined && value !== null;
+          if (hasValue) {
             query.append(key, String(value));
           }
         });
@@ -85,22 +85,10 @@ export default class Api {
 
     const queryString = query.toString().replace(/%2C/g, ",");
     const uri = `${this.uri}/${type}${queryString ? `?${queryString}` : ''}`;
-    const options = { method: "GET" };
-    return fetch(uri, options)
-      .then(this.responseHandler)
-      .catch(this.errorHandler);
-  }
-
-  post(type: string, params: any) {
-    const uri = `${this.uri}/${type}`;
-    const options = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    };
+    // The hosting site's nonce makes WordPress treat the request as the signed-in visitor
+    const options: RequestInit = this.nonce
+      ? { method: "GET", headers: { "X-WP-Nonce": this.nonce } }
+      : { method: "GET" };
     return fetch(uri, options)
       .then(this.responseHandler)
       .catch(this.errorHandler);
@@ -116,7 +104,8 @@ export default class Api {
     const data = await response.json();
 
     // check for error response
-    if (!response.ok) {
+    const isErrorResponse = !response.ok;
+    if (isErrorResponse) {
       // get error message from body or default to response statusText
       const error = (data && data.message) || response.statusText;
       return Promise.reject(error);

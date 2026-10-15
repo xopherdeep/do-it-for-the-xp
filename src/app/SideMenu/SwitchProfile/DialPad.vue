@@ -22,7 +22,7 @@
       <!-- Profile Card -->
       <div class="profile-card rpg-box">
         <ion-avatar class="profile-avatar">
-          <ion-img v-if="profile?.avatar" :src="currentAvatar" />
+          <ion-img v-if="profile?.avatarImage || profile?.avatar" :src="currentAvatar" />
         </ion-avatar>
         <div class="profile-info">
           <h2 class="profile-name earthbound-text">
@@ -174,7 +174,10 @@
   import { defineComponent, onUnmounted, computed, ref } from "vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import debug from "@/lib/utils/debug";
+  import { heroAvatarSrc } from "@/lib/hero-look/look";
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
+  import { play$fx } from "@/assets/fx";
+  import { useTimers } from "@/hooks/useTimers";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -198,15 +201,13 @@
       const inputCode = ref("");
       const showPass = ref(false);
       const hasError = ref(false);
+      const timers = useTimers();
 
       // Avatar
       const currentAvatar = computed(() => {
-        if (!props.profile?.avatar) return null;
-        try {
-          return $requireAvatar(`./${props.profile.avatar}.svg`);
-        } catch {
-          return $requireAvatar("./001-gamer.svg");
-        }
+        const hasNoAvatar = !props.profile?.avatarImage && !props.profile?.avatar;
+        if (hasNoAvatar) return null;
+        return heroAvatarSrc(props.profile, $requireAvatar) || $requireAvatar("./001-gamer.svg");
       });
 
       // Icons
@@ -251,7 +252,11 @@
       });
 
       const dismiss = async () => {
-        await modalController.dismiss();
+        play$fx("select");
+        const canDismiss = typeof modalController?.dismiss === "function";
+        if (canDismiss) {
+          await modalController.dismiss();
+        }
       };
 
       const clickUnlock = async () => {
@@ -262,58 +267,75 @@
           )}`
         );
 
-        if (inputCode.value !== props.profile.passcode) {
+        const isPasscodeMatch = inputCode.value === props.profile.passcode;
+        if (!isPasscodeMatch) {
+          play$fx("no");
           hasError.value = true;
-          setTimeout(() => {
+          timers.startTimeout(500, () => {
             hasError.value = false;
             inputCode.value = "";
-          }, 500);
+          });
           alertIncorrectPasscode();
         } else {
-          const toast = await toastController.create({
-            message: "Profile unlocked",
-            duration: 1500,
-            position: "top",
-          });
-          await toast.present();
+          play$fx("yes");
+          const canToast = typeof toastController?.create === "function";
+          if (canToast) {
+            const toast = await toastController.create({
+              message: "Profile unlocked",
+              duration: 1500,
+              position: "top",
+            });
+            await toast.present();
+          }
 
-          setTimeout(() => {
-            modalController.dismiss(props.profile);
-          }, 300);
+          timers.startTimeout(300, () => {
+            const canDismiss = typeof modalController?.dismiss === "function";
+            if (canDismiss) {
+              modalController.dismiss(props.profile);
+            }
+          });
         }
       };
 
       const toggleShowPass = () => {
+        play$fx("click");
         showPass.value = !showPass.value;
       };
 
       const appendToCode = (digit: number) => {
-        if (inputCode.value.length < 4) {
+        const canAddDigit = inputCode.value.length < 4;
+        if (canAddDigit) {
+          play$fx("click");
           inputCode.value += digit;
         }
       };
 
       const removeLastDigit = () => {
+        play$fx("click");
         inputCode.value = inputCode.value.slice(0, -1);
       };
 
       const clearCode = () => {
+        play$fx("click");
         inputCode.value = "";
       };
 
       const alertIncorrectPasscode = async () => {
-        const alert = await alertController.create({
-          mode: "ios",
-          header: "Passcode Incorrect",
-          message: "The passcode you entered was not valid. Please try again.",
-          buttons: [
-            {
-              text: "OK",
-              role: "confirm",
-            },
-          ],
-        });
-        alert.present();
+        const canAlert = typeof alertController?.create === "function";
+        if (canAlert) {
+          const alert = await alertController.create({
+            mode: "ios",
+            header: "Passcode Incorrect",
+            message: "The passcode you entered was not valid. Please try again.",
+            buttons: [
+              {
+                text: "OK",
+                role: "confirm",
+              },
+            ],
+          });
+          alert.present();
+        }
       };
 
       return {
@@ -342,188 +364,4 @@
   export default KeyPad;
 </script>
 
-<style lang="scss" scoped>
-  .dialpad-content {
-    --padding-top: 1rem;
-    --padding-bottom: 1rem;
-    --padding-start: 1rem;
-    --padding-end: 1rem;
-  }
-
-  .dialpad-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 400px;
-    margin: 0 auto;
-    gap: 1.5rem;
-    height: 100%;
-  }
-
-  // Profile Card
-  .profile-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 12px;
-  }
-
-  .profile-avatar {
-    width: 60px;
-    height: 60px;
-    flex-shrink: 0;
-
-    ion-img {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  .profile-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .profile-name {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  }
-
-  .profile-aka {
-    margin: 0.25rem 0 0;
-    font-size: 0.85rem;
-    color: var(--ion-color-success);
-    font-style: italic;
-  }
-
-  .profile-icons {
-    display: flex;
-    gap: 0.75rem;
-    flex-shrink: 0;
-  }
-
-  // Dialpad
-  .dial-pad {
-    width: 100%;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 12px;
-  }
-
-  // Passcode Display (inside dialpad)
-  .passcode-display {
-    padding: 1rem 0;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .passcode-dots {
-    display: flex;
-    gap: 1.25rem;
-    justify-content: center;
-  }
-
-  .dot {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--ion-color-success);
-    transition: all 0.2s ease;
-
-    &.filled {
-      background: var(--ion-color-success);
-      border-color: var(--ion-color-success);
-      box-shadow: 0 0 12px rgba(var(--ion-color-success-rgb), 0.5);
-      color: #000;
-    }
-
-    &.error {
-      background: var(--ion-color-danger);
-      border-color: var(--ion-color-danger);
-      animation: shake 0.4s ease;
-      color: #fff;
-    }
-  }
-
-  @keyframes shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-
-    20%,
-    60% {
-      transform: translateX(-4px);
-    }
-
-    40%,
-    80% {
-      transform: translateX(4px);
-    }
-  }
-
-  .dial-button {
-    --padding-top: 1rem;
-    --padding-bottom: 1rem;
-    font-size: 1.5rem;
-    font-weight: 600;
-    min-height: 56px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    // Let Ionic's native ripple handle touch feedback - no custom animations
-    touch-action: manipulation;
-
-    &.action-button {
-      font-size: 1.25rem;
-    }
-  }
-
-  .action-row {
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .unlock-button {
-    border-color: rgba(255, 255, 255, 0.2);
-
-    .unlock-text {
-      margin-left: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    &.unlock-ready {
-      border-color: var(--ion-color-success);
-      background: rgba(var(--ion-color-success-rgb), 0.15);
-      color: var(--ion-color-success);
-
-      &:hover {
-        background: rgba(var(--ion-color-success-rgb), 0.25);
-      }
-    }
-
-    &:disabled {
-      opacity: 0.4;
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_DialPad.scss" />

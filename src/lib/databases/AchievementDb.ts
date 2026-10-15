@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import debug from "@/lib/utils/debug";
 import DbStorageApi from "./DbStorageApi";
 
 import { Drivers, Storage } from "@ionic/storage";
@@ -23,6 +24,11 @@ export interface Achievement {
   bonusAchievement: boolean;
   requiresApproval: boolean;
   beastId?: string;
+  /**
+   * The Game Master chose "no beast" on the quest form: the library stops suggesting one for this quest
+   * (questFormRules). True while the quest has no beast of its own; absent or false lets the form suggest.
+   */
+  noBeast?: boolean;
   subAchievementIds?: string[];
   // assignment
   type: string;
@@ -34,17 +40,32 @@ export interface Achievement {
   customPeriodType: string;
   customPeriodNumber: number;
   dueByTime: string;
+  /**
+   * The parts of the day a chore belongs to (morning, noon, evening, night). Several times make one quest
+   * the hero does that many times a day; the calendar tabs list it under each. Old records have none and
+   * fall back to `dueByTime` (see QuestSchedule.questTimesOfDay).
+   */
+  timesOfDay?: ("morning" | "noon" | "evening" | "night")[];
   endsOn: string;
   startsOn: string;
   repeatOnDays: string[];
   showDailyUntilComplete: boolean;
   // stats
   difficulty: number;
+  /**
+   * About how long the chore takes, in minutes: the length of the strike clock in a fight (questClock).
+   * Absent means "use the default for the difficulty" (`defaultMinutes`), so old records need no migration.
+   */
+  estimatedMinutes?: number;
   xp: number;
   gp: number;
   ap: number;
   // meta
   adventureType: string;
+  /** Saved while still incomplete in the Compendium: heroes never see a draft (QuestEngine.filterQuests) */
+  draft?: boolean;
+  /** The hero who made the quest with the Quest Wizard (questWizard.ts). Absent on quests from the Compendium or a pack. */
+  createdBy?: string;
 }
 
 export interface AchievementCategoryInterface {
@@ -58,7 +79,8 @@ export class AchievementCategoryDb extends DbStorageApi {
   }
 
   public async setCategories(categories: AchievementCategoryInterface[]) {
-    categories.forEach(this.setCategory);
+    // An arrow keeps `this` bound; a bare method reference loses it and setCategory throws
+    await Promise.all(categories.map((category) => this.setCategory(category)));
   }
 }
 
@@ -117,8 +139,7 @@ export class AchievementDb extends DbStorageApi {
       return await this.setTask(clone).then(cloneToast);
     };
 
-    const clone = await this.getTasks().then(cloneFromTasks);
-    return clone;
+    return this.getTasks().then(cloneFromTasks);
   }
 
   public async getTaskById(id: string): Promise<Achievement | null> {
@@ -142,7 +163,8 @@ export class AchievementDb extends DbStorageApi {
       // Get all achievements
       const achievements = await this.getTasks();
 
-      if (achievements.length === 0) {
+      const hasNoAchievements = achievements.length === 0;
+      if (hasNoAchievements) {
         this.showWarningToast("No achievements to export!");
         return;
       }
@@ -185,16 +207,19 @@ export class AchievementDb extends DbStorageApi {
       // Set up file change handler
       fileInput.onchange = async (event) => {
         const target = event.target as HTMLInputElement;
-        if (!target || !target.files || target.files.length === 0) return;
+        const files = target?.files;
+        const hasNoFileChosen = !files || files.length === 0;
+        if (hasNoFileChosen) return;
 
-        const file = target.files[0];
+        const file = files[0];
         if (!file) return;
 
         const reader = new FileReader();
 
         reader.onload = async (e) => {
           try {
-            if (!e.target || e.target.result === null) {
+            const isReadEmpty = !e.target || e.target.result === null;
+            if (isReadEmpty) {
               this.showErrorToast("Failed to read file");
               return;
             }
@@ -212,7 +237,8 @@ export class AchievementDb extends DbStorageApi {
             }
 
             // Import achievements
-            if (achievements.length > 0) {
+            const hasAchievements = achievements.length > 0;
+            if (hasAchievements) {
               const count = await this.importAchievementsData(achievements);
               this.showSuccessToast(
                 `Successfully imported ${count} achievements!`
@@ -264,7 +290,8 @@ export class AchievementDb extends DbStorageApi {
           await this.setTask(importedAchievement);
           successCount++;
         } catch (err) {
-          console.error("Error importing achievement:", err);
+          // One bad entry does not stop the rest; the caller learns the shortfall from the returned count
+          debug.error("[AchievementDb] could not import an achievement", err);
         }
       }
 

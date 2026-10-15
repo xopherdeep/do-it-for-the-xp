@@ -72,8 +72,10 @@ export default defineComponent({
         "fire-temple": "fa-flame",
         "ice-temple": "fa-snowflake",
         "light-temple": "fa-sun",
+        "storm-temple": "fa-bolt",
         "lightning-temple": "fa-bolt",
         "shadow-temple": "fa-moon",
+        "moon-temple": "fa-moon-stars",
       };
       return icons[props.templeId] || "fa-place-of-worship";
     });

@@ -1,16 +1,10 @@
-:root{
-  --color-light: var(--ion-color-danger-tint);
-  --color-medium: var(--ion-color-danger-shade);
-  --color-dark: var(--ion-color-danger);
-  --color-darkest: var(--ion-color-danger-shade);
-  --animation-speed: 4s;
-  --animation-loop: infinite;
-}
+// The look of My Goods comes from the XpApp kit (src/components/organisms/XpApp/_xp-app.scss): the page root carries
+// the skin class and the red accent, the rows and sections are kit components.
 
-
-.my-abilities{
-  #container{
-    background-color: white;
-  }
-
+// A full bag turns the slot count ("20/20") warning-yellow, on a dark chip so it reads on the red app bar.
+.goods-header.is-full :deep(.xp-app-header__meta) {
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--ion-color-warning, #ffc409);
+  opacity: 1;
 }

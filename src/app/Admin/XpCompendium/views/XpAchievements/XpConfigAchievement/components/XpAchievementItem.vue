@@ -17,7 +17,9 @@
       <template v-if="achievement.adventureType === 'beast'">
         <ion-img
           v-if="beastAvatarUrl"
+          class="beast-img"
           :src="beastAvatarUrl"
+          :alt="activeBeast?.name"
         />
         <div
           v-else
@@ -49,29 +51,39 @@
           v-if="achievement.difficulty"
           class="fad"
           :class="difficultyIcon"
-          :title="`Difficulty: ${achievement.difficulty}`"
+          role="img"
+          :title="statusLabels.difficulty"
+          :aria-label="statusLabels.difficulty"
         />
         <i
           v-if="achievement.basicSchedule"
           class="fad"
           :class="basicScheduleIcon"
-          :title="achievement.basicSchedule"
+          role="img"
+          :title="statusLabels.schedule"
+          :aria-label="statusLabels.schedule"
         />
         <i
           v-if="achievement.type"
           class="fad"
           :class="achievementTypeIcon"
-          :title="achievement.type"
+          role="img"
+          :title="statusLabels.assignment"
+          :aria-label="statusLabels.assignment"
         />
         <i
           v-if="achievement.requiresApproval"
           class="fad fa-clipboard-check"
-          title="Requires Approval"
+          role="img"
+          :title="statusLabels.approval"
+          :aria-label="statusLabels.approval"
         />
         <i
           v-if="achievement.bonusAchievement"
           class="fad fa-gift"
-          title="Bonus Quest"
+          role="img"
+          :title="statusLabels.bonus"
+          :aria-label="statusLabels.bonus"
         />
       </div>
 
@@ -79,19 +91,22 @@
       <h2 class="quest-title">
         <span
           v-if="achievement.achievementName"
-          v-html="formatQuestName(achievement.achievementName)"
+          v-html="sanitizeHtml(formatQuestName(achievement.achievementName))"
         />
         <span
           v-else
           class="placeholder-text"
         >Untitled Quest</span>
+        <span
+          v-if="achievement.draft"
+          class="draft-badge"
+          title="Draft: heroes don't see this quest until it is finished"
+        >Draft</span>
       </h2>
 
-      <!-- Category & Rewards Row -->
+      <!-- Who & When, Rewards Row -->
       <p class="quest-meta">
-        <span class="category-name">
-          {{ category?.name || "Uncategorized" }}
-        </span>
+        <span class="quest-subtitle">{{ subtitle }}</span>
 
         <!-- Reward Badges -->
         <span
@@ -101,20 +116,26 @@
           <ion-badge
             color="danger"
             v-if="achievement.ap > 0"
+            :title="`${formatPoints(achievement.ap)} AP`"
+            :aria-label="`${formatPoints(achievement.ap)} AP`"
           >
-            <i class="fad fa-hand-holding-magic mr-1" />{{ achievement.ap }}
+            <i class="fad fa-hand-holding-magic mr-1" />{{ formatPoints(achievement.ap) }}
           </ion-badge>
           <ion-badge
             color="warning"
             v-if="achievement.gp > 0"
+            :title="`${formatPoints(achievement.gp)} GP`"
+            :aria-label="`${formatPoints(achievement.gp)} GP`"
           >
-            <i class="fad fa-hand-holding-usd mr-1" /><xp-gp :gp="achievement.gp" />
+            <i class="fad fa-hand-holding-usd mr-1" />{{ formatPoints(achievement.gp) }}
           </ion-badge>
           <ion-badge
             color="success"
             v-if="achievement.xp > 0"
+            :title="`${formatPoints(achievement.xp)} XP`"
+            :aria-label="`${formatPoints(achievement.xp)} XP`"
           >
-            <i class="fad fa-hand-holding-seedling mr-1" />{{ achievement.xp }}
+            <i class="fad fa-hand-holding-seedling mr-1" />{{ formatPoints(achievement.xp) }}
           </ion-badge>
         </span>
       </p>
@@ -137,8 +158,11 @@ import {
 } from "@/constants";
 import ionic from "@/lib/mixins/ionic";
 import { formatQuestName } from "@/lib/utils/format";
+import { formatPoints, questSubtitle, statusIconLabels } from "@/lib/services/quests/QuestLabels";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 export default defineComponent({
-  props: ["achievement", "categories", "showPoints", "beasts"],
+  // users: the family's profiles, for the hero nicknames; groupBy: the list's grouping, so the subtitle skips what the group header already says
+  props: ["achievement", "categories", "showPoints", "beasts", "users", "groupBy"],
   name: "XpAchievementItem",
   mixins: [ionic],
   computed: {
@@ -172,29 +196,42 @@ export default defineComponent({
       return `fad ${combo.icon} fa-lg`;
     },
     activeBeast() {
-      if (!this.achievement.beastId || !this.beasts) return null;
+      const hasNoBeastToShow = !this.achievement.beastId || !this.beasts;
+      if (hasNoBeastToShow) return null;
       return this.beasts.find((b) => b.id === this.achievement.beastId);
     },
-    beastAvatarUrl() {
-      if (!this.activeBeast) return null;
-      if (this.activeBeast.imageUrl) return this.activeBeast.imageUrl;
-      if (this.activeBeast.localImage) return this.activeBeast.localImage;
-      if (this.activeBeast.avatar) {
+    beastAvatarUrl(): string | null {
+      const beast = this.activeBeast;
+      if (!beast) return null;
+      const imageUrl = beast.imageUrl;
+      if (imageUrl) return imageUrl;
+      const localImage = beast.localImage;
+      if (localImage) return localImage;
+      const avatar = beast.avatar;
+      if (avatar) {
         try {
-          const pad = this.activeBeast.avatar.toString().padStart(3, "0");
-          return new URL(
-            `/src/assets/images/beasts/${pad}.png`,
-            import.meta.url
-          ).href;
+          const pad = avatar.toString().padStart(3, "0");
+          return require(`@/assets/images/beasts/${pad}.webp`);
         } catch {
           return null;
         }
       }
       return null;
     },
+    statusLabels() {
+      return statusIconLabels(this.achievement);
+    },
+    // Who and when; a list grouped by hero already names the hero, so it names the category instead
+    subtitle(): string {
+      const byAssignee = this.groupBy === "assignee";
+      const categoryName = this.category?.name || "Uncategorized";
+      return questSubtitle(this.achievement, this.users, categoryName, byAssignee);
+    },
   },
   methods: {
     formatQuestName,
+    formatPoints,
+    sanitizeHtml,
   },
 });
 </script>
@@ -211,6 +248,11 @@ export default defineComponent({
   .quest-avatar {
     width: 48px;
     height: 48px;
+
+    // Beast sprites keep their shape inside the round avatar instead of being cropped
+    .beast-img::part(image) {
+      object-fit: contain;
+    }
 
     .fallback-avatar {
       width: 100%;
@@ -246,22 +288,47 @@ export default defineComponent({
       color: rgba(255, 255, 255, 0.4);
       font-style: italic;
     }
+
+    // A quest saved while incomplete: heroes don't see it yet
+    .draft-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 6px;
+      font-family: "StatusPlz", var(--xp-font-heading);
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      color: #280828;
+      background: #f7e8a8;
+      border: 2px solid #383050;
+      border-radius: 2px;
+      vertical-align: middle;
+    }
   }
 
   .quest-meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    gap: 4px 8px;
     margin: 0;
     font-size: 0.85rem;
 
-    .category-name {
-      color: rgba(255, 255, 255, 0.5);
+    .quest-subtitle {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: rgba(255, 255, 255, 0.65);
     }
 
     .reward-badges {
       display: flex;
       gap: 6px;
+      margin-left: auto;
 
       ion-badge {
         font-size: 0.7rem;

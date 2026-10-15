@@ -44,7 +44,7 @@
         </div>
 
         <!-- Maze Configuration View -->
-        <div v-if="showMazeConfig" class="tab-content w-full max-w-4xl">
+        <div v-else-if="showMazeConfig" class="tab-content w-full max-w-4xl">
           <ion-card class="maze-config-card">
             <ion-card-header>
               <div class="flex justify-between items-center">
@@ -60,8 +60,9 @@
             </ion-card-header>
             <ion-card-content>
               <div class="config-grid">
-                <div v-for="room in uniqueRooms" :key="room.key" class="config-item glass-panel"
-                  @click="focusRoom(room.key)">
+                <div v-for="room in uniqueRooms" :key="room.key" class="config-item glass-panel" role="button"
+                  tabindex="0" @click="focusRoom(room.key)" @keydown.enter="focusRoom(room.key)"
+                  @keydown.space.prevent="focusRoom(room.key)">
                   <div class="token-badge">{{ room.key }}</div>
                   <div class="room-info">
                     <div class="type-row">
@@ -87,7 +88,7 @@
         <!-- Grid Editor -->
         <div v-else class="grid-wrapper">
           <xp-temple-creator-grid :maze="currentMazeSlice" :rooms-data="roomsData" :room-icons="dynamicRoomIcons"
-            :side-type-info="SIDE_TYPE_INFO" :selected-cell="selectedCell" :entrance-position="entrancePosition"
+            :side-type-info="SIDE_TYPE_INFO" :selected-cell="selectedCell" :entrance-position="entranceOnThisFloor"
             :current-level-id="currentLevelId" @cell-click="onCellClick"
             @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)" />
         </div>
@@ -115,7 +116,7 @@
       </div>
 
       <!-- Save FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab v-if="areEditorFabsVisible" vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button :color="hasUnsavedChanges ? 'success' : 'medium'" @click="saveTemple"
           :class="{ 'faded-fab': !hasUnsavedChanges }">
           <i class="fad fa-save fa-lg"></i>
@@ -123,7 +124,7 @@
       </ion-fab>
 
       <!-- Consolidated Management FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="center" horizontal="end" slot="fixed">
+      <ion-fab v-if="areEditorFabsVisible" vertical="center" horizontal="end" slot="fixed">
         <ion-fab-button color="medium">
           <i class="fad fa-shovel fa-2x"></i>
         </ion-fab-button>
@@ -156,7 +157,7 @@
       </ion-fab>
 
       <!-- Floor Switcher FAB -->
-      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading" vertical="center" horizontal="start" slot="fixed"
+      <ion-fab v-if="isFloorFabVisible" vertical="center" horizontal="start" slot="fixed"
         class="floor-fab-container">
         <ion-fab-button color="rpg" class="floor-fab-trigger">
           <span class="floor-label">{{ currentLevelId }}</span>
@@ -202,7 +203,10 @@
 
         <div class="level-choice-container">
           <!-- Build Up -->
-          <div class="level-choice-card surface" @click="confirmAddFloor(nextFloorOptions.surface)">
+          <div class="level-choice-card surface" role="button" tabindex="0"
+            @click="confirmAddFloor(nextFloorOptions.surface)"
+            @keydown.enter="confirmAddFloor(nextFloorOptions.surface)"
+            @keydown.space.prevent="confirmAddFloor(nextFloorOptions.surface)">
             <div class="icon-box">
               <i class="fad fa-clouds"></i>
             </div>
@@ -218,7 +222,10 @@
           <div class="choice-divider">or</div>
 
           <!-- Dig Down -->
-          <div class="level-choice-card basement" @click="confirmAddFloor(nextFloorOptions.basement)">
+          <div class="level-choice-card basement" role="button" tabindex="0"
+            @click="confirmAddFloor(nextFloorOptions.basement)"
+            @keydown.enter="confirmAddFloor(nextFloorOptions.basement)"
+            @keydown.space.prevent="confirmAddFloor(nextFloorOptions.basement)">
             <div class="icon-box">
               <i class="fad fa-dungeon"></i>
             </div>
@@ -232,7 +239,8 @@
           </div>
         </div>
 
-        <div class="custom-name-trigger" @click="promptCustomFloorName">
+        <div class="custom-name-trigger" role="button" tabindex="0" @click="promptCustomFloorName"
+          @keydown.enter="promptCustomFloorName" @keydown.space.prevent="promptCustomFloorName">
           <span>Use a custom name instead...</span>
         </div>
       </div>
@@ -299,7 +307,8 @@ export default defineComponent({
 
     // Watch for templeId changes
     watch(() => route.params.templeId, (newId) => {
-      if (newId && typeof newId === 'string' && creator.store.templeId !== newId) {
+      const isDifferentTemple = !!newId && typeof newId === 'string' && creator.store.templeId !== newId;
+      if (isDifferentTemple) {
         creator.store.templeId = newId;
         creator.loadTempleLayout();
       }
@@ -311,9 +320,15 @@ export default defineComponent({
       return maze && maze.length > 0 && maze.some(row => row.some(cell => cell !== '____'));
     });
 
+    // The floating action buttons only show over a ready editor, not the preview or the maze config
+    const areEditorFabsVisible = computed(
+      () => hasLayout.value && !creator.isLoading.value && !creator.showPreview.value && !showMazeConfig.value
+    );
+    const isFloorFabVisible = computed(() => areEditorFabsVisible.value && creator.floors.value.length > 0);
+
     // Initialize a new empty layout
     const initializeNewLayout = () => {
-      creator.initializeGrid();
+      creator.initGrid();
     };
 
     // Handle quick edit popover from context menu
@@ -325,7 +340,8 @@ export default defineComponent({
     const handleJsonApply = async (jsonStr: string) => {
       if (templeData) {
         const result = await templeData.applyRawJson(jsonStr);
-        if (result.success) {
+        const didApply = result.success;
+        if (didApply) {
           isJsonEditorOpen.value = false;
           // Trigger a reload of the layout in the creator hook
           creator.loadTempleLayout();
@@ -334,10 +350,14 @@ export default defineComponent({
     };
 
     const formatRoomContent = (room: any) => {
-      if (!room.content) return 'Standard room';
-      if (room.type === 'monster') return `${room.content.difficulty || 'Normal'} difficulty`;
-      if (room.type === 'loot') return room.content.chest === 'treasure' ? 'Treasure Chest' : 'Gold/Items';
-      if (room.type === 'shop') return 'Active Shop';
+      const content = room.content;
+      if (!content) return 'Standard room';
+      const isMonsterRoom = room.type === 'monster';
+      const isLootRoom = room.type === 'loot';
+      const isShopRoom = room.type === 'shop';
+      if (isMonsterRoom) return `${content.difficulty || 'Normal'} difficulty`;
+      if (isLootRoom) return content.chest === 'treasure' ? 'Treasure Chest' : 'Gold/Items';
+      if (isShopRoom) return 'Active Shop';
       return 'Custom config';
     };
 
@@ -352,6 +372,8 @@ export default defineComponent({
       // State
       templeId,
       hasLayout,
+      areEditorFabsVisible,
+      isFloorFabVisible,
       isLoading: creator.isLoading,
       showAddFloorModal: creator.showAddFloorModal,
       nextFloorOptions: creator.nextFloorOptions,
@@ -363,7 +385,7 @@ export default defineComponent({
       roomsData: creator.roomsData,
       dynamicRoomIcons: creator.dynamicRoomIcons,
       selectedCell: creator.selectedCell,
-      entrancePosition: creator.entrancePosition,
+      entranceOnThisFloor: creator.entranceOnThisFloor,
       currentLevelId: creator.currentLevelId,
       floors: creator.floors,
       aboveFloors: creator.aboveFloors,
@@ -383,18 +405,18 @@ export default defineComponent({
       SIDE_TYPE_INFO: creator.SIDE_TYPE_INFO,
 
       // Floor management
-      promptAddFloor: creator.promptAddFloor,
+      promptAddFloor: creator.openAddFloorPrompt,
       confirmAddFloor: creator.confirmAddFloor,
-      promptCustomFloorName: creator.promptCustomFloorName,
+      promptCustomFloorName: creator.openCustomFloorNamePrompt,
       addFloor: creator.addFloor,
       removeFloor: creator.removeFloor,
       setLevel: creator.setLevel,
 
       // Grid management
-      resizeGrid: creator.resizeGrid,
+      resizeGrid: creator.updateGridSize,
 
       // Cell/Room actions
-      onCellClick: creator.onCellClick,
+      onCellClick: creator.handleCellClick,
       showQuickEditPopover,
       applyQuickType: creator.applyQuickType,
       applyRoomChanges: creator.applyRoomChanges,
@@ -457,8 +479,7 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
   z-index: 100;
   display: flex;
   justify-content: center;
@@ -792,5 +813,28 @@ export default defineComponent({
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   backdrop-filter: blur(5px);
+}
+
+.tab-content {
+  padding: 16px;
+  margin: 0 auto;
+}
+
+.preview-container {
+  max-height: 52vh;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(10, 10, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+}
+
+.code-preview {
+  margin: 0;
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #a5d6a7;
+  white-space: pre;
 }
 </style>

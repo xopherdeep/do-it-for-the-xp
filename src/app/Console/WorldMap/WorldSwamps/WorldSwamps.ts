@@ -5,10 +5,11 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-swamps",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
@@ -38,12 +39,12 @@ export default dC({
         },
       },
       {
-        label: "Moon Temple",
-        id: "moon-temple",
+        label: "Moonveil Shrine",
+        id: "shadow-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          router.push({ name: "temple", params: { userId, temple: 'moon-temple' } });
+          router.push({ name: "temple", params: { userId, temple: 'shadow-temple' } });
         },
       },
     ];

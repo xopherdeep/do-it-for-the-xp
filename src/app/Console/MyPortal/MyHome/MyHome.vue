@@ -14,116 +14,31 @@
 
     <ion-content :fullscreen="true" class="my-home-bg">
       <IonRouterOutlet />
-      <!-- <ion-router-outlet></ion-router-outlet> -->
-      <!-- <ion-grid>
+      <div class="my-home-plaza">
+        <xp-draggable-spot screen="my-home" spot-id="home-bed" :default-x="25" :default-y="25">
+          <xp-building-model building-id="home-bed" label="Cozy Bed" sublabel="Rest & heal" :size="115" @click="restInBed" />
+        </xp-draggable-spot>
 
-        <ion-row>
-          <ion-col offset-sm="5" offset-xl="6" size="12" size-sm="7" size-xl="6">
-            <ion-card>
-              <ion-buttons class="ion-float-right">
-                <ion-button :router-link="`/my-portal/${userId}/world-map`">
-                  <i class="fad fa-door-open fa-2x"></i>
-                </ion-button>
-              </ion-buttons>
-              <ion-buttons>
-                <ion-grid>
-                  <ion-row>
-                    <ion-col>
-                      <ion-button id="adventure-time" >
-                        <i class="fad fa-watch-fitness fa-2x"></i>
-                        &nbsp; Adventure Time
-                      </ion-button>
-                    </ion-col>
-                    <ion-col size="">
-                      <ion-button id="storage">
-                        <i class="fad fa-treasure-chest fa-2x"></i>
-                        &nbsp; Storage
-                      </ion-button>
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-                    <ion-col>
-                      <ion-button id="cook">
-                        <i class="fad fa-hat-chef fa-2x"></i>
-                        &nbsp; Cook
-                      </ion-button>
-                    </ion-col>
-                    <ion-col>
-                      <ion-button id="rest">
-                        <i class="fad fa-bed fa-2x"></i>
-                        &nbsp; Rest
-                      </ion-button>
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-                    <ion-col>
-                      <ion-button id="craft">
-                        <i class="fad fa-tools fa-2x"></i>
-                        &nbsp; Craft
-                      </ion-button>
-                    </ion-col>
-                    <ion-col size="6"> 
-                      <ion-button id="save-quit">
-                        <i class="fad fa-save fa-2x"></i>
-                        &nbsp; Save & Quit
-                      </ion-button>
+        <xp-draggable-spot screen="my-home" spot-id="home-storage" :default-x="65" :default-y="25">
+          <xp-building-model building-id="home-storage" label="My Storage" sublabel="Open vault" :size="115" />
+        </xp-draggable-spot>
 
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-                    <ion-col>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-buttons>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid> -->
-      <!-- <ion-modal
-        trigger="adventure-time"
-        :breakpoints="[0.9]"
-        :initialBreakpoint="0.9"
-      >
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-clock fa-2x ion-float-right"></i>
-              Adventure Time
-            </ion-card-title>
-          </ion-card-header>
-        </ion-card>
-      </ion-modal>
-      <ion-modal trigger="rest" :breakpoints="[0.9]" :initialBreakpoint="0.9">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-bed fa-2x ion-float-right"></i>
-              Rest
-            </ion-card-title>
-          </ion-card-header>
-        </ion-card>
-      </ion-modal>
-      <ion-modal trigger="cook" :breakpoints="[0.9]" :initialBreakpoint="0.9">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-hat-chef fa-2x ion-float-right"></i>
-              Cook
-            </ion-card-title>
-          </ion-card-header>
-        </ion-card>
-      </ion-modal>
-      <ion-modal trigger="craft" :breakpoints="[0.9]" :initialBreakpoint="0.9">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-tools fa-2x ion-float-right"></i>
-              Craft
-            </ion-card-title>
-          </ion-card-header>
-        </ion-card>
-      </ion-modal> -->
+        <xp-draggable-spot screen="my-home" spot-id="home-workbench" :default-x="20" :default-y="50">
+          <xp-building-model building-id="home-workbench" label="My Workbench" sublabel="Craft gear" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-kitchen" :default-x="80" :default-y="50">
+          <xp-building-model building-id="home-kitchen" label="My Kitchen" sublabel="Cook meals" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-calendar" :default-x="25" :default-y="75">
+          <xp-building-model building-id="home-calendar" label="My Calendar" sublabel="View schedule" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-door" :default-x="65" :default-y="75">
+          <xp-building-model building-id="home-door" label="Front Door" sublabel="Go outside" :size="115" />
+        </xp-draggable-spot>
+      </div>
       <ion-modal :breakpoints="[0.9]" :initialBreakpoint="0.9">
         <ion-card>
           <ion-card-title> World Map </ion-card-title>
@@ -138,5 +53,5 @@
   </ion-page>
 </template>
 
-<script src="./MyHome" />
+<script lang="ts" src="./MyHome.ts" />
 <style lang="scss" src="./_MyHome.scss" scoped />

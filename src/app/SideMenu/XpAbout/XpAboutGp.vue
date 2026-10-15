@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/about-xp" />
+          <xp-back-button />
           <i class="fad fa-hand-holding-usd fa-lg mr-2" style="color: gold"></i>
         </ion-buttons>
         <ion-title>About Gold Points</ion-title>
@@ -15,7 +15,7 @@
       <div class="gp-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-usd fa-10x"></i>
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab v-show="!isDialogVisible" vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button color="warning" @click="showGpDialog">
             <i class="fad fa-hand-holding-usd fa-lg"></i>
           </ion-fab-button>
@@ -46,9 +46,6 @@
             class="gp-text"
             :has-more-text="hasMoreDialog"
           />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
     </div>
@@ -186,7 +183,8 @@
         }
 
         // If not typing, advance to next dialog block
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.currentDialogIndex++;
           this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
           this.hasMoreDialog =
@@ -205,7 +203,8 @@
         this.isTyping = false;
 
         // Play subtle sound effect between blocks if there are more blocks
-        if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
+        const hasNextBlock = this.currentDialogIndex < this.dialogBlocks.length - 1;
+        if (hasNextBlock) {
           this.play$fx("text");
         }
       },
@@ -225,8 +224,10 @@
         const originalBlocks = this.dialogBlocks;
         // Override with custom blocks - Type-safe access
         const options = this.$options as ComponentOptions;
-        if (options.computed && options.computed.dialogBlocks) {
-          options.computed.dialogBlocks = function () {
+        const computedOptions = options.computed;
+        const canOverrideDialogBlocks = computedOptions && computedOptions.dialogBlocks;
+        if (canOverrideDialogBlocks) {
+          computedOptions.dialogBlocks = function () {
             return blocks;
           };
         }
@@ -238,8 +239,10 @@
         this.$watch("isDialogVisible", (newVal) => {
           if (!newVal) {
             const options = this.$options as ComponentOptions;
-            if (options.computed && options.computed.dialogBlocks) {
-              options.computed.dialogBlocks = function () {
+            const computedOptions = options.computed;
+            const canRestoreDialogBlocks = computedOptions && computedOptions.dialogBlocks;
+            if (canRestoreDialogBlocks) {
+              computedOptions.dialogBlocks = function () {
                 return originalBlocks;
               };
             }

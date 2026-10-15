@@ -1,140 +1,93 @@
 <template>
-  <ion-page>
+  <ion-page class="my-quests" :class="rootClass" :style="rootStyle">
     <ion-header>
-      <ion-toolbar color="success">
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}`">
-          </ion-back-button>
-          <i class="fad fa-book-dead fa-2x"></i>
-          <!-- <ion-icon :icon="medalOutline" size="large" /> -->
-        </ion-buttons>
-        <ion-title> Quest Log </ion-title>
+      <ion-toolbar>
+        <xp-app-header title="Beast Log" icon="scroll" :meta="headerMeta">
+          <template #start>
+            <ion-buttons>
+              <xp-back-button :icon="arrowBack"></xp-back-button>
+            </ion-buttons>
+          </template>
+        </xp-app-header>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="my-tasks">
+    <ion-content class="my-tasks" :class="`view-${view}`">
       <XpLoading v-if="isLoading" />
-      <swiper :navigation="swiperNavigation" :modules="modules" ref="slides" @slidePrevTransitionStart="slidePrev"
-        @slideNextTransitionStart="slideNext" @swiper="setControlledSwiper">
-        <swiper-slide v-for="page in nTotalPages" pager="true" :key="page" :data-page="page">
-          <ion-grid>
-            <ion-row>
-              <ion-col size="6" size-md="3" v-for="item in getTasksForPage(page)" :key="`${page}-${item.id}`"
-                class="ion-no-padding">
-                <ion-card @click="clickItem(item)" button class="item ion-no-padding" :id="item.id">
-                  <!-- :router-link="`/my-tasks/${userId}/task/${item.id}`" -->
-                  <ion-card-title v-if="isFetching">
-                    <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
-                  </ion-card-title>
-                  <ion-card-title v-else
-                    v-html="formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest')"></ion-card-title>
 
-                  <ion-thumbnail v-if="isFetching">
-                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
-                  </ion-thumbnail>
-                  <ion-img v-else-if="item._embedded" v-bind="getFeaturedImg(item._embedded)" />
+      <!--
+        One row per quest. The Board groups them by when they are due (Overdue, Today, This week, Later, Done) and a
+        tap opens the quest; the List keeps them flat, overdue first, with a Done button on every open one.
+      -->
+      <!-- Tamed: the hero's collection, three beasts to a row, each as big as the art allows -->
+      <template v-else-if="view === 'tamed'">
+        <ul v-if="tamedTiles.length" class="tamed-grid" aria-label="Tamed beasts">
+          <li v-for="beast in tamedTiles" :key="beast.id" class="tamed-beast" :title="beast.name">
+            <span class="tamed-beast__art">
+              <img v-if="beast.image" :src="beast.image" alt="" loading="lazy" draggable="false" />
+              <i v-else class="fad fa-scroll" aria-hidden="true"></i>
+              <span v-if="beast.count > 1" class="tamed-beast__count" :aria-label="`tamed ${beast.count} times`">x{{ beast.count }}</span>
+            </span>
+            <span class="tamed-beast__name">{{ beast.name }}</span>
+          </li>
+        </ul>
+        <xp-app-empty v-else icon="dragon" :text="emptyLine" class="quest-empty" />
+      </template>
+      <div v-else-if="sections.length" class="quest-sections">
+        <xp-app-section v-for="section in sections" :key="section.key" :label="section.label"
+          :class="`quest-section quest-section--${section.key}`">
+          <xp-app-row v-for="row in section.rows" :key="row.id" :id="row.id" class="quest-log-row"
+            :class="{ 'is-overdue': row.status === 'overdue', 'is-tamed': row.status === 'done', 'is-pending': row.status === 'pending', 'is-later': row.status === 'later', 'is-celebrating': celebrating?.id === row.id, 'is-celebrating--pending': celebrating?.id === row.id && celebrating.pending, 'is-landed': landed === row.id }"
+            :data-status="row.status" :title="row.title" :subtitle="row.subtitle" :image="row.image" :icon="row.icon"
+            :chevron="!(view === 'list' && row.canFinish)" :disabled="finishing === row.id" @click="openRow(row)">
+            <template v-if="row.hasChips" #chips>
+              <xp-app-chips :chips="row.chips" />
+            </template>
+            <template v-if="(view === 'list' && row.canFinish) || row.stateLabel" #trailing>
+              <XpQuestRowTrailing :row="row" :stamp="celebrating?.id === row.id ? celebrating : null"
+                :show-done="view === 'list' && row.canFinish" :finishing="finishing === row.id"
+                @done="confirmDone(row.source)" />
+            </template>
+          </xp-app-row>
+        </xp-app-section>
+      </div>
+      <xp-app-empty v-else icon="scroll" :text="emptyLine" class="quest-empty" />
 
-                  <ion-button v-if="isFetching" expand="block">
-                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
-                  </ion-button>
+      <!-- FAB (the same one the town's buildings and the Calendar use) to open the log's actions -->
+      <ion-fab slot="fixed" vertical="bottom" horizontal="center">
+        <ion-fab-button color="warning" aria-label="Quest actions" data-test="quests-fab" @click="presentActionSheet">
+          <i class="fad fa-dragon fa-2x"></i>
+        </ion-fab-button>
+      </ion-fab>
+      <XpQuickTaskModal v-if="addOpen" :userId="String(userId)" :users="userStore.users"
+        @saved="onTaskSaved" @didDismiss="addOpen = false" />
 
-                  <ion-button v-else color="primary">
-                    View Quest
-                  </ion-button>
+      <!-- The Quest Wizard: any player adds a quest, a picture and a few taps at a time -->
+      <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
+        @saved="onQuestSaved" />
 
-                  <ion-card-content class="ion-no-margin ion-no-padding">
-                    <!-- <ion-badge color="warning">
-                      {{item.meta._xp_achievement_gp}}
-                      &nbsp;
-                      <strong>GP</strong>
-                    </ion-badge>
-                    <ion-badge color="tertiary">
-                      {{item.meta._xp_achievement_ap}}
-                      &nbsp;
-                      <strong>AP</strong>
-                    </ion-badge>
-                    <ion-badge color="success">
-                      {{item.meta._xp_achievement_xp}}
-                      &nbsp;
-                      <strong>XP</strong>
-                    </ion-badge> -->
-                  </ion-card-content>
-                </ion-card>
-                <MyTask @didDismiss="activeModal = 0" :item="item" :userId="userId" v-if="activeModal == item.id" />
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </swiper-slide>
-      </swiper>
-
-      <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
-        <ion-router-outlet></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronBack"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${userId}/deeds`">
-            <ion-icon :icon="medalOutline" color="success"></ion-icon>
-            <ion-label>Advents</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/inventory`">
-            <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
-            <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-home" :href="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronForward"></ion-icon>
-          </ion-tab-button>
-
-        </ion-tab-bar>
-      </ion-tabs> -->
+      <!-- A tap on a quest opens its bestiary entry: the beast, its checklist, and Hunt / Claim -->
+      <XpBeastCardModal v-if="activeRow" @didDismiss="onTaskDismissed" :quest="activeRow.quest"
+        :status="activeRow.status" :due="activeRow.due" :dueLabel="activeRow.dueLabel" :userId="userId" />
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="success">
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" @keypress="playTextSound" @keyUp="resetTextSound" @ionChange="searchChanged"
-                v-model="searchText"></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button id="swiper-back" :disabled="page == 1" color="dark" expand="block">
-                <ion-icon :icon="chevronBack" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-            <ion-col class="total-pages" v-if="isLoading">
-              <ion-skeleton-text :animated="true" style="width: 60%;"></ion-skeleton-text>
-              <ion-skeleton-text :animated="true" style="width: 20%"></ion-skeleton-text>
-            </ion-col>
-            <ion-col class="total-pages" v-else>
-              <ion-text class="ion-text-align-center">
-                Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
-              </ion-text>
-              <ion-text>
-                <small>
-                  Page: {{ page }} of
-                  {{ nTotalPages }}
-                </small>
-              </ion-text>
-            </ion-col>
-            <ion-col>
-              <ion-button id="swiper-forward" :disabled="!hasNextPage" color="dark" expand="block">
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
+
+    <ion-footer class="quests-footer">
+      <div class="xp-app-bar">
+        <label class="xp-app-search">
+          <i class="fad fa-search" aria-hidden="true"></i>
+          <input v-model="searchText" type="search" placeholder="Search Quests" aria-label="Search Quests"
+            autocomplete="off" enterkeyhint="search" @keypress="playTextSound" @keyup="resetTextSound" />
+        </label>
+      </div>
+
+      <xp-app-bottom-nav
+        :tabs="questTabs"
+        v-model="view"
+        aria-label="Quest Navigation"
+        @change="onViewChange"
+      />
     </ion-footer>
   </ion-page></template>
 
-<script src="./MyQuests" />
+<script lang="ts" src="./MyQuests.ts" />
 <style lang="scss" src="./_MyQuests.scss" scoped />

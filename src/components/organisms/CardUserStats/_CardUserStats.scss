@@ -12,6 +12,11 @@
     background-color: #280828;
   }
 
+  // Ionic 7 makes the header a flex column, which shrinks an auto-width grid to its content (the bars came out 75px wide)
+  ion-card-header > ion-grid {
+    width: 100%;
+  }
+
   ion-progress-bar {
     height: 12px;
     border-radius: 5px;

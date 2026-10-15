@@ -96,16 +96,23 @@ export default defineComponent({
       {
         prefix: '$xxx',
         label: 'Loot',
-        description: 'Treasure chests & items',
+        description: 'Treasure chests & items, the Boss Key too',
         icon: ROOM_ICONS.loot,
         class: 'type-loot'
       },
       {
         prefix: 'Kxxx',
         label: 'Key',
-        description: 'Small or Boss keys',
+        description: 'Small keys, or the Boss Key for the boss door',
         icon: ROOM_ICONS.key,
         class: 'type-key'
+      },
+      {
+        prefix: 'MAST',
+        label: 'Master Room',
+        description: 'The Pegasus Egg chamber, after the boss',
+        icon: ROOM_ICONS.master,
+        class: 'type-master'
       },
       {
         prefix: 'Pxxx',
@@ -264,6 +271,10 @@ export default defineComponent({
     &.type-key {
       color: var(--ion-color-tertiary);
       background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+    }
+
+    &.type-master {
+      background: rgba(201, 162, 39, 0.18);
     }
 
     &.type-shop {

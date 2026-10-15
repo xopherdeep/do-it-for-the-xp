@@ -1,33 +1,101 @@
 import { defineComponent, onMounted, computed, ref } from 'vue';
+import { onIonViewWillEnter } from '@ionic/vue';
 import ionic from '@/lib/mixins/ionic';
-import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/temples/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
 import temples from '../../../lib/engine/temples';
-import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
-import XpXpBar from '../MyPortal/UserHud/components/XpXpBar.vue';
-import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
+import XpVitalsBar from '../MyPortal/UserHud/components/XpVitalsBar.vue';
+import XpPurseBar from '../MyPortal/UserHud/components/XpPurseBar.vue';
+import XpEquipmentModal from '../MyPortal/UserHud/components/XpEquipmentModal.vue';
+import XpWorldMapModal from '../MyPortal/UserHud/components/XpWorldMapModal.vue';
+import UserProfileModal from '../MyPortal/UserHud/components/UserProfileModal.vue';
+import XpBottomNav from '@/components/organisms/BottomNav/XpBottomNav.vue';
+import { useHeroEquipment } from '@/hooks/useHeroEquipment';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
+import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
+import TempleFloor from './TempleFloor.vue';
+import TempleWalls from './TempleWalls.vue';
+import TempleChestReveal from './components/TempleChestReveal.vue';
+import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
+import TempleDoorReveal from './components/TempleDoorReveal.vue';
+import TempleWallReveal from './components/TempleWallReveal.vue';
+import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
+import TempleLoading from './components/TempleLoading.vue';
+import TempleBossBanner from './components/TempleBossBanner.vue';
+import TempleRoomArrival from './components/TempleRoomArrival.vue';
+import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
+import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
 import { play$fx } from "@/assets/fx"
+import { useToast } from '@/hooks/useToast';
+import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
+import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
+import { readExits } from '@/lib/services/temples/RoomInteractions';
+import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
+import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
+import { useTempleLayout } from './templeGrounds/useTempleLayout';
+import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
+import { useRoomBeast } from './templeGrounds/useRoomBeast';
+import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
+import { useTempleMovement } from './templeGrounds/useTempleMovement';
+import { useTemplePreload } from './templeGrounds/useTemplePreload';
+import { useBossEntrance } from './templeGrounds/useBossEntrance';
+import { useRoomArrival } from './templeGrounds/useRoomArrival';
+import { mapCellIconOf } from './templeGrounds/mapCellIcon';
+
+// Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
+const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
+
+const toStartPosition = (x: unknown, y: unknown): [number, number] | undefined => {
+  const isStartIncomplete = isBlankParam(x) || isBlankParam(y);
+  if (isStartIncomplete) return undefined;
+  const col = Number(x);
+  const row = Number(y);
+  return Number.isInteger(col) && Number.isInteger(row) && col >= 0 && row >= 0 ? [row, col] : undefined;
+};
+
+// The temple route has no :level segment: a battle returns with ?level=2F. A floor only means something
+// next to the start position it qualifies, and the temple ignores floors it does not have.
+const toStartLevel = (level: unknown, startPosition: [number, number] | undefined): string | undefined => {
+  const raw = Array.isArray(level) ? level[0] : level;
+  return startPosition && typeof raw === 'string' && raw !== '' ? raw : undefined;
+};
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],
   name: 'temple-grounds-engine',
   mixins: [ionic],
   components: {
-    XpFabUserHud,
-    XpXpBar,
-    XpMainHud
+    'weather-fx': WeatherFX,
+    'temple-floor': TempleFloor,
+    'temple-walls': TempleWalls,
+    'temple-chest-reveal': TempleChestReveal,
+    'temple-choice-reveal': TempleChoiceReveal,
+    'temple-door-reveal': TempleDoorReveal,
+    'temple-wall-reveal': TempleWallReveal,
+    'temple-pegasus-reveal': TemplePegasusReveal,
+    'temple-loading': TempleLoading,
+    'temple-boss-banner': TempleBossBanner,
+    'temple-room-arrival': TempleRoomArrival,
+    XpVitalsBar,
+    XpPurseBar,
+    XpEquipmentModal,
+    XpWorldMapModal,
+    UserProfileModal,
+    XpBottomNav,
+    XpMonsterModel,
+    XpDungeonRoomModel
   },
   setup(props) {
     const userStore = useUserStore();
 
     // Ensure users are loaded
-    if (Object.keys(userStore.users).length === 0) {
+    const hasNoUsersLoaded = Object.keys(userStore.users).length === 0;
+    if (hasNoUsersLoaded) {
       userStore.loadUsers();
     }
 
@@ -35,16 +103,28 @@ export default defineComponent({
       return userStore.getUserById(props.userId);
     });
 
-    // Register predefined temples with the engine (for gameplay, not editing)
-    registerAllTemples(temples);
+    // Register predefined temples with the engine (for gameplay, not editing). The temple being opened is left out:
+    // useTemple registers it from the Game Master's copy in TempleDb (the shipped one only when there is none) before
+    // the run starts, so the shipped layout is never registered, even for a moment, over an edited one.
+    // registerAllTemples keeps any temple the engine already holds, so the others are only a starting point too.
+    registerAllTemples(Object.fromEntries(Object.entries(temples).filter(([id]) => id !== props.temple)));
 
-    // Import all temple layouts into the database if they don't exist
+    // Sync the shipped temples into the database first (an old seed is refreshed, an edited copy is kept), and
+    // only then register the temples the database holds (user-created content), so what registers is the fresh copy
     importAllTempleLayouts()
       .then(() => debug.log('Temple layouts checked/syncing with TempleDb'))
-      .catch(err => debug.error('Failed to sync temple layouts:', err));
+      .catch(err => debug.error('Failed to sync temple layouts:', err))
+      .then(() => registerCustomTemples())
+      .catch(err => debug.error('Failed to register custom temples:', err));
 
-    // Register custom temples from the TempleDb (user-created content)
-    registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
+    // Where the hero starts: the room (and floor) a battle returns to, if the route names one.
+    // A hero with a saved run in this temple resumes it instead, wherever it stopped.
+    const route = useRoute();
+    const startPosition = toStartPosition(props.x, props.y);
+    const startLevel = toStartLevel(route.query.level, startPosition);
+
+    // The hero whose progress in this temple is kept: the one the route names, else the signed-in one
+    const progressHeroId: string | undefined = props.userId || userStore.currentUser.id || undefined;
 
     // Get temple features from the composable
     const {
@@ -53,6 +133,9 @@ export default defineComponent({
       hasMap,
       hasCompass,
       playerKeys,
+      keyChange,
+      keyPulse,
+      playKeyPulse,
       isMapOpen,
       currentRoom,
       maze,
@@ -64,17 +147,20 @@ export default defineComponent({
       canMoveDown,
       canMoveLeft,
       canMoveRight,
-      move,
+      moveIcons,
+      stepTo,
       isDoorLocked,
-      unlockDoor,
-      processChestItems,
+      claimChestItems,
       handleTeleport,
       toggleMap,
-      displayMessage,
+      showTempleMessage,
+      registerMessageDisplay,
       chestContents,
-      isChestEmpty,
+      isCurrentRoomCleared,
       openMap,
-      closeMap,
+      closeMap: closeMapQuietly,
+      whenOpened,
+      restoreIfGone,
       // Map and compass utilities
       showRoomDetails,
       getRoomVisibility,
@@ -82,360 +168,231 @@ export default defineComponent({
       getRoomIcon,
       getMapTileClass,
       isRoomVisited
-    } = useTemple(props.temple, props.x && props.y ? [Number(props.y), Number(props.x)] : undefined);
+    } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
+    const mapCellIcon = mapCellIconOf({
+      rooms, hasCompass, getRoomVisibility, isCurrentRoom, showRoomDetails, getRoomIcon, isRoomVisited
+    });
 
     const router = useRouter();
 
-    // Background position state for CSS transforms - initialize with default values
-    const backgroundPosition = ref({ x: 0, y: 0 });
+    // The page stays parked while the hero is on another screen, so a run put away meanwhile (Portal Home) is reopened on Back
+    onIonViewWillEnter(restoreIfGone);
 
-    // Tile dimensions for the background grid
-    const tileWidth = ref(window.innerWidth);
-    const tileHeight = ref(window.innerHeight - 140);
+    // Messages are RPG-box toasts in the center with an X to dismiss
+    const { showToast } = useToast();
+    // Hushed while a reveal tells the news itself (the Pegasus chest), so the toast does not say it twice
+    let hushMessages = false;
+    const say = (message: string, duration = 2400) => {
+      if (hushMessages) return;
+      showToast(message, duration, 'middle').catch((error: unknown) => debug.error('Failed to show toast', error));
+    };
+    const setHushMessages = (hushed: boolean) => {
+      hushMessages = hushed;
+    };
+    registerMessageDisplay(say);
 
-    // Update tile dimensions when window resizes
-    onMounted(() => {
-      const updateDimensions = () => {
-        tileWidth.value = window.innerWidth;
-        tileHeight.value = window.innerHeight - 140;
-        const [row, col] = currentPosition.value;
-        updateBg(col, row);
-      };
-
-      window.addEventListener('resize', updateDimensions);
-      updateDimensions(); // Initial setup
-    });
-
-    // Format the temple name for display
-    const templeName = computed(() => {
-      return props.temple.replace(/-/g, ' ');
-    });
-
-    // Calculate valid room coordinates for background images
-    const validRoomCoords = computed(() => {
-      const coords: string[] = [];
-
-      const mazeData = maze.value;
-      for (let row = 0; row < mazeData.length; row++) {
-        for (let col = 0; col < mazeData[row].length; col++) {
-          const roomKey = mazeData[row][col];
-          if (rooms.value[roomKey]?.type !== 'wall') {
-            coords.push(`[${row},${col}]`);
-          } else {
-            coords.push(`[0,0]`);
-          }
-        }
-      }
-
-      return coords;
-    });
-
-    // Helper to get background images
-    const getBgImage = (xy: string) => {
-      try {
-        return require(`@/assets/images/backgrounds/${props.temple}/${xy}.jpg`);
-      } catch {
-        return '';
-      }
+    // A sound key from the fx table; the table is not there in every environment
+    const fx = (key: string) => {
+      const canPlayFx = typeof play$fx === 'function';
+      if (canPlayFx) play$fx(key);
     };
 
-    // Update the background position visually
-    const updateBg = (x: number, y: number) => {
-      // Get dimensions of a single image tile
-      const tileWidth = window.innerWidth; // Full viewport width
-      const tileHeight = window.innerHeight - 140; // Account for header/footer
-
-      // Calculate translate values - invert for proper positioning
-      const translateX = -x * tileWidth;
-      const translateY = -y * tileHeight;
-
-      // Update the background position directly in our reactive state
-      backgroundPosition.value = { x: translateX, y: translateY };
+    // The map closes with the page-close sound, once: from the compass rose, from a tap outside, or from the modal's own dismiss
+    const closeMap = () => {
+      if (isMapOpen.value) fx('closePage');
+      closeMapQuietly();
     };
 
-    // Show the unlock door alert
-    const showUnlockDoorAlert = async (direction: 'north' | 'south' | 'east' | 'west') => {
-      const buttons = playerKeys.value
-        ? [
-          { text: 'Cancel', role: 'cancel' },
-          {
-            text: 'Unlock (-1 Key)',
-            handler: () => {
-              if (playerKeys.value > 0) {
-                unlockDoor(direction);
-                displayMessage('Door unlocked!');
-              }
-            }
-          }
-        ]
-        : [{ text: 'Ok', role: 'cancel' }];
+    const templeSystem = TempleSystem.getInstance();
 
-      const alert = await alertController.create({
-        header: 'Locked Door',
-        message:
-          playerKeys.value > 0
-            ? 'Would you like to use a key to unlock this door?'
-            : 'You need a key to unlock this door!',
-        buttons
+    // The game area and the floor it shows, measured on mount and again whenever it resizes; each room's walls
+    const { layout, updateBg, getBgImage, getExitsAt: exitsAt, isNearHero } = useTempleLayout({
+      props,
+      currentPosition,
+      maze,
+      rooms,
+      templeSystem
+    });
+    const { backgroundPosition, gameArea, tileWidth, tileHeight, validRoomCoords } = layout;
+
+    // Which temple this is: its name for the map and the Area tab, its element for the walls and the beasts
+    const {
+      metadata: templeMeta,
+      isGenerated,
+      name: templeName,
+      element: templeElement,
+      shortName: templeShortName
+    } = useTempleMeta(props);
+
+    // The painted floors are fetched before the hero walks in, the room they start in first
+    const { isLoadingShown, loadedFloors, totalFloors } = useTemplePreload(
+      props.temple,
+      ref<[number, number]>(startPosition ?? currentPosition.value ?? [0, 0])
+    );
+
+    // Get the world location for this temple and walk out to it
+    const leaveTemple = () => {
+      const templeWorldMap = getTempleWorldLocation(props.temple);
+      router.push({ name: templeWorldMap.route, params: { userId: props.userId } });
+    };
+
+    // The reveals: a room's choices, the cleared temple and the chest
+    const { choiceReveal, choiceRevealKey, openChoiceReveal, selectRevealChoice: chooseReveal, dismissReveal: leaveReveal } =
+      useChoiceReveal();
+    const { pegasusReveal, showTempleCleared, completeTempleCleared: finishTempleCleared } = usePegasusReveal(leaveTemple);
+    const { isPegasusRevealOpen, pegasusShown, pegasusReward, pegasusLevelUp } = pegasusReveal;
+    const { chest, showChestContentsDialog, showEmptyChest, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
+      useChestReveal({
+        props,
+        progressHeroId,
+        chestContents,
+        currentRoom,
+        showTempleMessage,
+        claimChestItems,
+        showTempleCleared,
+        setHushMessages
       });
+    const { isChestOpen, chestLootShown, isChestClosed } = chest;
 
-      await alert.present();
+    // The beast of a combat room: the voxel monster, and the card its reveal shows
+    const { isCombatRoomCleared, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
+      props,
+      progressHeroId,
+      currentRoom,
+      currentPosition,
+      currentLevel,
+      isCurrentRoomCleared,
+      templeMeta,
+      isGenerated,
+      templeElement
+    });
+
+    // A boss or guardian still waiting in the room the hero walks into: the room dims and a banner names it
+    const bossEntranceDeps = { currentRoom, currentPosition, currentLevel, isCombatRoomCleared, activeMonster };
+    // Each step to the next room: dust streams past the other way and the camera lurches while the floor slides
+    const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition) };
+
+    // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out
+    const { isShaking, getLiveContext: liveContext, applyOutcome, handleArrival: arrive, showRoomActions } = useRoomOutcomes({
+      props,
+      userStore,
+      router,
+      progressHeroId,
+      templeSystem,
+      currentPosition,
+      currentLevel,
+      showTempleMessage,
+      handleTeleport,
+      say,
+      fx,
+      updateBg,
+      leaveTemple,
+      showTempleCleared,
+      showChestContentsDialog,
+      showEmptyChest,
+      openChoiceReveal,
+      beastCard,
+      activeMonster,
+      templeElement
+    });
+
+    // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
+    const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
+
+    // The live item definitions: the copy stored on the profile has no click. The composable needs the
+    // router and the game store; where those are missing the navigation items simply have no click.
+    let itemCatalog: EquipmentItem[] = [];
+    try {
+      itemCatalog = useEquipmentItems().specialItems;
+    } catch (error) {
+      debug.warn('Equipment catalog unavailable', error);
+    }
+
+    // The locked door close up
+    const { door, showLockedDoor, unlockShownDoor, completeShownDoor: finishShownDoor } = useDoorReveal({
+      props,
+      templeSystem,
+      playerKeys,
+      playKeyPulse,
+      liveContext,
+      applyOutcome
+    });
+    const { isDoorOpen, doorShown, doorResult } = door;
+
+    // The cracked wall close up: a Bomb in a hand blows it open
+    const { wall, showCrackedWall, triggerWallBlast, completeShownWall: finishShownWall, closeShownWall } = useWallReveal({
+      liveContext,
+      applyOutcome,
+      heldItems: () => [leftHandItem.value, rightHandItem.value] as Array<EquipmentItem | null>,
+      catalog: () => itemCatalog
+    });
+    const { isWallOpen, wallShown, wallResult } = wall;
+
+    // Walking: swipes and arrows, and the floor following the hero
+    const { handleTouchStart: onTouchStart, handleTouchEnd: onTouchEnd, handleMove: moveWithUpdate } = useTempleMovement({
+      props,
+      templeSystem,
+      currentPosition,
+      canMoveUp,
+      canMoveDown,
+      canMoveLeft,
+      canMoveRight,
+      isDoorLocked,
+      stepTo,
+      fx,
+      updateBg,
+      showLockedDoor,
+      showCrackedWall,
+      arrive
+    });
+
+    const isEquipmentOpen = ref(false);
+    const isProfileOpen = ref(false);
+    const isPegasusOpen = ref(false);
+    const openEquipment = () => {
+      fx('openMenu');
+      isEquipmentOpen.value = true;
     };
 
-    // Handle showing room actions
-    const showRoomActions = async () => {
-      if (!currentRoom.value) return;
+    // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
+    onMounted(() => {
+      // The run starts after the temple's saved layout was read, and the hero's save is read once it has
+      void whenOpened.then(() => templeSystem.whenProgressReady(props.temple)).then(() => {
+        const hasBloodMoonRisen = templeSystem.bloodMoonRose(props.temple);
+        if (!hasBloodMoonRisen) return;
+        fx('no');
+        say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
+      });
+    });
 
-      const actions = {
-        header: 'What would you like to do?',
-        buttons: [{ text: 'Cancel', role: 'cancel' } as any]
-      };
-
-      switch (currentRoom.value.type) {
-        case 'entrance':
-          actions.header = 'Temple Entrance';
-          actions.buttons.unshift({
-            text: 'Leave Temple',
-            role: 'leave',
-            handler: () => {
-              // Get the world location for this temple
-              const templeWorldMap = getTempleWorldLocation(props.temple);
-
-              // Navigate to the appropriate world map location
-              router.push({
-                name: templeWorldMap.route,
-                params: { userId: props.userId }
-              });
-            }
-          } as any);
-          break;
-        case 'loot':
-          // Check the chest state using our improved isChestEmpty computed property
-          if (isChestEmpty.value) {
-            actions.buttons.unshift({
-              text: 'Inspect Empty Chest',
-              role: 'open',
-              handler: () => {
-                showEmptyChestAlert();
-              }
-            } as any);
-          } else {
-            actions.buttons.unshift({
-              text: 'Open Chest',
-              role: 'open',
-              handler: () => {
-                showChestContentsDialog();
-              }
-            } as any);
-          }
-          break;
-        case 'monster':
-        case 'miniboss':
-        case 'boss':
-          actions.header = currentRoom.value.type === 'boss'
-            ? 'A Powerful Boss appears!'
-            : 'A Monster approaches!';
-          actions.buttons.unshift({
-            text: 'Fight',
-            role: 'fight',
-            handler: () => {
-              // Navigate using URL path format - BattleField will look up the room data
-              const [row, col] = currentPosition.value;
-              const level = currentLevel.value;
-
-              router.push({
-                name: 'battle-field-temple',
-                params: {
-                  templeId: props.temple,
-                  level: level,
-                  x: col.toString(),
-                  y: row.toString()
-                }
-              });
-            }
-          } as any);
-          break;
-        case 'shop':
-          actions.header = 'Can I interest you in my wares?';
-          actions.buttons.unshift({
-            text: 'View Wares',
-            role: 'view',
-            handler: () => {
-              // handle shop
-            }
-          } as any);
-          break;
-        case 'teleport':
-          actions.header = 'You found a teleport!';
-          actions.buttons.unshift({
-            text: 'Teleport',
-            role: 'teleport',
-            handler: () => {
-              if (handleTeleport()) {
-                // Update UI after teleport
-                setTimeout(() => {
-                  updateBg(currentPosition.value[1], currentPosition.value[0]);
-                }, 100);
-              }
-            }
-          } as any);
-          break;
-      }
-
-      const actionSheet = await actionSheetController.create(actions);
-      actionSheet.present();
-    };
-
-    // Get the appropriate world location for a temple
-    const getTempleWorldLocation = (templeId: string) => {
-      // Map temples to their world locations and route names
-      const templeWorldMap: Record<string, { world: string, route: string }> = {
-        'wind-temple': { world: 'plains', route: 'world-plains' },
-        'water-temple': { world: 'islands', route: 'world-islands' },
-        'earth-temple': { world: 'forest', route: 'world-forest' },
-        'fire-temple': { world: 'mountains', route: 'world-mountains' },
-        'ice-temple': { world: 'ice', route: 'world-ice' },
-        'light-temple': { world: 'desert', route: 'world-desert' },
-        'shadow-temple': { world: 'moon', route: 'world-moon' },
-        'lightning-temple': { world: 'clouds', route: 'world-clouds' }
-      };
-
-      // Return the world location or default to home-town if not found
-      return templeWorldMap[templeId] || { world: 'plains', route: 'home-town' };
-    };
-
-    // Handle movement with UI updates
-    const moveWithUpdate = (direction: 'north' | 'south' | 'east' | 'west') => {
-      const [row, col] = currentPosition.value;
-      let newRow = row;
-      let newCol = col;
-
-      switch (direction) {
-        case 'north':
-          newRow = row - 1;
-          break;
-        case 'south':
-          newRow = row + 1;
-          break;
-        case 'west':
-          newCol = col - 1;
-          break;
-        case 'east':
-          newCol = col + 1;
-          break;
-      }
-
-      // Check if door is locked
-      if (isDoorLocked(newRow, newCol)) {
-        showUnlockDoorAlert(direction);
+    // Tapping an equipped item: the select tick, then whatever the item does here
+    const useHand = (item: EquipmentItem | null) => {
+      if (!item) return;
+      fx('select');
+      const live = liveContext();
+      if (!live) {
+        showTempleMessage('Choose a profile first');
         return;
       }
-
-      // Update the background FIRST to create the immediate visual feedback
-      // This makes the transition feel responsive right away
-      updateBg(newCol, newRow);
-
-      // THEN attempt to move in the game state
-      const result = move(direction);
-
-      // If movement failed for some reason, revert the background position
-      if (!result) {
-        updateBg(col, row);
-      }
+      const { ctx, room } = live;
+      const exits = readExits(ctx.templeId, ctx.level, ctx.position);
+      void applyOutcome(useEquippedItem(item, { ...ctx, room, exits, catalog: itemCatalog }));
     };
-
-    // Show a dialog with chest contents
-    const showChestContentsDialog = async () => {
-      // Play chest opening sound effect
-      if (typeof play$fx === 'function') {
-        play$fx('openChest');
-      }
-
-      const inputs = chestContents.value;
-
-      if (inputs.length === 0) {
-        showEmptyChestAlert();
-        return;
-      }
-
-      const alert = await alertController.create({
-        header: 'Chest Contents',
-        inputs,
-        buttons: [
-          {
-            text: 'Leave',
-            role: 'cancel',
-          },
-          {
-            text: 'Loot',
-            handler: (selectedItems) => {
-              if (typeof play$fx === 'function') {
-                play$fx('yes');
-              }
-              if (selectedItems && selectedItems.length > 0) {
-                processChestItems(selectedItems);
-              }
-            },
-          },
-        ],
-      });
-
-      await alert.present();
-    };
-
-
-    // Show an alert for an empty chest
-    const showEmptyChestAlert = async () => {
-      // Play chest opening sound effect
-      play$fx('openChest');
-
-
-      const alert = await alertController.create({
-        header: 'Chest is empty!',
-        buttons: [
-          {
-            text: 'Ok',
-            role: 'cancel',
-            handler: () => {
-              if (typeof play$fx === 'function') {
-                play$fx('yes');
-              }
-            },
-          },
-        ],
-      });
-
-      await alert.present();
-    };
-
-    // Set up initial background position
-    onMounted(() => {
-      const [row, col] = currentPosition.value;
-      updateBg(col, row);
-    });
-
-    // Computed properties for equipped items
-    const leftHandItem = computed(() => {
-      const currentUser = user.value;
-      if (!currentUser?.equipment?.leftHand) return null;
-      return currentUser.equipment.leftHand[0] || null;
-    });
-
-    const rightHandItem = computed(() => {
-      const currentUser = user.value;
-      if (!currentUser?.equipment?.rightHand) return null;
-      return currentUser.equipment.rightHand[0] || null;
-    });
 
 
     return {
       // From useTemple
+      whenOpened,
       currentPosition,
+      currentLevel,
       hasMap,
       hasCompass,
       playerKeys,
+      keyChange,
+      keyPulse,
       isMapOpen,
       currentRoom,
+      isCombatRoomCleared,
       maze,
       rooms,
       actionColor,
@@ -445,6 +402,7 @@ export default defineComponent({
       canMoveDown,
       canMoveLeft,
       canMoveRight,
+      moveIcons,
       toggleMap,
       isCurrentRoom,
 
@@ -454,18 +412,54 @@ export default defineComponent({
       getRoomIcon,
       getMapTileClass,
       isRoomVisited,
+      mapCellIcon,
 
       // Local functions
       moveWithUpdate,
+      onTouchStart,
+      onTouchEnd,
+      exitsAt,
+      isNearHero,
+      templeElement,
       isDoorLocked,
       showRoomActions,
+      isChestOpen,
+      isChestClosed,
+      chestLootShown,
+      takeChestLoot,
+      leaveChest,
+      choiceReveal,
+      choiceRevealKey,
+      chooseReveal,
+      leaveReveal,
+      isDoorOpen,
+      doorShown,
+      doorResult,
+      unlockShownDoor,
+      finishShownDoor,
+      isWallOpen,
+      wallShown,
+      wallResult,
+      triggerWallBlast,
+      finishShownWall,
+      closeShownWall,
+      isPegasusRevealOpen,
+      pegasusShown,
+      pegasusReward,
+      pegasusLevelUp,
+      finishTempleCleared,
       getBgImage,
       validRoomCoords,
       templeName,
+      isLoadingShown,
+      ...roomDrama,
+      loadedFloors,
+      totalFloors,
       backgroundPosition,
       updateBg,
 
       // Tile dimensions for grid
+      gameArea,
       tileWidth,
       tileHeight,
 
@@ -475,14 +469,25 @@ export default defineComponent({
       closeMap,
       user,
       leftHandItem,
-      rightHandItem
+      rightHandItem,
+      equipment,
+      clickItem,
+      isEquipmentOpen,
+      isProfileOpen,
+      isPegasusOpen,
+      openEquipment,
+      templeShortName,
+      useHand,
+      isShaking,
+      showVoxelMonster,
+      activeMonster
     };
   },
   computed: {
     currentBgImage() {
       const [row, col] = this.currentPosition;
       try {
-        return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`);
+        return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].webp`);
       } catch {
         return '';
       }

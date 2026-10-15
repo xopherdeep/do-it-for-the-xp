@@ -120,9 +120,9 @@ export default defineComponent({
         JSON.parse(val);
         isValid.value = true;
         errorMessage.value = "";
-      } catch (e: any) {
+      } catch (error) {
         isValid.value = false;
-        errorMessage.value = e.message;
+        errorMessage.value = error instanceof Error ? error.message : String(error);
       }
     });
 

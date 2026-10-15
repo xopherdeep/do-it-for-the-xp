@@ -196,10 +196,13 @@ export default defineComponent({
         return;
       }
 
-      if (item.click && typeof item.click === "function") {
+      const hasClickHandler = typeof item.click === "function";
+      const hasMpCost = Boolean(item.mpCost);
+      if (hasClickHandler) {
         item.click();
-      } else if (item.mpCost) {
-        this.play$fx("spell");
+      } else if (hasMpCost) {
+
+        this.play$fx("useMP");
       }
     },
   },

@@ -1,0 +1,318 @@
+.my-records {
+  --records-gold: #ffd23f;
+  --records-ink: #f4ecd8;
+  --records-dim: #b8a98a;
+
+  .records-loading {
+    display: flex;
+    justify-content: center;
+    padding: 48px 0;
+  }
+
+  .records {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 14px 120px;
+    color: var(--records-ink);
+  }
+
+  h2,
+  h3 {
+    margin: 0;
+    font-family: "StatusPlz", sans-serif;
+    letter-spacing: 1px;
+  }
+
+  h3 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    color: var(--records-gold);
+
+    i {
+      margin-right: 4px;
+    }
+  }
+
+  .records-card,
+  .recap-card {
+    padding: 14px;
+    border-radius: 6px;
+  }
+
+  .records-card {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(16, 10, 32, 0.85);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .big-value {
+    font-family: "StatusPlz", sans-serif;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .big-label {
+    font-family: "StatusPlz", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: var(--records-dim);
+  }
+
+  // --- the recap ---------------------------------------------------------------------------
+  .recap-card {
+    border: 3px solid var(--records-gold);
+    background: linear-gradient(180deg, #2b1a4a, #120a24);
+  }
+
+  .recap-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h2 {
+      font-size: 1.2rem;
+      color: var(--records-gold);
+    }
+  }
+
+  .recap-avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 2px solid var(--records-gold);
+    background: #fff;
+    object-fit: cover;
+  }
+
+  .recap-range {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--records-dim);
+  }
+
+  .recap-numbers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .big-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 4px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+
+    &.xp .big-value {
+      color: #9be564;
+    }
+
+    &.gp .big-value {
+      color: var(--records-gold);
+    }
+  }
+
+  .big-change {
+    font-size: 0.65rem;
+    color: var(--records-dim);
+    text-align: center;
+  }
+
+  .recap-lines {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+
+    li::marker {
+      content: "\25B8  ";
+      color: var(--records-gold);
+    }
+  }
+
+  .recap-share {
+    --background: #d96b0c;
+    --background-activated: #8a2f00;
+    font-family: "StatusPlz", sans-serif;
+  }
+
+  // --- streak ------------------------------------------------------------------------------
+  .streak-card h3 .fa-fire {
+    --fa-primary-color: #ffd23f;
+    --fa-secondary-color: #ff6a00;
+    --fa-secondary-opacity: 1;
+  }
+
+  .streak-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .streak-now {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+  }
+
+  .streak-facts {
+    flex: 1;
+    display: grid;
+    gap: 4px;
+    margin: 0;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+    }
+
+    dt {
+      color: var(--records-dim);
+    }
+
+    dd {
+      margin: 0;
+      font-family: "StatusPlz", sans-serif;
+    }
+  }
+
+  .streak-warning {
+    margin: 10px 0 0;
+    color: #ffb347;
+    font-size: 0.85rem;
+  }
+
+  // --- XP chart ----------------------------------------------------------------------------
+  .xp-chart {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    align-items: end;
+  }
+
+  .xp-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .xp-bar-value {
+    font-size: 0.6rem;
+    min-height: 0.8rem;
+    color: var(--records-dim);
+  }
+
+  .xp-bar-track {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 110px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+  }
+
+  .xp-bar {
+    width: 100%;
+    height: var(--bar-height, 0%);
+    min-height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: linear-gradient(180deg, #7bc950, #3a7d1f);
+  }
+
+  .xp-bar-col.now {
+    .xp-bar {
+      background: linear-gradient(180deg, #ffe066, #d98a00);
+    }
+
+    .xp-bar-label,
+    .xp-bar-value {
+      color: var(--records-gold);
+    }
+  }
+
+  .xp-bar-label {
+    font-size: 0.55rem;
+    white-space: nowrap;
+    color: var(--records-dim);
+  }
+
+  // --- records and beasts ------------------------------------------------------------------
+  .records-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .record {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .record-value {
+    font-family: "StatusPlz", sans-serif;
+    font-size: 1.3rem;
+    color: #fff;
+
+    &.small {
+      font-size: 1rem;
+    }
+  }
+
+  .record-label {
+    font-size: 0.72rem;
+    color: var(--records-dim);
+  }
+
+  .beast-list {
+    margin: 0;
+    padding-left: 22px;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+    }
+
+    &.dodged .beast-count {
+      color: #ff8a80;
+    }
+  }
+
+  .beast-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .beast-count {
+    font-family: "StatusPlz", sans-serif;
+    color: var(--records-gold);
+    white-space: nowrap;
+  }
+
+  .records-empty {
+    margin: 0;
+    color: var(--records-dim);
+    font-size: 0.85rem;
+  }
+}

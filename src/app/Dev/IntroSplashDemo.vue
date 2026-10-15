@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Intro Splash Demo</ion-title>
       </ion-toolbar>
@@ -106,7 +106,7 @@
 import { defineComponent, ref } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, 
-  IonButtons, IonBackButton, IonCard, IonCardHeader, 
+  IonButtons, IonCard, IonCardHeader, 
   IonCardTitle, IonCardContent, IonButton, IonItem, 
   IonLabel, IonRange, IonToggle, toastController
 } from '@ionic/vue';
@@ -123,7 +123,6 @@ export default defineComponent({
     IonTitle, 
     IonContent, 
     IonButtons, 
-    IonBackButton,
     IonCard, 
     IonCardHeader, 
     IonCardTitle, 
@@ -153,24 +152,24 @@ export default defineComponent({
     // Sample splash screens for demo
     const splashScreens = ref<SplashScreen[]>([
       {
-        image: require('@/assets/images/about/splash-1.png'),
+        image: require('@/assets/images/about/splash-1.webp'),
         alt: 'Do it for the XP Logo',
         duration: 4000,
         soundEffect: 'splash.intro'
       },
       {
-        image: require('@/assets/images/about/splash-2.png'),
+        image: require('@/assets/images/about/splash-2.webp'),
         // text: 'Welcome to the world of XP! Your journey is about to begin...',
         alt: 'XP Icon',
         duration: 5000
       },
       {
-        image: require('@/assets/images/about/splash-3.png'),
+        image: require('@/assets/images/about/splash-3.webp'),
         // text: 'Complete quests, earn rewards, and level up your life with this RPG-inspired adventure!',
         duration: 5000
       },
       {
-        image: require('@/assets/images/about/splash-4.png'),
+        image: require('@/assets/images/about/splash-4.webp'),
         // text: 'Are you ready to embark on this epic quest?',
         duration: 5000
       },
@@ -232,7 +231,8 @@ export default defineComponent({
   
   // When component is revisited, update the key to force remount
   activated() {
-    if (this.showDemo) {
+    const isDemoShown = this.showDemo;
+    if (isDemoShown) {
       this.componentKey++;
     }
   }

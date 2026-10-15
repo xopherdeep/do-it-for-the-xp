@@ -124,6 +124,11 @@
   import { volumeHigh, volumeLow } from "ionicons/icons";
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
+  import {
+    feel,
+    hapticsEnabled,
+    setHapticsEnabled,
+  } from "@/lib/services/feedback/haptics";
 
   export default defineComponent({
     name: "input-settings",
@@ -180,8 +185,9 @@
       changeMusicVolume(ev) {
         this.musicVolume = ev.detail.value;
         // In a real app, this would update the actual volume
-        if (this.bgm.audio) {
-          this.bgm.audio.volume = this.musicVolume / 100;
+        const audio = this.bgm.audio;
+        if (audio) {
+          audio.volume = this.musicVolume / 100;
         }
         this.showVolumeToast("Music volume updated");
       },
@@ -199,16 +205,15 @@
         );
       },
 
-      toggleVibration() {
-        // In a real app, this would enable/disable vibration
-        this.showToast(
-          `Vibration ${this.vibrationEnabled ? "enabled" : "disabled"}`
-        );
+      toggleVibration(event?: CustomEvent) {
+        // The event carries the new state; the v-model may not have caught up yet
+        const on = event?.detail?.checked ?? this.vibrationEnabled;
+        this.vibrationEnabled = on;
+        setHapticsEnabled(on);
+        this.showToast(`Vibration ${on ? "enabled" : "disabled"}`);
 
-        // Provide haptic feedback if enabled
-        if (this.vibrationEnabled && navigator.vibrate) {
-          navigator.vibrate(50);
-        }
+        // A tap to show what it feels like
+        if (on) feel("tap");
       },
 
       async showToast(message: string) {
@@ -222,8 +227,9 @@
 
       async showVolumeToast(message: string) {
         // Only show volume toast when dragging ends
-        if (this.volumeToastTimeout) {
-          clearTimeout(this.volumeToastTimeout);
+        const volumeToastTimeout = this.volumeToastTimeout;
+        if (volumeToastTimeout) {
+          clearTimeout(volumeToastTimeout);
         }
 
         this.volumeToastTimeout = setTimeout(async () => {
@@ -243,7 +249,7 @@
       const musicVolume = ref(80);
       const effectsVolume = ref(70);
       const soundEffectsEnabled = ref(true);
-      const vibrationEnabled = ref(true);
+      const vibrationEnabled = ref(hapticsEnabled());
       const volumeToastTimeout = ref<ReturnType<typeof setTimeout> | null>(
         null
       );

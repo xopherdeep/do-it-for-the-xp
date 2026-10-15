@@ -1,0 +1,74 @@
+@use "gameStyle" as *;
+
+// Pokémon on the original Game Boy: the whole screen in the four greens of the handheld's
+// screen, pale text boxes with a doubled dark border, dark text and a ▶ cursor.
+ion-app#pokemon {
+  --gs-font: "Press Start 2P", "StatusPlz", monospace;
+  --gs-font-title: "Press Start 2P", "StatusPlz", monospace;
+  --gs-text: #0f380f;
+  --gs-text-dim: #306230;
+  --gs-accent: #0f380f;
+  --gs-text-shadow: none;
+  --gs-font-adjust: 0.5;
+
+  // the screen's dot grid
+  --gs-page-color: #8bac0f;
+  --gs-page:
+    linear-gradient(90deg, rgba(15, 56, 15, 0.07) 1px, transparent 1px) 0 0 / 4px 4px,
+    linear-gradient(rgba(15, 56, 15, 0.07) 1px, transparent 1px) 0 0 / 4px 4px,
+    #8bac0f;
+
+  --gs-window-color: #9bbc0f;
+  --gs-window: #9bbc0f;
+  --gs-radius: 4px;
+  // the doubled line: dark, pale gap, dark
+  --gs-frame: 0 0 0 2px #9bbc0f, 0 0 0 4px #0f380f, 0 0 0 6px #9bbc0f, 0 0 0 8px #0f380f;
+
+  --gs-bar: #9bbc0f;
+  --gs-bar-frame: 0 2px 0 0 #9bbc0f, 0 4px 0 0 #0f380f, 0 6px 0 0 #9bbc0f, 0 8px 0 0 #0f380f;
+
+  --gs-divider: rgba(15, 56, 15, 0.3);
+  --gs-select: rgba(48, 98, 48, 0.15);
+  --gs-cursor: #{gs-arrow-cursor("0f380f")};
+  --gs-cursor-w: 8px;
+  --gs-cursor-h: 14px;
+
+  --ion-color-primary: #306230;
+  --ion-color-primary-rgb: 48, 98, 48;
+  --ion-color-primary-contrast: #9bbc0f;
+  --ion-color-primary-contrast-rgb: 155, 188, 15;
+  --ion-color-primary-shade: #2a562a;
+  --ion-color-primary-tint: #457245;
+
+  @include game-style-surfaces;
+
+  // Press Start is wide: headings step down to fit a phone
+  ion-toolbar.rpg-box ion-title {
+    font-size: 15px;
+  }
+
+  ion-card ion-card-title,
+  ion-card ion-item-divider,
+  ion-card ion-list-header,
+  ion-card ion-item-divider ion-label,
+  .action-sheet-title {
+    font-size: 16px !important;
+  }
+
+  ion-card ion-item ion-label h2 {
+    font-size: 16px;
+  }
+
+  ion-card ion-item ion-label p {
+    font-size: 14px;
+  }
+
+  .settings-card ion-card-title {
+    font-size: 10px !important;
+  }
+
+  ion-card ion-item:hover::before,
+  .action-sheet-button:hover::before {
+    animation: none;
+  }
+}

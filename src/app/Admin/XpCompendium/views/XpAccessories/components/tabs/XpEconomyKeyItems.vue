@@ -12,6 +12,31 @@
                     class="mb-2"
                 ></ion-searchbar>
 
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold ml-2 mb-2 text-white opacity-90">Equipment</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div
+                            v-for="name in equipmentNames"
+                            :key="name"
+                            class="key-item-card p-3 flex items-start rounded-lg bg-gray-800 bg-opacity-60 border border-gray-700"
+                        >
+                            <div class="flex-grow">
+                                <div class="font-bold text-lg text-white">{{ name }}</div>
+                                <div class="text-sm text-gray-300 mb-1 leading-snug">{{ unlockHintOf(name) }}</div>
+                            </div>
+                            <ion-button
+                                fill="clear"
+                                size="small"
+                                color="light"
+                                @click.stop="unlockForHero(name)"
+                                class="assign-btn"
+                            >
+                                <i class="fas fa-lock-open mr-2"></i> Unlock for hero
+                            </ion-button>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     v-for="(categoryItems, category) in groupedItems"
                     :key="category"
@@ -64,6 +89,8 @@ import { alertController, toastController, IonPage, IonContent, IonSearchbar, Io
 import { getAllItems } from "@/lib/engine/core/items/itemRegistry";
 import { ItemMetadata } from "@/lib/engine/core/items/itemTypes";
 import shopsDb from "@/lib/databases/ShopsDb";
+import { unlockableItemNames, unlockHintOf } from "@/lib/services/quests/ItemEffects";
+import { useUserStore } from "@/lib/store/stores/user";
 
 export default defineComponent({
   name: "XpEconomyKeyItems",
@@ -91,15 +118,17 @@ export default defineComponent({
         
         categories.forEach(cat => {
             const items = filteredItems.value.filter(i => i.category === cat);
-            if (items.length > 0) {
+            const hasItems = items.length > 0;
+            if (hasItems) {
                 groups[cat] = items;
             }
         });
 
         // Catch any others if category system changes
         filteredItems.value.forEach(item => {
-            if (!categories.includes(item.category)) {
-                if (!groups['other']) groups['other'] = [];
+            const isListedCategory = categories.includes(item.category);
+            if (!isListedCategory) {
+                groups['other'] ??= [];
                 groups['other'].push(item);
             }
         });
@@ -110,7 +139,8 @@ export default defineComponent({
     const assignItem = async (item: ItemMetadata) => {
         const shops = await shopsDb.getShops();
         
-        if (shops.length === 0) {
+        const hasNoShops = shops.length === 0;
+        if (hasNoShops) {
             const toast = await toastController.create({
                 message: 'No shops available. Create a shop first!',
                 duration: 2000,
@@ -142,7 +172,8 @@ export default defineComponent({
                         const shop = await shopsDb.getShopById(shopId);
                         if (shop) {
                             // Check if already assigned
-                            if (shop.items.some(i => i.itemId === item.id)) {
+                            const isAlreadyAssigned = shop.items.some(i => i.itemId === item.id);
+                            if (isAlreadyAssigned) {
                                  const toast = await toastController.create({
                                     message: `${item.name} is already in ${shop.name}!`,
                                     duration: 2000,
@@ -174,10 +205,51 @@ export default defineComponent({
         await alert.present();
     };
 
+    // The Game Master hands a hero an equipment item without the temple chest or the shop
+    const equipmentNames = unlockableItemNames();
+    const unlockForHero = async (itemName: string) => {
+        const userStore = useUserStore();
+        const say = async (message: string, color?: string) => {
+            const toast = await toastController.create({ message, duration: 2500, position: 'top', cssClass: 'rpg-toast', color });
+            await toast.present();
+        };
+        const heroes = userStore.usersAz.filter((hero: any) => hero.isAdult !== true);
+        const hasNoHeroes = heroes.length === 0;
+        if (hasNoHeroes) return say('No heroes to unlock it for.', 'warning');
+
+        const alert = await alertController.create({
+            header: `Unlock ${itemName}`,
+            subHeader: 'Select a hero',
+            inputs: heroes.map((hero: any) => ({
+                type: 'radio',
+                label: hero.name?.nick || hero.name?.first || String(hero.id),
+                value: String(hero.id)
+            })),
+            buttons: [
+                { text: 'Cancel', role: 'cancel' },
+                {
+                    text: 'Unlock',
+                    handler: (userId: string) => {
+                        if (!userId) return;
+                        const hero: any = userStore.users[userId];
+                        const who = hero?.name?.nick || hero?.name?.first || 'the hero';
+                        const isUnlocked = userStore.unlockItem(userId, itemName);
+                        if (isUnlocked) void say(`${itemName} unlocked for ${who}!`, 'success');
+                        else void say(`${who} already holds ${itemName}.`, 'warning');
+                    }
+                }
+            ]
+        });
+        await alert.present();
+    };
+
     return {
         searchQuery,
         groupedItems,
-        assignItem
+        assignItem,
+        equipmentNames,
+        unlockHintOf,
+        unlockForHero
     };
   },
 });

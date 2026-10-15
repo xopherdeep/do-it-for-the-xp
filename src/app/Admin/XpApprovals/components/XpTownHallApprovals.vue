@@ -1,0 +1,185 @@
+<template>
+  <ion-list class="th-approvals" data-cy="th-approvals">
+    <ion-item v-if="notice" lines="none" class="th-approvals__notice" data-cy="th-approvals-notice">
+      <ion-label class="ion-text-wrap">{{ notice }}</ion-label>
+    </ion-item>
+    <ion-item v-for="post in awaiting" :key="post.id" class="th-approval" data-cy="th-approval">
+      <ion-avatar slot="start" class="th-approval__avatar">
+        <i class="fad" :class="KIND_ICONS[post.kind]"></i>
+      </ion-avatar>
+      <ion-label class="ion-text-wrap">
+        <h2 data-cy="th-approval-title">{{ headlineOf(post) }}</h2>
+        <p>
+          <span data-cy="th-approval-hero">{{ authorOf(post) }}</span>
+          ·
+          <span data-cy="th-approval-kind">{{ KIND_NAMES[post.kind] }}</span>
+          <template v-if="post.kind === 'topic' && post.board">
+            ·
+            <span data-cy="th-approval-where">{{ boardName(post.board) }}</span>
+          </template>
+          <ion-note>{{ formatDate(post.createdAt) }}</ion-note>
+        </p>
+        <p class="th-approval__body" data-cy="th-approval-body">{{ post.body }}</p>
+        <p v-if="isSigned(post)" class="th-approval__signature" data-cy="th-approval-signature">{{ signatureLine(post) }}</p>
+        <div class="th-approval__actions">
+          <ion-button size="small" color="success" data-cy="th-approve" @click="approve(post.id)">
+            <i class="fad fa-check mr-2"></i>
+            Approve
+          </ion-button>
+          <ion-button size="small" color="danger" fill="outline" data-cy="th-reject" @click="reject(post.id)">
+            <i class="fad fa-times mr-2"></i>
+            Reject
+          </ion-button>
+        </div>
+      </ion-label>
+    </ion-item>
+    <ion-item v-if="loaded && awaiting.length === 0" data-cy="th-approvals-empty">
+      <ion-label class="ion-text-center">
+        <i class="fad fa-check-circle fa-3x th-approvals__clear"></i>
+        <p>No Town Hall posts are waiting</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { IonAvatar, IonButton, IonItem, IonLabel, IonList, IonNote } from "@ionic/vue";
+import { format } from "date-fns";
+import { APPROVALS_REGISTER_AGAIN_LINE, APPROVALS_UNREGISTERED_LINE } from "@/lib/services/hometown/hometownPrompts";
+import { sendable } from "@/lib/services/townhall/townHallOutbox";
+import { signature } from "@/lib/services/townhall/townHallPosts";
+import type { TownHallPost, TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
+import { useTownHallStore } from "@/lib/store/stores/townHall";
+import { useUserStore } from "@/lib/store/stores/user";
+import debug from "@/lib/utils/debug";
+
+/**
+ * The Town Hall posts the heroes wrote that wait for the Game Master: Approve sends the post on its way (the store
+ * queues it and the courier is called at once), Reject keeps it off the site. Everything a hero wrote is shown as text.
+ */
+const store = useTownHallStore();
+
+const KIND_NAMES: Record<TownHallPostKind, string> = { topic: "Topic", comment: "Comment", bug: "Bug report" };
+const KIND_ICONS: Record<TownHallPostKind, string> = { topic: "fa-comments", comment: "fa-comment", bug: "fa-bug" };
+const UNTITLED: Record<TownHallPostKind, string> = { topic: "Untitled topic", comment: "Comment on a post", bug: "Untitled bug report" };
+
+const awaiting = computed(() => store.posts.filter((post) => post.status === "awaiting-gm"));
+
+/** The empty message waits for the stored posts to be read, so it never claims an empty list too early. */
+const loaded = ref(false);
+onMounted(async () => {
+  try {
+    await store.init();
+  } catch (e) {
+    debug.error("The Town Hall posts could not be read:", e);
+  }
+  loaded.value = true;
+});
+
+/** "feature-requests" as a name */
+const boardName = (slug: string): string => slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+/** A comment has no title of its own: all we know of what it answers is the site's id for it */
+const headlineOf = (post: TownHallPost): string => {
+  const title = post.title?.trim();
+  if (title) return title;
+  return post.kind === "comment" && post.postId !== undefined ? `Comment on post #${post.postId}` : UNTITLED[post.kind];
+};
+
+const formatDate = (at: number): string => format(at, "MMM d, h:mma");
+
+/** Who wrote it, as the family knows them in the game (the post itself is signed without the real name) */
+const users = useUserStore();
+const authorOf = (post: TownHallPost): string => {
+  const name = users.getUserById(post.heroId)?.name;
+  return name?.nick?.trim() || name?.first?.trim() || post.heroName;
+};
+
+/** Topics and comments end with the hero's signature on the site; the Game Master sees the line exactly as it will read */
+const isSigned = (post: TownHallPost): boolean => post.kind !== "bug";
+const signatureLine = (post: TownHallPost): string => signature(post.heroName).trim();
+
+/** The send after the last approval found the family's registration refused by the site (the link was given up) */
+const refusedOnLastSend = ref(false);
+
+/**
+ * Approved posts that cannot leave this device, said in plain words: the registration the site refused on the last send,
+ * or no registration here while posts wait in the queue.
+ */
+const notice = computed((): string | null => {
+  if (refusedOnLastSend.value) return APPROVALS_REGISTER_AGAIN_LINE;
+  const postsWait = loaded.value && !store.isLinked && sendable(store.posts).length > 0;
+  return postsWait ? APPROVALS_UNREGISTERED_LINE : null;
+});
+
+async function approve(id: string): Promise<void> {
+  try {
+    // The approval is saved first, so the send that follows finds the post in the queue
+    await store.approve(id);
+    const sent = await store.flush();
+    refusedOnLastSend.value = sent.unlinked;
+  } catch (e) {
+    debug.error("The Town Hall post could not be approved:", e);
+  }
+}
+
+async function reject(id: string): Promise<void> {
+  try {
+    await store.reject(id);
+  } catch (e) {
+    debug.error("The Town Hall post could not be rejected:", e);
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.th-approvals {
+  ion-item {
+    --padding-start: 8px;
+    --inner-padding-end: 8px;
+    margin-bottom: 4px;
+  }
+
+  .th-approvals__notice {
+    --background: var(--ion-color-light);
+    font-size: 14px;
+  }
+
+  ion-note {
+    font-size: 12px;
+    margin-left: 8px;
+    color: var(--ion-color-medium);
+  }
+
+  .th-approval__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ion-color-light);
+    color: var(--ion-color-medium);
+    font-size: 22px;
+  }
+
+  .th-approval__body {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .th-approval__signature {
+    margin-top: 4px;
+    font-style: italic;
+    color: var(--ion-color-medium);
+  }
+
+  .th-approval__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .th-approvals__clear {
+    color: var(--ion-color-success);
+  }
+}
+</style>

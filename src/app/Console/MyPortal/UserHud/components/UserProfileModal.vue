@@ -18,6 +18,8 @@
           <xp-close-button size="lg" color="light" @click="dismiss" />
         </ion-buttons>
       </ion-toolbar>
+      <!-- Text style: the voice the game's words read in (Auto picks it from the birthday) -->
+      <xp-text-style-bar v-if="user?.id" :user="user" />
     </ion-header>
 
     <ion-content class="icon-colors bg-slide bg-slide-dark">
@@ -28,18 +30,21 @@
         <div class="stats-flex">
           <!-- Row 1: Avatar | Class | Food -->
           <div class="stats-row">
-            <div class="stat-box avatar-box" @click="openAvatarSelector">
+            <div class="stat-box avatar-box" role="button" tabindex="0" @click="openMyLook" @keydown.enter="openMyLook"
+              @keydown.space.prevent="openMyLook">
               <div class="avatar-container">
                 <ion-avatar class="hero-avatar">
-                  <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
+                  <ion-img :src="avatarSrc" />
                 </ion-avatar>
                 <div class="edit-overlay">
-                  <i class="fad fa-camera"></i>
+                  <i class="fad fa-tshirt"></i>
                 </div>
               </div>
+              <span class="my-look-label">My Look</span>
             </div>
 
-            <div class="stat-box class-box" @click="openClassSelector">
+            <div class="stat-box class-box" role="button" tabindex="0" @click="openClassSelector" @keydown.enter="openClassSelector"
+              @keydown.space.prevent="openClassSelector">
               <div class="stat-icon">
                 <i :class="`fad ${getClassIcon(user.jobClass)} fa-3x`"></i>
               </div>
@@ -49,7 +54,8 @@
               </div>
             </div>
 
-            <div class="stat-box food-box" @click="openFoodSelector">
+            <div class="stat-box food-box" role="button" tabindex="0" @click="openFoodSelector" @keydown.enter="openFoodSelector"
+              @keydown.space.prevent="openFoodSelector">
               <span class="stat-label">FOOD</span>
               <div class="stat-icon">
                 <i :class="`fad ${getFoodIcon(user.favoriteFood)} fa-2x`"></i>
@@ -69,7 +75,7 @@
               :progress="(user.stats?.mp?.now || 0) / (user.stats?.mp?.max || 1)" @click="openAccordion('mental')" />
 
             <xp-profile-stat-box type="ap" :icon="POINT_ICONS.ap.icon" :label="POINT_ICONS.ap.label"
-              :color="POINT_ICONS.ap.color" :current="apPercent" :progress="apProgress" :is-percentage="true"
+              :color="POINT_ICONS.ap.color" :current="apTotal" :progress="apProgress"
               @click="openAccordion('vibrational')" />
 
             <xp-profile-stat-box type="gp" :icon="POINT_ICONS.gp.icon" :label="POINT_ICONS.gp.label"
@@ -113,13 +119,20 @@
           </div>
         </div>
 
+        <!-- Hero Records: the weekly recap, streak and all-time numbers -->
+        <ion-button expand="block" fill="outline" color="warning" class="records-button" data-cy="open-records"
+          @click="openRecords">
+          <i class="fad fa-scroll-old mr-2" aria-hidden="true"></i>
+          Hero Records
+        </ion-button>
+
         <!-- Five Pillars Explanation - shows when no accordion is open -->
         <Transition name="pillars-fade">
           <div v-if="!activeAccordion" class="pillars-explanation">
             <h3 class="pillars-title">The Five Pillars of Heroism</h3>
             <p class="pillars-text">
-              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see how your training shapes
-              your destiny.
+              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see what each stat does.
+              Every level-up trains a few points; the badge shows your class's start plus what you have trained.
             </p>
           </div>
         </Transition>
@@ -149,6 +162,7 @@
                 <ion-label>
                   <h3 class="capitalize" :style="{ color: `var(--ion-color-${area.color})` }">{{ stat }}</h3>
                   <p class="stat-desc">{{ desc }}</p>
+                  <p v-if="statEffectLine(stat, user)" class="stat-desc stat-now">{{ statEffectLine(stat, user) }}</p>
                 </ion-label>
                 <div slot="end" class="stat-value-wrapper">
                   <i v-if="isStatBoosted(stat)" class="fad fa-chevron-double-up stat-boost-arrow"
@@ -169,6 +183,10 @@
       </div>
     </ion-content>
 
+    <!-- My Look: the full-screen hero builder stacks over this sheet -->
+    <xp-hero-builder-modal :is-open="isBuilderOpen" :look="builderLook" :equipment="builderEquipment"
+      @save="saveBuilderLook" @close="closeBuilder" />
+
     <!-- Avatar Selector Modal -->
     <avatar-selector v-model="selectedAvatarIndex" :is-open="isAvatarSelectorOpen" :max-avatar-index="maxAvatarIndex"
       @close="isAvatarSelectorOpen = false" @selected="onAvatarSelected" :fullscreen="true" />
@@ -183,6 +201,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   IonModal,
   IonHeader,
@@ -202,19 +221,27 @@ import {
   IonList,
   IonSpinner,
   IonToggle,
-  alertController
+  alertController,
+  toastController
 } from "@ionic/vue";
-import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS } from "@/constants";
+import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS, PILLARS, type PillarType } from "@/constants";
 import AvatarSelector from "@/app/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
+import XpTextStyleBar from "./XpTextStyleBar.vue";
 import XpProfileStatBox from "@/components/molecules/ProfileStatBox/XpProfileStatBox.vue";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
+import { classLevelsOf, classRequirementLabel, isClassUnlocked } from "@/lib/services/stats/ClassPassives";
+import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
+import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
 // Avatar helper using require.context
+import { heroAvatarSrc } from "@/lib/hero-look/look";
+import { useHeroBuilder } from "@/hooks/useHeroBuilder";
+import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
 const $requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
@@ -240,8 +267,10 @@ export default defineComponent({
     IonToggle,
     AvatarSelector,
     XpStatSelectorModal,
+    XpTextStyleBar,
     XpProfileStatBox,
-    XpCloseButton
+    XpCloseButton,
+    XpHeroBuilderModal
   },
   props: {
     isOpen: {
@@ -259,9 +288,6 @@ export default defineComponent({
     const gameStore = useGameStore();
     const modal = ref<any>(null);
     const maxAvatarIndex = $requireAvatar.keys().length;
-
-    console.log('UserProfileModal setup running');
-
 
     // Avatar selector state
     const isAvatarSelectorOpen = ref(false);
@@ -282,6 +308,13 @@ export default defineComponent({
       await modal.value?.$el?.dismiss();
     };
 
+    const router = useRouter();
+    const openRecords = async () => {
+      play$fx('select');
+      await modal.value?.$el?.dismiss();
+      await router.push({ name: 'my-records', params: { userId: String(props.user?.id || '') } });
+    };
+
     // Toggle accordion when clicking stat boxes
     const openAccordion = (category: string) => {
       activeAccordion.value = activeAccordion.value === category ? null : category;
@@ -289,22 +322,39 @@ export default defineComponent({
 
     // Parse current avatar index from user
     const getCurrentAvatarIndex = () => {
-      if (!props.user?.avatar) return 1;
-      const match = props.user.avatar.match(/(\d+)/);
+      const avatar = props.user?.avatar;
+      if (!avatar) return 1;
+      const match = avatar.match(/(\d+)/);
       return match ? parseInt(match[1], 10) : 1;
     };
+
+    // The hero's picture: the saved voxel snapshot when there is one, else the chosen SVG
+    const avatarSrc = computed(() => heroAvatarSrc(props.user, (key: string) => $requireAvatar(key)));
+
+    // My Look: the hero builder stacks over this sheet (destructured so the template sees the refs unwrapped)
+    const {
+      isOpen: isBuilderOpen,
+      open: openMyLook,
+      close: closeBuilder,
+      look: builderLook,
+      equipment: builderEquipment,
+      save: saveBuilderLook,
+    } = useHeroBuilder(computed(() => props.user?.id));
 
     const openAvatarSelector = () => {
       selectedAvatarIndex.value = getCurrentAvatarIndex();
       isAvatarSelectorOpen.value = true;
     };
 
+    // True once the hero this modal shows is held by the store, so edits have somewhere to land
+    const isHeroInStore = () => Boolean(props.user?.id && userStore.users[props.user.id]);
+
     const onAvatarSelected = (index: number) => {
       const paddedIndex = index.toString().padStart(3, "0");
       const newAvatar = `${paddedIndex}-gamer`;
 
       // Update user in store directly via the users reactive object
-      if (props.user?.id && userStore.users[props.user.id]) {
+      if (isHeroInStore()) {
         userStore.users[props.user.id].avatar = newAvatar;
       }
     };
@@ -332,18 +382,47 @@ export default defineComponent({
       onSelect: () => { } // No parameter here = No ESLint error
     });
 
+    /**
+     * The class picker. Tier-2 classes (Paladin, Ninja, Sage) stay locked, greyed with their requirement
+     * ("Warrior 10 + Monk 10"), until the hero's class levels meet JOB_UNLOCK_REQUIREMENTS; tapping a
+     * locked one only says what it takes.
+     */
+    const classOptions = () => {
+      const levels = classLevelsOf(props.user?.stats?.classes);
+      return JOB_CLASS_OPTIONS.map((job) => {
+        const locked = !isClassUnlocked(job.name, levels);
+        return { ...job, locked, lockHint: locked ? classRequirementLabel(job.name) : '' };
+      });
+    };
+
+    const toastLockedClass = async (name: string) => {
+      play$fx('no');
+      const toast = await toastController.create({
+        message: `${name} is sealed. Needs ${classRequirementLabel(name)}.`,
+        duration: 2200,
+        position: 'top',
+        cssClass: 'rpg-toast',
+      });
+      await toast.present();
+    };
+
     const openClassSelector = () => {
       statSelector.value = {
         isOpen: true,
         title: 'Choose Your Class',
-        options: JOB_CLASS_OPTIONS,
+        options: classOptions(),
         columns: 2,
         fullscreen: false,
-        height: '55vh',
+        height: '70vh',
         selectedValue: props.user?.jobClass || 'Adventurer',
         onSelect: (val: string) => {
-          if (props.user?.id && userStore.users[props.user.id]) {
+          if (!isClassUnlocked(val, classLevelsOf(props.user?.stats?.classes))) {
+            void toastLockedClass(val);
+            return;
+          }
+          if (isHeroInStore()) {
             userStore.users[props.user.id].jobClass = val;
+            userStore.persistUser(props.user.id);
           }
           statSelector.value.isOpen = false;
         }
@@ -360,13 +439,17 @@ export default defineComponent({
         height: 'auto',
         selectedValue: props.user?.favoriteFood || 'None',
         onSelect: (val: string) => {
-          if (props.user?.id && userStore.users[props.user.id]) {
+          if (isHeroInStore()) {
             userStore.users[props.user.id].favoriteFood = val;
           }
           statSelector.value.isOpen = false;
         }
       };
     };
+
+    // The stat lines come from PILLARS, the one copy the code keeps true (docs/Stats-Contract.md)
+    const pillarStats = (pillar: PillarType): Record<string, string> =>
+      Object.fromEntries(Object.entries(PILLARS[pillar].stats).map(([stat, info]) => [stat, info.description]));
 
     // Areas data for stats accordions
     const areas = ref({
@@ -375,52 +458,32 @@ export default defineComponent({
         open: true,
         color: 'danger',
         description: 'Vitality and endurance',
-        stats: {
-          defense: 'Increases Maximum HP capacity',
-          strength: 'Decreases HP loss when taking damage',
-          endurance: 'Boosts HP recovery and restoration',
-        }
+        stats: pillarStats('physical'),
       },
       mental: {
         label: 'Mind',
         open: false,
         color: 'tertiary',
         description: 'Focus and wisdom',
-        stats: {
-          perception: 'Increases Maximum MP capacity',
-          intelligence: 'Decreases MP cost for active abilities',
-          wisdom: 'Boosts MP recovery and meditation rate',
-        }
+        stats: pillarStats('mental'),
       },
       vibrational: {
         label: 'Spirit',
         color: 'secondary',
         description: 'Energy and attention',
-        stats: {
-          agility: 'Gain more AP when completing tasks',
-          focus: 'Influence chances of receiving bonus AP points',
-          flow: 'Reduces AP cost for active abilities'
-        }
+        stats: pillarStats('vibrational'),
       },
       relational: {
         label: 'Heart',
         color: 'warning',
         description: 'Social presence and trade',
-        stats: {
-          awareness: 'Influences the amount of GP awarded',
-          presence: 'Influences GP to $ conversion and trade rates',
-          charisma: 'Reduces the GP cost of items in shops',
-        }
+        stats: pillarStats('relational'),
       },
       eternal: {
         label: 'Legend',
         color: 'success',
         description: 'Lasting legacy and growth',
-        stats: {
-          guts: 'Influences the amount of XP awarded',
-          luck: 'Influence chances of receiving bonus XP points',
-          mastery: 'Reduces the XP threshold required to reach the next Level'
-        }
+        stats: pillarStats('eternal'),
       }
     });
 
@@ -440,7 +503,8 @@ export default defineComponent({
 
     // Helper to get Class Level
     const getClassLevel = (className: string) => {
-      if (!className || !props.user?.stats?.classes) return 1;
+      const hasNoClassLevels = !className || !props.user?.stats?.classes;
+      if (hasNoClassLevels) return 1;
       return props.user.stats.classes[className]?.level || 1;
     };
 
@@ -457,11 +521,10 @@ export default defineComponent({
     };
 
     // Helper to calculate area total
+    // The area header sums the same numbers the badges show (base plus special, see getStatTotal)
     const getAreaTotal = (area: any, stats: any) => {
       if (!stats) return 0;
-      return Object.keys(area.stats).reduce((total, stat) => {
-        return total + (stats[stat] || 0);
-      }, 0);
+      return Object.keys(area.stats).reduce((total, stat) => total + getStatTotal(stat), 0);
     };
 
     // XP Calculation Helpers
@@ -470,9 +533,10 @@ export default defineComponent({
     // Calculate progress within current level
     const xpValues = computed(() => {
       const stats = props.user?.stats;
-      if (!stats?.xp) return { inLevel: 0, needed: 100 };
+      const xp = stats?.xp;
+      if (!xp) return { inLevel: 0, needed: 100 };
 
-      const totalXp = stats.xp.now || stats.xp.current || 0;
+      const totalXp = xp.now || xp.current || 0;
       const level = currentLevel.value;
       const xpForCurrent = getXpForLevel(level);
       const xpForNext = getXpForLevel(level + 1);
@@ -488,14 +552,17 @@ export default defineComponent({
     // Experience Progress calculation
     const xpProgress = computed(() => {
       const { inLevel, needed } = xpValues.value;
-      if (needed <= 0) return 1; // maxed out
+      const isMaxedOut = needed <= 0;
+      if (isMaxedOut) return 1; // maxed out
+
       return Math.min(Math.max(inLevel / needed, 0), 1);
     });
 
     // GP Progress calculation (wallet vs max)
     const gpProgress = computed(() => {
       const stats = props.user?.stats;
-      if (!stats || !stats.gp) return 0;
+      const hasNoWallet = !stats || !stats.gp;
+      if (hasNoWallet) return 0;
 
       const wallet = stats.gp.wallet || 0;
       const max = stats.gp.max || 1000;
@@ -503,45 +570,21 @@ export default defineComponent({
       return Math.min(Math.max(wallet / max, 0), 1);
     });
 
-    // AP calculations (today vs week - measuring consistency)
-    const apToday = computed(() => {
-      const stats = props.user?.stats;
-      if (!stats || !stats.ap) return 0;
+    // AP is logged as stats.ap = { total, history }; the windows are summed from the history.
+    const apWindows = computed(() => heroApWindows(props.user?.stats?.ap));
+    const apTotal = computed(() => apWindows.value.total);
 
-      if (typeof stats.ap === 'object') {
-        return stats.ap.today || 0;
-      }
-      return 0;
-    });
-
-    const apWeek = computed(() => {
-      const stats = props.user?.stats;
-      if (!stats || !stats.ap) return 0;
-
-      if (typeof stats.ap === 'object') {
-        return stats.ap.week || stats.ap.total || 0;
-      }
-      return stats.ap || 0;
-    });
-
+    // Bar fill: today's AP against this week's daily average, capped at 1.
     const apProgress = computed(() => {
-      const today = parseFloat(String(apToday.value));
-      const week = parseFloat(String(apWeek.value));
-
-      if (isNaN(today) || isNaN(week) || week <= 0) return 0;
-      return Math.min(Math.max(today / week, 0), 1);
-    });
-
-    // AP as percentage for energy meter display
-    const apPercent = computed(() => {
-      const progress = apProgress.value;
-      return isNaN(progress) ? 0 : Math.round(progress * 100);
+      const { daily, weekly } = apWindows.value;
+      return weekly > 0 ? Math.min(daily / (weekly / 7), 1) : 0;
     });
 
     // Check if a pillar is boosted by the user's current class
     const isPillarBoosted = (pillarName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
       if (!jobClass) return false;
       return (
         jobClass.primaryPillar === pillarName ||
@@ -551,28 +594,17 @@ export default defineComponent({
     };
 
     const isStatBoosted = (statName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
-      if (!jobClass || !jobClass.statBoosts) return false;
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
+      const hasNoStatBoosts = !jobClass || !jobClass.statBoosts;
+      if (hasNoStatBoosts) return false;
       return jobClass.statBoosts.some(boost => boost.stat === statName);
     };
 
-    // Calculate total stat value (Base + Bonus)
-    const getStatTotal = (statName: string): number => {
-      // 1. Get Base Stat for Class
-      // Default to Adventurer or generic fallback if class not found
-      const jobClassName = props.user?.jobClass || 'Adventurer';
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === jobClassName);
-
-      // Default base stat if not defined is 5
-      const base = jobClass?.baseStats?.[statName] || 5;
-
-      // 2. Get Special Stat Bonus (Level Ups)
-      // user.stats.special might be undefined
-      const special = props.user?.stats?.special?.[statName] || 0;
-
-      return base + special;
-    };
+    // The badge: the class's starting number (5 without a class) plus the points trained at level-ups.
+    // StatEffects reads the same profile, so the "Trained N" line under a stat matches the badge.
+    const getStatTotal = (statName: string): number => statTotal(props.user, statName);
 
     // Mastery Dice Configuration (Fibonacci Levels)
     const dice = [
@@ -648,6 +680,13 @@ export default defineComponent({
     };
 
     return {
+      avatarSrc,
+      isBuilderOpen,
+      openMyLook,
+      closeBuilder,
+      builderLook,
+      builderEquipment,
+      saveBuilderLook,
       // Constants
       POINT_ICONS,
       maxAvatarIndex,
@@ -674,141 +713,24 @@ export default defineComponent({
       isPillarBoosted,
       isStatBoosted,
       getStatTotal,
+      statEffectLine,
       onFabStyleToggle,
       dice,
       isDieUnlocked,
       showDieInfo,
       modal,
       dismiss,
+      openRecords,
 
       // Computed
       xpProgress,
       xpValues,
       gpProgress,
       apProgress,
-      apPercent
+      apTotal
     };
   }
 });
 </script>
 
-<style lang="scss">
-// Styles are in earthbound.scss for the .user-profile-modal class
-.user-profile-modal {
-  .mastery-dice-row {
-    display: flex !important;
-    justify-content: space-between;
-    gap: 0.5rem;
-
-    .dice-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.25rem;
-      padding: 0.5rem;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      min-height: 80px;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-
-      // Colors
-      &.red i {
-        color: #ff5252;
-      }
-
-      &.orange i {
-        color: #ffa726;
-      }
-
-      &.yellow i {
-        color: #ffd740;
-      }
-
-      &.green i {
-        color: #69f0ae;
-      }
-
-      &.blue i {
-        color: #40c4ff;
-      }
-
-      &.purple i {
-        color: #b388ff;
-      }
-
-      .dice-inner {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-
-        i {
-          font-size: 2rem;
-          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
-        }
-
-        .lock-overlay {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 1rem;
-          z-index: 2;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-        }
-      }
-
-      .dice-label {
-        font-family: "Apple Kid", sans-serif;
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.9);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        z-index: 2;
-
-        .lock-label {
-          font-size: 0.6rem;
-          opacity: 0.6;
-          font-family: "StatusPlz", serif;
-        }
-      }
-
-      // Locked State
-      &.is-locked {
-        background: rgba(0, 0, 0, 0.2);
-        border-style: dashed;
-        opacity: 0.7;
-
-        i {
-          color: #555 !important; // Grayscale base
-          filter: grayscale(100%) !important;
-          opacity: 0.3;
-          transform: scale(0.9);
-        }
-      }
-
-      // Hover Effect (Unlocked)
-      &:not(.is-locked):hover {
-        background: rgba(255, 255, 255, 0.1);
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-
-        i {
-          transform: scale(1.15) rotate(5deg);
-          filter: drop-shadow(0 0 8px currentColor); // Glow in its own color
-        }
-      }
-    }
-  }
-}
-</style>
+<style lang="scss" src="./_UserProfileModal.scss" />

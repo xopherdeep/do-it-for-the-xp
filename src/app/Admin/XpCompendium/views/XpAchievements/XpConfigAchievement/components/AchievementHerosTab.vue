@@ -1,7 +1,7 @@
 <template>
   <ion-card-content class="achievement-heros-tab">
-    <!-- Assignment Type Selector -->
-    <div class="assignment-selector" @click="$emit('open-assignment-modal')">
+    <!-- How the quest is shared; the five ways are the segments at the bottom of the step (XpConfigAchievement) -->
+    <div class="assignment-selector" data-test="assignment">
       <div class="assignment-icon">
         <i :class="['fad', activePartyType.icon]"></i>
       </div>
@@ -9,7 +9,6 @@
         <span class="assignment-name">{{ activePartyType.name }}</span>
         <span class="assignment-desc">{{ activePartyType.shortDesc }}</span>
       </div>
-      <i class="fad fa-chevron-right assignment-chevron"></i>
     </div>
 
     <!-- Assignment Explanation -->
@@ -75,7 +74,6 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: string[]];
-  'open-assignment-modal': [];
 }>();
 
 defineOptions({
@@ -138,15 +136,7 @@ const rewardExplanation = computed(() => {
   background: rgba(var(--ion-color-rpg-rgb), 0.1);
   border: 2px solid rgba(var(--ion-color-rpg-rgb), 0.3);
   border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   margin-bottom: 1rem;
-
-  &:hover {
-    background: rgba(var(--ion-color-rpg-rgb), 0.15);
-    border-color: var(--ion-color-rpg);
-    transform: translateY(-2px);
-  }
 }
 
 .assignment-icon {
@@ -172,19 +162,14 @@ const rewardExplanation = computed(() => {
 }
 
 .assignment-name {
-  font-family: "Press Start 2P";
+  font-family: var(--xp-app-font-title);
   font-size: 0.7rem;
-  color: var(--ion-color-light);
+  color: var(--xp-app-text);
 }
 
 .assignment-desc {
   font-size: 0.8rem;
-  color: var(--ion-color-medium);
-}
-
-.assignment-chevron {
-  color: var(--ion-color-medium);
-  font-size: 1rem;
+  color: var(--xp-app-text-dim);
 }
 
 .assignment-explanation {
@@ -200,14 +185,14 @@ const rewardExplanation = computed(() => {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
-  color: var(--ion-color-primary);
+  color: var(--xp-app-accent);
 
   i {
     font-size: 1rem;
   }
 
   span {
-    font-family: "Press Start 2P";
+    font-family: var(--xp-app-font-title);
     font-size: 0.55rem;
     text-transform: uppercase;
   }
@@ -215,7 +200,7 @@ const rewardExplanation = computed(() => {
 
 .explanation-text {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--xp-app-text-dim);
   line-height: 1.5;
   margin: 0 0 0.75rem;
 }
@@ -246,14 +231,14 @@ const rewardExplanation = computed(() => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 0;
-    color: var(--ion-color-light);
+    color: var(--xp-app-text);
 
     i {
       font-size: 1.25rem;
     }
 
     span {
-      font-family: "Press Start 2P";
+      font-family: var(--xp-app-font-title);
       font-size: 0.6rem;
       text-transform: uppercase;
     }
@@ -282,13 +267,13 @@ const rewardExplanation = computed(() => {
 }
 
 .notice-title {
-  font-family: "Press Start 2P";
+  font-family: var(--xp-app-font-title);
   font-size: 0.7rem;
   color: var(--ion-color-success);
 }
 
 .notice-desc {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--xp-app-text-dim);
 }
 </style>

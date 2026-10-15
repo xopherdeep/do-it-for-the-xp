@@ -3,12 +3,14 @@ import { useRoute } from 'vue-router'
 import { useGameStore } from "@/lib/store/stores/game"
 import { useUserStore } from "@/lib/store/stores/user"
 import { useTravelingMerchant } from "@/hooks/useTravelingMerchant"
+import { prefetchTemple } from "@/lib/services/temples/templeAssets"
+import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry"
 
 export const useUserActions = () => {
   const route = useRoute()
   const gameStore = useGameStore()
   const userStore = useUserStore()
-  const { maybeAddMerchantToActionsIfInArea } = useTravelingMerchant()
+  const { addMerchantActionIfInArea } = useTravelingMerchant()
 
   const userId = computed(() => route.params.userId as string)
   const user = computed(() => userStore.getUserById(userId.value))
@@ -23,10 +25,16 @@ export const useUserActions = () => {
     const actions = [...baseActions]
 
     // Add merchant if applicable
-    maybeAddMerchantToActionsIfInArea({ actions, area })
+    addMerchantActionIfInArea({ actions, area })
 
     // Commit to store
     setUserActions(actions)
+
+    // A temple's door on screen: fetch its painted floors now, so walking in shows every room ready
+    actions
+      .map((action) => action?.id)
+      .filter((id): id is string => typeof id === "string" && id in TEMPLE_METADATA)
+      .forEach((temple) => prefetchTemple(temple))
   }
 
   return {

@@ -1,9 +1,9 @@
-import { RouteLocationNormalized } from "vue-router";
+import { RouteLocationNormalized, Router } from "vue-router";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
+import { metadataForAsync } from "@/lib/engine/temples/templeRegistry";
 import debug from "@/lib/utils/debug";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
-import { useBattleStore } from "@/lib/store/stores/battle";
 
 // ============================================================================
 // TYPES
@@ -12,6 +12,13 @@ import { useBattleStore } from "@/lib/store/stores/battle";
 interface BgmPayload {
   tracks: string[];
   track: number;
+  startDelay: number;
+  saveBookmark?: boolean;
+  repeat?: boolean;
+}
+
+interface BgmPayloadOptions {
+  track?: number | "random";
   startDelay: number;
   saveBookmark?: boolean;
   repeat?: boolean;
@@ -34,20 +41,33 @@ function isValidTrackList(tracks: unknown): tracks is string[] {
   return Array.isArray(tracks) && tracks.length > 0;
 }
 
+// Counts guard runs, so an async pick can tell a newer navigation has superseded it
+let guardRun = 0;
+
+// The last random pick per playlist, so two fights in a row never get the same song
+const lastRandomPick = new WeakMap<object, number>();
+
+/** A random track index that differs from the playlist's previous random pick (when it has more than one). */
+export function pickFreshTrack(tracks: unknown[]): number {
+  const isSingleTrack = tracks.length < 2;
+  if (isSingleTrack) return 0;
+  const last = lastRandomPick.get(tracks);
+  let index = Math.floor(Math.random() * tracks.length);
+  const isRepeatPick = index === last;
+  if (isRepeatPick) index = (index + 1 + Math.floor(Math.random() * (tracks.length - 1))) % tracks.length;
+  lastRandomPick.set(tracks, index);
+  return index;
+}
+
 function createBgmPayload(
   tracks: unknown,
-  options: {
-    track?: number | "random";
-    startDelay: number;
-    saveBookmark?: boolean;
-    repeat?: boolean;
-  }
+  options: BgmPayloadOptions
 ): BgmPayload | null {
   if (!isValidTrackList(tracks)) return null;
 
   const trackIndex =
     options.track === "random"
-      ? Math.floor(Math.random() * tracks.length)
+      ? pickFreshTrack(tracks)
       : options.track ?? 0;
 
   return {
@@ -68,7 +88,7 @@ function createBgmPayload(
 /** Route-to-track mapping for simple routes */
 const SIMPLE_BGM_ROUTES: Record<string, SimpleBgmRouteConfig> = {
   "xp-intro": { key: "intro", options: { saveBookmark: false } },
-  "xp-demo": { key: "demo", options: { saveBookmark: false } },
+  "xp-demo": { key: "demo", options: { track: "random", saveBookmark: false } },
   "log-in": {
     key: "startScreen",
     options: { repeat: false, saveBookmark: false },
@@ -84,12 +104,13 @@ const SIMPLE_BGM_ROUTES: Record<string, SimpleBgmRouteConfig> = {
   hospital: { key: "hospital" },
   bank: { key: "hotel" },
   hotel: { key: "hotel" },
+  "town-hall": { key: "townHall", options: { track: "random" } },
   "world-map": {
     key: "world",
     options: { track: "random", saveBookmark: false },
   },
-  shop: { key: "shop", options: { saveBookmark: false } },
-  "game-over": { key: "gameover", options: { saveBookmark: false } },
+  shop: { key: "shop", options: { track: "random", saveBookmark: false } },
+  "game-over": { key: "gameover", options: { track: "random", saveBookmark: false } },
 };
 
 /** Terrain-to-world route mapping */
@@ -110,15 +131,6 @@ const TERRAIN_BGM_ROUTES: Record<string, string> = {
   temple: "dungeon",
 };
 
-/** Battle-related routes */
-const BATTLE_BGM_ROUTES = [
-  "battleroom-dev",
-  "battle-field",
-  "battle-field-with-participants",
-  "battle-field-temple",
-  "battle-field-quest",
-] as const;
-
 // ============================================================================
 // GUARD
 // ============================================================================
@@ -126,10 +138,11 @@ const BATTLE_BGM_ROUTES = [
 /**
  * Manages background music based on current route.
  */
-export function handleBgmGuard(to: RouteLocationNormalized): void {
+export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): void {
+  // Each run supersedes the one before: an async pick (generated temple) from an earlier route must not play
+  const run = ++guardRun;
   const audioStore = useAudioStore();
   const gameStore = useGameStore();
-  const battleStore = useBattleStore();
 
   const bgm = audioStore.bgm;
   const rpgTheme = gameStore.theme?.rpg;
@@ -146,17 +159,47 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
 
   let payload: BgmPayload | null = null;
 
-  // 1. Check area-based BGM (e.g., entire Game Master area)
-  if (to.path.startsWith("/game-master")) {
-    payload = createBgmPayload(BGM.chooseFile, {
-      startDelay,
-      saveBookmark: false,
-    });
+  // 1. Check area-based BGM: Settings, the Compendium and the rest of the Game Master area each have their own music
+  if (to.path.startsWith("/xp-settings")) {
+    payload = createBgmPayload(BGM.settings, { track: "random", startDelay, saveBookmark: false });
+  } else if (to.path.startsWith("/game-master/compendium")) {
+    payload = createBgmPayload(BGM.compendium, { track: "random", startDelay, saveBookmark: false });
+  } else if (to.path.startsWith("/game-master")) {
+    payload = createBgmPayload(BGM.gameMaster, { track: "random", startDelay, saveBookmark: false });
   }
   // 2. Check simple route mappings
   else if (SIMPLE_BGM_ROUTES[routeName]) {
     const { key, options = {} } = SIMPLE_BGM_ROUTES[routeName];
     payload = createBgmPayload(BGM[key], { startDelay, ...options });
+  }
+  // 3a. A temple plays its own theme when it has one (BGM.temples["fire-temple"]), else the dungeon set
+  else if (routeName === "temple" && BGM.temples?.[String(to.params.temple)]) {
+    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { track: "random", startDelay, saveBookmark: true });
+  }
+  // 3b. A generated temple (gen-<slug>) plays its element's theme (its record is in the TempleDb, so the pick is async)
+  else if (routeName === "temple" && String(to.params.temple).startsWith("gen-")) {
+    const fullPath = to.fullPath;
+    void metadataForAsync(String(to.params.temple)).then((meta) => {
+      const tracks = BGM.temples?.[`${meta.element}-temple`] ?? terrains?.dungeon;
+      const picked = createBgmPayload(tracks, { track: "random", startDelay, saveBookmark: true });
+      const play = () => {
+        const hasNothingNewToPlay = !picked || (picked.tracks === bgm.tracks && bgm.is_on);
+        if (hasNothingNewToPlay) return;
+        changeBGM(audioStore, picked, true);
+      };
+      // The hero navigated on before the element resolved: the wrong track must not start
+      const isStaleRun = run !== guardRun;
+      if (isStaleRun) return;
+      const current = router?.currentRoute.value;
+      const canPlayNow = !router || current?.fullPath === fullPath;
+      if (canPlayNow) return play();
+      // Still on the route being left (this guard runs before the navigation lands): play once it lands here
+      const off = router.afterEach((landed, _from, failure) => {
+        off();
+        const shouldPlayOnLanding = !failure && run === guardRun && landed.fullPath === fullPath;
+        if (shouldPlayOnLanding) play();
+      });
+    });
   }
   // 3. Check terrain routes
   else if (TERRAIN_BGM_ROUTES[routeName]) {
@@ -167,19 +210,14 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
       saveBookmark: true,
     });
   }
-  // 4. Check battle routes
-  else if (
-    BATTLE_BGM_ROUTES.includes(routeName as (typeof BATTLE_BGM_ROUTES)[number])
-  ) {
-    payload = createBgmPayload(BGM.battle, {
-      track: "random",
-      startDelay: battleStore.bgmWaitToStart || startDelay,
-      saveBookmark: true,
-    });
-  }
 
-  // Dispatch BGM change if payload was determined
-  if (payload?.tracks?.length) {
-    changeBGM(audioStore, payload, true);
+  // Dispatch BGM change if payload was determined. The same playlist already playing (a hero
+  // stepping out to the quest log and back into the temple) keeps playing: no new random pick, no restart.
+  const finalPayload = payload;
+  const hasTracks = !!finalPayload?.tracks?.length;
+  if (hasTracks) {
+    const isPlaylistAlreadyPlaying = finalPayload.tracks === bgm.tracks && bgm.is_on;
+    if (isPlaylistAlreadyPlaying) return;
+    changeBGM(audioStore, finalPayload, true);
   }
 }

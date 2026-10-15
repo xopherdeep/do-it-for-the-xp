@@ -26,12 +26,18 @@ import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/lib/mixins/ionic"
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
-import { alertController, modalController } from "@ionic/vue";
+import { modalController } from "@ionic/vue";
 import XpSendRequest from "./SendRequest.vue"
 import { ProfileDb } from "@/lib/databases";
 
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue"
-import Stats from "@/lib/utils/User/stats";
+import { profileStorage } from "@/lib/databases/profileStorage"
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { useVoice } from "@/hooks/useVoice";
+import { GOLD_APP, amountAsk, noticePrompt, savingsMenuPrompt } from "@/lib/services/gp/bankPrompts";
+import { type BankAction, bankMove, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
+import { type BankMove, hospitalBillOf } from "@/lib/services/gp/wallet";
+import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 
 export default defineComponent({
   mixins: [ionic],
@@ -43,7 +49,8 @@ export default defineComponent({
     }
   },
   components: {
-    XpGp
+    XpGp,
+    XpRevealPrompt
   },
   computed: {
     getUserById() {
@@ -70,102 +77,62 @@ export default defineComponent({
       modal.present()
     },
 
+    /** The hospital bill is paid at the Gold Bank (grounding lifts when it reaches 0) */
+    openBank() {
+      void this.$router.push({ name: "bank", params: { userId: this.userId } });
+    },
+
+    /** Pay down debt (the Hospital's bill first): how much on the stepper, then the move and its receipt. */
     async clickPayDebt() {
-      const alert = await alertController.create({
-        header: "Pay Down Debt",
-        buttons: [{
-          text: "Cancel",
-          role: "cancel",
-          cssClass: "secondary",
-          handler: () => {
-            // console.log("Confirm Cancel:", blah);
-          },
-        }, {
-          text: "Okay",
-          handler: this.payDebt,
-        }],
-        inputs: [{
-          placeholder: 'GP',
-          type: 'number',
-          name: "gp",
-          max: this.user.stats.gp.wallet < this.user.stats.gp.debt
-            ? this.user.stats.gp.wallet : this.user.stats.gp.debt,
-          min: 1
-        }],
-      })
-      alert.present()
+      await this.moneyErrand("payDebt")
     },
 
+    /** The savings counter: deposit or withdraw, then how much on the stepper. */
     async clickAddSavings() {
-      const alert = await alertController.create({
-        header: "Savings",
-        buttons: [{
-          text: "Withdraw",
-          handler: this.withdrawSaving,
-        }, {
-          text: "Deposit",
-          handler: this.saveGp,
-        }],
-        inputs: [{
-          placeholder: 'GP',
-          type: 'number',
-          name: 'gp',
-          max: this.user.stats.gp.wallet >= this.user.stats.gp.savings
-            ? this.user.stats.gp.wallet : this.user.stats.gp.savings,
-          min: 1
-        }],
-      })
-      alert.present()
+      const pick = await this.reveal.showPrompt(savingsMenuPrompt(this.user.stats.gp, this.words))
+      const isSavingsErrand = pick === "deposit" || pick === "withdraw"
+      if (isSavingsErrand) await this.moneyErrand(pick)
     },
 
-    saveGp({ gp }: any) {
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      const savings = Math.round(Number(this.user.stats.gp.savings) + Number(gp))
-      const debt = wallet < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(wallet))
-        : this.user.stats.gp.debt
+    /** A money move in the game's own dialog, by the bank's rules: the stepper reaches what the move can take. */
+    async moneyErrand(action: BankAction) {
+      const ask = amountAsk(action, this.user.stats.gp, GOLD_APP, this.words)
+      const isRefused = "refusal" in ask
+      if (isRefused) {
+        this.play$fx("no")
+        await this.reveal.showPrompt(noticePrompt(ask.refusal, undefined, GOLD_APP))
+        return
+      }
+      const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt)
+      const isCancelled = id !== "ok" || !amount
+      if (isCancelled) return
 
-      this.profileDb.updateStats(this.user.id, {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet: wallet > 0 ? wallet : 0,
-          savings,
-          debt
-        }
-      }).then(this.loadUsers)
+      const gp = this.user.stats.gp
+      const move = bankMove(action, gp, amount)
+      await this.applyMove(action, move)
     },
 
-    withdrawSaving({ gp }: Stats) {
-      const savings = Math.round(Number(this.user.stats.gp.savings) - Number(gp))
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) + Number(gp))
-
-      const debt = savings < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(savings))
-        : this.user.stats.gp.debt
-
-      this.profileDb.updateStats(this.user.id, {
+    /** Every money move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
+    async applyMove(action: BankAction, move: BankMove) {
+      const before = this.user.stats.gp
+      const refusal = bankRefusal(action, before, move, this.words)
+      if (refusal) {
+        this.play$fx("no")
+        await this.reveal.showPrompt(noticePrompt(refusal, undefined, GOLD_APP))
+        return
+      }
+      this.play$fx("select")
+      // The bill reaching 0 lifts the grounding at once; the family hears of it after the purse is saved
+      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0
+      const heroId = this.user.id
+      const receipt = bankReceipt(action, before, move, this.words)
+      await this.profileDb.updateStats(this.user.id, {
         ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          savings: savings > 0 ? savings : 0,
-          debt
-        }
+        // keep the GP ledger and anything else the purse carries; the rules only speak for the four numbers
+        gp: { ...before, ...move.gp }
       }).then(this.loadUsers)
-    },
-
-    payDebt({ gp }: Stats) {
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      this.profileDb.updateStats(this.user.id, {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          debt: Math.round(Number(this.user.stats.gp.debt) - Number(gp))
-        }
-      }).then(this.loadUsers)
-
+      if (clearsBill) announceBillPaid(heroId)
+      await this.reveal.showPrompt(noticePrompt(receipt, "coins", GOLD_APP))
     }
   },
   setup(props) {
@@ -190,11 +157,18 @@ export default defineComponent({
     };
 
     const walletSegment = ref("wallet");
+    // The Gold app asks and answers in the game's own dialog, not in native alerts
+    const reveal = useRevealPrompt();
+    // The Gold app's words follow the hero's voice (simple, adventure or classic)
+    const { voice: words } = useVoice();
 
     const user = computed(() => userStore.getUserById(props.userId));
     return {
+      words,
       user,
       userStore,
+      reveal,
+      prompt: reveal.prompt,
       // date: computed(() => localStorage.getItem("date")),
       profileDb,
       walletSegment,

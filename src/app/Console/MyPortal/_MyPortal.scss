@@ -91,9 +91,34 @@
     }
   }
 
-  .tab-docked-xp {
-    position: relative;
+  .portal-docked-xp {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+    pointer-events: none;
+    background: transparent;
+  }
+
+  // Nav (56px): the dock floats over the pages instead of pushing them up
+  --xp-dock-height: calc(56px + env(safe-area-inset-bottom, 0px));
+
+  .portal-dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 1000;
+  }
+
+  // Pages run under the dock; their scroll still ends above it
+  ion-router-outlet ion-content {
+    --padding-bottom: var(--xp-dock-height);
+  }
+
+  ion-tab-bar {
+    --ion-safe-area-bottom: 0px;
   }
 
   ion-tab-bar{

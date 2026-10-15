@@ -9,15 +9,20 @@ android {
 
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
+    implementation project(':capacitor-community-text-to-speech')
+    implementation project(':capacitor-firebase-analytics')
+    implementation project(':capacitor-mlkit-barcode-scanning')
     implementation project(':capacitor-app')
+    implementation project(':capacitor-browser')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
+    implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-preferences')
     implementation project(':capacitor-share')
     implementation project(':capacitor-status-bar')
 
 }
-apply from: "../../node_modules/cordova-plugin-ionic/src/android/cordovapluginionic.gradle"
+apply from: "../../node_modules/.pnpm/cordova-plugin-ionic@5.5.3/node_modules/cordova-plugin-ionic/src/android/cordovapluginionic.gradle"
 
 if (hasProperty('postBuildExtras')) {
   postBuildExtras()

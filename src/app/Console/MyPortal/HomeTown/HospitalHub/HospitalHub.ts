@@ -1,11 +1,31 @@
 import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
-import { actionSheetController, alertController } from "@ionic/vue";
+import { useBack } from "@/hooks/useBack";
+import { useCopy, useVoice } from "@/hooks/useVoice";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
-import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import XpHospitalPatients from "./components/XpHospitalPatients.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useUserStore } from "@/lib/store/stores/user";
-import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
-import debug from "@/lib/utils/debug";
+import { quoteBenchRest, quoteCare } from "@/lib/services/hometown/Lodging";
+import type { CareKind } from "@/lib/services/hometown/Lodging";
+import { ADMITTED_QUERY, takeAdmissionReceipt } from "@/lib/services/hometown/hospitalAdmission";
+import { nurseAdmissionBlocks } from "@/lib/services/hometown/hospitalBill";
+import {
+  benchReceiptLine,
+  benchRefusalLine,
+  careConfirmPrompt,
+  careReceiptLine,
+  careRefusalLine,
+  nurseMenuPrompt,
+  nurseNotice,
+  type NurseMenuId,
+} from "@/lib/services/hometown/hometownPrompts";
+import { hospitalBillOf } from "@/lib/services/gp/wallet";
+
+/** The menu rows that end the conversation by walking away from the counter. */
+type WalkAway = "leave" | "patients" | "stats";
+const isWalkAway = (pick: NurseMenuId): pick is WalkAway => pick === "leave" || pick === "patients" || pick === "stats";
 
 export default defineComponent({
   props: ["userId"],
@@ -13,126 +33,90 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     XpIcon,
-    XpTypingText
+    XpRevealPrompt,
+    XpHospitalPatients
   },
   data() {
     return {
       isLoading: false,
       isModalOpen: false,
-      isDialogVisible: false,
-      currentDialogIndex: 0,
-      currentDialogText: "",
-      hasMoreDialog: true,
-      isTyping: false
+      /** Nurse Joy is talking: the FAB waits until the conversation ends */
+      isTalking: false,
+      /** What Nurse Joy reads when a hero is carried in; empty for an ordinary visit */
+      admissionBlocks: [] as string[]
     };
   },
   computed: {
     users() {
       return this.userStore.usersAz;
     },
-    actionButtons() {
-      return [
-        {
-          text: "Heal Ailments",
-          role: "heal",
-          icon: heart,
-          handler: this.handleHeal,
-          cssClass: "action-heal",
-        },
-        {
-          text: "Revive Heroes",
-          role: "revive",
-          icon: infinite,
-          handler: this.handleRevive,
-          cssClass: "action-revive",
-        },
-        {
-          text: "Check Vital Stats",
-          role: "stats",
-          icon: statsChart,
-          handler: this.handleStats,
-          cssClass: "action-stats",
-        },
-        {
-          text: "View Patients",
-          role: "patients",
-          icon: people,
-          handler: this.openPatientsModal,
-          cssClass: "action-patients",
-        },
-        {
-          text: "Leave Hospital",
-          role: "leave",
-          icon: logOut,
-          handler: () => {
-            this.$router.go(-1);
-          },
-          cssClass: "action-leave",
-        },
-        {
-          text: "Cancel",
-          role: "cancel",
-          icon: close,
-          cssClass: "action-cancel",
-        },
-      ];
-    },
     dialogBlocks() {
-      return [
-        "Welcome to the Hospital Hub! *adjusts stethoscope* I'm Nurse Joy. How are you feeling today?",
-        "You look like you've had quite an adventure out there! We're here to help you recover and get back on your feet.",
-        "Our hospital offers several services to help adventurers like yourself. What can I assist you with today?"
-      ];
+      const hasAdmissionBlocks = this.admissionBlocks.length > 0;
+      if (hasAdmissionBlocks) return this.admissionBlocks;
+      return [this.t("nurse.greet.welcome"), this.t("nurse.greet.adventure"), this.t("nurse.greet.services")];
     }
   },
-  mounted() {
-    // Set initial dialog text
-    this.currentDialogText = this.dialogBlocks[0];
+  // The router keeps this page alive, so a hero carried in from a lost fight arrives on the enter hook, not on mount
+  ionViewWillEnter() {
+    this.greetAdmittedHero();
   },
   methods: {
-    showNurseDialog() {
-      // Play a sound effect for immersion
-      this.play$fx("select");
-
-      // Reset and show the dialog
-      this.currentDialogIndex = 0;
-      this.currentDialogText = this.dialogBlocks[0];
-      this.hasMoreDialog = this.dialogBlocks.length > 1;
-      this.isDialogVisible = true;
-      this.isTyping = true;
+    /**
+     * A lost fight or a trap sends the hero here with ?admitted=1 (docs/Quest-Rooms-Spec.md 5.8): the treatment and the
+     * bill are already done, so Nurse Joy opens with the bill instead of the usual welcome. The cue is read once and
+     * taken off the address, so coming back to this page later gets the ordinary welcome.
+     */
+    greetAdmittedHero() {
+      const isAdmitted = this.$route.query[ADMITTED_QUERY] === "1";
+      if (!isAdmitted) return;
+      this.$router.replace({ name: "hospital", params: { userId: this.userId } });
+      const owed = hospitalBillOf(this.userStore.getUserById(this.userId)?.stats?.gp);
+      const blocks = nurseAdmissionBlocks(takeAdmissionReceipt(this.userId)?.charge ?? null, owed);
+      const hasBlocks = blocks.length > 0;
+      if (!hasBlocks) return;
+      this.admissionBlocks = blocks;
+      this.showNurseDialog();
     },
 
-    advanceDialog() {
-      // If typing is in progress, complete the current text immediately
-      if (this.isTyping) {
-        this.isTyping = false;
-        // Skip typing animation by immediately showing the full text
-        this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
-        return;
-      }
-
-      // If not typing, advance to next dialog block
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.currentDialogIndex++;
-        this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
-        this.hasMoreDialog = this.currentDialogIndex < this.dialogBlocks.length - 1;
-        this.isTyping = true;
-      } else {
-        // End of dialog, close and show options
-        this.isDialogVisible = false;
-        this.showActionSheet();
+    /**
+     * Nurse Joy's conversation, in the game's own dialog: her lines type out, then the menu. After each errand she asks
+     * if there is anything else, until the hero leaves (back out of the hospital), steps away (Escape) or goes to the
+     * patients list or their chart.
+     */
+    async showNurseDialog() {
+      if (this.isTalking) return;
+      this.isTalking = true;
+      try {
+        this.play$fx("select");
+        let lines = this.dialogBlocks;
+        // An admitted hero's lines are read once: the next welcome is the ordinary one
+        this.admissionBlocks = [];
+        for (;;) {
+          const pick = (await this.reveal.showPrompt(nurseMenuPrompt(lines))) as NurseMenuId | "stay";
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          if (isWalkAway(pick)) {
+            this.walkAway(pick);
+            return;
+          }
+          const isBenchRest = pick === "bench";
+          if (isBenchRest) await this.handleBenchRest();
+          else await this.handleCare(pick);
+          lines = [this.t("npc.more")];
+        }
+      } finally {
+        this.isTalking = false;
       }
     },
 
-    onTypingComplete() {
-      // The current text block has finished typing
-      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
-      this.isTyping = false;
-
-      // Play subtle sound effect between blocks if there are more blocks
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.play$fx("text");
-      }
+    /** Leave the counter: out of the hospital, to the patients list, or to a hero's chart. */
+    walkAway(pick: WalkAway) {
+      const walks: Record<WalkAway, () => unknown> = {
+        leave: () => this.goBack(),
+        patients: () => this.openPatientsModal(),
+        stats: () => this.viewVitals(this.userId)
+      };
+      walks[pick]();
     },
 
     openPatientsModal() {
@@ -143,113 +127,118 @@ export default defineComponent({
       this.isModalOpen = false;
     },
 
-    dismissPatientsModal() {
-      this.play$fx("no");
-      const modal = this.$refs.patientsModal as any;
-      if (modal?.$el) {
-        modal.$el.dismiss();
-      } else {
-        this.closePatientsModal();
+    /** A hero's chart: the Vital Statistics page (the board closes first so it is not left open behind it). */
+    viewVitals(userId: string) {
+      this.play$fx("select");
+      this.closePatientsModal();
+      this.$router.push({ name: "view-stats", params: { userId } });
+    },
+
+    /**
+     * Treat from the Patients board: Nurse Joy quotes the care the hero needs (Heal for HP, Revive when only MP is
+     * spent), then the board comes back so the new bar shows.
+     */
+    async treatFromBoard() {
+      this.closePatientsModal();
+      const hp = this.userStore.getUserById(this.userId)?.stats?.hp;
+      const kind = hp && hp.now < hp.max ? "heal" : "revive";
+      this.isTalking = true;
+      try {
+        await this.handleCare(kind);
+      } finally {
+        this.isTalking = false;
       }
+      this.openPatientsModal();
     },
 
-    async showActionSheet() {
-      const action = await actionSheetController.create({
-        header: "How can we assist you today?",
-        buttons: this.actionButtons,
-        cssClass: 'hospital-action-sheet',
-        mode: "ios",
-        backdropDismiss: true,
-      });
-
-      await action.present();
+    /**
+     * Heal or Revive: Nurse Joy turns the hero away first when it cannot work (already healthy, or the wallet is short),
+     * else the price and the question, then the co-pay.
+     */
+    async handleCare(kind: "heal" | "revive") {
+      const quote = quoteCare(kind, this.userStore.getUserById(this.userId)?.stats);
+      if (!quote.canPay) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(nurseNotice(careRefusalLine(quote, this.words)));
+        return;
+      }
+      const pick = await this.reveal.showPrompt(careConfirmPrompt(kind, this.words));
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
+      await this.payCoPay(kind);
     },
 
-    async handleHeal() {
-      const alert = await alertController.create({
-        header: 'Healing Cost',
-        message: 'The cost to heal is 50GP. Would you like to proceed?',
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'alert-cancel'
-          },
-          {
-            text: 'Pay & Heal',
-            role: 'confirm',
-            cssClass: 'alert-confirm',
-            handler: () => {
-              this.payCoPay();
-            }
-          }
-        ],
-        cssClass: 'hospital-alert'
-      });
+    /**
+     * Charge the co-pay and restore. quoteCare() decides the price and the gains; if the
+     * hero cannot pay (short wallet, or nothing to heal) nothing is charged and Nurse Joy says so.
+     */
+    async payCoPay(kind: CareKind) {
+      const user = this.userStore.getUserById(this.userId);
+      const quote = quoteCare(kind, user?.stats);
+      if (!quote.canPay) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(nurseNotice(careRefusalLine(quote, this.words)));
+        return;
+      }
 
-      await alert.present();
-    },
-
-    async payCoPay() {
-      // Add healing logic here
       this.isLoading = true;
-      setTimeout(() => {
+      try {
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        const hasMpGain = quote.mpGain > 0;
+        if (hasMpGain) {
+
+          this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
+        }
+        this.play$fx(quote.mpGain > 0 ? "restoreAll" : "restoreHP");
+        // a short beat so the spinner reads as treatment, not a glitch
+        await new Promise(resolve => setTimeout(resolve, 900));
+      } finally {
         this.isLoading = false;
-      }, 2000);
+      }
+
+      const stats = this.userStore.getUserById(this.userId)?.stats;
+      const mp = quote.mpGain > 0 ? stats?.mp : null;
+      await this.reveal.showPrompt(nurseNotice(careReceiptLine(kind, quote.cost, stats?.hp, mp, this.words), "heart"));
     },
 
-    async handleRevive() {
-      const alert = await alertController.create({
-        header: 'Revive Cost',
-        message: 'The cost to revive is 100GP. Would you like to proceed?',
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'alert-cancel'
-          },
-          {
-            text: 'Pay & Revive',
-            role: 'confirm',
-            cssClass: 'alert-confirm',
-            handler: () => {
-              this.payCoPay();
-            }
-          }
-        ],
-        cssClass: 'hospital-alert'
-      });
+    /**
+     * Rest on a Bench: free, a quarter of max HP, once a day. The hero who limped home from a lost
+     * fight with 1 HP and an empty wallet is never stuck: quoteBenchRest() decides, the store remembers.
+     */
+    async handleBenchRest() {
+      const user = this.userStore.getUserById(this.userId);
+      const quote = quoteBenchRest(user?.stats, user?.benchRestAt);
+      if (!quote.canRest) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(nurseNotice(benchRefusalLine(quote, this.words)));
+        return;
+      }
 
-      await alert.present();
-    },
+      this.isLoading = true;
+      try {
+        this.userStore.setBenchRestAt(this.userId, new Date().toISOString());
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        this.play$fx("restoreHP");
+        // a short beat so the spinner reads as a nap, not a glitch
+        await new Promise(resolve => setTimeout(resolve, 900));
+      } finally {
+        this.isLoading = false;
+      }
 
-    async handleStats() {
-      const alert = await alertController.create({
-        header: 'Vital Stats Check',
-        message: 'Would you like to check your vital stats?',
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'alert-cancel'
-          },
-          {
-            text: 'Check Stats',
-            role: 'confirm',
-            cssClass: 'alert-confirm',
-            handler: () => {
-              this.$router.push(`/my-portal/${this.userId}/hospital/stats`);
-            }
-          }
-        ],
-        cssClass: 'hospital-alert'
-      });
-
-      await alert.present();
+      const stats = this.userStore.getUserById(this.userId)?.stats;
+      await this.reveal.showPrompt(nurseNotice(benchReceiptLine(quote.hpGain, stats?.hp, this.words), "heart"));
     }
   },
   setup() {
     const userStore = useUserStore();
-    return { userStore };
+    // Leaving goes back, or up to Home Town when the hospital was opened with no history behind it
+    const { stepBack: goBack } = useBack();
+    // Nurse Joy talks, asks and answers in the game's own dialog, not in native alerts
+    const reveal = useRevealPrompt();
+    // Nurse Joy's words follow the hero's voice (simple, adventure or classic)
+    const t = useCopy();
+    const { voice: words } = useVoice();
+    return { userStore, goBack, reveal, prompt: reveal.prompt, t, words };
   }
 });

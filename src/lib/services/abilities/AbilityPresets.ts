@@ -25,6 +25,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'kindle',
     effect: 'Reduce the time required for your next task by 20%',
     characterRequirement: {
       level: 1,
@@ -48,6 +49,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'frost',
     effect: 'Increase the quality of your next task by taking your time',
     characterRequirement: {
       level: 1,
@@ -71,6 +73,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: ['time-mage-slow'],
     isPreset: true,
+    battleEffect: 'time-stop',
     effect: 'Take a 30-minute break without guilt to recover MP and reset cooldowns',
     characterRequirement: {
       level: 5,
@@ -83,7 +86,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
   {
     id: 'time-mage-rewind',
     name: 'Rewind',
-    description: 'Get a second chance at a task you failed or did poorly.',
+    description: "Turn back the beast's clock: it refills to full.",
     type: AbilityType.InGame,
     frequency: TimePeriod.Weekly,
     mpCost: 40,
@@ -94,7 +97,8 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'refreshOutline',
     prerequisites: ['time-mage-stop'],
     isPreset: true,
-    effect: 'Retry a failed task with a +20% success bonus',
+    battleEffect: 'gust',
+    effect: "The beast's clock refills to full.",
     characterRequirement: {
       level: 10,
       class: {
@@ -127,6 +131,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'appsOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'weaken',
     effect: 'Increase problem-solving speed by 25% for technical tasks',
     characterRequirement: {
       level: 1,
@@ -150,6 +155,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'saveOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'none',
     effect: 'Automatically save your work every 15 minutes for the next 4 hours',
     characterRequirement: {
       level: 1,
@@ -173,6 +179,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'flashOutline',
     prerequisites: ['tech-mage-debug'],
     isPreset: true,
+    battleEffect: 'stun',
     effect: 'Double your productivity for the next hour, but requires a cooldown period after',
     characterRequirement: {
       level: 5,
@@ -196,6 +203,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'refreshOutline',
     prerequisites: ['tech-mage-overclock'],
     isPreset: true,
+    battleEffect: 'heal',
     effect: 'Reset all cooldowns and restore 50% of MP',
     characterRequirement: {
       level: 10,
@@ -212,13 +220,16 @@ export const TECH_MAGE_PRESETS: Ability[] = [
 ];
 
 /**
- * Real Life Reward Presets
+ * Real Life Privilege Presets
+ *
+ * Privileges only: freedoms a hero unlocks with AP and spends MP to use. Anything that costs the family money
+ * (a restaurant meal, a movie ticket, a toy) is a shop item bought with GP instead (src/lib/services/shops/rewardPresets.ts).
  */
 export const REAL_LIFE_PRESETS: Ability[] = [
   {
-    id: 'irl-coffee-break',
-    name: 'Coffee Break',
-    description: 'Take a short break to enjoy a cup of coffee or tea.',
+    id: 'irl-captains-seat',
+    name: "Captain's Seat",
+    description: 'Call the front seat, or any seat you like, for a whole day.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Daily,
     mpCost: 5,
@@ -226,15 +237,34 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 50,
       period: TimePeriod.Daily
     },
-    icon: 'pizzaOutline',
+    icon: 'steering-wheel',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
     position: { x: 100, y: 400 }
   },
   {
+    id: 'irl-night-owl',
+    name: 'Night Owl',
+    description: 'Stay up 30 minutes past bedtime tonight.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'moon-stars',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    timerMinutes: 30,
+    position: { x: 200, y: 400 }
+  },
+  {
     id: 'irl-gaming-hour',
-    name: 'Gaming Hour',
-    description: 'Take an hour to play your favorite game guilt-free.',
+    name: 'Portal Hour',
+    description: 'One extra hour of screen or game time, guilt-free.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Weekly,
     mpCost: 10,
@@ -242,15 +272,34 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 200,
       period: TimePeriod.Weekly
     },
-    icon: 'gameControllerOutline',
+    icon: 'gamepad',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
-    position: { x: 200, y: 400 }
+    timerMinutes: 60,
+    position: { x: 300, y: 400 }
   },
   {
-    id: 'irl-movie-night',
-    name: 'Movie Night',
-    description: 'Enjoy a movie or TV show marathon as a reward.',
+    id: 'irl-bards-pick',
+    name: "Bard's Pick",
+    description: 'Choose the movie or show for family movie night at home.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 250,
+      period: TimePeriod.Weekly
+    },
+    icon: 'popcorn',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 400, y: 400 }
+  },
+  {
+    id: 'irl-feast-decree',
+    name: 'Feast Decree',
+    description: 'Choose what the family cooks for dinner one night.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Weekly,
     mpCost: 15,
@@ -258,31 +307,33 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 300,
       period: TimePeriod.Weekly
     },
-    icon: 'tvOutline',
+    icon: 'hat-chef',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
-    position: { x: 300, y: 400 }
+    position: { x: 500, y: 400 }
   },
   {
-    id: 'irl-restaurant-meal',
-    name: 'Restaurant Meal',
-    description: 'Treat yourself to a meal at your favorite restaurant.',
+    id: 'irl-guild-gathering',
+    name: 'Guild Gathering',
+    description: 'Invite a friend over to play.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Monthly,
-    mpCost: 30,
+    mpCost: 20,
     apRequirement: {
       amount: 500,
       period: TimePeriod.Monthly
     },
-    icon: 'pizzaOutline',
-    prerequisites: [],
+    icon: 'campfire',
+    iconPrefix: 'fad',
+    prerequisites: ['irl-night-owl'],
     isPreset: true,
-    position: { x: 400, y: 400 }
+    position: { x: 300, y: 500 }
   },
   {
     id: 'irl-day-off',
-    name: 'Day Off',
-    description: 'Take a full day off to relax and recharge.',
+    name: 'Day of Rest',
+    description: 'A whole day with no chores. The Game Master picks the day.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Monthly,
     mpCost: 50,
@@ -290,10 +341,137 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 1000,
       period: TimePeriod.Monthly
     },
-    icon: 'homeOutline',
-    prerequisites: ['irl-restaurant-meal'],
+    icon: 'couch',
+    iconPrefix: 'fad',
+    prerequisites: ['irl-gaming-hour'],
     isPreset: true,
     position: { x: 500, y: 500 }
+  },
+  // On the quest board: these four bend the hero's own schedule when cast (PowerBoardEffects.ts)
+  {
+    id: 'irl-snooze',
+    name: 'Snooze',
+    description: 'Move one quest to tomorrow.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'alarm-snooze',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'snooze',
+    position: { x: 100, y: 600 }
+  },
+  {
+    id: 'irl-extra-time',
+    name: 'Extra Time',
+    description: "24 more hours on one quest's deadline.",
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'hourglass-half',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'extra-time',
+    position: { x: 200, y: 600 }
+  },
+  {
+    id: 'irl-quiet-day',
+    name: 'Quiet Day',
+    description: 'No ambushes for 24 hours.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 15,
+    apRequirement: {
+      amount: 200,
+      period: TimePeriod.Weekly
+    },
+    icon: 'eye-slash',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'quiet-day',
+    position: { x: 300, y: 600 }
+  },
+  {
+    id: 'irl-trusted-hour',
+    name: 'Trusted Hour',
+    description: 'For one hour, your claims skip the approval queue.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 20,
+    apRequirement: {
+      amount: 300,
+      period: TimePeriod.Weekly
+    },
+    icon: 'user-shield',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'trusted-hour',
+    position: { x: 400, y: 600 }
+  },
+  {
+    id: 'irl-car-dj',
+    name: 'Car DJ Privilege',
+    description: '15 minutes DJing in car.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Daily,
+    mpCost: 5,
+    apRequirement: {
+      amount: 50,
+      period: TimePeriod.Daily
+    },
+    icon: 'music',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    timerMinutes: 15,
+    position: { x: 500, y: 600 }
+  },
+  {
+    id: 'irl-app-extension',
+    name: 'App Extension Time',
+    description: '30 minutes bonus device time.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 100,
+      period: TimePeriod.Weekly
+    },
+    icon: 'hourglass-half',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    timerMinutes: 30,
+    position: { x: 600, y: 600 }
+  },
+  {
+    id: 'irl-yes-day',
+    name: "The King's Decree",
+    description: 'YES Day privilege.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Monthly,
+    mpCost: 50,
+    apRequirement: {
+      amount: 2500,
+      period: TimePeriod.Monthly
+    },
+    icon: 'crown',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 700, y: 600 }
   }
 ];
 
@@ -315,6 +493,7 @@ export const HYBRID_PRESETS: Ability[] = [
     icon: 'flashOutline',
     prerequisites: ['time-mage-haste', 'tech-mage-debug'],
     isPreset: true,
+    battleEffect: 'none',
     effect: 'Work on two different tasks simultaneously with 80% efficiency on both',
     characterRequirement: {
       level: 8,
@@ -354,6 +533,8 @@ export function createCustomAbility(partial: Partial<Ability> = {}): Ability {
       y: Math.floor(Math.random() * 600)
     },
     effect: partial.effect,
+    battleEffect: partial.battleEffect,
+    boardEffect: partial.boardEffect,
     characterRequirement: partial.characterRequirement,
     scaling: partial.scaling
   };

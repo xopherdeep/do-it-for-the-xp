@@ -30,14 +30,14 @@
 
           <div class="item-grid">
             <button v-for="item in dungeonItems" :key="item.id" class="item-btn"
-              :class="{ 'is-active': modelValue.content?.item === item.id }" @click="selectItem(item)">
+              :class="{ 'is-active': modelValue.content?.dungeon === item.id }" @click="selectItem(item)">
               <div class="icon-orb">
                 <i :class="['fad', 'fa-' + item.icon]"></i>
               </div>
               <span class="item-label">{{ item.name }}</span>
             </button>
             <!-- Empty Chest Option -->
-            <button class="item-btn" :class="{ 'is-active': !modelValue.content?.item }" @click="selectItem(null)">
+            <button class="item-btn" :class="{ 'is-active': !modelValue.content?.dungeon }" @click="selectItem(null)">
               <div class="icon-orb empty">
                 <i class="fad fa-treasure-chest"></i>
               </div>
@@ -66,6 +66,7 @@
 <script lang="ts">
 import { defineComponent, PropType, ref, watch, computed } from 'vue';
 import { IonPopover } from '@ionic/vue';
+import { pickChestItem } from './hooks/grid/roomContent';
 
 export default defineComponent({
   name: 'XpTempleCreatorPopovers',
@@ -107,7 +108,8 @@ export default defineComponent({
     const showItems = ref(false);
 
     watch(() => props.modelValue.isOpen, (isOpen) => {
-      if (isOpen && props.modelValue.roomType === 'loot') {
+      const shouldShowItems = isOpen && props.modelValue.roomType === 'loot';
+      if (shouldShowItems) {
         showItems.value = true;
       } else {
         showItems.value = false;
@@ -115,13 +117,16 @@ export default defineComponent({
     });
 
     const formatTypeName = (type: string) => {
-      if (type === 'loot') return 'Chest';
-      if (type === 'health') return 'Heal';
+      const isLoot = type === 'loot';
+      if (isLoot) return 'Chest';
+      const isHealth = type === 'health';
+      if (isHealth) return 'Heal';
       return type.charAt(0).toUpperCase() + type.slice(1);
     };
 
     const handleTypeClick = (type: string) => {
-      if (type === 'loot') {
+      const isLoot = type === 'loot';
+      if (isLoot) {
         showItems.value = true;
         // Apply the type change immediately so parent knows it's loot
         emit('apply-type', 'loot');
@@ -131,7 +136,8 @@ export default defineComponent({
     };
 
     const selectItem = (item: any) => {
-      const content = item ? { item: item.id } : {};
+      // The chest the editor and the audit read ({ chest: 'dungeon', dungeon: id }), joined to what the room holds
+      const content = pickChestItem(props.modelValue.content, item ? item.id : null);
       emit('apply-content', {
         roomType: 'loot',
         content,

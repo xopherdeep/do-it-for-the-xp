@@ -72,13 +72,14 @@
       },
     },
     setup(props: { avatar: number; bg1: number; bg2: number }) {
-      const nAvatars = 73;
+      // every NNN.webp in src/assets/images/beasts; tools/art/beasts.py prints the next numbers it writes
+      const nAvatars = 294;
       const selectedAvatar = ref(props.avatar || 0);
       const backgroundInitialized = ref(false);
 
       const getAvatarImage = (id: number) => {
         const pad = id.toString().padStart(3, "0");
-        return require(`@/assets/images/beasts/${pad}.png`);
+        return require(`@/assets/images/beasts/${pad}.webp`);
       };
 
       const selectAvatar = (id: number) => {

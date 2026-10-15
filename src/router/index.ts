@@ -6,7 +6,6 @@ import {
 } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
 import { useRouterGuards } from "./_Guards";
-import { Capacitor } from "@capacitor/core";
 
 // Admin / Game Master
 import { GameMasterRoutes } from "./Admin";
@@ -21,7 +20,8 @@ import {
 } from "./Console";
 
 // SideMenu
-import { SideMenuRoutes, SettingsRoutes, SupportRoutes } from "./SideMenu";
+import { usesHashHistory } from "./historyMode";
+import { SideMenuRoutes, SettingsRoutes, SupportRoutes, ProRoutes } from "./SideMenu";
 
 // Dev
 import DevRoutes from "./Dev/dev.routes";
@@ -40,17 +40,21 @@ const routes: Array<RouteRecordRaw> = [
 
   // SideMenu Routes
   ...SettingsRoutes,
+  ...ProRoutes,
   ...SideMenuRoutes,
   ...SupportRoutes,
 
-  // Dev Routes
-  ...DevRoutes,
+  // Dev Routes (non-production builds only)
+  ...(process.env.NODE_ENV !== "production" ? DevRoutes : []),
 
   // XP Intro Page
   {
     path: "/xp-intro",
     name: "xp-intro",
     component: () => import("@/views/XpIntro/XpIntro.vue"),
+    meta: {
+      requiresAuth: false,
+    },
   },
 
   // Start Screen / Login
@@ -69,6 +73,9 @@ const routes: Array<RouteRecordRaw> = [
     path: "/xp-demo",
     name: "xp-demo",
     component: () => import("@/views/XpDemo/XpDemo.vue"),
+    meta: {
+      requiresAuth: false,
+    },
   },
   // Game Over Page
   {
@@ -77,46 +84,32 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@/views/XpGameOver/XpGameOver.vue"),
   },
 
-  // Battle Field Routes
+  // Battle routes: every battle names its hero, and the kind decides where it returns to.
+  // Build links with the helpers in @/app/Console/BattleField/battle/battleContext.
   {
-    path: "/battle-field/:userId?",
-    name: "battle-field",
-    meta: {
-      faIcon: "dungeon",
-    },
+    path: "/battle/:userId/quest/:questId",
+    name: "battle-quest",
+    meta: { faIcon: "dungeon", battleKind: "quest" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
   {
-    path: "/battle-field/:beastIds/:userIds?",
-    name: "battle-field-with-participants",
-    meta: {
-      faIcon: "dungeon",
-    },
+    path: "/battle/:userId/temple/:templeId/:level/:x/:y",
+    name: "battle-temple",
+    meta: { faIcon: "dungeon", battleKind: "temple" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
-  // Temple Room Battle - /battle-field/temple/:templeId/:level/:x/:y
+  // One-URL way to start a fight with whoever is signed in: /battle (random beast) or /battle?beastIds=a,b
   {
-    path: "/battle-field/temple/:templeId/:level/:x/:y",
-    name: "battle-field-temple",
-    meta: {
-      faIcon: "dungeon",
-      battleType: "temple", // Metadata to identify the battle context
-    },
+    path: "/battle",
+    name: "battle-now",
+    meta: { faIcon: "dungeon", battleKind: "free" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
-  // Quest Battle - /battle-field/quest/:questId
   {
-    path: "/battle-field/quest/:questId",
-    name: "battle-field-quest",
-    meta: {
-      faIcon: "dungeon",
-      battleType: "quest",
-    },
+    path: "/battle/:userId/free/:beastIds?",
+    name: "battle-free",
+    meta: { faIcon: "dungeon", battleKind: "free" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
 ];
 
@@ -124,12 +117,9 @@ const routes: Array<RouteRecordRaw> = [
 export const createAppRouter = () => {
   // Use hash mode for production builds and Capacitor apps
   // This helps with navigation in production builds
-  const isNative = Capacitor.isNativePlatform();
-  const isProduction = process.env.NODE_ENV === "production";
-
   const router = createRouter({
     history:
-      isNative || isProduction
+      usesHashHistory()
         ? createWebHashHistory(process.env.BASE_URL)
         : createWebHistory(process.env.BASE_URL),
     routes,

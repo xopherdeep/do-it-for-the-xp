@@ -36,7 +36,12 @@
 
       <!-- CENTER: Class Icon -->
       <div class="loadout-center">
-        <div class="class-icon-wrapper" @click="$emit('change-class')">
+        <div
+          class="class-icon-wrapper"
+          :class="{ 'is-static': readonly }"
+          :data-cy="readonly ? undefined : 'change-class'"
+          @click="changeClass"
+        >
           <i class="fad fa-3x" :class="classIcon"></i>
         </div>
       </div>
@@ -108,6 +113,11 @@
         type: Number,
         default: 2,
       },
+      /** The bag in battle mode: hands can be tapped, but nothing drops on them and the class stays */
+      readonly: {
+        type: Boolean,
+        default: false,
+      },
     },
     emits: ["equip", "select-item", "change-class"],
     setup(props) {
@@ -155,20 +165,30 @@
         
         // Fill slots with items
         this.leftHandItems.forEach((item, index) => {
-          if (index < this.slotsPerWing) this.leftSlots[index] = item;
+          const isOnWing = index < this.slotsPerWing;
+          if (isOnWing) this.leftSlots[index] = item;
         });
 
         this.rightHandItems.forEach((item, index) => {
-          if (index < this.slotsPerWing) this.rightSlots[index] = item;
+          const isOnWing = index < this.slotsPerWing;
+          if (isOnWing) this.rightSlots[index] = item;
         });
       },
       allowDrop(event: DragEvent) {
-        event.preventDefault();
+        const isReadonly = this.readonly;
+        if (!isReadonly) event.preventDefault();
+      },
+      changeClass() {
+        const isReadonly = this.readonly;
+        if (!isReadonly) this.$emit("change-class");
       },
       async drop(event: DragEvent, hand: string, index: number) {
         event.preventDefault();
+        const isReadonly = this.readonly;
+        if (isReadonly) return;
 
-        if (index > 0) {
+        const isLockedSlot = index > 0;
+        if (isLockedSlot) {
           const toast = await toastController.create({
             message: "This slot is locked. Unlock more slots as you level up.",
             duration: 2000,
@@ -180,14 +200,16 @@
           return;
         }
 
-        if (event.dataTransfer) {
-          const data = event.dataTransfer.getData("item");
+        const dataTransfer = event.dataTransfer;
+        if (dataTransfer) {
+          const data = dataTransfer.getData("item");
           const item = JSON.parse(data);
           this.$emit("equip", item, hand, index);
         }
       },
       handleSlotClick(item: EquipmentItem | null, index: number) {
-        if (index > 0) return; // Locked slots
+        const isLockedSlot = index > 0;
+        if (isLockedSlot) return; // Locked slots
         if (item) {
           this.$emit("select-item", item);
         }
@@ -319,10 +341,15 @@
           filter: drop-shadow(0 0 12px rgba(var(--ion-color-primary-rgb), 0.5));
         }
 
-        &:hover {
+        &:hover:not(.is-static) {
           border-color: var(--ion-color-primary);
           background: rgba(var(--ion-color-primary-rgb), 0.1);
           transform: scale(1.08);
+        }
+
+        // Read-only dock: the class is shown, not a button
+        &.is-static {
+          cursor: default;
         }
       }
     }

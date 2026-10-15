@@ -1,5 +1,7 @@
 <template>
-  <div class="achievement-summary-card" :class="{ 'is-ready': isReady, 'is-draft': !isReady }" @click="$emit('click')">
+  <div class="achievement-summary-card" :class="{ 'is-ready': isReady, 'is-draft': !isReady }" role="button"
+    tabindex="0" @click="$emit('click')" @keydown.enter.self="$emit('click')"
+    @keydown.space.self.prevent="$emit('click')">
     <!-- Card Glow Effect -->
     <div class="quest-card-glow"></div>
 
@@ -11,29 +13,46 @@
 
     <!-- Stats Grid - 3 Rows -->
     <XpStatGrid>
-      <!-- Row 1: Strategy & Timing -->
+      <!-- Row 1: Strategy & Timing. The small line under a tile says what its flavor word means. -->
       <div class="stats-row strategy">
-        <XpStatBlock :icon="activeAdventureType.icon" label="TYPE" :value="activeAdventureType.name" variant="type"
-          :is-set="activeAdventureType.name !== 'Select'" :clickable="true" value-class="text-xs text-center"
-          @click="$emit('navigate', 'quest-type')" />
-        <XpStatBlock :icon="activePartyType.icon" :label="activePartyType.name" :value="heroCountDisplay"
-          variant="party" :is-set="heroCount > 0 || isOpenBounty" :clickable="true"
-          @click="$emit('navigate', 'heros')" />
-        <XpStatBlock :icon="activeScheduleIcon" label="WHEN" :value="scheduleSummary" variant="when" :is-set="true"
-          :clickable="true" value-class="text-xs" @click="$emit('navigate', 'when')" />
+        <div class="stat-cell">
+          <XpStatBlock :icon="activeAdventureType.icon" label="TYPE" :value="activeAdventureType.name" variant="type"
+            :is-set="activeAdventureType.name !== 'Select'" :clickable="true" value-class="text-xs text-center"
+            @click="$emit('navigate', 'quest-type')" />
+          <p v-if="typeHint" class="stat-hint">{{ typeHint }}</p>
+        </div>
+        <div class="stat-cell">
+          <XpStatBlock :icon="activePartyType.icon" :label="activePartyType.name" :value="heroCountDisplay"
+            variant="party" :is-set="heroCount > 0 || isOpenBounty" :clickable="true"
+            @click="$emit('navigate', 'heros')" />
+          <p class="stat-hint">{{ partyHintText }}</p>
+        </div>
+        <div class="stat-cell">
+          <XpStatBlock :icon="activeScheduleIcon" label="WHEN" :value="scheduleSummary" variant="when" :is-set="true"
+            :clickable="true" value-class="text-xs" @click="$emit('navigate', 'when')" />
+          <p v-if="timesText" class="stat-hint">{{ timesText }}</p>
+        </div>
       </div>
 
       <!-- Row 2: Configuration -->
       <div class="stats-row configuration">
-        <XpStatBlock icon="fa-tags" label="CATEGORY" :value="categoryName" variant="category" :is-set="true"
-          :clickable="true" :show-help="true" @click="$emit('open-category-modal')"
-          @help="$emit('open-category-help')" />
-        <XpStatBlock :icon="achievement.requiresApproval ? 'fa-clipboard-list-check' : 'fa-trophy-alt'" label="APPROVAL"
-          :value="achievement.requiresApproval ? 'REVIEW' : 'HONOR'" variant="approval" :is-set="true" :clickable="true"
-          @click="$emit('open-approval-modal')" />
-        <XpStatBlock :icon="achievement.bonusAchievement ? 'fa-question-square' : 'fa-exclamation'" label="PRIORITY"
-          :value="achievement.bonusAchievement ? 'BONUS' : 'REQD'" variant="bonus" :is-set="true" :clickable="true"
-          @click="$emit('open-bonus-modal')" />
+        <div class="stat-cell">
+          <XpStatBlock icon="fa-tags" label="CATEGORY" :value="categoryName" variant="category" :is-set="true"
+            :clickable="true" :show-help="true" @click="$emit('open-category-modal')"
+            @help="$emit('open-category-help')" />
+        </div>
+        <div class="stat-cell">
+          <XpStatBlock :icon="achievement.requiresApproval ? 'fa-clipboard-list-check' : 'fa-trophy-alt'"
+            label="APPROVAL" :value="achievement.requiresApproval ? 'REVIEW' : 'HONOR'" variant="approval"
+            :is-set="true" :clickable="true" @click="$emit('open-approval-modal')" />
+          <p class="stat-hint">{{ approvalText }}</p>
+        </div>
+        <div class="stat-cell">
+          <XpStatBlock :icon="achievement.bonusAchievement ? 'fa-question-square' : 'fa-exclamation'" label="PRIORITY"
+            :value="achievement.bonusAchievement ? 'BONUS' : 'REQD'" variant="bonus" :is-set="true" :clickable="true"
+            @click="$emit('open-bonus-modal')" />
+          <p class="stat-hint">{{ priorityText }}</p>
+        </div>
       </div>
 
       <!-- Row 3: Rewards -->
@@ -50,7 +69,7 @@
     <!-- Click Prompt -->
     <div class="quest-card-prompt">
       <i class="fad fa-hand-pointer"></i>
-      <span>Tap to configure</span>
+      <span>Tap a tile to change it</span>
     </div>
   </div>
 </template>
@@ -59,6 +78,8 @@
 import { computed } from 'vue';
 import XpStatBlock from '@/components/atoms/StatBlock/XpStatBlock.vue';
 import XpStatGrid from '@/components/molecules/StatGrid/XpStatGrid.vue';
+import { timesOfDayLine } from '../hooks/timesOfDayEditor';
+import { approvalHint, partyHint, priorityHint, questTypeHint } from '@/lib/services/quests/QuestLabels';
 
 interface Category {
   id: string;
@@ -77,6 +98,9 @@ interface Achievement {
   categoryId?: string;
   requiresApproval?: boolean;
   bonusAchievement?: boolean;
+  type?: string;
+  adventureType?: string;
+  timesOfDay?: string[];
 }
 
 interface Props {
@@ -91,12 +115,7 @@ interface Props {
   isOpenBounty?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  heroCount: 0,
-  isOpenBounty: false
-});
-
-defineEmits<{
+interface SummaryCardEmits {
   click: [];
   navigate: [segment: string];
   'open-category-modal': [];
@@ -104,7 +123,14 @@ defineEmits<{
   'open-type-modal': [];
   'open-approval-modal': [];
   'open-bonus-modal': [];
-}>();
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  heroCount: 0,
+  isOpenBounty: false
+});
+
+defineEmits<SummaryCardEmits>();
 
 defineOptions({
   name: 'AchievementSummaryCard'
@@ -121,6 +147,14 @@ const heroCountDisplay = computed(() => {
   }
   return props.heroCount;
 });
+
+// Plain-language lines under the flavor words (TYPE "Merc", party count, HONOR, REQD)
+const typeHint = computed(() => questTypeHint(props.achievement.type, props.achievement.adventureType));
+const partyHintText = computed(() => partyHint(props.achievement.type, props.heroCount));
+const approvalText = computed(() => approvalHint(props.achievement.requiresApproval));
+const priorityText = computed(() => priorityHint(props.achievement.bonusAchievement));
+// "Morn · Night" under WHEN when the quest picks times of day
+const timesText = computed(() => timesOfDayLine(props.achievement.timesOfDay));
 </script>
 
 <style lang="scss" scoped>
@@ -217,6 +251,26 @@ const heroCountDisplay = computed(() => {
   justify-content: center;
   gap: 0.75rem;
   width: 100%;
+}
+
+// A tile with its explanation underneath; the tiles keep sharing the row equally
+.stat-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-hint {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  min-height: 2.5em; // two lines, so tiles with a short hint stay as tall as their neighbours
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  overflow-wrap: anywhere;
 }
 
 .quest-card-prompt {

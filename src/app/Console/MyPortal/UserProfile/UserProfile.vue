@@ -3,10 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/my-home`"
-            :icon="arrowBack"
-          ></ion-back-button>
+          <xp-back-button :icon="arrowBack"></xp-back-button>
         </ion-buttons>
         <ion-title v-if="user && user.name">
           {{ user.name.first }}
@@ -29,12 +26,21 @@
             <div class="hero-avatar-side">
               <div class="hero-avatar-wrapper">
                 <ion-avatar class="hero-avatar">
-                  <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
+                  <ion-img :src="avatarSrc" />
                 </ion-avatar>
                 <div class="level-badge">
                   <ion-badge color="success">Lv.{{ user.stats?.level || 1 }}</ion-badge>
                 </div>
               </div>
+              <ion-button
+                class="my-look-button"
+                size="small"
+                fill="outline"
+                @click="openMyLook"
+              >
+                <i class="fad fa-tshirt mr-1"></i>
+                My Look
+              </ion-button>
             </div>
 
             <!-- Right Side: Info -->
@@ -207,7 +213,7 @@
                     :color="area.color"
                     class="stat-badge"
                   >
-                    {{ user.stats[stat] || 0 }}
+                    {{ user.stats.special?.[stat] ?? user.stats[stat] ?? 0 }}
                   </ion-badge>
                 </ion-item>
               </ion-list>
@@ -216,8 +222,17 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
+
+    <!-- My Look: the full-screen hero builder, over this page -->
+    <xp-hero-builder-modal
+      :is-open="isBuilderOpen"
+      :look="builderLook"
+      :equipment="builderEquipment"
+      @save="saveBuilderLook"
+      @close="closeBuilder"
+    />
   </ion-page>
 </template>
 
-<script src="./UserProfile.ts" />
+<script lang="ts" src="./UserProfile.ts" />
 <style lang="scss" src="./_UserProfile.scss" scoped />

@@ -5,6 +5,7 @@ import StorageService from '@/lib/services/core/StorageService';
 
 import { Entry, SpecialStats } from '@/lib/utils/User/stats';
 import debug from '@/lib/utils/debug';
+import { emitHeroRemoved } from '@/lib/services/multiplayer/gameSignals';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {
@@ -57,6 +58,16 @@ export interface NewProfileForm {
   equipment?: Equipment;
   quests?: Quest[];
   inventory?: InventoryItem[];
+  /** What the hero keeps in storage, the same raw shape as `inventory` (Storage.ts). Missing on old profiles: empty. */
+  storage?: InventoryItem[];
+  /** The storage tier bought at the Gold Bank (0 = locked). Missing on old profiles: locked. */
+  storageTier?: number;
+  /** Equipment items the hero has unlocked (names). Missing on profiles that predate the locks: they hold everything. */
+  unlockedItems?: string[];
+  /** The "Text style" the hero picked in the profile (services/copy/voices.ts). Missing is Auto: the birthday decides. */
+  voice?: 'simple' | 'adventure' | 'classic';
+  /** Whether the simple voice reads lines aloud on its own. Missing is on; the speaker button always works. */
+  autoRead?: boolean;
 }
 
 export class ProfileDb extends DbStorageApi {
@@ -65,13 +76,13 @@ export class ProfileDb extends DbStorageApi {
   }
 
   public async getProfiles() {
-    const profiles = await this.getAll()
-    return profiles
+    return this.getAll()
   }
 
   public async setProfile(profile: NewProfileForm) {
-    if (!profile.id) return
-    await this.set(profile.id, profile)
+    const id = profile.id
+    if (!id) return
+    await this.set(id, profile)
     
     // Backup to persistent storage after setting a profile
     await this.backupProfiles()
@@ -79,6 +90,9 @@ export class ProfileDb extends DbStorageApi {
 
   public async removeProfile(profileId: string) {
     await this.remove(profileId)
+    // Multiplayer removes the hero from the family server; only an explicit removal says so, never a profile that is
+    // just not loaded yet
+    emitHeroRemoved(profileId)
     
     // Backup to persistent storage after removing a profile
     await this.backupProfiles()
@@ -117,7 +131,8 @@ export class ProfileDb extends DbStorageApi {
       // Get profiles from persistent storage
       const profiles = await StorageService.getProfiles()
       
-      if (!profiles || profiles.length === 0) {
+      const hasNoProfiles = !profiles || profiles.length === 0;
+      if (hasNoProfiles) {
         debug.log('No profiles found in persistent storage')
         return false
       }
@@ -127,8 +142,9 @@ export class ProfileDb extends DbStorageApi {
       
       // Add each profile from backup
       for (const profile of profiles) {
-        if (profile.id) {
-          await this.set(profile.id, profile)
+        const id = profile.id
+        if (id) {
+          await this.set(id, profile)
         }
       }
       
@@ -157,8 +173,9 @@ export class ProfileDb extends DbStorageApi {
       
       // Add each profile
       for (const profile of profiles) {
-        if (profile.id) {
-          await this.set(profile.id, profile)
+        const id = profile.id
+        if (id) {
+          await this.set(id, profile)
         }
       }
       

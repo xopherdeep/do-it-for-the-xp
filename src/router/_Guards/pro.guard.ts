@@ -1,0 +1,34 @@
+import { RouteLocationNormalized } from "vue-router";
+import { useProStore } from "@/lib/store/stores/pro";
+import type { ProGate } from "@/lib/services/pro/proPlans";
+
+const GATES: ProGate[] = ["templeCreator", "advancedSchedule", "aiHelpers"];
+
+/**
+ * Routes with `meta.pro = '<gate>'` need XP Pro to create or edit. Returns false (after opening the
+ * upsell) when the family is not Pro (or a redirect to Go Pro on a first navigation), otherwise undefined so the navigation continues.
+ */
+export type ProGuardResult = boolean | { name: string } | void;
+
+export async function handleProGuard(
+  to: Pick<RouteLocationNormalized, "meta"> & { params?: RouteLocationNormalized["params"] },
+  from?: Pick<RouteLocationNormalized, "matched">
+): Promise<ProGuardResult> {
+  // `proWhenNew` gates a route only while it creates something (a temple id of "new"); saved items stay open.
+  const whenNew = (to as { params?: Record<string, unknown> }).params?.templeId === "new" ? to.meta?.proWhenNew : undefined;
+  const gate = (to.meta?.pro ?? whenNew) as ProGate | undefined;
+  const isUngatedRoute = !gate || !GATES.includes(gate);
+  if (isUngatedRoute) return;
+
+  const pro = useProStore();
+  // A deep link arrives before the cached license is loaded; wait for it so a Pro family is not turned away.
+  await pro.init().catch(() => undefined);
+  if (pro.isPro) return;
+
+  // A deep link or reload has nowhere to stay on: send it to the Go Pro page instead of a blank screen
+  const isDeepLinkEntry = from && from.matched.length === 0;
+  if (isDeepLinkEntry) return { name: "xp-pro" };
+
+  await pro.requirePro(gate);
+  return false;
+}

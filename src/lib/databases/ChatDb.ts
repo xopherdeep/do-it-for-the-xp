@@ -14,6 +14,8 @@ export interface ChatMessage {
     avatar?: string;
     text: string;
     timestamp: number;
+    /** "system" marks a Town Crier line (a cast, an announcement) rather than something a person typed */
+    kind?: "system";
 }
 
 export class ChatDb extends DbStorageApi {

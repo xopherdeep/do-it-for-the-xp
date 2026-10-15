@@ -1,4 +1,3 @@
-```
 <template>
   <div class="grid-container icon-colors">
     <div class="temple-grid">
@@ -25,37 +24,14 @@
           ></i>
           <span class="cell-coords">{{rowIndex}},{{colIndex}}</span>
 
-          <!-- Side Configuration Indicators -->
-          <template
-            v-for="dir in directions"
-            :key="dir"
+          <!-- Side Configuration Indicators: one per valid connection, trapped, explicit (locked, bombable, wall) or open -->
+          <div
+            v-for="side in sideIndicators(rowIndex, colIndex)"
+            :key="side.dir"
+            :class="['side-indicator', side.dir, side.kind, 'icon-colors']"
           >
-            <!-- Only show indicators if there is a valid connection in that direction -->
-            <template v-if="hasValidNeighbor(rowIndex, colIndex, dir)">
-              <!-- Trapped State (Either room is boss/miniboss/lockOnEnter) -->
-              <div
-                v-if="isEdgeTrapped(rowIndex, colIndex, dir) && getEffectiveEdge(rowIndex, colIndex, dir) === 'door'"
-                :class="['side-indicator', dir, 'indicator-trapped', 'icon-colors']"
-              >
-                <i class="fad fa-dungeon trap-variant"></i>
-              </div>
-              <!-- Explicit Side Config (Locked, Bombable, Wall) -->
-              <div
-                v-else-if="getEffectiveEdge(rowIndex, colIndex, dir) !== 'door'"
-                :class="['side-indicator', dir, `indicator-${getEffectiveEdge(rowIndex, colIndex, dir)}`, 'icon-colors']"
-              >
-                <i
-                  :class="[sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon === 'DYNAMIC_WALL' ? roomIcons.wall : sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon]"></i>
-              </div>
-              <!-- Open Passage (door state) - green tombstone -->
-              <div
-                v-else
-                :class="['side-indicator', dir, 'indicator-door', 'icon-colors']"
-              >
-                <i class="fal fa-tombstone-alt"></i>
-              </div>
-            </template>
-          </template>
+            <i :class="side.icon"></i>
+          </div>
         </div>
       </div>
     </div>
@@ -66,8 +42,16 @@
 import { defineComponent, PropType } from 'vue';
 import { getSideState } from '@/lib/engine/dungeons/roomIcons';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
+import { effectiveSideInGrid } from '@/lib/services/temples/authoredDoors';
 
 type Direction = 'north' | 'east' | 'south' | 'west';
+
+/** One edge mark on a cell: its side, its indicator class and its icon classes. */
+interface SideIndicator {
+  dir: Direction;
+  kind: string;
+  icon: string;
+}
 
 export default defineComponent({
   name: 'XpTempleCreatorGrid',
@@ -134,7 +118,8 @@ export default defineComponent({
       // First check if CURRENT cell is a non-wall room
       const currentSymbol = props.maze[row]?.[col];
       const currentType = getCellType(currentSymbol);
-      if (currentType === 'wall') return false;
+      const isWall = currentType === 'wall';
+      if (isWall) return false;
       
       // Then check if neighbor exists and is non-wall
       let nRow = row;
@@ -145,7 +130,8 @@ export default defineComponent({
       else if (dir === 'east') nCol++;
       else if (dir === 'west') nCol--;
       
-      if (nRow < 0 || nRow >= props.maze.length || nCol < 0 || nCol >= props.maze[0].length) {
+      const isOutsideMaze = nRow < 0 || nRow >= props.maze.length || nCol < 0 || nCol >= props.maze[0].length;
+      if (isOutsideMaze) {
         return false;
       }
       
@@ -154,32 +140,30 @@ export default defineComponent({
       return neighborType !== 'wall';
     };
 
-    // Get effective edge configuration - checks both rooms and returns the
-    // most restrictive edge type (wall > bombable > locked > door)
+    // Get effective edge configuration - checks both rooms and returns the most restrictive edge type
+    // (wall > Boss Lock > bombable > locked > door). Any door into or out of a boss room is the Boss Lock (the
+    // skull), from either room, whatever the sides stored on them say.
     const getEffectiveEdge = (row: number, col: number, dir: Direction): string => {
-      const currentSymbol = props.maze[row]?.[col];
-      const currentEdge = getSideConfiguration(currentSymbol, dir);
-      
-      // Get neighbor's opposite edge
-      let nRow = row;
-      let nCol = col;
       const oppositeDir: Record<string, Direction> = {
         north: 'south',
         south: 'north',
         east: 'west',
         west: 'east'
       };
-      
+      const priority: Record<string, number> = { wall: 5, masterlocked: 4, bombable: 3, locked: 2, door: 1 };
+      const known = (edge: string): string => (edge in priority ? edge : 'door');
+
+      let nRow = row;
+      let nCol = col;
       if (dir === 'north') nRow--;
       else if (dir === 'south') nRow++;
       else if (dir === 'east') nCol++;
       else if (dir === 'west') nCol--;
-      
+
+      const currentEdge = known(effectiveSideInGrid(props.maze, props.roomsData, row, col, dir));
       const neighborSymbol = props.maze[nRow]?.[nCol];
-      const neighborEdge = neighborSymbol ? getSideConfiguration(neighborSymbol, oppositeDir[dir]) : 'door';
-      
-      // Priority: wall > bombable > locked > door
-      const priority: Record<string, number> = { wall: 4, bombable: 3, locked: 2, door: 1 };
+      const neighborEdge = neighborSymbol ? known(effectiveSideInGrid(props.maze, props.roomsData, nRow, nCol, oppositeDir[dir])) : 'door';
+
       return priority[currentEdge] >= priority[neighborEdge] ? currentEdge : neighborEdge;
     };
 
@@ -201,8 +185,22 @@ export default defineComponent({
       return neighborSymbol ? isRoomTrapped(neighborSymbol) : false;
     };
 
+    // The edge marks a cell wears: a trapped door (boss, miniboss, lockOnEnter), an explicit side (locked, bombable,
+    // wall) or an open passage (the green tombstone), only where a room sits on both sides
+    const sideIndicators = (row: number, col: number): SideIndicator[] =>
+      directions.filter((dir) => hasValidNeighbor(row, col, dir)).map((dir) => {
+        const edge = getEffectiveEdge(row, col, dir);
+        const isDoor = edge === 'door';
+        const isTrappedDoor = isDoor && isEdgeTrapped(row, col, dir);
+        if (isTrappedDoor) return { dir, kind: 'indicator-trapped', icon: 'fad fa-dungeon trap-variant' };
+        if (isDoor) return { dir, kind: 'indicator-door', icon: 'fal fa-tombstone-alt' };
+        const icon = props.sideTypeInfo[edge].icon;
+        return { dir, kind: `indicator-${edge}`, icon: icon === 'DYNAMIC_WALL' ? props.roomIcons.wall : icon };
+      });
+
     return {
       directions,
+      sideIndicators,
       getCellType,
       isEntrancePosition,
       getSideConfiguration,
@@ -306,6 +304,15 @@ export default defineComponent({
 
         i {
           color: var(--ion-color-warning);
+        }
+      }
+
+      &.indicator-masterlocked {
+        background: rgba(var(--ion-color-danger-rgb), 0.3);
+        border: 1.5px solid var(--ion-color-danger);
+
+        i {
+          color: var(--ion-color-danger);
         }
       }
 

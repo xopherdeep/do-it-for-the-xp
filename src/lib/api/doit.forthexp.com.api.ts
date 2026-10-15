@@ -2,18 +2,14 @@
  * vwp.js
  */
 import Api from "./api.class";
+import { resolveApiConfig } from "./apiHost";
 
 /**
  * SETTINGS
- * Initialize the API as a singleton for consistent access throughout the app
+ * Initialize the API as a singleton: the hosting WordPress site when xophz-compass-xp
+ * serves the app, doit.forthexp.com otherwise (see apiHost.ts)
  */
-// Initialize the singleton instance
-Api.getInstance({ 
-  protocol: 'https',
-  url: 'doit.forthexp.com', 
-  // url: 'http://hallofthegods.docksal', 
-  base: "wp-json/wp/v2" 
-});
+Api.getInstance(resolveApiConfig(window.wpApiSettings));
 
 // Export the API class which will use the singleton pattern
 export default Api;

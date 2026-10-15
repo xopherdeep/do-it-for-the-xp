@@ -8,10 +8,13 @@
           <div class="avatar-wrapper">
             <ion-fab-button color="light" class="avatar-button">
               <i v-if="isImpersonating" class="fad fa-mask fa-2x text-danger"></i>
-              <ion-img v-else-if="user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
+              <ion-img v-else-if="user.avatarImage || user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
             </ion-fab-button>
-            <ion-badge color="secondary" class="avatar-badge" v-if="apPercent !== null">
-              AP {{ apPercent }}%
+            <ion-badge color="secondary" class="avatar-badge" v-if="user?.stats">
+              AP {{ apTotalLabel }}
+            </ion-badge>
+            <ion-badge color="danger" class="notification-badge" v-if="hasUnreadNotifications">
+              {{ notificationBadgeLabel }}
             </ion-badge>
           </div>
 
@@ -31,7 +34,7 @@
                 <small>LVL</small>{{ user.stats.level }}
               </div>
             </div>
-            <div v-if="walletHtml" class="menu-subtitle" v-html="walletHtml"></div>
+            <div v-if="walletHtml" class="menu-subtitle" v-html="sanitizeHtml(walletHtml)"></div>
           </div>
         </template>
       </xp-rpg-menu>
@@ -44,11 +47,16 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, PropType } from "vue";
+import { computed, defineComponent, ref, watch, PropType } from "vue";
 import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { play$fx } from "@/assets/fx";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { abbreviateNumber } from "@/lib/utils/format";
+import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import {
   menuController,
   modalController,
@@ -106,31 +114,29 @@ export default defineComponent({
       default: false,
     },
   },
-  emits: ["open-profile"],
+  emits: ["open-profile", "open-pegasus"],
   computed: {
     userAvatar() {
-      const avatar = `./${this.user.avatar}.svg`;
-      return this.$requireAvatar(avatar);
+      return heroAvatarSrc(this.user, (key: string) => this.$requireAvatar(key));
     },
     walletHtml() {
       return `<span class="wallet"><i class="fad fa-coin mr-1"></i> <small>₲</small>${this.user.stats.gp.wallet}<small>00</small></span>`;
     },
-    apPercent() {
-      const ap = this.user?.stats?.ap;
-      if (ap === undefined || ap === null) return null;
-      if (typeof ap === "object") {
-        const today = Number(ap.today) || 0;
-        const week = Number(ap.week || ap.total) || 1;
-        return Math.round((today / week) * 100);
-      }
-      return Number(ap) || 0;
+    apTotal(): number {
+      return heroApWindows(this.user?.stats?.ap).total;
+    },
+    apTotalLabel(): string {
+      return abbreviateNumber(this.apTotal, 1);
     },
     isImpersonating() {
       return (this as any).userStore.currentUser.isImpersonating;
     },
     allUserActions(): RpgMenuAction[] {
-      // Use a broad RpgMenuAction type to allow any labels/icons
-      const actions: RpgMenuAction[] = [...this.staticActions];
+      // Use a broad RpgMenuAction type to allow any labels/icons; the Notifications entry carries the unread count
+      const badge = (this as any).notificationBadgeLabel;
+      const actions: RpgMenuAction[] = this.staticActions.map((action: RpgMenuAction) =>
+        action.id === USER_MENU_CONFIG.notifications.id ? { ...action, badge } : action
+      );
 
       actions.push({
         label: "Menu",
@@ -159,7 +165,24 @@ export default defineComponent({
   setup(props, { emit }) {
     const router = useRouter();
     const userStore = useUserStore();
+    const notificationsStore = useNotificationsStore();
     const userId = computed(() => props.user.id);
+    // The hero's feed is read once per hero; the badge follows the unread count
+    watch(
+      userId,
+      (id) => {
+        const hasHeroId = id !== undefined && id !== null && id !== 0 && id !== "";
+        if (hasHeroId) void notificationsStore.load(String(id));
+      },
+      { immediate: true }
+    );
+    const unreadNotifications = computed(() => notificationsStore.unreadCount(String(userId.value)));
+    const hasUnreadNotifications = computed(() => Boolean(unreadNotifications.value && unreadNotifications.value > 0));
+    const notificationBadgeLabel = computed(() => {
+      const count = unreadNotifications.value;
+      if (!count) return undefined;
+      return count > 99 ? "99+" : count;
+    });
     const fabActive = ref(false);
     const showSaveQuitModal = ref(false);
 
@@ -196,8 +219,14 @@ export default defineComponent({
 
     const clickAction = async (action) => {
       closeFab(); // Close the fab menu on any action
-      if (action.action === "openProfile") {
+      const isOpenProfile = action.action === "openProfile";
+      if (isOpenProfile) {
         emit("open-profile"); // Emit event for the parent
+      }
+      const isOpenPegasus = action.action === "openPegasus";
+      if (isOpenPegasus) {
+
+        emit("open-pegasus"); // The portal (or the temple) owns the world map modal
       }
     };
 
@@ -245,7 +274,7 @@ export default defineComponent({
           // Create and present the notifications modal
           const modal = await modalController.create({
             component: XpNotifications,
-            componentProps: {},
+            componentProps: { heroId: String(userId.value) },
             cssClass: "notifications-modal",
             breakpoints: [0, 0.5, 0.75, 1],
             initialBreakpoint: 1,
@@ -281,6 +310,11 @@ export default defineComponent({
         },
       },
       {
+        label: USER_MENU_CONFIG.pegasus.label,
+        action: USER_MENU_CONFIG.pegasus.action,
+        faIcon: USER_MENU_CONFIG.pegasus.icon,
+      },
+      {
         label: USER_MENU_CONFIG.saveQuit.label,
         id: USER_MENU_CONFIG.saveQuit.id,
         faIcon: USER_MENU_CONFIG.saveQuit.icon,
@@ -299,6 +333,9 @@ export default defineComponent({
       fabActive,
       userId,
       userStore,
+      unreadNotifications,
+      hasUnreadNotifications,
+      notificationBadgeLabel,
       walletOutline,
       colorWand,
       fitnessOutline,
@@ -306,152 +343,10 @@ export default defineComponent({
       showSaveQuitModal,
       closeSaveQuitModal,
       confirmSaveQuit,
+      sanitizeHtml,
     };
   },
 });
 </script>
 
-<style lang="scss" scoped>
-@use "@/styles/themes/earthbound.scss" as *;
-
-ion-fab {
-  &.fab-user {
-    z-index: 2100;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative; // Allow it to sit in the flow of the organism anchor
-    margin: 0;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: none;
-
-    ion-fab-list {
-      margin-top: 65px;
-
-      ion-col {
-        padding: 0;
-      }
-    }
-
-    .avatar-wrapper {
-      position: relative;
-      display: inline-block;
-
-      .avatar-button {
-        --border-radius: 50%;
-        --padding-start: 0;
-        --padding-end: 0;
-        --padding-top: 0;
-        --padding-bottom: 0;
-        --background: transparent;
-        --background-hover: transparent;
-        --background-focused: transparent;
-        --background-activated: transparent;
-        margin-bottom: 0.5rem;
-        margin-top: 0.5rem;
-        transition: all 0.3s ease;
-        overflow: hidden;
-
-        ion-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transform: scale(1.1); // Scale up to ensure it covers the original button area
-        }
-
-        &:hover {
-          transform: scale(1.12);
-        }
-      }
-
-      .avatar-badge {
-        position: absolute;
-        bottom: -2px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 20;
-        font-family: "StatusPlz", sans-serif;
-        font-size: 0.7rem;
-        padding: 3px 8px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-      }
-    }
-
-    .name-badge {
-      display: none; // Hidden in the organism view to keep it clean
-    }
-
-    // RPG Menu Header Styles (used in slot)
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding-top: 4px;
-
-      .title-group {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .menu-title {
-        font-family: "Apple Kid", "Twoson", sans-serif;
-        font-size: 1.5rem;
-        font-weight: normal;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-      }
-
-      .level-badge-pill {
-        background: #50fa7b;
-        color: #111;
-        font-weight: 900;
-        font-size: 0.75rem;
-        padding: 2px 8px;
-        border-radius: 4px;
-        text-transform: uppercase;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        font-family: "StatusPlz", sans-serif;
-
-        small {
-          font-size: 0.5rem;
-          font-weight: 700;
-          opacity: 0.7;
-        }
-      }
-
-      .menu-subtitle {
-        font-family: "StatusPlz", monospace;
-        font-size: 1.25rem;
-        opacity: 0.9;
-        letter-spacing: 3px; // Matching your update
-      }
-    }
-
-    .wallet {
-      float: right;
-      letter-spacing: 1px;
-    }
-  }
-}
-
-ion-button {
-  // width: 100%;
-  justify-content: flex-start !important;
-
-  * {
-    display: flex;
-    justify-content: flex-start !important;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpFabUserHud.scss" />

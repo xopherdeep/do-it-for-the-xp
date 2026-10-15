@@ -1,303 +1,236 @@
 import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
 
-import {
-  arrowBack,
-  chevronBack,
-  chevronForward,
-  stop,
-  close,
-  play,
-  pause,
-  colorWand,
-  colorWandOutline,
-  lockClosedOutline,
-  lockOpenOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
-  sparklesOutline,
-  keyOutline,
-  cartOutline,
-  heartHalfOutline,
-  calendarOutline,
-  starSharp,
-  storefrontOutline,
-  banOutline,
-  bedOutline,
-  bagOutline,
-  logOut,
-} from "ionicons/icons";
-import { actionSheetController } from "@ionic/vue";
-import { useItemFetcher } from "@/hooks/useItemFetcher";
-import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
+import { useBack } from "@/hooks/useBack";
+import { useCopy, useVoice } from "@/hooks/useVoice";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
-// Import the ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
-// Import our new GPSystem
-import { getGPService } from '@/lib/services/gp';
-
-// Define the interface for XpTypingText instance methods
-interface XpTypingTextInstance {
-  isTyping: boolean;
-  startTyping: () => void;
-  completeTyping: () => void;
-  resetTyping: () => void;
-  pauseTyping: () => void;
-  resumeTyping: () => void;
-}
+import { getGPService } from "@/lib/services/gp";
+import { quoteCare } from "@/lib/services/hometown/Lodging";
+import type { CareQuote } from "@/lib/services/hometown/Lodging";
+import {
+  nothingOnTheBoard,
+  conciergeMenuPrompt,
+  conciergeNotice,
+  roomConfirmPrompt,
+  roomReceiptLine,
+  roomRefusalLine,
+  type ConciergeMenuId,
+} from "@/lib/services/hometown/hometownPrompts";
+import {
+  getHotelByWorld,
+  getHotelMetadata,
+  type HotelMetadata,
+} from "@/lib/engine/core/hotelRegistry";
 
 export default defineComponent({
-  props: ["userId"],
+  props: ["userId", "world"],
   name: "hotel-hub",
   mixins: [ionic],
   components: {
-    XpTypingText,
-    ATMModal
+    XpRevealPrompt,
+    ATMModal,
   },
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'],
-      // Dialog state properties
-      isDialogVisible: false,
-      currentDialogIndex: 0,
-      currentDialogText: "",
-      hasMoreDialog: true,
-      isTyping: false,
+      /** The concierge is talking: the FAB waits until the conversation ends */
+      isTalking: false,
       // ATM modal state
-      showAtm: false
+      showAtm: false,
     };
   },
   computed: {
     user() {
-      const userStore = useUserStore();
-      return userStore.getUserById(this.userId);
+      return this.userStore.getUserById(this.userId);
     },
-    dialogBlocks() {
+    activeWorld(): string {
+      const propWorld = typeof this.world === "string" ? this.world : "";
+      const routeWorld = typeof this.$route?.params?.world === "string" ? this.$route.params.world : "";
+      return propWorld || routeWorld || "hometown";
+    },
+    hotelMeta(): HotelMetadata {
+      return getHotelByWorld(this.activeWorld) || getHotelMetadata("hometown-hotel");
+    },
+    hotelTitle(): string {
+      return this.hotelMeta.name;
+    },
+    clerkName(): string {
+      return this.hotelMeta.clerkName;
+    },
+    dialogBlocks(): string[] {
       return [
-        "Welcome to the Grand Hotel! I'm your concierge, at your service.",
-        "Our hotel offers comfortable rooms and several amenities for weary travelers like yourself.",
-        "Would you like to rest for the night or perhaps check out our community events?"
+        this.t("hotel.greet.welcome", { hotel: this.hotelTitle }),
+        this.t("hotel.greet.amenities"),
+        this.t("hotel.greet.ask"),
       ];
     },
-    actionButtons() {
-      return [
-        {
-          text: 'Rest & Recover',
-          icon: heartHalfOutline,
-          data: 'Data value',
-          handler: () => {
-            debug.log('Rest & Recover clicked')
-          },
-        },
-        {
-          text: 'Community Events',
-          icon: calendarOutline,
-          data: 10,
-          handler: () => {
-            debug.log('Community Events clicked')
-          },
-        },
-        {
-          text: 'Rent a Room',
-          icon: bedOutline,
-          handler: () => {
-            debug.log('Rent a Room clicked')
-          },
-        },
-        {
-          text: 'Leave Hotel',
-          icon: logOut,
-          handler: () => {
-            this.$router.go(-1);
-          },
-          cssClass: "action-leave",
-        },
-        {
-          text: 'Cancel',
-          icon: close,
-          role: 'cancel',
-          handler: () => {
-            debug.log('Cancel clicked')
-          },
-        },
-      ];
-    }
-  },
-  mounted() {
-    // Set initial dialog text
-    this.currentDialogText = this.dialogBlocks[0];
   },
   methods: {
-    // ATM methods
     openATM() {
       this.play$fx("select");
       this.showAtm = true;
     },
 
-    clickDeposit(data) {
-      // Use new GPSystem to handle deposits
+    clickDeposit(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
-            this.play$fx("coins");
+            this.play$fx("countCoins");
           })
-          .catch(error => {
-            debug.log('Deposit error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Deposit error:", error.message);
           });
       }
     },
 
-    clickWithdraw(data) {
-      // Use new GPSystem to handle withdrawals
+    clickWithdraw(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
-            this.play$fx("coins");
+            this.play$fx("countCoins");
           })
-          .catch(error => {
-            debug.log('Withdraw error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Withdraw error:", error.message);
           });
       }
     },
 
-    clickPayDebt(data) {
-      // Use new GPSystem to handle debt payments
+    clickPayDebt(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
-            this.play$fx("success");
+            this.play$fx("finish");
           })
-          .catch(error => {
-            debug.log('Pay debt error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Pay debt error:", error.message);
           });
       }
     },
 
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value
-    },
-
-    showHotelDialog() {
-      // Play a sound effect for immersion
-      this.play$fx("select");
-
-      // Reset and show the dialog
-      this.currentDialogIndex = 0;
-      this.currentDialogText = this.dialogBlocks[0];
-      this.hasMoreDialog = this.dialogBlocks.length > 1;
-      this.isDialogVisible = true;
-      this.isTyping = true;
-    },
-
-    advanceDialog() {
-      // If typing is in progress, complete the current text immediately
-      if (this.isTyping) {
-        this.isTyping = false;
-        // Skip typing animation by immediately showing the full text
-        const typingComponent = this.$refs.conciergeDialogText as XpTypingTextInstance;
-        if (typingComponent) {
-          typingComponent.completeTyping();
+    /**
+     * The concierge's conversation, in the game's own dialog: lines type out, then the menu. After each errand,
+     * they ask if there is anything else until the hero leaves, steps away or views events.
+     */
+    async showHotelDialog() {
+      if (this.isTalking) return;
+      this.isTalking = true;
+      try {
+        this.play$fx("select");
+        let lines = this.dialogBlocks;
+        for (;;) {
+          const pick = (await this.reveal.showPrompt(
+            conciergeMenuPrompt(lines, this.clerkName)
+          )) as ConciergeMenuId | "stay";
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick !== "room";
+          if (isWalkingAway) {
+            await this.walkAway(pick);
+            return;
+          }
+          await this.handleRentRoom();
+          lines = [this.t("npc.more")];
         }
+      } finally {
+        this.isTalking = false;
+      }
+    },
+
+    /** Leave the desk: out of the hotel, or on to the Town Hall's notice board. */
+    async walkAway(pick: "leave" | "events") {
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
+      else await this.handleCommunityEvents();
+    },
+
+    /**
+     * Rent a Room: price grows with the hero's level. Confirm it, charge the wallet, and restore full HP and MP.
+     */
+    async handleRentRoom() {
+      const quote = quoteCare("room", this.user?.stats, Number(this.user?.stats?.level) || 1);
+      if (!quote.canPay) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(
+          conciergeNotice(roomRefusalLine(quote, this.words), undefined, this.clerkName)
+        );
         return;
       }
 
-      // If not typing, advance to next dialog block
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.currentDialogIndex++;
-        this.currentDialogText = this.dialogBlocks[this.currentDialogIndex];
-        this.hasMoreDialog = this.currentDialogIndex < this.dialogBlocks.length - 1;
-        this.isTyping = true;
-      } else {
-        // End of dialog, close and show options
-        this.isDialogVisible = false;
-        this.presentActionSheet();
-      }
+      const pick = await this.reveal.showPrompt(
+        roomConfirmPrompt(this.words, quote.cost, this.clerkName)
+      );
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
+      await this.rentRoom(quote);
     },
 
-    onTypingComplete() {
-      // The current text block has finished typing
-      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
-      this.isTyping = false;
+    async rentRoom(quote: CareQuote) {
+      this.isLoading = true;
+      try {
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        const hasMpGain = quote.mpGain > 0;
+        if (hasMpGain) {
 
-      // Play subtle sound effect between blocks if there are more blocks
-      if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
-        this.play$fx("text");
+          this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
+        }
+        this.play$fx("restoreAll");
+        // A short beat so the rest reads as a night's sleep, not an instant glitch
+        await new Promise((resolve) => setTimeout(resolve, 900));
+      } finally {
+        this.isLoading = false;
       }
+
+      const stats = this.user?.stats;
+      await this.reveal.showPrompt(
+        conciergeNotice(
+          roomReceiptLine(quote.cost, stats?.hp, stats?.mp, this.words),
+          "bed",
+          this.clerkName
+        )
+      );
     },
 
-    async presentActionSheet() {
-      const actionSheet = await actionSheetController
-        .create({
-          header: 'Welcome, Traveler! How may we assist you today?',
-          cssClass: 'hotel-action-sheet',
-          buttons: this.actionButtons,
-          mode: 'ios',
-        });
-      await actionSheet.present();
-
-      await actionSheet.onDidDismiss();
+    /** Community Events: notice board lives in Town Hall. */
+    async handleCommunityEvents() {
+      const hasTownHall = this.$router.getRoutes().some((route) => route.name === "town-hall");
+      if (hasTownHall) {
+        this.play$fx("select");
+        this.$router.push({ name: "town-hall", params: { userId: this.userId } });
+        return;
+      }
+      await this.reveal.showPrompt(
+        conciergeNotice(nothingOnTheBoard(this.words), undefined, this.clerkName)
+      );
     },
   },
-  setup(props) {
-    const {
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages
-    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
-
-    const customAlertOptions = {
-      header: 'Pizza Toppings',
-      subHeader: 'Select your toppings',
-      message: '$1.00 per topping',
-      translucent: true
-    };
+  setup() {
+    const userStore = useUserStore();
+    const { stepBack: goBack } = useBack();
+    const reveal = useRevealPrompt();
+    const t = useCopy();
+    const { voice: words } = useVoice();
 
     return {
-      customAlertOptions,
-      storefrontOutline,
-      banOutline,
-      chevronBack,
-      chevronForward,
-      stop,
-      play,
-      pause,
-      arrowBack,
-      colorWand,
-      colorWandOutline,
-      lockClosedOutline,
-      lockOpenOutline,
-      bagOutline,
-      sunnyOutline,
-      partlySunnyOutline,
-      moonOutline,
-      cloudyNightOutline,
-      fitnessOutline,
-      sparklesOutline,
-      keyOutline,
-      cartOutline,
-      starSharp,
-      bedOutline,
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages
+      t,
+      words,
+      goBack,
+      userStore,
+      reveal,
+      prompt: reveal.prompt,
     };
   },
 });

@@ -878,7 +878,6 @@
       const customPresets = ref<BackgroundPreset[]>([]);
       const selectedCustomPreset = ref<number | null>(null);
 
-      // Storage key for custom presets
       const STORAGE_KEY = "xp-custom-bg-presets";
 
       // Load saved custom presets from localStorage
@@ -914,36 +913,35 @@
 
       // Apply a custom preset
       const applyCustomPreset = () => {
-        if (
-          selectedCustomPreset.value !== null &&
-          customPresets.value[selectedCustomPreset.value]
-        ) {
-          const preset = customPresets.value[selectedCustomPreset.value];
+        const presetIndex = selectedCustomPreset.value;
+        const hasSelectedPreset =
+          presetIndex !== null && customPresets.value[presetIndex];
+        if (hasSelectedPreset) {
+          const preset = customPresets.value[presetIndex];
+          const presetRatio = preset.aspectRatio;
 
           // Update custom values with preset values
           customBg1.value = preset.bg1;
           customBg2.value = preset.bg2;
 
-          if (preset.aspectRatio) {
-            selectedAspectRatio.value = preset.aspectRatio.toString();
+          if (presetRatio) {
+            selectedAspectRatio.value = presetRatio.toString();
           }
 
           // Apply changes to target
-          if (props.targetRef) {
+          const target = props.targetRef;
+          if (target) {
             emit("update:bg1", preset.bg1);
             emit("update:bg2", preset.bg2);
 
-            if (preset.aspectRatio) {
-              emit("update:aspectRatio", preset.aspectRatio);
+            if (presetRatio) {
+              emit("update:aspectRatio", presetRatio);
             }
 
             // Call the enterBattle function if it exists
-            if (props.targetRef.enterBattle) {
-              props.targetRef.enterBattle();
-            }
+            target.enterBattle?.();
           }
 
-          // Emit background-changed event
           emit("background-changed", {
             bg1: preset.bg1,
             bg2: preset.bg2,
@@ -965,9 +963,11 @@
 
       // Delete a custom preset after confirmation
       const promptDeletePreset = async () => {
-        if (selectedCustomPreset.value === null) return;
+        const presetIndex = selectedCustomPreset.value;
+        const hasNoSelectedPreset = presetIndex === null;
+        if (hasNoSelectedPreset) return;
 
-        const preset = customPresets.value[selectedCustomPreset.value];
+        const preset = customPresets.value[presetIndex];
 
         const alert = await alertController.create({
           header: "Delete Background Preset",
@@ -992,12 +992,13 @@
 
       // Delete the selected preset
       const deleteSelectedPreset = () => {
-        if (selectedCustomPreset.value !== null) {
-          const deletedName =
-            customPresets.value[selectedCustomPreset.value].name;
+        const presetIndex = selectedCustomPreset.value;
+        const hasSelectedPreset = presetIndex !== null;
+        if (hasSelectedPreset) {
+          const deletedName = customPresets.value[presetIndex].name;
 
           // Remove the preset
-          customPresets.value.splice(selectedCustomPreset.value, 1);
+          customPresets.value.splice(presetIndex, 1);
 
           // Save the updated list
           saveCustomPresets();
@@ -1031,18 +1032,20 @@
 
       // Open background controls modal
       const openBgControlsModal = () => {
-        if (props.targetRef) {
-          customBg1.value = props.targetRef.bg1;
-          customBg2.value = props.targetRef.bg2;
+        const target = props.targetRef;
+        if (target) {
+          customBg1.value = target.bg1;
+          customBg2.value = target.bg2;
 
           // Check if current values match any of the suggested backgrounds
-          const currentValues = `${props.targetRef.bg1},${props.targetRef.bg2}`;
+          const currentValues = `${target.bg1},${target.bg2}`;
           selectedSuggested.value = "-1"; // Default to custom
 
           // Look through select options to see if we match a suggested bg
           const options = document.querySelectorAll("ion-select-option");
           for (const option of options) {
-            if (option.value === currentValues) {
+            const isCurrentOption = option.value === currentValues;
+            if (isCurrentOption) {
               selectedSuggested.value = currentValues;
               break;
             }
@@ -1054,7 +1057,8 @@
       // Change background of the component
       const changeBackground = () => {
         const bg = backgrounds[selectedBackground.value];
-        if (props.targetRef) {
+        const target = props.targetRef;
+        if (target) {
           // Instead of mutating props directly, emit events
           emit("update:bg1", bg.bg1);
           emit("update:bg2", bg.bg2);
@@ -1064,9 +1068,7 @@
           customBg2.value = bg.bg2;
 
           // Call the enterBattle function if it exists
-          if (props.targetRef.enterBattle) {
-            props.targetRef.enterBattle();
-          }
+          target.enterBattle?.();
 
           emit("background-changed", { bg1: bg.bg1, bg2: bg.bg2 });
         }
@@ -1074,20 +1076,20 @@
 
       // Apply suggested background combination
       const applySuggestedBackground = () => {
-        if (selectedSuggested.value !== "-1") {
+        const isSuggestedPicked = selectedSuggested.value !== "-1";
+        if (isSuggestedPicked) {
           const [bg1, bg2] = selectedSuggested.value.split(",").map(Number);
           customBg1.value = bg1;
           customBg2.value = bg2;
 
-          if (props.targetRef) {
+          const target = props.targetRef;
+          if (target) {
             // Instead of mutating props directly, emit events
             emit("update:bg1", bg1);
             emit("update:bg2", bg2);
 
             // Call the enterBattle function if it exists
-            if (props.targetRef.enterBattle) {
-              props.targetRef.enterBattle();
-            }
+            target.enterBattle?.();
           }
 
           emit("background-changed", { bg1, bg2 });
@@ -1120,18 +1122,16 @@
         customBg1.value = randomBg1;
         customBg2.value = randomBg2;
 
-        if (props.targetRef) {
+        const target = props.targetRef;
+        if (target) {
           // Emit events to update the background
           emit("update:bg1", randomBg1);
           emit("update:bg2", randomBg2);
 
           // Call the enterBattle function if it exists
-          if (props.targetRef.enterBattle) {
-            props.targetRef.enterBattle();
-          }
+          target.enterBattle?.();
         }
 
-        // Emit background-changed event
         emit("background-changed", { bg1: randomBg1, bg2: randomBg2 });
 
         // Set selected suggested to custom since we're using random values
@@ -1150,15 +1150,14 @@
 
       // Apply custom background combination
       const applyCustomBackground = () => {
-        if (props.targetRef) {
+        const target = props.targetRef;
+        if (target) {
           // Instead of mutating props directly, emit events
           emit("update:bg1", customBg1.value);
           emit("update:bg2", customBg2.value);
 
           // Call the enterBattle function if it exists
-          if (props.targetRef.enterBattle) {
-            props.targetRef.enterBattle();
-          }
+          target.enterBattle?.();
         }
 
         emit("background-changed", {
@@ -1174,14 +1173,13 @@
       const applyAspectRatio = () => {
         const ratio = parseInt(selectedAspectRatio.value, 10);
 
-        if (props.targetRef) {
+        const target = props.targetRef;
+        if (target) {
           // Instead of mutating props directly, emit events
           emit("update:aspectRatio", ratio);
 
           // Call the enterBattle function if it exists
-          if (props.targetRef.enterBattle) {
-            props.targetRef.enterBattle();
-          }
+          target.enterBattle?.();
         }
 
         emit("background-changed", {
@@ -1197,7 +1195,8 @@
         const options = Array.from(
           document.querySelectorAll("ion-select ion-select-option")
         );
-        if (options.length === 0) return;
+        const hasNoOptions = options.length === 0;
+        if (hasNoOptions) return;
 
         // Find index of current selection
         const currentIndex = options.findIndex(
@@ -1207,7 +1206,8 @@
         let newIndex = currentIndex - 1;
 
         // Wrap around to the end if at the beginning
-        if (newIndex < 0) newIndex = options.length - 1;
+        const isBeforeFirst = newIndex < 0;
+        if (isBeforeFirst) newIndex = options.length - 1;
 
         // Set the new selected value
         selectedSuggested.value = (options[newIndex] as HTMLSelectElement)
@@ -1223,7 +1223,8 @@
         const options = Array.from(
           document.querySelectorAll("ion-select ion-select-option")
         );
-        if (options.length === 0) return;
+        const hasNoOptions = options.length === 0;
+        if (hasNoOptions) return;
 
         // Find index of current selection
         const currentIndex = options.findIndex(
@@ -1233,7 +1234,8 @@
         let newIndex = currentIndex + 1;
 
         // Wrap around to the beginning if at the end
-        if (newIndex >= options.length) newIndex = 0;
+        const isPastLast = newIndex >= options.length;
+        if (isPastLast) newIndex = 0;
 
         // Set the new selected value
         selectedSuggested.value = (options[newIndex] as HTMLSelectElement)

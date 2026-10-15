@@ -38,10 +38,11 @@ import {
   IonTitle, IonContent 
 } from '@ionic/vue';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
-import { useRouter } from 'vue-router';
+import { useBack } from '@/hooks/useBack';
 import XpBeastSelector from './components/XpBeastSelector.vue';
 import BestiaryDb, { beastStorage, Beast } from '@/lib/databases/BestiaryDb';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'XpBeastSelectionPage',
@@ -52,7 +53,7 @@ export default defineComponent({
     XpLoading
   },
   setup() {
-    const router = useRouter();
+    const { stepBack: back } = useBack();
     const selectionStore = useBestiarySelectionStore();
     const bestiary = new BestiaryDb(beastStorage);
     
@@ -63,8 +64,7 @@ export default defineComponent({
       try {
         beasts.value = await bestiary.getBeasts();
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load beasts for selection:', err);
+        debug.warn('[BeastSelection] failed to load beasts for selection', err);
       }
     });
 
@@ -75,11 +75,11 @@ export default defineComponent({
 
     const confirm = () => {
       selectionStore.confirmSelection();
-      router.back();
+      back();
     };
 
     const goBack = () => {
-      router.back();
+      back();
     };
 
     return {

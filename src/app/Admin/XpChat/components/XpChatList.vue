@@ -17,7 +17,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref, watch, onMounted, nextTick } from 'vue';
+import { defineComponent, PropType, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { ChatMessage } from '@/lib/databases/ChatDb';
 import XpChatMessage from './XpChatMessage.vue';
 
@@ -58,7 +58,8 @@ export default defineComponent({
 
         // Watch for new messages
         watch(() => props.messages, (newVal) => {
-            if (!newVal || !newVal.length) {
+            const hasNoMessages = !newVal || !newVal.length;
+            if (hasNoMessages) {
                 lastProcessedId.value = null;
                 return;
             }
@@ -66,11 +67,14 @@ export default defineComponent({
             const newLastId = newVal[newVal.length - 1]?.id;
             const isInitialLoad = lastProcessedId.value === null;
 
-            if (newLastId !== lastProcessedId.value) {
+            const isNewMessage = newLastId !== lastProcessedId.value;
+            if (isNewMessage) {
                 scrollToBottom(isInitialLoad);
                 lastProcessedId.value = newLastId;
             }
         }, { deep: true, immediate: true });
+
+        const listeners = new AbortController();
 
         onMounted(() => {
             // Initial scroll (redundant with immediate watch but safe)
@@ -79,12 +83,15 @@ export default defineComponent({
             // Re-scroll on any image load inside the container
             if (scrollContainer.value) {
                 scrollContainer.value.addEventListener('load', (e) => {
-                    if ((e.target as HTMLElement).tagName === 'IMG') {
+                    const isImage = (e.target as HTMLElement).tagName === 'IMG';
+                    if (isImage) {
                         scrollToBottom(false);
                     }
-                }, true);
+                }, { capture: true, signal: listeners.signal });
             }
         });
+
+        onBeforeUnmount(() => listeners.abort());
 
         return {
             scrollContainer,

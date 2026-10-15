@@ -1,0 +1,86 @@
+name: Deploy to Cloudflare Pages
+
+# Every push to master builds the app and uploads dist/ to the Cloudflare Pages project
+# do-it-for-the-xp (custom domains app.forthexp.com and app.doit.forthexp.com).
+# Needs the repo secret CLOUDFLARE_API_TOKEN (Account > Cloudflare Pages > Edit) and the repo
+# variable CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-deploy-master
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  deployments: write
+
+jobs:
+  # Autobump: the HalloftheGods shared workflows the COMPASS plugins use. Each push to master gets
+  # a YY.M.D-MINS version written to package.json (shown on the start page), a "[skip ci]" commit and
+  # a vYY.M.D-MINS tag. The bump commit is pushed with GITHUB_TOKEN, so it does not trigger another run,
+  # which is why the deploy below waits for it and builds the bumped tip instead of the pushed sha.
+  get-version:
+    if: github.event_name == 'push'
+    uses: HalloftheGods/.github/.github/workflows/calculate-version.yml@main
+
+  bump:
+    needs: get-version
+    uses: HalloftheGods/.github/.github/workflows/wp-plugin-update.yml@main
+    with:
+      version_string: ${{ needs.get-version.outputs.version_string }}
+
+  deploy:
+    needs: bump
+    # A skipped (manual run) or failed bump must not block the deploy.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The branch tip, not github.sha, so the bump commit is in the build.
+          ref: ${{ github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Check the bundle ships no source maps or API keys
+        run: |
+          maps=$(find dist -name '*.map' | wc -l)
+          keys=$(grep -rlE 'AIza[0-9A-Za-z_-]{35}' dist | wc -l || true)
+          echo "source maps: $maps, Google API keys: $keys"
+          test "$maps" -eq 0
+          test "$keys" -eq 0
+
+      - name: Deploy
+        if: env.HAS_CLOUDFLARE_TOKEN == 'true'
+        # wrangler-action installs Wrangler with the repo's package manager, which pnpm refuses here,
+        # so call Wrangler 4 through npx like the manual deploys do.
+        run: npx --yes wrangler@4 pages deploy dist --project-name do-it-for-the-xp --branch master --commit-hash "$GITHUB_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Explain a skipped deploy
+        if: env.HAS_CLOUDFLARE_TOKEN != 'true'
+        run: echo "::warning::Built but not deployed - add the CLOUDFLARE_API_TOKEN repo secret."

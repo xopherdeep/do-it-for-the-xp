@@ -6,9 +6,9 @@
           v-for="item in items"
           :key="item.faIcon"
           class="grid-item"
-          :class="{ 'is-equipped': isItemEquipped(item.faIcon) }"
+          :class="{ 'is-equipped': isItemEquipped(item.faIcon), 'is-locked': isItemLocked(item.faIcon) }"
           @click="$emit('display-info', item)"
-          draggable="true"
+          :draggable="!isItemLocked(item.faIcon) && !noDrag"
           @dragstart="drag($event, item)"
         >
           <div class="item-inner">
@@ -19,6 +19,9 @@
           </div>
           <div class="equipped-tag" v-if="isItemEquipped(item.faIcon)">
             <i class="fad fa-check"></i>
+          </div>
+          <div class="locked-tag" v-else-if="isItemLocked(item.faIcon)" :title="lockHint(item)">
+            <i class="fad fa-lock"></i>
           </div>
         </div>
       </div>
@@ -40,17 +43,41 @@ export default defineComponent({
     equippedItems: {
       type: Array as PropType<string[]>,
       default: () => []
+    },
+    /** Icons of the items the hero has not unlocked yet: shown greyed with a lock, not draggable */
+    lockedItems: {
+      type: Array as PropType<string[]>,
+      default: () => []
+    },
+    /** How a locked item is earned, for its lock badge */
+    lockHint: {
+      type: Function as PropType<(item: EquipmentItem) => string>,
+      default: () => ""
+    },
+    /** Tiles only tap (the bag in battle mode has no hands to drop them on) */
+    noDrag: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ["display-info", "equip-item"],
   methods: {
     drag(event: DragEvent, item: EquipmentItem) {
-      if (event.dataTransfer) {
-        event.dataTransfer.setData("item", JSON.stringify(item));
+      const isDragBlocked = this.noDrag || this.isItemLocked(item.faIcon);
+      if (isDragBlocked) {
+        event.preventDefault();
+        return;
+      }
+      const dataTransfer = event.dataTransfer;
+      if (dataTransfer) {
+        dataTransfer.setData("item", JSON.stringify(item));
       }
     },
     isItemEquipped(faIcon: string) {
       return this.equippedItems.includes(faIcon);
+    },
+    isItemLocked(faIcon: string) {
+      return this.lockedItems.includes(faIcon);
     }
   }
 });
@@ -154,6 +181,42 @@ export default defineComponent({
 
     &.is-equipped {
       border-color: var(--ion-color-success);
+    }
+
+    .locked-tag {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: rgba(30, 30, 40, 0.95);
+      color: rgba(255, 255, 255, 0.75);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      z-index: 5;
+    }
+
+    // Not unlocked yet: greyed out, no glow, no lift
+    &.is-locked {
+      border-style: dashed;
+      border-color: rgba(255, 255, 255, 0.08);
+      cursor: not-allowed;
+
+      .item-inner i {
+        color: rgba(255, 255, 255, 0.22);
+        filter: grayscale(1);
+      }
+
+      &:hover .item-inner i {
+        color: rgba(255, 255, 255, 0.3);
+        transform: none;
+        filter: grayscale(1);
+      }
     }
 
     &:hover {

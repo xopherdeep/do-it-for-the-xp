@@ -13,14 +13,29 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <WeatherFX type="mountains" :intensity="4" :sound-enabled="false" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <xp-draggable-spot screen="world-mountains" spot-id="fire-temple" :default-x="30" :default-y="79">
+            <xp-temple-model temple-id="fire-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-mountains" spot-id="crystal-caverns" :default-x="70" :default-y="62">
+            <xp-building-model building-id="crystal-caverns" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-mountains" spot-id="pegasus" :default-x="74" :default-y="80">
+            <xp-building-model building-id="pegasus" world="mountains" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-mountains" spot-id="merchant" :default-x="40" :default-y="58">
+            <xp-traveling-merchant world="mountains" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-mountains" spot-id="hotel" :default-x="28" :default-y="38">
+            <xp-building-model building-id="hotel" world="mountains" :size="105" />
+          </xp-draggable-spot>
+        </div>
+      </div>
       <div class="fire-container">
         <!-- Base fire layer along the bottom -->
         <div class="fire-base"></div>
-        
-        <!-- Mass ember effect -->
-        <div class="embers-field">
-          <div v-for="n in 80" :key="`field-ember-${n}`" class="field-ember"></div>
-        </div>
         
         <!-- Original flame clusters -->
         <div class="flames-wrapper">
@@ -48,7 +63,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldMountains" />
+<script lang="ts" src="./WorldMountains.ts" />
 <style lang="scss" src="./_WorldMountains.scss" scoped />
 <style lang="scss">
   #fire-temple{

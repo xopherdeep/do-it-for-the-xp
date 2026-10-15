@@ -1,133 +1,189 @@
-import { ref, Ref, onMounted, onUnmounted } from 'vue';
-import { WeatherType, WeatherSoundType, soundLibrary } from './types';
+import { getCurrentInstance, onUnmounted, readonly, ref } from "vue";
+import type { Ref } from "vue";
+import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
+import debug from "@/lib/utils/debug";
+import { pickSoundSource, SOUND_DEFAULT_VOLUME, SOUND_FADE_MS } from "./sounds";
+import type { WeatherSoundType } from "./types";
 
-export interface WeatherFXAPI {
-  weatherType: Ref<WeatherType>;
-  intensity: Ref<number>;
-  soundEnabled: Ref<boolean>;
-  soundVolume: Ref<number>;
-  playWeatherSound: (type: WeatherSoundType, volume?: number) => void;
-  stopWeatherSound: (type: WeatherSoundType) => void;
-  setWeatherSoundVolume: (type: WeatherSoundType, volume: number) => void;
-  updateWeather: (type: WeatherType, newIntensity: number) => void;
-  toggleSound: (enabled: boolean) => void;
-  setSoundVolume: (volume: number) => void;
+const FADE_STEP_MS = 50;
+
+interface SoundEntry {
+  audio: HTMLAudioElement;
+  fadeTimer: ReturnType<typeof setInterval> | undefined;
 }
 
+export interface WeatherFXAPI {
+  /** The ambient loop that is currently wanted (it may still be fading in), or null. */
+  currentSound: Readonly<Ref<WeatherSoundType | null>>;
+  /** Fade `type` in at `DEFAULT_VOLUME[type] * volume` and fade every other loop out. */
+  playSound: (type: WeatherSoundType, volume?: number) => void;
+  /** Fade the current loop out. */
+  stopSound: () => void;
+  /** Change the master factor (0-1) of the loop that is playing. */
+  setVolume: (volume: number) => void;
+  /** Stop everything, immediately when asked, and release the audio elements. */
+  dispose: (immediate?: boolean) => void;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+/** Honour the app wide mute when the AudioEngine is around; ignore it otherwise. */
+function isAppMuted(): boolean {
+  try {
+    return AudioEngine.getInstance().state.muted === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ambient weather loops: one lazily created `Audio` per sound, looped, faded in and out over
+ * 600 ms, never started on mount. Every failure (missing file, autoplay policy, no Audio API)
+ * is swallowed so a sound can never break the weather canvas.
+ */
 export function useWeatherFX(): WeatherFXAPI {
-  const weatherType = ref<WeatherType>('none');
-  const intensity = ref(0);
-  const soundEnabled = ref(true);
-  const soundVolume = ref(0.5);
-  const audioElements = new Map<WeatherSoundType, HTMLAudioElement>();
+  const currentSound = ref<WeatherSoundType | null>(null);
+  const entries = new Map<WeatherSoundType, SoundEntry>();
+  let master = 1;
 
-  const playWeatherSound = (type: WeatherSoundType, volume?: number) => {
-    if (!audioElements.has(type)) {
-      const sound = soundLibrary[type];
-      const audio = new Audio(sound.src);
-      audio.loop = sound.loop;
-      audio.volume = sound.defaultVolume * (volume ?? soundVolume.value);
-      audioElements.set(type, audio);
+  const targetVolume = (type: WeatherSoundType): number => clamp01(SOUND_DEFAULT_VOLUME[type] * master);
+
+  function getEntry(type: WeatherSoundType): SoundEntry | null {
+    const existing = entries.get(type);
+    if (existing) return existing;
+    const hasAudio = typeof Audio !== "undefined";
+    if (!hasAudio) return null;
+    try {
+      const audio = new Audio();
+      const src = pickSoundSource(type, audio);
+      if (!src) return null;
+      audio.src = src;
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.volume = 0;
+      const entry: SoundEntry = { audio, fadeTimer: undefined };
+      entries.set(type, entry);
+      return entry;
+    } catch {
+      return null;
     }
-    
-    const audio = audioElements.get(type);
-    if (audio && soundEnabled.value) {
-      if (volume !== undefined) {
-        audio.volume = soundLibrary[type].defaultVolume * volume;
+  }
+
+  function clearFade(entry: SoundEntry) {
+    clearInterval(entry.fadeTimer);
+    entry.fadeTimer = undefined;
+  }
+
+  function fadeTo(entry: SoundEntry, target: number, onDone?: () => void) {
+    clearFade(entry);
+    const from = entry.audio.volume;
+    const steps = Math.max(1, Math.round(SOUND_FADE_MS / FADE_STEP_MS));
+    let step = 0;
+    entry.fadeTimer = setInterval(() => {
+      step += 1;
+      try {
+        entry.audio.volume = clamp01(from + ((target - from) * step) / steps);
+      } catch {
+        step = steps;
       }
-      audio.play().catch(() => {
-        // Silent error handling to comply with ESLint rules
-      });
+      const isFadeDone = step >= steps;
+      if (isFadeDone) {
+        clearFade(entry);
+        onDone?.();
+      }
+    }, FADE_STEP_MS);
+  }
+
+  function silence(entry: SoundEntry, immediate: boolean) {
+    clearFade(entry);
+    const finish = () => {
+      try {
+        entry.audio.pause();
+        entry.audio.currentTime = 0;
+      } catch (error) {
+        // nothing to clean up
+        debug.warn("[useWeatherFX] could not stop the loop", error);
+      }
+    };
+    const shouldMuteAtOnce = immediate || entry.audio.paused;
+    if (shouldMuteAtOnce) {
+      try {
+        entry.audio.volume = 0;
+      } catch (error) {
+        // the sound is stopped below either way
+        debug.warn("[useWeatherFX] could not mute the loop", error);
+      }
+      finish();
+      return;
     }
-  };
+    fadeTo(entry, 0, finish);
+  }
 
-  const stopWeatherSound = (type: WeatherSoundType) => {
-    const audio = audioElements.get(type);
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
+  function start(entry: SoundEntry, target: number) {
+    const isPaused = entry.audio.paused;
+    if (isPaused) {
+      try {
+        entry.audio.volume = 0;
+        const result = entry.audio.play();
+        const hasPlayPromise = !!result && typeof result.catch === "function";
+        if (hasPlayPromise) {
+          result.catch(() => {
+            // autoplay blocked or file missing: stay silent
+            clearFade(entry);
+          });
+        }
+      } catch (error) {
+        debug.warn("[useWeatherFX] could not start the loop", error);
+        return;
+      }
     }
-  };
+    fadeTo(entry, target);
+  }
 
-  const setWeatherSoundVolume = (type: WeatherSoundType, volume: number) => {
-    const audio = audioElements.get(type);
-    if (audio && soundLibrary[type]) {
-      audio.volume = volume * soundLibrary[type].defaultVolume;
-    }
-  };
-
-  const updateWeather = (type: WeatherType, newIntensity: number) => {
-    weatherType.value = type;
-    intensity.value = newIntensity;
-
-    // Stop all sounds first
-    Array.from(audioElements.keys()).forEach(stopWeatherSound);
-
-    // Play appropriate sounds based on weather type
-    switch (type) {
-      case 'tropical':
-        playWeatherSound('ocean');
-        playWeatherSound('ambient');
-        break;
-      case 'rainy':
-        playWeatherSound('rain');
-        if (newIntensity > 0.7) playWeatherSound('thunder');
-        break;
-      case 'stormy':
-        playWeatherSound('wind');
-        playWeatherSound('rain');
-        playWeatherSound('thunder');
-        break;
-      case 'cloudy':
-        playWeatherSound('wind');
-        break;
-      case 'plains':
-        playWeatherSound('wind', newIntensity * 0.4);
-        playWeatherSound('ambient', newIntensity * 0.2);
-        break;
-      case 'sunny':
-        playWeatherSound('ambient');
-        break;
-    }
-  };
-
-  const toggleSound = (enabled: boolean) => {
-    soundEnabled.value = enabled;
-    if (!enabled) {
-      Array.from(audioElements.keys()).forEach(stopWeatherSound);
-    }
-  };
-
-  const setSoundVolume = (volume: number) => {
-    soundVolume.value = Math.max(0, Math.min(1, volume));
-    audioElements.forEach((audio, type) => {
-      audio.volume = soundLibrary[type].defaultVolume * soundVolume.value;
+  function playSound(type: WeatherSoundType, volume = 1) {
+    master = clamp01(volume);
+    entries.forEach((entry, key) => {
+      const isOtherSound = key !== type;
+      if (isOtherSound) silence(entry, false);
     });
-  };
+    currentSound.value = type;
+    if (isAppMuted()) {
+      const entry = entries.get(type);
+      if (entry) silence(entry, true);
+      return;
+    }
+    const entry = getEntry(type);
+    if (entry) start(entry, targetVolume(type));
+  }
 
-  onMounted(() => {
-    // Initialize all sound effects
-    Object.keys(soundLibrary).forEach(type => {
-      playWeatherSound(type as WeatherSoundType);
+  function stopSound() {
+    currentSound.value = null;
+    entries.forEach((entry) => silence(entry, false));
+  }
+
+  function setVolume(volume: number) {
+    master = clamp01(volume);
+    const type = currentSound.value;
+    if (!type) return;
+    const entry = entries.get(type);
+    const shouldAdjustLoop = !!entry && !entry.audio.paused && !isAppMuted();
+    if (shouldAdjustLoop) fadeTo(entry, targetVolume(type));
+  }
+
+  function dispose(immediate = true) {
+    currentSound.value = null;
+    entries.forEach((entry) => {
+      silence(entry, immediate);
     });
-  });
+    if (immediate) entries.clear();
+  }
 
-  onUnmounted(() => {
-    // Cleanup all audio elements
-    Array.from(audioElements.keys()).forEach(stopWeatherSound);
-    audioElements.clear();
-  });
+  const isInComponent = getCurrentInstance() !== null;
+  if (isInComponent) {
+    onUnmounted(() => dispose(true));
+  }
 
-  return {
-    weatherType,
-    intensity,
-    soundEnabled,
-    soundVolume,
-    playWeatherSound,
-    stopWeatherSound,
-    setWeatherSoundVolume,
-    updateWeather,
-    toggleSound,
-    setSoundVolume
-  };
+  return { currentSound: readonly(currentSound) as Readonly<Ref<WeatherSoundType | null>>, playSound, stopSound, setVolume, dispose };
 }

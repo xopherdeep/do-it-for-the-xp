@@ -1,57 +1,84 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/xp-settings/`"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title> Family Settings </ion-title>
+        <ion-title>Family</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
       <ion-card class="max-w-2xl">
-        <ion-grid>
-          <ion-row>
-            <ion-col>
-              <ion-card-title> Your Family </ion-card-title>
-              <ion-card-header>
-                <h1>McJudyPollard</h1>
-              </ion-card-header>
-
-              <ion-item>
-                <ion-label>
-                  My Family Setup is Complete
-                  <p>Prevent making changes to the family</p>
-                </ion-label>
-                <ion-toggle @ionChange="toggleFamily"> </ion-toggle>
-              </ion-item>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Adults</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
-                Add Adult
+              <ion-label>Game Masters</ion-label>
+              <ion-button slot="end" size="small" v-if="!lockFamily && canManage" @click="openModal({ presetGameMaster: true })">
+                <i class="fad fa-user-plus mr-2"></i>
+                Add
               </ion-button>
             </ion-item-divider>
             <xp-profile-item v-for="profile in profiles.filter((p) => p.isAdult)" :key="profile.id" :profile="profile"
-              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
+              :isLocked="lockFamily || !canManage" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
 
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Kids</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
-                Add Kid
+              <ion-label>Heroes</ion-label>
+              <ion-button slot="end" size="small" v-if="!lockFamily && canManage" @click="openModal({ presetGameMaster: false })">
+                <i class="fad fa-user-plus mr-2"></i>
+                Add
               </ion-button>
             </ion-item-divider>
 
             <xp-profile-item v-for="profile in profiles.filter((p) => !p.isAdult)" :key="profile.id" :profile="profile"
-              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
+              :isLocked="lockFamily || !canManage" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
+
+          <ion-item-group v-if="canManage">
+            <ion-item-divider>
+              <ion-label>Setup</ion-label>
+            </ion-item-divider>
+            <ion-item lines="none">
+              <ion-label>
+                <h2>Family setup is complete</h2>
+                <p>Hide the add, edit and delete buttons so nobody changes the family by accident</p>
+              </ion-label>
+              <ion-toggle :checked="lockFamily" @ionChange="setLockFamily($event.detail.checked)"></ion-toggle>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
+      </ion-card>
+
+      <xp-family-phones v-if="canManage" />
+
+      <ion-card v-if="canManage" class="max-w-2xl family-items">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Item rules</ion-label>
+          </ion-item-divider>
+          <ion-item>
+            <ion-label>
+              <h2>Trusted Hour</h2>
+              <p>Lets the Trusted Hour Power open an hour when a hero's claims skip the approval queue</p>
+            </ion-label>
+            <ion-toggle :checked="family.trustedHour" @ionChange="setFamily({ trustedHour: $event.detail.checked })"> </ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>Bedtime</h2>
+              <p>When the family's night begins and ends</p>
+            </ion-label>
+            <ion-toggle :checked="family.bedtime.enabled" @ionChange="setBedtime({ enabled: $event.detail.checked })"> </ion-toggle>
+          </ion-item>
+          <ion-item v-if="family.bedtime.enabled">
+            <ion-label>From</ion-label>
+            <input type="time" :value="family.bedtime.from" @change="setBedtime({ from: $event.target.value })" />
+            <ion-label class="ion-text-end">To</ion-label>
+            <input type="time" :value="family.bedtime.to" @change="setBedtime({ to: $event.target.value })" />
+          </ion-item>
         </ion-list>
       </ion-card>
     </ion-content>
@@ -61,29 +88,62 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from "vue";
 import ionic from "@/lib/mixins/ionic";
-import { arrowBack } from "ionicons/icons";
-import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import { ProfileDb } from "@/lib/databases";
 import User from "@/lib/utils/User";
-import { alertController, modalController } from "@ionic/vue";
+import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
+import XpFamilyPhones from "./XpFamilyPhones.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
+import { dialogMessage } from "@/lib/utils/dialogMessage";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  loadFamilySettings,
+  saveFamilySettings,
+  type FamilySettings,
+} from "@/lib/services/family/familySettings";
+
+const FAMILY_LOCK_KEY = "xp.familyLocked";
+
+const readFamilyLock = (): boolean => {
+  try {
+    return localStorage.getItem(FAMILY_LOCK_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const writeFamilyLock = (locked: boolean): void => {
+  try {
+    localStorage.setItem(FAMILY_LOCK_KEY, String(locked));
+  } catch {
+    // chemx-allow: best-effort storage blocked, so the lock lasts until the page is left
+  }
+};
 
 export default defineComponent({
   name: "xp-settings-family",
   mixins: [ionic],
-  components: { XpProfileItem },
+  components: { XpProfileItem, XpFamilyPhones },
   setup() {
-    const lockFamily = ref(false);
-    const toppings = [];
-    const toggleFamily = () => (lockFamily.value = !lockFamily.value);
+    // "Family setup is complete" hides the add, edit and delete buttons; kept on this device across visits
+    const lockFamily = ref(readFamilyLock());
+    const setLockFamily = (locked: boolean) => {
+      lockFamily.value = locked;
+      writeFamilyLock(locked);
+    };
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage);
-    const requireAvatar = require.context("@/assets/images/avatars/");
+    const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
     // Get profiles from Pinia store
     const profiles = computed(() => userStore.usersAz);
+
+    // Only a Game Master adds, edits or deletes profiles; heroes see the list without the buttons
+    const canManage = computed(() => canManageFamily(userStore));
 
     // Methods
     const loadProfiles = async () => {
@@ -93,26 +153,50 @@ export default defineComponent({
     // Load profiles when component mounts
     loadProfiles();
 
+    // The Items card: what the Game Master allows Tesla's Bolt, Night's Light and Gale's Wind to do
+    const family = ref<FamilySettings>(JSON.parse(JSON.stringify(DEFAULT_FAMILY_SETTINGS)));
+    loadFamilySettings().then((loaded) => (family.value = loaded));
+    const setFamily = (change: Partial<FamilySettings>) => {
+      if (!canManage.value) return;
+      family.value = { ...family.value, ...change };
+      void saveFamilySettings(family.value);
+    };
+    const setBedtime = (change: Partial<FamilySettings["bedtime"]>) => {
+      const isClockTime = /^\d\d:\d\d$/.test(change.from ?? change.to ?? "00:00");
+      if (!isClockTime) return;
+      setFamily({ bedtime: { ...family.value.bedtime, ...change } });
+    };
+
     return {
+      family,
+      setFamily,
+      setBedtime,
       userStore,
       requireAvatar,
       profiles,
+      canManage,
       profileDb,
       lockFamily,
-      toggleFamily,
-      toppings,
-      arrowBack,
+      setLockFamily,
       loadProfiles,
     };
   },
   methods: {
-    async clickEditProfile(profile: User) {
-      await this.openModal({
-        profile,
-        showIsAdult: true,
+    async refuse(message: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
       });
+      await toast.present();
+    },
+    async clickEditProfile(profile: User) {
+      if (!this.canManage) return this.refuse(FAMILY_GM_ONLY_MESSAGE);
+      await this.openModal({ profile });
     },
     async openModal(componentProps?: any) {
+      if (!this.canManage) return this.refuse(FAMILY_GM_ONLY_MESSAGE);
       const modal = await modalController.create({
         component: AddProfile,
         cssClass: "fullscreen",
@@ -122,6 +206,9 @@ export default defineComponent({
       modal.present();
     },
     async deleteProfile(profile: User) {
+      // Backstop for the alert: refuse again at the moment of deleting
+      const problem = deleteProfileProblem(profile, this.userStore);
+      if (problem) return this.refuse(problem);
       const { profileDb, loadProfiles } = this;
       await profileDb
         .removeProfile(profile.id)
@@ -129,22 +216,20 @@ export default defineComponent({
         .then(profileDb.showDeleteToast);
     },
     async clickDeleteProfile(profile: User) {
+      const problem = deleteProfileProblem(profile, this.userStore);
+      if (problem) return this.refuse(problem);
       const alert = await alertController.create({
-        header: "Delete " + profile.name.full + "?",
-        subHeader: "Are you sure you want to delete this profile?",
-        message: "This action cannot be undone.",
-        mode: "ios",
+        header: `Delete ${profile.name.nick || profile.name.full}?`,
+        cssClass: ["rpg-alert", "rpg-alert--danger"],
+        message: dialogMessage({
+          lead: "Their profile, stats and progress go away.",
+          note: "This can't be undone.",
+        }),
         buttons: [
+          { text: "Cancel", role: "cancel" },
           {
-            text: "Cancel",
-            role: "cancel",
-            handler: () => {
-              // handlerMessage.value = "Alert canceled";
-            },
-          },
-          {
-            text: "OK",
-            role: "confirm",
+            text: "Delete",
+            role: "destructive",
             handler: () => this.deleteProfile(profile),
           },
         ],
@@ -152,10 +237,7 @@ export default defineComponent({
       await alert.present();
     },
     getUserAvatar(user) {
-      const { avatar } = user;
-      if (avatar) {
-        return this.requireAvatar(`./${user.avatar}.svg`);
-      }
+      return heroAvatarSrc(user, (key: string) => this.requireAvatar(key)) || undefined;
     },
   },
 });

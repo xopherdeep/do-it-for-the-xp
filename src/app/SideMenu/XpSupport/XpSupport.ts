@@ -27,41 +27,49 @@ import {
   helpSharp
 } from 'ionicons/icons'
 import Ionic from '@/lib/mixins/ionic'
+// The auto-bump workflow rewrites package.json's version on every push to master.
+import packageInfo from '@/../package.json'
+
+// Developer tools are only available outside production builds
+const devToolsAvailable = process.env.NODE_ENV !== 'production';
+
+interface SupportTile {
+  src: string;
+  title: string;
+  desc: string;
+  icon: string;
+  version?: string;
+}
 
 export default defineComponent({
   name: 'xp-support',
   mixins: [Ionic],
   data() {
-    const tiles = [
-      {
-        src: '/support/faq',
-        title: 'F.A.Q.s',
-        desc: 'Answers to some of the frequently asked questions.',
-        icon: 'fa-question'
-      },
-      {
-        src: '/support/help-videos',
-        title: 'Help Videos',
-        desc: 'A good collection of video tutorials.',
-        icon: 'fa-video'
-      },
+    const tiles: SupportTile[] = [
       {
         src: '/support/user-manual',
         title: 'User Manual',
-        desc: 'A quick guide on how to use the app.',
+        desc: 'How quests, battles, powers and shops work.',
         icon: 'fa-book'
       },
       {
+        src: '/support/faq',
+        title: 'F.A.Q.',
+        desc: 'Quick answers for Game Masters and heroes.',
+        icon: 'fa-question'
+      },
+      {
         src: '/support/feature-request',
-        title: 'Feature Request',
-        desc: 'Your opinions matter! Vote or leave a comment.',
+        title: 'Feature Requests',
+        desc: 'Ask for what you want next on the Town Hall board.',
         icon: 'fa-tasks'
       },
       {
         src: '/support/contact',
-        title: 'Ask the developers',
-        desc: 'Ask a question or post a suggestion. We listen to our parents!',
-        icon: 'fa-comments'
+        title: 'Ask the Developers',
+        desc: 'Questions, bugs and feedback.',
+        icon: 'fa-comments',
+        version: packageInfo.version
       }
     ];
 
@@ -106,17 +114,19 @@ export default defineComponent({
   mounted() {
     // Check if dev mode was previously enabled
     const savedDevMode = localStorage.getItem('xp-dev-mode') === 'true';
-    if (savedDevMode && !this.gameStore.devMode) {
+    const shouldRestoreDevMode = devToolsAvailable && savedDevMode && !this.gameStore.devMode;
+    if (shouldRestoreDevMode) {
       this.gameStore.setDevMode(true);
     }
 
     // Add dev tools tile if dev mode is enabled
-    if (this.gameStore.devMode) {
+    const shouldShowDevToolsTile = devToolsAvailable && this.gameStore.devMode;
+    if (shouldShowDevToolsTile) {
       this.tiles.push({
         src: '/support/dev-tools',
         title: 'Developer Tools',
-        desc: 'Access developer tools and demos for testing.',
-        icon: 'fa-construction'
+        desc: 'Developer tools and demos for testing.',
+        icon: 'fa-tools'
       });
     }
   },
@@ -128,13 +138,16 @@ export default defineComponent({
       this.play$fx("select");
 
       // After 7 clicks, show the dev mode confirmation
-      if (this.helpIconClicks === 7) {
+      const isSeventhClick = this.helpIconClicks === 7;
+      if (isSeventhClick) {
         this.showDevModeConfirmation();
         this.helpIconClicks = 0; // Reset counter
       }
     },
 
     async showDevModeConfirmation() {
+      if (!devToolsAvailable) return;
+
       const isDevMode = this.gameStore.devMode;
 
       const alert = await alertController.create({
@@ -160,7 +173,7 @@ export default defineComponent({
                 this.tiles = [...this.tiles, {
                   src: '/support/dev-tools',
                   title: 'Developer Tools',
-                  desc: 'Access developer tools and demos for testing.',
+                  desc: 'Developer tools and demos for testing.',
                   icon: 'fa-tools'
                 }];
               } else {
