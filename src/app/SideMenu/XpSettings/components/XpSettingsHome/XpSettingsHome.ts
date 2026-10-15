@@ -78,10 +78,9 @@ export default defineComponent({
       {
         id: 'account',
         title: 'Account',
-        description: 'Email, password, plan and linked sign-ins, once accounts exist.',
+        description: "The family's Town Hall account, plan and sign-in options.",
         icon: require('@/assets/icons/014-individual.svg'),
-        route: '/xp-settings/account',
-        soon: true
+        route: '/xp-settings/account'
       },
       {
         id: 'chore',

@@ -69,12 +69,13 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
           "@/app/SideMenu/XpSettings/components/ProSettings.vue"
         ),
     },
-    // Account, Chore, Reward and Party list planned settings only (greyed out, Coming soon)
+    // The Game Master's Town Hall link, plan and sign-in options
     {
       path: "account",
       name: "xp-settings-account",
       component: () => import("@/app/SideMenu/XpSettings/components/AccountSettings.vue"),
     },
+    // Chore, Reward and Party list planned settings only (greyed out, Coming soon)
     {
       path: "chore",
       name: "xp-settings-chore",

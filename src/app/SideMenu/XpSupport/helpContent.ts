@@ -189,7 +189,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "Settings, Backup downloads one file with everything, passcodes included. Keep it safe.",
       "Restore from backup replaces what's on the device with the file. Only a Game Master can do it.",
       "Settings, Packs loads ready-made worlds. Removing a pack takes back only what it added.",
-      "Settings, Account is greyed out as Coming soon: email, password, plan and linked sign-ins need accounts on a server, which the app doesn't have yet.",
+      "Settings, Account links the family's For the XP account (the Town Hall's) from the menu, shows your plan, and opens the site to change your email or password.",
     ],
   },
   {
@@ -286,8 +286,8 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "On this device only. Back it up in Settings, Backup before clearing the browser or moving to a new device.",
       },
       {
-        question: "Why is Account greyed out in Settings?",
-        answer: "Email, username, password, your plan and linked Google or Apple sign-ins all need an account on a server, and today the app keeps everything on this device. The page lists what it will hold and opens for real once sign-in exists.",
+        question: "What is Settings, Account?",
+        answer: "The family's account is the Game Master's Town Hall account on doit.forthexp.com; heroes have none. The page links or unlinks this device, shows your plan, and opens the site when you want to change your email or password. Google and Apple sign-in are coming.",
       },
       {
         question: "How do I move to a new device?",
