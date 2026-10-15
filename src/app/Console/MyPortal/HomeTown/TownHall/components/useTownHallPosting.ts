@@ -238,7 +238,7 @@ export function useTownHallPosting(deps: PostingDeps) {
     const post = kept.post;
     if (!post) return;
     const flushed = flushNow();
-    await reveal.showPrompt(postedNotice(postedOutcome(kept.post, store.isLinked, deps.isGameMaster())));
+    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster())));
     await deliver(await flushed);
   };
 
