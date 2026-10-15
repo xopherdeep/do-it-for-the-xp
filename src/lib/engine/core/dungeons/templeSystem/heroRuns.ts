@@ -25,7 +25,7 @@ export function markRoomCleared(runs: TempleRuns, templeId: string, level: strin
   const { state, created } = openState(runs, templeId, userId, [position[0], position[1]], level, false);
   if (created) visitRoom(runs, templeId, position);
 
-  if (!state.clearedRooms) state.clearedRooms = new Set<string>();
+  state.clearedRooms ??= new Set<string>();
   state.clearedRooms.add(clearedRoomKey(level, position));
   unsealRoom(runs, templeId, level, position);
   runs.queueSave(templeId);
@@ -57,7 +57,8 @@ function fallbackStart(runs: TempleRuns, templeId: string, temple: Dungeon): { l
       for (let col = 0; col < grid[row].length; col++) {
         const position: [number, number] = [row, col];
         if (!canStandAt(runs, templeId, level, position)) continue;
-        if (runs.dungeonManager.getRoom(templeId, position, level)?.type === 'entrance') return { level, position };
+        const isEntrance = runs.dungeonManager.getRoom(templeId, position, level)?.type === 'entrance';
+        if (isEntrance) return { level, position };
         firstStandable ??= { level, position };
       }
     }
@@ -123,7 +124,8 @@ export function initTemple(runs: TempleRuns, templeId: string, startPosition?: n
   // already going (the temple screen mounting again after a battle) reads it again here
   const hero = runs.heroByTemple.get(templeId);
   const isBoardOnItsWay = runs.reads.has(templeId);
-  if (hero && !isBoardOnItsWay) void refreshQuestRooms(runs, templeId);
+  const shouldRefreshBoard = Boolean(hero) && !isBoardOnItsWay;
+  if (shouldRefreshBoard) void refreshQuestRooms(runs, templeId);
   return true;
 }
 
@@ -189,7 +191,8 @@ export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): 
   runs.questBoards.delete(templeId);
   runs.boardReads.delete(templeId);
   for (const key of Array.from(runs.sealedRooms.keys())) {
-    if (key.startsWith(`${templeId}|`)) runs.sealedRooms.delete(key);
+    const isThisTemplesSeal = key.startsWith(`${templeId}|`);
+    if (isThisTemplesSeal) runs.sealedRooms.delete(key);
   }
   // Chests full again and doors as the layout made them, for whoever plays next
   runs.dungeonManager.resetDungeon(templeId);
@@ -202,7 +205,8 @@ export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): 
  * A save still being read is merged first, or the entrance would never reach what is stored.
  */
 export function leaveByPortal(runs: TempleRuns, templeId: string): void {
-  if (runs.reads.has(templeId)) {
+  const isSaveBeingRead = runs.reads.has(templeId);
+  if (isSaveBeingRead) {
     void whenProgressReady(runs, templeId).then(() => leaveByPortal(runs, templeId));
     return;
   }
@@ -274,7 +278,8 @@ export function refreshRun(runs: TempleRuns, templeId: string): void {
   // A fight the hero stood in the middle of seals its room again below; the seals of the old rooms are gone with them
   const wasInFight = runs.sealedRooms.has(sealKey(templeId, state.currentLevel, state.currentPosition));
   for (const key of Array.from(runs.sealedRooms.keys())) {
-    if (key.startsWith(`${templeId}|`)) runs.sealedRooms.delete(key);
+    const isThisTemplesSeal = key.startsWith(`${templeId}|`);
+    if (isThisTemplesSeal) runs.sealedRooms.delete(key);
   }
 
   applyProgress(runs, templeId, snapshotOf(runs.heroByTemple.get(templeId) ?? '', templeId, state));
@@ -315,7 +320,8 @@ export function loadProgress(runs: TempleRuns, templeId: string, userId: string,
 
   const read: Promise<void> = Promise.all([readSavedProgress(userId, templeId), readQuestBoard(userId)]).then(([saved, board]) => {
     // Not when the temple went to another hero while the save was on its way
-    if (runs.reads.get(templeId) !== read) return;
+    const isStaleRead = runs.reads.get(templeId) !== read;
+    if (isStaleRead) return;
     if (board) runs.questBoards.set(templeId, board);
 
     let readable = saved !== undefined;
@@ -372,20 +378,22 @@ export function applyProgress(
   state.keyItems = Array.from(new Set([...(state.keyItems ?? []), ...saved.keyItems]));
   state.timesCleared = Math.max(state.timesCleared ?? 0, saved.timesCleared);
   state.bloodMoons = Math.max(state.bloodMoons ?? 0, saved.bloodMoons);
-  if (saved.bloodMoonAt) state.bloodMoonAt = saved.bloodMoonAt;
-  if (saved.bloodMoonEvery) state.bloodMoonEvery = saved.bloodMoonEvery;
-  if (!state.openedChests) state.openedChests = new Set<string>();
+  const { bloodMoonAt, bloodMoonEvery } = saved;
+  if (bloodMoonAt) state.bloodMoonAt = bloodMoonAt;
+  if (bloodMoonEvery) state.bloodMoonEvery = bloodMoonEvery;
+  state.openedChests ??= new Set<string>();
   for (const key of saved.openedChests) {
     state.openedChests.add(key);
     // The chest was refilled with the layout: it is emptied again (the room and its chest)
     const at = parseRoomKey(key);
     if (!at) continue;
-    if (runs.dungeonManager.getRoom(templeId, at.position, at.level)?.type === 'loot') {
+    const isLootRoom = runs.dungeonManager.getRoom(templeId, at.position, at.level)?.type === 'loot';
+    if (isLootRoom) {
       runs.dungeonManager.updateRoom(templeId, at.position, { isEmpty: true }, at.level);
     }
   }
   // Chests the hero took part of: what was taken stays out, the rest is still there
-  if (!state.takenFromChests) state.takenFromChests = new Set<string>();
+  state.takenFromChests ??= new Set<string>();
   for (const key of saved.takenFromChests ?? []) {
     const split = key.indexOf('>');
     const at = parseRoomKey(key.slice(0, split));
@@ -394,14 +402,14 @@ export function applyProgress(
     state.takenFromChests.add(key);
     runs.dungeonManager.removeItemsFromRoomChest(templeId, at.position, [key.slice(split + 1)], at.level);
   }
-  if (!state.clearedRooms) state.clearedRooms = new Set<string>();
+  state.clearedRooms ??= new Set<string>();
   for (const key of saved.clearedRooms) state.clearedRooms.add(key);
   // The keys of quest rooms are the board's to say, not the save's (a stale one does no harm): synced before the hero
   // is put back below, so a lurking room holds them and a done one does not
   syncWithKeptBoard(runs, templeId);
 
   // Doors opened stay open: the layout was registered again locked
-  if (!state.openedDoors) state.openedDoors = new Set<string>();
+  state.openedDoors ??= new Set<string>();
   for (const key of saved.openedDoors) {
     state.openedDoors.add(key);
     const split = key.lastIndexOf('>');
@@ -410,7 +418,8 @@ export function applyProgress(
     const isNotADoor = !at || !DOOR_DIRECTIONS.includes(direction);
     if (isNotADoor) continue;
     const room = runs.dungeonManager.getRoom(templeId, at.position, at.level);
-    if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
+    const isLockedSide = room?.locked?.[direction] === true;
+    if (isLockedSide) room.locked = { ...room.locked, [direction]: false };
   }
   for (const key of saved.visitedRooms) {
     state.visitedRooms.add(key);

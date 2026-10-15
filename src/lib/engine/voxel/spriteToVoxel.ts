@@ -47,13 +47,16 @@ export const pixelDataToBoxes = (
       const idx = (y * width + x) * 4;
       const alpha = pixels[idx + 3];
 
-      if (alpha > 48) {
+      const isOpaque = alpha > 48;
+      const isRunOpen = runStart !== -1;
+      if (isOpaque) {
         const hex = rgbToHex(pixels[idx], pixels[idx + 1], pixels[idx + 2]);
+        const isColorChange = runColor !== hex;
 
-        if (runStart === -1) {
+        if (!isRunOpen) {
           runStart = x;
           runColor = hex;
-        } else if (runColor !== hex) {
+        } else if (isColorChange) {
           // Finish previous run
           const span = x - runStart;
           boxes.push({
@@ -68,7 +71,7 @@ export const pixelDataToBoxes = (
           runStart = x;
           runColor = hex;
         }
-      } else if (runStart !== -1) {
+      } else if (isRunOpen) {
         // Transparent pixel ends current run
         const span = x - runStart;
         boxes.push({
@@ -85,7 +88,8 @@ export const pixelDataToBoxes = (
       }
     }
 
-    if (runStart !== -1) {
+    const isLastRunOpen = runStart !== -1;
+    if (isLastRunOpen) {
       const span = width - runStart;
       boxes.push({
         x: runStart - halfW,
@@ -133,7 +137,8 @@ export const sampleImagePixels = (
         let sampleW = targetResolution;
         let sampleH = targetResolution;
 
-        if (aspect > 1) {
+        const isLandscape = aspect > 1;
+        if (isLandscape) {
           sampleH = Math.max(8, Math.round(targetResolution / aspect));
         } else {
           sampleW = Math.max(8, Math.round(targetResolution * aspect));
@@ -172,7 +177,8 @@ export const spriteToVoxelMesh = async (
   targetResolution = 26,
   depth = 1.6
 ): Promise<MeshData> => {
-  if (meshCache.has(imageSrc)) {
+  const isCached = meshCache.has(imageSrc);
+  if (isCached) {
     return meshCache.get(imageSrc)!;
   }
 
@@ -185,7 +191,8 @@ export const spriteToVoxelMesh = async (
   }
 
   const boxes = pixelDataToBoxes(sample.pixels, sample.width, sample.height, depth);
-  if (boxes.length === 0) {
+  const hasNoBoxes = boxes.length === 0;
+  if (hasNoBoxes) {
     const placeholder = createPlaceholderMonsterMesh();
     meshCache.set(imageSrc, placeholder);
     return placeholder;

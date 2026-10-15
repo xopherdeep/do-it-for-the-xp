@@ -60,9 +60,10 @@ export function sealKey(templeId: string, level: string, position: [number, numb
  */
 export function sealRoom(runs: TempleRuns, templeId: string, level: string, position: [number, number], room: Room): void {
   const key = sealKey(templeId, level, position);
-  if (!runs.sealedRooms.has(key)) runs.sealedRooms.set(key, { ...room.locked });
+  const isAlreadySealed = runs.sealedRooms.has(key);
+  if (!isAlreadySealed) runs.sealedRooms.set(key, { ...room.locked });
 
-  if (!room.locked) room.locked = {};
+  room.locked ??= {};
   for (const direction of DOOR_DIRECTIONS) room.locked[direction] = true;
 }
 
@@ -77,8 +78,9 @@ export function unsealRoom(runs: TempleRuns, templeId: string, level: string, po
   runs.sealedRooms.delete(key);
 
   const room = runs.dungeonManager.getRoom(templeId, position, level);
-  if (!room?.locked) return;
-  for (const direction of DOOR_DIRECTIONS) room.locked[direction] = authored[direction] ?? false;
+  const locked = room?.locked;
+  if (!locked) return;
+  for (const direction of DOOR_DIRECTIONS) locked[direction] = authored[direction] ?? false;
 }
 
 /** `${level}:${row},${col}>${direction}`: how an opened door is remembered, by the room the hero stood in */
@@ -113,10 +115,12 @@ export function doorKind(
   // What the Game Master drew first: a wall is a wall (not the boss door either), a cracked wall is one until a Bomb
   // blew it open (both ends are remembered, so a reload finds it open)
   const barrier = barrierBetween(here, there, direction);
-  if (barrier === 'wall') return 'wall';
+  const isWall = barrier === 'wall';
+  if (isWall) return 'wall';
   const hasOpened = (key: string): boolean => Boolean(templeState?.openedDoors?.has(key));
   const isBlownOpen = hasOpened(doorKey(floor, position, direction)) || hasOpened(doorKey(floor, beyond, OPPOSITE[direction]));
-  if (barrier === 'bombable' && !isBlownOpen) return 'bombable';
+  const isUnblownCrack = barrier === 'bombable' && !isBlownOpen;
+  if (isUnblownCrack) return 'bombable';
 
   const isUnopenedBossDoor = isBossDoor(there) && !templeState?.openedDoors?.has(doorKey(floor, position, direction));
   if (isUnopenedBossDoor) return 'master';
@@ -146,11 +150,12 @@ export function explainDoor(runs: TempleRuns, templeId: string, position: [numbe
 /** Open one side of a room and remember it with the hero's progress, so a reload finds it open. */
 export function openDoor(runs: TempleRuns, templeId: string, level: string, position: [number, number], direction: DoorState['direction']): void {
   const room = runs.dungeonManager.getRoom(templeId, position, level);
-  if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
+  const isLockedSide = room?.locked?.[direction] === true;
+  if (isLockedSide) room.locked = { ...room.locked, [direction]: false };
 
   const templeState = runs.templeStates[templeId];
   if (!templeState) return;
-  if (!templeState.openedDoors) templeState.openedDoors = new Set<string>();
+  templeState.openedDoors ??= new Set<string>();
   templeState.openedDoors.add(doorKey(level, position, direction));
   runs.queueSave(templeId);
 }
@@ -171,10 +176,12 @@ export function unlockDoor(
     case 'master':
       if (!templeState.hasMasterKey) return false;
       break;
-    case 'locked':
-      if (templeState.playerKeys <= 0) return false;
+    case 'locked': {
+      const isOutOfKeys = templeState.playerKeys <= 0;
+      if (isOutOfKeys) return false;
       templeState.playerKeys -= 1;
       break;
+    }
     default:
       // An open way has nothing to unlock; a wall and a cracked wall are no doors, so no key fits them
       return false;
@@ -225,10 +232,12 @@ export function blowBombableSide(
 
   const floor = level ?? templeState.currentLevel;
   if (isRoomBarred(runs, templeId, floor, position)) return false;
-  if (doorKind(runs, templeId, position, direction, floor) !== 'bombable') return false;
+  const isCrackedWall = doorKind(runs, templeId, position, direction, floor) === 'bombable';
+  if (!isCrackedWall) return false;
 
   const beyond = stepFrom(position, direction);
-  if (!runs.dungeonManager.getRoom(templeId, beyond, floor)) return false;
+  const hasRoomBeyond = Boolean(runs.dungeonManager.getRoom(templeId, beyond, floor));
+  if (!hasRoomBeyond) return false;
 
   openDoor(runs, templeId, floor, position, direction);
   openDoor(runs, templeId, floor, beyond, OPPOSITE[direction]);
@@ -253,7 +262,8 @@ export function openDoorsAround(runs: TempleRuns, templeId: string, position: [n
     const neighbour = runs.dungeonManager.getRoom(templeId, next, floor);
     const isNeighbourClosedOff = !neighbour || neighbour.type === 'wall' || isSealedByFight(runs, templeId, floor, next);
     if (isNeighbourClosedOff) continue;
-    if (openDoorSide(runs, templeId, next, opposite[direction], floor)) opened++;
+    const didOpenNeighbourSide = openDoorSide(runs, templeId, next, opposite[direction], floor);
+    if (didOpenNeighbourSide) opened++;
   }
   return opened;
 }
