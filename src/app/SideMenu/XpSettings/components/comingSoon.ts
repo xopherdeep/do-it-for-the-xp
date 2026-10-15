@@ -51,10 +51,8 @@ export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Party invites", description: "Let members invite others, and choose who can" },
 ];
 
-/** Everything here needs server accounts; the app keeps its data on the device until sign-in exists */
+/** Social sign-in is a site job (a login plugin on the Town Hall network); the app's link flow picks it up once the site offers it */
 export const ACCOUNT_COMING_SOON: ComingSoonItem[] = [
-  { title: "Email and username", description: "The address and name your account signs in with" },
-  { title: "Change password", description: "Enter your current password, then a new one twice" },
-  { title: "Subscription plan", description: "See your current plan and when it renews" },
-  { title: "Linked accounts", description: "Connect or disconnect Google and Apple sign-in" },
+  { title: "Sign in with Google", description: "Link it on the site once the Town Hall offers it" },
+  { title: "Sign in with Apple", description: "Link it on the site once the Town Hall offers it" },
 ];

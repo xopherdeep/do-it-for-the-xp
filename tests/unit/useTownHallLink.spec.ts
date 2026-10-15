@@ -67,11 +67,11 @@ describe("useTownHallLink", () => {
     Object.defineProperty(window, "location", { configurable: true, value: realLocation });
   });
 
-  describe("completeReturn", () => {
+  describe("finishReturn", () => {
     it("completes a web return and announces it once", async () => {
       mockPending = "?th_state=state-1&site_url=x&user_login=mom&password=pw";
       const { store, announce, link } = setup(fakeStore("linked"));
-      await expect(link.completeReturn()).resolves.toBe(true);
+      await expect(link.finishReturn()).resolves.toBe(true);
       expect(store.init).toHaveBeenCalledTimes(1);
       expect(store.completeLink).toHaveBeenCalledWith("?th_state=state-1&site_url=x&user_login=mom&password=pw");
       expect(announce).toHaveBeenCalledTimes(1);
@@ -83,13 +83,13 @@ describe("useTownHallLink", () => {
       const store = fakeStore();
       (store.completeLink as jest.Mock).mockRejectedValueOnce(new Error("boom"));
       const { announce, link } = setup(store);
-      await expect(link.completeReturn()).resolves.toBe(true);
+      await expect(link.finishReturn()).resolves.toBe(true);
       expect(announce).toHaveBeenCalledWith("failed");
     });
 
     it("announces nothing on an ordinary visit and says so", async () => {
       const { store, announce, link } = setup();
-      await expect(link.completeReturn()).resolves.toBe(false);
+      await expect(link.finishReturn()).resolves.toBe(false);
       expect(store.init).toHaveBeenCalledTimes(1);
       expect(store.completeLink).not.toHaveBeenCalled();
       expect(announce).not.toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe("useTownHallLink", () => {
     it("stays quiet when the return changed nothing", async () => {
       mockPending = "?nothing=1";
       const { announce, link } = setup(fakeStore("none"));
-      await expect(link.completeReturn()).resolves.toBe(true);
+      await expect(link.finishReturn()).resolves.toBe(true);
       expect(announce).not.toHaveBeenCalled();
     });
   });
@@ -122,19 +122,19 @@ describe("useTownHallLink", () => {
     it("opens the system browser and returns through the app's own address", async () => {
       mockNative = true;
       const { link } = setup();
-      await link.openAuthorizePage();
+      await link.goToAuthorizePage();
       expect(assign).not.toHaveBeenCalled();
       const { url } = (mockOpen.mock.calls[0] as unknown as [{ url: string }])[0];
       expect(new URL(url).searchParams.get("success_url")).toBe(`${NATIVE_RETURN_URL}?th_state=state-1`);
     });
   });
 
-  describe("openAuthorizePage", () => {
+  describe("goToAuthorizePage", () => {
     const successUrlSent = () => new URL(assign.mock.calls[0][0] as string).searchParams.get("success_url");
 
     it("carries the page's return route in hash mode", async () => {
       const { store, link } = setup();
-      await link.openAuthorizePage();
+      await link.goToAuthorizePage();
       expect(store.beginLink).toHaveBeenCalledWith("hero-1");
       expect(successUrlSent()).toBe(`https://app.forthexp.com/#${ROUTE}?th_state=state-1`);
     });
@@ -142,13 +142,13 @@ describe("useTownHallLink", () => {
     it("carries the page's return route in history mode", async () => {
       mockHash = false;
       const { link } = setup();
-      await link.openAuthorizePage();
+      await link.goToAuthorizePage();
       expect(successUrlSent()).toBe(`https://app.forthexp.com${ROUTE}?th_state=state-1`);
     });
 
     it("does nothing for a hero who is not a Game Master", async () => {
       const { store, announce, link } = setup(fakeStore(), false);
-      await link.openAuthorizePage();
+      await link.goToAuthorizePage();
       expect(store.beginLink).not.toHaveBeenCalled();
       expect(assign).not.toHaveBeenCalled();
       expect(announce).not.toHaveBeenCalled();
@@ -158,7 +158,7 @@ describe("useTownHallLink", () => {
       const store = fakeStore();
       (store.beginLink as jest.Mock).mockRejectedValueOnce(new Error("no storage"));
       const { announce, link } = setup(store);
-      await link.openAuthorizePage();
+      await link.goToAuthorizePage();
       expect(assign).not.toHaveBeenCalled();
       expect(announce).toHaveBeenCalledWith("failed");
     });

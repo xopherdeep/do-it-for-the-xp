@@ -36,7 +36,7 @@ export function useTownHallLink(options: TownHallLinkOptions) {
   const { store } = options;
 
   // The phone apps get the parent back from outside the page (main.ts hands what the app was opened with to the store),
-  // so the page follows the store's result. The web version announces its own return in completeReturn and has nothing to follow.
+  // so the page follows the store's result. The web version announces its own return in finishReturn and has nothing to follow.
   if (Capacitor.isNativePlatform()) {
     watch(
       () => store.lastLinkResult,
@@ -60,7 +60,7 @@ export function useTownHallLink(options: TownHallLinkOptions) {
    * to count. The web version leaves for the site's authorize page, which sends the parent back to the page that asked.
    * A phone app opens the page in the system browser instead and WordPress sends the parent back through the app's own address.
    */
-  const openAuthorizePage = async () => {
+  const goToAuthorizePage = async () => {
     if (!options.isGameMaster()) return;
     const site = townHallSiteUrl();
     const appName = connectionName(navigator.userAgent, Capacitor.getPlatform());
@@ -81,14 +81,14 @@ export function useTownHallLink(options: TownHallLinkOptions) {
     }
   };
 
-  const removeLink = () => store.unlink();
+  const unlink = () => store.unlink();
 
   /**
    * Coming back from WordPress's "authorize this app" page, the new password rode in the address. The app took it out of
    * the address bar and the history when it started (pendingReturn.ts, before the router read the address); this checks
    * it and says how it went. True when the visit was a return; false for an ordinary visit, which the page may use as it likes.
    */
-  const completeReturn = async (): Promise<boolean> => {
+  const finishReturn = async (): Promise<boolean> => {
     const search = takeLinkReturn();
     await loadLink();
     const isOrdinaryVisit = search === null;
@@ -105,5 +105,5 @@ export function useTownHallLink(options: TownHallLinkOptions) {
     return true;
   };
 
-  return { loadLink, openAuthorizePage, removeLink, completeReturn };
+  return { loadLink, goToAuthorizePage, unlink, finishReturn };
 }

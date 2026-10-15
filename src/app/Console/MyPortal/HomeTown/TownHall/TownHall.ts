@@ -27,6 +27,7 @@ import {
   chatbubblesOutline,
 } from "ionicons/icons";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { courierLatePrompt } from "@/lib/services/hometown/hometownPrompts";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
@@ -177,15 +178,20 @@ export default defineComponent({
       }, {});
     });
 
-    // The clerk's counter and the family's registration. Posts are signed on the public site with a nickname of the hero's own,
-    // never their real name (see signingName)
-    const { reveal, posting, completeVisit } = useTownHallClerk({
+    const reveal = useRevealPrompt();
+
+    // The clerk's counter: the menu, the compose sheet, the hero's waiting list, and sending the queue whenever there is a chance to
+    // Posts are signed on the public site: a nickname of the hero's own, never their real name (see signingName)
+    const heroName = () => signingName(userStore.getUserById(props.userId)?.name);
+    const clerk = useTownHallClerk({
       store: townHall,
+      reveal,
       userId: () => props.userId,
-      heroName: () => signingName(userStore.getUserById(props.userId)?.name),
+      heroName,
       isGameMaster: () => canAccessGameMaster(),
       route: () => router.currentRoute.value.path,
       currentBoard: () => boardSlug.value,
+      // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
       profilesReady: async () => {
         const hasNoProfiles = Object.keys(userStore.users).length === 0;
         if (hasNoProfiles) await userStore.loadUsers();
@@ -210,7 +216,7 @@ export default defineComponent({
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
 
     onMounted(loadQuestBoard);
-    onMounted(completeVisit);
+    onMounted(clerk.finishLinkReturn);
 
     return {
       tabs: TABS,
@@ -222,17 +228,17 @@ export default defineComponent({
       groupedEvents,
       stats,
       onTrouble,
-      waiting: posting.waiting,
-      composeSpec: posting.composeSpec,
-      composeOpen: posting.composeOpen,
-      composeSending: posting.sending,
-      composeTrouble: posting.trouble,
-      openComment: posting.openComment,
-      openEdit: posting.openEdit,
-      closeCompose: posting.closeCompose,
-      openClerkMenu: posting.openClerkMenu,
-      sendDraft: posting.sendDraft,
-      dismissPost: posting.dismissPost,
+      waiting: clerk.posting.waiting,
+      composeSpec: clerk.posting.composeSpec,
+      composeOpen: clerk.posting.composeOpen,
+      composeSending: clerk.posting.sending,
+      composeTrouble: clerk.posting.trouble,
+      openComment: clerk.posting.openComment,
+      openEdit: clerk.posting.openEdit,
+      closeCompose: clerk.posting.closeCompose,
+      openClerkMenu: clerk.posting.openClerkMenu,
+      sendDraft: clerk.posting.sendDraft,
+      dismissPost: clerk.posting.dismissPost,
       openFamilyChat,
       newsTab,
       boardTab,
