@@ -86,7 +86,7 @@ export interface UseTempleRoomNavigationReturn {
 export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): UseTempleRoomNavigationReturn {
   const ionRouter = useIonRouter();
   // Back from a room goes back, or up to the temple's rooms when the editor was opened with no history behind it
-  const { back } = useBack();
+  const { stepBack: back } = useBack();
   const store = useTempleCreatorStore();
   
   const adjacentRooms = ref<AdjacentRooms>({ 

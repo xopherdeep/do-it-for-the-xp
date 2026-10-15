@@ -38,8 +38,8 @@ export default defineComponent({
     const boxStyle = computed(() => (props.size ? { width: `${props.size}px`, height: `${props.size}px` } : {}));
     const label = computed(() => `Your hero, ${props.look.outfit} outfit`);
 
-    const snapshot = (size = 256, framing: SnapshotFraming = "bust"): string => scene.snapshot(size, framing);
-    const flick = (velocity?: number): void => scene.flick(velocity);
+    const snapshot = (size = 256, framing: SnapshotFraming = "bust"): string => scene.createSnapshot(size, framing);
+    const flick = (velocity?: number): void => scene.applyFlick(velocity);
     expose({ snapshot, flick });
 
     return { canvasRef, boxStyle, label, snapshot, flick };

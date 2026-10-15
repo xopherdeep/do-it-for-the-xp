@@ -10,7 +10,7 @@ export const useUserActions = () => {
   const route = useRoute()
   const gameStore = useGameStore()
   const userStore = useUserStore()
-  const { maybeAddMerchantToActionsIfInArea } = useTravelingMerchant()
+  const { addMerchantActionIfInArea } = useTravelingMerchant()
 
   const userId = computed(() => route.params.userId as string)
   const user = computed(() => userStore.getUserById(userId.value))
@@ -25,7 +25,7 @@ export const useUserActions = () => {
     const actions = [...baseActions]
 
     // Add merchant if applicable
-    maybeAddMerchantToActionsIfInArea({ actions, area })
+    addMerchantActionIfInArea({ actions, area })
 
     // Commit to store
     setUserActions(actions)

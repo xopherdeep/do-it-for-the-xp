@@ -157,8 +157,8 @@ export default defineComponent({
 
     type EngineStats = { budget: number; fps: number } | null;
     const readStats = (): EngineStats => {
-      const engine = weatherRef.value?.engine as { stats?: () => EngineStats } | undefined;
-      return engine?.stats ? engine.stats() : null;
+      const engine = weatherRef.value?.engine as { getStats?: () => EngineStats } | undefined;
+      return engine?.getStats ? engine.getStats() : null;
     };
 
     const tick = (now: number) => {

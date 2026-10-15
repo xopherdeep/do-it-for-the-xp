@@ -25,8 +25,8 @@ export interface WizardDot {
 
 /**
  * The thin Vue side of wizardSteps.ts: the rules stay there, this only reads them against the live steps, draft and
- * index. `index` is a writable ref the caller owns (XpWizardShell keeps it behind a v-model), and `next` / `back` /
- * `jumpTo` move it and say whether they did.
+ * index. `index` is a writable ref the caller owns (XpWizardShell keeps it behind a v-model), and `next` / `prev` /
+ * `selectStep` move it and say whether they did.
  */
 export function useWizardSteps<Draft>(
   steps: MaybeRefOrGetter<readonly WizardStep<Draft>[]>,
@@ -65,19 +65,19 @@ export function useWizardSteps<Draft>(
   };
 
   /** One step back over skipped steps; false on the first step (the shell closes instead). */
-  const back = (): boolean => {
+  const prev = (): boolean => {
     if (isFirst.value) return false;
     index.value = previousIndex(all(), current(), index.value);
     return true;
   };
 
   /** To a step that is already valid (and so are all before it); false when the dot may not be tapped. */
-  const jumpTo = (target: number): boolean => {
+  const selectStep = (target: number): boolean => {
     const landed = jumpIndex(all(), current(), index.value, target);
     if (landed === index.value) return false;
     index.value = landed;
     return true;
   };
 
-  return { step, progress, ready, isFirst, isLast: isFinal, canNext: canGoNext, blockedBy: reason, dots, next, back, jumpTo };
+  return { step, progress, isReady: ready, isFirst, isLast: isFinal, canNext: canGoNext, blockedBy: reason, dots, next, prev, selectStep };
 }

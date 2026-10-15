@@ -83,7 +83,7 @@ describe("the small-key counter of the temple screen", () => {
     const { vm, unmount } = screen(id, [0, 1]);
     const before = vm.keyPulse;
 
-    vm.processChestItems(["key"]);
+    vm.claimChestItems(["key"]);
 
     expect(vm.playerKeys).toBe(1);
     expect(temples.getTempleState(id)?.playerKeys).toBe(1);
@@ -138,7 +138,7 @@ describe("the small-key counter of the temple screen", () => {
     temples.getTempleState(id)!.playerKeys = 3; // saved progress arriving, a bomb, anything that changes the state
     expect(vm.playerKeys).toBe(3);
 
-    vm.processChestItems(["key"]);
+    vm.claimChestItems(["key"]);
     expect(temples.getTempleState(id)?.playerKeys).toBe(4);
     expect(vm.playerKeys).toBe(4);
     unmount();
@@ -149,7 +149,7 @@ describe("the small-key counter of the temple screen", () => {
     const { vm, unmount } = screen(id, [0, 2]);
     const before = vm.keyPulse;
 
-    vm.replayKeyPulse();
+    vm.playKeyPulse();
 
     expect(vm.keyPulse).toBe(before + 1);
     expect(vm.playerKeys).toBe(0);

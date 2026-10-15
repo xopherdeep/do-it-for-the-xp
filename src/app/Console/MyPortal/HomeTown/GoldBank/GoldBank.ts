@@ -267,7 +267,7 @@ export default defineComponent({
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
     // Leaving the bank goes back, or up to Home Town when the bank was opened with no history behind it
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
     // The banker talks, offers and answers in the game's own dialog, not in native alerts
     const reveal = useRevealPrompt();
     // The banker's words follow the hero's voice (simple, adventure or classic)

@@ -312,7 +312,7 @@ const props = defineProps<{ id?: string }>();
 
 // Shops sell goods: the form wears the goods accent of the phone apps, with cream text
 const { rootClass, rootStyle } = useAppSkin("goods");
-const { back: goBack } = useBack();
+const { stepBack: goBack } = useBack();
 const ionRouter = useIonRouter();
 const itemSelection = useItemSelectionStore();
 const accessoriesDb = new AccessoriesDb(accessoriesStorage);

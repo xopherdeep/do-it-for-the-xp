@@ -186,7 +186,7 @@ export default defineComponent({
       stopQuestWatch = null;
     });
     // The hero's hands: read from the profile, saved on every change (shared with the temples)
-    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(userId));
+    const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(userId));
 
     const say = async (message: string, duration = 1800) => {
       const toast = await toastController.create({ message, duration, position: "top", cssClass: "rpg-toast" });

@@ -158,10 +158,10 @@ const {
   dungeonCanvas,
   canvasWidth,
   canvasHeight,
-  drawRoom,
+  showRoom,
   exportBackground,
   initCanvasResizeHandling,
-  resizeCanvas
+  updateCanvasSize
 } = useCanvasRenderer();
 
 // Redraw the current room
@@ -193,7 +193,7 @@ const redrawRoom = (styleChange?: { type: string; value: string }) => {
   const temple = templeData.value[selectedTemple.value];
   const room = getCurrentRoom();
   
-  drawRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
+  showRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
 };
 
 // Get appropriate header for each room type
@@ -404,7 +404,7 @@ const {
   canMoveDown,
   canMoveLeft,
   canMoveRight,
-  moveDirection
+  stepDirection
 } = useNavigation(templeData, selectedTemple, currentPosition, isValidRoom);
 
 // Handle movement between rooms
@@ -416,7 +416,7 @@ const handleMove = (direction: Direction) => {
   }
 
   // Attempt to move
-  const success = moveDirection(direction, isDoorLocked);
+  const success = stepDirection(direction, isDoorLocked);
   
   // If movement was successful, update room info and redraw
   if (success) {
@@ -440,7 +440,7 @@ onMounted(() => {
   const cleanup = initCanvasResizeHandling();
   
   // Resize canvas to fit current window dimensions
-  resizeCanvas();
+  updateCanvasSize();
   
   // Load the initial temple and draw the room
   loadSelectedTemple().then(() => {

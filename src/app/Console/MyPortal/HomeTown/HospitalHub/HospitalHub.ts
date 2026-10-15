@@ -225,7 +225,7 @@ export default defineComponent({
   setup() {
     const userStore = useUserStore();
     // Leaving goes back, or up to Home Town when the hospital was opened with no history behind it
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
     // Nurse Joy talks, asks and answers in the game's own dialog, not in native alerts
     const reveal = useRevealPrompt();
     // Nurse Joy's words follow the hero's voice (simple, adventure or classic)

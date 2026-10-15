@@ -81,7 +81,7 @@ export default defineComponent({
 
     // The quest app's purple, cream text on it (the Beast wizard wears it too); the shop item wizard wears Goods red
     const { rootClass, rootStyle } = useAppSkin("quests");
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
 
     // Destructure form to make them available to template
     const {

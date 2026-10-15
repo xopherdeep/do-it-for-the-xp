@@ -20,9 +20,9 @@ export interface HeroSceneOptions {
 
 export interface HeroScene {
   /** Render one frame at size x size with a transparent background into a PNG data URL ("" when WebGL is missing) */
-  snapshot: (size?: number, framing?: SnapshotFraming) => string;
+  createSnapshot: (size?: number, framing?: SnapshotFraming) => string;
   /** Spin the hero with a kick that coasts to a stop (radians per second; the default is about one turn) */
-  flick: (velocity?: number) => void;
+  applyFlick: (velocity?: number) => void;
   dispose: () => void;
   /** False when WebGL could not start; the canvas stays blank */
   supported: Ref<boolean>;
@@ -265,13 +265,13 @@ export function useHeroScene(
     sync();
   };
 
-  const snapshot = (size = 256, framing: SnapshotFraming = "bust"): string => {
+  const createSnapshot = (size = 256, framing: SnapshotFraming = "bust"): string => {
     if (!renderer || !hero || !scene) return "";
     return renderHeroSnapshot(renderer, scene, hero, size, framing);
   };
 
   // 20 rad/s with the 0.04^dt friction in tick coasts 20 / -ln(0.04) = about 6.2 rad: one turn
-  const flick = (velocity = 20): void => {
+  const applyFlick = (velocity = 20): void => {
     spin = velocity;
   };
 
@@ -323,5 +323,5 @@ export function useHeroScene(
   onMounted(init);
   onBeforeUnmount(dispose);
 
-  return { snapshot, flick, dispose, supported };
+  return { createSnapshot, applyFlick, dispose, supported };
 }

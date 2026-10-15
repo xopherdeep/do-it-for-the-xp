@@ -53,7 +53,7 @@ jest.mock("@ionic/vue", () => ({
   useIonRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 jest.mock("vue-router", () => ({ useRoute: () => ({ params: {}, query: {} }) }));
-jest.mock("@/hooks/useBack", () => ({ useBack: () => ({ back: mockBack }) }));
+jest.mock("@/hooks/useBack", () => ({ useBack: () => ({ stepBack: mockBack }) }));
 jest.mock("@/lib/databases/ProfileDb", () => {
   class MockProfileDb {
     getAll = jest.fn().mockResolvedValue([]);

@@ -63,7 +63,7 @@ export const usePowerTimers = (heroId: Readonly<Ref<string>>, options: { quiet?:
   watch([now, heroId], sayTimeUp);
 
   /** Hand the time back before it runs out (the hero, or a Game Master on the dashboard) */
-  const endEarly = (abilityId: string, endedBy = "") => {
+  const stopEarly = (abilityId: string, endedBy = "") => {
     const ended = endPowerTimer(heroId.value, abilityId, endedBy);
     if (ended) play$fx("cursor");
     return ended;
@@ -75,5 +75,5 @@ export const usePowerTimers = (heroId: Readonly<Ref<string>>, options: { quiet?:
   });
   onBeforeUnmount(stopTicking);
 
-  return { timers, endEarly, now };
+  return { timers, stopEarly, now };
 };

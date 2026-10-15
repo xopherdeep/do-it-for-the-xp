@@ -343,7 +343,7 @@ const props = defineProps<{ id?: string }>();
 
 // Items are goods: the form wears the goods accent of the phone apps, with cream text
 const { rootClass, rootStyle } = useAppSkin("goods");
-const { back: goBack } = useBack();
+const { stepBack: goBack } = useBack();
 const userStore = useUserStore();
 const accessoryDb = new AccessoriesDb(accessoriesStorage);
 

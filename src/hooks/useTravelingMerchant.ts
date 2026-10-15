@@ -18,7 +18,7 @@ export const useTravelingMerchant = () => {
 
   const isMerchantInArea = (area: string) => isMerchantIn(area)
 
-  const goToMerchantShop = () => {
+  const openMerchantShop = () => {
     router.push({
       name: "shop",
       params: {
@@ -29,10 +29,10 @@ export const useTravelingMerchant = () => {
 
   const merchantAction = computed(() => ({
     ...merchant,
-    click: goToMerchantShop
+    click: openMerchantShop
   }))
 
-  function maybeAddMerchantToActionsIfInArea(payload: { actions: any[], area: string }) {
+  function addMerchantActionIfInArea(payload: { actions: any[], area: string }) {
     if (isMerchantInArea(payload.area)) {
       payload.actions.push(merchantAction.value)
     }
@@ -43,7 +43,7 @@ export const useTravelingMerchant = () => {
     areaWhereMerchantIs,
     isMerchantInArea,
     merchantAction,
-    maybeAddMerchantToActionsIfInArea,
-    goToMerchantShop
+    addMerchantActionIfInArea,
+    openMerchantShop
   }
 }

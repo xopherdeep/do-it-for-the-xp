@@ -134,7 +134,7 @@ export default defineComponent({
     const audio = useBattleAudio();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
-    const { equipment, leftHandItem, rightHandItem, reload: reloadHands } = useHeroEquipment(ctx.userId);
+    const { equipment, leftHandItem, rightHandItem, refresh: reloadHands } = useHeroEquipment(ctx.userId);
     const hero = computed(() => userStore.getUserById(ctx.userId));
     const heroLook = computed(() => hero.value?.look);
     const heroAnimation = ref<HeroAnimation>("idle");

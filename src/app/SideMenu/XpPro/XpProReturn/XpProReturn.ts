@@ -11,7 +11,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const router = useRouter();
-    const { back } = useBack();
+    const { stepBack: back } = useBack();
     const pro = useProStore();
     const timedOut = ref(false);
 

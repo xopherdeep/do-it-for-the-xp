@@ -154,7 +154,7 @@ const skin = props.accent ? useAppSkin(props.accent) : undefined;
 const rootClass = computed(() => skin?.rootClass.value ?? []);
 const rootStyle = computed(() => skin?.rootStyle.value);
 
-const { step, progress, isFirst, isLast, canNext, blockedBy, dots, next, back, jumpTo } = useWizardSteps(
+const { step, progress, isFirst, isLast, canNext, blockedBy, dots, next, prev, selectStep } = useWizardSteps(
   () => props.steps,
   () => props.draft,
   place
@@ -180,7 +180,7 @@ const dropKeyboard = () => {
 
 const onBack = () => {
   play$fx("cursor");
-  if (!back()) emit("close");
+  if (!prev()) emit("close");
 };
 
 const onNext = () => {
@@ -202,7 +202,7 @@ const onDot = (target: number) => {
   if (!props.jumpable) return;
   play$fx("cursor");
   dropKeyboard();
-  jumpTo(target);
+  selectStep(target);
 };
 </script>
 

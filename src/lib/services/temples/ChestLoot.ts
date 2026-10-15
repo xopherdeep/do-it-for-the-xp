@@ -1,6 +1,6 @@
 /**
  * What a temple chest holds, as the chest reveal shows it: a name, an icon, one line about what it does and how
- * rare it is. `value` is the token `processChestItems` takes back (the item's name, the dungeon item, or
+ * rare it is. `value` is the token `claimChestItems` takes back (the item's name, the dungeon item, or
  * `gold:<amount>`), so a reveal never has to know how the loot is stored.
  */
 import type { RoomContent } from '@/lib/engine/core/dungeons/types';

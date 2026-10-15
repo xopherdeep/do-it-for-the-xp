@@ -27,7 +27,7 @@ export function useCanvasRenderer() {
   };
 
   // Draw the room based on its type and current styles
-  const drawRoom = (
+  const showRoom = (
     ctx: CanvasContext, 
     temple: Temple | undefined, 
     position: [number, number], 
@@ -1116,7 +1116,7 @@ export function useCanvasRenderer() {
   };
 
   // Handle canvas resize
-  const resizeCanvas = () => {
+  const updateCanvasSize = () => {
     if (!dungeonCanvas.value) return;
     
     // Use window dimensions
@@ -1130,11 +1130,11 @@ export function useCanvasRenderer() {
 
   // Set up resize handler
   const initCanvasResizeHandling = () => {
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', updateCanvasSize);
     
     // Return cleanup function
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', updateCanvasSize);
     };
   };
 
@@ -1143,9 +1143,9 @@ export function useCanvasRenderer() {
     canvasWidth,
     canvasHeight,
     showRoomTypeLabel,
-    drawRoom,
+    showRoom,
     exportBackground,
-    resizeCanvas,
+    updateCanvasSize,
     initCanvasResizeHandling
   };
 }

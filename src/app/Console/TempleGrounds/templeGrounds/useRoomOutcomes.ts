@@ -28,7 +28,7 @@ import type { useTempleLayout } from './useTempleLayout';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
 
 export interface RoomOutcomeDeps
-  extends Pick<TempleState, 'currentPosition' | 'currentLevel' | 'displayMessage' | 'handleTeleport'> {
+  extends Pick<TempleState, 'currentPosition' | 'currentLevel' | 'showTempleMessage' | 'handleTeleport'> {
   props: TempleGroundsProps;
   userStore: ReturnType<typeof useUserStore>;
   router: Router;
@@ -65,7 +65,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     templeSystem,
     currentPosition,
     currentLevel,
-    displayMessage,
+    showTempleMessage,
     handleTeleport,
     say,
     fx,
@@ -84,7 +84,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
   const startFight = () => {
     const heroId = props.userId || userStore.currentUser.id;
     if (!heroId) {
-      displayMessage('Choose a profile first');
+      showTempleMessage('Choose a profile first');
       return;
     }
     const [row, col] = currentPosition.value;
@@ -214,7 +214,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
         } else {
           // A circle with no partner anywhere leads nowhere
           fx('no');
-          displayMessage(CIRCLE_FIZZLES);
+          showTempleMessage(CIRCLE_FIZZLES);
         }
         break;
       case 'riddle': {
@@ -255,7 +255,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
   const showRoomActions = async () => {
     const live = liveContext();
     if (!live) {
-      displayMessage('Choose a profile first');
+      showTempleMessage('Choose a profile first');
       return;
     }
 

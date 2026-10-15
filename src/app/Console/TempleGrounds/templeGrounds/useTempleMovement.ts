@@ -18,7 +18,7 @@ export const resolveSwipeDirection = (dx: number, dy: number): 'north' | 'south'
 export interface TempleMovementDeps
   extends Pick<
     TempleState,
-    'currentPosition' | 'canMoveUp' | 'canMoveDown' | 'canMoveLeft' | 'canMoveRight' | 'isDoorLocked' | 'move'
+    'currentPosition' | 'canMoveUp' | 'canMoveDown' | 'canMoveLeft' | 'canMoveRight' | 'isDoorLocked' | 'stepTo'
   > {
   props: TempleGroundsProps;
   templeSystem: TempleSystem;
@@ -40,7 +40,7 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
     canMoveLeft,
     canMoveRight,
     isDoorLocked,
-    move,
+    stepTo,
     fx,
     updateBg,
     showLockedDoor,
@@ -111,7 +111,7 @@ export const useTempleMovement = (deps: TempleMovementDeps) => {
     updateBg(newCol, newRow);
 
     // THEN attempt to move in the game state
-    const result = move(direction);
+    const result = stepTo(direction);
 
     // If movement failed for some reason, revert the background position
     if (!result) {

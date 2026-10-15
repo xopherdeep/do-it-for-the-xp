@@ -46,7 +46,7 @@ export function useHeroEquipment(userId: Ref<string> | string) {
   watch(() => user.value?.id, () => load(), { immediate: true });
 
   /** Equip `item` into `hand` slot `index`, or clear the slot when `item` is null. */
-  const clickItem = (item: EquippedItem | null, hand: string, index = 0) => {
+  const setHandItem = (item: EquippedItem | null, hand: string, index = 0) => {
     const isClearingSlot = item === null && hand;
     if (isClearingSlot) {
       equipment.value = equipment.value.filter((i) => !(i.hand === hand && i.slotIndex === index));
@@ -67,5 +67,5 @@ export function useHeroEquipment(userId: Ref<string> | string) {
   const leftHandItem = computed<EquippedItem | null>(() => user.value?.equipment?.leftHand?.[0] || null);
   const rightHandItem = computed<EquippedItem | null>(() => user.value?.equipment?.rightHand?.[0] || null);
 
-  return { equipment, leftHandItem, rightHandItem, clickItem, reload: load };
+  return { equipment, leftHandItem, rightHandItem, setHandItem, refresh: load };
 }

@@ -380,8 +380,8 @@
       :wall="wallShown"
       :element="templeElement"
       :result="wallResult"
-      @bomb="blowShownWall"
-      @leave="leaveShownWall"
+      @bomb="triggerWallBlast"
+      @leave="closeShownWall"
       @done="finishShownWall"
     />
 

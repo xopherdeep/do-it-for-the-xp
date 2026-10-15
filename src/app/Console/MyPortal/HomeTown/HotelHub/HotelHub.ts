@@ -210,7 +210,7 @@ export default defineComponent({
   },
   setup() {
     const userStore = useUserStore();
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
     const reveal = useRevealPrompt();
     const t = useCopy();
     const { voice: words } = useVoice();

@@ -1,6 +1,6 @@
 <template>
   <div class="th-news">
-    <xp-loading v-if="loading && !items.length" />
+    <xp-loading v-if="isLoading && !items.length" />
 
     <!-- The courier is late and nothing has arrived yet: the clerk said so; this is the gap that stays -->
     <ion-card v-else-if="failed && !items.length" class="th-late" data-cy="th-late">
@@ -74,7 +74,7 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
+    <ion-button v-if="hasMore && !isLoading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
       Older news
     </ion-button>
   </div>
@@ -97,7 +97,7 @@ const emit = defineEmits<{ (event: "trouble"): void; (event: "comment", target: 
 const items = ref<NewsItem[]>([]);
 const page = ref(1);
 const hasMore = ref(false);
-const { loading, failed, run } = useTownHallLoad(() => emit("trouble"));
+const { isLoading, failed, run } = useTownHallLoad(() => emit("trouble"));
 
 const loadPage = async (next: number) => {
   const result = await fetchNews(next);

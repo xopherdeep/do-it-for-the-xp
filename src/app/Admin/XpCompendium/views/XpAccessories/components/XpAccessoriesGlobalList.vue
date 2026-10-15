@@ -217,7 +217,7 @@
     setup() {
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
-      const { back } = useBack();
+      const { stepBack: back } = useBack();
       const timers = useTimers();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);

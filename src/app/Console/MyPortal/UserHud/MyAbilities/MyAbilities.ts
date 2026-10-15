@@ -73,7 +73,7 @@ export default defineComponent({
     const t = useCopy();
     // The phone app skin (Retro / Modern follows the profile toggle) with the purple Spells accent
     const { rootClass, rootStyle } = useAppSkin("spells");
-    const { abilities, isLoading, isInitialized, useAbility: castPower, refresh } = useAbilitySystem();
+    const { abilities, isLoading, isReady, triggerAbility: castPower, refresh } = useAbilitySystem();
 
     // The hero is the route's user, or whoever is playing when the route names no one
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
@@ -211,7 +211,7 @@ export default defineComponent({
     onIonViewWillEnter(() => {
       now.value = new Date();
       void loadLastCasts();
-      if (isInitialized.value) void refresh();
+      if (isReady.value) void refresh();
     });
     onMounted(() => void loadLastCasts());
     watch(heroId, () => void loadLastCasts());
