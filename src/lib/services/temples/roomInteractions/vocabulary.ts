@@ -122,8 +122,16 @@ export const ENCOUNTER_LINES: Record<string, string> = {
 };
 
 /** The same lines with the beast named in them: "A Mustwisp approaches!" instead of a nameless monster. */
+/** "A Mustwisp", "An Ooze Lord", "The Laundry Heap": the article a beast's name takes. */
+const withArticle = (name: string): string => {
+  const hasOwnArticle = /^the\s/i.test(name);
+  if (hasOwnArticle) return name;
+  const startsWithVowel = /^[aeiou]/i.test(name);
+  return `${startsWithVowel ? 'An' : 'A'} ${name}`;
+};
+
 const NAMED_ENCOUNTER_LINES: Record<string, (name: string) => string> = {
-  monster: (name) => `${/^the\s/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'An ' : 'A '}${name} approaches!`,
+  monster: (name) => `${withArticle(name)} approaches!`,
   miniboss: (name) => `${name} blocks the way!`,
   boss: (name) => `${name} rises to fight!`,
 };
@@ -135,8 +143,9 @@ const NAMED_ENCOUNTER_LINES: Record<string, (name: string) => string> = {
 export const nameTheEncounter = (header: string, beastName: string | undefined): { title: string; named: boolean } => {
   const tier = Object.keys(ENCOUNTER_LINES).find((key) => ENCOUNTER_LINES[key] === header);
   const name = beastName?.trim();
-  if (!tier || !name) return { title: header, named: false };
-  return { title: NAMED_ENCOUNTER_LINES[tier](name), named: true };
+  const isNamable = Boolean(tier && name);
+  if (!isNamable) return { title: header, named: false };
+  return { title: NAMED_ENCOUNTER_LINES[tier as string](name as string), named: true };
 };
 
 // --- room kinds and toast text ---------------------------------------------------------------------

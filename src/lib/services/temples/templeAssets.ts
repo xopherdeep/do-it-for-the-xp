@@ -15,7 +15,8 @@ type ImageContext = {
 let floorContext: ImageContext | null | undefined;
 
 function getFloorContext(): ImageContext | null {
-  if (floorContext !== undefined) return floorContext;
+  const isContextRead = floorContext !== undefined;
+  if (isContextRead) return floorContext ?? null;
   try {
     floorContext = require.context(
       "@/assets/images/backgrounds",
@@ -29,7 +30,8 @@ function getFloorContext(): ImageContext | null {
 }
 
 function moduleToUrl(mod: unknown): string {
-  if (typeof mod === "string") return mod;
+  const isUrl = typeof mod === "string";
+  if (isUrl) return mod;
   const value = mod && typeof mod === "object" ? (mod as { default?: unknown }).default : undefined;
   return typeof value === "string" ? value : "";
 }
@@ -48,7 +50,8 @@ const cellOf = (key: string): [number, number] | null => {
  */
 export function templeFloorKeys(temple: string, near: [number, number] = [0, 0]): string[] {
   const context = getFloorContext();
-  if (!context || !temple) return [];
+  const hasNoFloors = !context || !temple;
+  if (hasNoFloors) return [];
   const prefix = `./${temple}/`;
   const distance = (key: string) => {
     const cell = cellOf(key);
@@ -112,7 +115,8 @@ export function preloadImages(urls: string[], options: PreloadOptions = {}): Pro
   const total = unique.length;
   let done = 0;
   onProgress?.(done, total);
-  if (total === 0) return Promise.resolve();
+  const isNothingToLoad = total === 0;
+  if (isNothingToLoad) return Promise.resolve();
   const all = Promise.all(
     unique.map((url) =>
       loadOnce(url, loader).then(() => {
@@ -136,7 +140,8 @@ export function areImagesLoaded(urls: string[]): boolean {
 /** Starts fetching a temple's floors in the background, for a temple whose door is on screen. */
 export function prefetchTemple(temple: string, loader?: ImageLoader): void {
   const urls = templeFloorUrls(temple);
-  if (urls.length === 0) return;
+  const hasNoFloors = urls.length === 0;
+  if (hasNoFloors) return;
   void preloadImages(urls, { loader, timeoutMs: 60000 });
 }
 

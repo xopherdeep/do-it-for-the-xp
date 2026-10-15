@@ -12,7 +12,7 @@
       <p class="temple-loading__name">{{ name || 'The Temple' }}</p>
       <p class="temple-loading__line">Lighting the torches<span class="temple-loading__dots" /></p>
       <div class="temple-loading__bar" :aria-label="`${done} of ${total} rooms ready`">
-        <span class="temple-loading__fill" :style="{ width: `${percent}%` }" />
+        <span class="temple-loading__fill" :style="{ '--fill': `${percent}%` }" />
       </div>
     </div>
   </transition>
@@ -20,15 +20,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { TempleLoadingProps } from "./templeLoading";
 
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    name?: string;
-    element?: string;
-    done?: number;
-    total?: number;
-  }>(),
+  defineProps<TempleLoadingProps>(),
   { name: "", element: "wind", done: 0, total: 0 }
 );
 
@@ -98,6 +93,7 @@ const percent = computed(() => (props.total > 0 ? Math.round((props.done / props
 
   &__fill {
     display: block;
+    width: var(--fill, 0%);
     height: 100%;
     background: repeating-linear-gradient(90deg, var(--glow) 0 8px, transparent 8px 10px);
     transition: width 0.2s steps(4);

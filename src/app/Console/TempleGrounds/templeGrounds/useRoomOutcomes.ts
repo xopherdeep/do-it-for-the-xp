@@ -284,10 +284,12 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
     const exitSprite = isEntrance ? { runs: dungeonExitRuns(element), width: EXIT_W, height: EXIT_H } : undefined;
 
+    // The entrance words its own line; a named encounter needs none, since the name is in the title
+    const encounterSubtitle = encounter.named ? undefined : monsterSubtitle;
     openChoiceReveal({
       kind: isEntrance ? 'exit' : 'sheet',
       title: encounter.title,
-      subtitle: isEntrance ? sheet.subHeader : encounter.named ? undefined : monsterSubtitle,
+      subtitle: isEntrance ? sheet.subHeader : encounterSubtitle,
       body: sheet.body,
       art: isEntrance ? undefined : monsterArt,
       sprite: exitSprite,
