@@ -53,7 +53,8 @@
   }>();
 
   const pick = (id: LookTabId) => {
-    if (id !== props.modelValue) emit("update:modelValue", id);
+    const isNewTab = id !== props.modelValue;
+    if (isNewTab) emit("update:modelValue", id);
   };
 </script>
 

@@ -56,9 +56,7 @@ export default defineComponent({
     };
 
     const handleAction = (action: Action) => {
-      if (action.click) {
-        action.click();
-      }
+      action.click?.();
       emit('action', action.id);
     };
 

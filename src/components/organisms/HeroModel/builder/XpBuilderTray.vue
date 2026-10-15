@@ -192,13 +192,15 @@
   };
 
   const pickStyle = (option: string) => {
-    if (props.tab.styles) change(props.tab.styles.key, option);
+    const styles = props.tab.styles;
+    if (styles) change(styles.key, option);
   };
 
   const pickColour = (key: keyof HeroLook, value: string) => change(key, value);
 
   const pickMode = (mode: Mode) => {
-    if (mode !== props.mode) emit("update:mode", mode);
+    const isNewMode = mode !== props.mode;
+    if (isNewMode) emit("update:mode", mode);
   };
 </script>
 

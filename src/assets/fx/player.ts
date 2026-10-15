@@ -10,6 +10,9 @@ export const isAutoplayBlocked = (err: { name?: string; message?: string }): boo
   return err.name === 'NotAllowedError' || message.includes('interact') || message.includes('user activation');
 };
 
+/** The sound has no source the browser can play: nothing to report */
+const isNotSupported = (err: { name?: string }): boolean => err.name === 'NotSupportedError';
+
 export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolean }) => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
 
@@ -54,7 +57,8 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
         soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.sfxVolume * audioEngine.state.masterVolume;
 
         // Handle stop action
-        if (options?.stop) {
+        const isStopRequest = options?.stop;
+        if (isStopRequest) {
           soundFx.pause();
           soundFx.currentTime = 0;
           soundFx.loop = false;
@@ -62,12 +66,14 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
         }
 
         // Handle loop action
-        if (options?.loop) {
+        const isLoopRequest = options?.loop;
+        if (isLoopRequest) {
           soundFx.loop = true;
           // Only play if not already playing to avoid stutter
-          if (soundFx.paused) {
+          const isPaused = soundFx.paused;
+          if (isPaused) {
             soundFx.play().catch((err: any) => {
-              if (err.name === 'NotSupportedError') return; // Suppress
+              if (isNotSupported(err)) return; // Suppress
               debug.warn('RPG Sound loop playback was prevented:', err);
             });
           }
@@ -80,7 +86,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
         // Monophonic playback for others
         soundFx.play().catch((err: any) => {
           debug.warn('RPG Sound playback was prevented:', err);
-          if (err.name === 'NotSupportedError') {
+          if (isNotSupported(err)) {
             // Suppress NotSupportedError (no supported sources)
             return;
           }

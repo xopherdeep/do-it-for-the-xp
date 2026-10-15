@@ -89,7 +89,8 @@ const reachOf = (root: THREE.Object3D): number => {
     const mesh = node as THREE.Mesh;
     const isLeftOut = !mesh.isMesh || mesh.name === "shadow";
     if (isLeftOut) return;
-    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const isUnmeasured = !mesh.geometry.boundingBox;
+    if (isUnmeasured) mesh.geometry.computeBoundingBox();
     const bounds = mesh.geometry.boundingBox;
     if (!bounds) return;
     for (const x of [bounds.min.x, bounds.max.x]) {
@@ -198,7 +199,8 @@ export const stepFrame = (
   duration = 0.3,
 ): { frame: Frame; done: boolean } => {
   const k = duration > 0 ? Math.min(1, Math.max(0, (now - startedAt) / duration)) : 1;
-  if (k >= 1) return { frame: to, done: true };
+  const isLanded = k >= 1;
+  if (isLanded) return { frame: to, done: true };
   return { frame: lerpFrame(from, to, easeOutCubic(k)), done: false };
 };
 

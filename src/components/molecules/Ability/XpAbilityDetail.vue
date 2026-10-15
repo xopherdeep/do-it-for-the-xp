@@ -226,7 +226,8 @@ export default defineComponent({
     };
     
     const getActionLabel = () => {
-      if (props.abilityStatus === AbilityStatus.Locked) {
+      const isLocked = props.abilityStatus === AbilityStatus.Locked;
+      if (isLocked) {
         return 'Locked';
       }
       
@@ -236,7 +237,8 @@ export default defineComponent({
         return 'Already Used';
       }
       
-      if (props.availableMp < props.ability.mpCost) {
+      const isShortOfMp = props.availableMp < props.ability.mpCost;
+      if (isShortOfMp) {
         return 'Not Enough MP';
       }
       
@@ -265,7 +267,8 @@ export default defineComponent({
     };
     
     const formatPeriod = (period: TimePeriod) => {
-      if (period === TimePeriod.Flat) {
+      const isFlat = period === TimePeriod.Flat;
+      if (isFlat) {
         return 'total';
       }
       return formatFrequency(period).toLowerCase();
@@ -301,10 +304,11 @@ export default defineComponent({
     };
     
     const getScalingBonus = () => {
-      if (!props.ability.scaling) return 0;
+      const scaling = props.ability.scaling;
+      if (!scaling) return 0;
       
-      const attributeValue = props.characterStats[props.ability.scaling.attribute] || 0;
-      return Math.round(attributeValue * props.ability.scaling.rate * 100);
+      const attributeValue = props.characterStats[scaling.attribute] || 0;
+      return Math.round(attributeValue * scaling.rate * 100);
     };
     
     const getScalingWidth = () => {

@@ -160,7 +160,8 @@ export default defineComponent({
     };
 
     const handleMuteChange = (event: CustomEvent) => {
-      if (event.detail.checked) {
+      const isMuteOn = event.detail.checked;
+      if (isMuteOn) {
         audio.mute();
       } else {
         audio.unmute();

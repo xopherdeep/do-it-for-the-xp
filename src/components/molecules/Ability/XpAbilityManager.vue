@@ -294,7 +294,8 @@
       const toggleViewMode = () => {
         const newMode = props.viewMode === "list" ? "grid" : "list";
         emit("view-mode-change", newMode);
-        if (newMode === "grid") {
+        const isSwitchingToGrid = newMode === "grid";
+        if (isSwitchingToGrid) {
           calculateConnections();
         }
       };
@@ -397,9 +398,10 @@
       };
 
       const getClassNameFromAbility = (ability: Ability): string => {
-        if (ability.characterRequirement?.class) {
+        const classRequirement = ability.characterRequirement?.class;
+        if (classRequirement) {
           // Return the first class requirement
-          return Object.keys(ability.characterRequirement.class)[0] || "";
+          return Object.keys(classRequirement)[0] || "";
         }
         return "";
       };
@@ -412,18 +414,22 @@
         return true;
       };
 
+      // An ability with no place on the board yet gets a random one
+      const ensurePosition = (ability: Ability) => {
+        ability.position ??= {
+          x: Math.floor(Math.random() * 800),
+          y: Math.floor(Math.random() * 600),
+        };
+        return ability.position;
+      };
+
       const getNodeStyle = (ability: Ability) => {
         // Return style for positioning the node in grid view
-        if (!ability.position) {
-          ability.position = {
-            x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600),
-          };
-        }
+        const position = ensurePosition(ability);
 
         return {
-          left: `${ability.position.x}px`,
-          top: `${ability.position.y}px`,
+          left: `${position.x}px`,
+          top: `${position.y}px`,
         };
       };
 
@@ -464,12 +470,7 @@
 
         props.abilities.forEach((ability) => {
           // Initialize position if it doesn't exist
-          if (!ability.position) {
-            ability.position = {
-              x: Math.floor(Math.random() * 800),
-              y: Math.floor(Math.random() * 600),
-            };
-          }
+          ensurePosition(ability);
 
           const prerequisiteIds = ability.prerequisites;
           const hasPrerequisites = prerequisiteIds && prerequisiteIds.length > 0;
@@ -478,12 +479,7 @@
               const prereq = props.abilities.find((a) => a.id === prereqId);
               if (prereq) {
                 // Initialize position for prereq if it doesn't exist
-                if (!prereq.position) {
-                  prereq.position = {
-                    x: Math.floor(Math.random() * 800),
-                    y: Math.floor(Math.random() * 600),
-                  };
-                }
+                ensurePosition(prereq);
 
                 // TypeScript needs to know both positions are now defined
                 const abilityPosition = ability.position!;
@@ -557,7 +553,8 @@
 
       const handleZoom = (event) => {
         event.preventDefault();
-        if (event.deltaY < 0) {
+        const isScrollingUp = event.deltaY < 0;
+        if (isScrollingUp) {
           zoomIn();
         } else {
           zoomOut();
@@ -573,16 +570,11 @@
 
       const getMiniNodeStyle = (ability: Ability) => {
         // Initialize position if it doesn't exist
-        if (!ability.position) {
-          ability.position = {
-            x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600),
-          };
-        }
+        const position = ensurePosition(ability);
 
         return {
-          left: `${ability.position.x / 10}px`,
-          top: `${ability.position.y / 10}px`,
+          left: `${position.x / 10}px`,
+          top: `${position.y / 10}px`,
         };
       };
 
@@ -596,9 +588,11 @@
         };
       };
 
+      const isShowingGrid = () => props.viewMode === "grid";
+
       // Effects
       onMounted(() => {
-        if (props.viewMode === "grid") {
+        if (isShowingGrid()) {
           calculateConnections();
         }
       });
@@ -606,7 +600,7 @@
       watch(
         () => props.abilities,
         () => {
-          if (props.viewMode === "grid") {
+          if (isShowingGrid()) {
             calculateConnections();
           }
         },
@@ -616,7 +610,7 @@
       watch(
         () => props.unlockStatuses,
         () => {
-          if (props.viewMode === "grid") {
+          if (isShowingGrid()) {
             calculateConnections();
           }
         },

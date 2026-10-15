@@ -33,12 +33,14 @@
       number: function () {
         clearInterval(this.interval);
 
-        if (this.number == this.displayNumber) {
+        const isSettled = this.number == this.displayNumber;
+        if (isSettled) {
           return;
         }
 
         this.interval = window.setInterval(()=>{
-            if (this.displayNumber != this.number) {
+            const isCounting = this.displayNumber != this.number;
+            if (isCounting) {
               var change = (this.number - this.displayNumber) / 10;
 
               change = change >= 0 ? Math.ceil(change) : Math.floor(change);

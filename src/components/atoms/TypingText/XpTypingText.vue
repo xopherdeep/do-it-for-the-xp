@@ -76,6 +76,9 @@ export default defineComponent({
     let accumulatedTime: number = 0;
     const startDelayTimeout = ref<number | null>(null);
 
+    const isSoundOn = () => props.playSound;
+    const isAutoStart = () => props.autoStart;
+
     const typeNextChar = (timestamp: number) => {
       const isTypingOnHold = !isTyping.value || isPaused.value;
       if (isTypingOnHold) {
@@ -90,16 +93,19 @@ export default defineComponent({
 
       accumulatedTime += deltaTime;
 
-      if (accumulatedTime >= props.speed) {
+      const isCharDue = accumulatedTime >= props.speed;
+      if (isCharDue) {
         // How many characters to type in this frame (handle lag spikes)
         // With looping sound, we can type as fast as needed without audio issues
         let charsToType = Math.floor(accumulatedTime / props.speed);
         
         // Cap catch-up to 5 chars per frame to prevent freezing/massive jumps
-        if (charsToType > 5) charsToType = 5; 
+        const isCatchUpTooBig = charsToType > 5;
+        if (isCatchUpTooBig) charsToType = 5; 
         
         while (charsToType > 0 && isTyping.value) {
-           if (charIndex.value < props.text.length) {
+           const hasCharsLeft = charIndex.value < props.text.length;
+           if (hasCharsLeft) {
             const char = props.text[charIndex.value];
             displayedText.value += char;
 
@@ -116,7 +122,7 @@ export default defineComponent({
              isTyping.value = false;
              
              // Stop looping sound when finished
-             if (props.playSound) {
+             if (isSoundOn()) {
                 play$fx(props.soundType, { stop: true });
              }
              
@@ -173,7 +179,7 @@ export default defineComponent({
       charIndex.value = 0;
       
       // Stop sound if resetting
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
     };
@@ -189,7 +195,7 @@ export default defineComponent({
       isTyping.value = false;
       
       // Stop sound
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
       
@@ -199,7 +205,7 @@ export default defineComponent({
     const pauseTyping = () => {
       isPaused.value = true;
       // Stop sound when paused
-      if (props.playSound) {
+      if (isSoundOn()) {
          play$fx(props.soundType, { stop: true });
       }
     };
@@ -226,14 +232,14 @@ export default defineComponent({
     // Watch for text changes and restart animation
     watch(() => props.text, () => {
       resetTyping();
-      if (props.autoStart) {
+      if (isAutoStart()) {
         startTyping();
       }
     });
 
     // Start typing on mount if autoStart is true
     onMounted(() => {
-      if (props.autoStart) {
+      if (isAutoStart()) {
         startTyping();
       }
       

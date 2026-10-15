@@ -60,13 +60,16 @@ const emit = defineEmits<{
 const activeTab = computed(() => props.modelValue || props.active || "");
 
 const hasPositiveBadge = (badge?: number | string | null): boolean => {
-  if (badge === null || badge === undefined) return false;
-  if (typeof badge === "number") return badge > 0;
+  const isMissing = badge === null || badge === undefined;
+  if (isMissing) return false;
+  const isCount = typeof badge === "number";
+  if (isCount) return badge > 0;
   return Boolean(String(badge).trim());
 };
 
 const selectTab = (id: string) => {
-  if (id === activeTab.value) return;
+  const isAlreadyActive = id === activeTab.value;
+  if (isAlreadyActive) return;
   play$fx("select");
   emit("update:modelValue", id);
   emit("change", id);

@@ -60,14 +60,17 @@ defineOptions({
 const displayValue = computed(() => {
   const hasNoValue = props.value === undefined || props.value === null;
   if (hasNoValue) return '';
-  if (typeof props.value === 'number') {
-    return props.value.toLocaleString();
+  const value = props.value;
+  const isNumber = typeof value === 'number';
+  if (isNumber) {
+    return value.toLocaleString();
   }
   return props.value;
 });
 
 const handleClick = () => {
-  if (props.clickable) {
+  const isClickable = props.clickable;
+  if (isClickable) {
     emit('click');
   }
 };

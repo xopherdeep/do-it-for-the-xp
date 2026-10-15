@@ -84,7 +84,8 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
   }
 
   webGlCheckAttempted = true;
-  if (typeof document === "undefined") {
+  const hasNoDocument = typeof document === "undefined";
+  if (hasNoDocument) {
     isWebGlAvailable = false;
     return null;
   }
@@ -137,11 +138,14 @@ export const isLandmarkWebGLSupported = (): boolean => {
 };
 
 const buildClientMesh = (client: LandmarkClient): void => {
-  if (client.mesh) {
-    client.group.remove(client.mesh);
-    client.mesh.geometry.dispose();
-    if (client.mesh.material instanceof THREE.Material) {
-      client.mesh.material.dispose();
+  const oldMesh = client.mesh;
+  if (oldMesh) {
+    client.group.remove(oldMesh);
+    oldMesh.geometry.dispose();
+    const oldMaterial = oldMesh.material;
+    const isSingleMaterial = oldMaterial instanceof THREE.Material;
+    if (isSingleMaterial) {
+      oldMaterial.dispose();
     }
     client.mesh = null;
   }
@@ -189,9 +193,10 @@ const frameClient = (client: LandmarkClient): void => {
   const camera = client.camera;
   let distance = client.cameraDistance;
   let target = { x: 0, y: client.cameraTargetY, z: 0 };
-  if (client.bounds) {
+  const bounds = client.bounds;
+  if (bounds) {
     const fit = fitCamera({
-      bounds: client.bounds,
+      bounds,
       aspect: camera.aspect,
       fov: client.fov,
       elevation: client.elevation,
@@ -317,11 +322,13 @@ const renderLoop = (currentTime = performance.now()): void => {
   let hasActiveClient = false;
 
   clients.forEach((client) => {
-    if (client.onScreen) {
+    const isOnScreen = client.onScreen;
+    if (isOnScreen) {
       if (needsFrames(client)) {
         hasActiveClient = true;
       }
-      if (client.dragging) {
+      const isDragging = client.dragging;
+      if (isDragging) {
         hasDraggingClient = true;
       }
     }
@@ -334,7 +341,8 @@ const renderLoop = (currentTime = performance.now()): void => {
 
   const minInterval = hasDraggingClient ? 16 : 33;
   const elapsed = currentTime - lastRenderTime;
-  if (elapsed < minInterval) {
+  const isTooSoon = elapsed < minInterval;
+  if (isTooSoon) {
     rafId = requestAnimationFrame(renderLoop);
     return;
   }
@@ -381,7 +389,8 @@ const onVisibilityChange = (): void => {
 };
 
 const attachPointerEvents = (client: LandmarkClient): (() => void) => {
-  if (!client.interactive) return () => {};
+  const isInteractive = client.interactive;
+  if (!isInteractive) return () => {};
 
   const onPointerDown = (event: PointerEvent): void => {
     const isOrganizing = isOrganizeMode.value;
@@ -527,17 +536,21 @@ export const registerLandmark = (
       client.cleanupEvents();
       client.resizeObserver?.disconnect();
       client.intersectionObserver?.disconnect();
-      if (client.mesh) {
-        client.group.remove(client.mesh);
-        client.mesh.geometry.dispose();
-        if (client.mesh.material instanceof THREE.Material) {
-          client.mesh.material.dispose();
+      const mesh = client.mesh;
+      if (mesh) {
+        client.group.remove(mesh);
+        mesh.geometry.dispose();
+        const material = mesh.material;
+        const isSingleMaterial = material instanceof THREE.Material;
+        if (isSingleMaterial) {
+          material.dispose();
         }
         client.mesh = null;
       }
       client.scene.clear();
       clients.delete(clientId);
-      if (clients.size === 0) {
+      const hasNoClients = clients.size === 0;
+      if (hasNoClients) {
         stopLoop();
       }
     },

@@ -288,7 +288,8 @@ const showCard = () => {
 
 const typeNext = () => {
   typed.value += 1;
-  if (typed.value < lineText.value.length) {
+  const hasMoreToType = typed.value < lineText.value.length;
+  if (hasMoreToType) {
     later(TYPE_EVERY_MS, typeNext);
     return;
   }
@@ -323,7 +324,8 @@ const start = () => {
   // The dialog holds the focus from the start, so Escape works while the shape is still charging
   nextTick(() => root.value?.focus({ preventScroll: true }));
 
-  if (reducedMotion()) {
+  const isMotionReduced = reducedMotion();
+  if (isMotionReduced) {
     announce();
     settle();
     return;
@@ -345,20 +347,23 @@ const start = () => {
   });
 };
 
+const isRevealing = (): boolean => phase.value !== "ready";
+
 /** A tap while the reveal is still playing shows everything at once; at the end it is the way on. */
 const tapAnywhere = () => {
-  if (phase.value !== "ready") {
+  if (isRevealing()) {
     burst();
     settle();
     return;
   }
-  if (performance.now() - readyAt < LEAVE_TAP_GUARD_MS) return;
+  const isTooSoonToLeave = performance.now() - readyAt < LEAVE_TAP_GUARD_MS;
+  if (isTooSoonToLeave) return;
   press();
 };
 
 /** The button: before the end it skips ahead; at the end it hands the hero back to the page, once. */
 const press = () => {
-  if (phase.value !== "ready") {
+  if (isRevealing()) {
     tapAnywhere();
     return;
   }

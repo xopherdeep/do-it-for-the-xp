@@ -53,12 +53,14 @@ export default defineComponent({
 
     const enableAudio = async () => {
       audioStore.bgm.is_on = true;
-      if (audioEngine.state.muted) {
+      const isMuted = audioEngine.state.muted;
+      if (isMuted) {
         audioEngine.unmute();
       }
       await audioEngine.resumeContext();
-      if (audioEngine.state.currentMusic) {
-        audioEngine.playMusic(audioEngine.state.currentMusic);
+      const currentMusic = audioEngine.state.currentMusic;
+      if (currentMusic) {
+        audioEngine.playMusic(currentMusic);
       }
     };
 
