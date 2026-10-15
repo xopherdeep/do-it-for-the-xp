@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { CanvasContext, Temple, RoomDefinition, Direction } from '../types';
 import debug from '@/lib/utils/debug';
 import { useStyleConfig } from './useStyleConfig';
@@ -1128,9 +1128,10 @@ export function useCanvasRenderer() {
     dungeonCanvas.value.height = canvasHeight.value;
   };
 
-  // Set up resize handler
+  // Set up resize handler, and size the canvas to the window now
   const initCanvasResizeHandling = () => {
     window.addEventListener('resize', updateCanvasSize);
+    updateCanvasSize();
     
     // Return cleanup function
     return () => {
@@ -1138,14 +1139,13 @@ export function useCanvasRenderer() {
     };
   };
 
+  const canvasSize = computed(() => ({ width: canvasWidth.value, height: canvasHeight.value }));
+
   return {
     dungeonCanvas,
-    canvasWidth,
-    canvasHeight,
-    showRoomTypeLabel,
+    canvasSize,
     showRoom,
     exportBackground,
-    updateCanvasSize,
     initCanvasResizeHandling
   };
 }

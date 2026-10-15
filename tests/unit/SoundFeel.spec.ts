@@ -11,7 +11,7 @@ jest.mock("@capacitor/haptics", () => ({
 import { Haptics } from "@capacitor/haptics";
 import { HAPTICS_KEY } from "@/lib/services/feedback/haptics";
 import { SOUND_FEELS, feelForSound, feelSound } from "@/lib/services/feedback/soundFeel";
-import { useBattleFeedback } from "@/app/Console/BattleField/composables/useBattleFeedback";
+import { useBattleBuzz, useBattleFeedback } from "@/app/Console/BattleField/composables/useBattleFeedback";
 
 class FakeAudio {
   constructor(public src?: unknown) {}
@@ -74,9 +74,10 @@ describe("the battle's buzzes", () => {
   it("go quiet when Vibration is off in Settings", () => {
     localStorage.setItem(HAPTICS_KEY, "off");
     const feedback = useBattleFeedback();
+    const buzz = useBattleBuzz();
     feedback.playHeroHit();
-    feedback.playBeastHit();
-    feedback.playVictory();
+    buzz.playBeastHit();
+    buzz.playVictory();
     expect(impact).not.toHaveBeenCalled();
     expect(notification).not.toHaveBeenCalled();
   });
@@ -84,7 +85,7 @@ describe("the battle's buzzes", () => {
   it("buzz when Vibration is on", () => {
     const feedback = useBattleFeedback();
     feedback.playHeroHit();
-    feedback.playVictory();
+    useBattleBuzz().playVictory();
     expect(impact).toHaveBeenCalledWith({ style: "HEAVY" });
     expect(notification).toHaveBeenCalledWith({ type: "SUCCESS" });
   });

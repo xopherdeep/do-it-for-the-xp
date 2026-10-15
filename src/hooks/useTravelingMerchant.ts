@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { isMerchantIn, merchantWorldOn } from '@/lib/services/shops/travelingMerchant'
+import { isMerchantIn } from '@/lib/services/shops/travelingMerchant'
 
 // Boobeedeedle turns up in a different world every day (src/lib/services/shops/travelingMerchant.ts);
 // the world pages show the balloon itself (XpTravelingMerchant), this hook offers the shop as a page action.
@@ -12,9 +12,6 @@ export const useTravelingMerchant = () => {
     faIcon: "wagon-covered",
     side: "bottom",
   }
-
-  // The page area the merchant is in today ("world-forest")
-  const areaWhereMerchantIs = computed(() => `world-${merchantWorldOn()}`)
 
   const isMerchantInArea = (area: string) => isMerchantIn(area)
 
@@ -39,11 +36,6 @@ export const useTravelingMerchant = () => {
   }
 
   return {
-    merchant,
-    areaWhereMerchantIs,
-    isMerchantInArea,
-    merchantAction,
-    addMerchantActionIfInArea,
-    openMerchantShop
+    addMerchantActionIfInArea
   }
 }

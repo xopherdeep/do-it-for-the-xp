@@ -70,17 +70,22 @@ export const useBattleAudio = () => {
     else if (!playing) playSound("win");
   };
 
+  return { playSound, startBattleBgm, startBossBgm, stopBgm, playVictory };
+};
+
+export type BattleAudio = ReturnType<typeof useBattleAudio>;
+
+/** The victory card's count-up: the points roll and the chime as each tile lands. */
+export const useTallySound = () => {
   /**
    * The points roll is one sustained sound (about four seconds), so the count-up starts it once and stops it when the
    * numbers are done; the card's three tiles overlap, so a tile landing early must not cut it for the others.
    */
-  const startTally = () => playSound("fillPoints");
+  const startTally = () => play$fx("fillPoints");
   const stopTally = () => play$fx("fillPoints", { stop: true });
 
   /** One chime as a tile lands its exact number (once for a tap that finishes the count early). */
-  const playLanding = (stat: TallyStat) => playSound(TALLY_LANDING[stat]);
+  const playLanding = (stat: TallyStat) => play$fx(TALLY_LANDING[stat]);
 
-  return { playSound, startBattleBgm, startBossBgm, stopBgm, playVictory, startTally, stopTally, playLanding };
+  return { startTally, stopTally, playLanding };
 };
-
-export type BattleAudio = ReturnType<typeof useBattleAudio>;

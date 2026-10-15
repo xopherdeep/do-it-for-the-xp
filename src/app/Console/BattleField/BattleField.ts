@@ -22,11 +22,11 @@ import { loadEncounter, type Encounter } from "./battle/encounterLoader";
 import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
 import { clearBattleProgress, loadBattleProgress, pruneBattleProgress, saveBattleProgress } from "./battle/battleProgress";
 import type { EnemyAnimation, HitPopup, VictoryCardState } from "./battle/battleView";
-import { useAtbDisplay } from "./composables/useAtbDisplay";
-import { useBattleAudio, type TallyStat } from "./composables/useBattleAudio";
+import { useAtbDisplay, useAttackClock } from "./composables/useAtbDisplay";
+import { useBattleAudio, useTallySound, type TallyStat } from "./composables/useBattleAudio";
 import { useBattleBackground } from "./composables/useBattleBackground";
 import { useBattleDialog } from "./composables/useBattleDialog";
-import { useBattleFeedback } from "./composables/useBattleFeedback";
+import { useBattleBuzz, useBattleFeedback } from "./composables/useBattleFeedback";
 import { useBattleOutcome, ESCAPE_FADE_MS } from "./composables/useBattleOutcome";
 import { stealFromHero } from "@/lib/services/battle/thiefEncounter";
 import BattleDialogBox from "./components/BattleDialogBox.vue";
@@ -132,8 +132,10 @@ export default defineComponent({
     let resolveVictory: (() => void) | null = null;
 
     const audio = useBattleAudio();
+    const tally = useTallySound();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
+    const buzz = useBattleBuzz();
     const { equipment, leftHandItem, rightHandItem, refresh: reloadHands } = useHeroEquipment(ctx.userId);
     const hero = computed(() => userStore.getUserById(ctx.userId));
     const heroLook = computed(() => hero.value?.look);
@@ -196,10 +198,10 @@ export default defineComponent({
     };
 
     /** The card counts the loot silently; the points roll runs while it counts and a chime rings as each number lands. */
-    const rollVictorySound = (on: boolean) => (on ? audio.startTally() : audio.stopTally());
+    const rollVictorySound = (on: boolean) => (on ? tally.startTally() : tally.stopTally());
     const landVictorySound = (stat: TallyStat) => {
-      audio.playLanding(stat);
-      feedback.playTick();
+      tally.playLanding(stat);
+      buzz.playTick();
     };
 
     const outcome = useBattleOutcome({
@@ -208,12 +210,13 @@ export default defineComponent({
       dialog,
       audio,
       background,
-      feedback,
+      feedback: buzz,
       enemyAnimationClass,
       router,
       presentVictory,
     });
-    const atb = useAtbDisplay(service, combatTasks, currentEnemy);
+    const atb = useAtbDisplay(combatTasks, currentEnemy);
+    const clock = useAttackClock(service);
 
     const isPlayerTurn = computed(() => service.value?.isPlayerTurn() ?? false);
     const showMenu = computed(
@@ -260,7 +263,7 @@ export default defineComponent({
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
     const sayItemResult = (result: { ok: boolean; line: string; sound: string }) => {
       audio.playSound(result.sound);
-      if (result.ok) feedback.playTap();
+      if (result.ok) buzz.playTap();
       if (result.line) dialog.addToQueue([{ text: result.line, auto: true }]);
     };
 
@@ -381,7 +384,7 @@ export default defineComponent({
         onAttack: (attacker) => {
           if (attacker !== "enemy") return;
           audio.playSound("preAttack");
-          feedback.playWindUp();
+          buzz.playWindUp();
           closeSheet();
           runConfirm.value = false;
           startNag();
@@ -601,7 +604,7 @@ export default defineComponent({
           faIcon: tackleIcon(hero.value?.jobClass),
           click: () => {
             audio.playSound("cursor");
-            feedback.playTap();
+            buzz.playTap();
             sheet.value = "task";
           },
         },
@@ -620,7 +623,7 @@ export default defineComponent({
           faIcon: POWERS_ICON,
           click: () => {
             audio.playSound("cursor");
-            feedback.playTap();
+            buzz.playTap();
             sheet.value = "powers";
           },
         },
@@ -630,7 +633,7 @@ export default defineComponent({
           faIcon: "backpack",
           click: () => {
             audio.playSound("cursor");
-            feedback.playTap();
+            buzz.playTap();
             sheet.value = "bag";
           },
         },
@@ -662,7 +665,7 @@ export default defineComponent({
       swingTimer = window.setTimeout(() => {
         if (!battleStarted.value) return;
         audio.playSound("attack");
-        feedback.playBeastHit();
+        buzz.playBeastHit();
         const engine = service.value;
         // Only a chore the engine still holds open pays back: it ignores one that is already done
         const isChoreOpen = engine?.getCombatTasks().some((task) => task.id === taskId && !task.isCompleted) ?? false;
@@ -675,11 +678,11 @@ export default defineComponent({
     };
 
     // The clock is felt, not just seen: it ticks for the last ten seconds
-    watch(atb.timerLabel, (label, previous) => {
-      const isSilentTick = !atb.timerCritical.value || !label || label === previous;
+    watch(clock.timerLabel, (label, previous) => {
+      const isSilentTick = !clock.timerCritical.value || !label || label === previous;
       if (isSilentTick) return;
       audio.playSound("cursor");
-      feedback.playTick();
+      buzz.playTick();
     });
 
     // Coming back to the phone: the deadline clock catches up at once instead of on the next throttled tick
@@ -730,9 +733,9 @@ export default defineComponent({
       enemySizeClass: atb.enemySizeClass,
       choresTotal: atb.choresTotal,
       choresLeft: atb.choresLeft,
-      timerPercent: atb.timerPercent,
-      timerLabel: atb.timerLabel,
-      timerCritical: atb.timerCritical,
+      timerPercent: clock.timerPercent,
+      timerLabel: clock.timerLabel,
+      timerCritical: clock.timerCritical,
       damagePerTask: atb.damagePerTask,
       lastHit,
       battleStarted,

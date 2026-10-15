@@ -35,6 +35,16 @@ export const useBattleFeedback = () => {
     flashTimer = window.setTimeout(() => (flashing.value = false), FLASH_MS);
   };
 
+  onUnmounted(() => {
+    window.clearTimeout(shakeTimer);
+    window.clearTimeout(flashTimer);
+  });
+
+  return { shaking, flashing, hitSignal, playHeroHit };
+};
+
+/** The other buzzes of a fight: the hero lands a hit, taps, the last ten seconds tick, the beast winds up, the win. */
+export const useBattleBuzz = () => {
   const playBeastHit = () => feel("grab");
   const playTap = () => feel("tap");
   /** One light pulse per second while the clock is in its last ten seconds. */
@@ -43,12 +53,9 @@ export const useBattleFeedback = () => {
   const playWindUp = () => feel("thud");
   const playVictory = () => feel("success");
 
-  onUnmounted(() => {
-    window.clearTimeout(shakeTimer);
-    window.clearTimeout(flashTimer);
-  });
-
-  return { shaking, flashing, hitSignal, playHeroHit, playBeastHit, playTap, playTick, playWindUp, playVictory };
+  return { playBeastHit, playTap, playTick, playWindUp, playVictory };
 };
+
+export type BattleBuzz = ReturnType<typeof useBattleBuzz>;
 
 export type BattleFeedback = ReturnType<typeof useBattleFeedback>;

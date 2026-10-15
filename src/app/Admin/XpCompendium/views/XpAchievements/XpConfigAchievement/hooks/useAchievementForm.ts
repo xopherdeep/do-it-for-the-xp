@@ -29,7 +29,7 @@ import debug from "@/lib/utils/debug";
 import { withoutEmptyTimes } from "./timesOfDayEditor";
 import { useProStore } from "@/lib/store/stores/pro";
 import { withoutUnsetMinutes } from "@/lib/services/quests/questFormRules";
-import { useQuestEffort } from "./useQuestEffort";
+import { useQuestEffort, useQuestTier } from "./useQuestEffort";
 import { useBeastSuggestion } from "./useBeastSuggestion";
 import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
 
@@ -407,6 +407,7 @@ export function useAchievementForm() {
 
   // The How hard? step's tier chip and minutes, and the chore step's suggested beast (docs/Quest-Rooms-Spec.md section 9)
   const effort = useQuestEffort(achievement);
+  const tier = useQuestTier(achievement);
   const { applySuggestedBeast, resetPick, ...suggestionForTabs } = useBeastSuggestion({
     achievement,
     beasts,
@@ -629,6 +630,7 @@ export function useAchievementForm() {
     fibonacciDescriptions,
     formatFibonacciValue,
     ...effort,
+    ...tier,
     ...suggestionForTabs,
     achievementTypes,
     assignmentTypes,

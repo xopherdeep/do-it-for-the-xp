@@ -18,8 +18,8 @@
       <div class="dungeon-designer">
         <canvas
           ref="dungeonCanvas"
-          :width="canvasWidth"
-          :height="canvasHeight"
+          :width="canvasSize.width"
+          :height="canvasSize.height"
           class="dungeon-canvas"
         ></canvas>
 
@@ -156,12 +156,10 @@ const styles = styleConfig;
 // Extract all needed canvas variables and functions
 const {
   dungeonCanvas,
-  canvasWidth,
-  canvasHeight,
+  canvasSize,
   showRoom,
   exportBackground,
-  initCanvasResizeHandling,
-  updateCanvasSize
+  initCanvasResizeHandling
 } = useCanvasRenderer();
 
 // Redraw the current room
@@ -436,11 +434,8 @@ const toggleControlsModal = () => {
 
 // Initialize
 onMounted(() => {
-  // Set up the canvas resize handler
+  // Set up the canvas resize handler; it also sizes the canvas to the window now
   const cleanup = initCanvasResizeHandling();
-  
-  // Resize canvas to fit current window dimensions
-  updateCanvasSize();
   
   // Load the initial temple and draw the room
   loadSelectedTemple().then(() => {

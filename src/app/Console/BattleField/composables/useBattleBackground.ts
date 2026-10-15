@@ -51,7 +51,7 @@ export const useBattleBackground = () => {
 
   onUnmounted(disposeBackground);
 
-  return { canvasRef, bg1, bg2, playEntrance, setLockedLayers, applyEnemy, playCollapse, disposeBackground };
+  return { canvasRef, setLockedLayers, applyEnemy, playCollapse };
 };
 
 export type BattleBackground = ReturnType<typeof useBattleBackground>;

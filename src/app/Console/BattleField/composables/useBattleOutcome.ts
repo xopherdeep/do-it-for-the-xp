@@ -17,7 +17,7 @@ import type { Encounter } from "../battle/encounterLoader";
 import type { BattleAudio } from "./useBattleAudio";
 import type { BattleBackground } from "./useBattleBackground";
 import type { BattleDialog, DialogItem } from "./useBattleDialog";
-import type { BattleFeedback } from "./useBattleFeedback";
+import type { BattleBuzz } from "./useBattleFeedback";
 
 export interface BattleOutcomeDeps {
   ctx: BattleContext;
@@ -25,7 +25,7 @@ export interface BattleOutcomeDeps {
   dialog: BattleDialog;
   audio: BattleAudio;
   background: BattleBackground;
-  feedback: BattleFeedback;
+  feedback: BattleBuzz;
   enemyAnimationClass: Ref<EnemyAnimation>;
   router: Router;
   /** Shows the victory card and resolves once the hero taps it away. */
