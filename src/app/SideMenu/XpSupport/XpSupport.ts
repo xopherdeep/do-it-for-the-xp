@@ -138,7 +138,8 @@ export default defineComponent({
       this.play$fx("select");
 
       // After 7 clicks, show the dev mode confirmation
-      if (this.helpIconClicks === 7) {
+      const isSeventhClick = this.helpIconClicks === 7;
+      if (isSeventhClick) {
         this.showDevModeConfirmation();
         this.helpIconClicks = 0; // Reset counter
       }

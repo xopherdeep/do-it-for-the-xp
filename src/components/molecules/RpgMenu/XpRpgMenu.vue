@@ -79,9 +79,7 @@ export default defineComponent({
   emits: ['action-click'],
   setup(props, { emit }) {
     const handleAction = (action: RpgMenuAction) => {
-      if (action.click) {
-        action.click();
-      }
+      action.click?.();
       emit('action-click', action);
     };
 

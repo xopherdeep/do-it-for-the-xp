@@ -163,7 +163,8 @@ export default defineComponent({
 
     const tick = (now: number) => {
       frames += 1;
-      if (now - lastSample >= 500) {
+      const isSampleDue = now - lastSample >= 500;
+      if (isSampleDue) {
         const stats = readStats();
         fps.value = stats && stats.fps > 0 ? Math.round(stats.fps) : Math.round((frames * 1000) / (now - lastSample));
         budget.value = stats ? stats.budget : null;
@@ -214,14 +215,15 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      if (typeof requestAnimationFrame === 'function') {
+      const hasAnimationFrames = typeof requestAnimationFrame === 'function';
+      if (hasAnimationFrames) {
         lastSample = performance.now();
         rafHandle = requestAnimationFrame(tick);
       }
     });
 
     onUnmounted(() => {
-      if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+      if (rafHandle) cancelAnimationFrame(rafHandle);
       if (statusTimer) clearTimeout(statusTimer);
     });
 

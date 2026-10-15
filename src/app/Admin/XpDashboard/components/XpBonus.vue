@@ -240,11 +240,15 @@ export default defineComponent({
       const xp = this.isPenalty ? 0 : Math.round(Number(this.xpPoints) || 0);
       const ap = this.isPenalty ? 0 : Math.round(Number(this.apPoints) || 0);
 
+      const hasGp = gp !== 0;
+      const hasXp = xp > 0;
+      const hasAp = ap > 0;
+
       // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
       for (const id of this.members as string[]) {
-        if (gp !== 0) await this.userStore.updateUserGP({ userId: id, wallet: gp });
-        if (xp > 0) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
-        if (ap > 0) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
+        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp });
+        if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
+        if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
       }
 
       const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
@@ -261,7 +265,8 @@ export default defineComponent({
       return this.isPenalty ? number * -1 : number;
     },
     toggleMember(userId: string) {
-      if (this.members.includes(userId)) {
+      const isMember = this.members.includes(userId);
+      if (isMember) {
         this.members = this.members.filter((id) => id !== userId);
       } else {
         this.members.push(userId);

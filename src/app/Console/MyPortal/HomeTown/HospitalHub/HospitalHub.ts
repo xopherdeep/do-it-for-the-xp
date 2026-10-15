@@ -51,7 +51,8 @@ export default defineComponent({
       return this.userStore.usersAz;
     },
     dialogBlocks() {
-      if (this.admissionBlocks.length) return this.admissionBlocks;
+      const hasAdmissionBlocks = this.admissionBlocks.length > 0;
+      if (hasAdmissionBlocks) return this.admissionBlocks;
       return [this.t("nurse.greet.welcome"), this.t("nurse.greet.adventure"), this.t("nurse.greet.services")];
     }
   },
@@ -66,11 +67,13 @@ export default defineComponent({
      * taken off the address, so coming back to this page later gets the ordinary welcome.
      */
     greetAdmittedHero() {
-      if (this.$route.query[ADMITTED_QUERY] !== "1") return;
+      const isAdmitted = this.$route.query[ADMITTED_QUERY] === "1";
+      if (!isAdmitted) return;
       this.$router.replace({ name: "hospital", params: { userId: this.userId } });
       const owed = hospitalBillOf(this.userStore.getUserById(this.userId)?.stats?.gp);
       const blocks = nurseAdmissionBlocks(takeAdmissionReceipt(this.userId)?.charge ?? null, owed);
-      if (!blocks.length) return;
+      const hasBlocks = blocks.length > 0;
+      if (!hasBlocks) return;
       this.admissionBlocks = blocks;
       this.showNurseDialog();
     },
@@ -90,12 +93,14 @@ export default defineComponent({
         this.admissionBlocks = [];
         for (;;) {
           const pick = (await this.reveal.showPrompt(nurseMenuPrompt(lines))) as NurseMenuId | "stay";
-          if (pick === "stay") return;
+          const isStaying = pick === "stay";
+          if (isStaying) return;
           if (isWalkAway(pick)) {
             this.walkAway(pick);
             return;
           }
-          if (pick === "bench") await this.handleBenchRest();
+          const isBenchRest = pick === "bench";
+          if (isBenchRest) await this.handleBenchRest();
           else await this.handleCare(pick);
           lines = [this.t("npc.more")];
         }
@@ -158,7 +163,8 @@ export default defineComponent({
         return;
       }
       const pick = await this.reveal.showPrompt(careConfirmPrompt(kind, this.words));
-      if (pick !== "yes") return;
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
       await this.payCoPay(kind);
     },
 
@@ -179,7 +185,9 @@ export default defineComponent({
       try {
         await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
         this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
-        if (quote.mpGain > 0) {
+        const hasMpGain = quote.mpGain > 0;
+        if (hasMpGain) {
+
           this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
         }
         this.play$fx(quote.mpGain > 0 ? "restoreAll" : "restoreHP");

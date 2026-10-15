@@ -40,7 +40,8 @@ export function tamedBeastsOf(
   const questsById = new Map(quests.map((quest) => [String(quest.id), quest]));
   const tamed = new Map<string, TamedBeast>();
   for (const entry of entries) {
-    if (entry.status !== "approved" || String(entry.userId) !== heroId) continue;
+    const isHeroTaming = entry.status === "approved" && String(entry.userId) === heroId;
+    if (!isHeroTaming) continue;
     const quest = questsById.get(String(entry.questId));
     if (!quest) continue;
     const beastId = questBeastId(quest);
@@ -48,7 +49,9 @@ export function tamedBeastsOf(
     const seen = tamed.get(beastId);
     if (seen) {
       seen.count += 1;
-      if (entry.completedAt > seen.lastTamedAt) seen.lastTamedAt = entry.completedAt;
+      const isNewerTaming = entry.completedAt > seen.lastTamedAt;
+      if (isNewerTaming) seen.lastTamedAt = entry.completedAt;
+
       continue;
     }
     const own = beasts.find((beast) => String(beast.id) === beastId);

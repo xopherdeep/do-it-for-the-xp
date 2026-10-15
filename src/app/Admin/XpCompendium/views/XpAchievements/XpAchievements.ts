@@ -120,12 +120,13 @@ export default defineComponent({
           achievement.assignee.includes(group.assignee)
         );
 
+        const assigneeIds = achievement.assignee;
         switch ((this as any).groupBy) {
           case "assignee":
             if (assignee) {
               assignee.achievements.push(achievement);
-            } else if (achievement.assignee) {
-              achievement.assignee.forEach((assignee: any) => {
+            } else if (assigneeIds) {
+              assigneeIds.forEach((assignee: any) => {
                 grouped.push({ assignee, achievements: [achievement] });
               });
             }
@@ -390,11 +391,14 @@ export default defineComponent({
         (b) => b.id === achievement.beastId
       );
       if (!beast) return null;
-      if (beast.imageUrl) return beast.imageUrl;
-      if (beast.localImage) return beast.localImage;
-      if (beast.avatar) {
+      const imageUrl = beast.imageUrl;
+      if (imageUrl) return imageUrl;
+      const localImage = beast.localImage;
+      if (localImage) return localImage;
+      const avatar = beast.avatar;
+      if (avatar) {
         try {
-          const pad = beast.avatar.toString().padStart(3, "0");
+          const pad = avatar.toString().padStart(3, "0");
           return require(`@/assets/images/beasts/${pad}.webp`);
         } catch {
           return null;
@@ -452,7 +456,8 @@ Feed the pets`,
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 
-      if (lines.length === 0) {
+      const hasNoLines = lines.length === 0;
+      if (hasNoLines) {
         return;
       }
 
@@ -502,11 +507,13 @@ Feed the pets`,
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
 
-      if (nameA < nameB) {
+      const isBefore = nameA < nameB;
+      if (isBefore) {
         return -1;
       }
 
-      if (nameA > nameB) {
+      const isAfter = nameA > nameB;
+      if (isAfter) {
         return 1;
       }
 
@@ -520,7 +527,8 @@ Feed the pets`,
     watch(
       () => route.path,
       async (newPath, oldPath) => {
-        if (newPath !== oldPath) {
+        const isRouteChanged = newPath !== oldPath;
+        if (isRouteChanged) {
           // Reload your component's data when the route changes
           achievements.value = await achievementDb.getAll();
         }

@@ -139,9 +139,7 @@
         if (canStartCounter) {
           // Reset and start after delay
           timers.startTimeout(props.animationDelay, () => {
-            if (counter.value?.start) {
-              counter.value.start();
-            }
+            counter.value?.start?.();
           });
         }
       };
@@ -159,9 +157,7 @@
         () => {
           if (props.isActive) {
             // Reset counter first if possible
-            if (counter.value?.reset) {
-              counter.value.reset();
-            }
+            counter.value?.reset?.();
             startCounter();
           }
         }
@@ -172,9 +168,7 @@
         () => props.isActive,
         (active) => {
           if (active) {
-            if (counter.value?.reset) {
-              counter.value.reset();
-            }
+            counter.value?.reset?.();
             startCounter();
           }
         }

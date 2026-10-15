@@ -110,7 +110,8 @@ export default defineComponent({
   },
 
   mounted() {
-    if (!this.startCounting) {
+    const isCountingDeferred = this.startCounting;
+    if (!isCountingDeferred) {
       this.beginCounter();
     }
   },

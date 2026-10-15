@@ -53,7 +53,8 @@ export const wallOffMissingSides = (
   adjacentRooms: AdjacentRooms
 ): void => {
   Object.keys(adjacentRooms).forEach(dir => {
-    if (!adjacentRooms[dir as keyof AdjacentRooms]) {
+    const hasNeighbour = adjacentRooms[dir as keyof AdjacentRooms];
+    if (!hasNeighbour) {
       sides[dir] = 'wall';
     }
   });
@@ -134,16 +135,15 @@ const syncNeighbourSide = (
   const isNeighborWallOrMissing = !neighborSymbol || isWallToken(neighborSymbol);
   if (isNeighborWallOrMissing) return;
 
-  if (!roomsData[neighborSymbol]) {
+  const hasOwnRecord = Boolean(roomsData[neighborSymbol]);
+  if (!hasOwnRecord) {
     if (!isCoordinateToken(neighborSymbol)) return;
 
     roomsData[neighborSymbol] = { type: 'empty' };
   }
 
   const neighborRoom = roomsData[neighborSymbol];
-  if (!neighborRoom.sides) {
-    neighborRoom.sides = defaultSides();
-  }
+  neighborRoom.sides ??= defaultSides();
 
   const oppositeDir = getOppositeDirection(dir);
   neighborRoom.sides[oppositeDir] = edgeType;

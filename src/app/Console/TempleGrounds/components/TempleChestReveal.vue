@@ -245,15 +245,18 @@ const glow = computed(() => {
 const title = computed(() => {
   if (waiting.value) return "A chest!";
   if (isEmpty.value) return "Empty...";
-  if (glow.value === "relic") return "A relic!";
+  const isRelic = glow.value === "relic";
+  if (isRelic) return "A relic!";
   return props.loot.length === 1 ? "You found..." : "Treasure!";
 });
 
 const takeLabel = computed(() => {
   const count = selected.value.size;
   // Nothing ticked: the button is disabled and only says "Take"; "Take all" is every row ticked
-  if (count === 0) return "Take";
-  if (count === props.loot.length) return props.loot.length === 1 ? "Take" : "Take all";
+  const isNoneTicked = count === 0;
+  if (isNoneTicked) return "Take";
+  const isEveryRowTicked = count === props.loot.length;
+  if (isEveryRowTicked) return props.loot.length === 1 ? "Take" : "Take all";
   return `Take ${count}`;
 });
 
@@ -269,7 +272,7 @@ const taking = (): string[] => props.loot.map((item) => item.value).filter((valu
 /** Once Take is pressed, the pieces not being taken stay behind in the chest. */
 const isLeftBehind = (value: string): boolean => exitMode.value === "take" && !taking().includes(value);
 
-const reducedMotion = (): boolean =>
+const wantsReducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const later = (ms: number, run: () => void) => {
@@ -337,7 +340,7 @@ const start = () => {
     nextTick(() => openButton.value?.focus({ preventScroll: true }));
     return;
   }
-  if (reducedMotion()) {
+  if (wantsReducedMotion()) {
     play$fx("openChest");
     // No rumbles without motion, but an empty chest still says so
     if (isEmpty.value) feel("warning");
@@ -349,9 +352,10 @@ const start = () => {
 
 /** Open was pressed on the shut chest: the lid sequence plays, then the take flow is exactly the one for any chest. */
 const openLid = () => {
-  if (phase.value !== "closed") return;
+  const isShut = phase.value === "closed";
+  if (!isShut) return;
   feel("tap");
-  if (reducedMotion()) {
+  if (wantsReducedMotion()) {
     play$fx("openChest");
     settle();
     return;
@@ -371,12 +375,14 @@ const skip = () => {
 };
 
 const toggle = (value: string) => {
-  if (phase.value !== "ready") {
+  const isReady = phase.value === "ready";
+  if (!isReady) {
     skip();
     return;
   }
   const next = new Set(selected.value);
-  if (next.has(value)) {
+  const isTicked = next.has(value);
+  if (isTicked) {
     next.delete(value);
     play$fx("cursor");
     feel("tick");
@@ -396,10 +402,12 @@ const toggle = (value: string) => {
 };
 
 const take = () => {
-  if (phase.value !== "ready") return;
+  const isReady = phase.value === "ready";
+  if (!isReady) return;
   const picked = taking();
   // Nothing is ticked: the button is disabled, and a take that gets here anyway takes nothing
-  if (picked.length === 0) return;
+  const isNothingPicked = picked.length === 0;
+  if (isNothingPicked) return;
   exitMode.value = "take";
   // In the chest's order, whatever order they were ticked in
   feel("success");

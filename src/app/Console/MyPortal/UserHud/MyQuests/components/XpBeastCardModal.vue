@@ -443,7 +443,9 @@ const announce = ({ awaitingApproval, levelUp, paid }: CompletionResult) => {
 };
 
 const claim = async () => {
-  if (!actions.value.canClaim || claiming.value) return;
+  const isClaimBlocked = !actions.value.canClaim || claiming.value;
+  if (isClaimBlocked) return;
+
   claiming.value = true;
   try {
     // The quest log is the source of truth, so a stale card can never pay out twice. Every hero's log: another

@@ -110,7 +110,8 @@ export function useTempleData() {
   };
 
   // Initialize with the first temple
-  if (Object.keys(templeData.value).length > 0) {
+  const hasTemples = Object.keys(templeData.value).length > 0;
+  if (hasTemples) {
     resetToEntrance();
   }
 

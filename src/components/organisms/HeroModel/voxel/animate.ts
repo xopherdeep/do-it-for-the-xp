@@ -175,7 +175,8 @@ const dance = (r: HeroRig, t: number): void => {
 /** One quick hop and a landing on the rest pose: what a picked option answers with */
 const HOP_SECONDS = 0.45;
 const hop = (r: HeroRig, t: number): void => {
-  if (t >= HOP_SECONDS) return; // landed: reset() already left the rest pose
+  const isLanded = t >= HOP_SECONDS;
+  if (isLanded) return; // landed: reset() already left the rest pose
   const air = Math.abs(s((Math.PI * t) / HOP_SECONDS)); // 0 on the ground, 1 at the top of the hop
   r.rig.position.y += 1.2 * air;
   r.parts.armL.rotation.z = 0.5 * air;

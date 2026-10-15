@@ -11,7 +11,8 @@ export const parseTempleJson = (jsonStr: string) => {
   const parsedData = JSON.parse(jsonStr);
 
   // Basic validation
-  if (!parsedData.id) throw new Error('Invalid JSON: templeId is required');
+  const hasTempleId = Boolean(parsedData.id);
+  if (!hasTempleId) throw new Error('Invalid JSON: templeId is required');
 
   return parsedData;
 };
@@ -23,7 +24,8 @@ export const parseTempleJson = (jsonStr: string) => {
 export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string, string[]>) => {
   return (token: string, rowIdx?: number, colIdx?: number): string => {
     // 1. Preserve specialized tokens that already match the 5-char coordinate format
-    if (/^[A-Za-z]\d{4}$/.test(token)) return token;
+    const isCoordToken = /^[A-Za-z]\d{4}$/.test(token);
+    if (isCoordToken) return token;
 
     let result = token;
 
@@ -78,11 +80,13 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
       const yy = rowIdx.toString().padStart(2, '0');
       const coordToken = prefix + xx + yy;
 
-      if (coordToken !== result) {
+      const isRenamed = coordToken !== result;
+      if (isRenamed) {
         // Two cells can share a legacy token (every "." is R000): each gets its own coordinate token, and the room
         // record is copied to all of them afterwards
         const coordTokens = tokenMapping.get(result) ?? [];
-        if (!coordTokens.includes(coordToken)) coordTokens.push(coordToken);
+        const isNewCoordToken = !coordTokens.includes(coordToken);
+        if (isNewCoordToken) coordTokens.push(coordToken);
         tokenMapping.set(result, coordTokens);
         result = coordToken;
       }
@@ -103,8 +107,10 @@ const rekeySharedRecords = (rooms: Record<string, any>) => {
   const entranceRecord = rooms[ENTRANCE_TOKEN] ?? rooms[entranceKeys[0]];
 
   [...wallKeys, ...entranceKeys].forEach((key) => delete rooms[key]);
-  if (wallKeys.length > 0) rooms[WALL_TOKEN] = { type: 'wall' };
-  if (entranceKeys.length > 0) rooms[ENTRANCE_TOKEN] = entranceRecord;
+  const hasWallRecords = wallKeys.length > 0;
+  const hasEntranceRecords = entranceKeys.length > 0;
+  if (hasWallRecords) rooms[WALL_TOKEN] = { type: 'wall' };
+  if (hasEntranceRecords) rooms[ENTRANCE_TOKEN] = entranceRecord;
 };
 
 /** Rewrites the maze tokens of the parsed temple in place and renames its room records to the new tokens */
@@ -113,8 +119,8 @@ export const normalizeImportedLayout = (parsedData: any) => {
   const tokenMapping = new Map<string, string[]>();
   const normalizeToken = createTokenNormalizer(parsedData, tokenMapping);
 
-  if (parsedData.dungeonLayout?.maze) {
-    const maze = parsedData.dungeonLayout.maze;
+  const maze = parsedData.dungeonLayout?.maze;
+  if (maze) {
     if (Array.isArray(maze)) {
       // Single floor maze
       parsedData.dungeonLayout.maze = maze.map((row: string[], rIdx: number) =>
@@ -131,8 +137,9 @@ export const normalizeImportedLayout = (parsedData: any) => {
   }
 
   // 5. IMPORTANT: Synchronize the rooms object keys with the new maze tokens
-  if (parsedData.dungeonLayout?.rooms && tokenMapping.size > 0) {
-    const oldRooms = parsedData.dungeonLayout.rooms;
+  const oldRooms = parsedData.dungeonLayout?.rooms;
+  const hasRenamedTokens = oldRooms && tokenMapping.size > 0;
+  if (hasRenamedTokens) {
     const newRooms: Record<string, any> = {};
 
     // Transfer all room definitions, renaming those redirected by normalizeToken. A record that several cells shared
@@ -142,7 +149,8 @@ export const normalizeImportedLayout = (parsedData: any) => {
       const newKeys = renamedTo ?? [key];
       newKeys.forEach((newKey) => {
         // If an old record already holds a new key (unlikely but possible), the first one wins
-        if (!newRooms[newKey]) {
+        const isUnclaimedKey = !newRooms[newKey];
+        if (isUnclaimedKey) {
           newRooms[newKey] = renamedTo ? JSON.parse(JSON.stringify(room)) : room;
         }
       });
@@ -152,5 +160,6 @@ export const normalizeImportedLayout = (parsedData: any) => {
     debug.log(`Normalized ${tokenMapping.size} room tokens in layout import.`);
   }
 
-  if (parsedData.dungeonLayout?.rooms) rekeySharedRecords(parsedData.dungeonLayout.rooms);
+  const rooms = parsedData.dungeonLayout?.rooms;
+  if (rooms) rekeySharedRecords(rooms);
 };

@@ -145,7 +145,8 @@ export default defineComponent({
         portraitUrl: beastPortraitUrl,
       };
       const draw = (rows: QuestListRow[]) => rows.map((row) => toLogRow(row, context));
-      if (this.view === "list") {
+      const isListView = this.view === "list";
+      if (isListView) {
         return this.listRows.length ? [{ key: "list", label: "", rows: draw(this.listRows) }] : [];
       }
       return sectionsByWindow(this.listRows, new Date()).map(({ key, label, rows }) => ({ key, label, rows: draw(rows) }));
@@ -155,8 +156,10 @@ export default defineComponent({
       return questPrefill(prefillQueryFor(new Date(), "all", String(this.userId)));
     },
     emptyLine(): string {
-      if (this.params.search) return this.t("quests.empty.search");
-      if (this.view === "tamed") return "No beasts tamed yet. Finish a quest to add its beast here.";
+      const isSearching = Boolean(this.params.search);
+      if (isSearching) return this.t("quests.empty.search");
+      const isTamedView = this.view === "tamed";
+      if (isTamedView) return "No beasts tamed yet. Finish a quest to add its beast here.";
       return this.view === "list" ? this.t("quests.empty.list") : this.t("quests.empty.board");
     },
   },
@@ -218,7 +221,8 @@ export default defineComponent({
     },
     viewChanged(ev: CustomEvent) {
       const view: QuestLogView = VIEWS.includes(ev.detail.value) ? ev.detail.value : "board";
-      if (view === this.view) return;
+      const isSameView = view === this.view;
+      if (isSameView) return;
       this.view = view;
       this.$fx.ui[this.$fx.theme.ui].select.play();
       try {
@@ -256,7 +260,8 @@ export default defineComponent({
       await sheet.present();
     },
     async finishRow(row: QuestListRow) {
-      if (this.finishing) return;
+      const isFinishing = Boolean(this.finishing);
+      if (isFinishing) return;
       this.finishing = row.id;
       try {
         // The quest log is the source of truth, so a stale row can never pay out twice. Every hero's log: another
@@ -337,7 +342,8 @@ export default defineComponent({
       await sheet.present();
     },
     runAction(id: QuestLogActionId) {
-      if (id === "new-quest") {
+      const isNewQuest = id === "new-quest";
+      if (isNewQuest) {
         this.wizardOpen = true;
         return;
       }
@@ -374,6 +380,7 @@ export default defineComponent({
 
     // Only the newest request may update the board, so a slow reload can't overwrite a fresher one
     let latestRequest = 0;
+    const isNewestRequest = (request: number) => request === latestRequest;
     const loadBoard = async () => {
       const request = ++latestRequest;
       try {
@@ -382,9 +389,10 @@ export default defineComponent({
         const items = await getQuestEngine().getQuestBoardForUser(props.userId, new Date(), {
           search: params.search,
         }, effects);
-        if (request === latestRequest) board.value = items;
+        if (isNewestRequest(request)) board.value = items;
       } finally {
-        if (request === latestRequest) isLoading.value = false;
+        if (isNewestRequest(request)) isLoading.value = false;
+
       }
     };
 

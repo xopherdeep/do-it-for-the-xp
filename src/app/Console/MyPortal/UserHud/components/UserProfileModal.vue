@@ -322,8 +322,9 @@ export default defineComponent({
 
     // Parse current avatar index from user
     const getCurrentAvatarIndex = () => {
-      if (!props.user?.avatar) return 1;
-      const match = props.user.avatar.match(/(\d+)/);
+      const avatar = props.user?.avatar;
+      if (!avatar) return 1;
+      const match = avatar.match(/(\d+)/);
       return match ? parseInt(match[1], 10) : 1;
     };
 
@@ -532,9 +533,10 @@ export default defineComponent({
     // Calculate progress within current level
     const xpValues = computed(() => {
       const stats = props.user?.stats;
-      if (!stats?.xp) return { inLevel: 0, needed: 100 };
+      const xp = stats?.xp;
+      if (!xp) return { inLevel: 0, needed: 100 };
 
-      const totalXp = stats.xp.now || stats.xp.current || 0;
+      const totalXp = xp.now || xp.current || 0;
       const level = currentLevel.value;
       const xpForCurrent = getXpForLevel(level);
       const xpForNext = getXpForLevel(level + 1);
@@ -550,7 +552,9 @@ export default defineComponent({
     // Experience Progress calculation
     const xpProgress = computed(() => {
       const { inLevel, needed } = xpValues.value;
-      if (needed <= 0) return 1; // maxed out
+      const isMaxedOut = needed <= 0;
+      if (isMaxedOut) return 1; // maxed out
+
       return Math.min(Math.max(inLevel / needed, 0), 1);
     });
 
@@ -578,8 +582,9 @@ export default defineComponent({
 
     // Check if a pillar is boosted by the user's current class
     const isPillarBoosted = (pillarName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
       if (!jobClass) return false;
       return (
         jobClass.primaryPillar === pillarName ||
@@ -589,8 +594,9 @@ export default defineComponent({
     };
 
     const isStatBoosted = (statName: string): boolean => {
-      if (!props.user?.jobClass) return false;
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
+      const className = props.user?.jobClass;
+      if (!className) return false;
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === className);
       const hasNoStatBoosts = !jobClass || !jobClass.statBoosts;
       if (hasNoStatBoosts) return false;
       return jobClass.statBoosts.some(boost => boost.stat === statName);

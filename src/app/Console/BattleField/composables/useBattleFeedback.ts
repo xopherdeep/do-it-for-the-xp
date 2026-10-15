@@ -26,7 +26,8 @@ export const useBattleFeedback = () => {
   const playHeroHit = () => {
     hitSignal.value += 1;
     feel("thud");
-    if (prefersReducedMotion()) return;
+    const isMotionReduced = prefersReducedMotion();
+    if (isMotionReduced) return;
     shaking.value = true;
     flashing.value = true;
     window.clearTimeout(shakeTimer);

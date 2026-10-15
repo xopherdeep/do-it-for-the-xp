@@ -22,16 +22,17 @@ export function useTempleIcon(templeId: string): UseTempleIconReturn {
   // Get icon from TEMPLE_METADATA - this is the source of truth
   const iconClass = computed(() => {
     // First check injected data for any custom icon
-    if (templeData?.temple?.value?.customIcon) {
-      const customIcon = templeData.temple.value.customIcon;
+    const customIcon = templeData?.temple?.value?.customIcon;
+    if (customIcon) {
       // Strip prefix if present
       return customIcon.replace(/^(fad|fas|fal|far)\s+/, '');
     }
     
     // Use registry metadata
     const meta = TEMPLE_METADATA[templeId];
-    if (meta?.icon) {
-      return meta.icon; // Already in "fa-wind" format
+    const icon = meta?.icon;
+    if (icon) {
+      return icon; // Already in "fa-wind" format
     }
     
     // Fallback to generic dungeon icon
@@ -52,8 +53,9 @@ export function useTempleIcon(templeId: string): UseTempleIconReturn {
  */
 export function getTempleIconClass(templeId: string): string {
   const meta = TEMPLE_METADATA[templeId];
-  if (meta?.icon) {
-    return meta.icon; // Already in "fa-wind" format
+  const icon = meta?.icon;
+  if (icon) {
+    return icon; // Already in "fa-wind" format
   }
   return 'fa-dungeon';
 }

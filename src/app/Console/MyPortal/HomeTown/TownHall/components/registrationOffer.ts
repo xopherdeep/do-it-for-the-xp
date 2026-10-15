@@ -29,6 +29,8 @@ export function registrationOffer(deps: RegistrationOfferDeps): () => Promise<vo
     if (!mayOffer) return;
     offered = true;
     const pick = await deps.reveal.showPrompt(unregisteredOutboxPrompt());
-    if (pick === "registration") await deps.registerFamily();
+    const wantsRegistration = pick === "registration";
+    if (wantsRegistration) await deps.registerFamily();
+
   };
 }

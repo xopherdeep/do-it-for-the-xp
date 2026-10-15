@@ -57,7 +57,8 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
     for (let row = 0; row < mazeData.length; row++) {
       for (let col = 0; col < mazeData[row].length; col++) {
         const roomKey = mazeData[row][col];
-        if (rooms.value[roomKey]?.type !== 'wall') {
+        const isOpenCell = rooms.value[roomKey]?.type !== 'wall';
+        if (isOpenCell) {
           coords.push(`[${row},${col}]`);
         } else {
           coords.push(`[0,0]`);
@@ -70,7 +71,9 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
 
   // Helper to get background images: only shipped temples have pre-rendered assets
   const getBgImage = (xy: string) => {
-    if (!props.temple || !(props.temple in TEMPLE_METADATA)) return '';
+    const temple = props.temple;
+    const hasPreRenderedArt = !!temple && temple in TEMPLE_METADATA;
+    if (!hasPreRenderedArt) return '';
     try {
       return require(`@/assets/images/backgrounds/${props.temple}/${xy}.webp`);
     } catch {
@@ -101,8 +104,10 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
       if (isSolidStone) return 'wall';
       const door = templeSystem.doorKind(props.temple, [row, col], side);
       // What the Game Master drew instead of a door: a wall, or a cracked wall a Bomb opens
-      if (door === 'wall' || door === 'bombable') return door;
-      if (door === 'master') return 'master';
+      const isDrawnWall = door === 'wall' || door === 'bombable';
+      if (isDrawnWall) return door;
+      const isMasterDoor = door === 'master';
+      if (isMasterDoor) return 'master';
       // The way into the boss room is the Boss door or an open one: the boss room's fight seal is no small lock on it
       if (isBossRoom(there)) return door === 'locked' ? 'locked' : 'door';
       const lockedHere = Boolean(here?.locked?.[side]);

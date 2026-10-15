@@ -41,7 +41,8 @@ export default dC({
 
       // Occasionally increase wind intensity
       windInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.7) { // 30% chance of wind gust
+        const isGust = Math.random() > 0.7;
+        if (isGust) { // 30% chance of wind gust
           const originalVolume = windAudio.value?.volume || 0.4;
 
           // Increase volume for wind gust

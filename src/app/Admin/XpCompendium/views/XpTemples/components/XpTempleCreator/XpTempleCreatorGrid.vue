@@ -118,7 +118,8 @@ export default defineComponent({
       // First check if CURRENT cell is a non-wall room
       const currentSymbol = props.maze[row]?.[col];
       const currentType = getCellType(currentSymbol);
-      if (currentType === 'wall') return false;
+      const isWall = currentType === 'wall';
+      if (isWall) return false;
       
       // Then check if neighbor exists and is non-wall
       let nRow = row;

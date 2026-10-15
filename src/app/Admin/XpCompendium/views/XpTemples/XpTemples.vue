@@ -234,9 +234,11 @@
         const keys = await templeStorage.keys();
         const found: TempleInterface[] = [];
         for (const key of keys) {
-          if (shipped.has(key)) continue;
+          const isShipped = shipped.has(key);
+          if (isShipped) continue;
           const data = await templeDb.getTempleById(key);
-          if (data?.dungeonLayout) found.push(data);
+          const isCustomTemple = !!data?.dungeonLayout;
+          if (isCustomTemple) found.push(data);
         }
         customTemples.value = found.sort((a, b) => (a.customName || a.name || a.id).localeCompare(b.customName || b.name || b.id));
       };
@@ -311,7 +313,8 @@
 
       // Temple Creator is XP Pro: making a temple (by hand or from a seed) opens the upsell for a free family
       const openGenerator = async () => {
-        if (!(await pro.requirePro("templeCreator"))) return;
+        const hasPro = await pro.requirePro("templeCreator");
+        if (!hasPro) return;
         play$fx("openMenu");
         generatorOpen.value = true;
       };
@@ -366,7 +369,8 @@
               icon: createOutline,
               cssClass: "action-create",
               handler: async () => {
-                if (!(await pro.requirePro("templeCreator"))) return;
+                const hasPro = await pro.requirePro("templeCreator");
+                if (!hasPro) return;
                 // A real id from the first tap: every save (the Creator's, the General card's) writes under the id of
                 // its route, and the old placeholder "new" was the same for every temple, so a second one overwrote the first
                 goToTempleCreator(mintTempleId());

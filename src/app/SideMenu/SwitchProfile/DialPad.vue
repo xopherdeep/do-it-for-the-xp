@@ -253,7 +253,8 @@
 
       const dismiss = async () => {
         play$fx("select");
-        if (typeof modalController?.dismiss === "function") {
+        const canDismiss = typeof modalController?.dismiss === "function";
+        if (canDismiss) {
           await modalController.dismiss();
         }
       };
@@ -277,7 +278,8 @@
           alertIncorrectPasscode();
         } else {
           play$fx("yes");
-          if (typeof toastController?.create === "function") {
+          const canToast = typeof toastController?.create === "function";
+          if (canToast) {
             const toast = await toastController.create({
               message: "Profile unlocked",
               duration: 1500,
@@ -287,7 +289,8 @@
           }
 
           timers.startTimeout(300, () => {
-            if (typeof modalController?.dismiss === "function") {
+            const canDismiss = typeof modalController?.dismiss === "function";
+            if (canDismiss) {
               modalController.dismiss(props.profile);
             }
           });
@@ -318,7 +321,8 @@
       };
 
       const alertIncorrectPasscode = async () => {
-        if (typeof alertController?.create === "function") {
+        const canAlert = typeof alertController?.create === "function";
+        if (canAlert) {
           const alert = await alertController.create({
             mode: "ios",
             header: "Passcode Incorrect",

@@ -334,7 +334,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   });
 
   const loadBestiary = async () => {
-    if (store.cachedBestiary.length > 0) {
+    const hasCachedBestiary = store.cachedBestiary.length > 0;
+    if (hasCachedBestiary) {
       allBeasts.value = store.cachedBestiary;
       return;
     }
@@ -348,7 +349,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const allShops = ref<ShopOption[]>([]);
 
   const loadShops = async () => {
-    if (store.cachedShops.length > 0) {
+    const hasCachedShops = store.cachedShops.length > 0;
+    if (hasCachedShops) {
       allShops.value = store.cachedShops;
       return;
     }
@@ -359,14 +361,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   const selectShop = (shopId: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.shopId = shopId;
+    const content = ensureContent(roomData.value);
+    content.shopId = shopId;
   };
 
   const selectEggPegasus = (pegasusId: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.dungeon = pegasusId;
+    const content = ensureContent(roomData.value);
+    content.dungeon = pegasusId;
   };
 
   const floors = computed(() => sortedFloorKeys(store.templeMaze));
@@ -386,12 +388,13 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       try {
         await ensureBuiltInTemples();
         const existingTemple = await templeDb.getTempleById(props.templeId);
-        if (existingTemple?.dungeonLayout) {
-          const layout = existingTemple.dungeonLayout;
+        const layout = existingTemple?.dungeonLayout;
+        if (layout) {
 
           // Load rooms data
-          if (layout.rooms) {
-            Object.entries(layout.rooms).forEach(([symbol, data]) => {
+          const layoutRooms = layout.rooms;
+          if (layoutRooms) {
+            Object.entries(layoutRooms).forEach(([symbol, data]) => {
               store.roomsData[symbol] = data as Room;
             });
           } else {
@@ -402,13 +405,15 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
           }
 
           // Load maze
-          if (layout.maze) {
-            store.templeMaze = layout.maze;
+          const layoutMaze = layout.maze;
+          if (layoutMaze) {
+            store.templeMaze = layoutMaze;
           }
 
           // Load entrance
-          if (layout.entrance) {
-            store.entrancePosition = layout.entrance.join(',');
+          const entrance = layout.entrance;
+          if (entrance) {
+            store.entrancePosition = entrance.join(',');
           }
 
           store.templeId = props.templeId;
@@ -455,38 +460,41 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     const c = colIdx.value;
     let symbol = maze[r]?.[c];
 
-    if (roomData.value && symbol) {
-      // PROMOTION LOGIC:
-      // If the current symbol is a shared token (wall, entrance, or other shared configs),
-      // we MUST promote it to a unique coordinate-based ID so this specific cell 
-      // can have its own data without affecting others.
-      // Saving to the shared wall token '____' would corrupt ALL walls in the temple.
-      const promotedSymbol = promoteToUniqueSymbol(
-        symbol,
-        () => store.generateUniqueSymbol(r, c, roomData.value?.type || 'empty')
-      );
-      if (promotedSymbol !== symbol) {
-        // Update the maze grid so this cell uses the new unique token
-        writeMazeCell(allMaze, store.currentLevelId, r, c, promotedSymbol);
+    if (!roomData.value) return;
+    if (!symbol) return;
 
-        symbol = promotedSymbol;
-      }
+    // PROMOTION LOGIC:
+    // If the current symbol is a shared token (wall, entrance, or other shared configs),
+    // we MUST promote it to a unique coordinate-based ID so this specific cell 
+    // can have its own data without affecting others.
+    // Saving to the shared wall token '____' would corrupt ALL walls in the temple.
+    const promotedSymbol = promoteToUniqueSymbol(
+      symbol,
+      () => store.generateUniqueSymbol(r, c, roomData.value?.type || 'empty')
+    );
+    const isPromoted = promotedSymbol !== symbol;
+    if (isPromoted) {
+      // Update the maze grid so this cell uses the new unique token
+      writeMazeCell(allMaze, store.currentLevelId, r, c, promotedSymbol);
 
-      // Update the store's roomsData with our local roomData
-      // Buffer Layer: We only update the store, NOT the database.
-      // The user must click the "Save" button in the temple creator header to persist to DB.
-      store.roomsData[symbol] = JSON.parse(JSON.stringify(roomData.value));
-      lastSavedData.value = JSON.stringify(roomData.value);
-
-      // BIDIRECTIONAL EDGE SYNC:
-      // When saving, ensure adjacent rooms have their connecting edges set to match.
-      // This keeps configs consistent: if Room A sets north=locked, Room B's south=locked.
-      if (roomData.value.sides) {
-        syncNeighbourSides(maze, r, c, roomData.value.sides, store.roomsData);
-      }
-
-      debug.log(`Room saved to store at ${r},${c}:`, store.roomsData[symbol]);
+      symbol = promotedSymbol;
     }
+
+    // Update the store's roomsData with our local roomData
+    // Buffer Layer: We only update the store, NOT the database.
+    // The user must click the "Save" button in the temple creator header to persist to DB.
+    store.roomsData[symbol] = JSON.parse(JSON.stringify(roomData.value));
+    lastSavedData.value = JSON.stringify(roomData.value);
+
+    // BIDIRECTIONAL EDGE SYNC:
+    // When saving, ensure adjacent rooms have their connecting edges set to match.
+    // This keeps configs consistent: if Room A sets north=locked, Room B's south=locked.
+    const sides = roomData.value.sides;
+    if (sides) {
+      syncNeighbourSides(maze, r, c, sides, store.roomsData);
+    }
+
+    debug.log(`Room saved to store at ${r},${c}:`, store.roomsData[symbol]);
   };
 
   // Quest rooms: the picker's data, the pick itself, and the quest's beast. After a pick the type modal shows the
@@ -539,12 +547,12 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const isEggRoom = computed(() => canonicalRoomType(roomData.value?.type) === 'master');
 
   const modalTitle = computed(() => {
-    if (modalStep.value === 1) return 'Select Category';
-    if (modalStep.value === 2) return selectedCategory.value?.name || 'Select Type';
-    if (modalStep.value === 3) {
-      return roomTypeShortLabel(roomData.value?.type) + ' Config';
-    }
-    return 'Room Editor';
+    const titleOfStep: Record<number, () => string> = {
+      1: () => 'Select Category',
+      2: () => selectedCategory.value?.name || 'Select Type',
+      3: () => roomTypeShortLabel(roomData.value?.type) + ' Config'
+    };
+    return titleOfStep[modalStep.value]?.() ?? 'Room Editor';
   });
 
   // Modal Methods
@@ -555,7 +563,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       const category = categoryOfRoomType(pickerType.value);
       if (category) {
         selectedCategory.value = category;
-        if (['monster', 'miniboss', 'boss', 'loot', 'master', 'dragon-egg', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(currentType)) {
+        const hasConfigStep = ['monster', 'miniboss', 'boss', 'loot', 'master', 'dragon-egg', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(currentType);
+        if (hasConfigStep) {
           modalStep.value = 3;
         } else {
           modalStep.value = 2;
@@ -577,10 +586,12 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   const selectType = async (type: string) => {
     // Security Check: Entrances only on the designated Entrance Floor
-    if (type === 'entrance') {
+    const isEntrance = type === 'entrance';
+    if (isEntrance) {
       const validEntranceFloor = getEntranceFloor(floors.value);
 
-      if (store.currentLevelId !== validEntranceFloor) {
+      const isOffEntranceFloor = store.currentLevelId !== validEntranceFloor;
+      if (isOffEntranceFloor) {
         const toast = await toastController.create({
           message: `Entrances can only be placed on the lowest surface floor (${validEntranceFloor}).`,
           duration: 2000,
@@ -594,7 +605,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     if (!roomData.value) return;
 
     // The quest room is not an engine type: confirming it opens the picker, and the pick sets the type from its tier
-    if (type === QUEST_ROOM_KEY) {
+    const isQuestRoomPick = type === QUEST_ROOM_KEY;
+    if (isQuestRoomPick) {
       questRooms.openPicker();
       return;
     }
@@ -608,7 +620,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
     // Monster rooms go to config selector first (step 2.5) - choose M001-M009
     // Miniboss rooms go to config selector (step 2.5) - choose MINI/MIN1-MIN3
-    if (step === 'monster-config') {
+    const needsMonsterConfig = step === 'monster-config';
+    if (needsMonsterConfig) {
       pendingMonsterType.value = type;
       ensureContent(roomData.value);
       modalStep.value = 2.5;
@@ -616,12 +629,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
 
     // Boss rooms go directly to config (typically one BOSS per dungeon)
-    if (step === 'boss') {
+    const isBossStep = step === 'boss';
+    if (isBossStep) {
       ensureContent(roomData.value);
       // Assign BOSS token directly
       writeMazeCell(store.templeMaze, store.currentLevelId, rowIdx.value, colIdx.value, 'BOSS');
 
-      if (!store.roomsData['BOSS']) {
+      const hasBossRecord = Boolean(store.roomsData['BOSS']);
+      if (!hasBossRecord) {
         store.roomsData['BOSS'] = { type: 'boss', content: { lockOnEnter: true } as RoomContent };
       }
       roomData.value = adoptSharedRecord(store.roomsData['BOSS'], roomData.value);
@@ -630,7 +645,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
 
     // Other types with configuration move to step 3 (the Master Room picks its Pegasus there)
-    if (step === 'config') {
+    const hasConfigStep = step === 'config';
+    if (hasConfigStep) {
       seedTravelTargets(ensureContent(roomData.value), type, store.currentLevelId);
       modalStep.value = 3;
     } else {
@@ -645,7 +661,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     const r = rowIdx.value;
     const c = colIdx.value;
 
-    if (token === 'NEW') {
+    const isUniqueConfig = token === 'NEW';
+    if (isUniqueConfig) {
       // Generate a unique symbol for this room
       const newSymbol = store.generateUniqueSymbol();
 
@@ -663,7 +680,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       writeMazeCell(store.templeMaze, store.currentLevelId, r, c, token);
 
       // Initialize or get existing room data for this token
-      if (!store.roomsData[token]) {
+      const hasSharedRecord = Boolean(store.roomsData[token]);
+      if (!hasSharedRecord) {
         store.roomsData[token] = {
           type: pendingMonsterType.value || 'monster',
           content: {} as RoomContent
@@ -680,15 +698,18 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   };
 
   const prevModalStep = () => {
-    if (modalStep.value > 1) {
+    const canStepBack = modalStep.value > 1;
+    if (canStepBack) {
       // Handle step 2.5 (monster config) - go back to step 2
-      if (modalStep.value === 2.5) {
+      const isOnMonsterConfigPick = modalStep.value === 2.5;
+      if (isOnMonsterConfigPick) {
         modalStep.value = 2;
         pendingMonsterType.value = null;
         return;
       }
       // A quest room has no config selector: step 3 goes back to the type step
-      if (modalStep.value === 3 && isQuestRoom.value) {
+      const isOnQuestConfigStep = modalStep.value === 3 && isQuestRoom.value;
+      if (isOnQuestConfigStep) {
         modalStep.value = 2;
         return;
       }
@@ -700,7 +721,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         return;
       }
       modalStep.value--;
-      if (modalStep.value === 1) {
+      const isBackAtCategories = modalStep.value === 1;
+      if (isBackAtCategories) {
         selectedCategory.value = null;
       }
     }
@@ -729,69 +751,69 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   // Room Type Specific Methods
   const toggleAutoLock = () => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.lockOnEnter = !roomData.value.content.lockOnEnter;
+    const content = ensureContent(roomData.value);
+    content.lockOnEnter = !content.lockOnEnter;
   };
 
   const toggleMimic = (event: CustomEvent) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.isMimic = event.detail.checked;
+    const content = ensureContent(roomData.value);
+    content.isMimic = event.detail.checked;
   };
 
   const toggleMimicHeader = () => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.isMimic = !roomData.value.content.isMimic;
-    const shouldDefaultMimicType = roomData.value.content.isMimic && !roomData.value.content.mimicType;
+    const content = ensureContent(roomData.value);
+    content.isMimic = !content.isMimic;
+    const shouldDefaultMimicType = content.isMimic && !content.mimicType;
     if (shouldDefaultMimicType) {
-      roomData.value.content.mimicType = 'random';
+      content.mimicType = 'random';
     }
   };
 
   const selectMimicType = (type: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.mimicType = type;
+    const content = ensureContent(roomData.value);
+    content.mimicType = type;
   };
 
   const selectChestType = (typeId: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+    const content = ensureContent(roomData.value);
     // Initialize content based on type
-    applyChestType(roomData.value.content, typeId, DUNGEON_ITEMS, KEY_ITEMS);
+    applyChestType(content, typeId, DUNGEON_ITEMS, KEY_ITEMS);
   };
 
   const selectDungeonItem = (itemId: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.dungeon = itemId;
+    const content = ensureContent(roomData.value);
+    content.dungeon = itemId;
   };
 
   const selectConsumableItem = (itemId: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+    const content = ensureContent(roomData.value);
     // Toggle item in the array
-    toggleConsumableItem(roomData.value.content, itemId);
+    toggleConsumableItem(content, itemId);
   };
 
   const updateAmount = (event: CustomEvent) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.gold = event.detail.value;
+    const content = ensureContent(roomData.value);
+    content.gold = event.detail.value;
   };
 
   const setTargetCoord = (axis: 'x' | 'y', val: unknown) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    if (!roomData.value.content.targetCoords) roomData.value.content.targetCoords = { x: 0, y: 0 };
-    roomData.value.content.targetCoords[axis] = parseInt(String(val)) || 0;
+    const content = ensureContent(roomData.value);
+    content.targetCoords ??= { x: 0, y: 0 };
+    content.targetCoords[axis] = parseInt(String(val)) || 0;
   };
 
   const setTargetLevel = (val: string) => {
     if (!roomData.value) return;
-    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.targetLevel = val;
+    const content = ensureContent(roomData.value);
+    content.targetLevel = val;
   };
 
   const openBeastSelector = () => {
@@ -804,8 +826,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       'room-editor-page',
       (ids) => {
         if (roomData.value) {
-          if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-          roomData.value.content.beasts = ids;
+          ensureContent(roomData.value).beasts = ids;
           saveToStore();
         }
       }
@@ -823,8 +844,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       'mimic-beast-selector',
       (ids) => {
         if (roomData.value) {
-          if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-          roomData.value.content.mimicBeastId = ids[0] || null;
+          ensureContent(roomData.value).mimicBeastId = ids[0] || null;
           saveToStore();
         }
       }
@@ -852,8 +872,11 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   };
 
   const removeBeast = (id: string) => {
-    if (roomData.value && roomData.value.content?.beasts) {
-      roomData.value.content.beasts = roomData.value.content.beasts.filter((bid: string) => bid !== id);
+    const content = roomData.value?.content;
+    const beasts = content?.beasts;
+    const hasBeasts = !!content && !!beasts;
+    if (hasBeasts) {
+      content.beasts = beasts.filter((bid: string) => bid !== id);
       saveToStore();
     }
   };
@@ -862,14 +885,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   watch(() => selectionStore.selectedBeastIds, (newIds) => {
     if (!roomData.value) return;
 
-    if (selectionStore.lastSource === 'room-editor-page') {
-      if (roomData.value?.content) {
-        roomData.value.content.beasts = [...newIds];
-      }
-    } else if (selectionStore.lastSource === 'mimic-beast-selector') {
-      if (roomData.value?.content) {
-        roomData.value.content.mimicBeastId = newIds[0] || null;
-      }
+    const content = roomData.value.content;
+    const isRoomBeastPick = selectionStore.lastSource === 'room-editor-page';
+    const isMimicBeastPick = selectionStore.lastSource === 'mimic-beast-selector';
+    if (!content) return;
+    if (isRoomBeastPick) {
+      content.beasts = [...newIds];
+    } else if (isMimicBeastPick) {
+      content.mimicBeastId = newIds[0] || null;
     }
   });
 

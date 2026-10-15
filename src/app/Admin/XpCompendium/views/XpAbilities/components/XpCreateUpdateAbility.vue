@@ -359,7 +359,8 @@
 
       // ---- Step 1 ----------------------------------------------------------------------------------------------
       const chooseKind = (type: Ability["type"]) => {
-        if (ability.value.type === type) return;
+        const isSameKind = ability.value.type === type;
+        if (isSameKind) return;
         play$fx("cursor");
         patch({ type });
       };
@@ -416,7 +417,8 @@
       // ---- Step 4 ----------------------------------------------------------------------------------------------
       const jumpTo = (stepId: PowerStepId) => {
         const at = steps.findIndex((step) => step.id === stepId);
-        if (at < 0) return;
+        const isUnknownStep = at < 0;
+        if (isUnknownStep) return;
         play$fx("cursor");
         position.value = at;
       };
@@ -429,7 +431,8 @@
       const saveAbility = async () => {
         if (saving.value) return;
         const abilityToSave = finishedPower(ability.value);
-        if (!abilityToSave.id) {
+        const isNewAbility = !abilityToSave.id;
+        if (isNewAbility) {
           // New ability
           abilityToSave.id = uuidv4();
         }

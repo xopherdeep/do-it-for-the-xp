@@ -237,7 +237,8 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      if (activeTiers.value.length === 0) {
+      const hasNoActiveTiers = activeTiers.value.length === 0;
+      if (hasNoActiveTiers) {
         updateDefaultTiers();
       }
       void quests.load();

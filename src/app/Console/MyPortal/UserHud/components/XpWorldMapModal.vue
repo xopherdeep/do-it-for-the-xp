@@ -246,7 +246,8 @@ export default defineComponent({
     // A freed Pegasus flies the hero straight to its region; an egg only shows where it sleeps
     selectPegasus(index: number) {
       this.selectedPegasus = index;
-      if (this.pegasiList[index]?.obtained) {
+      const isFreed = Boolean(this.pegasiList[index]?.obtained);
+      if (isFreed) {
         this.flyTo(index);
       } else {
         play$fx("no");
@@ -254,7 +255,8 @@ export default defineComponent({
     },
     // The Fly button: the Pegasus on show carries the hero (the button is off for an egg)
     fly() {
-      if (this.activePegasusData?.obtained) this.flyTo(this.selectedPegasus);
+      const isFreed = Boolean(this.activePegasusData?.obtained);
+      if (isFreed) this.flyTo(this.selectedPegasus);
     },
     flyTo(index: number) {
       const route = PEGASI[index] ? routeOfWorld(PEGASI[index].world) : null;

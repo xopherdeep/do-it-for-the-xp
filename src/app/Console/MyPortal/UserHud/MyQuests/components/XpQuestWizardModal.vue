@@ -470,7 +470,8 @@ watch(
 watch(
   () => props.open,
   (isOpen, wasOpen) => {
-    if (wasOpen && !isOpen) stopReading();
+    const isClosing = wasOpen && !isOpen;
+    if (isClosing) stopReading();
   }
 );
 
@@ -529,7 +530,8 @@ const drop = (index: number) => {
 };
 
 const addNewStep = () => {
-  if (!stepText.value.trim()) return;
+  const isBlankStep = !stepText.value.trim();
+  if (isBlankStep) return;
   play$fx("select");
   draft.value = addStep(draft.value, stepText.value);
   stepText.value = "";
@@ -540,8 +542,11 @@ const addNewStep = () => {
 const startDay = computed(() => parseDayKey(draft.value.day));
 // "Today" says today only when the day on screen is today; from another day of the Calendar it names that day
 const whenLabel = (choice: WizardChoice<WizardWhen>): string => {
-  if (choice.id !== "today" || !startDay.value || isToday(startDay.value)) return choice.label;
-  return format(startDay.value, "EEE d");
+  const day = startDay.value;
+  const isAnotherDay = choice.id === "today" && day !== null && !isToday(day);
+  if (!isAnotherDay) return choice.label;
+  return format(day, "EEE d");
+
 };
 
 const chooseWhen = (when: WizardWhen) => {

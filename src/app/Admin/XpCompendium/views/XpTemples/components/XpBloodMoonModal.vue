@@ -350,7 +350,8 @@ async function takeBack(row: HeroRow) {
 }
 
 async function setWeekly(row: HeroRow, on: boolean) {
-  if ((row.progress?.bloodMoonEvery === "weekly") === on) return;
+  const isAlreadySet = (row.progress?.bloodMoonEvery === "weekly") === on;
+  if (isAlreadySet) return;
   await act(
     row,
     () => templeSystem.setBloodMoonEvery(templeId.value, row.userId, on ? "weekly" : null),

@@ -146,7 +146,8 @@ export default defineComponent({
       heroAnimation.value = "hurt";
       window.clearTimeout(animTimer);
       animTimer = window.setTimeout(() => {
-        if (battleStarted.value && !victoryCard.value) {
+        const isStillFighting = battleStarted.value && !victoryCard.value;
+        if (isStillFighting) {
           heroAnimation.value = "idle";
         }
       }, 600);
@@ -168,7 +169,9 @@ export default defineComponent({
 
     const dialog = useBattleDialog({
       onIdle: () => {
-        if (service.value && !service.value.isPlayerTurn()) service.value.startPlayerTurn();
+        const engine = service.value;
+        const isAwaitingHeroTurn = engine && !engine.isPlayerTurn();
+        if (isAwaitingHeroTurn) engine.startPlayerTurn();
       },
       onDismiss: () => {
         const engine = service.value;
@@ -240,7 +243,8 @@ export default defineComponent({
       window.clearTimeout(hitTimer);
       hitTimer = window.setTimeout(() => {
         // Never overwrite the victory strobe that may already be playing
-        if (enemyAnimationClass.value === "damaged") enemyAnimationClass.value = "";
+        const isStillShaking = enemyAnimationClass.value === "damaged";
+        if (isStillShaking) enemyAnimationClass.value = "";
       }, HIT_SHAKE_MS);
     };
 
@@ -263,8 +267,10 @@ export default defineComponent({
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
     const sayItemResult = (result: { ok: boolean; line: string; sound: string }) => {
       audio.playSound(result.sound);
-      if (result.ok) buzz.playTap();
-      if (result.line) dialog.addToQueue([{ text: result.line, auto: true }]);
+      const { ok: didWork, line } = result;
+      if (didWork) buzz.playTap();
+      const hasLine = line.length > 0;
+      if (hasLine) dialog.addToQueue([{ text: line, auto: true }]);
     };
 
     /** An item or a Power answered; a vanish (X's Invisibility) has armed the getaway, so Run Away follows at once. */
@@ -280,7 +286,8 @@ export default defineComponent({
 
     /** The bag's own close (its X or a swipe): it only ever clears the bag, never a sheet the bag handed over to. */
     const closeBag = () => {
-      if (sheet.value === "bag") closeSheet();
+      const isBagOpen = sheet.value === "bag";
+      if (isBagOpen) closeSheet();
     };
 
     /** Goods: a tile used from the bag. The bag closes first; Bottles and the Book open their sheet, a fight item acts now. */
@@ -382,7 +389,8 @@ export default defineComponent({
         },
         // The beast winds up before it strikes; the hero's own swing sounds when a chore is confirmed
         onAttack: (attacker) => {
-          if (attacker !== "enemy") return;
+          const isHeroSwing = attacker !== "enemy";
+          if (isHeroSwing) return;
           audio.playSound("preAttack");
           buzz.playWindUp();
           closeSheet();
@@ -390,7 +398,8 @@ export default defineComponent({
           startNag();
         },
         onDamage: (target, amount, isFinalBlow) => {
-          if (target === "enemy") {
+          const isEnemyHit = target === "enemy";
+          if (isEnemyHit) {
             shakeEnemy();
             lastHit.value = { id: ++hitCount, amount, smash: Boolean(isFinalBlow) };
             audio.playSound("enemyDamage");
@@ -409,7 +418,8 @@ export default defineComponent({
       dialog.addToQueue([
         () => {
           showEnemy.value = true;
-          if (encounter.value?.boss) audio.startBossBgm();
+          const isBossFight = Boolean(encounter.value?.boss);
+          if (isBossFight) audio.startBossBgm();
           else audio.startBattleBgm();
         },
         // The intro reads itself out: waiting on the box never holds the clock back
@@ -479,8 +489,9 @@ export default defineComponent({
       started = true;
       try {
         pruneBattleProgress();
-        if (!userStore.users[ctx.userId]) await userStore.loadUsers();
-        if (!userStore.users[ctx.userId]) {
+        const hasHeroLoaded = () => Boolean(userStore.users[ctx.userId]);
+        if (!hasHeroLoaded()) await userStore.loadUsers();
+        if (!hasHeroLoaded()) {
           debug.warn("BattleField: no hero for this fight", ctx.userId);
           dialog.addToQueue(["No hero showed up for this fight...", () => outcome.closeBattle()]);
           return;
@@ -490,13 +501,15 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
-        if (loaded.thief) {
+        const isThiefEncounter = Boolean(loaded.thief);
+        if (isThiefEncounter) {
           background.setLockedLayers(loaded.background);
           await background.applyEnemy(loaded.enemies[0]);
           startThiefEncounter(loaded);
           return;
         }
-        if (loaded.quest) progressCtx = { ...ctx, kind: "quest", questId: String(loaded.quest.id) };
+        const quest = loaded.quest;
+        if (quest) progressCtx = { ...ctx, kind: "quest", questId: String(quest.id) };
         // Read before the engine arms the chores: arming reports an empty checklist, which clears the save
         const remembered = loadBattleProgress(progressCtx);
         abilities = await loadAbilities();
@@ -582,7 +595,8 @@ export default defineComponent({
           });
         }
 
-        if (quotes?.canAffordLow && quotes.lowCost < quotes.fullCost) {
+        const isCheapBribeOffered = quotes?.canAffordLow && quotes.lowCost < quotes.fullCost;
+        if (isCheapBribeOffered) {
           actions.push({
             id: "bribe-low",
             label: `Cheap Bribe (${quotes.lowCost} GP)`,
@@ -671,7 +685,8 @@ export default defineComponent({
         const isChoreOpen = engine?.getCombatTasks().some((task) => task.id === taskId && !task.isCompleted) ?? false;
         engine?.finishCombatTask(taskId);
         if (isChoreOpen) giveChoreGains();
-        if (battleStarted.value && !victoryCard.value) {
+        const isStillFighting = battleStarted.value && !victoryCard.value;
+        if (isStillFighting) {
           heroAnimation.value = "idle";
         }
       }, SHEET_LEAVE_MS);
@@ -687,7 +702,8 @@ export default defineComponent({
 
     // Coming back to the phone: the deadline clock catches up at once instead of on the next throttled tick
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") service.value?.tick();
+      const isVisible = document.visibilityState === "visible";
+      if (isVisible) service.value?.tick();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 

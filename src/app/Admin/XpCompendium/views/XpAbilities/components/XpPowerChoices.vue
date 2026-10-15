@@ -44,7 +44,8 @@ const props = withDefaults(
 const emit = defineEmits<{ "update:modelValue": [id: string] }>();
 
 const pick = (id: string) => {
-  if (id === props.modelValue) return;
+  const isCurrent = id === props.modelValue;
+  if (isCurrent) return;
   play$fx("cursor");
   emit("update:modelValue", id);
 };

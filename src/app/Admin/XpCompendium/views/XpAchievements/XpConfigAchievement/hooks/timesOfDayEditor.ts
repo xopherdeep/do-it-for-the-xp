@@ -27,7 +27,8 @@ export const orderedTimesOfDay = (times?: readonly string[] | null): TimeOfDay[]
 /** The list after a chip is tapped: the time goes in or out, and the list stays in day order. */
 export const toggleTimeOfDay = (current: readonly string[] | undefined | null, time: TimeOfDay): TimeOfDay[] => {
   const picked = new Set(orderedTimesOfDay(current));
-  if (picked.has(time)) picked.delete(time);
+  const isPicked = picked.has(time);
+  if (isPicked) picked.delete(time);
   else picked.add(time);
   return TIMES_OF_DAY.filter((t) => picked.has(t));
 };

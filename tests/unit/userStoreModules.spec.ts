@@ -246,6 +246,7 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "setBedRestAt",
       "setQuestEffects",
       "setPowerTimers",
+      "setStreakChests",
       "unlockItem",
       "setEquipment",
       "setLook",

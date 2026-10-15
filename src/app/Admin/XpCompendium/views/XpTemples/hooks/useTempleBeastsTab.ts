@@ -9,13 +9,8 @@ import type { TempleBeast, useTempleData } from "./useTempleData";
 type TempleData = ReturnType<typeof useTempleData>;
 
 const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" => {
-  if (tier === "monster") {
-    return "monster";
-  }
-  if (tier === "miniboss") {
-    return "miniboss";
-  }
-  return "boss";
+  const isLesserTier = tier === "monster" || tier === "miniboss";
+  return isLesserTier ? tier : "boss";
 };
 
 /**
@@ -116,7 +111,8 @@ export const usePendingBeastScroll = ({ activeTiers, templeBeastsWithDetails, up
       (hash.startsWith("#beast-card-") ? hash.substring(12) : null);
 
     if (!targetId) {
-      if (activeTiers.value.length === 0) updateDefaultTiers();
+      const hasNoActiveTiers = activeTiers.value.length === 0;
+      if (hasNoActiveTiers) updateDefaultTiers();
       return;
     }
 

@@ -34,7 +34,8 @@ export default defineComponent({
 
     onMounted(() => {
       // Stripe puts session_id, purchased and status after the hash; vue-router reads them from route.query
-      if (route.query.status === "cancelled") {
+      const isCancelled = route.query.status === "cancelled";
+      if (isCancelled) {
         router.replace("/pro");
         return;
       }

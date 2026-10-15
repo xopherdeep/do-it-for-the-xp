@@ -56,7 +56,8 @@ export const outlineGrid = (g: Grid, ink: string): void => {
 
 /** How far a row is pulled in from each side by a rounded corner of radius `r` (row 0 is the top). */
 export const cornerInset = (row: number, r: number): number => {
-  if (row >= r) return 0;
+  const isBelowCorner = row >= r;
+  if (isBelowCorner) return 0;
   const dy = r - row - 0.5;
   return Math.max(0, Math.round(r - Math.sqrt(r * r - dy * dy)));
 };

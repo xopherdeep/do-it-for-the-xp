@@ -172,7 +172,7 @@ const clearTimers = () => {
   timers.cancelAll();
 };
 
-const reducedMotion = (): boolean =>
+const wantsReducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const focusButton = () =>
@@ -186,7 +186,7 @@ const start = () => {
     phase.value = "ready";
     focusButton();
   };
-  if (reducedMotion()) settle();
+  if (wantsReducedMotion()) settle();
   else later(SETTLE_MS, settle);
 };
 
@@ -200,7 +200,7 @@ const bomb = () => {
 
 /** The temple blew the wall: flash, crumble (a flash alone for reduced motion), then the opening. */
 const blast = () => {
-  const fast = reducedMotion();
+  const fast = wantsReducedMotion();
   phase.value = "flash";
   play$fx("damage");
   feel("slam");
@@ -232,7 +232,8 @@ const leave = () => {
 watch(
   () => props.result,
   (result) => {
-    if (result === "blown" && phase.value === "lit") blast();
+    const isBlownWhileLit = result === "blown" && phase.value === "lit";
+    if (isBlownWhileLit) blast();
   },
 );
 

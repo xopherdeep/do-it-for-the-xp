@@ -392,7 +392,8 @@ const openSaved = async (id: string) => {
   try {
     const record = await accessoryDb.getAccessoryById(id);
     // getAccessoryById hands back a blank record with a fresh id for an item it cannot find
-    if (String(record.id) === String(id)) {
+    const isFound = String(record.id) === String(id);
+    if (isFound) {
       original.value = record;
       draft.value = itemFromRecord(record);
       position.value = lastIndex(steps, draft.value);
@@ -406,7 +407,8 @@ const openSaved = async (id: string) => {
 };
 
 onMounted(async () => {
-  if (props.id) await openSaved(props.id);
+  const savedId = props.id;
+  if (savedId) await openSaved(savedId);
   if (!original.value) position.value = firstIndex(steps, draft.value);
   isOpen.value = true;
 });
@@ -475,7 +477,8 @@ const everyHero = () => {
 
 const whoNote = computed(() => {
   const picked = draft.value.availableToMembers;
-  if (!picked.length) return "Every hero can buy it. Tap a hero to limit it to some.";
+  const hasPicked = picked.length > 0;
+  if (!hasPicked) return "Every hero can buy it. Tap a hero to limit it to some.";
   return picked.length === 1 ? `Only ${heroName(picked[0])} can buy it.` : `Only ${picked.map(heroName).join(", ")} can buy it.`;
 });
 
@@ -497,7 +500,8 @@ const STEP_ICONS: Record<ItemStepId, string> = { what: "tag", cost: "coins", who
 // A tap on a row goes straight back to the step that owns the answer
 const goToStep = (id: ItemStepId) => {
   const target = steps.findIndex((step) => step.id === id);
-  if (target >= 0) position.value = target;
+  const isKnownStep = target >= 0;
+  if (isKnownStep) position.value = target;
 };
 
 const stockIt = async () => {

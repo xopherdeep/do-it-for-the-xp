@@ -214,8 +214,9 @@ export default defineComponent({
         (item.faIcon && candidate.faIcon === item.faIcon) ||
         (item.name && candidate.name === item.name)
       );
-      if (live?.click) {
-        live.click();
+      const liveClick = live?.click;
+      if (liveClick) {
+        liveClick.call(live);
         return;
       }
       const name = String(item.name ?? live?.name ?? "");

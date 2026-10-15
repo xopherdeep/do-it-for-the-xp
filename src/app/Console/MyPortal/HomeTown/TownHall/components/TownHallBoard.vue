@@ -109,7 +109,8 @@ const loadTopics = async (next: number) => {
   }
   const mine = ++ticket;
   const result = await fetchTopics(current.id, next);
-  if (mine !== ticket) return;
+  const isStale = mine !== ticket;
+  if (isStale) return;
   topics.value = next === 1 ? result.items : [...topics.value, ...result.items];
   page.value = next;
   hasMore.value = next < result.totalPages;
@@ -128,7 +129,9 @@ watch(
   () => props.boardSlug,
   () => {
     topics.value = [];
-    if (boards.value.length) run(() => loadTopics(1));
+    const hasBoards = boards.value.length > 0;
+    if (hasBoards) run(() => loadTopics(1));
+
   }
 );
 

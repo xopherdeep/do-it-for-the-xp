@@ -296,7 +296,8 @@ const handleTeleport = () => {
     });
   });
   
-  if (teleportRooms.length > 0) {
+  const hasTeleportRooms = teleportRooms.length > 0;
+  if (hasTeleportRooms) {
     // Choose a random teleport destination
     const destination = teleportRooms[Math.floor(Math.random() * teleportRooms.length)];
     currentPosition.value = destination;

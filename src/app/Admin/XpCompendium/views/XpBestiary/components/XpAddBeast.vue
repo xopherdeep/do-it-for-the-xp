@@ -332,7 +332,9 @@ const pickBackground = () => {
 const onBackgroundChanged = (picked: { bg1: number; bg2: number; aspectRatio?: number }) => {
   draft.value.bg1 = picked.bg1;
   draft.value.bg2 = picked.bg2;
-  if (picked.aspectRatio !== undefined) draft.value.aspectRatio = picked.aspectRatio;
+  const aspectRatio = picked.aspectRatio;
+  const hasAspectRatio = aspectRatio !== undefined;
+  if (hasAspectRatio) draft.value.aspectRatio = aspectRatio;
   backgroundManager.updateBackground({
     bg1: draft.value.bg1,
     bg2: draft.value.bg2,
@@ -349,7 +351,8 @@ onMounted(async () => {
 
 onActivated(() => {
   // Another page may have the engine now (a kept-alive page comes back to a canvas that is dark)
-  if (isLoaded.value && !backgroundManager.isActiveFor(PAGE_ID)) void reclaimBackdrop();
+  const hasLostBackdrop = isLoaded.value && !backgroundManager.isActiveFor(PAGE_ID);
+  if (hasLostBackdrop) void reclaimBackdrop();
 });
 
 onUnmounted(() => {
@@ -371,7 +374,8 @@ const pickBeast = async () => {
     const { data } = await modal.onDidDismiss<number>();
     // The picker took the canvas over, whether it was cancelled or not
     await reclaimBackdrop();
-    if (typeof data === "number" && data > 0) draft.value.avatar = data;
+    const isAvatarPicked = typeof data === "number" && data > 0;
+    if (isAvatarPicked) draft.value.avatar = data;
   } catch (error) {
     debug.warn("[BeastWizard] the beast picker could not be opened", error);
   }
@@ -390,7 +394,8 @@ const choreInput = ref<HTMLInputElement | null>(null);
 
 // Enter and the "+ chore" button add it; leaving the field with a chore typed adds it too, so Next never loses it
 const addNewChore = () => {
-  if (!choreText.value.trim()) return;
+  const hasChoreText = Boolean(choreText.value.trim());
+  if (!hasChoreText) return;
   play$fx("select");
   draft.value.checklist = addChore(draft.value.checklist, choreText.value);
   choreText.value = "";
@@ -429,7 +434,9 @@ const openDetailsModal = async () => {
     await modal.present();
     const { data } = await modal.onWillDismiss<{ beast?: { name?: string; checklist?: string[] } }>();
     const suggested = data?.beast;
-    if (typeof suggested?.name === "string") draft.value.name = suggested.name;
+    const suggestedName = suggested?.name;
+    const hasSuggestedName = typeof suggestedName === "string";
+    if (hasSuggestedName) draft.value.name = suggestedName;
     if (Array.isArray(suggested?.checklist)) draft.value.checklist = [...suggested.checklist];
     await reclaimBackdrop();
   } catch (error) {
@@ -442,7 +449,8 @@ const openDetailsModal = async () => {
 // A tap on a summary line goes back to the step that owns it (always allowed, even to a step still unanswered)
 const goTo = (stepId: BeastStepId) => {
   const at = steps.findIndex((step) => step.id === stepId);
-  if (at < 0) return;
+  const isUnknownStep = at < 0;
+  if (isUnknownStep) return;
   play$fx("cursor");
   position.value = at;
 };
@@ -475,7 +483,8 @@ const dismiss = () => {
 
 const summon = async () => {
   // The fanfare is up: the beast is already saved, a second tap must not make a second one
-  if (isSaving.value || showFanfare.value) return;
+  const isBusy = isSaving.value || showFanfare.value;
+  if (isBusy) return;
   const problem = beastProblem(draft.value);
   if (problem) {
     play$fx("no");

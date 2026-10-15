@@ -219,10 +219,13 @@ export default defineComponent({
 
     const clickAction = async (action) => {
       closeFab(); // Close the fab menu on any action
-      if (action.action === "openProfile") {
+      const isOpenProfile = action.action === "openProfile";
+      if (isOpenProfile) {
         emit("open-profile"); // Emit event for the parent
       }
-      if (action.action === "openPegasus") {
+      const isOpenPegasus = action.action === "openPegasus";
+      if (isOpenPegasus) {
+
         emit("open-pegasus"); // The portal (or the temple) owns the world map modal
       }
     };

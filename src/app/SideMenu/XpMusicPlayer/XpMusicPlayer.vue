@@ -204,8 +204,9 @@
 
       showTrackInfoTemporarily() {
         // Clear any existing timeout
-        if (this.infoVisibilityTimeoutId !== null) {
-          clearTimeout(this.infoVisibilityTimeoutId);
+        const infoTimeoutId = this.infoVisibilityTimeoutId;
+        if (infoTimeoutId) {
+          clearTimeout(infoTimeoutId);
           this.infoVisibilityTimeoutId = null;
         }
 
@@ -260,7 +261,7 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
@@ -270,7 +271,7 @@
         if (this.hasPlaybackPosition()) {
           // Fast forward by seekAmount seconds, but don't exceed duration
           const newTime = this.audioElement.currentTime + this.seekAmount;
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.audioElement.currentTime = Math.min(
               newTime,
               this.audioElement.duration
@@ -281,7 +282,7 @@
           this.audioHook.playUISound("select");
 
           // Update progress percentage based on current time
-          if (this.audioElement.duration) {
+          if (this.hasKnownDuration()) {
             this.updateProgressFromAudio();
           }
         }
@@ -296,7 +297,7 @@
 
       simulateProgressUpdate() {
         // Clear any existing interval
-        if (progressTimer !== null) {
+        if (progressTimer) {
           clearInterval(progressTimer);
           progressTimer = null;
         }
@@ -359,7 +360,8 @@
           filename = filename.split("#")[0]; // Remove hash
 
           // Remove extension
-          if (filename.includes(".")) {
+          const hasExtension = filename.includes(".");
+          if (hasExtension) {
             filename = filename.substring(0, filename.lastIndexOf("."));
           }
 
@@ -443,7 +445,8 @@
       }
 
       // Listen for changes in the audio source
-      if (this.audioElement) {
+      const hasAudioElement = Boolean(this.audioElement);
+      if (hasAudioElement) {
         // Using watch instead of MutationObserver since it won't work directly on Audio element
         debug.log("Audio element available, using watch for changes instead");
       }
@@ -484,17 +487,19 @@
       );
 
       // Clear intervals and timeouts
-      if (progressTimer !== null) {
+      if (progressTimer) {
         clearInterval(progressTimer);
         progressTimer = null;
       }
 
-      if (this.intervalId !== null) {
-        clearInterval(this.intervalId);
+      const intervalId = this.intervalId;
+      if (intervalId) {
+        clearInterval(intervalId);
       }
 
-      if (this.infoVisibilityTimeoutId !== null) {
-        clearTimeout(this.infoVisibilityTimeoutId);
+      const infoTimeoutId = this.infoVisibilityTimeoutId;
+      if (infoTimeoutId) {
+        clearTimeout(infoTimeoutId);
       }
     },
 

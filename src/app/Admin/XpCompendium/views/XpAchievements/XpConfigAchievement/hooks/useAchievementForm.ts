@@ -36,8 +36,10 @@ import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
   const nameB = b.name.toLowerCase();
-  if (nameA < nameB) return -1;
-  if (nameA > nameB) return 1;
+  const isBefore = nameA < nameB;
+  if (isBefore) return -1;
+  const isAfter = nameA > nameB;
+  if (isAfter) return 1;
   return 0;
 };
 
@@ -206,15 +208,17 @@ export function useAchievementForm() {
   const isDepthSelected = computed(() => !!achievement.value.adventureType);
 
   const activeBeast = computed(() => {
-    if (!achievement.value.beastId) return null;
-    return beasts.value.find((b) => b.id === achievement.value.beastId);
+    const beastId = achievement.value.beastId;
+    if (!beastId) return null;
+    return beasts.value.find((b) => b.id === beastId);
   });
 
   const beastAvatarUrl = computed(() => {
-    if (!activeBeast.value?.avatar) return null;
+    const avatar = activeBeast.value?.avatar;
+    if (!avatar) return null;
     try {
       // webpack resolves require(); new URL("/src/...") never pointed at a bundled file
-      const pad = activeBeast.value.avatar.toString().padStart(3, "0");
+      const pad = avatar.toString().padStart(3, "0");
       return require(`@/assets/images/beasts/${pad}.webp`);
     } catch {
       return null;
@@ -222,8 +226,10 @@ export function useAchievementForm() {
   });
 
   const subAchievements = computed(() => {
-    if (!achievement.value.subAchievementIds?.length) return [];
-    return achievement.value.subAchievementIds
+    const subAchievementIds = achievement.value.subAchievementIds ?? [];
+    const hasNoSubAchievements = subAchievementIds.length === 0;
+    if (hasNoSubAchievements) return [];
+    return subAchievementIds
       .map((id: string) => achievements.value.find((a) => a.id === id))
       .filter(Boolean);
   });
@@ -236,11 +242,15 @@ export function useAchievementForm() {
 
   const scheduleSummary = computed(() => {
     const a = achievement.value;
-    if (a.basicSchedule === "once") return "One-time";
-    if (a.basicSchedule === "daily") return "Daily";
-    if (a.basicSchedule === "weekly") {
+    const isOnce = a.basicSchedule === "once";
+    if (isOnce) return "One-time";
+    const isDaily = a.basicSchedule === "daily";
+    if (isDaily) return "Daily";
+    const isWeekly = a.basicSchedule === "weekly";
+    if (isWeekly) {
       const days = a.repeatOnDays || [];
-      if (days.length === 0) return "Weekly";
+      const hasNoDays = days.length === 0;
+      if (hasNoDays) return "Weekly";
 
       const getLocalAbbreviation = (dayValue: string) => {
         const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -275,19 +285,22 @@ export function useAchievementForm() {
   });
 
   const scheduleTagline = computed(() => {
-    if (achievement.value.basicSchedule === "once")
+    const isOnce = achievement.value.basicSchedule === "once";
+    if (isOnce)
       return "A one-time adventure.";
     return "The quest board refreshes on this rotation.";
   });
 
   // Toggle hero function
   const toggleHero = (userId: string) => {
-    if (achievement.value.type === "asNeeded") return;
+    const isOpenBounty = achievement.value.type === "asNeeded";
+    if (isOpenBounty) return;
 
     const assignees = achievement.value.assignee || [];
     const index = assignees.indexOf(userId);
 
-    if (index > -1) {
+    const isAssigned = index > -1;
+    if (isAssigned) {
       achievement.value.assignee = assignees.filter(
         (id: string) => id !== userId
       );
@@ -314,7 +327,8 @@ export function useAchievementForm() {
   watch(
     () => achievement.value.type,
     (newType) => {
-      if (newType === "asNeeded") {
+      const isOpenBounty = newType === "asNeeded";
+      if (isOpenBounty) {
         achievement.value.assignee = [];
       }
     }
@@ -357,13 +371,15 @@ export function useAchievementForm() {
   });
 
   const incrementDifficulty = () => {
-    if (fibonacciIndex.value < fibonacciArray.length - 1) {
+    const canIncrease = fibonacciIndex.value < fibonacciArray.length - 1;
+    if (canIncrease) {
       fibonacciIndex.value++;
     }
   };
 
   const decrementDifficulty = () => {
-    if (fibonacciIndex.value > 0) {
+    const canDecrease = fibonacciIndex.value > 0;
+    if (canDecrease) {
       fibonacciIndex.value--;
     }
   };
@@ -375,15 +391,19 @@ export function useAchievementForm() {
   // Section Completeness
   const isStrategyComplete = computed(() => {
     const type = achievement.value.adventureType;
-    if (type === "simple") return true;
-    if (type === "beast") return !!achievement.value.beastId;
-    if (type === "chain")
+    const isSimple = type === "simple";
+    if (isSimple) return true;
+    const isBeast = type === "beast";
+    if (isBeast) return !!achievement.value.beastId;
+    const isChain = type === "chain";
+    if (isChain)
       return (achievement.value.subAchievementIds?.length || 0) > 0;
     return false;
   });
 
   const isPartyComplete = computed(() => {
-    if (achievement.value.type === "asNeeded") return true;
+    const isOpenBounty = achievement.value.type === "asNeeded";
+    if (isOpenBounty) return true;
     return (achievement.value.assignee?.length || 0) > 0;
   });
 
@@ -458,16 +478,19 @@ export function useAchievementForm() {
           achievement.value = { ...achievement.value, ...task };
 
           // Honor stored adventureType, or infer if legacy
-          if (!task.adventureType) {
+          const storedAdventureType = task.adventureType;
+          if (!storedAdventureType) {
             const hasBeast = Boolean(task.beastId);
             const hasSub = Boolean(task.subAchievementIds && task.subAchievementIds.length > 0);
             achievement.value.adventureType = resolveLegacyAdventureType(hasBeast, hasSub);
           }
 
           // Set fib index
-          if (task.difficulty) {
-            const index = fibonacciArray.indexOf(task.difficulty);
-            if (index !== -1) fibonacciIndex.value = index;
+          const storedDifficulty = task.difficulty;
+          if (storedDifficulty) {
+            const index = fibonacciArray.indexOf(storedDifficulty);
+            const isFibonacciStep = index !== -1;
+            if (isFibonacciStep) fibonacciIndex.value = index;
           }
         } else {
           // ID provided but not found? Treat as new or use the ID for a new task?
@@ -495,9 +518,11 @@ export function useAchievementForm() {
   // Debounced Autosave. An incomplete quest is saved as a draft, which heroes never see
   // (QuestEngine.filterQuests); it goes live by itself the moment it is complete.
   const autosave = debounce(async () => {
-    if (JSON.stringify(achievement.value) === lastSavedState.value) return;
+    const isUnchanged = JSON.stringify(achievement.value) === lastSavedState.value;
+    if (isUnchanged) return;
     // A quest without a name has nothing worth keeping yet
-    if (!achievement.value.achievementName?.trim()) {
+    const trimmedName = achievement.value.achievementName?.trim();
+    if (!trimmedName) {
       saveState.value = "draft";
       return;
     }
@@ -532,7 +557,8 @@ export function useAchievementForm() {
   /** Quests per category id, so a category that is still in use can't be deleted */
   const categoryQuestCounts = computed(() =>
     achievements.value.reduce((counts, quest) => {
-      if (quest.categoryId) counts[quest.categoryId] = (counts[quest.categoryId] || 0) + 1;
+      const categoryId = quest.categoryId;
+      if (categoryId) counts[categoryId] = (counts[categoryId] || 0) + 1;
       return counts;
     }, {} as Record<string, number>)
   );
@@ -584,7 +610,8 @@ export function useAchievementForm() {
     if (isValidDifficultyStep) {
       const targetDiff = fibonacciArray[newIndex];
       // Only update if changed prevents loop
-      if (achievement.value.difficulty !== targetDiff) {
+      const isDifficultyChanged = achievement.value.difficulty !== targetDiff;
+      if (isDifficultyChanged) {
         achievement.value.difficulty = targetDiff;
         updatePoints();
       }
@@ -707,7 +734,9 @@ export function useAchievementForm() {
       // Flush autosave to ensure current state is persisted before navigation
       autosave.flush();
 
-      if (achievement.value.adventureType === "beast") {
+      const isBeastQuest = achievement.value.adventureType === "beast";
+      const isChainQuest = achievement.value.adventureType === "chain";
+      if (isBeastQuest) {
         const selectionStore = useBestiarySelectionStore();
         selectionStore.startSelection(
           achievement.value.beastId ? [achievement.value.beastId] : [],
@@ -719,7 +748,7 @@ export function useAchievementForm() {
           }
         );
         router.push({ name: "xp-bestiary-select" });
-      } else if (achievement.value.adventureType === "chain") {
+      } else if (isChainQuest) {
         // For chains, we still use the reorder modal or a similar mechanism
         // But the user might want a separate selection flow later.
         // For now, let's just trigger the reorder if they have items,
@@ -763,7 +792,8 @@ export function useAchievementForm() {
     },
     deleteCategory: async (cat: any) => {
       // The category modal refuses this already; never leave a quest pointing at a deleted category
-      if (categoryQuestCounts.value[cat.id]) return;
+      const questCount = categoryQuestCounts.value[cat.id];
+      if (questCount) return;
       await categoryDb.remove(cat.id);
       const all = await categoryDb.getAll();
       categories.value = all.sort(sortCategoryByName);
@@ -811,7 +841,8 @@ export function useAchievementForm() {
         return;
       }
 
-      if (!achievement.value.achievementName) {
+      const questName = achievement.value.achievementName;
+      if (!questName) {
         const toast = await toastController.create({
           message: "Please name your quest first!",
           duration: 2000,
@@ -828,6 +859,7 @@ export function useAchievementForm() {
 
       const isChallengingBeast =
         achievement.value.adventureType === "beast" && activeBeast.value;
+      const isChainQuest = achievement.value.adventureType === "chain";
       // If Beast
       if (isChallengingBeast) {
         beastName = activeBeast.value.name;
@@ -835,7 +867,7 @@ export function useAchievementForm() {
       }
 
       // If Chain
-      else if (achievement.value.adventureType === "chain") {
+      else if (isChainQuest) {
         checklist = subAchievements.value
           .map((s) => s?.achievementName) // Safe access
           .filter((name): name is string => !!name);
@@ -849,12 +881,15 @@ export function useAchievementForm() {
           checklist,
         });
 
-        if (result.success && result.scheduleType) {
+        const scheduleType = result.scheduleType;
+        const hasSuggestion = result.success && !!scheduleType;
+        if (hasSuggestion) {
           // Reset relevant fields
           achievement.value.customFrequency = 1;
           achievement.value.customPeriodNumber = 1;
 
-          if (result.scheduleType === "custom") {
+          const isCustom = scheduleType === "custom";
+          if (isCustom) {
             achievement.value.basicSchedule = "custom";
             achievement.value.scheduleType = "custom";
             achievement.value.customFrequency = result.frequency || 1;
@@ -862,21 +897,21 @@ export function useAchievementForm() {
             achievement.value.customPeriodType = result.periodType || "week";
           } else {
             // Basic types (daily, weekly, once)
-            achievement.value.basicSchedule = result.scheduleType;
+            achievement.value.basicSchedule = scheduleType;
             achievement.value.scheduleType = "basic";
 
             // Map frequency if provided (e.g. 2 times daily)
-            if (result.frequency && result.frequency > 1) {
-              achievement.value.customFrequency = result.frequency;
+            const frequency = result.frequency;
+            const isRepeated = !!frequency && frequency > 1;
+            if (isRepeated) {
+              achievement.value.customFrequency = frequency;
             }
 
             // Map days for weekly
-            if (
-              result.scheduleType === "weekly" &&
-              result.days &&
-              result.days.length > 0
-            ) {
-              achievement.value.repeatOnDays = result.days;
+            const days = result.days;
+            const hasWeeklyDays = scheduleType === "weekly" && !!days && days.length > 0;
+            if (hasWeeklyDays) {
+              achievement.value.repeatOnDays = days;
             }
           }
 

@@ -87,7 +87,8 @@ export default defineComponent({
 
     const formattedGp = computed(() => {
       const gp = props.user?.stats?.gp?.wallet || 0;
-      if (gp >= 1000) {
+      const isThousands = gp >= 1000;
+      if (isThousands) {
         return `${(gp / 1000).toFixed(1)}k`;
       }
       return gp.toString();

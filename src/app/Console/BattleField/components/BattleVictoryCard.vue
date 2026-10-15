@@ -133,7 +133,8 @@ const easeOut = (progress: number): number => 1 - Math.pow(1 - progress, 3);
 /** "Hunt bonus +30 XP": what winning the fight added to the XP tile; a held quest is paid it once approved. */
 const bonusLine = computed(() => {
   const bonus = Math.round(Number(props.card.huntBonusXp));
-  if (!(bonus > 0)) return "";
+  const hasBonus = bonus > 0;
+  if (!hasBonus) return "";
   return props.card.held ? `Hunt bonus +${bonus} XP once approved` : `Hunt bonus +${bonus} XP`;
 });
 
@@ -157,7 +158,8 @@ const counting = computed(() => TILES.some(({ stat }) => shown[stat] !== targetO
 
 /** "2 chores in 2:05", "1 chore in 0:07"; nothing for a card that was not a fight. */
 const workLine = computed(() => {
-  if (props.card.choresDone === undefined) return "";
+  const isFightCard = props.card.choresDone !== undefined;
+  if (!isFightCard) return "";
   const chores = Math.max(0, Math.floor(Number(props.card.choresDone) || 0));
   const seconds = Math.max(0, Math.floor((Number(props.card.elapsedMs) || 0) / 1000));
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -176,7 +178,8 @@ let isRolling = false;
 /** Tells the page when the counting starts and stops, however it stops: landed, tapped, hidden or unmounted. */
 const syncRolling = () => {
   const shouldRoll = TILES.some(({ stat }) => timers.has(stat) && hasLoot(stat));
-  if (shouldRoll === isRolling) return;
+  const isUnchanged = shouldRoll === isRolling;
+  if (isUnchanged) return;
   isRolling = shouldRoll;
   emit("rolling", shouldRoll);
 };
@@ -190,7 +193,8 @@ const rollTile = (stat: Stat, step: number) => {
   timers.set(
     stat,
     setTimeout(() => {
-      if (step >= COUNT_STEPS) {
+      const isLastStep = step >= COUNT_STEPS;
+      if (isLastStep) {
         timers.delete(stat);
         land(stat);
         if (hasLoot(stat)) emit("land", stat);
@@ -202,6 +206,8 @@ const rollTile = (stat: Stat, step: number) => {
     }, COUNT_STEP_MS),
   );
 };
+
+const isCardShowing = (): boolean => props.visible;
 
 /** Every number lands right now: written, the chains cancelled, the page told the roll is over. */
 const landAll = () => {
@@ -225,7 +231,7 @@ const start = () => {
     shown[stat] = 0;
     landed[stat] = false;
   });
-  if (!props.visible) return;
+  if (!isCardShowing()) return;
   TILES.forEach(({ stat, delay }) => {
     timers.set(
       stat,
@@ -243,7 +249,7 @@ const focusCard = () => {
 };
 
 const onTap = () => {
-  if (!props.visible) return;
+  if (!isCardShowing()) return;
   if (counting.value) {
     completeAll();
     return;
@@ -257,7 +263,7 @@ watch(
   () => props.visible,
   () => {
     start();
-    if (props.visible) focusCard();
+    if (isCardShowing()) focusCard();
   },
   { immediate: true },
 );
@@ -266,7 +272,7 @@ watch(
 watch(
   () => TILES.map(({ stat }) => targetOf(stat)).join("/"),
   () => {
-    if (props.visible) start();
+    if (isCardShowing()) start();
   },
 );
 

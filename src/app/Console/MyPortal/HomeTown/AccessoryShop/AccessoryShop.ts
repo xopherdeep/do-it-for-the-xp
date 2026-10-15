@@ -103,7 +103,8 @@ const DEFAULT_SHOP_ID = "hometown-market";
 
 const resolveAssetUrl = (asset: any): string => {
   if (!asset) return "";
-  if (typeof asset === "string") return asset;
+  const isAssetPath = typeof asset === "string";
+  if (isAssetPath) return asset;
   const isAssetModule = typeof asset === "object" && typeof asset.default === "string";
   if (isAssetModule) return asset.default;
   return String(asset);
@@ -172,7 +173,8 @@ export default defineComponent({
   computed: {
     // The Game Master's name for the shop, else its address read out ("hometown-market" -> "hometown market")
     shopName(): string {
-      if (this.shopRecord?.name) return this.shopRecord.name;
+      const gmShopName = this.shopRecord?.name;
+      if (gmShopName) return gmShopName;
       return this.merchant ? this.merchant.replace(/-/g, " ") : "Shop";
     },
     shopIcon() {
@@ -229,10 +231,12 @@ export default defineComponent({
     clerkLines(): string[] {
       if (!this.isOpen) return [this.closedLine];
       const lines = [this.shopGreeting];
-      if (this.charismaDiscount) {
-        lines.push(this.t("shop.charm", { discount: this.charismaDiscount }));
+      const discount = this.charismaDiscount;
+      if (discount) {
+        lines.push(this.t("shop.charm", { discount }));
       }
-      if (this.walletWare?.status === "for-sale") {
+      const isWalletForSale = this.walletWare?.status === "for-sale";
+      if (isWalletForSale) {
         lines.push(this.t("shop.walletUp"));
       }
       if (this.isTraveling) {
@@ -278,7 +282,8 @@ export default defineComponent({
       this.isTalking = true;
       try {
         const pick = await this.reveal.showPrompt(clerkPrompt(this.voice, this.clerkLines, this.isOpen));
-        if (pick === "atm" && this.isOpen) this.openATM();
+        const isAtmPicked = pick === "atm" && this.isOpen;
+        if (isAtmPicked) this.openATM();
       } finally {
         this.isTalking = false;
       }
@@ -306,8 +311,11 @@ export default defineComponent({
     async atmErrand(action: BankAction, data: GpAmount) {
       const amount = Number(data?.gp);
       const hero = this.user;
-      if (!(amount > 0) || !hero?.stats) return;
-      const before = hero.stats.gp;
+      // No amount to move, or no purse to move it in: nothing happens
+      const stats = amount > 0 ? hero?.stats : undefined;
+      if (!stats) return;
+
+      const before = stats.gp;
       const move = bankMove(action, before, amount);
       const refusal = bankRefusal(action, before, move, this.words);
       if (refusal) {
@@ -365,12 +373,14 @@ export default defineComponent({
       if (isPurchaseBlocked) return;
       const stats = this.userStore.users[this.heroId]?.stats;
       const pick = await this.reveal.showPrompt(walletPitch(this.voice, ware, stats?.gp, Number(stats?.level) || 1, this.words));
-      if (pick !== "yes") return;
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
 
       // Time passed while the hero thought: the purse is read again before it is charged
       const fresh = this.userStore.users[this.heroId]?.stats;
       const result = buyWalletUpgrade(fresh?.gp, Number(fresh?.level) || 1);
-      if (result.ok) {
+      const isPaid = result.ok;
+      if (isPaid) {
         this.userStore.setWallet(this.heroId, result.gp);
         await this.reveal.showPrompt(walletReceipt(this.voice, result.offer.limit, this.words));
       } else {
@@ -381,7 +391,8 @@ export default defineComponent({
     // (it shows up under Approvals > Accessories until they do). Nothing goes into the bag, so a full bag never matters here.
     async buyItem(item: ShelfItem) {
       if (this.isBuying) return;
-      if (this.turnedAwayWhileClosed()) return;
+      const isTurnedAway = this.turnedAwayWhileClosed();
+      if (isTurnedAway) return;
       this.isBuying = true;
       try {
         await purchaseItem(this.heroId, item);
@@ -389,7 +400,8 @@ export default defineComponent({
         this.isBuying = false;
         const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
         const reasonCode = error instanceof PurchaseError ? error.code : undefined;
-        if (shortBy === null && reasonCode !== "bag-full") debug.error("Purchase failed:", error);
+        const isUnexpectedFailure = shortBy === null && reasonCode !== "bag-full";
+        if (isUnexpectedFailure) debug.error("Purchase failed:", error);
         await this.reveal.showPrompt(purchaseFailure(this.voice, item.name, shortBy, this.words, reasonCode));
         return;
       }
@@ -486,13 +498,14 @@ export default defineComponent({
     // What the Game Master stocked in this shop (Compendium > Accessories > Shops).
     // Only the newest load may write the shelf, so a slow earlier read can't overwrite a fresh one.
     let latestLoad = 0;
+    const isNewestLoad = (load: number) => load === latestLoad;
     const loadShelf = async () => {
       const thisLoad = ++latestLoad;
       try {
         const requested = props.merchant ? await shopsDb.getShopById(props.merchant) : null;
         const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
         const accessories = await accessoriesDb.getAccessories();
-        if (thisLoad === latestLoad) {
+        if (isNewestLoad(thisLoad)) {
           now.value = new Date();
           shopRecord.value = shop ?? null;
           const hero = userStore.users[heroId.value];
@@ -503,12 +516,13 @@ export default defineComponent({
         }
       } catch (error) {
         debug.error("Failed to stock the shelves:", error);
-        if (thisLoad === latestLoad) {
+        if (isNewestLoad(thisLoad)) {
           shelf.value = [];
           shopRecord.value = null;
         }
       } finally {
-        if (thisLoad === latestLoad) isLoading.value = false;
+        if (isNewestLoad(thisLoad)) isLoading.value = false;
+
       }
     };
     onMounted(loadShelf);

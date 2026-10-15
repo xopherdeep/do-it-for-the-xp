@@ -333,14 +333,16 @@
       },
       increaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex < this.fibonacciArray.length - 1) {
+        const canIncrease = currentIndex < this.fibonacciArray.length - 1;
+        if (canIncrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex + 1];
           this.updatePoints();
         }
       },
       decreaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);
-        if (currentIndex > 0) {
+        const canDecrease = currentIndex > 0;
+        if (canDecrease) {
           this.form.difficulty = this.fibonacciArray[currentIndex - 1];
           this.updatePoints();
         }

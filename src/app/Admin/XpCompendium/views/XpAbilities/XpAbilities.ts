@@ -84,8 +84,10 @@ export default defineComponent({
       let filtered = abilities.value;
 
       // Apply type filter
-      if (currentFilter.value !== "all") {
-        if (currentFilter.value === "presets") {
+      const isFilteringByType = currentFilter.value !== "all";
+      const isPresetsFilter = currentFilter.value === "presets";
+      if (isFilteringByType) {
+        if (isPresetsFilter) {
           filtered = filtered.filter((a) => a.isPreset);
         } else {
           filtered = filtered.filter((a) => a.type === currentFilter.value);
@@ -97,8 +99,9 @@ export default defineComponent({
         currentFilter.value === "in-game" && classFilter.value !== "all";
       if (isFilteringInGameByClass) {
         filtered = filtered.filter((a) => {
-          if (a.characterRequirement?.class) {
-            return Object.keys(a.characterRequirement.class).includes(
+          const requiredClasses = a.characterRequirement?.class;
+          if (requiredClasses) {
+            return Object.keys(requiredClasses).includes(
               classFilter.value
             );
           }
@@ -110,9 +113,10 @@ export default defineComponent({
     });
 
     const prerequisites = computed(() => {
-      if (editingAbility.value.id) {
+      const editingId = editingAbility.value.id;
+      if (editingId) {
         // Don't show current ability in prerequisites to avoid circular references
-        return abilities.value.filter((a) => a.id !== editingAbility.value.id);
+        return abilities.value.filter((a) => a.id !== editingId);
       }
       return abilities.value;
     });
@@ -130,7 +134,8 @@ export default defineComponent({
 
     const filterAbilities = () => {
       // Reset class filter when switching tabs
-      if (currentFilter.value !== "in-game") {
+      const isInGameFilter = currentFilter.value === "in-game";
+      if (!isInGameFilter) {
         classFilter.value = "all";
       }
     };
@@ -158,12 +163,13 @@ export default defineComponent({
         apCost.value = ability.apRequirement.amount;
 
         // Set class requirement fields
-        if (ability.characterRequirement?.class) {
-          const className = Object.keys(ability.characterRequirement.class)[0];
+        const requiredClasses = ability.characterRequirement?.class;
+        if (requiredClasses) {
+          const className = Object.keys(requiredClasses)[0];
           if (className) {
             selectedClass.value = className;
             selectedClassLevel.value =
-              ability.characterRequirement.class[className];
+              requiredClasses[className];
           } else {
             selectedClass.value = "none";
           }
@@ -177,9 +183,10 @@ export default defineComponent({
           : "none";
 
         // Set scaling fields
-        if (ability.scaling) {
-          scalingAttribute.value = ability.scaling.attribute;
-          scalingRate.value = ability.scaling.rate;
+        const scaling = ability.scaling;
+        if (scaling) {
+          scalingAttribute.value = scaling.attribute;
+          scalingRate.value = scaling.rate;
         } else {
           scalingAttribute.value = "none";
           scalingRate.value = 0.1;
@@ -259,19 +266,20 @@ export default defineComponent({
     };
 
     const updateClassRequirement = () => {
-      if (selectedClass.value === "none") {
-        if (editingAbility.value.characterRequirement) {
-          delete editingAbility.value.characterRequirement.class;
+      const isNoClass = selectedClass.value === "none";
+      if (isNoClass) {
+        const requirement = editingAbility.value.characterRequirement;
+        if (requirement) {
+          delete requirement.class;
 
           // If no character requirements left, remove the whole object
-          if (!editingAbility.value.characterRequirement?.level) {
+          const requiredLevel = requirement.level;
+          if (!requiredLevel) {
             delete editingAbility.value.characterRequirement;
           }
         }
       } else {
-        if (!editingAbility.value.characterRequirement) {
-          editingAbility.value.characterRequirement = {};
-        }
+        editingAbility.value.characterRequirement ??= {};
 
         editingAbility.value.characterRequirement.class = {
           [selectedClass.value]: selectedClassLevel.value,
@@ -280,19 +288,20 @@ export default defineComponent({
     };
 
     const updateCharacterLevelRequirement = () => {
-      if (characterLevelRequired.value === "none") {
-        if (editingAbility.value.characterRequirement) {
-          delete editingAbility.value.characterRequirement.level;
+      const isNoLevel = characterLevelRequired.value === "none";
+      if (isNoLevel) {
+        const requirement = editingAbility.value.characterRequirement;
+        if (requirement) {
+          delete requirement.level;
 
           // If no character requirements left, remove the whole object
-          if (!editingAbility.value.characterRequirement?.class) {
+          const requiredClasses = requirement.class;
+          if (!requiredClasses) {
             delete editingAbility.value.characterRequirement;
           }
         }
       } else {
-        if (!editingAbility.value.characterRequirement) {
-          editingAbility.value.characterRequirement = {};
-        }
+        editingAbility.value.characterRequirement ??= {};
 
         editingAbility.value.characterRequirement.level = parseInt(
           characterLevelRequired.value
@@ -301,7 +310,8 @@ export default defineComponent({
     };
 
     const updateScalingAttribute = () => {
-      if (scalingAttribute.value === "none") {
+      const isUnscaled = scalingAttribute.value === "none";
+      if (isUnscaled) {
         delete editingAbility.value.scaling;
       } else {
         editingAbility.value.scaling = {
@@ -314,8 +324,9 @@ export default defineComponent({
     const updateScalingRate = (event: any) => {
       scalingRate.value = event.detail.value / 100;
 
-      if (editingAbility.value.scaling) {
-        editingAbility.value.scaling.rate = scalingRate.value;
+      const scaling = editingAbility.value.scaling;
+      if (scaling) {
+        scaling.rate = scalingRate.value;
       }
     };
 
@@ -325,7 +336,8 @@ export default defineComponent({
       // Update AP amount from apCost ref
       abilityToSave.apRequirement.amount = apCost.value;
 
-      if (!abilityToSave.id) {
+      const isNewAbility = !abilityToSave.id;
+      if (isNewAbility) {
         // New ability
         abilityToSave.id = uuidv4();
 
@@ -340,7 +352,8 @@ export default defineComponent({
         const index = abilities.value.findIndex(
           (a) => a.id === abilityToSave.id
         );
-        if (index !== -1) {
+        const isFound = index !== -1;
+        if (isFound) {
           abilities.value[index] = abilityToSave;
         }
       }
@@ -368,7 +381,8 @@ export default defineComponent({
     };
 
     const deleteAbility = () => {
-      if (editingAbility.value.id) {
+      const editingId = editingAbility.value.id;
+      if (editingId) {
         // Delete from DB
         abilitiesDb.deleteAbility(editingAbility.value);
 
@@ -484,7 +498,8 @@ export default defineComponent({
         const heroId = String(hero.id);
         const casts = lastCastsOf(await getCastLogDb().getForHero(heroId));
         // A slow load for a hero the GM already tapped away from must not overwrite the current one
-        if (String(previewHero.value?.id) === heroId) previewCasts.value = casts;
+        const isStillPreviewed = String(previewHero.value?.id) === heroId;
+        if (isStillPreviewed) previewCasts.value = casts;
       },
       { immediate: true }
     );
@@ -507,8 +522,10 @@ export default defineComponent({
       "in-game": "Game",
     };
     const emptyTitle = computed(() => {
-      if (currentFilter.value === "presets") return "No Presets Added Yet";
-      if (abilities.value.length === 0) return "No Abilities Created Yet";
+      const isPresetsFilter = currentFilter.value === "presets";
+      if (isPresetsFilter) return "No Presets Added Yet";
+      const hasNoAbilities = abilities.value.length === 0;
+      if (hasNoAbilities) return "No Abilities Created Yet";
       return `No ${FILTER_LABELS[currentFilter.value] ?? ""} Abilities Here Yet`;
     });
     const emptyHint = computed(() =>
@@ -519,7 +536,8 @@ export default defineComponent({
 
     const getAbilityIcon = (ability: Ability) => {
       // If the ability has iconPrefix, it's a Font Awesome icon, so we should display it differently
-      if (ability.iconPrefix) {
+      const iconPrefix = ability.iconPrefix;
+      if (iconPrefix) {
         return {
           component: "i",
           class: `${ability.iconPrefix} fa-${ability.icon} fa-lg`,
@@ -573,7 +591,8 @@ export default defineComponent({
     };
 
     const formatPeriod = (period: TimePeriod): string => {
-      if (period === TimePeriod.Flat) {
+      const isFlat = period === TimePeriod.Flat;
+      if (isFlat) {
         return "Total (one-time)";
       }
       return formatFrequency(period);

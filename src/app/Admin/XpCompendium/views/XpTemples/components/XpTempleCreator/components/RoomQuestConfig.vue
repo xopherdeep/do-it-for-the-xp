@@ -97,7 +97,7 @@
   import { computed } from "vue";
   import { IonToggle } from "@ionic/vue";
   import type { QuestCard } from "@/lib/services/temples/questRoomPicker";
-  import { moreChoresLine, type RoomQuestHolding } from "../hooks/grid/roomQuest";
+  import { heldQuest, moreChoresLine, type RoomQuestHolding } from "../hooks/grid/roomQuest";
   import QuestRoomRow from "./QuestRoomRow.vue";
 
   interface RoomQuestConfigProps {
@@ -131,10 +131,8 @@
   const fillsTemplate = computed(() => props.holding.kind === "template" && Boolean(props.holding.filler));
   const moreChores = computed(() => moreChoresLine(props.holding));
   const editableId = computed(() => {
-    const { holding } = props;
-    if (holding.kind === "picked") return String(holding.quest.id);
-    if (holding.kind === "template" && holding.filler) return String(holding.filler.id);
-    return "";
+    const quest = heldQuest(props.holding);
+    return quest ? String(quest.id) : "";
   });
   const lairText = computed(() => {
     if (isMissing.value) return "The quest for this room was deleted, or it is still a draft. Pick another, or the lair stays empty.";

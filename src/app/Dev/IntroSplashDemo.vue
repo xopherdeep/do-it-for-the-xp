@@ -231,7 +231,8 @@ export default defineComponent({
   
   // When component is revisited, update the key to force remount
   activated() {
-    if (this.showDemo) {
+    const isDemoShown = this.showDemo;
+    if (isDemoShown) {
       this.componentKey++;
     }
   }

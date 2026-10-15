@@ -85,7 +85,8 @@ const isSelected = (userId: string) => props.modelValue.includes(userId);
 
 const getAvatarUrl = (user: User) => {
   // Try to use global $getUserAvatar if available
-  if (globalProps?.$getUserAvatar) {
+  const hasAvatarHelper = !!globalProps?.$getUserAvatar;
+  if (hasAvatarHelper) {
     try {
       const avatar = globalProps.$getUserAvatar(user);
       if (avatar) return avatar;
@@ -97,7 +98,8 @@ const getAvatarUrl = (user: User) => {
 };
 
 const toggleHero = (userId: string) => {
-  if (props.multiple) {
+  const isMultiple = props.multiple;
+  if (isMultiple) {
     const newValue = isSelected(userId)
       ? props.modelValue.filter(id => id !== userId)
       : [...props.modelValue, userId];

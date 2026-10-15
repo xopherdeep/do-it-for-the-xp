@@ -63,9 +63,11 @@ export default defineComponent({
     const openNotification = async (notification: XpNotification) => {
       play$fx("select");
       notificationsStore.markRead(notification.id);
-      if (!notification.link) return;
+      const link = notification.link;
+      if (!link) return;
       await handleClose();
-      await router.push(notification.link);
+      await router.push(link);
+
     };
 
     const markAsRead = (notification: XpNotification) => {

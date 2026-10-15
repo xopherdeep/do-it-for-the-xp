@@ -114,8 +114,10 @@ export default defineComponent({
         .filter((ability) => {
           const isTypeFilter = filter.value === "real-life" || filter.value === "in-game";
           if (isTypeFilter) return ability.type === filter.value;
-          if (filter.value === "unlocked") return Boolean(unlocks.value[ability.id]);
-          if (filter.value === "locked") return !unlocks.value[ability.id];
+          const isUnlockedFilter = filter.value === "unlocked";
+          if (isUnlockedFilter) return Boolean(unlocks.value[ability.id]);
+          const isLockedFilter = filter.value === "locked";
+          if (isLockedFilter) return !unlocks.value[ability.id];
           return true;
         })
         .filter((ability) => !words || `${ability.name} ${ability.description}`.toLowerCase().includes(words))
@@ -140,7 +142,9 @@ export default defineComponent({
           timerLeft: timerLeftOf.value[ability.id] ?? null,
         });
         const last = result[result.length - 1];
-        if (last && last.type === ability.type) last.rows.push(row);
+        const isSameGroup = last !== undefined && last.type === ability.type;
+        if (isSameGroup) last.rows.push(row);
+
         else result.push({ type: ability.type, label: GROUP_LABEL[ability.type] ?? "Powers", rows: [row] });
       });
       return result;

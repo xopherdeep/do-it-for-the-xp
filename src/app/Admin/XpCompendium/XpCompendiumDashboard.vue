@@ -308,12 +308,14 @@ export default defineComponent({
       activeSlideIndex.value = swiper.activeIndex;
 
       // Trigger slide 0 enter effect if returning to slide 0
-      if (activeSlideIndex.value === 0) {
+      const isFirstSlide = activeSlideIndex.value === 0;
+      if (isFirstSlide) {
         handleSlide0Enter();
       }
 
       // Automatically show dialog when reaching a new slide that hasn't been viewed yet
-      if (!slidesViewed.value[activeSlideIndex.value]) {
+      const isSlideViewed = slidesViewed.value[activeSlideIndex.value];
+      if (!isSlideViewed) {
         showSlideDialog(activeSlideIndex.value);
       }
     };
@@ -327,7 +329,8 @@ export default defineComponent({
           autoDismiss: false,
           onDismiss: () => {
             // Logic from onDialogComplete
-            if (slidesViewed.value.every((viewed) => viewed)) {
+            const isEverySlideViewed = slidesViewed.value.every((viewed) => viewed);
+            if (isEverySlideViewed) {
               markTutorialCompleted();
             }
 
@@ -347,7 +350,8 @@ export default defineComponent({
       slidesViewed.value[slideIndex] = true;
 
       // Play a sound effect for immersion when dialog is shown
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("select");
       }
     };
@@ -364,7 +368,8 @@ export default defineComponent({
       showSlideDialog(activeSlideIndex.value);
 
       // Play sound effect
-      if (typeof window["play$fx"] === "function") {
+      const canPlayFx = typeof window["play$fx"] === "function";
+      if (canPlayFx) {
         window["play$fx"]("system");
       }
 

@@ -61,7 +61,8 @@ const meshPart = (boxes: Box[], occluders: Box[]): MeshData => {
   }
   const data = buildMeshData(boxes, occluders);
   meshCache.set(key, data);
-  if (meshCache.size > MESH_CACHE_SIZE) meshCache.delete(meshCache.keys().next().value as string);
+  const isOverCache = meshCache.size > MESH_CACHE_SIZE;
+  if (isOverCache) meshCache.delete(meshCache.keys().next().value as string);
   return data;
 };
 

@@ -10,7 +10,8 @@ module.exports = {
   webpack: {
     configure: (webpackConfig) => {
       // Define Vue feature flags
-      if (!webpackConfig.plugins) {
+      const hasPlugins = Boolean(webpackConfig.plugins);
+      if (!hasPlugins) {
         webpackConfig.plugins = [];
       }
       

@@ -106,8 +106,8 @@ const revealStrip = () => {
   const strip = list?.querySelector<HTMLElement>(".task-confirm-strip");
   const hasNoStripToReveal = !list || !strip;
   if (hasNoStripToReveal) return;
-  const hidden = strip.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom;
-  if (hidden <= 0) return;
+  const hidden = Math.max(0, strip.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom);
+  if (!hidden) return;
   const calm = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   list.scrollBy?.({ top: hidden + 8, behavior: calm ? "auto" : "smooth" });
 };

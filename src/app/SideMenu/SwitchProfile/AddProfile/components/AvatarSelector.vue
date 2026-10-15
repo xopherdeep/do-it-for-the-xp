@@ -94,7 +94,8 @@ export default defineComponent({
       emit('selected', index);
 
       // If fullscreen, automatically close when selecting
-      if (props.fullscreen) {
+      const isFullscreen = Boolean(props.fullscreen);
+      if (isFullscreen) {
         emit('close');
       }
     };

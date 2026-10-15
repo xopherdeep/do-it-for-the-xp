@@ -80,14 +80,18 @@ const costLine = computed(() =>
 
 /** The one line that says why the Power cannot be cast right now (none when it can) */
 const stateLine = computed(() => {
-  if (props.battle) return props.battle.reason ?? "";
+  const battle = props.battle;
+  if (battle) return battle.reason ?? "";
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
-  if (props.groundedReason && props.status === "available") return props.groundedReason;
+  const groundedLine = props.status === "available" ? props.groundedReason : "";
+  if (groundedLine) return groundedLine;
   return stateLineOf(props.ability, props.status, earned.value, needed.value);
 });
 
 const canCast = computed(() => {
-  if (props.battle) return !props.battle.reason && !props.casting;
+  const battle = props.battle;
+  if (battle) return !battle.reason && !props.casting;
+
   return props.status === "available" && !props.groundedReason && !props.casting;
 });
 

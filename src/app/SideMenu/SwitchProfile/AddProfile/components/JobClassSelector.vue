@@ -217,7 +217,8 @@
 
       // Get the icon for the selected class
       const getSelectedClassIcon = () => {
-        if (!props.modelValue) return "";
+        const selectedName = props.modelValue;
+        if (!selectedName) return "";
         const selectedClass = JOB_CLASS_OPTIONS.find(
           (job) => job.name === props.modelValue
         );

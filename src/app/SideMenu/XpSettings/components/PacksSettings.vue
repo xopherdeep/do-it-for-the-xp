@@ -163,7 +163,8 @@ const statusOf = (pack: XpPack): PackStatus => packStatus(pack, packs, snapshot.
 /** Only packs that rename the players say so; the Family pack keeps Heroes and the Game Master */
 const termsLine = (pack: XpPack): string => {
   const terms = pack.terms;
-  if (!terms || (terms.members === DEFAULT_TERMS.members && terms.gm === DEFAULT_TERMS.gm)) return "";
+  const keepsDefaultTerms = !terms || (terms.members === DEFAULT_TERMS.members && terms.gm === DEFAULT_TERMS.gm);
+  if (keepsDefaultTerms) return "";
   return `Made for ${terms.members.toLowerCase()} and their ${terms.gm.toLowerCase()}.`;
 };
 
@@ -226,7 +227,8 @@ const showFailed = async (header: string, error: unknown) => {
 };
 
 const confirmLoad = async (pack: XpPack) => {
-  if (!(await allowed())) return;
+  const isPermitted = await allowed();
+  if (!isPermitted) return;
   play$fx("select");
   const again = statusOf(pack).state !== "none";
   const alert = await alertController.create({
@@ -258,7 +260,8 @@ const runLoad = async (pack: XpPack) => {
 };
 
 const confirmRemove = async (pack: XpPack) => {
-  if (!(await allowed())) return;
+  const isPermitted = await allowed();
+  if (!isPermitted) return;
   play$fx("select");
   const plan = planRemoval(pack, packs, snapshot.value);
   const alert = await alertController.create({
@@ -299,9 +302,11 @@ const runRemove = async (pack: XpPack) => {
 
 /** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog */
 const openBuilder = async (which: "moving" | "home") => {
-  if (!(await allowed())) return;
+  const isPermitted = await allowed();
+  if (!isPermitted) return;
   play$fx("select");
-  if (which === "moving") showMoving.value = true;
+  const isMovingPack = which === "moving";
+  if (isMovingPack) showMoving.value = true;
   else showHome.value = true;
 };
 

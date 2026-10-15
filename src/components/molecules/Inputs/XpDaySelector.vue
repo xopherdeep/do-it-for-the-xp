@@ -56,7 +56,8 @@ export default defineComponent({
       const current = [...selectedDays.value];
       const index = current.indexOf(dayIndex);
       
-      if (index > -1) {
+      const isPicked = index > -1;
+      if (isPicked) {
         current.splice(index, 1);
       } else {
         current.push(dayIndex);

@@ -240,7 +240,8 @@ const closeKeyboard = (event: Event) => {
 // The hero card goes back to the step that owns the name (always allowed)
 const goToName = () => {
   const at = steps.findIndex((step) => step.id === "name");
-  if (at < 0) return;
+  const hasNoNameStep = at < 0;
+  if (hasNoNameStep) return;
   play$fx("cursor");
   position.value = at;
 };
