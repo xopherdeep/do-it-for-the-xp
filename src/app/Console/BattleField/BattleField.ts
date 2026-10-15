@@ -6,6 +6,7 @@ import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/Bat
 import { battleBagRole, describeBattleItem, useBattleItem, type BattleItemLike } from "@/lib/services/battle/BattleItems";
 import { heroPoints, type BattleEffectId, type BattleEffectOutcome } from "@/lib/services/battle/BattleEffects";
 import { choreGains } from "@/lib/services/battle/choreGains";
+import { autoLine } from "@/lib/services/battle/battleService/dialogLines";
 import { drinkPotion, potionShelf } from "@/lib/services/battle/BattlePotions";
 import { battlePowers, castBattlePower } from "@/lib/services/battle/BattlePowers";
 import { getAbilityService } from "@/lib/services/abilities/AbilityService";
@@ -405,8 +406,9 @@ export default defineComponent({
           if (encounter.value?.boss) audio.startBossBgm();
           else audio.startBattleBgm();
         },
-        `From the dark forces of chaos comes ${label}!!!`,
-        ...(stillHurt ? [`${label} is still hurt from earlier!`] : []),
+        // The intro reads itself out: waiting on the box never holds the clock back
+        autoLine(`From the dark forces of chaos comes ${label}!!!`),
+        ...(stillHurt ? [autoLine(`${label} is still hurt from earlier!`)] : []),
         // The clock only starts once the hero has read who they are up against
         () => {
           startedAt = Date.now();

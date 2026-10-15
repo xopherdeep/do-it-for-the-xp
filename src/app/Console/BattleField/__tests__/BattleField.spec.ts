@@ -361,6 +361,18 @@ describe("BattleField: a free fight", () => {
     (Math.random as jest.Mock).mockRestore();
   });
 
+  it("starts the clock on its own when nobody taps through the intro", async () => {
+    const { wrapper, vm } = await enterBattle("/battle/hero-1/free/");
+    expect(vm.dialogText).toBe(INTRO);
+    for (let beat = 0; beat < 20 && !wrapper.find(".menu-item").exists(); beat++) {
+      jest.advanceTimersByTime(500);
+      await flushPromises();
+    }
+    expect(vm.dialogText).toBe("");
+    expect(wrapper.find(".menu-item").exists()).toBe(true);
+    expect(wrapper.find(".attack-timer-label").exists()).toBe(true);
+  });
+
   it("lands the strike on its own when nobody taps: waiting out the message box never holds the hit back", async () => {
     const { wrapper, userStore, vm, tap } = await enterBattle("/battle/hero-1/free/");
     jest.spyOn(Math, "random").mockReturnValue(0.5);
