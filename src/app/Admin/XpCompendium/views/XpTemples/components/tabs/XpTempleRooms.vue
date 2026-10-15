@@ -198,12 +198,12 @@ export default defineComponent({
     const roomList = computed((): RoomListItem[] => {
       const rooms: RoomListItem[] = [];
       
-      if (!temple.value.dungeonLayout?.maze || !temple.value.dungeonLayout?.rooms) {
+      const maze = temple.value.dungeonLayout?.maze;
+      const roomDefs = temple.value.dungeonLayout?.rooms;
+      const isMissingLayout = !maze || !roomDefs;
+      if (isMissingLayout) {
         return rooms;
       }
-
-      const maze = temple.value.dungeonLayout.maze;
-      const roomDefs = temple.value.dungeonLayout.rooms;
 
       const processFloor = (grid: string[][], floorId: string) => {
         grid.forEach((row, rowIndex) => {
@@ -257,9 +257,7 @@ export default defineComponent({
       return rooms.sort((a, b) => {
         const aPriority = typePriority[a.type] || 99;
         const bPriority = typePriority[b.type] || 99;
-        if (aPriority !== bPriority) return aPriority - bPriority;
-        if (a.row !== b.row) return a.row - b.row;
-        return a.col - b.col;
+        return aPriority - bPriority || a.row - b.row || a.col - b.col;
       });
     });
 
@@ -269,8 +267,10 @@ export default defineComponent({
       
       // Get floor order (surface floors ascending, then basement floors descending)
       const getFloorValue = (f: string): number => {
-        if (f.endsWith('F')) return parseInt(f);
-        if (f.startsWith('B')) return -parseInt(f.replace('B', ''));
+        const isUpperFloor = f.endsWith('F');
+        const isBasement = f.startsWith('B');
+        if (isUpperFloor) return parseInt(f);
+        if (isBasement) return -parseInt(f.replace('B', ''));
         return 0;
       };
 
@@ -315,12 +315,15 @@ export default defineComponent({
     };
 
     const formatFloorName = (floorId: string): string => {
-      if (floorId.endsWith('F')) {
+      const isUpperFloor = floorId.endsWith('F');
+      const isBasement = floorId.startsWith('B');
+      if (isUpperFloor) {
         const num = parseInt(floorId);
-        if (num === 1) return 'Ground Floor';
+        const isGroundFloor = num === 1;
+        if (isGroundFloor) return 'Ground Floor';
         return `Floor ${num}`;
       }
-      if (floorId.startsWith('B')) {
+      if (isBasement) {
         const num = parseInt(floorId.replace('B', ''));
         return `Basement ${num}`;
       }
@@ -328,8 +331,10 @@ export default defineComponent({
     };
 
     const getFloorIcon = (floorId: string): string => {
-      if (floorId.startsWith('B')) return 'fa-dungeon';
-      if (floorId === '1F') return 'fa-dungeon-door';
+      const isBasement = floorId.startsWith('B');
+      const isGroundFloor = floorId === '1F';
+      if (isBasement) return 'fa-dungeon';
+      if (isGroundFloor) return 'fa-dungeon-door';
       return 'fa-clouds';
     };
 

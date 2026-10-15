@@ -19,12 +19,12 @@ export interface TempleBeast {
 export const listTempleBeasts = (layout: DungeonLayout, allBeasts: Beast[]): TempleBeast[] => {
   const result: TempleBeast[] = [];
 
-  if (!layout?.maze || !layout?.rooms) {
+  const maze = layout?.maze;
+  const roomDefs = layout?.rooms;
+  const isMissingLayout = !maze || !roomDefs;
+  if (isMissingLayout) {
     return result;
   }
-
-  const maze = layout.maze;
-  const roomDefs = layout.rooms;
 
   const processFloor = (grid: string[][], floorId: string) => {
     grid.forEach((row, rowIndex) => {
@@ -90,10 +90,11 @@ export const listTempleBeasts = (layout: DungeonLayout, allBeasts: Beast[]): Tem
 };
 
 export const buildItemMapData = (layout: DungeonLayout) => {
-  if (!layout?.maze || !layout?.rooms) return {};
+  const maze = layout?.maze;
+  const roomDefs = layout?.rooms;
+  const isMissingLayout = !maze || !roomDefs;
+  if (isMissingLayout) return {};
 
-  const maze = layout.maze;
-  const roomDefs = layout.rooms;
   const result: Record<string, any[][]> = {};
 
   const processGrid = (grid: string[][]) => {

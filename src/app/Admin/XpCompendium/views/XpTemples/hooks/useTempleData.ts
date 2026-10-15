@@ -101,20 +101,17 @@ export function useTempleData(templeId: string) {
   const previewMaze = computed(() => pickPreviewMaze(temple.value.dungeonLayout));
 
   // Sync dungeonLayout with creatorStore when it changes
+  const isCreatorOnThisTemple = () => creatorStore.loadedTempleId === templeId;
   watch(() => creatorStore.roomsData, (newRooms) => {
-    if (creatorStore.loadedTempleId === templeId) {
-      if (!temple.value.dungeonLayout) {
-        temple.value.dungeonLayout = { entrance: [0, 0], maze: [], rooms: {} };
-      }
+    if (isCreatorOnThisTemple()) {
+      temple.value.dungeonLayout ??= { entrance: [0, 0], maze: [], rooms: {} };
       temple.value.dungeonLayout.rooms = { ...newRooms };
     }
   }, { deep: true });
 
   watch(() => creatorStore.templeMaze, (newMaze) => {
-    if (creatorStore.loadedTempleId === templeId) {
-      if (!temple.value.dungeonLayout) {
-        temple.value.dungeonLayout = { entrance: [0, 0], maze: [], rooms: {} };
-      }
+    if (isCreatorOnThisTemple()) {
+      temple.value.dungeonLayout ??= { entrance: [0, 0], maze: [], rooms: {} };
       temple.value.dungeonLayout.maze = newMaze;
     }
   }, { deep: true });
@@ -135,8 +132,9 @@ export function useTempleData(templeId: string) {
       };
     }
 
-    if (temple.value.dungeonLayout) {
-      dungeonStats.value = countDungeonStats(temple.value.dungeonLayout, previewMaze.value);
+    const layout = temple.value.dungeonLayout;
+    if (layout) {
+      dungeonStats.value = countDungeonStats(layout, previewMaze.value);
     }
   };
 
@@ -163,9 +161,10 @@ export function useTempleData(templeId: string) {
       const templeData = await templeDb.getTempleById(id);
       if (templeData) {
         temple.value = { ...temple.value, ...templeData };
-        if (temple.value.dungeonLayout) {
-          temple.value.dungeonLayout.maze = creatorStore.templeMaze;
-          temple.value.dungeonLayout.rooms = creatorStore.roomsData;
+        const layout = temple.value.dungeonLayout;
+        if (layout) {
+          layout.maze = creatorStore.templeMaze;
+          layout.rooms = creatorStore.roomsData;
         }
         calculateDungeonStats();
       }
@@ -179,11 +178,14 @@ export function useTempleData(templeId: string) {
         temple.value = { ...temple.value, ...templeData };
 
         // Sync to creator store (Layer 2): the whole record, so the creator never starts from the store's default entrance and grid
-        if (templeData.dungeonLayout) {
-          if (templeData.dungeonLayout.rooms?.['____']) {
-            templeData.dungeonLayout.rooms['____'] = { type: 'wall' };
+        const layout = templeData.dungeonLayout;
+        if (layout) {
+          const rooms = layout.rooms;
+          const hasLegacyWallRecord = !!rooms?.['____'];
+          if (hasLegacyWallRecord) {
+            rooms['____'] = { type: 'wall' };
           }
-          adoptStoredLayout(creatorStore, id, { ...templeData, dungeonLayout: templeData.dungeonLayout });
+          adoptStoredLayout(creatorStore, id, { ...templeData, dungeonLayout: layout });
           creatorStore.updateDbSnapshot();
         }
 
@@ -238,7 +240,8 @@ export function useTempleData(templeId: string) {
       temple.value = { ...temple.value, ...parsedData };
 
       // Sync to creator store (the entrance, grid size and floor too: the save below writes the store's)
-      if (parsedData.dungeonLayout) {
+      const hasLayout = Boolean(parsedData.dungeonLayout);
+      if (hasLayout) {
         adoptStoredLayout(creatorStore, templeId, parsedData);
       }
 
@@ -263,7 +266,8 @@ export function useTempleData(templeId: string) {
 
   const getCategoryColor = (catId: string) => {
     const category = categories.value.find(cat => cat.id === catId);
-    if (category?.color) return category.color;
+    const color = category?.color;
+    if (color) return color;
     return 'medium';
   };
 

@@ -144,7 +144,8 @@ export default defineComponent({
     const theme = gameStore.theme.rpg;
     
     // The route guard has usually picked this route's music already (the intro's song): only start the title theme when it has not
-    if (audioStore.bgm.tracks?.length) return;
+    const hasRouteMusic = Boolean(audioStore.bgm.tracks?.length);
+    if (hasRouteMusic) return;
 
     // Use the new AudioEngine for the initial BGM
     changeBGMAdapter(audioStore, { 
@@ -213,7 +214,8 @@ export default defineComponent({
       // Set time to bookmarked audio 
 
       // Here set bookmarks if need to be saved and current
-      if (bgm.saveBookmark)
+      const shouldSaveBookmark = bgm.saveBookmark
+      if (shouldSaveBookmark)
         this.bgmBookmark.currentTime = currentTime
 
       changeBGM({ audio }).then(addEventNextSong);
@@ -244,13 +246,15 @@ export default defineComponent({
     playAudio() {
       const { bgm: { track, is_on } } = this
 
-      if (this.bgm.audio) {
+      const hasAudio = Boolean(this.bgm.audio)
+      if (hasAudio) {
         this.bgm.audio.pause();
         this.loadBGM(track, this.bgm.audio.currentTime);
         this.bgm.audio.load();
         if (is_on) {
           const playPromise = this.bgm.audio.play();
-          if (playPromise && typeof playPromise.catch === "function") {
+          const canCatchRefusal = playPromise && typeof playPromise.catch === "function";
+          if (canCatchRefusal) {
             playPromise.catch((err: unknown) => {
               debug.warn("BGM playback was prevented:", err);
             });
@@ -314,7 +318,8 @@ export default defineComponent({
     userStore.loadUsers();
 
     // Multiplayer ships hidden: with the flag off nothing here runs and no request is made
-    if (multiplayerEnabled()) {
+    const isMultiplayerOn = multiplayerEnabled();
+    if (isMultiplayerOn) {
       useFamilyStore()
         .init()
         .catch((error) => debug.warn("The family could not start:", error));

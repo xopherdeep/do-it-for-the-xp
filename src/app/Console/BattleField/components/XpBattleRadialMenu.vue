@@ -228,17 +228,21 @@ const bribeFullAction = computed(() => props.actions.find((action) => action.id 
 const bribeLowAction = computed(() => props.actions.find((action) => action.id === "bribe-low"));
 
 const onActionClick = (action?: BattleMenuAction) => {
-  if (!action || props.disabled) return;
+  const isUnavailable = !action || props.disabled;
+  if (isUnavailable) return;
   emit("action", action.id);
   action.click();
 };
 
 const onCenterTap = () => {
-  if (props.disabled) return;
+  const isDisabled = props.disabled;
+  if (isDisabled) return;
   emit("center-tap");
-  if (isRunConfirm.value && keepFightingAction.value) {
+  const shouldKeepFighting = isRunConfirm.value && keepFightingAction.value;
+  const shouldAttack = !isRunConfirm.value && attackAction.value;
+  if (shouldKeepFighting) {
     onActionClick(keepFightingAction.value);
-  } else if (!isRunConfirm.value && attackAction.value) {
+  } else if (shouldAttack) {
     onActionClick(attackAction.value);
   }
 };

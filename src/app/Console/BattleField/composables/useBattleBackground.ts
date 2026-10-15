@@ -31,16 +31,22 @@ export const useBattleBackground = () => {
   const lockLayers = (layers?: { bg1?: number; bg2?: number }) => {
     const hasNoRoomBackground = !layers || (layers.bg1 === undefined && layers.bg2 === undefined);
     if (hasNoRoomBackground) return;
-    if (layers.bg1 !== undefined) bg1.value = layers.bg1;
-    if (layers.bg2 !== undefined) bg2.value = layers.bg2;
+    const { bg1: roomBg1, bg2: roomBg2 } = layers;
+    const hasRoomBg1 = roomBg1 !== undefined;
+    const hasRoomBg2 = roomBg2 !== undefined;
+    if (hasRoomBg1) bg1.value = roomBg1;
+    if (hasRoomBg2) bg2.value = roomBg2;
     locked = true;
   };
 
   const applyEnemy = async (enemy: Enemy | null) => {
     const canUseBeastBackground = enemy !== null && !locked;
     if (canUseBeastBackground) {
-      if (enemy.bg1 !== undefined) bg1.value = enemy.bg1;
-      if (enemy.bg2 !== undefined) bg2.value = enemy.bg2;
+      const { bg1: beastBg1, bg2: beastBg2 } = enemy;
+      const hasBeastBg1 = beastBg1 !== undefined;
+      const hasBeastBg2 = beastBg2 !== undefined;
+      if (hasBeastBg1) bg1.value = beastBg1;
+      if (hasBeastBg2) bg2.value = beastBg2;
     }
     await nextTick();
     enter();

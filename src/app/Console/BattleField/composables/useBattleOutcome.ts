@@ -85,8 +85,10 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     const levelUp = rewards.xp > 0 ? userStore.updateUserXP({ userId: ctx.userId, amount: rewards.xp, commit: true }) : null;
     const classLevelUp =
       rewards.xp > 0 ? userStore.updateClassXp(ctx.userId, user.jobClass || "default", rewards.xp) : null;
-    if (rewards.gp > 0) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
-    if (rewards.ap > 0) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
+    const hasGp = rewards.gp > 0;
+    if (hasGp) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
+    const hasAp = rewards.ap > 0;
+    if (hasAp) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
     regenerateOnWin();
     return { levelUp, classLevelUp };
   };
@@ -102,8 +104,10 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     if (!stats) return;
     const points = (value: { now?: number; max?: number } | undefined) => ({ now: value?.now ?? 0, max: value?.max ?? 0 });
     const regen = winRegen(classPassive(user.jobClass), points(stats.hp), points(stats.mp));
-    if (regen.hp > 0) userStore.updateUserHP({ userId: ctx.userId, amount: regen.hp });
-    if (regen.mp > 0) userStore.updateUserMP({ userId: ctx.userId, amount: regen.mp });
+    const hasHpRegen = regen.hp > 0;
+    if (hasHpRegen) userStore.updateUserHP({ userId: ctx.userId, amount: regen.hp });
+    const hasMpRegen = regen.mp > 0;
+    if (hasMpRegen) userStore.updateUserMP({ userId: ctx.userId, amount: regen.mp });
   };
 
   /**
@@ -197,10 +201,13 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     if (levelUp?.didLevelUp) {
       lines.push(() => dialog.enableAppendMode());
       lines.push(`${heroName} grew to Level ${levelUp.newLevel}!`);
-      if (levelUp.hpGained > 0) lines.push(`Max HP increased by ${levelUp.hpGained}!`);
-      if (levelUp.mpGained > 0) lines.push(`Max MP increased by ${levelUp.mpGained}!`);
+      const hasHpGain = levelUp.hpGained > 0;
+      const hasMpGain = levelUp.mpGained > 0;
+      if (hasHpGain) lines.push(`Max HP increased by ${levelUp.hpGained}!`);
+      if (hasMpGain) lines.push(`Max MP increased by ${levelUp.mpGained}!`);
       Object.entries(levelUp.statsGained || {}).forEach(([stat, gained]) => {
-        if (gained > 0) lines.push(`${capitalize(stat)} went up by ${gained}!`);
+        const hasStatGain = gained > 0;
+        if (hasStatGain) lines.push(`${capitalize(stat)} went up by ${gained}!`);
       });
       lines.push(() => dialog.disableAppendMode());
     }
@@ -255,7 +262,8 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
 
     // 4. Level ups read like Earthbound, then the walk home.
     const lines = held ? [] : levelUpLines(levelUp, classLevelUp);
-    if (!lines.length) {
+    const hasNoLines = lines.length === 0;
+    if (hasNoLines) {
       leaveBattle();
       return;
     }
@@ -312,7 +320,8 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
    */
   const handleEscape = (report?: EscapeReport) => {
     leaveGrudgeMark(report);
-    if (report?.emptied) {
+    const isCarriedOut = Boolean(report?.emptied);
+    if (isCarriedOut) {
       handleCarriedOut();
       return;
     }

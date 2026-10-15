@@ -45,7 +45,8 @@ const emit = defineEmits<{ (e: "back"): void }>();
 
 /** The Back button and the dimmed backdrop both leave the sheet without using anything. */
 const back = () => {
-  if (props.busy) return;
+  const isBusy = props.busy;
+  if (isBusy) return;
   play$fx("closeTask");
   emit("back");
 };

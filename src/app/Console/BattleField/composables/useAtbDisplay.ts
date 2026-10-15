@@ -21,7 +21,8 @@ export const useAtbDisplay = (
   /** "m:ss", or "" once the clock has run out. */
   const timerLabel = computed(() => {
     const ms = timeRemainingMs.value;
-    if (ms <= 0) return "";
+    const isOutOfTime = ms <= 0;
+    if (isOutOfTime) return "";
     const totalSeconds = Math.ceil(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -39,8 +40,10 @@ export const useAtbDisplay = (
   });
 
   const enemySizeClass = computed(() => {
-    if (currentEnemy.value?.isBoss) return "boss";
-    if (currentEnemy.value?.type === "miniboss") return "miniboss";
+    const enemy = currentEnemy.value;
+    if (enemy?.isBoss) return "boss";
+    const isMiniboss = enemy?.type === "miniboss";
+    if (isMiniboss) return "miniboss";
     return "monster";
   });
 

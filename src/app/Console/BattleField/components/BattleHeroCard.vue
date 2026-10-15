@@ -133,7 +133,8 @@ const initial = computed(() => (Array.from(playerName.value)[0] ?? "?").toUpperC
 const barWidth = (percent: number) => `${Math.round(percent * 10) / 10}%`;
 /** Red while healthy (the app's HP colour), amber at half, red and pulsing when nearly out. */
 const hpTone = computed(() => {
-  if (hpPercentage.value > 50) return "";
+  const isHealthy = hpPercentage.value > 50;
+  if (isHealthy) return "";
   return hpPercentage.value >= 25 ? "is-mid" : "is-low";
 });
 
@@ -142,7 +143,8 @@ const hearts = computed<("full" | "half" | "empty")[]>(() => {
   const count = Math.min(10, Math.max(3, Math.ceil(hpMax.value / 20)));
   const filled = (hpPercentage.value / 100) * count;
   return Array.from({ length: count }, (_, i) => {
-    if (filled >= i + 1) return "full";
+    const isFullHeart = filled >= i + 1;
+    if (isFullHeart) return "full";
     return filled >= i + 0.5 ? "half" : "empty";
   });
 });
@@ -156,7 +158,8 @@ let hitTimer: number | undefined;
 watch(
   () => props.hitSignal,
   (now, before) => {
-    if (now <= before) return;
+    const isStaleSignal = now <= before;
+    if (isStaleSignal) return;
     hitFlip.value = !hitFlip.value;
     isHit.value = true;
     window.clearTimeout(hitTimer);

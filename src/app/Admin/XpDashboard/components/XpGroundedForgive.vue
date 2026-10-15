@@ -21,7 +21,8 @@ const heroName = computed(() => props.user?.name?.nick || props.user?.name?.firs
 const forgive = async () => {
   // The Game Master on this device; a masquerade changes who is signed in, so the chat names whoever is
   const forgiven = forgiveBill(props.user.id, userStore.currentUser?.id ?? "");
-  if (forgiven <= 0) return;
+  const isNothingForgiven = forgiven <= 0;
+  if (isNothingForgiven) return;
   play$fx("select");
   const toast = await toastController.create({
     message: `Forgave ${heroName.value}'s ₲${forgiven} hospital bill.`,

@@ -15,10 +15,12 @@ const today = (now = new Date()): string => {
 };
 
 const resolveFightKey = (ctx: BattleContext): string => {
-  if (ctx.kind === "quest") {
+  const isQuestFight = ctx.kind === "quest";
+  const isTempleFight = ctx.kind === "temple";
+  if (isQuestFight) {
     return `quest:${ctx.questId ?? ""}`;
   }
-  if (ctx.kind === "temple") {
+  if (isTempleFight) {
     return `temple:${ctx.templeId ?? ""}:${ctx.level ?? ""}:${ctx.x ?? ""}:${ctx.y ?? ""}`;
   }
   return `free:${ctx.beastIds.join(",")}`;
@@ -54,7 +56,8 @@ export const saveBattleProgress = (ctx: BattleContext, completedTaskIds: string[
   const store = storage();
   if (!store) return;
   try {
-    if (completedTaskIds.length) store.setItem(battleProgressKey(ctx), JSON.stringify(completedTaskIds));
+    const hasProgress = completedTaskIds.length > 0;
+    if (hasProgress) store.setItem(battleProgressKey(ctx), JSON.stringify(completedTaskIds));
     else store.removeItem(battleProgressKey(ctx));
   } catch (error) {
     // storage full or blocked: the fight still works, it just will not be remembered
