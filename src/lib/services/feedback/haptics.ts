@@ -13,7 +13,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
  * - `tap`: a button or a choice
  * - `grab`: picking something up
  * - `thud`: something heavy lands or opens (a lid, a lock dropping)
- * - `slam`: a double heavy hit (doors closing, a battle starting)
+ * - `slam`: a double heavy hit (a battle starting)
  * - `success` / `warning` / `error`: the outcome of an action
  */
 export type Feel = 'tick' | 'tap' | 'grab' | 'thud' | 'slam' | 'success' | 'warning' | 'error';
