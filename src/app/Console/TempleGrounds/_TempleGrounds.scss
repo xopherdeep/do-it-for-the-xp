@@ -241,11 +241,13 @@ ion-modal.temple-map-modal .temple-map,
   gap: 12px;
   --color: #3a2a14;
   color: #3a2a14 !important;
+  // The Game Style's window (`ion-app#earthbound ion-card { background: var(--gs-window) }`) outranks a class, and its
+  // shorthand would paint the parchment over in the menu colour: the parchment says it loudly
   background:
     radial-gradient(ellipse at 28% 18%, rgba(255, 255, 255, 0.28), transparent 55%),
     radial-gradient(ellipse at 72% 85%, rgba(110, 70, 25, 0.28), transparent 60%),
     repeating-linear-gradient(115deg, rgba(90, 60, 20, 0.035) 0 3px, transparent 3px 11px),
-    linear-gradient(160deg, #eadcb3, #d9c18c 55%, #c8a76b);
+    linear-gradient(160deg, #eadcb3, #d9c18c 55%, #c8a76b) !important;
   box-shadow:
     inset 0 0 0 2px rgba(90, 60, 20, 0.55),
     inset 0 0 0 6px rgba(234, 220, 179, 0.9),
