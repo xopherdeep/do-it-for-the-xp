@@ -99,9 +99,9 @@ describe("transitionFor", () => {
     expect(at("shop", { merchant: "nobody" })).toMatchObject({ title: "Item Shop", building: "shop" });
   });
 
-  it("irises into a temple with its name, region and element", () => {
+  it("enters a temple through its stone gate, with its name, region and element", () => {
     expect(transitionFor(plains, wind)).toMatchObject({
-      effect: "iris",
+      effect: "gate",
       direction: "in",
       title: "The Howling Spire",
       subtitle: "The Plains",

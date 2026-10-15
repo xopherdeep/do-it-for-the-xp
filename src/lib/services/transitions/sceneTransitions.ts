@@ -19,7 +19,7 @@ export interface Scene {
   building?: string;
 }
 
-export type EffectId = "fade" | "iris" | "doors" | "clouds" | "swirl";
+export type EffectId = "fade" | "iris" | "doors" | "clouds" | "swirl" | "gate";
 
 export interface TransitionPlan {
   effect: EffectId;
@@ -182,11 +182,11 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
     return { effect: "doors", direction: "out", title: to.title, variant: from.title, door: doorTypeFor(from.building) };
   }
 
-  // Into and out of a temple
+  // Into and out of a temple: in through its great stone gate, out through the iris
   const isEnteringTemple = to.kind === "temple";
   if (isEnteringTemple) {
     return {
-      effect: "iris",
+      effect: "gate",
       direction: "in",
       title: to.title,
       subtitle: regionOfTemple(to)?.title,

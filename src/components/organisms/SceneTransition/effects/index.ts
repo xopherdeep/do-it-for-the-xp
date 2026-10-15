@@ -6,7 +6,7 @@
 //   timing 400 to 700 ms each way; the controller gives up waiting at 1200 ms
 //   motion prefers-reduced-motion: a ~150 ms fade each way, same events; clear timers on unmount
 //   haptics src/lib/services/feedback/haptics.ts only (the router guard fires the cover-end haptic)
-// Owners: fade = T1, iris = T2, doors = T3, clouds = T4, swirl = T5. Replace a stub by rewriting its file only.
+// Owners: fade = T1, iris = T2, doors = T3, clouds = T4, swirl = T5, gate = the temple entrance. Replace a stub by rewriting its file only.
 import { defineAsyncComponent, type Component } from "vue";
 import type { EffectId } from "@/lib/services/transitions/sceneTransitions";
 
@@ -16,4 +16,5 @@ export const EFFECTS: Record<EffectId, Component> = {
   doors: defineAsyncComponent(() => import("./DoorsEffect.vue")),
   clouds: defineAsyncComponent(() => import("./CloudsEffect.vue")),
   swirl: defineAsyncComponent(() => import("./SwirlEffect.vue")),
+  gate: defineAsyncComponent(() => import("./GateEffect.vue")),
 };
