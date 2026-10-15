@@ -135,6 +135,7 @@
 </template>
 
 <script setup lang="ts">
+import { isTextInstant, pacedLetterMs } from "@/lib/utils/textSpeed";
 import { computed, nextTick, ref, watch } from "vue";
 import { play$fx } from "@/assets/fx";
 import { JOB_CLASS_OPTIONS } from "@/constants";
@@ -289,10 +290,11 @@ const showCard = () => {
 };
 
 const typeNext = () => {
-  typed.value += 1;
+  // Instant text speed lands the whole line in one step
+  typed.value = isTextInstant() ? lineText.value.length : typed.value + 1;
   const hasMoreToType = typed.value < lineText.value.length;
   if (hasMoreToType) {
-    later(TYPE_EVERY_MS, typeNext);
+    later(pacedLetterMs(TYPE_EVERY_MS), typeNext);
     return;
   }
   later(CARD_AFTER_MS, showCard);

@@ -12,6 +12,7 @@
 import { play$fx } from '@/assets/fx';
 import { defineComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
+import { pacedLetterMs } from '@/lib/utils/textSpeed';
 
 export default defineComponent({
   name: 'XpTypingText',
@@ -22,7 +23,7 @@ export default defineComponent({
     },
     speed: {
       type: Number,
-      default: 50 // milliseconds between characters
+      default: 50 // milliseconds between characters at Normal text speed; the player's Text speed setting scales it
     },
     delay: {
       type: Number,
@@ -78,6 +79,8 @@ export default defineComponent({
 
     const isSoundOn = () => props.playSound;
     const isAutoStart = () => props.autoStart;
+    /** The authored pace scaled by the player's Text speed; 0 is Instant */
+    const letterMs = () => pacedLetterMs(props.speed);
 
     const typeNextChar = (timestamp: number) => {
       const isTypingOnHold = !isTyping.value || isPaused.value;
@@ -93,11 +96,18 @@ export default defineComponent({
 
       accumulatedTime += deltaTime;
 
-      const isCharDue = accumulatedTime >= props.speed;
+      const msPerChar = letterMs();
+      const isShownAtOnce = msPerChar <= 0;
+      if (isShownAtOnce) {
+        completeTyping();
+        return;
+      }
+
+      const isCharDue = accumulatedTime >= msPerChar;
       if (isCharDue) {
         // How many characters to type in this frame (handle lag spikes)
         // With looping sound, we can type as fast as needed without audio issues
-        let charsToType = Math.floor(accumulatedTime / props.speed);
+        let charsToType = Math.floor(accumulatedTime / msPerChar);
         
         // Cap catch-up to 5 chars per frame to prevent freezing/massive jumps
         const isCatchUpTooBig = charsToType > 5;
@@ -131,7 +141,7 @@ export default defineComponent({
           }
         }
          // Keep remainder
-         accumulatedTime %= props.speed;
+         accumulatedTime %= msPerChar;
       }
       
       if (isTyping.value) {
@@ -152,6 +162,13 @@ export default defineComponent({
       emit('typing-start');
       
       startDelayTimeout.value = window.setTimeout(() => {
+        startDelayTimeout.value = null;
+        // Instant text: the whole line lands at once, no blips
+        const isShownAtOnce = letterMs() <= 0;
+        if (isShownAtOnce) {
+          completeTyping();
+          return;
+        }
         lastFrameTime = 0;
         accumulatedTime = 0;
         animationFrameId = window.requestAnimationFrame(typeNextChar);

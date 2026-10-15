@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { isTextInstant, pacedLetterMs } from "@/lib/utils/textSpeed";
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
@@ -288,10 +289,11 @@ const startTally = () => {
 };
 
 const typeNext = () => {
-  typed.value += 1;
+  // Instant text speed lands the whole line in one step
+  typed.value = isTextInstant() ? line.value.length : typed.value + 1;
   const isLineUnfinished = typed.value < line.value.length;
   if (isLineUnfinished) {
-    later(TYPE_EVERY_MS, typeNext);
+    later(pacedLetterMs(TYPE_EVERY_MS), typeNext);
     return;
   }
   later(TALLY_AFTER_MS, startTally);
