@@ -25,7 +25,7 @@ import { IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonPage, Io
 import XpComingSoonCard from "./XpComingSoonCard.vue";
 import { ACCOUNT_COMING_SOON } from "./comingSoon";
 
-// The old develop branch had a working-looking page for these (tools/reference/develop/AccountSettings.vue);
+// The old develop branch had a working-looking page for these (tools/reference/develop/AccountSettings.vue.txt);
 // it saved nothing, so this page lists them as planned until a backend holds real accounts.
 const items = ACCOUNT_COMING_SOON;
 </script>

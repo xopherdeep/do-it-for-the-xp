@@ -27,25 +27,17 @@ import {
   chatbubblesOutline,
 } from "ionicons/icons";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
-import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import {
-  courierLatePrompt,
-  linkResultNotice,
-  linkedStatusPrompt,
-  registrationPrompt,
-  unlinkResultNotice,
-  type RegistrationMenuId,
-} from "@/lib/services/hometown/hometownPrompts";
+import { courierLatePrompt } from "@/lib/services/hometown/hometownPrompts";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
-import { useTownHallStore, type LinkResult } from "@/lib/store/stores/townHall";
+import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
-import { SIGNUP_URL, TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
 import { signingName } from "@/lib/services/townhall/townHallPosts";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
 import TownHallNews from "./components/TownHallNews.vue";
@@ -54,9 +46,7 @@ import TownHallCompose from "./components/TownHallCompose.vue";
 import TownHallEvents from "./components/TownHallEvents.vue";
 import TownHallUpdates from "./components/TownHallUpdates.vue";
 import type { TownEvent, TownHallTab, TownStats } from "./components/townHallShared";
-import { useTownHallPosting } from "./components/useTownHallPosting";
-import { useTownHallLink } from "./components/useTownHallLink";
-import { registrationOffer } from "./components/registrationOffer";
+import { useTownHallClerk } from "./components/useTownHallClerk";
 
 /** How many days ahead the events board looks */
 const EVENT_HORIZON_DAYS = 7;
@@ -187,33 +177,15 @@ export default defineComponent({
       }, {});
     });
 
-    const reveal = useRevealPrompt();
-
-    // The clerk's counter: the menu, the compose sheet, the hero's waiting list, and sending the queue whenever there is a chance to
-    // Posts are signed on the public site: a nickname of the hero's own, never their real name (see signingName)
-    const heroName = () => signingName(userStore.getUserById(props.userId)?.name);
-    const posting = useTownHallPosting({
+    // The clerk's counter and the family's registration. Posts are signed on the public site with a nickname of the hero's own,
+    // never their real name (see signingName)
+    const { reveal, posting, completeVisit } = useTownHallClerk({
       store: townHall,
-      reveal,
       userId: () => props.userId,
-      heroName,
+      heroName: () => signingName(userStore.getUserById(props.userId)?.name),
       isGameMaster: () => canAccessGameMaster(),
       route: () => router.currentRoute.value.path,
       currentBoard: () => boardSlug.value,
-      registerFamily: () => registerFamily(),
-      redoRegistration: async () => {
-        await townHall.unlink();
-        await registerFamily();
-      },
-    });
-
-    // Posts queued and no registration here: the clerk offers it to a Game Master, once per visit
-    const offerRegistration = registrationOffer({
-      store: townHall,
-      reveal,
-      isGameMaster: () => canAccessGameMaster(),
-      registerFamily: () => registerFamily(),
-      // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
       profilesReady: async () => {
         const hasNoProfiles = Object.keys(userStore.users).length === 0;
         if (hasNoProfiles) await userStore.loadUsers();
@@ -235,59 +207,10 @@ export default defineComponent({
       if (isRetrying) await tabRefs[id].value?.reload();
     };
 
-    /** The clerk says how the registration went; posts kept before the family was registered go out while she talks */
-    const announceLink = async (result: LinkResult) => {
-      const isUnchanged = result === "none";
-      if (isUnchanged) return;
-      const isLinked = result === "linked";
-      if (isLinked) void posting.sendQueue();
-      await reveal.showPrompt(linkResultNotice(result, townHall.activeLink?.displayName));
-    };
-
-    const link = useTownHallLink({
-      store: townHall,
-      heroId: () => props.userId,
-      returnRoute: () => `/town-hall/${encodeURIComponent(props.userId)}`,
-      isGameMaster: () => canAccessGameMaster(),
-      announce: announceLink,
-    });
-
-    /**
-     * Coming back from WordPress's authorize page, the clerk says how it went (the composable checks the return). An ordinary
-     * visit by a Game Master whose posts wait for a registration this device lacks is offered Family Registration instead.
-     */
-    const finishLinkReturn = async () => {
-      const handled = await link.finishReturn();
-      void posting.sendQueue();
-      if (!handled) await offerRegistration();
-    };
-
-    /** A registered family sees whom it is registered as and may unlink this device; an unregistered one is asked to register */
-    const registerFamily = async () => {
-      await link.loadLink();
-      const active = townHall.activeLink;
-      if (active) {
-        const pick = await reveal.showPrompt(linkedStatusPrompt(active.displayName));
-        const isKeepingLink = pick !== "unlink";
-        if (isKeepingLink) return;
-        try {
-          await reveal.showPrompt(unlinkResultNotice(await link.unlink()));
-        } catch (err) {
-          debug.error("Town Hall could not unlink this device:", err);
-        }
-        return;
-      }
-      const pick = (await reveal.showPrompt(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
-      const isCreatingAccount = pick === "create";
-      if (isCreatingAccount) window.open(SIGNUP_URL, "_blank", "noopener");
-      const hasAccount = pick === "have";
-      if (hasAccount) await link.goToAuthorizePage();
-    };
-
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
 
     onMounted(loadQuestBoard);
-    onMounted(finishLinkReturn);
+    onMounted(completeVisit);
 
     return {
       tabs: TABS,
