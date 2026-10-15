@@ -114,6 +114,9 @@ const TAB_ICONS: Record<Tab, string> = {
   misc: sparklesOutline,
 };
 
+/** Consumables and key items badge in their own colour; every other tab counts in primary. */
+const TAB_BADGE_COLORS: Partial<Record<Tab, string>> = { consumable: "danger", key: "warning" };
+
 /** The section header on the All tab and the row subtitle when an item has nothing more to say. */
 const KIND_LABELS: Record<InventoryKind, { section: string; one: string }> = {
   consumable: { section: "Potions", one: "Potion" },
@@ -241,7 +244,7 @@ const navTabs = computed<AppNavTab[]>(() =>
     label: t.label,
     ionIcon: TAB_ICONS[t.value],
     badge: counts.value[t.value] || 0,
-    badgeColor: t.value === "consumable" ? "danger" : t.value === "key" ? "warning" : "primary",
+    badgeColor: TAB_BADGE_COLORS[t.value] ?? "primary",
   }))
 );
 

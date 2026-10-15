@@ -49,12 +49,18 @@ export const definePack = (meta: Omit<XpPack, "format" | "formatVersion" | "cont
   };
 };
 
+const rarityOf = (basePrice: number): Rarity => {
+  const isCheap = basePrice < 150;
+  if (isCheap) return Rarity.Common;
+  return basePrice < 400 ? Rarity.Uncommon : Rarity.Rare;
+};
+
 /** A real-life reward, its rarity read off the price the way the preset rewards climb the wallet ladder */
 export const reward = (id: string, name: string, description: string, basePrice: number, icon: string): RewardPreset => ({
   id,
   name,
   description,
   basePrice,
-  rarity: basePrice < 150 ? Rarity.Common : basePrice < 400 ? Rarity.Uncommon : Rarity.Rare,
+  rarity: rarityOf(basePrice),
   icon,
 });

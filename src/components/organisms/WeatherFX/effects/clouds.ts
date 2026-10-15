@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng, softBlob } from "./util";
 
 const resolveBaseCloudAlpha = (thin: boolean, dark: boolean): number => {
@@ -13,7 +13,7 @@ export const clouds: EffectFactory = (options = {}) => {
   const rng = makeRng(41);
   let blob: HTMLCanvasElement | null = null;
   const items: { x: number; y: number; s: number; v: number; a: number }[] = [];
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       const tone = dark ? [70, 74, 92] : [255, 255, 255];
       blob = softBlob(256, tone[0], tone[1], tone[2], 1);
@@ -49,5 +49,4 @@ export const clouds: EffectFactory = (options = {}) => {
       ctx.restore();
     },
   };
-  return effect;
 };

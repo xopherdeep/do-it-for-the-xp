@@ -1,8 +1,8 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 
 /** Two or three horizontal translucent bands near the horizon, wobbling slowly: the mirage. */
 export const heatHaze: EffectFactory = () => {
-  const effect: WeatherEffect = {
+  return {
     init() { /* stateless */ },
     update() { /* stateless */ },
     draw(f) {
@@ -23,5 +23,4 @@ export const heatHaze: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

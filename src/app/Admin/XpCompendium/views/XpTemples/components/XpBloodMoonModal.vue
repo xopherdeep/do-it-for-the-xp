@@ -46,7 +46,7 @@
       </div>
 
       <div
-        v-if="loading"
+        v-if="isLoading"
         class="moon-loading"
       >
         <ion-spinner name="dots"></ion-spinner>
@@ -232,7 +232,7 @@ const templeSystem = TempleSystem.getInstance();
 
 const templeId = ref<string>("");
 const rows = ref<HeroRow[]>([]);
-const loading = ref(false);
+const isLoading = ref(false);
 const busy = ref<string | null>(null);
 const now = ref(new Date());
 
@@ -263,7 +263,7 @@ async function load() {
     rows.value = [];
     return;
   }
-  loading.value = true;
+  isLoading.value = true;
   try {
     // A run open on a hero's screen may hold a save not yet written: let it land first
     await templeSystem.flushProgress();
@@ -281,7 +281,7 @@ async function load() {
     );
     now.value = new Date();
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 

@@ -56,7 +56,7 @@ const webShelf: StateShelf = {
     try {
       sessionStorage.removeItem(LINK_STATE_KEY);
     } catch {
-      // Nothing could be kept there either
+      // chemx-allow: best-effort session storage is blocked, so nothing could be kept there either
     }
   },
 };

@@ -342,7 +342,7 @@ const reroll = () => {
   draft.value.seed = rerolledSeed(draft.value.seed, randomSeed());
 };
 
-// ---- 2. Size and floors ------------------------------------------------------------------------------------------
+// ---- 2. How big the temple grows ---------------------------------------------------------------------------------
 
 type RailId = "size" | "floors" | "locks";
 

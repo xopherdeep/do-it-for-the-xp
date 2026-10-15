@@ -139,8 +139,7 @@ export class AchievementDb extends DbStorageApi {
       return await this.setTask(clone).then(cloneToast);
     };
 
-    const clone = await this.getTasks().then(cloneFromTasks);
-    return clone;
+    return this.getTasks().then(cloneFromTasks);
   }
 
   public async getTaskById(id: string): Promise<Achievement | null> {

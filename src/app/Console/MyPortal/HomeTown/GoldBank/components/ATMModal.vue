@@ -177,7 +177,7 @@
                 <span class="atm-key">7</span>
                 <span class="atm-key">8</span>
                 <span class="atm-key">9</span>
-                <span class="atm-key atm-key--enter" @click="showActions">ENT</span>
+                <button type="button" tabindex="-1" class="atm-key atm-key--enter" @click="showActions">ENT</button>
               </div>
               <div class="atm-keypad__row">
                 <span class="atm-key">*</span>
@@ -693,6 +693,14 @@
     box-shadow: 0 2px 0 #1e293b;
     cursor: default;
     user-select: none;
+  }
+
+  // ENT is a real button (the only key that does anything); it keeps the look of the painted keys
+  button.atm-key {
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
   }
 
   .atm-key--cancel {

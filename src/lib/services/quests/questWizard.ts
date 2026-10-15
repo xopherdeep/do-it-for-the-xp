@@ -293,7 +293,8 @@ export function typeChore(draft: WizardDraft, text: string): WizardDraft {
   const matched = suggestChore(name);
   const entry = matched ?? defaultChore();
   const sameBeast = draft.isOwn && draft.entry !== null && String(draft.entry.id) === String(entry.id);
-  const steps = sameBeast ? draft.steps : matched ? [...matched.checklist] : [];
+  const suggested = matched ? [...matched.checklist] : [];
+  const steps = sameBeast ? draft.steps : suggested;
   return { ...draft, name, entry, isOwn: true, steps };
 }
 
@@ -348,18 +349,19 @@ export const draftProblem = (draft: Pick<WizardDraft, "name">, voice: Voice = "a
 
 /** "Today", "Every day", "Mon · Wed" and the part of the day: the Ready screen's one-line schedule. */
 export function whenLine(draft: Pick<WizardDraft, "when" | "days" | "time" | "day">, today: Date = new Date()): string {
-  const start = parseDayKey(draft.day);
-  const isToday = !start || dayKey(start) === dayKey(today);
-  const dayText =
-    draft.when === "daily"
-      ? "Every day"
-      : draft.when === "days"
-        ? DAY_TOKENS.filter((day) => draft.days.includes(day)).map((day) => DAY_LABELS[day]).join(" · ") || "Some days"
-        : isToday
-          ? "Today"
-          : format(start, "EEE d MMM");
+  const dayText = dayTextOf(draft, today);
   const timeText = TIME_CHOICES.find((choice) => choice.id === draft.time && choice.id !== "anytime")?.label;
   return [dayText, timeText].filter(Boolean).join(" · ");
+}
+
+function dayTextOf(draft: Pick<WizardDraft, "when" | "days" | "day">, today: Date): string {
+  const isDaily = draft.when === "daily";
+  const isSomeDays = draft.when === "days";
+  if (isDaily) return "Every day";
+  if (isSomeDays) return DAY_TOKENS.filter((day) => draft.days.includes(day)).map((day) => DAY_LABELS[day]).join(" · ") || "Some days";
+  const start = parseDayKey(draft.day);
+  const isToday = !start || dayKey(start) === dayKey(today);
+  return isToday ? "Today" : format(start, "EEE d MMM");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -420,12 +422,7 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     beastFields = beastQuestPatch(entry);
   }
 
-  const schedule =
-    draft.when === "daily"
-      ? { basicSchedule: "daily", repeatOnDays: [] as string[], showDailyUntilComplete: true }
-      : draft.when === "days"
-        ? { basicSchedule: "weekly", repeatOnDays: weekdaysOf(draft, startsOn), showDailyUntilComplete: false }
-        : { basicSchedule: "once", repeatOnDays: [] as string[], showDailyUntilComplete: false };
+  const schedule = scheduleOf(draft, startsOn);
 
   const quest: Achievement = {
     id: questId,
@@ -455,6 +452,15 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
 }
 
 /** The ticked weekdays, in week order; none ticked means the weekday the quest starts on. */
+/** The basic schedule the Compendium form would save for this "when". */
+function scheduleOf(draft: Pick<WizardDraft, "when" | "days">, startsOn: string) {
+  const isDaily = draft.when === "daily";
+  const isSomeDays = draft.when === "days";
+  if (isDaily) return { basicSchedule: "daily", repeatOnDays: [] as string[], showDailyUntilComplete: true };
+  if (isSomeDays) return { basicSchedule: "weekly", repeatOnDays: weekdaysOf(draft, startsOn), showDailyUntilComplete: false };
+  return { basicSchedule: "once", repeatOnDays: [] as string[], showDailyUntilComplete: false };
+}
+
 function weekdaysOf(draft: Pick<WizardDraft, "days">, startsOn: string): string[] {
   const ticked = DAY_TOKENS.filter((day) => draft.days.includes(day));
   return ticked.length ? [...ticked] : [DAY_TOKENS[new Date(startsOn).getDay()]];

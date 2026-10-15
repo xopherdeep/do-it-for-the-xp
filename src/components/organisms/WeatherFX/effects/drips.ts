@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng } from "./util";
 
 /** The occasional drop falling from the dark with a ripple where it lands. */
@@ -6,7 +6,7 @@ export const drips: EffectFactory = () => {
   const rng = makeRng(137);
   const drops: { x: number; y: number; v: number; ripple: number }[] = [];
   let nextAt = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) { drops.length = 0; nextAt = f.time + 1; },
     update(f) {
       if (f.time >= nextAt) { nextAt = f.time + 1.2 + rng() * 3 / Math.max(0.3, f.intensity / 5); drops.push({ x: rng() * f.width, y: 0, v: 0, ripple: -1 }); }
@@ -31,5 +31,4 @@ export const drips: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

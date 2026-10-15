@@ -48,6 +48,7 @@
           <span class="xp-license-card__label">{{ tier === "lifetime" ? "Valid thru" : "Renews" }}</span>
           <span class="xp-license-card__value">
             <template v-if="tier === 'lifetime'"><i class="fad fa-infinity" aria-hidden="true"></i> Forever</template>
+            <!-- chemx-allow: TYPOGRAPHY_EM_DASH the dash is the card's printed blank for a date not known yet -->
             <template v-else>{{ validThru || "—" }}</template>
           </span>
         </div>

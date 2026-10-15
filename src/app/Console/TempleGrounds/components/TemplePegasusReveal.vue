@@ -84,6 +84,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel } from "@/lib/services/feedback/haptics";
 
@@ -149,7 +150,7 @@ const typed = ref(0);
 const shown = reactive<Record<Stat, number>>({ xp: 0, gp: 0, ap: 0 });
 const counting = ref(false);
 const levelUpShown = ref(false);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 let heardWin = false;
 let spent = false;
 
@@ -218,12 +219,11 @@ const reducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
 };
 
 const heardTheWin = () => {

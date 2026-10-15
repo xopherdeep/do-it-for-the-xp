@@ -53,8 +53,7 @@ export class AbilitiesDb extends DbStorageApi {
   }
 
   public async getAbilities(): Promise<Ability[]> {
-    const abilities = await this.getAll();
-    return abilities;
+    return this.getAll();
   }
 
   /**

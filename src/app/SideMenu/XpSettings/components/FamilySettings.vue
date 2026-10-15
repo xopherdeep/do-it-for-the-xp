@@ -120,7 +120,7 @@ const writeFamilyLock = (locked: boolean): void => {
   try {
     localStorage.setItem(FAMILY_LOCK_KEY, String(locked));
   } catch {
-    // storage blocked: the lock lasts until the page is left
+    // chemx-allow: best-effort storage blocked, so the lock lasts until the page is left
   }
 };
 

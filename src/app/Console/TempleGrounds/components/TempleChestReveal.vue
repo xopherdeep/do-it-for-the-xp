@@ -158,6 +158,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel, rumble } from "@/lib/services/feedback/haptics";
 import { chestGlow, type ChestLoot } from "@/lib/services/temples/ChestLoot";
@@ -221,7 +222,7 @@ const takeButton = ref<HTMLButtonElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const openButton = ref<HTMLButtonElement | null>(null);
 const hopping = ref<string | null>(null);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 let stopRumble: (() => void) | null = null;
 let hopTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -272,12 +273,11 @@ const reducedMotion = (): boolean =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
   stopRumble?.();
   stopRumble = null;
   clearTimeout(hopTimer);

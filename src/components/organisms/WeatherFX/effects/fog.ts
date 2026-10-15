@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng, softBlob } from "./util";
 
 /** Three drifting fog blobs with soft alpha that breathe; `dark` for caves and dungeons. */
@@ -7,7 +7,7 @@ export const fog: EffectFactory = (options = {}) => {
   const rng = makeRng(97);
   let blob: HTMLCanvasElement | null = null;
   const items: { x: number; y: number; s: number; v: number; ph: number }[] = [];
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       blob = dark ? softBlob(256, 40, 36, 60, 1) : softBlob(256, 220, 230, 235, 1);
       items.length = 0;
@@ -33,5 +33,4 @@ export const fog: EffectFactory = (options = {}) => {
       ctx.restore();
     },
   };
-  return effect;
 };

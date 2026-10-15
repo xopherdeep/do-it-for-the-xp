@@ -42,6 +42,7 @@ export function draftProblem(draft: PostDraft): string | null {
 
 /** The line that ends every topic and comment. No real names, no family name: see `signingName`. */
 export function signature(heroName: string): string {
+  // chemx-allow: TYPOGRAPHY_EM_DASH the forum sign-off is a real em dash by design (townHallPosts.spec pins it)
   return `\n\n— ${heroName}, from Do It For The XP`;
 }
 

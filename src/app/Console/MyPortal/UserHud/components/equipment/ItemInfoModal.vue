@@ -175,13 +175,13 @@ export default defineComponent({
 
     // One tap uses the item: a second tap before the card closes does nothing. A new card (another item,
     // or the same one opened again) starts fresh.
-    const busy = ref(false);
-    watch(() => props.item, () => { busy.value = false; });
-    watch(() => props.isOpen, (open) => { if (open) busy.value = false; });
+    const isBusy = ref(false);
+    watch(() => props.item, () => { isBusy.value = false; });
+    watch(() => props.isOpen, (open) => { if (open) isBusy.value = false; });
     const handleUse = () => {
-      const isUseBlocked = busy.value || !canUse.value;
+      const isUseBlocked = isBusy.value || !canUse.value;
       if (isUseBlocked) return;
-      busy.value = true;
+      isBusy.value = true;
       emit('use');
     };
 

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Short translucent streaks and pollen dots that gust across, for plains and mountains. */
@@ -6,7 +6,7 @@ export const wind: EffectFactory = () => {
   const rng = makeRng(71);
   let x = new Float32Array(0), y = new Float32Array(0), k = new Float32Array(0);
   let count = 0, gust = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 20, 90);
       x = new Float32Array(count); y = new Float32Array(count); k = new Float32Array(count);
@@ -37,5 +37,4 @@ export const wind: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

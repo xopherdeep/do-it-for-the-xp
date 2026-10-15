@@ -173,7 +173,8 @@ watch(
 );
 
 const confirmText = computed(() => props.confirmLabel ?? (props.kind === "shop" ? "Buy" : "Answer"));
-const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : props.kind === "exit" ? "Back" : "Leave"));
+const CANCEL_TEXT: Partial<Record<RevealKind, string>> = { riddle: "Step back", exit: "Back" };
+const cancelText = computed(() => props.cancelLabel ?? CANCEL_TEXT[props.kind] ?? "Leave");
 
 const sprite = computed(() => {
   if (props.sprite) return props.sprite;

@@ -186,7 +186,7 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
       importance: 3,
     });
   } catch {
-    // channels may already exist or plugin method not available in mocks/web
+    // chemx-allow: best-effort the channel may already exist, or the plugin lacks the method in mocks and on the web
   }
   await plugin.schedule({
     notifications: [

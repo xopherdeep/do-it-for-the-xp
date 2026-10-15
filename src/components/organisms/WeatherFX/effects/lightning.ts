@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng } from "./util";
 
 /** A full-screen flash that decays in 180 ms plus a jagged bolt shown for two frames; only at intensity >= 6. */
@@ -6,7 +6,7 @@ export const lightning: EffectFactory = () => {
   const rng = makeRng(23);
   let nextAt = 6, flash = 0, boltFrames = 0;
   const bolt: number[] = [];
-  const effect: WeatherEffect = {
+  return {
     init(f) { nextAt = f.time + 4 + rng() * 10; flash = 0; boltFrames = 0; },
     update(f) {
       const cannotStrike = f.reducedMotion || f.intensity < 6;
@@ -50,5 +50,4 @@ export const lightning: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

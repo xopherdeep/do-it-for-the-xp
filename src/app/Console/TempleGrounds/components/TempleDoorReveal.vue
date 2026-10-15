@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel, rumble } from "@/lib/services/feedback/haptics";
 import PixelRuns from "./PixelRuns.vue";
@@ -163,7 +164,7 @@ const phase = ref<Phase>("arriving");
 const root = ref<HTMLElement | null>(null);
 const unlockButton = ref<HTMLButtonElement | null>(null);
 const backButton = ref<HTMLButtonElement | null>(null);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 let stopRumble: (() => void) | null = null;
 
 // Ticks that match the lock-rattle keyframes: five shakes over 420 ms
@@ -196,12 +197,11 @@ const keyCount = computed(() => {
 const busy = computed(() => phase.value === "keying" || phase.value === "unlocking" || phase.value === "opening");
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
   stopRumble?.();
   stopRumble = null;
 };

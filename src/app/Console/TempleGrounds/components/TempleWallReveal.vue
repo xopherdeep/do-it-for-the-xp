@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel } from "@/lib/services/feedback/haptics";
 import PixelRuns from "./PixelRuns.vue";
@@ -151,7 +152,7 @@ const phase = ref<Phase>("arriving");
 const root = ref<HTMLElement | null>(null);
 const bombButton = ref<HTMLButtonElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 
 // Painted once per temple: the stone follows the element
 const bricks = computed(() => wallBricks(props.element));
@@ -162,12 +163,11 @@ const hole = wallHole();
 const busy = computed(() => phase.value === "lit" || phase.value === "flash" || phase.value === "crumbling" || phase.value === "open");
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
 };
 
 const reducedMotion = (): boolean =>

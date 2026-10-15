@@ -63,6 +63,6 @@ export const saveThemeChoice = (choice: ThemeChoice): void => {
   try {
     localStorage.setItem(KEY, JSON.stringify({ ui: choice.ui, rpg: choice.rpg }));
   } catch {
-    // storage full or blocked: the choice lasts for this session only
+    // chemx-allow: best-effort storage full or blocked, so the choice lasts for this session only
   }
 };

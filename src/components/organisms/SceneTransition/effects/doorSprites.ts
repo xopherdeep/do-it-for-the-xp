@@ -35,6 +35,12 @@ const piece = (name: string, g: Grid, fit: DoorPiece["fit"] = "stretch"): DoorPi
   fit,
 });
 
+/** One of three tones: the first where `first` holds, else the second where `second` does, else the third. */
+const tone3 = (first: boolean, second: boolean, [a, b, c]: readonly [number, number, number]): number => {
+  if (first) return a;
+  return second ? b : c;
+};
+
 /** A frame `width` pixels deep: bright on the top and left, shaded on the bottom and right. */
 const frameTone = (x: number, y: number, w: number, h: number, width: number): number | null => {
   const depth = Math.min(x, y, w - 1 - x, h - 1 - y);
@@ -49,7 +55,7 @@ const panel = (g: Grid, x0: number, y0: number, w: number, h: number, ramp: stri
     for (let x = x0; x < x0 + w; x++) {
       const isLitEdge = y === y0 || x === x0;
       const isShadedEdge = y === y0 + h - 1 || x === x0 + w - 1;
-      paint(g, x, y, tone(ramp, isLitEdge ? 4 : isShadedEdge ? 0 : 2));
+      paint(g, x, y, tone(ramp, tone3(isLitEdge, isShadedEdge, [4, 0, 2])));
     }
   }
 };
@@ -113,7 +119,7 @@ const paintBell = (): Grid => {
   for (let y = 3; y < 13; y++) {
     const half = Math.round(1.5 + (y - 3) * 0.45);
     for (let x = 7 - half; x < 7 + half; x++) {
-      const t = x < 7 - half + 2 ? 4 : x >= 7 + half - 2 ? 1 : 3;
+      const t = tone3(x < 7 - half + 2, x >= 7 + half - 2, [4, 1, 3]);
       paint(g, x, y, tone(BRASS, y === 12 ? 0 : t));
     }
   }
@@ -141,7 +147,7 @@ const paintGlassLeaf = (): Grid => {
       }
       const isPushBar = y >= 50 && y <= 52 && x >= 8 && x < LEAF_W - 4;
       if (isPushBar) {
-        paint(g, x, y, tone(IRON, y === 50 ? 4 : y === 51 ? 3 : 1));
+        paint(g, x, y, tone(IRON, tone3(y === 50, y === 51, [4, 3, 1])));
         continue;
       }
       // Two diagonal glare streaks across the glass, the rest lighter at the top
@@ -156,7 +162,9 @@ const paintGlassLeaf = (): Grid => {
       const isBorder = y === 18 || y === 41 || x === LEAF_W - 14;
       const dx = LEAF_W - 2 - x;
       const isArm = (dx <= 4 && y >= 21 && y <= 38) || (y >= 26 && y <= 33 && dx <= 10);
-      paint(g, x, y, isBorder ? "#c8c8d0" : isArm ? CROSS[y < 30 ? 2 : 1] : "#f8f8fc");
+      const arm = CROSS[y < 30 ? 2 : 1];
+      const field = isArm ? arm : "#f8f8fc";
+      paint(g, x, y, isBorder ? "#c8c8d0" : field);
     }
   }
   outlineGrid(g, INK);
@@ -190,7 +198,7 @@ const paintStoneLeaf = (trim: string[]): Grid => {
         continue;
       }
       const isChip = ((x * 13 + y * 7) % 37) === 0;
-      paint(g, x, y, tone(STONE, isChip ? 1 : by === 0 || bx === 0 ? 3 : 2));
+      paint(g, x, y, tone(STONE, tone3(isChip, by === 0 || bx === 0, [1, 3, 2])));
     }
   }
   // The ring: a heavy hoop of iron near the seam
@@ -230,7 +238,7 @@ const paintVaultDisc = (trim: string[]): Grid => {
         paint(g, x, y, tone(trim, lit ? 3 : 1));
         continue;
       }
-      paint(g, x, y, tone(IRON, r > 30 ? (lit ? 3 : 2) : 2));
+      paint(g, x, y, tone(IRON, r > 30 && lit ? 3 : 2));
     }
   }
   // Rivets around the trim ring, and a seam between the outer plate and the face
@@ -260,7 +268,7 @@ const paintVaultWheel = (): Grid => {
       const angle = Math.atan2(dy, dx);
       const toSpoke = Math.abs(Math.sin(3 * angle)) * r;
       const isSpoke = r < 21 && toSpoke < 1.6;
-      if (isRim || isHub || isSpoke) paint(g, x, y, tone(BRASS, isHub ? 3 : lit ? 4 : 1));
+      if (isRim || isHub || isSpoke) paint(g, x, y, tone(BRASS, tone3(isHub, lit, [3, 4, 1])));
     }
   }
   outlineGrid(g, INK);
@@ -282,8 +290,8 @@ const paintPortcullis = (): Grid => {
       const isCrossBar = by >= 6 && by <= 8 && y < GATE_H - 12;
       const isSpike = isBar && y >= GATE_H - 12 && y - (GATE_H - 12) < 12 - Math.abs(bx - 4.5) * 2.4;
       const isShaft = isBar && y < GATE_H - 12;
-      if (isCrossBar) paint(g, x, y, tone(IRON, by === 6 ? 4 : by === 8 ? 1 : 2));
-      else if (isShaft) paint(g, x, y, tone(IRON, bx === 3 ? 4 : bx === 6 ? 1 : 2));
+      if (isCrossBar) paint(g, x, y, tone(IRON, tone3(by === 6, by === 8, [4, 1, 2])));
+      else if (isShaft) paint(g, x, y, tone(IRON, tone3(bx === 3, bx === 6, [4, 1, 2])));
       else if (isSpike) paint(g, x, y, tone(IRON, bx <= 4 ? 3 : 1));
     }
   }

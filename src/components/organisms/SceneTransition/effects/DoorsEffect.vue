@@ -97,7 +97,8 @@ watch(
   () => props.phase,
   (phase) => {
     if (phase === "cover") {
-      const coverMs = reduced ? FADE_MS : isAimed ? PUSH_MS : COVER_MS;
+      const walkMs = isAimed ? PUSH_MS : COVER_MS;
+      const coverMs = reduced ? FADE_MS : walkMs;
       // The camera walks in toward the door; coming out there is no door on screen to walk to
       if (!reduced && props.plan.direction === "in") {
         if (focus) pushCamera(focus, PUSH_SCALE, coverMs);

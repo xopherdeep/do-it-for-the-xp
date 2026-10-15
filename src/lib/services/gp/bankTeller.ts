@@ -5,9 +5,18 @@
 import { copyFor } from "../copy/copy";
 import type { Voice } from "../copy/voices";
 import type { NextStorageTier, StoragePurchase } from "../inventory/Storage";
-import { type BankMove, type GpPurse, type Purse, normalizePurse } from "./wallet";
+import { type BankMove, type GpPurse, type Purse, depositToSavings, normalizePurse, payDownBills, withdrawFromSavings } from "./wallet";
 
 export type BankAction = "withdraw" | "deposit" | "payDebt";
+
+const BANK_MOVES: Record<BankAction, (gp: GpPurse | null | undefined, amount: number) => BankMove> = {
+  withdraw: withdrawFromSavings,
+  deposit: depositToSavings,
+  payDebt: payDownBills,
+};
+
+/** The purse after the teller does `action` with `amount` GP (paying debt clears the hospital bill first). */
+export const bankMove = (action: BankAction, gp: GpPurse | null | undefined, amount: number): BankMove => BANK_MOVES[action](gp, amount);
 
 /** GP the way the game prints it */
 export const gold = (value: number): string => `₲${Math.round(Number(value) || 0)}`;

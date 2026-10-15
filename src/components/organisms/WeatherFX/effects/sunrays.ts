@@ -1,9 +1,9 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 
 /** Rotating translucent wedges from the top-left corner, additive; `faint` for overcast light. */
 export const sunRays: EffectFactory = (options = {}) => {
   const faint = Boolean(options.faint);
-  const effect: WeatherEffect = {
+  return {
     init() { /* stateless */ },
     update() { /* stateless */ },
     draw(f) {
@@ -29,5 +29,4 @@ export const sunRays: EffectFactory = (options = {}) => {
       ctx.restore();
     },
   };
-  return effect;
 };
