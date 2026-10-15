@@ -177,7 +177,8 @@ export const starterShops = (): ShopInterface[] => {
 
   return getAllShops().map((meta, index) => {
     let stockIds: string[];
-    if (meta.id === "hometown-market") {
+    const isHometownMarket = meta.id === "hometown-market";
+    if (isHometownMarket) {
       stockIds = allIds;
     } else {
       const baseConsumables = [consumableIds[0], consumableIds[1]];

@@ -53,7 +53,8 @@ const shuffledStretch = (stretch: number): MerchantWorld[] => {
 const stretchRoute = (stretch: number): MerchantWorld[] => {
   const order = shuffledStretch(stretch);
   const yesterday = shuffledStretch(stretch - 1)[STRETCH - 1];
-  if (order[0] === yesterday) [order[0], order[1]] = [order[1], order[0]];
+  const isRepeatOpening = order[0] === yesterday;
+  if (isRepeatOpening) [order[0], order[1]] = [order[1], order[0]];
   return order;
 };
 

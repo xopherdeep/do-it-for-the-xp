@@ -108,7 +108,8 @@ const shortOnMp = (ctx: ItemUseContext, cost: number): ItemOutcome | null =>
   cost > 0 && readPoints(ctx.userId, 'mp').now < cost ? refuse('Not enough MP') : null;
 
 const spendMp = (ctx: ItemUseContext, cost: number): void => {
-  if (cost > 0) useUserStore().updateUserMP({ userId: ctx.userId, amount: -cost });
+  const hasMpCost = cost > 0;
+  if (hasMpCost) useUserStore().updateUserMP({ userId: ctx.userId, amount: -cost });
 };
 
 // --- the items -------------------------------------------------------------------------------------
@@ -269,7 +270,8 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
     const poor = shortOnMp(ctx, cost);
     if (poor) return poor;
     // The hero lands beyond the hazard, and the landing is a step like any other: a guard room there seals. The room between is skipped
-    if (!system.moveToPosition(ctx.templeId, far, direction)) continue;
+    const hasLanded = system.moveToPosition(ctx.templeId, far, direction);
+    if (!hasLanded) continue;
     spendMp(ctx, cost);
     return { message: 'Thwip! You swing across to the other side.', sound: SFX.teleport, moved: true };
   }
@@ -306,7 +308,8 @@ export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): Item
   if (runsItsClick) {
     if (typeof definition?.click !== 'function') return refuse(`${name} is out of reach right now.`);
     // The portal is the way out of a temple the hero is stuck in: they come back in through its entrance
-    if (name === PORTAL_HOME) void TempleSystem.getInstance().leaveByPortal(ctx.templeId);
+    const isPortalHome = name === PORTAL_HOME;
+    if (isPortalHome) void TempleSystem.getInstance().leaveByPortal(ctx.templeId);
     definition.click();
     return isNavigation ? { navigated: true } : {};
   }

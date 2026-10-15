@@ -68,12 +68,15 @@ export const applyQuestRewards = (
   at?: string
 ): LevelUpInfo | null => {
   const userStore = useUserStore();
-  if (!userStore.users[userId]) return null;
+  const isUnknownHero = !userStore.users[userId];
+  if (isUnknownHero) return null;
 
   const paid = paidQuestRewards(userId, rewards);
   const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
-  if (paid.gp > 0) void userStore.updateUserGP({ userId, wallet: paid.gp });
-  if (paid.ap > 0) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
+  const hasGp = paid.gp > 0;
+  if (hasGp) void userStore.updateUserGP({ userId, wallet: paid.gp });
+  const hasAp = paid.ap > 0;
+  if (hasAp) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
   return levelUp;
 };
 
@@ -165,7 +168,8 @@ const reviewEntry = async (
   entryId: string,
   review: (entry: QuestLogEntry) => Promise<QuestLogEntry | null>
 ): Promise<QuestLogEntry | null> => {
-  if (reviewsInFlight.has(entryId)) return null;
+  const isInFlight = reviewsInFlight.has(entryId);
+  if (isInFlight) return null;
   reviewsInFlight.add(entryId);
   try {
     const entry = (await getQuestLogDb().get(entryId)) as QuestLogEntry | null;

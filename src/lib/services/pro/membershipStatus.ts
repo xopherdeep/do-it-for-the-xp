@@ -58,8 +58,10 @@ export function membershipStatus(input: MembershipInput): MembershipStatus {
 
   const date = formatDate(expiresAt);
   let dateLine = "";
-  if (state === "active" && date) dateLine = `Renews ${date}`;
-  else if (state === "expired" && date) dateLine = `Ended ${date}`;
+  const isRenewing = state === "active" && Boolean(date);
+  const hasEnded = state === "expired" && Boolean(date);
+  if (isRenewing) dateLine = `Renews ${date}`;
+  else if (hasEnded) dateLine = `Ended ${date}`;
 
   return {
     state,

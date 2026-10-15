@@ -47,9 +47,11 @@ export const scheduleDueReminders = async (
   const pending = reminders
     .map((reminder) => ({ reminder, at: reminderTimeOf(reminder.deadline, now) }))
     .filter((entry): entry is { reminder: DueReminder; at: Date } => entry.at !== null);
-  if (!pending.length) return { scheduled: 0, reason: "nothing-due" };
+  const isNothingDue = !pending.length;
+  if (isNothingDue) return { scheduled: 0, reason: "nothing-due" };
 
-  if (!(await (deps.isNative ?? (async () => isNativeApp()))())) return { scheduled: 0, reason: "web" };
+  const isNative = await (deps.isNative ?? (async () => isNativeApp()))();
+  if (!isNative) return { scheduled: 0, reason: "web" };
   const plugin = await (deps.plugin ?? loadLocalNotifications)();
   if (!plugin) return { scheduled: 0, reason: "plugin-missing" };
 
@@ -59,7 +61,8 @@ export const scheduleDueReminders = async (
     if (canAskForPermission) {
       permission = await plugin.requestPermissions();
     }
-    if (permission?.display !== "granted") return { scheduled: 0, reason: "denied" };
+    const isGranted = permission?.display === "granted";
+    if (!isGranted) return { scheduled: 0, reason: "denied" };
 
     await plugin.schedule({
       notifications: pending.map(({ reminder, at }) => ({

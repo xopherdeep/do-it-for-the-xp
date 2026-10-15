@@ -289,7 +289,8 @@ export const pickChore = (draft: WizardDraft, entry: LibraryEntry): WizardDraft 
  */
 export function typeChore(draft: WizardDraft, text: string): WizardDraft {
   const name = text.slice(0, MAX_NAME_LENGTH);
-  if (!name.trim()) return { ...draft, name, entry: null, isOwn: true, steps: [] };
+  const isBlank = !name.trim();
+  if (isBlank) return { ...draft, name, entry: null, isOwn: true, steps: [] };
   const matched = suggestChore(name);
   const entry = matched ?? defaultChore();
   const sameBeast = draft.isOwn && draft.entry !== null && String(draft.entry.id) === String(entry.id);
@@ -302,7 +303,8 @@ export function cleanSteps(steps: readonly string[]): string[] {
   const clean: string[] = [];
   for (const step of steps) {
     const text = String(step).replace(/\s+/g, " ").trim().slice(0, MAX_STEP_LENGTH);
-    if (text && !clean.includes(text)) clean.push(text);
+    const isNewStep = text !== "" && !clean.includes(text);
+    if (isNewStep) clean.push(text);
   }
   return clean.slice(0, MAX_STEPS);
 }
@@ -329,7 +331,8 @@ export function setWhen(draft: WizardDraft, when: WizardWhen): WizardDraft {
 /** A weekday chip tapped: in or out, in week order. The last one stays ticked, so "Some days" never means no day. */
 export function toggleDay(draft: WizardDraft, token: string): WizardDraft {
   const has = draft.days.includes(token);
-  if (has && draft.days.length === 1) return draft;
+  const isLastDay = has && draft.days.length === 1;
+  if (isLastDay) return draft;
   const next = new Set(draft.days);
   if (has) next.delete(token);
   else next.add(token);
@@ -400,7 +403,8 @@ const sameSteps = (a: readonly string[], b: readonly string[]): boolean =>
  * (the same art and name, a new id, the edited steps) and the library beast and every other quest keep theirs.
  */
 export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQuest {
-  if (draftProblem(draft)) throw new Error("A quest needs a name");
+  const problem = draftProblem(draft);
+  if (problem) throw new Error("A quest needs a name");
   const questId = ctx.questId ?? uuidv4();
   const entry = draft.entry ?? defaultChore();
   const difficulty = clampDifficulty(draft.difficulty, ctx.isGm);

@@ -248,7 +248,8 @@ export const buildHomePack = (answers: HomeAnswers): HomePack => {
     const hasRoom = template.rooms.some((room) => roomCount(room) > 0);
     const party = heroes.filter((hero) => template.who.includes(hero.band));
     const isPlayed = party.length > 0;
-    if (!hasRoom || !isPlayed) continue;
+    const isSkipped = !hasRoom || !isPlayed;
+    if (isSkipped) continue;
 
     const extraRooms = template.scale ? Math.max(0, roomCount(template.scale.room) - 1) : 0;
     const minutes = Math.max(

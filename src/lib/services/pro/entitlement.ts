@@ -33,7 +33,8 @@ export function isPro(
   const isSandboxLicenseInProduction = productionBuild && cached.env === "sandbox";
   if (isSandboxLicenseInProduction) return false;
   const t = now.getTime();
-  if (cached.expiresAt) {
+  const hasExpiry = Boolean(cached.expiresAt);
+  if (hasExpiry) {
     const exp = parse(cached.expiresAt);
     const hasLapsedPastGrace = Number.isNaN(exp) || t >= exp + GRACE_DAYS * DAY;
     if (hasLapsedPastGrace) return false;
@@ -41,7 +42,8 @@ export function isPro(
   const validated = parse(cached.lastValidatedAt);
   if (Number.isNaN(validated)) return false;
   // A last check in the future means the clock moved; do not extend the window.
-  if (validated > t) return false;
+  const isValidatedInFuture = validated > t;
+  if (isValidatedInFuture) return false;
   return t - validated <= OFFLINE_DAYS * DAY;
 }
 
@@ -52,8 +54,10 @@ export function needsRecheck(cached: CachedLicense | null, now: Date): boolean {
   const validated = parse(cached.lastValidatedAt);
   const hasUnreliableLastCheck = Number.isNaN(validated) || validated > t;
   if (hasUnreliableLastCheck) return true;
-  if (t - validated > RECHECK_HOURS * HOUR) return true;
-  if (cached.expiresAt) {
+  const isRecheckDue = t - validated > RECHECK_HOURS * HOUR;
+  if (isRecheckDue) return true;
+  const hasExpiry = Boolean(cached.expiresAt);
+  if (hasExpiry) {
     const exp = parse(cached.expiresAt);
     const hasExpired = Number.isNaN(exp) || t >= exp;
     if (hasExpired) return true;

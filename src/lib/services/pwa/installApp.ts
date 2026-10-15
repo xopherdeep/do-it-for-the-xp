@@ -48,18 +48,21 @@ const macSafariVersion = (userAgent: string): number | null => {
 };
 
 export const installRoute = (env: InstallEnv): InstallRoute => {
-  if (env.standalone || env.native) return "installed";
+  const isInstalled = env.standalone || env.native;
+  if (isInstalled) return "installed";
   if (env.hasPrompt) return "prompt";
   if (isAppleMobile(env.userAgent, env.maxTouchPoints)) return "ios";
   const safari = macSafariVersion(env.userAgent);
-  if (safari !== null && safari >= MAC_SAFARI_MIN_VERSION) return "mac-safari";
+  const isModernMacSafari = safari !== null && safari >= MAC_SAFARI_MIN_VERSION;
+  if (isModernMacSafari) return "mac-safari";
   return "unsupported";
 };
 
 /** The steps for a browser that installs through its own menus (Ionic alerts render this HTML) */
 export const installSteps = (route: InstallRoute): { header: string; message: string } | null => {
   const step = (icon: string, text: string): string => `<p><i class="fal ${icon}"></i>&nbsp; ${text}</p>`;
-  if (route === "ios") {
+  const isIos = route === "ios";
+  if (isIos) {
     return {
       header: "Install the App",
       message:
@@ -68,7 +71,8 @@ export const installSteps = (route: InstallRoute): { header: string; message: st
         "<p>The game then opens full screen from its own icon.</p>",
     };
   }
-  if (route === "mac-safari") {
+  const isMacSafari = route === "mac-safari";
+  if (isMacSafari) {
     return {
       header: "Install the App",
       message:
