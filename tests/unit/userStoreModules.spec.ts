@@ -235,6 +235,7 @@ describe("profileFields: the bag, cooldowns, hands", () => {
     const syncCurrentUser = jest.fn();
     const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP: jest.fn() });
     expect(Object.keys(setters)).toEqual([
+      "setStreakChests",
       "addInventoryItem",
       "spendInventoryItem",
       "storeItem",
