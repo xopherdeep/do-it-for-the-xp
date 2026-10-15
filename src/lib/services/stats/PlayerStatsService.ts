@@ -481,17 +481,19 @@ export function canLevelUp(currentLevel: number, currentXp: number): boolean {
 // STAT PREVIEW (for character creation)
 // ============================================
 
-/**
- * Get a preview of stats for a given job class at level 1
- * Useful for character creation screen
- */
-export function getJobClassPreview(jobClass: string): {
+interface JobClassPreview {
   hp: number;
   mp: number;
   hpGrowth: number;
   mpGrowth: number;
   description: string;
-} {
+}
+
+/**
+ * Get a preview of stats for a given job class at level 1
+ * Useful for character creation screen
+ */
+export function getJobClassPreview(jobClass: string): JobClassPreview {
   const stats = JOB_CLASS_BASE_STATS[jobClass] || JOB_CLASS_BASE_STATS.default;
 
   const descriptions: Record<string, string> = {

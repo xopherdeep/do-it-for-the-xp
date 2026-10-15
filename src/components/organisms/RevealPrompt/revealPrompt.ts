@@ -173,11 +173,19 @@ export const noticeOf = (speaker: string, lines: string | string[], extra: Parti
   ...extra,
 });
 
+/** The words (and optional icons) on a yes/no question's two buttons */
+interface YesNoLabels {
+  yes: string;
+  no: string;
+  yesIcon?: string;
+  noIcon?: string;
+}
+
 /** A question for a speaker, answered yes (id `yes`, primary) or no (id `no`, dim; Escape is no). */
 export const yesNoOf = (
   speaker: string,
   lines: string | string[],
-  labels: { yes: string; no: string; yesIcon?: string; noIcon?: string },
+  labels: YesNoLabels,
   extra: Partial<RevealPromptOptions> = {}
 ): RevealPromptOptions => ({
   speaker,

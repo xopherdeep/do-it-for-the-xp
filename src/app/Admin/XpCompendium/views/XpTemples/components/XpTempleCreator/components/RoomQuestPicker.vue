@@ -330,6 +330,24 @@
   import type { TempleTheme, TempleThemeInfo } from "@/lib/services/temples/templeThemes";
   import QuestRoomRow from "./QuestRoomRow.vue";
 
+  interface RoomQuestPickerProps {
+    isOpen?: boolean;
+    /** Every live quest as a picker row */
+    rows: PickerRow[];
+    /** The quests themselves, for the library to know which beasts are taken */
+    quests: Achievement[];
+    heroes: FamilyMember[];
+    /** The temple's theme, when it has one */
+    theme?: TempleTheme;
+    themeInfo?: TempleThemeInfo;
+    /** The temple as saved and the part this room makes of it */
+    size: { total: number; here: number };
+    /** The quest the room holds now */
+    selectedId?: string;
+    /** Makes a quest from a library beast and resolves to its id */
+    createQuest: (beast: LibraryBeast, form: LibraryQuestForm) => Promise<string>;
+  }
+
   /**
    * The quest picker of the temple room editor (docs/Quest-Rooms-Spec.md section 9) as a full-screen sheet in the
    * Codex style: search on top, the quests (or the library's beasts) in the page, and under the thumb the three
@@ -337,23 +355,7 @@
    * services/temples/questRoomPicker; "From the library" makes a quest through `createQuest` and picks it.
    */
   const props = withDefaults(
-    defineProps<{
-      isOpen?: boolean;
-      /** Every live quest as a picker row */
-      rows: PickerRow[];
-      /** The quests themselves, for the library to know which beasts are taken */
-      quests: Achievement[];
-      heroes: FamilyMember[];
-      /** The temple's theme, when it has one */
-      theme?: TempleTheme;
-      themeInfo?: TempleThemeInfo;
-      /** The temple as saved and the part this room makes of it */
-      size: { total: number; here: number };
-      /** The quest the room holds now */
-      selectedId?: string;
-      /** Makes a quest from a library beast and resolves to its id */
-      createQuest: (beast: LibraryBeast, form: LibraryQuestForm) => Promise<string>;
-    }>(),
+    defineProps<RoomQuestPickerProps>(),
     { isOpen: false, theme: undefined, themeInfo: undefined, selectedId: "" }
   );
 

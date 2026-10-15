@@ -42,20 +42,22 @@ import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import XpInventorySheet from "./XpInventorySheet.vue";
 import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
 
+interface InventoryModalProps {
+  isOpen: boolean;
+  user?: any;
+  userId?: string;
+  equipment?: any[];
+  mode?: "view" | "battle";
+  battleCard?: ((item: any) => BattleItemCard | null) | null;
+  opensDirectly?: ((item: any) => boolean) | null;
+}
+
 defineOptions({
   name: "xp-inventory-modal",
 });
 
 withDefaults(
-  defineProps<{
-    isOpen: boolean;
-    user?: any;
-    userId?: string;
-    equipment?: any[];
-    mode?: "view" | "battle";
-    battleCard?: ((item: any) => BattleItemCard | null) | null;
-    opensDirectly?: ((item: any) => boolean) | null;
-  }>(),
+  defineProps<InventoryModalProps>(),
   {
     mode: "view",
     battleCard: null,

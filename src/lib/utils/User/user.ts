@@ -10,18 +10,21 @@ export interface ProfileName {
   nick: string,
   preferred: string
 }
+
+interface UserName {
+  full: string
+  first: string
+  middle: string
+  last: string
+  nick: string
+  preferred: string
+}
+
 export default class User {
   public id: string
   public email: string
   public passcode: string
-  public name: {
-    full: string
-    first: string
-    middle: string
-    last: string
-    nick: string
-    preferred: string
-  }
+  public name: UserName
   public stats: Stats
   public birthday?: string
   public avatar: string

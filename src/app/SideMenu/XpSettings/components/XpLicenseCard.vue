@@ -62,13 +62,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-const props = defineProps<{
+interface XpLicenseCardProps {
   plan: string | null;
   planLabel: string;
   maskedKey: string;
   memberSince?: string;
   validThru?: string;
-}>();
+}
+
+const props = defineProps<XpLicenseCardProps>();
 const emit = defineEmits<{ (e: "copy"): void }>();
 
 /** The hidden groups as dots, the way a bank card hides its digits. */

@@ -88,20 +88,22 @@
 import { computed, onBeforeUnmount, ref, toRef, watch } from "vue";
 import { useBattlePlayer } from "../hooks/useBattlePlayer";
 
+interface BattleHeroCardProps {
+  /** Whose card this is: the id of a hero in the user store. */
+  userId: string;
+  /** Every increment is one hit on the hero: the card shakes for 400 ms. */
+  hitSignal?: number;
+  /** The hero has fallen: the card goes gray. */
+  downed?: boolean;
+  /** The hero is braced for the next strike: the DEFENDING badge shows. */
+  defending?: boolean;
+}
+
 /** How long one hit shakes the card. The `card-hit` keyframes below run for the same 400 ms. */
 const HIT_SHAKE_MS = 400;
 
 const props = withDefaults(
-  defineProps<{
-    /** Whose card this is: the id of a hero in the user store. */
-    userId: string;
-    /** Every increment is one hit on the hero: the card shakes for 400 ms. */
-    hitSignal?: number;
-    /** The hero has fallen: the card goes gray. */
-    downed?: boolean;
-    /** The hero is braced for the next strike: the DEFENDING badge shows. */
-    defending?: boolean;
-  }>(),
+  defineProps<BattleHeroCardProps>(),
   { hitSignal: 0, downed: false, defending: false }
 );
 

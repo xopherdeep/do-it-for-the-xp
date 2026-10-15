@@ -23,6 +23,24 @@ import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { POWER_CAST_ALERT_ID, showAlert } from "@/lib/services/notifications/alertBridge";
 import debug from "@/lib/utils/debug";
 
+/** The criteria `getFilteredAbilities` narrows by */
+interface AbilityFilters {
+  type?: AbilityType;
+  class?: string;
+  frequency?: TimePeriod;
+  isPreset?: boolean;
+}
+
+/** The hero's AP, overall and per period, for an unlock check */
+interface HeroApTotals {
+  total: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  quarterly?: number;
+  yearly?: number;
+}
+
 /**
  * What a cast came to: `grounded` when the hero owes the Hospital (checked first), `mp` when the hero could not afford
  * it, `unknown` when there is no such ability or hero.
@@ -184,12 +202,7 @@ export class AbilityService {
   /**
    * Gets filtered abilities based on various criteria
    */
-  async getFilteredAbilities(filters: {
-    type?: AbilityType;
-    class?: string;
-    frequency?: TimePeriod;
-    isPreset?: boolean;
-  }): Promise<Ability[]> {
+  async getFilteredAbilities(filters: AbilityFilters): Promise<Ability[]> {
     return await this.db.getFilteredAbilities(filters);
   }
 
@@ -198,14 +211,7 @@ export class AbilityService {
    */
   async checkAbilityUnlock(
     ability: Ability,
-    userAp: {
-      total: number;
-      daily: number;
-      weekly: number;
-      monthly: number;
-      quarterly?: number;
-      yearly?: number;
-    },
+    userAp: HeroApTotals,
     characterLevel: number,
     characterClasses: { [className: string]: number },
     unlockedAbilityIds: string[]

@@ -298,25 +298,28 @@
    * Combat lists the quest room first; its "Classic" disclosure on the rail holds the beast rooms (Monster, Miniboss,
    * Boss), exactly as they were. `currentType` is what the picker calls the room: `quest` for a quest room.
    */
+  interface RoomTypeModalProps {
+    isOpen?: boolean;
+    step?: number;
+    selectedCategory?: RoomCategory | null;
+    currentType?: string;
+  }
 
-  const props = withDefaults(
-    defineProps<{
-      isOpen?: boolean;
-      step?: number;
-      selectedCategory?: RoomCategory | null;
-      currentType?: string;
-    }>(),
-    { isOpen: false, step: 1, selectedCategory: null, currentType: "" }
-  );
-
-  const emit = defineEmits<{
+  interface RoomTypeModalEmits {
     (e: "close"): void;
     (e: "back"): void;
     (e: "select-category", category: RoomCategory): void;
     (e: "select-type", type: string): void;
     (e: "confirm"): void;
     (e: "update:step", step: number): void;
-  }>();
+  }
+
+  const props = withDefaults(
+    defineProps<RoomTypeModalProps>(),
+    { isOpen: false, step: 1, selectedCategory: null, currentType: "" }
+  );
+
+  const emit = defineEmits<RoomTypeModalEmits>();
 
   const categories: RoomCategory[] = ROOM_CATEGORIES;
 

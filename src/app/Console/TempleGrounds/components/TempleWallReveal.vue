@@ -119,15 +119,17 @@ import { WALL_H, WALL_W, wallBricks, wallCrack, wallHole } from "./wallSprite";
  * is and what would open it, and can only close the sheet. Reduced motion gets the flash and the opening, no crumble.
  * The page owns `open`; it closes the sheet on `leave` or, once the opening has shown, on `done`.
  */
+interface TempleWallRevealProps {
+  open: boolean;
+  wall: BombView | null;
+  /** The temple's element: the stone of the wall and the colour of the light behind it */
+  element?: string;
+  /** What the temple said to the Bomb: the wall is down (or nothing, when it refused the sheet closes at once) */
+  result?: BombResult | null;
+}
+
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    wall: BombView | null;
-    /** The temple's element: the stone of the wall and the colour of the light behind it */
-    element?: string;
-    /** What the temple said to the Bomb: the wall is down (or nothing, when it refused the sheet closes at once) */
-    result?: BombResult | null;
-  }>(),
+  defineProps<TempleWallRevealProps>(),
   { element: "wind", result: null },
 );
 

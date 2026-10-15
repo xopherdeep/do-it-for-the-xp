@@ -10,6 +10,23 @@ const ENGINE_FRAME_HEIGHT = 224;
 const DEFAULT_BG1 = 219; // Default background 1 (Starman Junior)
 const DEFAULT_BG2 = 218; // Default background 2
 
+interface BackgroundInitOptions {
+  canvasSelector?: string;
+  canvasElement?: HTMLCanvasElement;
+  bg1?: number;
+  bg2?: number;
+  aspectRatio?: number;
+  handleResize?: boolean;
+  page?: string; // Identifier for the page/component using this background
+}
+
+interface BackgroundUpdateOptions {
+  bg1?: number;
+  bg2?: number;
+  aspectRatio?: number;
+  page?: string;
+}
+
 /**
  * BackgroundManager
  * 
@@ -68,15 +85,7 @@ class BackgroundManager {
    * @param options Configuration options
    * @returns boolean indicating success
    */
-  public initBackground(options: {
-    canvasSelector?: string;
-    canvasElement?: HTMLCanvasElement;
-    bg1?: number;
-    bg2?: number;
-    aspectRatio?: number;
-    handleResize?: boolean;
-    page?: string; // Identifier for the page/component using this background
-  } = {}): boolean {
+  public initBackground(options: BackgroundInitOptions = {}): boolean {
     // Clean up any existing background first
     this.cleanupBackground();
 
@@ -204,12 +213,7 @@ class BackgroundManager {
    * @param options New background options
    * @returns boolean indicating success
    */
-  public updateBackground(options: {
-    bg1?: number;
-    bg2?: number;
-    aspectRatio?: number;
-    page?: string;
-  } = {}): boolean {
+  public updateBackground(options: BackgroundUpdateOptions = {}): boolean {
     // Update the settings with validation
     if (options.bg1 !== undefined) this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
     if (options.bg2 !== undefined) this.bg2 = this.validateBackgroundIndex(options.bg2, this.bg2);

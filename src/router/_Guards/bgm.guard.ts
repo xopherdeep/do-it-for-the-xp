@@ -17,6 +17,13 @@ interface BgmPayload {
   repeat?: boolean;
 }
 
+interface BgmPayloadOptions {
+  track?: number | "random";
+  startDelay: number;
+  saveBookmark?: boolean;
+  repeat?: boolean;
+}
+
 interface SimpleBgmRouteConfig {
   key: string;
   options?: {
@@ -52,12 +59,7 @@ export function pickFreshTrack(tracks: unknown[]): number {
 
 function createBgmPayload(
   tracks: unknown,
-  options: {
-    track?: number | "random";
-    startDelay: number;
-    saveBookmark?: boolean;
-    repeat?: boolean;
-  }
+  options: BgmPayloadOptions
 ): BgmPayload | null {
   if (!isValidTrackList(tracks)) return null;
 

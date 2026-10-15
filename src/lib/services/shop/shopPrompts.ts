@@ -68,11 +68,19 @@ export function clerkPrompt(voice: ShopVoice, lines: string[], isOpen: boolean):
   };
 }
 
+interface ShopNoticeOptions {
+  sprite?: RevealSpriteName;
+  sound?: string;
+  speaker?: string;
+  label?: string;
+  icon?: string;
+}
+
 /** A line from the shopkeeper (or whoever `speaker` is) and one button to dismiss it; `sound` plays as it opens. */
 export function shopNotice(
   voice: ShopVoice,
   line: string,
-  options: { sprite?: RevealSpriteName; sound?: string; speaker?: string; label?: string; icon?: string } = {}
+  options: ShopNoticeOptions = {}
 ): RevealPromptOptions {
   return {
     speaker: options.speaker ?? voice.shopkeeper,

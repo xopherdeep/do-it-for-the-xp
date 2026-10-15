@@ -38,14 +38,16 @@ import { IonCard, IonCardTitle } from "@ionic/vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import { play$fx } from "@/assets/fx";
 
+interface NpcDialogProps {
+  open: boolean;
+  speaker: string;
+  lines: string[];
+  /** Font Awesome class for the speaker's name line */
+  icon?: string;
+}
+
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    speaker: string;
-    lines: string[];
-    /** Font Awesome class for the speaker's name line */
-    icon?: string;
-  }>(),
+  defineProps<NpcDialogProps>(),
   { icon: "" }
 );
 

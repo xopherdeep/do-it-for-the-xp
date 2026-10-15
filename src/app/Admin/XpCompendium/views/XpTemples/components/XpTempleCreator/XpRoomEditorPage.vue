@@ -156,6 +156,14 @@ import {
   RoomLegendModal
 } from './components';
 
+/** What the point slider sends up when the difficulty changes */
+interface RoomRewards {
+  xp: number;
+  gp: number;
+  ap: number;
+  difficulty: number;
+}
+
 export default defineComponent({
   name: 'XpRoomEditorPage',
   components: {
@@ -356,7 +364,7 @@ export default defineComponent({
       handleRewardIndexChange: (_index: number) => {
         // This is handled via update:rewards, but we can store the index if needed
       },
-      handleRewardsUpdate: (rewards: { xp: number; gp: number; ap: number; difficulty: number }) => {
+      handleRewardsUpdate: (rewards: RoomRewards) => {
         if (editor.roomData.value?.content) {
           editor.roomData.value.content.xp = rewards.xp;
           editor.roomData.value.content.gp = rewards.gp;

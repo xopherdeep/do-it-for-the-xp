@@ -105,6 +105,15 @@ interface RevealReward {
 type Phase = "egg" | "hatch" | "typing" | "tally" | "ready";
 type Stat = "xp" | "gp" | "ap";
 
+interface TemplePegasusRevealProps {
+  open: boolean;
+  /** The Pegasus that was freed; null for a temple that keeps none (or a hero who has not freed it yet) */
+  pegasus: RevealPegasus | null;
+  /** What the temple paid. Nothing paid, nothing counted. */
+  reward: RevealReward;
+  levelUp: boolean;
+}
+
 /**
  * The temple is cleared, in the style of the chest and the doors: in the dark an egg in the Pegasus's colours wobbles
  * and cracks in three steps, the Pegasus rises out of it in a wheel of its own light, "{Name} is free!" types in, and
@@ -112,14 +121,7 @@ type Stat = "xp" | "gp" | "ap";
  * hero out of the temple. A temple that keeps no Pegasus shows "The temple is cleared!" over a glowing temple instead
  * of the egg. A tap anywhere before the end skips to it. The page owns `open`, and runs the way home on `done`.
  */
-const props = defineProps<{
-  open: boolean;
-  /** The Pegasus that was freed; null for a temple that keeps none (or a hero who has not freed it yet) */
-  pegasus: RevealPegasus | null;
-  /** What the temple paid. Nothing paid, nothing counted. */
-  reward: RevealReward;
-  levelUp: boolean;
-}>();
+const props = defineProps<TemplePegasusRevealProps>();
 
 const emit = defineEmits<{
   (e: "done"): void;

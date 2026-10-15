@@ -14,19 +14,18 @@ import { stateLineOf } from "../powerRow";
  * line, and Cast works whenever there is no reason. A grounded hero's Powers (outside a fight) keep their meters but
  * never cast: `groundedReason` is the state line.
  */
-const props = withDefaults(
-  defineProps<{
-    ability: Ability;
-    status: AbilityStatus;
-    unlocked: boolean;
-    snapshot: HeroAbilitySnapshot;
-    casting?: boolean;
-    battle?: BattlePowerCard;
-    /** Set while the hero owes the Hospital (docs/Quest-Rooms-Spec.md 5.8): Cast stays disabled and says why. Not used in a fight. */
-    groundedReason?: string | null;
-  }>(),
-  { casting: false, groundedReason: null }
-);
+interface XpPowerCardProps {
+  ability: Ability;
+  status: AbilityStatus;
+  unlocked: boolean;
+  snapshot: HeroAbilitySnapshot;
+  casting?: boolean;
+  battle?: BattlePowerCard;
+  /** Set while the hero owes the Hospital (docs/Quest-Rooms-Spec.md 5.8): Cast stays disabled and says why. Not used in a fight. */
+  groundedReason?: string | null;
+}
+
+const props = withDefaults(defineProps<XpPowerCardProps>(), { casting: false, groundedReason: null });
 
 const emit = defineEmits<{ (e: "cast", abilityId: string): void }>();
 

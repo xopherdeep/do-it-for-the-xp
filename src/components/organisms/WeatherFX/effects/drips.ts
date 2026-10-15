@@ -1,10 +1,17 @@
 import type { EffectFactory } from "../types";
 import { makeRng } from "./util";
 
+interface Drop {
+  x: number;
+  y: number;
+  v: number;
+  ripple: number;
+}
+
 /** The occasional drop falling from the dark with a ripple where it lands. */
 export const drips: EffectFactory = () => {
   const rng = makeRng(137);
-  const drops: { x: number; y: number; v: number; ripple: number }[] = [];
+  const drops: Drop[] = [];
   let nextAt = 0;
   return {
     init(f) { drops.length = 0; nextAt = f.time + 1; },

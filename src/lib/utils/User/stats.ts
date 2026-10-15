@@ -60,6 +60,17 @@ export interface SpecialStats {
   luck: number;
 }
 
+interface StatsInit {
+  level?: number,
+  xp: XPStats,
+  gp?: GPStats,
+  hp?: HPMPStats,
+  mp?: HPMPStats,
+  ap?: APStats,
+  special?: SpecialStats
+  ailments?: Ailment[]
+}
+
 export default class Stats {
   level: number;
   xp: XPStats;
@@ -72,16 +83,7 @@ export default class Stats {
 
   constructor({
     level, xp, gp, hp, mp, ap, special, ailments
-  }: {
-    level?: number,
-    xp: XPStats,
-    gp?: GPStats,
-    hp?: HPMPStats,
-    mp?: HPMPStats,
-    ap?: APStats,
-    special?: SpecialStats
-    ailments?: Ailment[]
-  } = {
+  }: StatsInit = {
       xp: {
         now: 0,
         next_level: 100,

@@ -146,8 +146,23 @@ export type { MonsterConfigOption };
  * in another tab of the console, so the room page is rebuilt on the way back and the page's own flag is gone: this
  * outlives the page. It lapses after an hour, so a trip that never came back does not open a modal days later.
  */
-let pendingReturn: { templeId: string; row: string; col: string; at: number } | null = null;
+interface PendingReturn {
+  templeId: string;
+  row: string;
+  col: string;
+  at: number;
+}
+
+let pendingReturn: PendingReturn | null = null;
 const RETURN_LAPSES_AFTER_MS = 60 * 60 * 1000;
+
+/** A shop the room can open, as the shop picker lists it */
+interface ShopOption {
+  id: string;
+  name: string;
+  icon?: string;
+  items?: unknown[];
+}
 
 export interface UseTempleRoomEditorProps {
   templeId: string;
@@ -330,7 +345,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   // Shop integration
   const shopsDb = new ShopsDb(shopsStorage);
-  const allShops = ref<{ id: string; name: string; icon?: string; items?: unknown[] }[]>([]);
+  const allShops = ref<ShopOption[]>([]);
 
   const loadShops = async () => {
     if (store.cachedShops.length > 0) {

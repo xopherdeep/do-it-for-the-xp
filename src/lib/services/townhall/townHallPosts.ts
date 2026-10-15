@@ -69,8 +69,17 @@ export function signingName(name: HeroNameParts | null | undefined): string {
   return nick && !isRealName ? nick : ANONYMOUS_SIGNATURE_NAME;
 }
 
+/** The device facts a bug report carries */
+interface BugEnvironmentInfo {
+  version: string;
+  route: string;
+  platform: string;
+  userAgent: string;
+  at: number;
+}
+
 /** What a bug report says about the device, as plain text for the site's environment field. */
-export function bugEnvironment(info: { version: string; route: string; platform: string; userAgent: string; at: number }): string {
+export function bugEnvironment(info: BugEnvironmentInfo): string {
   return [
     `App: ${info.version}`,
     `Screen: ${info.route}`,

@@ -129,7 +129,7 @@ interface RevealArt {
  * never answers or buys); a room's actions are taps that act at once. The cancel button is always last. The page owns
  * `open`, and closes the reveal on `choose` or `leave`.
  */
-const props = defineProps<{
+interface TempleChoiceRevealProps {
   open: boolean;
   kind: RevealKind;
   title: string;
@@ -147,7 +147,9 @@ const props = defineProps<{
   element?: string;
   /** Custom pixel-run sprite to render in the stage */
   sprite?: { runs: PixelRun[]; width: number; height: number };
-}>();
+}
+
+const props = defineProps<TempleChoiceRevealProps>();
 
 const emit = defineEmits<{
   (e: "choose", id: string): void;

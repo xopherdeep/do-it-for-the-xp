@@ -190,16 +190,18 @@ import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import type { BattleMenuAction } from "../battle/battleMenu";
 
+interface XpBattleRadialMenuProps {
+  actions: BattleMenuAction[];
+  heroAvatar?: string;
+  heroLook?: HeroLook;
+  animation?: HeroAnimation;
+  prompt?: string;
+  isOpen?: boolean;
+  disabled?: boolean;
+}
+
 const props = withDefaults(
-  defineProps<{
-    actions: BattleMenuAction[];
-    heroAvatar?: string;
-    heroLook?: HeroLook;
-    animation?: HeroAnimation;
-    prompt?: string;
-    isOpen?: boolean;
-    disabled?: boolean;
-  }>(),
+  defineProps<XpBattleRadialMenuProps>(),
   {
     heroAvatar: "",
     prompt: "",

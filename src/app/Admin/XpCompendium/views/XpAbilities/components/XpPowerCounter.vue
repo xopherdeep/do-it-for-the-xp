@@ -42,16 +42,18 @@ import { countOf } from "../powerWizard";
  * value. Typing a number is clamped to the limits; clearing the field to retype changes nothing until a number is
  * there, and leaving the field puts the real value back.
  */
+interface PowerCounterProps {
+  modelValue: number;
+  label: string;
+  hint?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
 const props = withDefaults(
-  defineProps<{
-    modelValue: number;
-    label: string;
-    hint?: string;
-    unit?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-  }>(),
+  defineProps<PowerCounterProps>(),
   { hint: "", unit: "", min: 0, max: 9999, step: 1 }
 );
 

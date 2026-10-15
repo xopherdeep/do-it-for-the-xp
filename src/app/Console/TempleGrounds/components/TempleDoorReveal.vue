@@ -124,6 +124,15 @@ import {
   padlockShackle,
 } from "./doorSprite";
 
+interface TempleDoorRevealProps {
+  open: boolean;
+  door: DoorView | null;
+  /** The temple's element: the stone and metal of the door */
+  element?: string;
+  /** What the temple said to the key: the door opened, or it would not */
+  result?: "opened" | "refused" | null;
+}
+
 /**
  * A locked door, close up. The door swings in on its stone arch with the lock across it. A hero who holds the key
  * presses Unlock: the key is held up, driven into the lock, the lock springs and drops (the Boss Door's chains fall
@@ -132,14 +141,7 @@ import {
  * and closes the reveal on `leave` or, once the door has swung open, on `done`.
  */
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    door: DoorView | null;
-    /** The temple's element: the stone and metal of the door */
-    element?: string;
-    /** What the temple said to the key: the door opened, or it would not */
-    result?: "opened" | "refused" | null;
-  }>(),
+  defineProps<TempleDoorRevealProps>(),
   { element: "wind", result: null },
 );
 

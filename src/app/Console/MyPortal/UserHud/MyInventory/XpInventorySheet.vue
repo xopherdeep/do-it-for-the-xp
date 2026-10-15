@@ -137,15 +137,17 @@ interface InventoryItemWithRaw extends InventoryEntry {
   rawItem?: any;
 }
 
+interface XpInventorySheetProps {
+  user?: any;
+  userId?: string;
+  equipment?: any[];
+  mode?: "view" | "battle";
+  battleCard?: ((item: any) => BattleItemCard | null) | null;
+  opensDirectly?: ((item: any) => boolean) | null;
+}
+
 const props = withDefaults(
-  defineProps<{
-    user?: any;
-    userId?: string;
-    equipment?: any[];
-    mode?: "view" | "battle";
-    battleCard?: ((item: any) => BattleItemCard | null) | null;
-    opensDirectly?: ((item: any) => boolean) | null;
-  }>(),
+  defineProps<XpInventorySheetProps>(),
   {
     mode: "view",
     battleCard: null,

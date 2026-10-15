@@ -242,9 +242,17 @@ export const bloodMoonNotification = (
   createdAt: night.toISOString(),
 });
 
+/** A shop purchase the GM settled: delivered or refunded. */
+interface SettledPurchase {
+  id: string;
+  itemName: string;
+  price: number;
+  status: "fulfilled" | "refunded";
+}
+
 export const purchaseNotification = (
   heroId: string,
-  entry: { id: string; itemName: string; price: number; status: "fulfilled" | "refunded" }
+  entry: SettledPurchase
 ): NewXpNotification => ({
   heroId,
   kind: "purchase",

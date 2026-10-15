@@ -57,12 +57,14 @@
    * emits; `look` is already the display look (hands and bare head applied by the caller). Undo is dimmed when
    * there is nothing to undo but still emits, so the builder can answer the tap. No sounds in here.
    */
-  defineProps<{
+  interface XpBuilderStageProps {
     look: HeroLook;
     focus: LookFocus;
     animation: HeroAnimation;
     canUndo: boolean;
-  }>();
+  }
+
+  defineProps<XpBuilderStageProps>();
 
   const emit = defineEmits<{
     (e: "undo"): void;

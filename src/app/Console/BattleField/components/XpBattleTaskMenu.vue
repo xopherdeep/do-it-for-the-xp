@@ -45,7 +45,6 @@
           </div>
         </li>
       </ul>
-
       <footer class="menu-footer">
         <button type="button" class="rpg-button" data-cy="task-back" @click="back">
           <i class="fad fa-undo" aria-hidden="true"></i>Back
@@ -68,12 +67,13 @@ const props = defineProps<{
   damagePerTask: number;
 }>();
 
-const emit = defineEmits<{
+interface BattleTaskMenuEmits {
   (e: "cancel"): void;
   (e: "attack-start", task: CombatTask): void;
   (e: "task-complete", taskId: string): void;
   (e: "attack-end", payload: { success: true; taskId: string; taskName: string }): void;
-}>();
+}
+const emit = defineEmits<BattleTaskMenuEmits>();
 
 /** The words on the sheet. */
 const copy = computed(() => ({

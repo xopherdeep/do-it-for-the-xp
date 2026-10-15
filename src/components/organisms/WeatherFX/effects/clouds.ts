@@ -7,12 +7,21 @@ const resolveBaseCloudAlpha = (thin: boolean, dark: boolean): number => {
   return 0.28;
 };
 
+/** One cloud: position, size, drift speed and alpha. */
+interface CloudPuff {
+  x: number;
+  y: number;
+  s: number;
+  v: number;
+  a: number;
+}
+
 /** Soft cloud shapes in three parallax speeds; `dark` for storms, `thin` for high wisps. */
 export const clouds: EffectFactory = (options = {}) => {
   const dark = Boolean(options.dark), thin = Boolean(options.thin);
   const rng = makeRng(41);
   let blob: HTMLCanvasElement | null = null;
-  const items: { x: number; y: number; s: number; v: number; a: number }[] = [];
+  const items: CloudPuff[] = [];
   return {
     init(f) {
       const tone = dark ? [70, 74, 92] : [255, 255, 255];

@@ -7,6 +7,13 @@ export const dosDontsStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
+interface DosDontsFilters {
+  type?: 'do' | 'dont';
+  search?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'whatFor';
+  sortOrder?: 'asc' | 'desc';
+}
+
 export interface DosDont {
   id: string;
   type: 'do' | 'dont';
@@ -94,12 +101,7 @@ export class DosDontsDb extends DbStorageApi {
     return dosDonts.find(dosDont => dosDont.id === id) || this.createDosDont('do');
   }
 
-  public async getDosDonts(filters?: {
-    type?: 'do' | 'dont';
-    search?: string;
-    sortBy?: 'createdAt' | 'updatedAt' | 'whatFor';
-    sortOrder?: 'asc' | 'desc';
-  }) {
+  public async getDosDonts(filters?: DosDontsFilters) {
     let dosDonts = await this.getAll() as DosDont[];
 
     // Apply filters

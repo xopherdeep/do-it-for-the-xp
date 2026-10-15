@@ -34,6 +34,18 @@ import { computed, useSlots } from "vue";
 import { play$fx } from "@/assets/fx";
 import { appIconClass, useAppSkin } from "./useAppSkin";
 
+interface XpAppRowProps {
+  title: string;
+  subtitle?: string;
+  /** Font Awesome duotone icon for the leading tile: `scroll`, `fa-scroll` or `fad fa-scroll`. */
+  icon?: string;
+  /** Image for the leading tile (sprite, portrait). Wins over `icon`. */
+  image?: string;
+  chevron?: boolean;
+  disabled?: boolean;
+  active?: boolean;
+}
+
 /**
  * One list row of a phone app: a 40px leading tile (slot `leading`, else `image`, else `icon`), the title, a one-line
  * subtitle, a chips row (slot `chips`, use XpAppChip) and a trailing value or button (slot `trailing`) before the chevron.
@@ -41,17 +53,7 @@ import { appIconClass, useAppSkin } from "./useAppSkin";
  * the row (a trailing Cast / Use / Equip) answers on its own and does not fire the row.
  */
 const props = withDefaults(
-  defineProps<{
-    title: string;
-    subtitle?: string;
-    /** Font Awesome duotone icon for the leading tile: `scroll`, `fa-scroll` or `fad fa-scroll`. */
-    icon?: string;
-    /** Image for the leading tile (sprite, portrait). Wins over `icon`. */
-    image?: string;
-    chevron?: boolean;
-    disabled?: boolean;
-    active?: boolean;
-  }>(),
+  defineProps<XpAppRowProps>(),
   { subtitle: "", icon: "", image: "", chevron: true, disabled: false, active: false }
 );
 
