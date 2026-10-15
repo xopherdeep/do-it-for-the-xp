@@ -93,6 +93,25 @@ describe("pro store", () => {
     expect(mockStored?.license?.key).toBe(KEY);
   });
 
+  it("keeps the member-since date across rechecks of the same key, and restarts it for a new key", async () => {
+    const since = "2025-03-01T00:00:00.000Z";
+    mockStored = {
+      familyId: FAMILY,
+      deviceId: "devicetest01",
+      license: cached({ since, lastValidatedAt: new Date(Date.now() - 2 * 86400000).toISOString() }) as any,
+    };
+    validate.mockResolvedValue(status());
+    const store = useProStore();
+    await store.init();
+    await store.recheck();
+    expect(store.memberSince).toBe(since);
+
+    validate.mockResolvedValue(status({ licenseKey: "XP-PRO-DDDD-EEEE-FFFF" }));
+    await store.recheck();
+    expect(store.memberSince).not.toBe(since);
+    expect(mockStored?.license?.since).toBe(store.memberSince);
+  });
+
   it("init with a fresh license does not call the network", async () => {
     mockStored = { familyId: FAMILY, deviceId: "devicetest01", license: cached() as any };
     const store = useProStore();

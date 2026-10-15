@@ -111,7 +111,7 @@ describe("XP Pro", () => {
     cy.get('[data-cy="restore-key-button"]').click({ force: true });
     cy.wait("@validate");
     cy.contains('[data-cy="pro-status"]', "XP Pro is on", { timeout: 10000 });
-    cy.contains('[data-cy="pro-masked-key"]', "XP-PRO-****-****-CCCC");
+    cy.contains('[data-cy="pro-masked-key"]', "XP-PRO-••••-••••-CCCC");
     cy.screenshot("pro-03-settings-restored", { capture: "viewport" });
   });
 

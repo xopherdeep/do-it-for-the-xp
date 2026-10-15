@@ -15,22 +15,35 @@
           <ion-card-title data-cy="pro-status">{{ pro.isPro ? "XP Pro is on" : "XP Pro is off" }}</ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <p v-if="!pro.isPro">Pro adds the Temple Creator, advanced schedules, AI helpers and six more game styles.</p>
-          <p v-if="pro.isPro && pro.plan">Plan: {{ planLabel }}</p>
-          <p v-if="pro.isPro && pro.plan !== 'lifetime' && dateLabel">Renews or ends on {{ dateLabel }}</p>
-          <p v-if="pro.licenseKey" data-cy="pro-masked-key">
-            Key: {{ maskedKey }}
-            <ion-button size="small" fill="clear" @click="copyKey">Copy</ion-button>
-          </p>
+          <xp-license-card
+            v-if="pro.isPro && pro.licenseKey"
+            :plan="pro.plan"
+            :plan-label="planLabel"
+            :masked-key="maskedKey"
+            :member-since="sinceLabel"
+            :valid-thru="dateLabel"
+            @copy="copyKey"
+          />
+          <template v-else>
+            <p v-if="!pro.isPro">Pro adds the Temple Creator, advanced schedules, AI helpers and six more game styles.</p>
+            <p v-if="pro.licenseKey" data-cy="pro-masked-key">
+              Key: {{ maskedKey }}
+              <ion-button size="small" fill="clear" @click="copyKey">Copy</ion-button>
+            </p>
+          </template>
           <div class="pro-actions">
-            <ion-button v-if="!pro.isPro" router-link="/pro">See XP Pro</ion-button>
-            <ion-button v-if="pro.licenseKey" fill="outline" @click="pro.manage()">Manage subscription</ion-button>
+            <ion-button v-if="!pro.isPro" router-link="/pro" class="pro-button">See XP Pro</ion-button>
+            <ion-button v-if="pro.licenseKey" fill="outline" class="pro-button-outline" @click="pro.manage()">
+              <i class="fad fa-cog mr-2" aria-hidden="true"></i>Manage subscription
+            </ion-button>
           </div>
         </ion-card-content>
       </ion-card>
 
       <ion-card class="max-w-2xl">
-        <ion-card-header><ion-card-title>Restore with key</ion-card-title></ion-card-header>
+        <ion-card-header>
+          <ion-card-title><i class="fad fa-key mr-2" aria-hidden="true"></i>Restore with key</ion-card-title>
+        </ion-card-header>
         <ion-card-content>
           <p>Bought Pro on another device? Enter the key from your receipt email.</p>
           <ion-input
@@ -40,18 +53,20 @@
             data-cy="restore-key-input"
             class="key-input"
           />
-          <ion-button :disabled="!keyInput.trim() || pro.loading" @click="restore" data-cy="restore-key-button">
+          <ion-button class="pro-button" :disabled="!keyInput.trim() || pro.loading" @click="restore" data-cy="restore-key-button">
             Restore with key
           </ion-button>
         </ion-card-content>
       </ion-card>
 
       <ion-card class="max-w-2xl">
-        <ion-card-header><ion-card-title>Lost your key?</ion-card-title></ion-card-header>
+        <ion-card-header>
+          <ion-card-title><i class="fad fa-envelope-open-text mr-2" aria-hidden="true"></i>Lost your key?</ion-card-title>
+        </ion-card-header>
         <ion-card-content>
           <p>We'll send it to the email you bought Pro with.</p>
           <ion-input v-model="emailInput" type="email" placeholder="Parent email" aria-label="Parent email" class="key-input" />
-          <ion-button :disabled="!emailInput.trim()" @click="pro.recover(emailInput)">Email me my key</ion-button>
+          <ion-button class="pro-button" :disabled="!emailInput.trim()" @click="pro.recover(emailInput)">Email me my key</ion-button>
         </ion-card-content>
       </ion-card>
     </ion-content>
