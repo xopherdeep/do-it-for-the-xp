@@ -58,16 +58,18 @@ export interface WalletWareData {
   hint?: string;
 }
 
+interface ShopShelfSliderProps {
+  items: ShelfItem[];
+  wallet: number;
+  walletWare?: WalletWareData | null;
+  /** On sale to this hero and covered by savings plus wallet (canAffordWalletWare) */
+  walletWareAffordable?: boolean;
+  /** How much more GP the wallet needs (walletWareShortBy) */
+  walletWareShortBy?: number;
+}
+
 const props = withDefaults(
-  defineProps<{
-    items: ShelfItem[];
-    wallet: number;
-    walletWare?: WalletWareData | null;
-    /** On sale to this hero and covered by savings plus wallet (canAffordWalletWare) */
-    walletWareAffordable?: boolean;
-    /** How much more GP the wallet needs (walletWareShortBy) */
-    walletWareShortBy?: number;
-  }>(),
+  defineProps<ShopShelfSliderProps>(),
   { walletWare: null, walletWareAffordable: false, walletWareShortBy: 0 }
 );
 

@@ -282,12 +282,13 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const monsterArt = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
 
     const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
+    const beastSubtitle = encounter.named ? undefined : monsterSubtitle;
     const exitSprite = isEntrance ? { runs: dungeonExitRuns(element), width: EXIT_W, height: EXIT_H } : undefined;
 
     openChoiceReveal({
       kind: isEntrance ? 'exit' : 'sheet',
       title: encounter.title,
-      subtitle: isEntrance ? sheet.subHeader : encounter.named ? undefined : monsterSubtitle,
+      subtitle: isEntrance ? sheet.subHeader : beastSubtitle,
       body: sheet.body,
       art: isEntrance ? undefined : monsterArt,
       sprite: exitSprite,

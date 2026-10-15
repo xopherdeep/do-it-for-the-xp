@@ -21,14 +21,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+interface TempleLoadingProps {
+  open: boolean;
+  name?: string;
+  element?: string;
+  done?: number;
+  total?: number;
+}
+
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    name?: string;
-    element?: string;
-    done?: number;
-    total?: number;
-  }>(),
+  defineProps<TempleLoadingProps>(),
   { name: "", element: "wind", done: 0, total: 0 }
 );
 

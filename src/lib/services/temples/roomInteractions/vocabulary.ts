@@ -121,9 +121,16 @@ export const ENCOUNTER_LINES: Record<string, string> = {
   boss: 'A Powerful Boss appears!',
 };
 
+/** "A" or "An" before a beast's name, or nothing when the name already starts with "The". */
+const articleFor = (name: string): string => {
+  const hasArticle = /^the\s/i.test(name);
+  if (hasArticle) return '';
+  return /^[aeiou]/i.test(name) ? 'An ' : 'A ';
+};
+
 /** The same lines with the beast named in them: "A Mustwisp approaches!" instead of a nameless monster. */
 const NAMED_ENCOUNTER_LINES: Record<string, (name: string) => string> = {
-  monster: (name) => `${/^the\s/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'An ' : 'A '}${name} approaches!`,
+  monster: (name) => `${articleFor(name)}${name} approaches!`,
   miniboss: (name) => `${name} blocks the way!`,
   boss: (name) => `${name} rises to fight!`,
 };
