@@ -1,10 +1,9 @@
 import {
-  HOTEL_METADATA,
   getAllHotels,
   getHotelByWorld,
   getHotelMetadata,
 } from "@/lib/engine/core/hotelRegistry";
-import { WORLD_METADATA, getAllWorlds } from "@/lib/engine/core/worldRegistry";
+import { getAllWorlds } from "@/lib/engine/core/worldRegistry";
 import { parentOf } from "@/router/parentOf";
 
 describe("HotelRegistry & World Lodging", () => {

@@ -49,9 +49,8 @@ type Props = Record<string, unknown>;
 // A form that binds `index` (v-model:index) follows what the shell emits; one that does not leaves the shell its own
 const mountShell = (props: Props = {}, slots: Record<string, string> = {}, attachTo?: HTMLElement) => {
   setActivePinia(createPinia());
-  let mounted: VueWrapper<any> | undefined;
-  const bound = props.index !== undefined ? { "onUpdate:index": (value: number) => void mounted?.setProps({ index: value }) } : {};
-  mounted = mount(XpWizardShell, {
+  const bound = props.index !== undefined ? { "onUpdate:index": (value: number) => void mounted.setProps({ index: value }) } : {};
+  const mounted: VueWrapper<any> = mount(XpWizardShell, {
     props: { steps, draft: { name: "Sock", virtual: false }, icon: "scroll", verb: "Summon", ...bound, ...props },
     slots: {
       what: "<p class='body-what'>what body</p>",

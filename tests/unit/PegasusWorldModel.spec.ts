@@ -1,7 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import {
-  PEGASUS_DEFAULT_PALETTE,
   PEGASUS_LOCKED_PALETTE,
   PEGASUS_PALETTES,
   buildBuildingMeshData,

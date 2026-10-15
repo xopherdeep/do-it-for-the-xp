@@ -1,7 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import LinkPhone from "@/app/SideMenu/HeroPhone/LinkPhone.vue";
 import { BarcodeFormat, BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
-import { Capacitor } from "@capacitor/core";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
