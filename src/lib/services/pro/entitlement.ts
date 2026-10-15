@@ -7,6 +7,8 @@ export interface CachedLicense {
   env: "production" | "sandbox";
   pro: boolean;
   lastValidatedAt: string;
+  /** When this install first saw this key (the server sends no purchase date); the license card's "member since". */
+  since?: string;
 }
 
 export const GRACE_DAYS = 3;

@@ -2,10 +2,12 @@ import { computed, defineComponent, onMounted, ref } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { useProStore } from "@/lib/store/stores/pro";
 import { proToast } from "@/lib/services/pro/proUi";
+import XpLicenseCard from "./XpLicenseCard.vue";
 
 export default defineComponent({
   name: "pro-settings",
   mixins: [ionic],
+  components: { XpLicenseCard },
   setup() {
     const pro = useProStore();
     const keyInput = ref("");
@@ -21,6 +23,11 @@ export default defineComponent({
     const dateLabel = computed(() => {
       const d = pro.expiresAt ? new Date(pro.expiresAt) : null;
       return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString() : "";
+    });
+
+    const sinceLabel = computed(() => {
+      const d = pro.memberSince ? new Date(pro.memberSince) : null;
+      return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
     });
 
     const PLAN_NAMES: Record<string, string> = { monthly: "Monthly", yearly: "Yearly", lifetime: "Lifetime" };
@@ -40,6 +47,6 @@ export default defineComponent({
       if (pro.isPro) keyInput.value = "";
     }
 
-    return { pro, keyInput, emailInput, maskedKey, dateLabel, planLabel, copyKey, restore };
+    return { pro, keyInput, emailInput, maskedKey, dateLabel, sinceLabel, planLabel, copyKey, restore };
   },
 });

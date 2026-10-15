@@ -1,0 +1,430 @@
+// The XP Pro license as a collectible foil card: a bronze, silver or gold card by plan,
+// a pixel frame, an embossed key, a sheen that sweeps across it now and then, and a
+// rainbow holo layer on the Lifetime card. Not scoped, so the game styles below can
+// repaint it; every class carries the xp-license-card prefix.
+
+.xp-license-card {
+  // Monthly: bronze on deep teal
+  --lc-base-1: #12454a;
+  --lc-base-2: #061a1e;
+  --lc-foil-hi: #ffd2b0;
+  --lc-foil: #c8783e;
+  --lc-foil-lo: #6a3418;
+  --lc-ink: #fff0e2;
+  --lc-dim: rgba(255, 240, 226, 0.62);
+  --lc-edge: #0b0610;
+  --lc-holo: 0;
+  --lc-title-font: var(--gs-font-title, "Twoson"), "StatusPlz", sans-serif;
+  --lc-font: var(--gs-font, "StatusPlz"), monospace;
+
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 4px auto 20px;
+  border-radius: 12px;
+  color: var(--lc-ink);
+  isolation: isolate;
+  touch-action: pan-y;
+  transform: perspective(800px) rotateX(var(--lc-rx, 0deg)) rotateY(var(--lc-ry, 0deg));
+  transition: transform 0.25s ease-out;
+  box-shadow:
+    0 0 0 2px var(--lc-edge),
+    0 0 0 4px var(--lc-foil),
+    0 0 0 6px var(--lc-edge),
+    0 12px 22px rgba(0, 0, 0, 0.55);
+  animation: lc-deal 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.035) 6px 8px),
+    linear-gradient(140deg, var(--lc-base-1), var(--lc-base-2));
+
+  // Yearly: silver on midnight blue
+  &.is-yearly {
+    --lc-base-1: #24406e;
+    --lc-base-2: #0a1328;
+    --lc-foil-hi: #ffffff;
+    --lc-foil: #aebcd2;
+    --lc-foil-lo: #4c5774;
+    --lc-ink: #eef4ff;
+    --lc-dim: rgba(238, 244, 255, 0.62);
+  }
+
+  // Lifetime: gold on royal purple, with the holo layer
+  &.is-lifetime {
+    --lc-base-1: #4a2178;
+    --lc-base-2: #150a2c;
+    --lc-foil-hi: #fff2a8;
+    --lc-foil: #e8b030;
+    --lc-foil-lo: #7a4a10;
+    --lc-ink: #fff6dc;
+    --lc-dim: rgba(255, 246, 220, 0.65);
+    --lc-holo: 1;
+  }
+}
+
+// Card-shaped at least, and taller when a big game font needs the room
+.xp-license-card__face {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  border-radius: inherit;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    inset 0 0 0 2px var(--lc-foil-lo),
+    inset 0 2px 0 2px rgba(255, 255, 255, 0.08);
+}
+
+// The watermark, clipped to the card
+.xp-license-card__art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.xp-license-card__emblem {
+  position: absolute;
+  right: -8px;
+  bottom: -30px;
+  font-family: var(--lc-title-font);
+  font-size: 128px;
+  line-height: 1;
+  color: var(--lc-foil);
+  opacity: 0.07;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.xp-license-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.xp-license-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.xp-license-card__coin {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 15px;
+  color: var(--lc-foil-lo);
+  background: radial-gradient(circle at 35% 30%, var(--lc-foil-hi), var(--lc-foil) 55%, var(--lc-foil-lo));
+  box-shadow: 0 0 0 2px var(--lc-edge), inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+
+  i {
+    --fa-primary-color: var(--lc-foil-lo);
+    --fa-secondary-color: var(--lc-edge);
+  }
+}
+
+.xp-license-card__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.xp-license-card__wordmark {
+  white-space: nowrap;
+  font-family: var(--lc-title-font);
+  font-size: 20px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, var(--lc-foil-hi) 20%, var(--lc-foil) 60%, var(--lc-foil-lo));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(1px 1px 0 var(--lc-edge));
+}
+
+.xp-license-card__caption,
+.xp-license-card__label {
+  font-family: var(--lc-font);
+  font-size: 10px;
+  line-height: 1.3;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--lc-dim);
+  white-space: nowrap;
+}
+
+.xp-license-card__tier {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 2px;
+  border-radius: 4px;
+  font-family: var(--lc-title-font);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--lc-edge);
+  background: linear-gradient(180deg, var(--lc-foil-hi), var(--lc-foil));
+  box-shadow: 0 0 0 2px var(--lc-edge), inset 0 -2px 0 var(--lc-foil-lo);
+
+  .is-lifetime & {
+    animation: lc-glow 2.4s ease-in-out infinite;
+  }
+}
+
+.xp-license-card__stars {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.xp-license-card__middle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 auto;
+}
+
+.xp-license-card__chip {
+  flex: none;
+  width: 40px;
+  height: 30px;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent 32%, var(--lc-foil-lo) 32% 36%, transparent 36% 64%, var(--lc-foil-lo) 64% 68%, transparent 68%),
+    linear-gradient(0deg, transparent 46%, var(--lc-foil-lo) 46% 54%, transparent 54%),
+    linear-gradient(135deg, var(--lc-foil-hi), var(--lc-foil) 60%, var(--lc-foil-lo));
+  box-shadow: 0 0 0 1px var(--lc-edge), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.xp-license-card__key {
+  position: relative;
+  margin-top: 8px;
+}
+
+.xp-license-card__key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.xp-license-card__digits {
+  font-family: "StatusPlz", var(--lc-font);
+  font-size: clamp(13px, 4vw, 17px);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  color: var(--lc-ink);
+  // embossed into the card
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.65),
+    -1px -1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.xp-license-card__copy {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  font-size: 15px;
+  color: var(--lc-foil-hi);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 2px var(--lc-foil);
+  cursor: pointer;
+  transition: transform 0.1s;
+
+  i {
+    --fa-primary-color: var(--lc-foil-hi);
+    --fa-secondary-color: var(--lc-foil);
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lc-foil-hi);
+    outline-offset: 2px;
+  }
+}
+
+.xp-license-card__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.xp-license-card__thru {
+  margin-left: auto;
+  text-align: right;
+}
+
+.xp-license-card__value {
+  font-family: "StatusPlz", var(--lc-font);
+  font-size: 14px;
+  color: var(--lc-ink);
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+
+  i {
+    --fa-primary-color: var(--lc-foil-hi);
+    --fa-secondary-color: var(--lc-foil);
+  }
+}
+
+// The rainbow foil of the Lifetime card, drifting slowly
+.xp-license-card__holo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: calc(var(--lc-holo) * 0.55);
+  mix-blend-mode: color-dodge;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 64, 160, 0.55) 34%,
+    rgba(64, 224, 255, 0.55) 44%,
+    rgba(255, 240, 96, 0.55) 54%,
+    rgba(160, 96, 255, 0.5) 64%,
+    transparent 78%
+  );
+  background-size: 260% 260%;
+  animation: lc-holo 7s ease-in-out infinite alternate;
+}
+
+// A bright band that sweeps across every few seconds
+.xp-license-card__sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    width: 40%;
+    left: 0;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.32) 50%, transparent);
+    transform: translateX(-160%) skewX(-12deg);
+    animation: lc-sheen 5s ease-in-out 0.6s infinite;
+  }
+}
+
+@keyframes lc-deal {
+  from {
+    opacity: 0;
+    transform: perspective(800px) translateY(18px) rotate(-4deg) scale(0.94);
+  }
+}
+
+@keyframes lc-sheen {
+  0% {
+    transform: translateX(-160%) skewX(-12deg);
+  }
+
+  28%,
+  100% {
+    transform: translateX(360%) skewX(-12deg);
+  }
+}
+
+@keyframes lc-holo {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes lc-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px var(--lc-edge), inset 0 -2px 0 var(--lc-foil-lo), 0 0 0 rgba(255, 220, 120, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 2px var(--lc-edge), inset 0 -2px 0 var(--lc-foil-lo), 0 0 10px rgba(255, 220, 120, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-license-card,
+  .xp-license-card__tier,
+  .xp-license-card__holo,
+  .xp-license-card__sheen::before {
+    animation: none !important;
+  }
+
+  .xp-license-card {
+    transform: none !important;
+  }
+}
+
+// Game styles with a fixed palette repaint the card in it
+ion-app#virtualBoy .xp-license-card {
+  --lc-base-1: #200000;
+  --lc-base-2: #000000;
+  --lc-foil-hi: #ff5050;
+  --lc-foil: #ff0000;
+  --lc-foil-lo: #aa0000;
+  --lc-ink: #ff2a2a;
+  --lc-dim: #b00000;
+  --lc-edge: #000000;
+  --lc-holo: 0;
+
+  .xp-license-card__wordmark {
+    font-size: 16px;
+  }
+}
+
+ion-app#pokemon .xp-license-card {
+  --lc-base-1: #306230;
+  --lc-base-2: #0f380f;
+  --lc-foil-hi: #9bbc0f;
+  --lc-foil: #8bac0f;
+  --lc-foil-lo: #306230;
+  --lc-ink: #9bbc0f;
+  --lc-dim: #8bac0f;
+  --lc-edge: #0f380f;
+  --lc-holo: 0;
+
+  .xp-license-card__wordmark {
+    font-size: 14px;
+  }
+
+  .xp-license-card__caption,
+  .xp-license-card__label,
+  .xp-license-card__tier {
+    font-size: 7px;
+  }
+
+  .xp-license-card__digits,
+  .xp-license-card__value {
+    font-family: var(--lc-font);
+    font-size: 11px;
+  }
+}
