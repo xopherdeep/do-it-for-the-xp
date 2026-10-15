@@ -1,4 +1,6 @@
 import { differenceInCalendarDays } from "date-fns";
+import { rewardChips } from "@/components/organisms/XpApp/appChips";
+import type { AppChipSpec } from "@/components/organisms/XpApp/appChips";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
@@ -147,6 +149,8 @@ export interface QuestLogRow {
   who: string;
   rewards: QuestRewards;
   requiresApproval: boolean;
+  /** The chips under the subtitle: the rewards, "GM approves", then who else shares it */
+  chips: AppChipSpec[];
   /** Any chip to draw under the subtitle */
   hasChips: boolean;
   /** Open or overdue: the List offers its Done button */
@@ -169,7 +173,9 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
   const image = portraitUrl(face.avatar) || face.picture || row.quest.localImage || row.quest.imageUrl || "";
   const isHeroAlone = row.assigneeName === heroNick;
   const who = isHeroAlone ? "" : row.assigneeName;
-  const { xp, gp, ap } = row.rewards;
+  const chips = rewardChips(row.rewards);
+  if (row.requiresApproval) chips.push({ kind: "tag", value: "GM approves" });
+  if (who) chips.push({ kind: "tag", value: who });
   return {
     id: row.id,
     title: formatQuestName(row.title),
@@ -181,7 +187,8 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
     who,
     rewards: row.rewards,
     requiresApproval: row.requiresApproval,
-    hasChips: Boolean(xp || gp || ap || row.requiresApproval || who),
+    chips,
+    hasChips: chips.length > 0,
     canFinish: row.status === "open" || row.status === "overdue",
     source: row,
   };

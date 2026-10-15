@@ -23,14 +23,8 @@
             <xp-icon :icon="entry.faIcon || 'box'" class="goods-icon" />
           </template>
 
-          <template v-if="getMpCost(entry) || getDisabledReasonText(entry)" #chips>
-            <xp-app-chip v-if="getMpCost(entry)" kind="mp" :value="getMpCost(entry)" />
-            <xp-app-chip
-              v-if="getDisabledReasonText(entry)"
-              class="goods-reason"
-              kind="tag"
-              :value="getDisabledReasonText(entry)"
-            />
+          <template v-if="chipsOf(entry).length" #chips>
+            <xp-app-chips :chips="chipsOf(entry)" />
           </template>
 
           <template #trailing>
@@ -77,7 +71,8 @@ import {
 } from "ionicons/icons";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
-import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
+import XpAppChips from "@/components/organisms/XpApp/XpAppChips.vue";
+import type { AppChipSpec } from "@/components/organisms/XpApp/appChips";
 import XpAppEmpty from "@/components/organisms/XpApp/XpAppEmpty.vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
@@ -270,6 +265,14 @@ const getMpCost = (entry: InventoryItemWithRaw): number => {
   return card?.mp || 0;
 };
 
+/** The row's chips: the MP a cast costs, then why the item cannot be used right now (a red tag). */
+const chipsOf = (entry: InventoryItemWithRaw): AppChipSpec[] => {
+  const mp = getMpCost(entry);
+  const reason = getDisabledReasonText(entry);
+  const chips: AppChipSpec[] = mp ? [{ kind: "mp", value: mp }] : [];
+  return reason ? [...chips, { kind: "tag", value: reason, class: "goods-reason" }] : chips;
+};
+
 /** One line under the name: what the item does in a fight, else its blurb, else what kind of thing it is. */
 const subtitleOf = (entry: InventoryItemWithRaw): string =>
   getBattleEffectText(entry) || entry.description || KIND_LABELS[entry.kind].one;
@@ -344,7 +347,7 @@ const handleEntryClick = (entry: InventoryItemWithRaw) => {
   }
 
   // Why the item cannot be used right now: a red tag that may wrap, so a long hint is never cut off.
-  .goods-reason {
+  :deep(.goods-reason) {
     --chip-rgb: 255, 107, 94;
     max-width: 100%;
     text-align: left;
