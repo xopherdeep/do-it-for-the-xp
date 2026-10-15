@@ -264,6 +264,10 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "Walk to the Plains, then free the Pegasus in the Wind Temple. After that you can fly anywhere on the World Map.",
       },
       {
+        question: "Can the words type out faster?",
+        answer: "Yes. Pick Slow, Normal, Fast or Instant in Settings, Theme, Text speed. Tapping a text box still finishes a line early.",
+      },
+      {
         question: "How do I change my class?",
         answer: "Open the Equipment menu from the bottom bar and use the Class Codex. New classes unlock when you reach level 10 in the class before them.",
       },

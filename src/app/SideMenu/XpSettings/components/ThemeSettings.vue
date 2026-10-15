@@ -40,6 +40,29 @@
                 </ion-select>
               </div>
             </ion-item>
+
+            <ion-item class="setting-stacked" data-cy="text-speed">
+              <div class="setting-stacked__body">
+                <ion-label>
+                  <h2>Text speed</h2>
+                  <p>How fast words type out in battles, temples and talks. Tap a box to finish a line early.</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  :value="textSpeed"
+                  interface="action-sheet"
+                  aria-label="Text speed"
+                  @ionChange="changeTextSpeed"
+                >
+                  <ion-select-option
+                    v-for="speed in textSpeeds"
+                    :key="speed"
+                    :value="speed"
+                    >{{ textSpeedNames[speed] }}</ion-select-option
+                  >
+                </ion-select>
+              </div>
+            </ion-item>
           </ion-item-group>
 
           <ion-item-group>
@@ -103,6 +126,8 @@
     GameStyle,
     isProGameStyle,
   } from "@/lib/utils/gameStyle";
+  import { setTextSpeed, textSpeed, TEXT_SPEED_NAMES, TEXT_SPEEDS } from "@/lib/utils/textSpeed";
+  import type { TextSpeed } from "@/lib/utils/textSpeed";
 
   export default defineComponent({
     name: "ThemeSettings",
@@ -138,6 +163,9 @@
         gameStore,
         pro,
         gameStyles: GAME_STYLES,
+        textSpeed,
+        textSpeeds: TEXT_SPEEDS,
+        textSpeedNames: TEXT_SPEED_NAMES,
         comingSoon: THEME_COMING_SOON,
       };
     },
@@ -151,6 +179,11 @@
         const newFx = { ...$fx.theme, rpg, ui };
         this.play$fx();
         changeSoundFX(newFx).then(() => ($fx.theme = newFx));
+      },
+
+      changeTextSpeed(ev: CustomEvent<{ value: TextSpeed }>) {
+        setTextSpeed(ev.detail.value);
+        this.play$fx();
       },
 
       changeUISound(ev) {
