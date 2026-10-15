@@ -1,3 +1,4 @@
+// sample change to time the related-specs run (throwaway PR, never merged)
 /**
  * The words every room interaction shares: the shapes the screen deals in (context, outcome, sheet), the
  * sound keys, the compass directions, the names room kinds go by, and the two text helpers for toasts.
