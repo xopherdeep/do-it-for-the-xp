@@ -343,8 +343,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (isUnknownChoice) return false;
     // Auto clears the field to undefined (not deleted) so syncCurrentUser's assign clears it on currentUser too
     user.voice = voice === null ? undefined : voice;
-    const isCurrentHero = currentUser.id === userId;
-    if (isCurrentHero) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
     return true;
   }
@@ -355,8 +354,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const hasNoHero = !user;
     if (hasNoHero) return;
     user.autoRead = autoRead === true;
-    const isCurrentHero = currentUser.id === userId;
-    if (isCurrentHero) syncCurrentUser(user);
+    if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);
   }
 
