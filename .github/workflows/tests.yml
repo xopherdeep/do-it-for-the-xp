@@ -1,0 +1,53 @@
+name: Tests
+
+# The full gate on GitHub instead of on a laptop: typecheck, lint and the whole jest suite run on
+# every pull request and on every push to master. To block merging on a red run, mark these checks
+# as required in the repo's branch protection settings for master.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Typecheck
+            run: pnpm typecheck
+          - name: Lint
+            run: pnpm lint --no-fix
+          - name: Unit tests
+            run: pnpm test --ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.run }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
