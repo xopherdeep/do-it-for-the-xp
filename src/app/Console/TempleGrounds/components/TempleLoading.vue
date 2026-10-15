@@ -38,9 +38,9 @@ const percent = computed(() => (props.total > 0 ? Math.round((props.done / props
 <style lang="scss" scoped>
 .temple-loading {
   --glow: #f0d890;
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
