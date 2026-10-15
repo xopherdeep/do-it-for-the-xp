@@ -29,12 +29,7 @@
             :class="{ 'is-tamed': entry.status === 'done' && !entry.pending, 'is-pending': entry.status === 'done' && entry.pending }"
             @click="activeModal = entry.quest.id">
             <template v-if="hasChips(entry)" #chips>
-              <!-- A used-up quest whose claim still waits for the Game Master is Pending, not Tamed -->
-              <xp-app-chip v-if="entry.status === 'done' && entry.pending" kind="tag" value="Pending" />
-              <xp-app-chip v-else-if="entry.status === 'done'" kind="tag" value="Tamed" />
-              <xp-app-chip v-if="entry.quest.xp" kind="xp" :value="entry.quest.xp" />
-              <xp-app-chip v-if="entry.quest.gp" kind="gp" :value="entry.quest.gp" />
-              <xp-app-chip v-if="entry.quest.ap" kind="ap" :value="entry.quest.ap" />
+              <xp-app-chips :chips="rowChips(entry)" />
             </template>
           </xp-app-row>
         </xp-app-section>
@@ -123,6 +118,8 @@ import type { BeastCardStatus } from "../../UserHud/MyQuests/beastCard";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import { rewardChips } from "@/components/organisms/XpApp/appChips";
+import type { AppChipSpec } from "@/components/organisms/XpApp/appChips";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { boardStatusInSegment, getQuestEngine } from "@/lib/engine/quests/QuestEngine";
@@ -265,8 +262,13 @@ const rowIcon = ({ status, pending }: AgendaEntry, groupId: AgendaGroupId): stri
   return AGENDA_GROUPS.find(({ id }) => id === groupId)?.icon ?? "scroll";
 };
 
-const hasChips = ({ quest, status }: AgendaEntry): boolean =>
-  status === "done" || Boolean(quest.xp || quest.gp || quest.ap);
+// A used-up quest whose claim still waits for the Game Master is Pending, not Tamed; then the rewards it pays
+const rowChips = ({ quest, status, pending }: AgendaEntry): AppChipSpec[] => {
+  const state: AppChipSpec[] = status === "done" ? [{ kind: "tag", value: pending ? "Pending" : "Tamed" }] : [];
+  return [...state, ...rewardChips(quest)];
+};
+
+const hasChips = (entry: AgendaEntry): boolean => rowChips(entry).length > 0;
 
 // Methods
 const fetchBoard = async () => {

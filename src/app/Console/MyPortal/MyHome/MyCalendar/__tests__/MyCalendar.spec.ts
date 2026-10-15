@@ -7,6 +7,7 @@ import XpAppHeader from "@/components/organisms/XpApp/XpAppHeader.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
+import XpAppChips from "@/components/organisms/XpApp/XpAppChips.vue";
 import XpAppEmpty from "@/components/organisms/XpApp/XpAppEmpty.vue";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 
@@ -81,6 +82,7 @@ const mountCalendar = async (): Promise<VueWrapper<any>> => {
         "xp-app-section": XpAppSection,
         "xp-app-row": XpAppRow,
         "xp-app-chip": XpAppChip,
+        "xp-app-chips": XpAppChips,
         "xp-app-empty": XpAppEmpty,
         "xp-back-button": StubComponent,
         "xp-loading": StubComponent,

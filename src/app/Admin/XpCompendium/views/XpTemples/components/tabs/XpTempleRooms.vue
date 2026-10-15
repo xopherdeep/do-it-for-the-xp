@@ -99,26 +99,12 @@
                       class="room-coords"
                     />
                   </div>
-                  <div class="room-details">
-                    <span
-                      v-if="room.beasts && room.beasts.length"
-                      class="detail-badge beasts"
-                    >
-                      <i class="fad fa-skull"></i> {{ room.beasts.length }}
-                    </span>
-                    <span
-                      v-if="room.hasLoot"
-                      class="detail-badge loot"
-                    >
-                      <i class="fad fa-treasure-chest"></i>
-                    </span>
-                    <span
-                      v-if="room.isLocked"
-                      class="detail-badge locked"
-                    >
-                      <i class="fas fa-lock"></i>
-                    </span>
-                  </div>
+                  <XpTempleRoomBadges
+                    class="room-details"
+                    :beasts="room.beasts?.length ?? 0"
+                    :has-loot="room.hasLoot"
+                    :is-locked="room.isLocked"
+                  />
                 </div>
 
                 <div class="room-arrow">
@@ -153,6 +139,7 @@ import { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem,
 import { homeOutline } from 'ionicons/icons';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
+import XpTempleRoomBadges from "./XpTempleRoomBadges.vue";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
 import { VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
@@ -173,7 +160,7 @@ interface RoomListItem {
 
 export default defineComponent({
   name: "xp-temple-rooms",
-  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading, XpCoordBadge },
+  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading, XpCoordBadge, XpTempleRoomBadges },
   setup() {
     const route = useRoute();
     const ionRouter = useIonRouter();
@@ -638,36 +625,6 @@ export default defineComponent({
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-  }
-
-  .detail-badge {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.65rem;
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
-
-    i {
-      font-size: 0.65rem;
-    }
-
-    &.beasts {
-      background: rgba(175, 82, 222, 0.2);
-      color: #af52de;
-    }
-
-    &.loot {
-      background: rgba(255, 214, 10, 0.2);
-      color: #ffd60a;
-    }
-
-    &.locked {
-      background: rgba(255, 159, 10, 0.2);
-      color: #ff9f0a;
-    }
   }
 
   .room-arrow {

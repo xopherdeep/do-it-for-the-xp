@@ -41,6 +41,7 @@ import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
+import { mapCellIconOf } from './templeGrounds/mapCellIcon';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
 const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
@@ -161,6 +162,9 @@ export default defineComponent({
       getMapTileClass,
       isRoomVisited
     } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
+    const mapCellIcon = mapCellIconOf({
+      rooms, hasCompass, getRoomVisibility, isCurrentRoom, showRoomDetails, getRoomIcon, isRoomVisited
+    });
 
     const router = useRouter();
 
@@ -394,6 +398,7 @@ export default defineComponent({
       getRoomIcon,
       getMapTileClass,
       isRoomVisited,
+      mapCellIcon,
 
       // Local functions
       moveWithUpdate,

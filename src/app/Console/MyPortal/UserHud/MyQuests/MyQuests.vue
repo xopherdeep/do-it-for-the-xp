@@ -41,27 +41,12 @@
             :data-status="row.status" :title="row.title" :subtitle="row.subtitle" :image="row.image" :icon="row.icon"
             :chevron="!(view === 'list' && row.canFinish)" :disabled="finishing === row.id" @click="openRow(row)">
             <template v-if="row.hasChips" #chips>
-              <xp-app-chip v-if="row.rewards.xp" kind="xp" :value="row.rewards.xp" />
-              <xp-app-chip v-if="row.rewards.gp" kind="gp" :value="row.rewards.gp" />
-              <xp-app-chip v-if="row.rewards.ap" kind="ap" :value="row.rewards.ap" />
-              <xp-app-chip v-if="row.requiresApproval" kind="tag" value="GM approves" />
-              <xp-app-chip v-if="row.who" kind="tag" :value="row.who" />
+              <xp-app-chips :chips="row.chips" />
             </template>
             <template v-if="(view === 'list' && row.canFinish) || row.stateLabel" #trailing>
-              <span v-if="celebrating?.id === row.id" class="quest-stamp" :class="{ 'quest-stamp--pending': celebrating.pending }"
-                aria-hidden="true">
-                <i :class="['fad', celebrating.pending ? 'fa-hourglass-half' : 'fa-check-double']"></i>
-                {{ celebrating.pending ? "Sent" : "Tamed" }}
-              </span>
-              <button v-else-if="view === 'list' && row.canFinish" type="button" class="xp-app-btn quest-done-btn"
-                :disabled="finishing === row.id" :aria-label="`Done: ${row.title}`" @click="confirmDone(row.source)">
-                <i class="fad fa-check-double" aria-hidden="true"></i>
-                Done
-              </button>
-              <span v-else class="quest-state" :class="{
-                'tamed-ribbon': row.status === 'done',
-                'pending-ribbon': row.status === 'pending',
-              }">{{ row.stateLabel }}</span>
+              <XpQuestRowTrailing :row="row" :stamp="celebrating?.id === row.id ? celebrating : null"
+                :show-done="view === 'list' && row.canFinish" :finishing="finishing === row.id"
+                @done="confirmDone(row.source)" />
             </template>
           </xp-app-row>
         </xp-app-section>

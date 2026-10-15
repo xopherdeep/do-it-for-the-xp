@@ -24,6 +24,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import XpBeastCardModal from "./components/XpBeastCardModal.vue";
 import XpQuickTaskModal from "./components/XpQuickTaskModal.vue";
 import XpQuestWizardModal from "./components/XpQuestWizardModal.vue";
+import XpQuestRowTrailing from "./components/XpQuestRowTrailing.vue";
 import { questLogActions } from "./questLogActions";
 import type { QuestLogActionId } from "./questLogActions";
 import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
@@ -70,6 +71,7 @@ export default defineComponent({
     XpBeastCardModal,
     XpQuickTaskModal,
     XpQuestWizardModal,
+    XpQuestRowTrailing,
     XpAppBottomNav,
   },
   data() {
