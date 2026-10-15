@@ -25,6 +25,7 @@ import TempleDoorReveal from './components/TempleDoorReveal.vue';
 import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import TempleLoading from './components/TempleLoading.vue';
+import TempleBossBanner from './components/TempleBossBanner.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
 import { play$fx } from "@/assets/fx"
@@ -41,6 +42,7 @@ import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
+import { useBossEntrance } from './templeGrounds/useBossEntrance';
 import { mapCellIconOf } from './templeGrounds/mapCellIcon';
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
@@ -75,6 +77,7 @@ export default defineComponent({
     'temple-wall-reveal': TempleWallReveal,
     'temple-pegasus-reveal': TemplePegasusReveal,
     'temple-loading': TempleLoading,
+    'temple-boss-banner': TempleBossBanner,
     XpVitalsBar,
     XpPurseBar,
     XpEquipmentModal,
@@ -261,6 +264,15 @@ export default defineComponent({
       templeElement
     });
 
+    // A boss or guardian still waiting in the room the hero walks into: the room dims and a banner names it
+    const { bossBanner, dismissBossBanner } = useBossEntrance({
+      currentRoom,
+      currentPosition,
+      currentLevel,
+      isCombatRoomCleared,
+      activeMonster
+    });
+
     // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out
     const { isShaking, getLiveContext: liveContext, applyOutcome, handleArrival: arrive, showRoomActions } = useRoomOutcomes({
       props,
@@ -441,6 +453,8 @@ export default defineComponent({
       validRoomCoords,
       templeName,
       isLoadingShown,
+      bossBanner,
+      dismissBossBanner,
       loadedFloors,
       totalFloors,
       backgroundPosition,
