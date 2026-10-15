@@ -74,16 +74,21 @@ const trimShade = (x: number, y: number, seamEdge: number): number => {
 
 /** Board tone by column within a seven-wide board: lit on the left, darker to the right. */
 const boardShade = (bx: number): number => {
-  if (bx === 0) return 4;
-  if (bx <= 2) return 3;
-  if (bx <= 4) return 2;
+  const isLitEdge = bx === 0;
+  if (isLitEdge) return 4;
+  const isLeftThird = bx <= 2;
+  if (isLeftThird) return 3;
+  const isMiddleThird = bx <= 4;
+  if (isMiddleThird) return 2;
   return 1;
 };
 
 /** Ring pull tone: bright above the middle, shaded below. */
 const ringShade = (dy: number): number => {
-  if (dy < 0) return 4;
-  if (dy > 0) return 1;
+  const isAboveMiddle = dy < 0;
+  if (isAboveMiddle) return 4;
+  const isBelowMiddle = dy > 0;
+  if (isBelowMiddle) return 1;
   return 3;
 };
 
@@ -101,7 +106,8 @@ const paintLeaf = (trim: string[]): Grid => {
         continue;
       }
       const band = BANDS.find((top) => y >= top && y <= top + 4);
-      if (band !== undefined) {
+      const isOnBand = band !== undefined;
+      if (isOnBand) {
         paint(g, x, y, tone(IRON, [4, 3, 2, 1, 0][y - band]));
         continue;
       }
