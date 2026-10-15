@@ -40,9 +40,8 @@ const RETURN_KEYS = [LINK_STATE_PARAM, "site_url", "user_login", "password"] as 
  */
 export const NATIVE_RETURN_URL = "com.forthexp.doit://town-hall";
 
-/** The Town Hall for the hero on screen: the address WordPress sends the parent back to. */
-export function townHallReturnUrl(userId: string, loc: PageLocation, hash: boolean): string {
-  const route = `/town-hall/${encodeURIComponent(userId)}`;
+/** A route of the app as an address WordPress can send the parent back to (after the page's own path, in hash mode). */
+export function returnUrlFor(route: string, loc: PageLocation, hash: boolean): string {
   return hash ? `${loc.origin}${loc.pathname}#${route}` : `${loc.origin}${route}`;
 }
 

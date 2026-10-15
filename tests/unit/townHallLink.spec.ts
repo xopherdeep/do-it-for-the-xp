@@ -6,30 +6,33 @@ import {
   readLinkReturn,
   searchOf,
   strippedState,
-  townHallReturnUrl,
+  returnUrlFor,
 } from "@/lib/services/townhall/townHallLink";
 
 const loc = { origin: "https://app.forthexp.com", pathname: "/" };
 
-describe("townHallReturnUrl", () => {
+/** The Town Hall route for a hero, as the page builds it */
+const townHallRoute = (userId: string) => `/town-hall/${encodeURIComponent(userId)}`;
+
+describe("returnUrlFor", () => {
   it("returns to the Town Hall in hash mode", () => {
-    expect(townHallReturnUrl("gm-1", loc, true)).toBe("https://app.forthexp.com/#/town-hall/gm-1");
+    expect(returnUrlFor(townHallRoute("gm-1"), loc, true)).toBe("https://app.forthexp.com/#/town-hall/gm-1");
   });
 
   it("returns to the Town Hall in path mode", () => {
-    expect(townHallReturnUrl("gm-1", loc, false)).toBe("https://app.forthexp.com/town-hall/gm-1");
+    expect(returnUrlFor(townHallRoute("gm-1"), loc, false)).toBe("https://app.forthexp.com/town-hall/gm-1");
   });
 
   it("keeps the page the app is served from in hash mode", () => {
     const nested = { origin: "https://www.forthexp.com", pathname: "/wp-content/plugins/xophz-compass-xp/public/dist/index.html" };
-    expect(townHallReturnUrl("gm-1", nested, true)).toBe(
+    expect(returnUrlFor(townHallRoute("gm-1"), nested, true)).toBe(
       "https://www.forthexp.com/wp-content/plugins/xophz-compass-xp/public/dist/index.html#/town-hall/gm-1"
     );
   });
 
   it("encodes the hero id so it stays one path segment", () => {
-    expect(townHallReturnUrl("a b/c?d#e", loc, true)).toBe("https://app.forthexp.com/#/town-hall/a%20b%2Fc%3Fd%23e");
-    expect(townHallReturnUrl("a b/c?d#e", loc, false)).toBe("https://app.forthexp.com/town-hall/a%20b%2Fc%3Fd%23e");
+    expect(returnUrlFor(townHallRoute("a b/c?d#e"), loc, true)).toBe("https://app.forthexp.com/#/town-hall/a%20b%2Fc%3Fd%23e");
+    expect(returnUrlFor(townHallRoute("a b/c?d#e"), loc, false)).toBe("https://app.forthexp.com/town-hall/a%20b%2Fc%3Fd%23e");
   });
 });
 
