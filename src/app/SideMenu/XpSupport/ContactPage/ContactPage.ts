@@ -6,7 +6,7 @@ import { rpgToastOptions } from '@/hooks/useToast'
 import { copyTextToClipboard } from '@/lib/utils/clipboard'
 import type { TownHallBoardSlug } from '@/lib/services/townhall/townHallSite'
 import { openTownHallBoard } from '../townHallLinks'
-// The auto-bump workflow rewrites package.json's version on every push to master.
+// The deploy workflow stamps package.json's version (YY.M.D-MINS) into each master build.
 import packageInfo from '@/../package.json'
 
 export default defineComponent({

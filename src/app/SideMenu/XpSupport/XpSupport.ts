@@ -27,7 +27,7 @@ import {
   helpSharp
 } from 'ionicons/icons'
 import Ionic from '@/lib/mixins/ionic'
-// The auto-bump workflow rewrites package.json's version on every push to master.
+// The deploy workflow stamps package.json's version (YY.M.D-MINS) into each master build.
 import packageInfo from '@/../package.json'
 
 // Developer tools are only available outside production builds
