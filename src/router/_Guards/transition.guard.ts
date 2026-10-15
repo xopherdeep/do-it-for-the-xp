@@ -24,7 +24,7 @@ const feelCoverStart = (plan: TransitionPlan) => {
   const isClouds = plan.effect === "clouds";
   if (isClouds) rumble([[0, "tick"], [140, "tick"], [280, "tick"]]);
 };
-// The doors slam on their own when the leaves meet, so they get no second hit here
+// The doors and the temple gate slam on their own when the leaves meet, so they get no second hit here
 const feelCovered = (plan: TransitionPlan) => {
   const isIris = plan.effect === "iris";
   if (isIris) feel("thud");
