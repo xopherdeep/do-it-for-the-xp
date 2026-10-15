@@ -32,6 +32,7 @@ export const useProStore = defineStore("pro", () => {
   const plan = computed(() => license.value?.plan ?? null);
   const expiresAt = computed(() => license.value?.expiresAt ?? null);
   const licenseKey = computed(() => license.value?.key ?? "");
+  const memberSince = computed(() => license.value?.since ?? null);
 
   async function persist() {
     await getProDb().saveState({ familyId: familyId.value, deviceId: deviceId.value, license: license.value });
@@ -39,6 +40,8 @@ export const useProStore = defineStore("pro", () => {
 
   function cacheFrom(status: ProStatus) {
     now.value = new Date();
+    const sameKey = license.value?.key === status.licenseKey;
+    const since = (sameKey && license.value?.since) || now.value.toISOString();
     license.value = {
       key: status.licenseKey,
       plan: status.plan,
@@ -46,6 +49,7 @@ export const useProStore = defineStore("pro", () => {
       env: status.env,
       pro: status.pro,
       lastValidatedAt: now.value.toISOString(),
+      since,
     };
   }
 
@@ -295,6 +299,7 @@ export const useProStore = defineStore("pro", () => {
     plan,
     expiresAt,
     licenseKey,
+    memberSince,
     init,
     recheck,
     claimWithRetry,

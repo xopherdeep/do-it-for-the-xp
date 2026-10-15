@@ -1,5 +1,5 @@
 <template>
-  <div class="xp-purse-bar" v-if="stats">
+  <div class="xp-purse-bar" v-if="stats" data-tour="purse">
     <!-- XP fills from the left (progress to the next level), GP from the right (wallet against its limit) -->
     <div class="pool xp">
       <div class="fill" :style="{ width: xpProgress + '%' }"></div>

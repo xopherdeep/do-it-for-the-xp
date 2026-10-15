@@ -49,6 +49,31 @@
       </ion-card>
 
       <ion-card class="settings-card max-w-2xl">
+        <ion-list>
+          <ion-item-group>
+            <ion-item-divider>
+              <ion-label>Guides</ion-label>
+            </ion-item-divider>
+
+            <ion-item
+              button
+              :detail="false"
+              :disabled="!currentHeroId"
+              lines="none"
+              data-cy="replay-tour"
+              @click="replayTour"
+            >
+              <ion-icon slot="start" color="rpg" :icon="mapOutline"></ion-icon>
+              <ion-label>
+                <h2>Show the portal tour again</h2>
+                <p>The guide walks this hero through the XP bar and the buttons next time their portal opens</p>
+              </ion-label>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
+      </ion-card>
+
+      <ion-card class="settings-card max-w-2xl">
         <ion-card-content>
           <p>
             Everything lives on this device. Back up before you clear the browser, switch phones or try a
@@ -63,9 +88,9 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { computed, defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { cloudDownloadOutline, cloudUploadOutline } from "ionicons/icons";
+  import { cloudDownloadOutline, cloudUploadOutline, mapOutline } from "ionicons/icons";
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import { rpgToastOptions } from "@/hooks/useToast";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
@@ -74,6 +99,8 @@
   import { dialogMessage } from "@/lib/utils/dialogMessage";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
   import { GENERAL_COMING_SOON } from "./comingSoon";
+  import { resetTour } from "@/lib/services/tutorial/firstRunTour";
+  import { useUserStore } from "@/lib/store/stores/user";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
 
@@ -109,6 +136,13 @@
       async showToast(message: string, duration = 2500) {
         const toast = await toastController.create(rpgToastOptions(message, duration));
         await toast.present();
+      },
+
+      /** The first-run tour plays once per hero; this queues it for the hero signed in now */
+      async replayTour() {
+        if (!this.currentHeroId) return;
+        resetTour(this.currentHeroId);
+        await this.showToast("The tour will play next time your portal opens.");
       },
 
       /** Restore replaces everyone's data, so a hero who taps it is told to ask a Game Master */
@@ -291,9 +325,13 @@
     },
     setup() {
       const isBackupBusy = ref(false); // A backup or restore is running
+      const userStore = useUserStore();
+      const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
 
       return {
         isBackupBusy,
+        currentHeroId,
+        mapOutline,
         comingSoon: GENERAL_COMING_SOON,
         canRestore: () => canManageFamily(),
         cloudDownloadOutline,

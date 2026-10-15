@@ -56,6 +56,9 @@
 
       <!-- PEGASUS WORLD MAP MODAL (Wind Whistle) -->
       <xp-world-map-modal :is-open="isPegasusModalOpen" @close="closePegasusModal" />
+
+      <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
+      <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)" />
     </template>
   </xp-portal-page>
 </template>
