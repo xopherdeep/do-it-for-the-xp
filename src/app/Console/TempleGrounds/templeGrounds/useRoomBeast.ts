@@ -5,6 +5,7 @@ import { BestiaryService } from '@/lib/services/battle/BestiaryService';
 import { BEAST_LIBRARY } from '@/lib/services/core/beastLibrary';
 import { questRoomStateFor } from '@/lib/services/temples/RoomInteractions';
 import { isQuestRoom } from '@/lib/services/temples/questRooms';
+import { isRoomSpent } from '@/lib/services/temples/roomInteractions/treasure';
 import { pickRoomBeast, standInMonster } from '@/lib/services/temples/RoomBeast';
 import debug from '@/lib/utils/debug';
 import type { ChoiceRevealState } from './templeReveals';
@@ -32,6 +33,11 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
   // A combat room whose beasts are already beaten: no second fight, and the room shows a mark
   const isCombatRoomCleared = computed(
     () => !!currentRoom.value && COMBAT_ROOM_TYPES.includes(currentRoom.value.type) && isCurrentRoomCleared.value
+  );
+
+  // A beaten beast leaves its spoils: the room is only done once the hero has searched it
+  const isLootSearched = computed(() =>
+    isRoomSpent({ userId: String(progressHeroId ?? ''), templeId: props.temple, level: currentLevel.value, position: currentPosition.value })
   );
 
   const bestiaryService = new BestiaryService();
@@ -214,5 +220,5 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
     { immediate: true }
   );
 
-  return { isCombatRoomCleared, showVoxelMonster, activeMonster, getBeastCard: beastCard };
+  return { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard };
 };

@@ -134,6 +134,32 @@
       pointer-events: none;
       box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
     }
+
+    // Beaten but not yet searched: a yellow lens that blinks until the hero looks
+    .cleared-mark--search {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      font-size: 0.8rem;
+      color: #000;
+      background: var(--ion-color-warning, #ffc409);
+      border: 2px solid #000;
+      animation: cleared-mark-blink 1.2s steps(2, end) infinite;
+    }
+  }
+
+  @keyframes cleared-mark-blink {
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cleared-mark--search {
+      animation: none;
+    }
   }
 
   // Map legend styling
