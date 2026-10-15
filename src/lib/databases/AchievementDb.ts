@@ -164,7 +164,8 @@ export class AchievementDb extends DbStorageApi {
       // Get all achievements
       const achievements = await this.getTasks();
 
-      if (achievements.length === 0) {
+      const hasNoAchievements = achievements.length === 0;
+      if (hasNoAchievements) {
         this.showWarningToast("No achievements to export!");
         return;
       }
@@ -237,7 +238,8 @@ export class AchievementDb extends DbStorageApi {
             }
 
             // Import achievements
-            if (achievements.length > 0) {
+            const hasAchievements = achievements.length > 0;
+            if (hasAchievements) {
               const count = await this.importAchievementsData(achievements);
               this.showSuccessToast(
                 `Successfully imported ${count} achievements!`

@@ -76,7 +76,8 @@ export function playRouteMusic(payload: BGMPayload): void {
     let trackTitle: string | undefined;
     let trackId: string;
 
-    if (typeof trackInfo === 'string') {
+    const isUrlOnly = typeof trackInfo === 'string';
+    if (isUrlOnly) {
       // If it's just a string URL
       trackSrc = trackInfo;
       // Create a unique ID based on the track source; the slot's fallback tag is left out so two slots
@@ -121,7 +122,8 @@ export function playRouteMusic(payload: BGMPayload): void {
   const currentTrackId = trackIds[trackIndex];
 
   // Play the track with delay
-  if (delay > 0) {
+  const isDelayed = delay > 0;
+  if (isDelayed) {
     pendingStart = setTimeout(() => {
       // Check again after delay to ensure BGM wasn't toggled off or muted
       const isBgmStillOn = (!audioStore.bgm || audioStore.bgm.is_on !== false) && !engine.state.muted;

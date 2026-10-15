@@ -70,7 +70,8 @@ export function getRoomVisibility(runs: TempleRuns, templeId: string, position: 
   const room = runs.dungeonManager.getRoom(templeId, position, templeState.currentLevel);
   
   // Always show walls when the player has the map (even if not visited)
-  if (room?.type === 'wall') {
+  const isWall = room?.type === 'wall';
+  if (isWall) {
     return MapVisibility.LAYOUT_ONLY;
   }
   

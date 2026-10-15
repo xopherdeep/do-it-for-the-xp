@@ -77,7 +77,8 @@ const startFirebase = (): ((view: PageView) => void) => {
 
 /** Reports a screen view after every navigation, on the stream that fits the platform. */
 export const startAnalytics = (router: Router, platform = Capacitor.getPlatform()): void => {
-  if (!analyticsEnabled()) return;
+  const isAnalyticsOn = analyticsEnabled();
+  if (!isAnalyticsOn) return;
 
   const report = platform === "android" ? startFirebase() : startGtag();
   router.afterEach((to, _from, failure) => {

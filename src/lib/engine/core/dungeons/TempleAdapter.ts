@@ -87,7 +87,8 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
   // registration passes, so no way of registering (the editor's save, the temple screen, a reload of all custom temples)
   // can leave a run standing in a room that is no longer there, or chests full that the hero emptied. A temple without a
   // run is left alone by refreshRun. A forced registration resets the temple instead.
-  if (!options.force) TempleSystem.getInstance().refreshRun(templeId);
+  const isForced = Boolean(options.force);
+  if (!isForced) TempleSystem.getInstance().refreshRun(templeId);
 
   return dungeon;
 }
@@ -149,7 +150,8 @@ export async function registerCustomTemples(options: RegisterTempleOptions = {})
     
     for (const key of keys) {
       const temple = await templeDb.getTempleById(key);
-      if (temple?.dungeonLayout) debug.log(`Registering custom temple: ${key}`);
+      const hasLayout = Boolean(temple?.dungeonLayout);
+      if (hasLayout) debug.log(`Registering custom temple: ${key}`);
       registerTempleRecord(key, temple, options);
     }
     debug.log('Custom temples registered successfully');

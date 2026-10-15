@@ -59,7 +59,8 @@ export function useWizardSteps<Draft>(
 
   /** One step forward over skipped steps; false on the last step or when this step is not valid yet. */
   const next = (): boolean => {
-    if (isFinal.value || !canGoNext.value) return false;
+    const isBlocked = isFinal.value || !canGoNext.value;
+    if (isBlocked) return false;
     index.value = nextIndex(all(), current(), index.value);
     return true;
   };
@@ -74,7 +75,8 @@ export function useWizardSteps<Draft>(
   /** To a step that is already valid (and so are all before it); false when the dot may not be tapped. */
   const jumpTo = (target: number): boolean => {
     const landed = jumpIndex(all(), current(), index.value, target);
-    if (landed === index.value) return false;
+    const isSameStep = landed === index.value;
+    if (isSameStep) return false;
     index.value = landed;
     return true;
   };

@@ -51,7 +51,8 @@ export const toTempleRecord = (temple: GeneratedTemple): TempleInterface => ({
 /** The first free id for a copy of a generated temple: `base` as it is when free, else `base-2`, `base-3` ... */
 export const uniqueGeneratedTempleId = (existingIds: Iterable<string>, base: string): string => {
   const taken = new Set(existingIds);
-  if (!taken.has(base)) return base;
+  const isBaseFree = !taken.has(base);
+  if (isBaseFree) return base;
   let copyNumber = 2;
   while (taken.has(`${base}-${copyNumber}`)) copyNumber++;
   return `${base}-${copyNumber}`;
@@ -76,7 +77,9 @@ export const recordToSave = async (
   if (isFreeOrUnchanged) return record;
 
   const answer = await ask(record.id);
-  if (answer === "replace") return record;
-  if (answer === "copy") return { ...record, id: uniqueGeneratedTempleId(await store.keys(), record.id) };
+  const wantsReplace = answer === "replace";
+  if (wantsReplace) return record;
+  const wantsCopy = answer === "copy";
+  if (wantsCopy) return { ...record, id: uniqueGeneratedTempleId(await store.keys(), record.id) };
   return null;
 };

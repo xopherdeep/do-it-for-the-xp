@@ -42,8 +42,10 @@ export const partingStrikeLines = (
 ): EngineMessage[] => {
   const lead = `${enemy.name} strikes as ${heroName} flees!`;
   if (emptied) return [`${lead} ${heroName} staggers away... and wakes up in the Hospital.`];
-  if (softener === 'brace') return [`${lead} ${heroName} braced: only ${damage} damage!`];
-  if (softener === 'slip') return [`${lead} ${heroName} slips most of it: only ${damage} damage!`];
+  const isBraced = softener === 'brace';
+  if (isBraced) return [`${lead} ${heroName} braced: only ${damage} damage!`];
+  const isSlipping = softener === 'slip';
+  if (isSlipping) return [`${lead} ${heroName} slips most of it: only ${damage} damage!`];
   return [`${lead} ${heroName} takes ${damage} damage!`];
 };
 
@@ -87,7 +89,8 @@ export const bribeLines = (
   tier: "full" | "low",
   cost: number
 ): EngineMessage[] => {
-  if (tier === "full") {
+  const isFullBribe = tier === "full";
+  if (isFullBribe) {
     return [
       autoLine(`${heroName} bribed ${enemy.name} with ${cost} GP!`),
       `${enemy.name} happily took the gold and let them pass!`,

@@ -34,8 +34,10 @@ export function useTimers(): Timers {
   };
 
   const cancel = (id: number) => {
-    if (timeouts.delete(id)) window.clearTimeout(id);
-    if (intervals.delete(id)) window.clearInterval(id);
+    const isTimeout = timeouts.delete(id);
+    if (isTimeout) window.clearTimeout(id);
+    const isInterval = intervals.delete(id);
+    if (isInterval) window.clearInterval(id);
   };
 
   const cancelAll = () => {
@@ -45,7 +47,8 @@ export function useTimers(): Timers {
     intervals.clear();
   };
 
-  if (getCurrentInstance()) onBeforeUnmount(cancelAll);
+  const isInComponent = Boolean(getCurrentInstance());
+  if (isInComponent) onBeforeUnmount(cancelAll);
 
   return { startTimeout, startInterval, cancel, cancelAll };
 }
