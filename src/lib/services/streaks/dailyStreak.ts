@@ -82,9 +82,11 @@ export const shiftDayKey = (dayKey: string, offset: number): string => {
 
 /** The day an entry counts for: its own dayKey, else the local day of completedAt */
 export const entryDayKey = (entry: StreakEntryLike): string => {
-  if (entry.dayKey) return entry.dayKey;
-  if (!entry.completedAt) return "";
-  const date = new Date(entry.completedAt);
+  const hasDayKey = Boolean(entry.dayKey);
+  if (hasDayKey) return entry.dayKey!;
+  const hasNoTime = !entry.completedAt;
+  if (hasNoTime) return "";
+  const date = new Date(String(entry.completedAt));
   return Number.isNaN(date.getTime()) ? "" : toDayKey(date);
 };
 
@@ -97,7 +99,8 @@ export const keptDays = (
   const days = new Set<string>();
   for (const entry of entries) {
     const isTheHeros = Boolean(entry && String(entry.userId) === String(userId));
-    if (!isTheHeros || !statuses.includes(String(entry!.status))) continue;
+    const isSkipped = !isTheHeros || !statuses.includes(String(entry!.status));
+    if (isSkipped) continue;
     const key = entryDayKey(entry!);
     if (key) days.add(key);
   }
@@ -117,7 +120,8 @@ export const dailyStreak = (
   const todayKey = typeof today === "string" ? today : toDayKey(today);
   const days = keptDays(entries, userId, statuses);
   const past = [...days].filter((key) => key <= todayKey).sort();
-  if (!past.length) return { ...EMPTY_STREAK };
+  const neverKept = past.length === 0;
+  if (neverKept) return { ...EMPTY_STREAK };
 
   const earliest = shiftDayKey(todayKey, -MAX_DAYS_WALKED);
   let day = past[0] < earliest ? earliest : past[0];
@@ -130,13 +134,17 @@ export const dailyStreak = (
 
   while (day <= todayKey) {
     const kept = days.has(day);
+    const missedARun = !kept && day !== todayKey && current > 0;
     if (kept) {
-      if (current === 0) runStart = day;
+      const startsRun = current === 0;
+      if (startsRun) runStart = day;
       current++;
-      if (current % SHIELD_EVERY === 0) shields = Math.min(MAX_SHIELDS, shields + 1);
+      const earnsShield = current % SHIELD_EVERY === 0;
+      if (earnsShield) shields = Math.min(MAX_SHIELDS, shields + 1);
       best = Math.max(best, current);
-    } else if (day !== todayKey && current > 0) {
-      if (shields > 0) {
+    } else if (missedARun) {
+      const hasShield = shields > 0;
+      if (hasShield) {
         shields--;
         shieldsUsed++;
       } else {
