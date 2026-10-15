@@ -4,6 +4,8 @@ module.exports = {
     "./src/**/*.html",
     "./src/**/*.vue",
     "./src/**/*.jsx",
+    // The temple map's cell icons (opacity-10, opacity-40, opacity-45) are picked in script, not written in a template
+    "./src/app/Console/TempleGrounds/templeGrounds/*.ts",
     // etc.
   ], // purge: ["./src/**/*.html", "./src/**/*.vue", "./src/**/*.ts"],
   darkMode: 'media', // or 'media' or 'class'
