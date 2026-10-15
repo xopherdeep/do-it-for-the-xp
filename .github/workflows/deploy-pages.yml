@@ -19,33 +19,25 @@ permissions:
   deployments: write
 
 jobs:
-  # Autobump: the HalloftheGods shared workflows the COMPASS plugins use. Each push to master gets
-  # a YY.M.D-MINS version written to package.json (shown on the start page), a "[skip ci]" commit and
-  # a vYY.M.D-MINS tag. The bump commit is pushed with GITHUB_TOKEN, so it does not trigger another run,
-  # which is why the deploy below waits for it and builds the bumped tip instead of the pushed sha.
-  get-version:
-    if: github.event_name == 'push'
-    uses: HalloftheGods/.github/.github/workflows/calculate-version.yml@main
-
-  bump:
-    needs: get-version
-    uses: HalloftheGods/.github/.github/workflows/wp-plugin-update.yml@main
-    with:
-      version_string: ${{ needs.get-version.outputs.version_string }}
-
   deploy:
-    needs: bump
-    # A skipped (manual run) or failed bump must not block the deploy.
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          # The branch tip, not github.sha, so the bump commit is in the build.
-          ref: ${{ github.ref }}
+
+      # The build's version is YY.M.D-MINS (UTC date, minutes since midnight UTC), the same shape the
+      # old auto-bump commits used. It is stamped into package.json in this checkout only and never
+      # committed: master is protected (Verify required), so a bot push to it is refused. The app reads
+      # the version from package.json at build time (vue.config.js, the start page, Support).
+      - name: Stamp the version
+        id: version
+        run: |
+          version="$(date -u +%y.%-m.%-d)-$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))"
+          npm pkg set version="$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building version $version"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -80,6 +72,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Tags are not covered by the master protection, so the deployed commit still gets its vYY.M.D-MINS tag.
+      - name: Tag the deployed commit
+        if: env.HAS_CLOUDFLARE_TOKEN == 'true'
+        continue-on-error: true
+        run: |
+          git tag "v${{ steps.version.outputs.version }}" "$GITHUB_SHA"
+          git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Explain a skipped deploy
         if: env.HAS_CLOUDFLARE_TOKEN != 'true'
