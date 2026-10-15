@@ -22,63 +22,57 @@
 
         <!-- Rooms Grouped by Tier -->
         <ion-accordion-group v-if="totalRooms > 0" :value="activeTiers" :multiple="true" @ionChange="onAccordionChange">
-          <template v-for="tier in TIERS" :key="tier.id">
-            <ion-accordion v-if="roomCount(tier.id) > 0" :value="tier.id" class="tier-accordion"
-              :class="`${tier.id}-tier`">
-              <ion-item slot="header" class="tier-header">
-                <div class="tier-icon" :class="tier.id">
-                  <i class="fad" :class="tier.icon"></i>
-                </div>
-                <ion-label>
-                  <h2>{{ tier.title }}</h2>
-                  <p>
-                    {{ roomCount(tier.id) }} encounter{{ roomCount(tier.id) !== 1 ? "s" : "" }}
-                  </p>
-                </ion-label>
-              </ion-item>
-
-              <div slot="content" class="tier-content">
-                <!-- Quest rooms: the quest each holds, or the dormant template waiting to be woken -->
-                <ul class="quest-list" v-if="view.groups[tier.id].length > 0">
-                  <li v-for="row in view.groups[tier.id]" :key="row.key">
-                    <TempleQuestRowCard :row="row" @open="navigateToRoom(row)" />
-                  </li>
-                </ul>
-
-                <!-- Classic beast rooms: listed as they always were -->
-                <p class="classic-label" v-if="view.groups[tier.id].length > 0 && classicEntries(tier.id).length > 0">
-                  Classic beast rooms
-                </p>
-                <div class="beast-grid" v-if="classicEntries(tier.id).length > 0">
-                  <ion-grid>
-                    <ion-row>
-                      <ion-col :size="tier.colSize" :size-md="tier.colMd" :size-lg="tier.colLg"
-                        v-for="entry in classicEntries(tier.id)" :key="`${entry.roomSymbol}-${entry.beastId}`"
-                        :id="`beast-card-${entry.roomSymbol}`">
-                        <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
-                          @keydown.enter.self="openBeastSelector(entry)"
-                          @keydown.space.self.prevent="openBeastSelector(entry)">
-                          <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
-                            :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
-                          <div v-else class="placeholder-beast" :class="tier.id">
-                            <i class="fad" :class="tier.placeholderIcon"></i>
-                            <span class="beast-name">{{ tier.placeholderLabel }}</span>
-                          </div>
-                          <div class="room-info-overlay" :class="{ small: tier.small }">
-                            <div class="config-token-badge" :class="{ small: tier.small }">
-                              {{ entry.roomSymbol }}
-                            </div>
-                            <XpCoordBadge :size="tier.small ? 'small' : 'medium'" :x="entry.col" :y="entry.row"
-                              @click.stop="navigateToRoom(entry)" />
-                          </div>
-                        </div>
-                      </ion-col>
-                    </ion-row>
-                  </ion-grid>
-                </div>
+          <ion-accordion v-for="tier in shownTiers" :key="tier.id" :value="tier.id" class="tier-accordion"
+            :class="`${tier.id}-tier`">
+            <ion-item slot="header" class="tier-header">
+              <div class="tier-icon" :class="tier.id">
+                <i class="fad" :class="tier.icon"></i>
               </div>
-            </ion-accordion>
-          </template>
+              <ion-label>
+                <h2>{{ tier.title }}</h2>
+                <p>
+                  {{ roomCount(tier.id) }} encounter{{ roomCount(tier.id) !== 1 ? "s" : "" }}
+                </p>
+              </ion-label>
+            </ion-item>
+
+            <div slot="content" class="tier-content">
+              <!-- Quest rooms: the quest each holds, or the dormant template waiting to be woken -->
+              <ul class="quest-list" v-if="view.groups[tier.id].length > 0">
+                <li v-for="row in view.groups[tier.id]" :key="row.key">
+                  <TempleQuestRowCard :row="row" @open="navigateToRoom(row)" />
+                </li>
+              </ul>
+
+              <!-- Classic beast rooms: listed as they always were -->
+              <p class="classic-label" v-if="view.groups[tier.id].length > 0 && classicEntries(tier.id).length > 0">
+                Classic beast rooms
+              </p>
+              <div class="beast-grid" v-if="classicEntries(tier.id).length > 0">
+                <ion-grid>
+                  <ion-row>
+                    <ion-col :size="tier.colSize" :size-md="tier.colMd" :size-lg="tier.colLg"
+                      v-for="entry in classicEntries(tier.id)" :key="`${entry.roomSymbol}-${entry.beastId}`"
+                      :id="`beast-card-${entry.roomSymbol}`">
+                      <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
+                        @keydown.enter.self="openBeastSelector(entry)"
+                        @keydown.space.self.prevent="openBeastSelector(entry)">
+                        <TempleBeastPortrait :beast="entry.beast" :tier="tier.id" :icon="tier.placeholderIcon"
+                          :label="tier.placeholderLabel" />
+                        <div class="room-info-overlay" :class="{ small: tier.small }">
+                          <div class="config-token-badge" :class="{ small: tier.small }">
+                            {{ entry.roomSymbol }}
+                          </div>
+                          <XpCoordBadge :size="tier.small ? 'small' : 'medium'" :x="entry.col" :y="entry.row"
+                            @click.stop="navigateToRoom(entry)" />
+                        </div>
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </div>
+            </div>
+          </ion-accordion>
         </ion-accordion-group>
 
         <!-- Empty State -->
@@ -133,7 +127,7 @@ import {
 } from "@ionic/vue";
 import { skullOutline } from "ionicons/icons";
 import { TempleBeast } from "../../hooks/useTempleData";
-import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
+import TempleBeastPortrait from "./TempleBeastPortrait.vue";
 import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
@@ -189,7 +183,7 @@ export default defineComponent({
     IonItem,
     IonLabel,
     IonFooter,
-    XpBeastSelectorItem,
+    TempleBeastPortrait,
     XpCoordBadge,
     TempleQuestsHeader,
     TempleQuestRowCard,
@@ -222,6 +216,8 @@ export default defineComponent({
 
     const roomCount = (tier: QuestTier): number => view.value.groups[tier].length + classicEntries(tier).length;
 
+    // The tiers with any room in them, each an accordion
+    const shownTiers = computed(() => TIERS.filter((tier) => roomCount(tier.id) > 0));
     const totalRooms = computed(() => TIERS.reduce((sum, tier) => sum + roomCount(tier.id), 0));
     const hasRooms = computed(() => totalRooms.value > 0);
 
@@ -387,6 +383,7 @@ export default defineComponent({
       quests,
       view,
       TIERS,
+      shownTiers,
       activeTiers,
       onAccordionChange,
       classicEntries,
@@ -616,55 +613,6 @@ export default defineComponent({
   &.small {
     padding: 1px 4px;
     font-size: 0.4rem;
-  }
-}
-
-/* Placeholder Beast Cards */
-.placeholder-beast {
-  aspect-ratio: 1/1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(25, 27, 46, 0.6);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  transition: all 0.2s ease;
-
-  i {
-    opacity: 0.5;
-  }
-
-  .beast-name {
-    font-family: "Press Start 2P";
-    font-size: 0.5rem;
-    color: rgba(255, 255, 255, 0.5);
-    text-align: center;
-  }
-
-  &.boss {
-    border-color: rgba(255, 215, 0, 0.3);
-
-    i {
-      color: gold;
-    }
-  }
-
-  &.miniboss {
-    border-color: rgba(180, 100, 255, 0.3);
-
-    i {
-      color: #b464ff;
-    }
-  }
-
-  &.monster {
-    border-color: rgba(var(--ion-color-danger-rgb), 0.3);
-
-    i {
-      color: var(--ion-color-danger);
-    }
   }
 }
 

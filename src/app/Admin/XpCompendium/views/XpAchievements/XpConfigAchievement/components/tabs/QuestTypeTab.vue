@@ -136,25 +136,13 @@
               No beast
             </ion-button>
           </div>
-          <div v-if="isChanging" class="suggestion-list">
-            <button
-              v-for="entry in otherSuggestions"
-              :key="String(entry.id)"
-              type="button"
-              class="suggestion-option"
-              @click="choose(entry)"
-            >
-              <img v-if="portraitUrl(entry)" :src="portraitUrl(entry)" alt="" class="suggestion-option-portrait" />
-              <span class="suggestion-option-text">
-                <strong>{{ entry.name }}</strong>
-                <span v-if="'chore' in entry">{{ entry.chore }}</span>
-              </span>
-            </button>
-            <button type="button" class="suggestion-option suggestion-browse" @click="browseBestiary">
-              <i class="fad fa-paw-claws"></i>
-              <span class="suggestion-option-text"><strong>Choose from my bestiary</strong></span>
-            </button>
-          </div>
+          <QuestSuggestionList
+            v-if="isChanging"
+            :entries="otherSuggestions"
+            :portrait-url="portraitUrl"
+            @choose="choose"
+            @browse="browseBestiary"
+          />
         </div>
 
         <div v-else class="empty-state">
@@ -189,6 +177,7 @@ import {
 } from "@ionic/vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
+import QuestSuggestionList from "./QuestSuggestionList.vue";
 import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
 import { QUEST_KINDS } from "../../../questConfigWizard";
@@ -633,59 +622,6 @@ const generateBeastWithAI = async () => {
     flex: 1;
     margin: 0;
     min-height: 44px;
-  }
-}
-
-.suggestion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.suggestion-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 6px 10px;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--xp-app-accent);
-  }
-
-  i {
-    width: 40px;
-    text-align: center;
-    font-size: 1.4rem;
-  }
-}
-
-.suggestion-option-portrait {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.suggestion-option-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-
-  span {
-    font-size: 0.75rem;
-    color: var(--xp-app-text-dim);
   }
 }
 </style>
