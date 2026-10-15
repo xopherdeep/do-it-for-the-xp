@@ -33,7 +33,7 @@ python3 tools/art/beast_portraits.py -n 2 --style a socktopus   # paint chore be
 python3 tools/bgm/master_bgm.py master --upload [name...]  # master produced songs from ~/Downloads WAVs and upload them to R2
 ```
 
-**The full suite runs on GitHub, not here.** `.github/workflows/tests.yml` runs `chemx verify` (audit, typecheck, every jest spec) and `chemx lint` on each pull request and each push to `master`. Do not run the whole suite locally (no bare `chemx test`, `chemx verify`, `pnpm test` or `pnpm jest` without a spec path): push the branch, open the PR, and read the **Tests** checks (Verify, Lint) instead. While working, run only the spec you are touching (`chemx test tests/unit/Foo.spec.ts`) and `chemx typecheck` / `chemx lint` when you need a quick read. A red check on the PR is the gate: fix it and push again.
+**The full suite runs on GitHub, not here.** `.github/workflows/tests.yml` runs `chemx verify` (audit, typecheck, every jest spec) and `chemx lint` on each pull request and each push to `master`. Do not run the whole suite locally (no bare `chemx test`, `chemx verify`, `pnpm test` or `pnpm jest` without a spec path): push the branch, open the PR, and read the **Tests** check (Verify, which runs lint then verify in one job) instead. While working, run only the spec you are touching (`chemx test tests/unit/Foo.spec.ts`) and `chemx typecheck` / `chemx lint` when you need a quick read. A red check on the PR is the gate: fix it and push again.
 
 Commit small and push to `origin master` when the owner has asked for pushes. The `docs/` folder is a git submodule.
 
