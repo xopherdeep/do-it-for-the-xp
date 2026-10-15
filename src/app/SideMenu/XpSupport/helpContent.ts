@@ -36,6 +36,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "The first profile on a device is a Game Master. Game Masters need a 4-digit passcode.",
       "Add your heroes in Settings, Family. A hero's passcode is optional.",
       "Load a pack in Settings, Packs, or make your own quests in the Compendium. A new game has no quests until you do one of the two.",
+      "The first time a hero opens their portal, a guide walks them through the XP bar and the bottom buttons. Replay it from Settings, General, Show the portal tour again.",
     ],
   },
   {
