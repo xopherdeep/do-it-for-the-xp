@@ -2,15 +2,39 @@
   --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
 }
 
+// Inputs and buttons in the game style's colors, Earthbound's cream and plum by default
 .key-input {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  --color: var(--gs-text, #fff6dc);
+  --placeholder-color: var(--gs-text-dim, #b8a8c8);
+  font-family: "StatusPlz", monospace;
+  letter-spacing: 1px;
+  border: 2px solid var(--gs-divider, rgba(248, 232, 168, 0.35));
   border-radius: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   padding-left: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.pro-button {
+  --background: var(--gs-accent, #f8e8a8);
+  --background-activated: var(--gs-accent, #f8e8a8);
+  --color: var(--gs-window-color, #2c0a2a);
+  --border-radius: 4px;
+  --box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  letter-spacing: 1px;
+}
+
+.pro-button-outline {
+  --color: var(--gs-accent, #f8e8a8);
+  --border-color: var(--gs-accent, #f8e8a8);
+  --border-width: 2px;
+  --border-radius: 4px;
+  letter-spacing: 1px;
 }
 
 .pro-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
