@@ -149,9 +149,10 @@ export const XpDiscoverAchievements = defineComponent({
     },
     async shouldSaveAchievement(achievement) {
       const showToast = () => this.achievementDb.showSuccessToast("Achievement Saved")
-      if (achievement.data) {
+      const data = achievement.data;
+      if (data) {
         await this.achievementDb
-          .setTask(achievement.data)
+          .setTask(data)
           .then(showToast)
       }
     },

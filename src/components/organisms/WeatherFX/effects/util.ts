@@ -26,7 +26,8 @@ export const pulse = (t: number, period: number, phase = 0) => 0.5 + 0.5 * Math.
 
 /** A soft radial blob drawn once onto an offscreen canvas, reused by clouds, fog and glows. */
 export function softBlob(size: number, r: number, g: number, b: number, alpha = 1): HTMLCanvasElement | null {
-  if (typeof document === "undefined") return null;
+  const isServerSide = typeof document === "undefined";
+  if (isServerSide) return null;
   const c = document.createElement("canvas");
   c.width = size;
   c.height = size;

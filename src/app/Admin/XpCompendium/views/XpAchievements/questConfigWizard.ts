@@ -22,8 +22,16 @@ export type QuestConfigDraft = Partial<
 
 export type QuestKind = "simple" | "beast" | "chain";
 
+/** One segment of step one: the kind, its label and icon, and the line under it. */
+interface QuestKindChoice {
+  value: QuestKind;
+  label: string;
+  icon: string;
+  hint: string;
+}
+
 /** Normal, beast or chain: the segments of step one (the quest's `adventureType`). */
-export const QUEST_KINDS: readonly { value: QuestKind; label: string; icon: string; hint: string }[] = [
+export const QUEST_KINDS: readonly QuestKindChoice[] = [
   { value: "simple", label: "Normal", icon: "check", hint: "A plain chore: make the bed, practise piano." },
   { value: "beast", label: "Beast", icon: "paw-claws", hint: "A chore turned monster. Pick the beast the hero fights." },
   { value: "chain", label: "Chain", icon: "link", hint: "Several quests tied into one arc, done in order." },
@@ -162,9 +170,11 @@ export const stepForSegment = (segment: string): QuestStepId => {
 
 /** "For Mia, Sam" under the quest's name when it is made Ready; "Open to every hero" for an Open Bounty; "" when no hero is named. */
 export const readySubtitle = (draft: Pick<QuestConfigDraft, "type" | "assignee">, heroName: (id: string) => string): string => {
-  if (draft.type === "asNeeded") return "Open to every hero";
+  const isOpenBounty = draft.type === "asNeeded";
+  if (isOpenBounty) return "Open to every hero";
   const names = (draft.assignee ?? []).map(heroName).filter(Boolean);
-  if (!names.length) return "";
+  const hasNames = names.length > 0;
+  if (!hasNames) return "";
   const shown = names.slice(0, 3).join(", ");
   return names.length > 3 ? `For ${shown} and ${names.length - 3} more` : `For ${shown}`;
 };

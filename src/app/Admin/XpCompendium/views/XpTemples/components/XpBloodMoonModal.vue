@@ -46,7 +46,7 @@
       </div>
 
       <div
-        v-if="loading"
+        v-if="isLoading"
         class="moon-loading"
       >
         <ion-spinner name="dots"></ion-spinner>
@@ -232,7 +232,7 @@ const templeSystem = TempleSystem.getInstance();
 
 const templeId = ref<string>("");
 const rows = ref<HeroRow[]>([]);
-const loading = ref(false);
+const isLoading = ref(false);
 const busy = ref<string | null>(null);
 const now = ref(new Date());
 
@@ -263,7 +263,7 @@ async function load() {
     rows.value = [];
     return;
   }
-  loading.value = true;
+  isLoading.value = true;
   try {
     // A run open on a hero's screen may hold a save not yet written: let it land first
     await templeSystem.flushProgress();
@@ -281,7 +281,7 @@ async function load() {
     );
     now.value = new Date();
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 
@@ -350,7 +350,8 @@ async function takeBack(row: HeroRow) {
 }
 
 async function setWeekly(row: HeroRow, on: boolean) {
-  if ((row.progress?.bloodMoonEvery === "weekly") === on) return;
+  const isAlreadySet = (row.progress?.bloodMoonEvery === "weekly") === on;
+  if (isAlreadySet) return;
   await act(
     row,
     () => templeSystem.setBloodMoonEvery(templeId.value, row.userId, on ? "weekly" : null),
@@ -394,125 +395,4 @@ watch(
 );
 </script>
 
-<style lang="scss" scoped>
-.blood-moon-modal {
-  --width: min(96vw, 720px);
-  --height: 92vh;
-  --border-radius: 12px;
-}
-
-.moon-form {
-  padding: 8px 12px 12px;
-  margin-bottom: 12px;
-
-  ion-item {
-    --background: transparent;
-    --padding-start: 0;
-  }
-}
-
-.moon-help {
-  margin: 8px 0 0;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  opacity: 0.8;
-}
-
-.moon-loading {
-  display: flex;
-  justify-content: center;
-  padding: 24px;
-}
-
-.moon-empty {
-  padding: 16px;
-  text-align: center;
-  opacity: 0.8;
-}
-
-.hero-row {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-
-  .hero-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .hero-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    object-fit: cover;
-    image-rendering: pixelated;
-  }
-
-  .hero-avatar-icon {
-    width: 40px;
-    text-align: center;
-  }
-
-  .hero-name {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.2;
-
-    .hero-standing {
-      font-size: 0.75rem;
-      opacity: 0.7;
-      font-family: monospace;
-    }
-  }
-
-  .hero-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
-    margin-top: 8px;
-    font-size: 0.85rem;
-
-    .dim {
-      opacity: 0.5;
-    }
-  }
-
-  .hero-next {
-    margin-top: 6px;
-    font-size: 0.85rem;
-
-    &.due {
-      color: var(--ion-color-danger, #c0392b);
-      font-weight: bold;
-    }
-  }
-
-  .hero-none {
-    margin-top: 8px;
-    font-size: 0.85rem;
-    opacity: 0.75;
-  }
-
-  .hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    margin-top: 8px;
-
-    .weekly-toggle {
-      --background: transparent;
-      --padding-start: 8px;
-      --min-height: 32px;
-      margin-left: auto;
-      font-size: 0.85rem;
-    }
-  }
-}
-
-.picker-buttons {
-  display: flex;
-  width: 100%;
-  justify-content: flex-end;
-}
-</style>
+<style lang="scss" scoped src="./_XpBloodMoonModal.scss" />

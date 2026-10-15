@@ -12,13 +12,9 @@ import { questTier } from "@/lib/services/temples/questRooms";
  * edited and a reset goes back to following it.
  */
 export function useQuestEffort(achievement: Ref<Achievement>) {
-  const questTierKey = computed(() => questTier(achievement.value.difficulty));
-  const questTierName = computed(() => tierLabel(achievement.value.difficulty));
-
   const minutes = computed(() => questMinutes(achievement.value));
   const minutesText = computed(() => minutesLabel(minutes.value));
   const isMinutesEdited = computed(() => hasEstimatedMinutes(achievement.value));
-  const defaultMinutesText = computed(() => minutesLabel(defaultMinutes(achievement.value.difficulty)));
 
   /** The minutes field changed. Text that is no usable number (a half-typed field) changes nothing. */
   const setMinutes = (raw: unknown) => {
@@ -32,5 +28,14 @@ export function useQuestEffort(achievement: Ref<Achievement>) {
     delete achievement.value.estimatedMinutes;
   };
 
-  return { questTierKey, questTierName, minutes, minutesText, isMinutesEdited, defaultMinutesText, setMinutes, resetMinutes };
+  return { minutes, minutesText, isMinutesEdited, setMinutes, resetMinutes };
+}
+
+/** What the difficulty alone decides: the tier chip and the minutes the field falls back to. */
+export function useQuestTier(achievement: Ref<Achievement>) {
+  const questTierKey = computed(() => questTier(achievement.value.difficulty));
+  const questTierName = computed(() => tierLabel(achievement.value.difficulty));
+  const defaultMinutesText = computed(() => minutesLabel(defaultMinutes(achievement.value.difficulty)));
+
+  return { questTierKey, questTierName, defaultMinutesText };
 }

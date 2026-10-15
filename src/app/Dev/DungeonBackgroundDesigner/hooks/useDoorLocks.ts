@@ -33,17 +33,20 @@ export function useDoorLocks() {
       const room = temple.rooms[roomKey];
       
       if (room) {
-        if (!room.doors) {
-          room.doors = {};
+        let doors = room.doors;
+        if (!doors) {
+          doors = {};
+          room.doors = doors;
         }
-        room.doors[direction] = lockedDoors.value[direction];
+        doors[direction] = lockedDoors.value[direction];
       }
     }
   };
   
   // Update locked doors based on room definition
   const updateLockedDoorsFromRoom = (room: RoomDefinition | null): void => {
-    if (!room || !room.doors) {
+    const doors = room?.doors;
+    if (!doors) {
       // Reset all doors to unlocked if no room or doors defined
       lockedDoors.value = {
         north: false,
@@ -55,10 +58,10 @@ export function useDoorLocks() {
     }
     
     // Update each direction based on room definition
-    lockedDoors.value.north = !!room.doors.north;
-    lockedDoors.value.south = !!room.doors.south;
-    lockedDoors.value.east = !!room.doors.east;
-    lockedDoors.value.west = !!room.doors.west;
+    lockedDoors.value.north = !!doors.north;
+    lockedDoors.value.south = !!doors.south;
+    lockedDoors.value.east = !!doors.east;
+    lockedDoors.value.west = !!doors.west;
   };
   
   return {

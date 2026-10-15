@@ -35,7 +35,8 @@ export const chestDungeonItem = (room: GrantingRoom | null | undefined): string 
 
 /** How many small keys a room hands out: a key chest, a loot room's "key" rows, a Key room that is not the master's. */
 export const smallKeysGranted = (room: GrantingRoom | null | undefined): number => {
-  if (room?.type === 'key') return room.content?.keyId === 'master' ? 0 : 1;
+  const isKeyRoom = room?.type === 'key';
+  if (isKeyRoom) return room.content?.keyId === 'master' ? 0 : 1;
 
   const isLoot = room?.type === 'loot';
   const rows: unknown[] = isLoot && Array.isArray(room?.content?.items) ? (room?.content?.items as unknown[]) : [];

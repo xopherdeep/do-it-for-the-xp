@@ -247,7 +247,8 @@ export function getClassStatBonus(jobClass: string, classLevel: number): { hp: n
  * Used for both User Level and Class Level
  */
 export function getXpForLevel(level: number): number {
-  if (level <= 1) return 0;
+  const isFirstLevel = level <= 1;
+  if (isFirstLevel) return 0;
   return Math.floor(100 * Math.pow(level, 1.5));
 }
 
@@ -279,7 +280,8 @@ export function getLevelFromXp(totalXp: number): number {
   while (xpNeeded <= totalXp) {
     level++;
     xpNeeded = getXpForLevel(level);
-    if (level > 100) break; // Cap at level 100
+    const isPastCap = level > 100;
+    if (isPastCap) break; // Cap at level 100
   }
 
   return Math.max(1, level - 1);
@@ -317,7 +319,8 @@ export function calculateMaxHp(
   let maxHp = baseStats.hp;
 
   // 2. Add HP growth for each USER level above 1
-  if (userLevel > 1) {
+  const hasUserLevels = userLevel > 1;
+  if (hasUserLevels) {
     maxHp += baseStats.hpGrowth * (userLevel - 1);
   }
 
@@ -334,7 +337,8 @@ export function calculateMaxHp(
   maxHp += Math.floor(defense);
 
   // 6. Add Class Level Bonus
-  if (classLevel > 0) {
+  const hasClassLevels = classLevel > 0;
+  if (hasClassLevels) {
     const classBonus = getClassStatBonus(jobClass, classLevel);
     maxHp += classBonus.hp;
   }
@@ -357,7 +361,8 @@ export function calculateMaxMp(
   let maxMp = baseStats.mp;
 
   // 2. Add MP growth for each USER level above 1
-  if (userLevel > 1) {
+  const hasUserLevels = userLevel > 1;
+  if (hasUserLevels) {
     maxMp += baseStats.mpGrowth * (userLevel - 1);
   }
 
@@ -370,7 +375,8 @@ export function calculateMaxMp(
   maxMp += Math.floor(wisdom * baseStats.wisdomMultiplier);
 
   // 5. Add Class Level Bonus
-  if (classLevel > 0) {
+  const hasClassLevels = classLevel > 0;
+  if (hasClassLevels) {
     const classBonus = getClassStatBonus(jobClass, classLevel);
     maxMp += classBonus.mp;
   }
@@ -445,14 +451,16 @@ export function calculateLevelUp(
   const statsGained: Record<string, number> = {};
   const levelsGained = Math.max(0, targetLevel - currentLevel);
 
-  if (levelsGained > 0) {
-    const jobClassData = JOB_CLASS_OPTIONS.find(j => j.name === jobClass);
+  const hasLevelledUp = levelsGained > 0;
+  if (hasLevelledUp) {
+    const statBoosts = JOB_CLASS_OPTIONS.find(j => j.name === jobClass)?.statBoosts;
 
-    if (jobClassData?.statBoosts) {
-      jobClassData.statBoosts.forEach(boost => {
+    if (statBoosts) {
+      statBoosts.forEach(boost => {
         // Linear gain based on defined boosts
         const gain = boost.amount * levelsGained;
-        if (gain > 0) {
+        const isGain = gain > 0;
+        if (isGain) {
           statsGained[boost.stat] = (statsGained[boost.stat] || 0) + gain;
         }
       });
@@ -481,17 +489,19 @@ export function canLevelUp(currentLevel: number, currentXp: number): boolean {
 // STAT PREVIEW (for character creation)
 // ============================================
 
-/**
- * Get a preview of stats for a given job class at level 1
- * Useful for character creation screen
- */
-export function getJobClassPreview(jobClass: string): {
+interface JobClassPreview {
   hp: number;
   mp: number;
   hpGrowth: number;
   mpGrowth: number;
   description: string;
-} {
+}
+
+/**
+ * Get a preview of stats for a given job class at level 1
+ * Useful for character creation screen
+ */
+export function getJobClassPreview(jobClass: string): JobClassPreview {
   const stats = JOB_CLASS_BASE_STATS[jobClass] || JOB_CLASS_BASE_STATS.default;
 
   const descriptions: Record<string, string> = {

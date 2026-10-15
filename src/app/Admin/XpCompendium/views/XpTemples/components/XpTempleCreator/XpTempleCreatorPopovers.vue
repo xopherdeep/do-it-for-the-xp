@@ -117,13 +117,16 @@ export default defineComponent({
     });
 
     const formatTypeName = (type: string) => {
-      if (type === 'loot') return 'Chest';
-      if (type === 'health') return 'Heal';
+      const isLoot = type === 'loot';
+      if (isLoot) return 'Chest';
+      const isHealth = type === 'health';
+      if (isHealth) return 'Heal';
       return type.charAt(0).toUpperCase() + type.slice(1);
     };
 
     const handleTypeClick = (type: string) => {
-      if (type === 'loot') {
+      const isLoot = type === 'loot';
+      if (isLoot) {
         showItems.value = true;
         // Apply the type change immediately so parent knows it's loot
         emit('apply-type', 'loot');

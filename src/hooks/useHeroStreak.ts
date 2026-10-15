@@ -26,7 +26,8 @@ export function useHeroStreak(heroId: Ref<string>) {
     if (!id) return;
     try {
       const read = await getQuestLogDb().getEntriesForUser(id);
-      if (id !== heroId.value) return;
+      const isStaleHero = id !== heroId.value;
+      if (isStaleHero) return;
       entries.value = read;
       today.value = new Date();
     } catch (error) {
@@ -45,7 +46,8 @@ export function useHeroStreak(heroId: Ref<string>) {
     void rulesStore.load();
     void refresh();
     stopPaid = onQuestPaid(({ heroId: paidId }) => {
-      if (paidId === heroId.value) void refresh();
+      const isThisHero = paidId === heroId.value;
+      if (isThisHero) void refresh();
     });
     timer = setInterval(() => void refresh(), REFRESH_MS);
   });

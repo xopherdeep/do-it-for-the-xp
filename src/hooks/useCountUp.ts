@@ -34,12 +34,14 @@ export function useCountUp(source: Ref<number> | (() => number), duration = 700)
   let frame = 0;
 
   const stop = () => {
-    if (frame && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+    const hasPendingFrame = Boolean(frame) && typeof cancelAnimationFrame === "function";
+    if (hasPendingFrame) cancelAnimationFrame(frame);
     frame = 0;
   };
 
   watch(read, (to, from) => {
-    if (to === from) return;
+    const isUnchanged = to === from;
+    if (isUnchanged) return;
     delta.value = to - from;
     pulse.value += 1;
     stop();
@@ -57,6 +59,7 @@ export function useCountUp(source: Ref<number> | (() => number), duration = 700)
     frame = requestAnimationFrame(step);
   });
 
-  if (getCurrentInstance()) onBeforeUnmount(stop);
+  const isInComponent = Boolean(getCurrentInstance());
+  if (isInComponent) onBeforeUnmount(stop);
   return { shown, delta, pulse };
 }

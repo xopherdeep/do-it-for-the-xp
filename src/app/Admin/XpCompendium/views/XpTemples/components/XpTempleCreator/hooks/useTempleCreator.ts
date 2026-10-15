@@ -117,17 +117,17 @@ export interface UseTempleCreatorReturn {
   SIDE_TYPE_INFO: typeof SIDE_TYPE_INFO;
 
   // Methods - Floor Management
-  promptAddFloor: () => void;
+  openAddFloorPrompt: () => void;
   confirmAddFloor: (name: string) => void;
-  promptCustomFloorName: () => Promise<void>;
+  openCustomFloorNamePrompt: () => Promise<void>;
   addFloor: (levelId: string) => void;
   removeFloor: (levelId: string) => void;
   setLevel: (levelId: string) => void;
 
   // Methods - Grid Management
-  initializeGrid: () => void;
-  resizeGrid: () => void;
-  generateUniqueSymbol: () => string;
+  initGrid: () => void;
+  updateGridSize: () => void;
+  createUniqueSymbol: () => string;
 
   // Methods - Cell/Room Management
   selectCell: (row: number, col: number) => void;
@@ -147,8 +147,8 @@ export interface UseTempleCreatorReturn {
   openBeastSelectorForQuickEdit: () => void;
 
   // Methods - Navigation
-  navigateToRoomEditor: (row: number, col: number) => void;
-  onCellClick: (payload: { row: number; col: number; event: Event }) => void;
+  openRoomEditor: (row: number, col: number) => void;
+  handleCellClick: (payload: { row: number; col: number; event: Event }) => void;
 
   // Methods - Save/Load
   saveTemple: () => Promise<void>;
@@ -198,7 +198,8 @@ export function useTempleCreator(
   const hasUnsavedChanges = computed(() => {
     // If we have no DB snapshot, we assume no changes OR everything is new.
     // Usually if loaded from DB, snapshot is set.
-    if (store.dbStateSnapshot === null) return false;
+    const hasNoSnapshot = store.dbStateSnapshot === null;
+    if (hasNoSnapshot) return false;
 
     const currentState = JSON.stringify({
       maze: store.templeMaze,
@@ -247,7 +248,8 @@ export function useTempleCreator(
       const routeFloorId = route.params.floorId;
       const hasFloorInRoute = routeFloorId && typeof routeFloorId === "string";
       if (hasFloorInRoute) {
-        if (store.currentLevelId !== routeFloorId) {
+        const isOtherFloor = store.currentLevelId !== routeFloorId;
+        if (isOtherFloor) {
           store.currentLevelId = routeFloorId;
         }
       }
@@ -347,7 +349,7 @@ export function useTempleCreator(
     nextFloorOptions.value = nextFloorOptionsFor(floors.value);
   };
 
-  const promptAddFloor = () => {
+  const openAddFloorPrompt = () => {
     calculateNextFloors();
     showAddFloorModal.value = true;
   };
@@ -357,7 +359,7 @@ export function useTempleCreator(
     showAddFloorModal.value = false;
   };
 
-  const promptCustomFloorName = async () => {
+  const openCustomFloorNamePrompt = async () => {
     showAddFloorModal.value = false;
     const customAlert = await alertController.create({
       header: "Custom Floor Name",
@@ -404,7 +406,8 @@ export function useTempleCreator(
     const removal = removeFloorFrom(entranceTemple(), entrancePosition.value, levelId, store.generateUniqueSymbol);
     if (!removal) return;
     entrancePosition.value = removal.entrancePosition;
-    if (removal.notice) showToast(removal.notice);
+    const notice = removal.notice;
+    if (notice) showToast(notice);
     setLevel(removal.nextLevelId);
   };
 
@@ -430,7 +433,7 @@ export function useTempleCreator(
   };
 
   // --- Grid Management ---
-  const initializeGrid = () => {
+  const initGrid = () => {
     const hasFloors =
       !Array.isArray(templeMaze.value) && Object.keys(templeMaze.value).length > 0;
     if (hasFloors) {
@@ -452,9 +455,9 @@ export function useTempleCreator(
   };
 
   // The store's counter and used set are the only ones, and it skips every symbol a room record already holds
-  const generateUniqueSymbol = (): string => store.generateUniqueSymbol();
+  const createUniqueSymbol = (): string => store.generateUniqueSymbol();
 
-  const resizeGrid = () => {
+  const updateGridSize = () => {
     const newSize = readGridSize(gridSize.value);
     if (!newSize) return; // not a grid: the floor stays as it is
     const resized = resizeMaze(
@@ -466,7 +469,8 @@ export function useTempleCreator(
       currentLevelId.value
     );
 
-    if (resized.entranceOutsideGrid) {
+    const isEntranceOutsideGrid = resized.entranceOutsideGrid;
+    if (isEntranceOutsideGrid) {
       debug.warn(
         "Entrance position is outside the new grid bounds! Resetting to 0,0"
       );
@@ -506,9 +510,11 @@ export function useTempleCreator(
 
     const { row, col } = selectedCell.value;
 
-    if (roomType === "entrance") {
+    const isEntrance = roomType === "entrance";
+    if (isEntrance) {
       const validEntranceFloor = getEntranceFloor(floors.value);
-      if (currentLevelId.value !== validEntranceFloor) {
+      const isOffEntranceFloor = currentLevelId.value !== validEntranceFloor;
+      if (isOffEntranceFloor) {
         showToast(
           `Entrances can only be placed on the lowest surface floor (${validEntranceFloor}).`
         );
@@ -543,7 +549,8 @@ export function useTempleCreator(
     currentSlice[row][col] = symbolToUse;
     currentMazeSlice.value = currentSlice;
 
-    if (newType === "entrance") {
+    const isNewEntrance = newType === "entrance";
+    if (isNewEntrance) {
       const cell = { levelId: currentLevelId.value, row, col };
       entrancePosition.value = placeEntrance(entranceTemple(), cell, store.generateUniqueSymbol);
     }
@@ -551,7 +558,8 @@ export function useTempleCreator(
     // A boss room's doors are all locked with the boss key
     const roomData = buildRoomRecord(newType, contentData, sideData);
 
-    if (symbolToUse !== ____) {
+    const isOwnSymbol = symbolToUse !== ____;
+    if (isOwnSymbol) {
       roomsData.value[symbolToUse] = roomData;
     }
 
@@ -594,7 +602,8 @@ export function useTempleCreator(
     selectCell(s.row, s.col);
 
     // The tile the room already is changes nothing: its quest, beasts, locks and doors stay
-    if (type === s.roomType) {
+    const isSameType = type === s.roomType;
+    if (isSameType) {
       quickEditState.value.isOpen = false;
       return;
     }
@@ -643,7 +652,7 @@ export function useTempleCreator(
   };
 
   // --- Navigation ---
-  const navigateToRoomEditor = (row: number, col: number) => {
+  const openRoomEditor = (row: number, col: number) => {
     ionRouter.push(
       {
         name: "xp-temple-room-editor",
@@ -657,8 +666,8 @@ export function useTempleCreator(
     );
   };
 
-  const onCellClick = (payload: { row: number; col: number; event: Event }) => {
-    navigateToRoomEditor(payload.row, payload.col);
+  const handleCellClick = (payload: { row: number; col: number; event: Event }) => {
+    openRoomEditor(payload.row, payload.col);
   };
 
   // --- Save/Load ---
@@ -773,7 +782,8 @@ export function useTempleCreator(
 
       // A draft always saves; when it cannot be finished yet, the one toast says what it still needs
       const audit = auditTemple({ dungeonLayout: layoutToSave });
-      if (audit.passed) {
+      const isFinishable = audit.passed;
+      if (isFinishable) {
         showToast("Temple persists successfully!");
       } else {
         showUnfinishableToast(missingNames(audit));
@@ -856,10 +866,12 @@ export function useTempleCreator(
       await ensureBuiltInTemples();
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
-      if (existingTemple?.dungeonLayout) {
+      const dungeonLayout = existingTemple?.dungeonLayout;
+      const hasStoredLayout = !!existingTemple && !!dungeonLayout;
+      if (hasStoredLayout) {
         adoptStoredLayout(store, props.templeId, {
           ...existingTemple,
-          dungeonLayout: existingTemple.dungeonLayout,
+          dungeonLayout,
         });
       } else {
         debug.log(
@@ -923,17 +935,17 @@ export function useTempleCreator(
     SIDE_TYPE_INFO,
 
     // Floor management
-    promptAddFloor,
+    openAddFloorPrompt,
     confirmAddFloor,
-    promptCustomFloorName,
+    openCustomFloorNamePrompt,
     addFloor,
     removeFloor,
     setLevel,
 
     // Grid management
-    initializeGrid,
-    resizeGrid,
-    generateUniqueSymbol,
+    initGrid,
+    updateGridSize,
+    createUniqueSymbol,
 
     // Cell/Room management
     selectCell,
@@ -950,8 +962,8 @@ export function useTempleCreator(
     openBeastSelectorForQuickEdit,
 
     // Navigation
-    navigateToRoomEditor,
-    onCellClick,
+    openRoomEditor,
+    handleCellClick,
 
     // Save/Reset
     saveTemple,

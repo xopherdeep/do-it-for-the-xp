@@ -75,10 +75,10 @@ const rig = (kind: "free" | "quest" | "temple" = "free") => {
   const deps = {
     ctx,
     encounter: ref(null as Encounter | null),
-    dialog: { clear: jest.fn(), enqueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
+    dialog: { clear: jest.fn(), addToQueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
     audio: { playSound: jest.fn(), playVictory: jest.fn(), stopBgm: jest.fn() },
-    background: { collapse: jest.fn().mockResolvedValue(undefined) },
-    feedback: { victory: jest.fn() },
+    background: { playCollapse: jest.fn().mockResolvedValue(undefined) },
+    feedback: { playVictory: jest.fn() },
     enemyAnimationClass: ref(""),
     router: { replace: jest.fn() },
     presentVictory: jest.fn().mockResolvedValue(undefined),
@@ -86,7 +86,7 @@ const rig = (kind: "free" | "quest" | "temple" = "free") => {
   return { outcome: useBattleOutcome(deps), deps };
 };
 
-const queued = (deps: BattleOutcomeDeps) => (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<string | (() => void)>;
+const queued = (deps: BattleOutcomeDeps) => (deps.dialog.addToQueue as jest.Mock).mock.calls[0][0] as Array<string | (() => void)>;
 
 beforeEach(() => {
   setActivePinia(createPinia());

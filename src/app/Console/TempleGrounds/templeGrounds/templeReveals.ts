@@ -68,6 +68,8 @@ export const useChoiceReveal = () => {
   };
 };
 
+interface TempleClearedReward { xp: number; gp: number; ap: number; levelUp?: boolean }
+
 export const usePegasusReveal = (leaveTemple: () => void) => {
   // The temple cleared: the Pegasus's egg cracks (or the temple lights up, for one without a Pegasus) and the reward
   // counts up. It keeps what it showed while it closes. `Fly home` is the way out of the temple.
@@ -78,7 +80,7 @@ export const usePegasusReveal = (leaveTemple: () => void) => {
 
   const showTempleCleared = (
     pegasus: PegasusView | null,
-    reward: { xp: number; gp: number; ap: number; levelUp?: boolean } = { xp: 0, gp: 0, ap: 0 }
+    reward: TempleClearedReward = { xp: 0, gp: 0, ap: 0 }
   ) => {
     pegasusShown.value = pegasus;
     pegasusReward.value = { xp: reward.xp, gp: reward.gp, ap: reward.ap };
@@ -99,7 +101,7 @@ export const usePegasusReveal = (leaveTemple: () => void) => {
 };
 
 export interface ChestRevealDeps
-  extends Pick<TempleState, 'chestContents' | 'currentRoom' | 'displayMessage' | 'processChestItems'> {
+  extends Pick<TempleState, 'chestContents' | 'currentRoom' | 'showTempleMessage' | 'claimChestItems'> {
   props: TempleGroundsProps;
   progressHeroId: string | undefined;
   showTempleCleared: ReturnType<typeof usePegasusReveal>['showTempleCleared'];
@@ -108,7 +110,7 @@ export interface ChestRevealDeps
 }
 
 export const useChestReveal = (deps: ChestRevealDeps) => {
-  const { props, progressHeroId, chestContents, currentRoom, displayMessage, processChestItems, showTempleCleared, setHushMessages } =
+  const { props, progressHeroId, chestContents, currentRoom, showTempleMessage, claimChestItems, showTempleCleared, setHushMessages } =
     deps;
 
   // The chest reveal. It shows what the chest held when it opened, so the rows stay put while it closes
@@ -125,8 +127,9 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   const takeChestLoot = (values: string[]) => {
     // Only what the hero ticked is taken. A take that names nothing takes nothing: the chest stays open and as it was.
-    if (values.length === 0) {
-      displayMessage('You took nothing.');
+    const isNothingTaken = values.length === 0;
+    if (isNothingTaken) {
+      showTempleMessage('You took nothing.');
       return;
     }
     isChestOpen.value = false;
@@ -142,7 +145,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
     // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
     setHushMessages(freesPegasus);
     try {
-      processChestItems(values);
+      claimChestItems(values);
     } finally {
       setHushMessages(false);
     }
@@ -170,7 +173,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
   };
 };
 
-export interface DoorRevealDeps extends Pick<TempleState, 'playerKeys' | 'replayKeyPulse'> {
+export interface DoorRevealDeps extends Pick<TempleState, 'playerKeys' | 'playKeyPulse'> {
   props: TempleGroundsProps;
   templeSystem: TempleSystem;
   liveContext: ReturnType<typeof useRoomOutcomes>['getLiveContext'];
@@ -178,7 +181,7 @@ export interface DoorRevealDeps extends Pick<TempleState, 'playerKeys' | 'replay
 }
 
 export const useDoorReveal = (deps: DoorRevealDeps) => {
-  const { props, templeSystem, playerKeys, replayKeyPulse, liveContext, applyOutcome } = deps;
+  const { props, templeSystem, playerKeys, playKeyPulse, liveContext, applyOutcome } = deps;
 
   // The door the hero walked into: a small lock asks for a key, the boss door for the Boss Key (RoomInteractions.doorActions)
   // The locked-door reveal: the door close up, its lock, and the key if the hero holds one
@@ -213,7 +216,8 @@ export const useDoorReveal = (deps: DoorRevealDeps) => {
   const unlockShownDoor = async () => {
     if (!doorAction) return;
     const outcome = await doorAction.run();
-    if (outcome.sound === SFX.error) {
+    const isRefused = outcome.sound === SFX.error;
+    if (isRefused) {
       doorResult.value = 'refused';
       isDoorOpen.value = false;
       await applyOutcome(outcome);
@@ -228,7 +232,8 @@ export const useDoorReveal = (deps: DoorRevealDeps) => {
   // The reveal already played the key and the door, so the outcome only has its message left to say
   const finishShownDoor = async () => {
     isDoorOpen.value = false;
-    if (playerKeys.value !== keysAtDoor) replayKeyPulse();
+    const hasKeyCountChanged = playerKeys.value !== keysAtDoor;
+    if (hasKeyCountChanged) playKeyPulse();
     if (doorOutcome) await applyOutcome({ ...doorOutcome, sound: undefined });
     doorOutcome = null;
   };
@@ -272,15 +277,17 @@ export const useWallReveal = (deps: WallRevealDeps) => {
   };
 
   // The Bomb is lit: the temple blows the wall now (the tapped side first), the sheet crumbles it and hands back on `done`
-  const blowShownWall = async () => {
+  const triggerWallBlast = async () => {
     const view = wallShown.value;
     const bombs = bombsInHand();
     const live = liveContext();
-    if (!view?.canBomb || !bombs || !live) return;
+    const canBlowWall = !!view?.canBomb && !!bombs && !!live;
+    if (!canBlowWall) return;
     const { ctx, room } = live;
     const exits = readExits(ctx.templeId, ctx.level, ctx.position);
     const outcome = useEquippedItem(bombs, { ...ctx, room, exits, side: view.side, catalog: catalog() });
-    if (!outcome.blownSide) {
+    const hasBlownWall = Boolean(outcome.blownSide);
+    if (!hasBlownWall) {
       // A fight's seal, a Bomb run out: nothing blew, the sheet goes and the refusal speaks
       wallResult.value = 'refused';
       isWallOpen.value = false;
@@ -300,15 +307,15 @@ export const useWallReveal = (deps: WallRevealDeps) => {
     wallOutcome = null;
   };
 
-  const leaveShownWall = () => {
+  const closeShownWall = () => {
     isWallOpen.value = false;
   };
 
   return {
     wall: { isWallOpen, wallShown, wallResult },
     showCrackedWall,
-    blowShownWall,
+    triggerWallBlast,
     completeShownWall: finishShownWall,
-    leaveShownWall
+    closeShownWall
   };
 };

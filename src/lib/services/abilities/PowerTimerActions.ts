@@ -31,7 +31,8 @@ export const startPowerTimer = (
 ): PowerTimer | null => {
   const store = useUserStore();
   const hasHero = Boolean(store.users[userId]);
-  if (!isTimedPower(ability) || !hasHero) return null;
+  const isUncastable = !isTimedPower(ability) || !hasHero;
+  if (isUncastable) return null;
   const timer = newTimer(ability, now);
   store.setPowerTimers(userId, { ...storedTimers(userId), [ability.id]: timer });
   void scheduleAlert({ ...timeUpAlert(userId, timer), at: new Date(timer.endsAt) }).catch(() => undefined);
@@ -73,7 +74,8 @@ export const endPowerTimer = (userId: string, abilityId: string, endedBy = ""): 
 export const finishExpiredTimers = (userId: string, now: Date = new Date()): PowerTimer[] => {
   const hero = useUserStore().users[userId];
   const ended = expiredTimers(hero, now);
-  if (!ended.length) return [];
+  const hasNoneEnded = ended.length === 0;
+  if (hasNoneEnded) return [];
   const timers = storedTimers(userId);
   ended.forEach((timer) => delete timers[timer.abilityId]);
   useUserStore().setPowerTimers(userId, timers);

@@ -104,7 +104,8 @@ const encounterRoute = (
   region: string | undefined,
   encounter?: string
 ): RouteLocationRaw => {
-  if (encounter === "thief") return freeBattleRoute(heroId, [THIEF_BEAST_ID], region, "thief");
+  const isThief = encounter === "thief";
+  if (isThief) return freeBattleRoute(heroId, [THIEF_BEAST_ID], region, "thief");
   if (questId) return questBattleRoute(heroId, questId, region);
   return region ? freeBattleRoute(heroId, [], region) : freeBattleRoute(heroId);
 };
@@ -158,7 +159,8 @@ async function onExplorationTick(router: Router): Promise<void> {
     return;
   }
 
-  if (!battleStore.randomEncounter()) return;
+  const hasEncounter = battleStore.randomEncounter();
+  if (!hasEncounter) return;
 
   debug.log("Random encounter triggered!");
   // Re-arm the step counter (a new random wait inside steps.min..steps.max) before navigating,
@@ -301,7 +303,8 @@ function installAwayListeners(): void {
   awayListenersInstalled = true;
 
   try {
-    if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibilityChange);
+    const hasDocument = typeof document !== "undefined";
+    if (hasDocument) document.addEventListener("visibilitychange", onVisibilityChange);
 
     if (isNativeApp()) {
       // A plain dynamic import: the bare specifier has to be bundled to resolve inside the packaged app
@@ -329,7 +332,8 @@ let askedAboutAlerts = false;
  */
 async function askAboutAmbushAlerts(): Promise<void> {
   const permission = await alertPermission();
-  if (permission === "unsupported") return;
+  const isUnsupported = permission === "unsupported";
+  if (isUnsupported) return;
   const isPermissionSettled = permission === "denied" || permission === "granted";
   if (isPermissionSettled) {
     setBattleAlertsChoice(permission === "granted" ? "on" : "off");
@@ -373,7 +377,8 @@ export function handleBattleTimerGuard(
   guardRouter = router;
   installAwayListeners();
 
-  if (BATTLE_ENABLED_ROUTES.includes(String(to.name))) {
+  const isExplorationRoute = BATTLE_ENABLED_ROUTES.includes(String(to.name));
+  if (isExplorationRoute) {
     const region = regionForRoute(to.name);
     battleStore.setTerrainForRoute(region ? WORLD_REGIONS[region].terrain : null);
     battleStore.startBattleTimer({

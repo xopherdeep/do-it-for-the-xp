@@ -133,7 +133,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
 
     // Adaptive budget: long frames shed particles, a run of quick frames earns them back
     const cost = now() - t;
-    if (cost > SLOW_FRAME_MS) {
+    const isSlowFrame = cost > SLOW_FRAME_MS;
+    if (isSlowFrame) {
       slowStreak += 1;
       fastStreak = 0;
       const shouldDropBudget = slowStreak >= SLOW_FRAMES_BEFORE_DROP && budget > MIN_BUDGET;
@@ -154,7 +155,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
     }
 
     framesThisSecond += 1;
-    if (t - secondStart >= 1000) {
+    const isSecondOver = t - secondStart >= 1000;
+    if (isSecondOver) {
       fps = framesThisSecond;
       framesThisSecond = 0;
       secondStart = t;
@@ -166,12 +168,15 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
   const schedule = () => {
     const cannotSchedule = rafId !== null || !running || !visible || !inView;
     if (cannotSchedule) return;
-    if (typeof requestAnimationFrame !== "function") return;
+    const hasAnimationFrames = typeof requestAnimationFrame === "function";
+    if (!hasAnimationFrames) return;
     rafId = requestAnimationFrame(tick);
   };
 
   const cancel = () => {
-    if (rafId !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(rafId);
+    const frameId = rafId;
+    const canCancelFrame = frameId !== null && typeof cancelAnimationFrame === "function";
+    if (canCancelFrame) cancelAnimationFrame(frameId);
     rafId = null;
   };
 
@@ -187,14 +192,16 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
 
   let resizeObserver: ResizeObserver | null = null;
   let intersectionObserver: IntersectionObserver | null = null;
-  if (typeof ResizeObserver !== "undefined") {
+  const hasResizeObserver = typeof ResizeObserver !== "undefined";
+  if (hasResizeObserver) {
     resizeObserver = new ResizeObserver(() => {
       needsInit = true;
       measure();
     });
     resizeObserver.observe(canvas.parentElement ?? canvas);
   }
-  if (typeof IntersectionObserver !== "undefined") {
+  const hasIntersectionObserver = typeof IntersectionObserver !== "undefined";
+  if (hasIntersectionObserver) {
     intersectionObserver = new IntersectionObserver((entries) => {
       inView = entries.some((entry) => entry.isIntersecting);
       if (inView) {
@@ -206,7 +213,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
     });
     intersectionObserver.observe(canvas);
   }
-  if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
+  const hasDocument = typeof document !== "undefined";
+  if (hasDocument) document.addEventListener("visibilitychange", onVisibility);
 
   buildLayers();
 
@@ -218,7 +226,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
       return fps;
     },
     setType(next: WeatherType) {
-      if (next === type) return;
+      const isSameType = next === type;
+      if (isSameType) return;
       type = next;
       buildLayers();
       if (ctx) ctx.clearRect(0, 0, width, height);
@@ -242,7 +251,7 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
       cancel();
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
-      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisibility);
+      if (hasDocument) document.removeEventListener("visibilitychange", onVisibility);
       layers.forEach((layer) => layer.dispose?.());
       layers = [];
     },

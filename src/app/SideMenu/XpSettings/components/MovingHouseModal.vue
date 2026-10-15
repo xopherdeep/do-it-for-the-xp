@@ -198,7 +198,8 @@ const heroes = computed(() =>
 // Each hero starts as what their profile says: an adult is a grown-up, a child's birthday decides little or kid
 const prefill = () => {
   for (const hero of userStore.usersAz) {
-    if (!roles[hero.id]) roles[hero.id] = movingBandFor(hero);
+    const hasRole = !!roles[hero.id];
+    if (!hasRole) roles[hero.id] = movingBandFor(hero);
   }
 };
 
@@ -251,7 +252,8 @@ const close = () => emit("close");
 const reload = () => window.location.reload();
 
 const build = async () => {
-  if (!canBuild.value || isBusy.value) return;
+  const isBlocked = !canBuild.value || isBusy.value;
+  if (isBlocked) return;
   isBusy.value = true;
   error.value = "";
   try {

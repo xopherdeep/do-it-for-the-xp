@@ -118,7 +118,8 @@ export default defineComponent({
     const missingBanner = computed(() => {
       if (!store.isLoaded(props.templeId)) return '';
       const result = auditTemple({ dungeonLayout: { maze: store.templeMaze, rooms: store.roomsData } });
-      if (result.passed) return '';
+      const isFinishable = result.passed;
+      if (isFinishable) return '';
       const names = missingNames(result);
       return `${names.length} missing: ${shortList(names)}`;
     });
@@ -136,20 +137,23 @@ export default defineComponent({
     const typedSide = (event: Event, lastGoodSide: string): number | null => {
       const input = event.target as HTMLInputElement;
       const side = readGridSide(input.value);
-      if (side === null) input.value = lastGoodSide;
+      const isUnreadable = side === null;
+      if (isUnreadable) input.value = lastGoodSide;
       return side;
     };
 
     const updateHeight = (event: Event) => {
       const side = typedSide(event, gridHeight.value);
-      if (side === null) return;
+      const isUnreadable = side === null;
+      if (isUnreadable) return;
       emit('update:gridSize', `${side}x${gridWidth.value}`);
       emit('resize');
     };
 
     const updateWidth = (event: Event) => {
       const side = typedSide(event, gridWidth.value);
-      if (side === null) return;
+      const isUnreadable = side === null;
+      if (isUnreadable) return;
       emit('update:gridSize', `${gridHeight.value}x${side}`);
       emit('resize');
     };
@@ -172,8 +176,9 @@ export default defineComponent({
           {
             text: 'Add',
             handler: (data) => {
-              if (data.floorName) {
-                emit('add-floor', data.floorName);
+              const floorName = data.floorName;
+              if (floorName) {
+                emit('add-floor', floorName);
               }
             }
           }

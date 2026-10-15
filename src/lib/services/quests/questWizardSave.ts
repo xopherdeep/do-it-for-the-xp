@@ -40,7 +40,8 @@ export async function saveWizardQuest(
   const [categories, beasts] = await Promise.all([stores.categoryDb.getAll(), stores.bestiaryDb.getBeasts()]);
   const category = wizardCategory(categories.filter(Boolean));
   const { quest, beast } = buildWizardQuest(draft, { ...who, categoryId: category.id, familyBeasts: beasts });
-  if (category.create) await stores.categoryDb.setCategory(category.create);
+  const newCategory = category.create;
+  if (newCategory) await stores.categoryDb.setCategory(newCategory);
   if (beast) await stores.bestiaryDb.setBeast(beast);
   await stores.achievementDb.setTask(quest);
   return quest;

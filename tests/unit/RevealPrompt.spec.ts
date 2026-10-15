@@ -180,7 +180,7 @@ describe("useRevealPrompt", () => {
   const inScope = <T>(run: () => T): T => effectScope().run(run) as T;
 
   it("shows the prompt and settles with the id the hero picked", async () => {
-    const { prompt, ask, respond } = inScope(useRevealPrompt);
+    const { prompt, showPrompt: ask, submitAnswer: respond } = inScope(useRevealPrompt);
     const picked = ask(yesNo);
     expect(prompt.value?.options).toEqual(yesNo);
 
@@ -191,14 +191,14 @@ describe("useRevealPrompt", () => {
   });
 
   it("hands back the amount for a number pick", async () => {
-    const { askAmount, respond } = inScope(useRevealPrompt);
+    const { showAmountPrompt: askAmount, submitAnswer: respond } = inScope(useRevealPrompt);
     const picked = askAmount({ ...yesNo, amount: { max: 40 } });
     respond({ id: "yes", amount: 25 });
     expect(await picked).toEqual({ id: "yes", amount: 25 });
   });
 
   it("gives each prompt its own key, so a new one replays the reveal", async () => {
-    const { prompt, ask, respond } = inScope(useRevealPrompt);
+    const { prompt, showPrompt: ask, submitAnswer: respond } = inScope(useRevealPrompt);
     void ask(yesNo);
     const first = prompt.value?.key;
     respond({ id: "no", amount: null });
@@ -207,7 +207,7 @@ describe("useRevealPrompt", () => {
   });
 
   it("cancels a prompt still showing when another is asked, so nothing is left waiting", async () => {
-    const { prompt, ask } = inScope(useRevealPrompt);
+    const { prompt, showPrompt: ask } = inScope(useRevealPrompt);
     const first = ask({ ...yesNo, cancelId: "stay" });
     const second = ask({ ...yesNo, lines: ["Again?"] });
 
@@ -217,7 +217,7 @@ describe("useRevealPrompt", () => {
   });
 
   it("dismisses with the cancel choice, and does nothing when nothing is showing", async () => {
-    const { ask, dismiss } = inScope(useRevealPrompt);
+    const { showPrompt: ask, dismiss } = inScope(useRevealPrompt);
     expect(() => dismiss()).not.toThrow();
     const picked = ask(yesNo);
     dismiss();
@@ -225,11 +225,11 @@ describe("useRevealPrompt", () => {
   });
 
   it("cancels what is showing when the screen that asked goes away", async () => {
-    let ask!: ReturnType<typeof useRevealPrompt>["ask"];
+    let ask!: ReturnType<typeof useRevealPrompt>["showPrompt"];
     const wrapper = mount(
       defineComponent({
         setup() {
-          ({ ask } = useRevealPrompt());
+          ({ showPrompt: ask } = useRevealPrompt());
           return {};
         },
         render: () => null,

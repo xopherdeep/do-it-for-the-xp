@@ -94,18 +94,22 @@ export function layoutSignature(layout: Partial<SeedLayout> | ShippedTemple | nu
 /** What to do with a stored record given the layout now shipped for it. Pure. */
 export function planSeedSync(existing: TempleInterface | null | undefined, shipped: ShippedTemple): SeedPlan {
   const signature = layoutSignature(shipped);
-  if (!existing?.dungeonLayout) return { action: 'create', signature };
+  if (!existing) return { action: 'create', signature };
+  const layout = existing.dungeonLayout;
+  if (!layout) return { action: 'create', signature };
 
-  const current = layoutSignature(existing.dungeonLayout);
+  const current = layoutSignature(layout);
   const seeded = existing.seedSignature;
   if (seeded) {
-    if (current !== seeded) return { action: 'edited', signature };
+    const isEditedSinceSeed = current !== seeded;
+    if (isEditedSinceSeed) return { action: 'edited', signature };
     return { action: seeded === signature ? 'current' : 'refresh', signature };
   }
   // Nothing says what this copy was imported from (it predates signatures). The shipped layout: untouched.
-  if (current === signature) return { action: 'stamp', signature };
+  const isShippedLayout = current === signature;
+  if (isShippedLayout) return { action: 'stamp', signature };
   // Another layout: kept when the temple can be finished (the Game Master built it), else it is a stale old seed
-  const finishable = auditTemple({ dungeonLayout: existing.dungeonLayout as AuditableLayout }).passed;
+  const finishable = auditTemple({ dungeonLayout: layout as AuditableLayout }).passed;
   return { action: finishable ? 'edited' : 'refresh', signature };
 }
 
@@ -149,14 +153,17 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
         const { action, signature } = planSeedSync(existing, templeData);
         report[templeId] = action;
 
-        if (action === 'edited') {
-          if (!reportedEdited.has(templeId)) {
+        const isEdited = action === 'edited';
+        if (isEdited) {
+          const isAlreadyReported = reportedEdited.has(templeId);
+          if (!isAlreadyReported) {
             reportedEdited.add(templeId);
             debug.log(`Temple ${templeId} was edited by the Game Master, keeping their layout.`);
           }
           continue;
         }
-        if (action === 'current') continue;
+        const isCurrent = action === 'current';
+        if (isCurrent) continue;
 
         const shouldOnlyStamp = action === 'stamp' && existing;
         if (shouldOnlyStamp) {

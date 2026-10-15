@@ -69,11 +69,13 @@ watch(
   () => props.phase,
   (phase) => {
     clearTimeout(timer);
-    if (phase === "cover") {
+    const isCover = phase === "cover";
+    const isReveal = phase === "reveal";
+    if (isCover) {
       play$fx((props.plan.sound ?? "map") as Parameters<typeof play$fx>[0]);
       timer = setTimeout(() => emit("covered"), cover);
     }
-    if (phase === "reveal") {
+    if (isReveal) {
       feel("tap");
       timer = setTimeout(() => emit("revealed"), reveal);
     }

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng, softBlob } from "./util";
 
 const resolveBaseCloudAlpha = (thin: boolean, dark: boolean): number => {
@@ -7,13 +7,22 @@ const resolveBaseCloudAlpha = (thin: boolean, dark: boolean): number => {
   return 0.28;
 };
 
+/** One cloud: position, size, drift speed and alpha. */
+interface CloudPuff {
+  x: number;
+  y: number;
+  s: number;
+  v: number;
+  a: number;
+}
+
 /** Soft cloud shapes in three parallax speeds; `dark` for storms, `thin` for high wisps. */
 export const clouds: EffectFactory = (options = {}) => {
   const dark = Boolean(options.dark), thin = Boolean(options.thin);
   const rng = makeRng(41);
   let blob: HTMLCanvasElement | null = null;
-  const items: { x: number; y: number; s: number; v: number; a: number }[] = [];
-  const effect: WeatherEffect = {
+  const items: CloudPuff[] = [];
+  return {
     init(f) {
       const tone = dark ? [70, 74, 92] : [255, 255, 255];
       blob = softBlob(256, tone[0], tone[1], tone[2], 1);
@@ -34,7 +43,8 @@ export const clouds: EffectFactory = (options = {}) => {
     update(f) {
       for (const c of items) {
         c.x += c.v * f.dt;
-        if (c.x - c.s > f.width) { c.x = -c.s; c.y = rng() * f.height * 0.5; }
+        const isPastRightEdge = c.x - c.s > f.width;
+        if (isPastRightEdge) { c.x = -c.s; c.y = rng() * f.height * 0.5; }
       }
     },
     draw(f) {
@@ -49,5 +59,4 @@ export const clouds: EffectFactory = (options = {}) => {
       ctx.restore();
     },
   };
-  return effect;
 };

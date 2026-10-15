@@ -18,8 +18,8 @@
       <div class="dungeon-designer">
         <canvas
           ref="dungeonCanvas"
-          :width="canvasWidth"
-          :height="canvasHeight"
+          :width="canvasSize.width"
+          :height="canvasSize.height"
           class="dungeon-canvas"
         ></canvas>
 
@@ -156,12 +156,10 @@ const styles = styleConfig;
 // Extract all needed canvas variables and functions
 const {
   dungeonCanvas,
-  canvasWidth,
-  canvasHeight,
-  drawRoom,
+  canvasSize,
+  showRoom,
   exportBackground,
-  initCanvasResizeHandling,
-  resizeCanvas
+  initCanvasResizeHandling
 } = useCanvasRenderer();
 
 // Redraw the current room
@@ -193,7 +191,7 @@ const redrawRoom = (styleChange?: { type: string; value: string }) => {
   const temple = templeData.value[selectedTemple.value];
   const room = getCurrentRoom();
   
-  drawRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
+  showRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
 };
 
 // Get appropriate header for each room type
@@ -298,7 +296,8 @@ const handleTeleport = () => {
     });
   });
   
-  if (teleportRooms.length > 0) {
+  const hasTeleportRooms = teleportRooms.length > 0;
+  if (hasTeleportRooms) {
     // Choose a random teleport destination
     const destination = teleportRooms[Math.floor(Math.random() * teleportRooms.length)];
     currentPosition.value = destination;
@@ -404,7 +403,7 @@ const {
   canMoveDown,
   canMoveLeft,
   canMoveRight,
-  moveDirection
+  stepDirection
 } = useNavigation(templeData, selectedTemple, currentPosition, isValidRoom);
 
 // Handle movement between rooms
@@ -416,7 +415,7 @@ const handleMove = (direction: Direction) => {
   }
 
   // Attempt to move
-  const success = moveDirection(direction, isDoorLocked);
+  const success = stepDirection(direction, isDoorLocked);
   
   // If movement was successful, update room info and redraw
   if (success) {
@@ -436,11 +435,8 @@ const toggleControlsModal = () => {
 
 // Initialize
 onMounted(() => {
-  // Set up the canvas resize handler
+  // Set up the canvas resize handler; it also sizes the canvas to the window now
   const cleanup = initCanvasResizeHandling();
-  
-  // Resize canvas to fit current window dimensions
-  resizeCanvas();
   
   // Load the initial temple and draw the room
   loadSelectedTemple().then(() => {

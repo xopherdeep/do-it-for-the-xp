@@ -93,7 +93,7 @@ export function syncQuestRooms(
   const isNotTheHerosRun = !state || !temple || runs.heroByTemple.get(templeId) !== String(heroId);
   if (isNotTheHerosRun) return sync;
 
-  if (!state.clearedRooms) state.clearedRooms = new Set<string>();
+  state.clearedRooms ??= new Set<string>();
   const won = state.clearedRooms;
   const floors = Array.isArray(temple.maze) ? { '1F': temple.maze } : temple.maze;
   for (const [level, grid] of Object.entries(floors)) {

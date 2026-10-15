@@ -23,14 +23,8 @@
             <xp-icon :icon="entry.faIcon || 'box'" class="goods-icon" />
           </template>
 
-          <template v-if="getMpCost(entry) || getDisabledReasonText(entry)" #chips>
-            <xp-app-chip v-if="getMpCost(entry)" kind="mp" :value="getMpCost(entry)" />
-            <xp-app-chip
-              v-if="getDisabledReasonText(entry)"
-              class="goods-reason"
-              kind="tag"
-              :value="getDisabledReasonText(entry)"
-            />
+          <template v-if="chipsOf(entry).length" #chips>
+            <xp-app-chips :chips="chipsOf(entry)" />
           </template>
 
           <template #trailing>
@@ -77,7 +71,8 @@ import {
 } from "ionicons/icons";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
-import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
+import XpAppChips from "@/components/organisms/XpApp/XpAppChips.vue";
+import type { AppChipSpec } from "@/components/organisms/XpApp/appChips";
 import XpAppEmpty from "@/components/organisms/XpApp/XpAppEmpty.vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
@@ -114,6 +109,9 @@ const TAB_ICONS: Record<Tab, string> = {
   misc: sparklesOutline,
 };
 
+/** Consumables and key items badge in their own colour; every other tab counts in primary. */
+const TAB_BADGE_COLORS: Partial<Record<Tab, string>> = { consumable: "danger", key: "warning" };
+
 /** The section header on the All tab and the row subtitle when an item has nothing more to say. */
 const KIND_LABELS: Record<InventoryKind, { section: string; one: string }> = {
   consumable: { section: "Potions", one: "Potion" },
@@ -134,15 +132,17 @@ interface InventoryItemWithRaw extends InventoryEntry {
   rawItem?: any;
 }
 
+interface XpInventorySheetProps {
+  user?: any;
+  userId?: string;
+  equipment?: any[];
+  mode?: "view" | "battle";
+  battleCard?: ((item: any) => BattleItemCard | null) | null;
+  opensDirectly?: ((item: any) => boolean) | null;
+}
+
 const props = withDefaults(
-  defineProps<{
-    user?: any;
-    userId?: string;
-    equipment?: any[];
-    mode?: "view" | "battle";
-    battleCard?: ((item: any) => BattleItemCard | null) | null;
-    opensDirectly?: ((item: any) => boolean) | null;
-  }>(),
+  defineProps<XpInventorySheetProps>(),
   {
     mode: "view",
     battleCard: null,
@@ -163,8 +163,10 @@ const t = useCopy();
 const activeTab = ref<Tab>("all");
 
 const targetUser = computed(() => {
-  if (props.user) return props.user;
-  if (props.userId) return userStore.getUserById(props.userId);
+  const user = props.user;
+  if (user) return user;
+  const userId = props.userId;
+  if (userId) return userStore.getUserById(userId);
   return userStore.currentUser;
 });
 
@@ -198,8 +200,10 @@ const allEntries = computed<InventoryItemWithRaw[]>(() => {
     const existing = merged.get(key);
     if (existing) {
       existing.rawItem = entry.rawItem;
-      if (!existing.faIcon && entry.faIcon) existing.faIcon = entry.faIcon;
-      if (!existing.description && entry.description) existing.description = entry.description;
+      const isMissingIcon = !existing.faIcon && Boolean(entry.faIcon);
+      if (isMissingIcon) existing.faIcon = entry.faIcon;
+      const isMissingBlurb = !existing.description && Boolean(entry.description);
+      if (isMissingBlurb) existing.description = entry.description;
     } else {
       merged.set(key, entry);
     }
@@ -209,7 +213,8 @@ const allEntries = computed<InventoryItemWithRaw[]>(() => {
 });
 
 const shownEntries = computed<InventoryItemWithRaw[]>(() => {
-  if (activeTab.value === "all") return allEntries.value;
+  const isAllTab = activeTab.value === "all";
+  if (isAllTab) return allEntries.value;
   return allEntries.value.filter((entry) => entry.kind === activeTab.value);
 });
 
@@ -241,16 +246,17 @@ const navTabs = computed<AppNavTab[]>(() =>
     label: t.label,
     ionIcon: TAB_ICONS[t.value],
     badge: counts.value[t.value] || 0,
-    badgeColor: t.value === "consumable" ? "danger" : t.value === "key" ? "warning" : "primary",
+    badgeColor: TAB_BADGE_COLORS[t.value] ?? "primary",
   }))
 );
 
 const emptyMessage = computed(() => t(EMPTY_KEYS[activeTab.value]));
 
 const resolveBattleCard = (entry: InventoryItemWithRaw): BattleItemCard | null => {
-  if (props.mode !== "battle" || !props.battleCard) return null;
+  const battleCard = props.mode === "battle" ? props.battleCard : undefined;
+  if (!battleCard) return null;
   const itemToEvaluate = entry.rawItem || entry;
-  return props.battleCard(itemToEvaluate);
+  return battleCard(itemToEvaluate);
 };
 
 const getBattleEffectText = (entry: InventoryItemWithRaw): string => {
@@ -270,12 +276,21 @@ const getMpCost = (entry: InventoryItemWithRaw): number => {
   return card?.mp || 0;
 };
 
+/** The row's chips: the MP a cast costs, then why the item cannot be used right now (a red tag). */
+const chipsOf = (entry: InventoryItemWithRaw): AppChipSpec[] => {
+  const mp = getMpCost(entry);
+  const reason = getDisabledReasonText(entry);
+  const chips: AppChipSpec[] = mp ? [{ kind: "mp", value: mp }] : [];
+  return reason ? [...chips, { kind: "tag", value: reason, class: "goods-reason" }] : chips;
+};
+
 /** One line under the name: what the item does in a fight, else its blurb, else what kind of thing it is. */
 const subtitleOf = (entry: InventoryItemWithRaw): string =>
   getBattleEffectText(entry) || entry.description || KIND_LABELS[entry.kind].one;
 
 const isItemDisabled = (entry: InventoryItemWithRaw): boolean => {
-  if (props.mode !== "battle") return false;
+  const isInBattle = props.mode === "battle";
+  if (!isInBattle) return false;
   const card = resolveBattleCard(entry);
   if (!card) return false;
   return Boolean(card.reason);
@@ -316,8 +331,10 @@ const storeEntry = (entry: InventoryItemWithRaw) => {
 
 const handleEntryClick = (entry: InventoryItemWithRaw) => {
   const itemToPass = entry.rawItem || entry;
-  if (props.mode === "battle") {
+  const isInBattle = props.mode === "battle";
+  if (isInBattle) {
     if (isItemDisabled(entry)) return;
+
     emit("use-item", itemToPass);
   } else {
     emit("select-item", itemToPass);
@@ -344,7 +361,7 @@ const handleEntryClick = (entry: InventoryItemWithRaw) => {
   }
 
   // Why the item cannot be used right now: a red tag that may wrap, so a long hint is never cut off.
-  .goods-reason {
+  :deep(.goods-reason) {
     --chip-rgb: 255, 107, 94;
     max-width: 100%;
     text-align: left;

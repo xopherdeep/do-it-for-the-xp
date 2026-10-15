@@ -20,7 +20,8 @@ const countTokensInMaze = (tokenSet: string[], maze: MazeData): Record<string, n
   const countInMaze = (grid: string[][]) => {
     for (const row of grid) {
       for (const cell of row) {
-        if (tokenSet.includes(cell)) {
+        const isConfigToken = tokenSet.includes(cell);
+        if (isConfigToken) {
           tokenCounts[cell] = (tokenCounts[cell] || 0) + 1;
         }
       }
@@ -39,9 +40,10 @@ const countTokensInMaze = (tokenSet: string[], maze: MazeData): Record<string, n
 // Determine display name based on configuration state
 const describeConfig = (hasBeasts: boolean, beastCount: number, roomCount: number): string => {
   let displayName = 'Empty';
+  const isInUse = roomCount > 0;
   if (hasBeasts) {
     displayName = `${beastCount} beast${beastCount > 1 ? 's' : ''}`;
-  } else if (roomCount > 0) {
+  } else if (isInUse) {
     displayName = `${roomCount} room${roomCount > 1 ? 's' : ''}`;
   }
   return displayName;

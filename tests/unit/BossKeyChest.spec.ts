@@ -2,7 +2,7 @@
  * A Game Master's Chest room with Dungeon Item -> Master Key (the editor writes the id `master-key`) holds the Boss
  * Key: the chest reveal shows a key, and taking it grants the key that opens the boss door and unlocks no item. The
  * Wind Whistle only comes from a chest whose dungeon item really is the whistle (the Wind Temple's Pegasus chest).
- * Taking goes through the same hook the temple screen uses (useTemple.processChestItems).
+ * Taking goes through the same hook the temple screen uses (useTemple.claimChestItems).
  */
 import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
@@ -65,7 +65,7 @@ const take = (templeId: string, items: string[]) => {
   );
   const vm = wrapper.vm as any;
   const rows = vm.chestContents.map((item: { value: string; name: string; icon: string; tier: string }) => ({ ...item }));
-  vm.processChestItems(items);
+  vm.claimChestItems(items);
   const keys = vm.playerKeys.valueOf();
   wrapper.unmount();
   return { messages, rows, keys };

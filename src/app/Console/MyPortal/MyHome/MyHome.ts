@@ -127,14 +127,18 @@ export default defineComponent({
             role: "confirm",
             cssClass: "alert-confirm",
             handler: async () => {
-              if (quote.hpGain > 0) {
+              const hasHpGain = quote.hpGain > 0;
+              if (hasHpGain) {
                 userStore.updateUserHP({ userId: userId as string, amount: quote.hpGain });
               }
-              if (quote.mpGain > 0) {
+              const hasMpGain = quote.mpGain > 0;
+              if (hasMpGain) {
                 userStore.updateUserMP({ userId: userId as string, amount: quote.mpGain });
               }
               userStore.setBedRestAt(userId as string, new Date().toISOString());
-              if (typeof (window as any).play$fx === "function") {
+              const canPlayFx = typeof (window as any).play$fx === "function";
+              if (canPlayFx) {
+
                 (window as any).play$fx("restoreAll");
               }
               const toast = await toastController.create({

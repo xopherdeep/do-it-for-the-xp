@@ -359,7 +359,8 @@
 
       // ---- Step 1 ----------------------------------------------------------------------------------------------
       const chooseKind = (type: Ability["type"]) => {
-        if (ability.value.type === type) return;
+        const isSameKind = ability.value.type === type;
+        if (isSameKind) return;
         play$fx("cursor");
         patch({ type });
       };
@@ -416,7 +417,8 @@
       // ---- Step 4 ----------------------------------------------------------------------------------------------
       const jumpTo = (stepId: PowerStepId) => {
         const at = steps.findIndex((step) => step.id === stepId);
-        if (at < 0) return;
+        const isUnknownStep = at < 0;
+        if (isUnknownStep) return;
         play$fx("cursor");
         position.value = at;
       };
@@ -429,7 +431,8 @@
       const saveAbility = async () => {
         if (saving.value) return;
         const abilityToSave = finishedPower(ability.value);
-        if (!abilityToSave.id) {
+        const isNewAbility = !abilityToSave.id;
+        if (isNewAbility) {
           // New ability
           abilityToSave.id = uuidv4();
         }
@@ -534,168 +537,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  // The body of every step: the kit's tokens give both skins (Retro / Modern), the accent is the Spells blue
-  .pw-section {
-    padding: 4px 12px 8px;
-  }
-
-  .pw-sub {
-    margin: 16px 2px 8px;
-    color: var(--xp-app-text-dim);
-    font-family: var(--xp-app-font-title);
-    font-size: 0.9rem;
-    text-transform: var(--xp-app-title-transform);
-  }
-
-  .pw-note {
-    margin: 10px 4px 0;
-    color: var(--xp-app-text-dim);
-    font-size: 0.85rem;
-    line-height: 1.3;
-    text-align: center;
-  }
-
-  .pw-gap {
-    margin-top: 10px;
-  }
-
-  // The icon and the name as the hero will meet them; a tap changes the icon
-  .pw-hero {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    margin-top: 6px;
-    padding: 12px;
-    background: var(--xp-app-surface);
-    border: 2px solid var(--xp-app-accent);
-    border-radius: var(--xp-app-radius-tile);
-    color: var(--xp-app-text);
-    cursor: pointer;
-    text-align: left;
-    -webkit-tap-highlight-color: transparent;
-
-    &:active {
-      background: var(--xp-app-press);
-    }
-
-    &__tile {
-      display: flex;
-      flex: 0 0 auto;
-      align-items: center;
-      justify-content: center;
-      width: 64px;
-      height: 64px;
-      background: var(--xp-app-tile-bg);
-      border: var(--xp-app-tile-border);
-      border-radius: var(--xp-app-radius-tile);
-
-      i {
-        color: var(--xp-app-tile-fg);
-        font-size: 2.2rem;
-      }
-    }
-
-    &__text {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    &__name {
-      overflow: hidden;
-      font-family: var(--xp-app-font-title);
-      font-size: 1.15rem;
-      text-overflow: ellipsis;
-      text-transform: var(--xp-app-title-transform);
-      white-space: nowrap;
-    }
-
-    &__hint {
-      color: var(--xp-app-text-dim);
-      font-size: 0.85rem;
-
-      i {
-        margin-right: 4px;
-        color: var(--xp-app-accent);
-      }
-    }
-  }
-
-  // Real Life or In-Game: two big tiles, each says what it is
-  .pw-kinds {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .pw-kind {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-height: 130px;
-    padding: 12px 8px;
-    background: var(--xp-app-surface);
-    border: var(--xp-app-section-border);
-    border-radius: var(--xp-app-radius-tile);
-    color: var(--xp-app-text);
-    cursor: pointer;
-    font-family: var(--xp-app-font-title);
-    text-align: center;
-    text-transform: var(--xp-app-title-transform);
-    -webkit-tap-highlight-color: transparent;
-
-    &:active {
-      background: var(--xp-app-press);
-    }
-
-    &.is-picked {
-      background: var(--xp-app-surface-2);
-      border-color: var(--xp-app-accent);
-      box-shadow: 0 0 0 2px var(--xp-app-accent);
-    }
-
-    &__icon {
-      color: var(--xp-app-accent);
-      font-size: 2rem;
-    }
-
-    &__label {
-      font-size: 1rem;
-    }
-
-    &__hint {
-      color: var(--xp-app-text-dim);
-      font-family: var(--xp-app-font-body);
-      font-size: 0.78rem;
-      line-height: 1.25;
-      text-transform: none;
-    }
-  }
-
-  .pw-text {
-    display: block;
-    width: 100%;
-    padding: 10px 12px;
-    background: var(--xp-app-surface);
-    border: var(--xp-app-section-border);
-    border-radius: var(--xp-app-radius-control);
-    box-sizing: border-box;
-    color: var(--xp-app-text);
-    font-family: var(--xp-app-font-body);
-    font-size: 1rem;
-    outline: none;
-    resize: none;
-
-    &::placeholder {
-      color: var(--xp-app-text-dim);
-    }
-
-    &:focus {
-      border-color: var(--xp-app-accent);
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpCreateUpdateAbility.scss" />

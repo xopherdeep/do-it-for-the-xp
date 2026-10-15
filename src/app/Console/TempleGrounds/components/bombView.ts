@@ -26,9 +26,11 @@ const CRACKED_LINE = 'The wall is cracked.';
 
 /** The sentence under the header: only a hero with the Bombs in a hand and a Bomb to spend hears nothing more. */
 const lineFor = ({ holdsBombs, bombs }: BombStock): string => {
-  if (holdsBombs && bombs > 0) return CRACKED_LINE;
+  const hasBombToSpend = bombs > 0;
+  const isReadyToBlow = holdsBombs && hasBombToSpend;
+  if (isReadyToBlow) return CRACKED_LINE;
   if (holdsBombs) return `${CRACKED_LINE} You are out of Bombs.`;
-  if (bombs > 0) return `${CRACKED_LINE} Hold the Bombs in a hand and a Bomb would do it.`;
+  if (hasBombToSpend) return `${CRACKED_LINE} Hold the Bombs in a hand and a Bomb would do it.`;
   return `${CRACKED_LINE} A Bomb would do it.`;
 };
 

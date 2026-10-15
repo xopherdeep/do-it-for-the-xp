@@ -476,7 +476,7 @@ describe("TempleSystem saves the progress of the hero it was opened for", () => 
     await vm.whenOpened; // the run starts once the temple's saved layout was read
     await temples.whenProgressReady(id);
 
-    vm.processChestItems(["key", "map", "compass"]);
+    vm.claimChestItems(["key", "map", "compass"]);
     await temples.flushProgress();
 
     expect(temples.getHeroId(id)).toBe(HERO);

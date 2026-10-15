@@ -73,12 +73,16 @@ const matchFields = (beast: LibraryEntry): Record<keyof typeof WEIGHTS, string[]
 /** How well a library beast fits a phrase: chore words count most, its name next, its task list a little */
 export const matchScore = (beast: LibraryEntry, text: string): number => {
   const wanted = expand(keywords(text));
-  if (!wanted.length) return 0;
+  const hasNoWords = !wanted.length;
+  if (hasNoWords) return 0;
   const fields = matchFields(beast);
   return wanted.reduce((score, word) => {
-    if (fields.chore.includes(word)) return score + WEIGHTS.chore;
-    if (fields.name.includes(word)) return score + WEIGHTS.name;
-    if (fields.checklist.includes(word)) return score + WEIGHTS.checklist;
+    const isChoreWord = fields.chore.includes(word);
+    if (isChoreWord) return score + WEIGHTS.chore;
+    const isNameWord = fields.name.includes(word);
+    if (isNameWord) return score + WEIGHTS.name;
+    const isChecklistWord = fields.checklist.includes(word);
+    if (isChecklistWord) return score + WEIGHTS.checklist;
     return score;
   }, 0);
 };

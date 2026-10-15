@@ -40,8 +40,16 @@ export interface ItemDraft {
 
 export type ItemStepId = "what" | "cost" | "who" | "gear" | "stock";
 
+/** One stat a virtual item can grant: label for the screen, step for the +/- buttons */
+interface GearStatChoice {
+  key: GearStatKey;
+  label: string;
+  icon: string;
+  step: number;
+}
+
 /** The five stats a virtual item can grant: label for the screen, step for the +/- buttons */
-export const GEAR_STATS: readonly { key: GearStatKey; label: string; icon: string; step: number }[] = [
+export const GEAR_STATS: readonly GearStatChoice[] = [
   { key: "hp", label: "HP", icon: "heart", step: 5 },
   { key: "mp", label: "MP", icon: "sparkles", step: 5 },
   { key: "attack", label: "Attack", icon: "sword", step: 1 },
@@ -51,7 +59,14 @@ export const GEAR_STATS: readonly { key: GearStatKey; label: string; icon: strin
 
 export const GEAR_STAT_LIMIT = 999;
 
-export const TYPE_CHOICES: readonly { value: AccessoryType; label: string; hint: string; icon: string }[] = [
+interface TypeChoice {
+  value: AccessoryType;
+  label: string;
+  hint: string;
+  icon: string;
+}
+
+export const TYPE_CHOICES: readonly TypeChoice[] = [
   { value: AccessoryType.RealLife, label: "Real Life", hint: "A treat or a privilege you hand over", icon: "gift" },
   { value: AccessoryType.Virtual, label: "Virtual", hint: "An item a hero uses in the game", icon: "treasure-chest" },
 ];
@@ -149,7 +164,10 @@ export const itemToRecord = (draft: ItemDraft, original?: Accessory | null): Acc
   const isVirtual = draft.type === AccessoryType.Virtual;
   const bonusStats: Accessory["bonusStats"] = {};
   if (isVirtual) {
-    for (const { key } of GEAR_STATS) if (draft.bonusStats[key]) bonusStats[key] = draft.bonusStats[key];
+    for (const { key } of GEAR_STATS) {
+      const bonus = draft.bonusStats[key];
+      if (bonus) bonusStats[key] = bonus;
+    }
   }
   return {
     rewardCount: 0,
@@ -179,7 +197,8 @@ export const addTags = (tags: readonly string[], typed: string): string[] => {
   const next = [...tags];
   for (const piece of typed.split(",")) {
     const tag = piece.trim();
-    if (tag && !next.some((held) => held.toLowerCase() === tag.toLowerCase())) next.push(tag);
+    const isNewTag = Boolean(tag) && !next.some((held) => held.toLowerCase() === tag.toLowerCase());
+    if (isNewTag) next.push(tag);
   }
   return next;
 };

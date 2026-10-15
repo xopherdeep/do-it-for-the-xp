@@ -223,7 +223,9 @@
           if (!oldStats) return;
 
           Object.keys(newStats || {}).forEach((stat) => {
-            if (newStats[stat] !== oldStats[stat]) {
+            const hasChanged = newStats[stat] !== oldStats[stat];
+            if (hasChanged) {
+
               changedStats.value.add(stat);
               timers.startTimeout(500, () => {
                 changedStats.value.delete(stat);

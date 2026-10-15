@@ -15,7 +15,8 @@ export const canAffordPrice = (wallet: number, price: number): boolean => Number
 
 /** Whether a ware the hero could buy here, affordable or not, stays on the shelf under this filter. */
 export const keepsWare = (filter: ShelfFilter, affordable: boolean): boolean => {
-  if (filter === "all") return true;
+  const isShowingAll = filter === "all";
+  if (isShowingAll) return true;
   return filter === "affordable" ? affordable : !affordable;
 };
 
@@ -34,7 +35,8 @@ export const keepsWalletWare = (
   gp?: GpPurse | null
 ): boolean => {
   if (!ware) return false;
-  if (filter === "all") return true;
+  const isShowingAll = filter === "all";
+  if (isShowingAll) return true;
   const isNotForThisHero = ware.status === "owned" || ware.status === "ahead";
   if (isNotForThisHero) return false;
   return keepsWare(filter, canAffordWalletWare(ware, gp));

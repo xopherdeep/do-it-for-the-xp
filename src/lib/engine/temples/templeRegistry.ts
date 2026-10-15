@@ -124,7 +124,8 @@ export const metadataFor = (templeId: string): TempleMetadata | undefined => {
 export const metadataForAsync = async (templeId: string): Promise<TempleMetadata> => {
   const known = metadataFor(templeId);
   if (known) return known;
-  if (!TEMPLE_METADATA[templeId]) {
+  const isUnregistered = !TEMPLE_METADATA[templeId];
+  if (isUnregistered) {
     try {
       const { TempleDb, templeStorage } = await import("@/lib/databases/TempleDb");
       const record = await new TempleDb(templeStorage).getTempleById(templeId);

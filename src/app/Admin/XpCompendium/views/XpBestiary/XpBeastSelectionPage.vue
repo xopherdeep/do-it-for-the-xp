@@ -53,7 +53,7 @@ export default defineComponent({
     XpLoading
   },
   setup() {
-    const { back } = useBack();
+    const { stepBack: back } = useBack();
     const selectionStore = useBestiarySelectionStore();
     const bestiary = new BestiaryDb(beastStorage);
     

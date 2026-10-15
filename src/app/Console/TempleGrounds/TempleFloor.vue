@@ -58,15 +58,16 @@ const floorKind = computed(() => {
 
 const floorElement = computed(() => props.element || "wind");
 
-const specialRoomClass = computed(() => {
-  const type = props.room?.type;
-  if (type === "boss") return "temple-floor--boss";
-  if (type === "miniboss") return "temple-floor--miniboss";
-  if (type === "entrance") return "temple-floor--entrance";
-  if (type === "master") return "temple-floor--master";
-  if (type === "camp" || type === "health") return "temple-floor--sanctuary";
-  return "";
-});
+const SPECIAL_ROOM_CLASSES = new Map<string | undefined, string>([
+  ["boss", "temple-floor--boss"],
+  ["miniboss", "temple-floor--miniboss"],
+  ["entrance", "temple-floor--entrance"],
+  ["master", "temple-floor--master"],
+  ["camp", "temple-floor--sanctuary"],
+  ["health", "temple-floor--sanctuary"],
+]);
+
+const specialRoomClass = computed(() => SPECIAL_ROOM_CLASSES.get(props.room?.type) ?? "");
 
 const hasEmblem = computed(() => Boolean(specialRoomClass.value));
 </script>

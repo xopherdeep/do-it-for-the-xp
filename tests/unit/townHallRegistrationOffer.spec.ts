@@ -25,7 +25,7 @@ const fakeReveal = () => {
         };
       }),
   );
-  return { prompt, ask, asked, answer: (id = "ok") => answerNow(id) };
+  return { prompt, showPrompt: ask, asked, answer: (id = "ok") => answerNow(id) };
 };
 
 /** This device's outbox: posts in these states, linked or not. */

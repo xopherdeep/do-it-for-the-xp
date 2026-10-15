@@ -156,6 +156,14 @@ import {
   RoomLegendModal
 } from './components';
 
+/** What the point slider sends up when the difficulty changes */
+interface RoomRewards {
+  xp: number;
+  gp: number;
+  ap: number;
+  difficulty: number;
+}
+
 export default defineComponent({
   name: 'XpRoomEditorPage',
   components: {
@@ -191,7 +199,8 @@ export default defineComponent({
     // Stairs always ask where they lead. A circle asks only when pairing cannot guess (teleportPairing).
     const travel = computed(() => {
       const room = editor.roomData.value;
-      if (room?.type !== 'teleport') return { controls: true, circle: false, note: '' };
+      const isTeleport = room?.type === 'teleport';
+      if (!isTeleport) return { controls: true, circle: false, note: '' };
 
       // The room on screen has not reached the store yet: count it as the circle it is
       const temple = withRoomAt(
@@ -210,8 +219,10 @@ export default defineComponent({
     // Stairs with no target climb to the neighbouring floor in play: say so, rather than showing the room's own floor
     const automaticFloor = computed(() => {
       const type = String(editor.roomData.value?.type ?? '');
-      if (/^stairs[-_]up$/.test(type)) return 'Next floor (automatic)';
-      if (/^stairs[-_]down$/.test(type)) return 'Previous floor (automatic)';
+      const isStairsUp = /^stairs[-_]up$/.test(type);
+      if (isStairsUp) return 'Next floor (automatic)';
+      const isStairsDown = /^stairs[-_]down$/.test(type);
+      if (isStairsDown) return 'Previous floor (automatic)';
       return '';
     });
 
@@ -239,7 +250,7 @@ export default defineComponent({
       editor.loadBestiary();
       editor.loadShops();
       editor.questRooms.loadQuests();
-      navigation.calculateAdjacency();
+      navigation.updateAdjacency();
     });
 
     // Ionic lifecycle - reload when page enters view
@@ -248,12 +259,13 @@ export default defineComponent({
       editor.loadBestiary();
       editor.loadShops();
       editor.questRooms.loadQuests();
-      navigation.calculateAdjacency();
+      navigation.updateAdjacency();
 
       // If we just came back from selecting beasts or editing the room's quest, re-open the config modal. The page
       // may have been rebuilt on the way back, so the room has to be loaded before the modal reads its type.
       await roomLoaded;
-      if (editor.consumeReturnToConfig()) {
+      const isBackFromSelection = editor.claimReturnToConfig();
+      if (isBackFromSelection) {
         editor.openTypeModal();
       }
     });
@@ -262,7 +274,7 @@ export default defineComponent({
     watch(
       [() => editor.rowIdx.value, () => editor.colIdx.value],
       () => {
-        navigation.calculateAdjacency();
+        navigation.updateAdjacency();
       }
     );
 
@@ -312,7 +324,7 @@ export default defineComponent({
       canTestFight: editor.questRooms.canTestFight,
       openQuestPicker: editor.questRooms.openPicker,
       closeQuestPicker: editor.questRooms.closePicker,
-      pickQuest: editor.questRooms.pickQuest,
+      pickQuest: editor.questRooms.selectQuest,
       createLibraryQuest: editor.questRooms.createLibraryQuest,
       editQuest: editor.editQuest,
 
@@ -320,11 +332,11 @@ export default defineComponent({
       selectEggPegasus: editor.selectEggPegasus, // NEW
       openTypeModal: editor.openTypeModal,
       closeTypeModal: editor.closeTypeModal,
-      goToTypes: editor.goToTypes,
+      goToTypes: editor.showRoomTypes,
       selectType: editor.selectType,
       selectMonsterConfig: editor.selectMonsterConfig,
       availableMonsterConfigs: editor.availableMonsterConfigs,
-      backModalStep: editor.backModalStep,
+      backModalStep: editor.prevModalStep,
       confirmConfig: editor.confirmConfig,
       toggleAutoLock: editor.toggleAutoLock,
       toggleMimicHeader: editor.toggleMimicHeader,
@@ -333,8 +345,9 @@ export default defineComponent({
       selectDungeonItem: editor.selectDungeonItem,
       selectConsumableItem: editor.selectConsumableItem,
       updateAmount: (val: number) => {
-        if (editor.roomData.value?.content) {
-          editor.roomData.value.content.gold = val;
+        const content = editor.roomData.value?.content;
+        if (content) {
+          content.gold = val;
         }
       },
       setTargetCoord: editor.setTargetCoord,
@@ -356,11 +369,12 @@ export default defineComponent({
       handleRewardIndexChange: (_index: number) => {
         // This is handled via update:rewards, but we can store the index if needed
       },
-      handleRewardsUpdate: (rewards: { xp: number; gp: number; ap: number; difficulty: number }) => {
-        if (editor.roomData.value?.content) {
-          editor.roomData.value.content.xp = rewards.xp;
-          editor.roomData.value.content.gp = rewards.gp;
-          editor.roomData.value.content.ap = rewards.ap;
+      handleRewardsUpdate: (rewards: RoomRewards) => {
+        const content = editor.roomData.value?.content;
+        if (content) {
+          content.xp = rewards.xp;
+          content.gp = rewards.gp;
+          content.ap = rewards.ap;
         }
       },
 
@@ -369,7 +383,8 @@ export default defineComponent({
         const beastIds = editor.isQuestRoom.value
           ? await editor.questRooms.loadTestFightBeastIds()
           : editor.roomData.value?.content?.beasts || [];
-        if (beastIds.length === 0) return;
+        const hasNoBeasts = beastIds.length === 0;
+        if (hasNoBeasts) return;
 
         // The battle belongs to a hero (rewards and the HUD read it), so a profile must be chosen
         const heroId = userStore.currentUser.id;
@@ -390,7 +405,7 @@ export default defineComponent({
       // From Navigation Hook
       adjacentRooms: navigation.adjacentRooms,
       canNavigate: navigation.canNavigate,
-      navigateRoom: navigation.navigateRoom,
+      navigateRoom: navigation.stepRoom,
       handleDoorClick: navigation.handleDoorClick,
       toggleLock: navigation.toggleLock,
       getDoorIcon: navigation.getDoorIcon,
@@ -398,12 +413,12 @@ export default defineComponent({
       getAdjacentRoomIcon: navigation.getAdjacentRoomIcon,
       getAdjacentRoomLabel: navigation.getAdjacentRoomLabel,
       getAdjacentRoomType: navigation.getAdjacentRoomType,
-      goBack: navigation.goBack,
+      goBack: navigation.stepBack,
 
       // Save and go back
       saveAndGoBack: async () => {
         await editor.saveToStore();
-        navigation.goBack();
+        navigation.stepBack();
       },
 
       // Mini-map navigation
@@ -411,7 +426,7 @@ export default defineComponent({
         // Save current room first, then navigate
         editor.saveToStore();
         // Use navigation hook's navigateRoom pattern with noAnimation
-        navigation.goToCell(row, col);
+        navigation.selectCell(row, col);
       },
 
       showLegendModal
@@ -420,258 +435,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-// The config slot is shown inside the type modal, which Ionic may move out of the page
-.circle-note {
-  margin: 12px 0 0;
-  font-family: "StatusPlz";
-  font-size: 1rem;
-  color: #40c4ff;
-}
-
-.xp-room-editor-page {
-  --background: transparent;
-
-  .transparent-header {
-    --background: transparent;
-    --border-color: transparent;
-  }
-
-  .transparent-content {
-    --background: transparent;
-  }
-
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-left: 8px;
-
-    .room-icon-wrapper {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      font-size: 1.6rem;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-
-      &.type-monster,
-      &.type-boss,
-      &.type-miniboss {
-        color: #ff5252;
-        background: rgba(255, 82, 82, 0.2);
-        border-color: rgba(255, 82, 82, 0.4);
-      }
-
-      &.type-loot {
-        color: #ffd740;
-        background: rgba(255, 215, 64, 0.2);
-        border-color: rgba(255, 215, 64, 0.4);
-      }
-
-      &.type-shop {
-        color: #69f0ae;
-        background: rgba(105, 240, 174, 0.2);
-        border-color: rgba(105, 240, 174, 0.4);
-      }
-
-      &.type-teleport {
-        color: #40c4ff;
-        background: rgba(64, 196, 255, 0.2);
-        border-color: rgba(64, 196, 255, 0.4);
-      }
-    }
-
-    .room-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-
-      .room-name {
-        font-family: "Press Start 2P";
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        color: #fff;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-      }
-
-      .room-coords {
-        font-family: "StatusPlz";
-        font-size: 0.9rem;
-        color: var(--ion-color-primary);
-        font-weight: bold;
-        letter-spacing: 1px;
-      }
-    }
-  }
-
-  .back-btn {
-    --color: #fff;
-  }
-
-  .reset-btn {
-    --color: rgba(255, 255, 255, 0.4);
-    transition: all 0.2s;
-
-    &:hover {
-      --color: var(--ion-color-danger);
-      transform: scale(1.1);
-    }
-  }
-
-  .test-fight-header-btn {
-    --color: var(--ion-color-danger);
-    transition: all 0.2s;
-
-    i {
-      font-size: 1.3rem;
-    }
-
-    &:hover {
-      --color: #ff416c;
-      transform: scale(1.1);
-    }
-  }
-
-  .help-btn {
-    --color: rgba(255, 255, 255, 0.6);
-    transition: all 0.2s;
-
-    &:hover {
-      --color: var(--ion-color-secondary);
-      transform: scale(1.1);
-    }
-  }
-}
-
-.editor-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding-bottom: 20px;
-}
-
-/* Header Navigation & Lock Toggle */
-.room-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .nav-arrow {
-    font-size: 1.2rem;
-    color: var(--ion-color-primary);
-    cursor: pointer;
-    padding: 4px;
-    transition: all 0.2s;
-
-    &:hover:not(.disabled) {
-      transform: scale(1.2);
-      color: var(--ion-color-primary-shade);
-    }
-
-    &.disabled {
-      opacity: 0.2;
-      cursor: not-allowed;
-    }
-  }
-}
-
-.header-trap-toggle {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: 8px;
-
-  i {
-    font-size: 1.1rem;
-    color: var(--ion-color-success);
-    transition: all 0.2s;
-  }
-
-  span {
-    display: none;
-  }
-
-  &.active {
-    background: rgba(var(--ion-color-danger-rgb), 0.2);
-    border-color: rgba(var(--ion-color-danger-rgb), 0.5);
-    animation: pulse-danger 2s infinite;
-
-    i {
-      color: var(--ion-color-danger);
-    }
-  }
-
-  &.mimic-trap {
-    i {
-      color: #ffd740;
-    }
-
-    &.active {
-      background: rgba(255, 82, 82, 0.2);
-      border-color: rgba(255, 82, 82, 0.5);
-
-      i {
-        color: #ff5252;
-      }
-    }
-  }
-
-  &:hover {
-    transform: scale(1.05);
-  }
-}
-
-.faded-fab {
-  opacity: 0.5;
-  filter: grayscale(1);
-}
-
-@keyframes pulse-danger {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.05);
-    opacity: 0.8;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 80%;
-  gap: 25px;
-
-  p {
-    font-family: "Press Start 2P";
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 1px;
-  }
-}
-</style>
+<style lang="scss" scoped src="./_XpRoomEditorPage.scss" />

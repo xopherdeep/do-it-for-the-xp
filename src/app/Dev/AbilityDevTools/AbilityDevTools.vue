@@ -226,7 +226,8 @@ export default defineComponent({
           };
           
           // Add level requirement for some abilities
-          if (Math.random() > 0.5) {
+          const hasLevelRequirement = Math.random() > 0.5;
+          if (hasLevelRequirement) {
             characterRequirement.level = Math.floor(Math.random() * 10) + 1;
           }
         }
@@ -266,7 +267,8 @@ export default defineComponent({
     const addPrerequisites = (abilities: Ability[]) => {
       // Initialize prerequisites arrays if they don't exist
       abilities.forEach(ability => {
-        if (!ability.prerequisites) {
+        const prerequisites = ability.prerequisites;
+        if (!prerequisites) {
           ability.prerequisites = [];
         }
       });
@@ -275,7 +277,8 @@ export default defineComponent({
       for (let i = 0; i < abilities.length; i++) {
         const ability = abilities[i];
         // Only create dependencies for about half the abilities
-        if (Math.random() > 0.5) {
+        const isSkipped = Math.random() > 0.5;
+        if (isSkipped) {
           continue;
         }
         
@@ -286,18 +289,22 @@ export default defineComponent({
         
         for (let j = 0; j < numPrereqs; j++) {
           // Pick a random earlier ability as prerequisite
-          if (i > 0) {
+          const hasEarlierAbility = i > 0;
+          if (hasEarlierAbility) {
             const prereqIdx = Math.floor(Math.random() * i);
             const prereqId = abilities[prereqIdx].id;
             
             // Make sure prerequisites is initialized
-            if (!ability.prerequisites) {
-              ability.prerequisites = [];
+            let prerequisites = ability.prerequisites;
+            if (!prerequisites) {
+              prerequisites = [];
+              ability.prerequisites = prerequisites;
             }
             
             // Avoid duplicates
-            if (!ability.prerequisites.includes(prereqId)) {
-              ability.prerequisites.push(prereqId);
+            const isAlreadyPrerequisite = prerequisites.includes(prereqId);
+            if (!isAlreadyPrerequisite) {
+              prerequisites.push(prereqId);
             }
           }
         }
@@ -355,7 +362,8 @@ export default defineComponent({
       
       // Find and update the ability in the list
       const index = testAbilities.value.findIndex(a => a.id === selectedAbility.value?.id);
-      if (index !== -1) {
+      const isListed = index !== -1;
+      if (isListed) {
         testAbilities.value[index] = { ...selectedAbility.value };
         selectedAbility.value = null;
       }

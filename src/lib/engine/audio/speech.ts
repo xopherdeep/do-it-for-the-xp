@@ -137,7 +137,8 @@ export function createSpeech(env: Partial<SpeechEnv> = {}) {
 
   /** Which way a line would be read right now */
   function route(): SpeechRoute {
-    if (isNative() && nativeVoices !== false) return "native";
+    const canReadOnPhone = isNative() && nativeVoices !== false;
+    if (canReadOnPhone) return "native";
     return canSpeakOnTheWeb() ? "web" : "none";
   }
 
@@ -157,7 +158,8 @@ export function createSpeech(env: Partial<SpeechEnv> = {}) {
 
   /** Ask the phone for its languages (then its voices) and remember whether it has any; asks again soon if it has none yet */
   async function checkNativeVoices(retriesLeft: number): Promise<void> {
-    if (!isNative() || isAskingPhone) return;
+    const shouldSkipAsking = !isNative() || isAskingPhone;
+    if (shouldSkipAsking) return;
     isAskingPhone = true;
     let found = false;
     try {
@@ -188,7 +190,8 @@ export function createSpeech(env: Partial<SpeechEnv> = {}) {
   /** Start noticing voices: the browser's late list (voiceschanged) and the phone's answer. Safe to call again. */
   function watch(): void {
     if (hasStartedWatching) {
-      if (nativeVoices === false) void refresh();
+      const hasNoNativeVoices = nativeVoices === false;
+      if (hasNoNativeVoices) void refresh();
       return;
     }
     hasStartedWatching = true;
@@ -268,7 +271,8 @@ export function createSpeech(env: Partial<SpeechEnv> = {}) {
         if (!tts) return finish();
         if (hadLine) await tts.stop().catch(() => undefined);
         // A newer line (or a stop) came while the plugin loaded: this one is no longer wanted
-        if (current !== line) return;
+        const isSuperseded = current !== line;
+        if (isSuperseded) return;
         await tts.speak({ text: words, lang: options.lang ?? DEFAULT_SPEECH_LANG, rate: options.rate ?? DEFAULT_SPEECH_RATE });
         setNativeVoices(true);
         finish();
@@ -285,8 +289,10 @@ export function createSpeech(env: Partial<SpeechEnv> = {}) {
     try {
       if (isMuted()) return false;
       const way = route();
-      if (way === "native") return speakOnThePhone(words, options);
-      if (way === "web") return speakOnTheWeb(words, options);
+      const isPhoneRoute = way === "native";
+      if (isPhoneRoute) return speakOnThePhone(words, options);
+      const isWebRoute = way === "web";
+      if (isWebRoute) return speakOnTheWeb(words, options);
       return false;
     } catch {
       // chemx-allow: best-effort a device that fails to speak stays quiet; the text is on screen

@@ -56,8 +56,9 @@ export default defineComponent({
             // The sender's rendered look, read from their profile so messages stay small
             const snapshot = heroAvatarImage(userStore.getUserById(props.message.senderId));
             if (snapshot) return snapshot;
-            if (props.message.avatar) {
-                return require(`@/assets/images/avatars/${props.message.avatar}.svg`);
+            const avatar = props.message.avatar;
+            if (avatar) {
+                return require(`@/assets/images/avatars/${avatar}.svg`);
             }
             return require('@/assets/images/avatars/001-gamer.svg');
         });

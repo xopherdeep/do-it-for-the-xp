@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { CanvasContext, Temple, RoomDefinition, Direction } from '../types';
 import debug from '@/lib/utils/debug';
 import { useStyleConfig } from './useStyleConfig';
@@ -27,7 +27,7 @@ export function useCanvasRenderer() {
   };
 
   // Draw the room based on its type and current styles
-  const drawRoom = (
+  const showRoom = (
     ctx: CanvasContext, 
     temple: Temple | undefined, 
     position: [number, number], 
@@ -381,7 +381,8 @@ export function useCanvasRenderer() {
     
     for (let x = 0; x < canvasWidth.value; x += tileSize) {
       for (let y = 0; y < canvasHeight.value; y += tileSize) {
-        if ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0) {
+        const isDarkTile = (Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0;
+        if (isDarkTile) {
           ctx.fillRect(x, y, tileSize, tileSize);
         }
       }
@@ -429,7 +430,8 @@ export function useCanvasRenderer() {
           const px = x + offset + size * Math.cos(angle);
           const py = y + size * Math.sin(angle);
           
-          if (i === 0) {
+          const isFirstCorner = i === 0;
+          if (isFirstCorner) {
             ctx.moveTo(px, py);
           } else {
             ctx.lineTo(px, py);
@@ -640,7 +642,8 @@ export function useCanvasRenderer() {
         const elementY = y + 30 + i * (height - 60) / 2;
         
         // Draw circle or square pattern
-        if (i % 2 === 0) {
+        const isCircle = i % 2 === 0;
+        if (isCircle) {
           ctx.beginPath();
           ctx.arc(centerX, elementY, 8, 0, Math.PI * 2);
           ctx.stroke();
@@ -663,7 +666,8 @@ export function useCanvasRenderer() {
         const elementX = x + 30 + i * (width - 60) / 4;
         
         // Alternate circle and square patterns
-        if (i % 2 === 0) {
+        const isCircle = i % 2 === 0;
+        if (isCircle) {
           ctx.beginPath();
           ctx.arc(elementX, centerY, 8, 0, Math.PI * 2);
           ctx.stroke();
@@ -787,12 +791,15 @@ export function useCanvasRenderer() {
     ctx.fillRect(centerX - 5, centerY - 25, 10, 10);
     
     // Display loot content if available
-    if (room.content && room.content.items && room.content.items.length > 0) {
+    const lootItems = room.content && room.content.items;
+    const lootCount = lootItems ? lootItems.length : 0;
+    const hasLoot = lootCount > 0;
+    if (hasLoot) {
       ctx.fillStyle = '#FFD700';
       ctx.font = '18px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(
-        `Contains: ${room.content.items.length} items`,
+        `Contains: ${lootCount} items`,
         centerX,
         centerY + 50
       );
@@ -892,7 +899,8 @@ export function useCanvasRenderer() {
     ctx.putImageData(imageData, 0, 0);
     
     // Apply pixelation effect
-    if (pixelSize > 1) {
+    const isPixelated = pixelSize > 1;
+    if (isPixelated) {
       // Create temporary canvas for pixelation
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvasWidth.value / pixelSize;
@@ -949,7 +957,8 @@ export function useCanvasRenderer() {
     ctx.putImageData(imageData, 0, 0);
     
     // Apply pixelation effect
-    if (pixelSize > 1) {
+    const isPixelated = pixelSize > 1;
+    if (isPixelated) {
       // Create temporary canvas for pixelation
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvasWidth.value / pixelSize;
@@ -988,7 +997,8 @@ export function useCanvasRenderer() {
     const pixelSize = eraPixelSizes['rpg00s'];
     
     // Only slight pixelation for early 3D era
-    if (pixelSize > 1) {
+    const isPixelated = pixelSize > 1;
+    if (isPixelated) {
       // Create temporary canvas for pixelation
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvasWidth.value / pixelSize;
@@ -1116,7 +1126,7 @@ export function useCanvasRenderer() {
   };
 
   // Handle canvas resize
-  const resizeCanvas = () => {
+  const updateCanvasSize = () => {
     if (!dungeonCanvas.value) return;
     
     // Use window dimensions
@@ -1128,24 +1138,24 @@ export function useCanvasRenderer() {
     dungeonCanvas.value.height = canvasHeight.value;
   };
 
-  // Set up resize handler
+  // Set up resize handler, and size the canvas to the window now
   const initCanvasResizeHandling = () => {
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', updateCanvasSize);
+    updateCanvasSize();
     
     // Return cleanup function
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', updateCanvasSize);
     };
   };
 
+  const canvasSize = computed(() => ({ width: canvasWidth.value, height: canvasHeight.value }));
+
   return {
     dungeonCanvas,
-    canvasWidth,
-    canvasHeight,
-    showRoomTypeLabel,
-    drawRoom,
+    canvasSize,
+    showRoom,
     exportBackground,
-    resizeCanvas,
     initCanvasResizeHandling
   };
 }

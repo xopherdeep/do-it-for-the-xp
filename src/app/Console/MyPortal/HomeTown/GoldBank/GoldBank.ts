@@ -25,6 +25,7 @@ import {
 import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import {
   type BankAction,
+  bankMove,
   storageMaxed,
   bankReceipt,
   bankRefusal,
@@ -39,7 +40,7 @@ import { BANKER, amountAsk, bankMenuPrompt, noticePrompt, type BankMenuId } from
 import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import { useCopy, useVoice } from "@/hooks/useVoice";
+import { copyIn, useVoice } from "@/hooks/useVoice";
 import ATMModal from "./components/ATMModal.vue";
 import { walletLimitOf } from "@/lib/services/gp/wallet";
 import { shopHintFor } from "@/lib/services/gp/walletShops";
@@ -112,9 +113,11 @@ export default defineComponent({
         this.play$fx("select");
         let lines = this.dialogBlocks;
         for (;;) {
-          const pick = (await this.reveal.ask(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
-          if (pick === "stay") return;
-          if (pick === "leave" || pick === "atm") {
+          const pick = (await this.reveal.showPrompt(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick === "leave" || pick === "atm";
+          if (isWalkingAway) {
             this.walkAway(pick);
             return;
           }
@@ -128,28 +131,32 @@ export default defineComponent({
 
     /** Leave the counter: out of the bank, or over to the ATM. */
     walkAway(pick: "leave" | "atm") {
-      if (pick === "leave") this.goBack();
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
       else this.openATM();
     },
 
     /** One errand from the menu. */
     async runErrand(pick: Exclude<BankMenuId, "atm" | "leave">) {
-      if (pick === "storage") return this.storageCounter();
+      const isStorageErrand = pick === "storage";
+      if (isStorageErrand) return this.storageCounter();
       return this.moneyErrand(pick);
     },
 
     /** A deposit, a withdrawal or a payment: how much (on the stepper), then the move and its receipt. */
     async moneyErrand(action: BankAction) {
       const ask = amountAsk(action, this.user.stats.gp, undefined, this.words);
-      if ("refusal" in ask) {
+      const isRefused = "refusal" in ask;
+      if (isRefused) {
         this.play$fx("no");
-        await this.reveal.ask(noticePrompt(ask.refusal));
+        await this.reveal.showPrompt(noticePrompt(ask.refusal));
         return;
       }
-      const { id, amount } = await this.reveal.askAmount(ask.prompt);
-      if (id !== "ok" || !amount) return;
+      const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt);
+      const isCancelled = id !== "ok" || !amount;
+      if (isCancelled) return;
       const gp = this.user.stats.gp;
-      const move = action === "withdraw" ? withdrawFromSavings(gp, amount) : action === "deposit" ? depositToSavings(gp, amount) : payDownBills(gp, amount);
+      const move = bankMove(action, gp, amount);
       await this.applyMove(action, move);
     },
 
@@ -165,20 +172,21 @@ export default defineComponent({
       const sale = storagePurchase(this.user, wallet, savings, false);
       if (!next) {
         this.play$fx("no");
-        await this.reveal.ask(noticePrompt(storageMaxed(this.words), "chestOpen"));
+        await this.reveal.showPrompt(noticePrompt(storageMaxed(this.words), "chestOpen"));
         return;
       }
       const question = storageQuestion(next, this.words);
-      if (!sale.ok && sale.reason === "gp" && !sale.canTopUp) {
+      const isTooPoor = !sale.ok && sale.reason === "gp" && !sale.canTopUp;
+      if (isTooPoor) {
         this.play$fx("no");
-        await this.reveal.ask(noticePrompt(`${question} ${storageRefusal(sale, this.words)}`, "chest"));
+        await this.reveal.showPrompt(noticePrompt(`${question} ${storageRefusal(sale, this.words)}`, "chest"));
         return;
       }
       const needsSavings = !sale.ok && sale.reason === "gp";
       const lines = needsSavings ? [question, storageTopUpQuestion(sale, this.words)] : [question];
       const yes = needsSavings ? "Use savings" : "Buy it";
       const no = needsSavings ? "Not now" : "No thanks";
-      const pick = await this.reveal.ask({
+      const pick = await this.reveal.showPrompt({
         speaker: BANKER,
         accent: "bank",
         sprite: "chest",
@@ -189,19 +197,22 @@ export default defineComponent({
         ],
         cancelId: "no"
       });
-      if (pick === "yes") await this.sellStorage(needsSavings);
+      const isAccepted = pick === "yes";
+      if (isAccepted) await this.sellStorage(needsSavings);
     },
 
     /** The sale itself: the store re-checks the purse, so a refusal here is read out the same way. */
     async sellStorage(useSavings: boolean) {
       const sale = this.userStore.buyStorageTier(this.user.id, useSavings);
-      if (!sale.ok) {
+      const isRefused = !sale.ok;
+      if (isRefused) {
+
         this.play$fx("no");
-        await this.reveal.ask(noticePrompt(storageRefusal(sale, this.words) ?? storageMaxed(this.words), "chest"));
+        await this.reveal.showPrompt(noticePrompt(storageRefusal(sale, this.words) ?? storageMaxed(this.words), "chest"));
         return;
       }
       this.play$fx("buyItem");
-      await this.reveal.ask({
+      await this.reveal.showPrompt({
         speaker: BANKER,
         accent: "bank",
         sprite: "chestOpen",
@@ -232,7 +243,7 @@ export default defineComponent({
       const refusal = bankRefusal(action, before, move, this.words)
       if (refusal) {
         this.play$fx("no");
-        await this.reveal.ask(noticePrompt(refusal))
+        await this.reveal.showPrompt(noticePrompt(refusal))
         return
       }
       this.play$fx("countCoins");
@@ -243,7 +254,7 @@ export default defineComponent({
       await this.savePurse(move.gp)
       if (clearsBill) announceBillPaid(heroId)
       // The coins rise with the receipt
-      await this.reveal.ask(noticePrompt(receipt, "coins"))
+      await this.reveal.showPrompt(noticePrompt(receipt, "coins"))
     },
 
     savePurse(purse: Purse) {
@@ -267,12 +278,12 @@ export default defineComponent({
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
     // Leaving the bank goes back, or up to Home Town when the bank was opened with no history behind it
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
     // The banker talks, offers and answers in the game's own dialog, not in native alerts
     const reveal = useRevealPrompt();
     // The banker's words follow the hero's voice (simple, adventure or classic)
-    const t = useCopy();
     const { voice: words } = useVoice();
+    const t = copyIn(words);
 
     return {
       t,

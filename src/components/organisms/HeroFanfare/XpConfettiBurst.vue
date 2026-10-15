@@ -57,8 +57,10 @@ const fit = (): boolean => {
   const rect = el.getBoundingClientRect();
   const width = Math.max(1, Math.ceil(rect.width / CELL));
   const height = Math.max(1, Math.ceil(rect.height / CELL));
-  if (el.width !== width) el.width = width;
-  if (el.height !== height) el.height = height;
+  const isWidthStale = el.width !== width;
+  if (isWidthStale) el.width = width;
+  const isHeightStale = el.height !== height;
+  if (isHeightStale) el.height = height;
   size = { width, height };
   return rect.width > 0 && rect.height > 0;
 };
@@ -74,7 +76,8 @@ const paint = (ctx: CanvasRenderingContext2D, chip: Chip) => {
     case "diamond": {
       // A plus of five cells; edge-on it is a bar
       const arm = Math.max(1, Math.round(chip.size / 2));
-      if (w > 1) ctx.fillRect(x - arm, y, arm * 2 + 1, 1);
+      const isFaceOn = w > 1;
+      if (isFaceOn) ctx.fillRect(x - arm, y, arm * 2 + 1, 1);
       ctx.fillRect(x, y - arm, 1, arm * 2 + 1);
       break;
     }
@@ -122,7 +125,8 @@ const tick = (now: number) => {
   chips = stepChips(chips, dt, size);
   ctx.clearRect(0, 0, el.width, el.height);
   chips.forEach((chip) => paint(ctx, chip));
-  if (chips.length > 0) frame = requestAnimationFrame(tick);
+  const hasChipsInPlay = chips.length > 0;
+  if (hasChipsInPlay) frame = requestAnimationFrame(tick);
 };
 
 const start = () => {

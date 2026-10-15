@@ -4,8 +4,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { AppChipKind } from "./appChips";
 
-export type AppChipKind = "xp" | "gp" | "ap" | "mp" | "hp" | "qty" | "tag";
+export type { AppChipKind };
 
 /**
  * A small stat chip on a row: "12 XP", "5 GP", "3 AP", "25 MP", "40 HP", "x3" (qty) or a plain tag.

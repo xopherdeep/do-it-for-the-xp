@@ -106,8 +106,10 @@ export const tabById = (id: LookTabId): LookTab => TABS.find((tab) => tab.id ===
 /** A style tile's look: the draft with that one option applied (and no hat on the hair tab, so the hair shows) */
 export const tileLook = (draft: HeroLook, tab: LookTab, option: string): HeroLook => {
   const look: HeroLook = { ...draft };
-  if (tab.styles) Object.assign(look, { [tab.styles.key]: option });
-  if (tab.bareHead) look.hat = "none";
+  const styles = tab.styles;
+  if (styles) Object.assign(look, { [styles.key]: option });
+  const wantsBareHead = tab.bareHead;
+  if (wantsBareHead) look.hat = "none";
   return look;
 };
 
@@ -212,7 +214,8 @@ export const starterLineup = (count: number, rng: Rng = Math.random): HeroLook[]
 /** The undo history: the latest look goes on the end, a repeat of the last one is not worth a step, the oldest fall off the front */
 export const pushHistory = (history: HeroLook[], look: HeroLook, cap = 50): HeroLook[] => {
   const last = history[history.length - 1];
-  if (last && sameLook(last, look)) return [...history];
+  const isRepeat = !!last && sameLook(last, look);
+  if (isRepeat) return [...history];
   return [...history, look].slice(-cap);
 };
 

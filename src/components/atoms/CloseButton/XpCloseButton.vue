@@ -38,7 +38,8 @@ export default defineComponent({
 
     const handleClick = (event: Event) => {
       event.stopPropagation();
-      if (props.playSound) {
+      const isSoundOn = props.playSound;
+      if (isSoundOn) {
         play$fx('no');
       }
       emit('click', event);

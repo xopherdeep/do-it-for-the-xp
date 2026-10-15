@@ -68,10 +68,12 @@ export const bedtimeLifted = (settings: FamilySettings, effects: HeroQuestEffect
 
 /** True between the bedtime's two clocks (it may run past midnight) unless an old saved lift covers this night. */
 export const isBedtimeNow = (settings: FamilySettings, now: Date, effects?: HeroQuestEffects): boolean => {
-  if (!settings.bedtime.enabled) return false;
+  const isBedtimeOff = !settings.bedtime.enabled;
+  if (isBedtimeOff) return false;
   const from = minutesOf(settings.bedtime.from);
   const to = minutesOf(settings.bedtime.to);
-  if (from === to) return false;
+  const isBedtimeEmpty = from === to;
+  if (isBedtimeEmpty) return false;
   const minutes = now.getHours() * 60 + now.getMinutes();
   const inside = from < to ? minutes >= from && minutes < to : minutes >= from || minutes < to;
   return inside && !bedtimeLifted(settings, effects, now);

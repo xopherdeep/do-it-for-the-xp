@@ -112,7 +112,7 @@ describe("opening the sheet over a cracked wall", () => {
     const { reveal } = sheet(id, [BOMBS, null]);
     reveal.showCrackedWall("north");
 
-    reveal.leaveShownWall();
+    reveal.closeShownWall();
 
     expect(reveal.wall.isWallOpen.value).toBe(false);
     expect(temples.doorKind(id, [1, 1], "north")).toBe("bombable");
@@ -127,7 +127,7 @@ describe("Bomb it", () => {
     const { reveal, applyOutcome } = sheet(id, [BOMBS, null]);
     reveal.showCrackedWall("west");
 
-    await reveal.blowShownWall();
+    await reveal.triggerWallBlast();
 
     expect(temples.doorKind(id, [1, 1], "west")).toBe("open");
     expect(temples.doorKind(id, [1, 1], "north")).toBe("bombable");
@@ -141,7 +141,7 @@ describe("Bomb it", () => {
     packBombs(1);
     const { reveal, applyOutcome } = sheet(crackedHall({ east: "bombable" }), [BOMBS, null]);
     reveal.showCrackedWall("east");
-    await reveal.blowShownWall();
+    await reveal.triggerWallBlast();
 
     await reveal.completeShownWall();
 
@@ -161,7 +161,7 @@ describe("Bomb it", () => {
     const { reveal, applyOutcome } = sheet(id, [BOMBS, null]);
     reveal.showCrackedWall("east");
 
-    await reveal.blowShownWall();
+    await reveal.triggerWallBlast();
 
     expect(reveal.wall.isWallOpen.value).toBe(false);
     expect(reveal.wall.wallResult.value).toBe("refused");
@@ -176,7 +176,7 @@ describe("Bomb it", () => {
     const { reveal, applyOutcome } = sheet(id, [LANTERN, null]);
     reveal.showCrackedWall("east");
 
-    await reveal.blowShownWall();
+    await reveal.triggerWallBlast();
 
     expect(reveal.wall.wallResult.value).toBeNull();
     expect(applyOutcome).not.toHaveBeenCalled();
@@ -188,7 +188,7 @@ describe("Bomb it", () => {
     packBombs(2);
     const { reveal } = sheet(crackedHall({ east: "bombable", west: "bombable" }), [BOMBS, null]);
     reveal.showCrackedWall("east");
-    await reveal.blowShownWall();
+    await reveal.triggerWallBlast();
     await reveal.completeShownWall();
 
     reveal.showCrackedWall("west");

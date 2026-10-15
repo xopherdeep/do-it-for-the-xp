@@ -17,6 +17,13 @@ interface BgmPayload {
   repeat?: boolean;
 }
 
+interface BgmPayloadOptions {
+  track?: number | "random";
+  startDelay: number;
+  saveBookmark?: boolean;
+  repeat?: boolean;
+}
+
 interface SimpleBgmRouteConfig {
   key: string;
   options?: {
@@ -42,22 +49,19 @@ const lastRandomPick = new WeakMap<object, number>();
 
 /** A random track index that differs from the playlist's previous random pick (when it has more than one). */
 export function pickFreshTrack(tracks: unknown[]): number {
-  if (tracks.length < 2) return 0;
+  const isSingleTrack = tracks.length < 2;
+  if (isSingleTrack) return 0;
   const last = lastRandomPick.get(tracks);
   let index = Math.floor(Math.random() * tracks.length);
-  if (index === last) index = (index + 1 + Math.floor(Math.random() * (tracks.length - 1))) % tracks.length;
+  const isRepeatPick = index === last;
+  if (isRepeatPick) index = (index + 1 + Math.floor(Math.random() * (tracks.length - 1))) % tracks.length;
   lastRandomPick.set(tracks, index);
   return index;
 }
 
 function createBgmPayload(
   tracks: unknown,
-  options: {
-    track?: number | "random";
-    startDelay: number;
-    saveBookmark?: boolean;
-    repeat?: boolean;
-  }
+  options: BgmPayloadOptions
 ): BgmPayload | null {
   if (!isValidTrackList(tracks)) return null;
 
@@ -184,7 +188,8 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
         changeBGM(audioStore, picked, true);
       };
       // The hero navigated on before the element resolved: the wrong track must not start
-      if (run !== guardRun) return;
+      const isStaleRun = run !== guardRun;
+      if (isStaleRun) return;
       const current = router?.currentRoute.value;
       const canPlayNow = !router || current?.fullPath === fullPath;
       if (canPlayNow) return play();
@@ -208,9 +213,11 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
 
   // Dispatch BGM change if payload was determined. The same playlist already playing (a hero
   // stepping out to the quest log and back into the temple) keeps playing: no new random pick, no restart.
-  if (payload?.tracks?.length) {
-    const isPlaylistAlreadyPlaying = payload.tracks === bgm.tracks && bgm.is_on;
+  const finalPayload = payload;
+  const hasTracks = !!finalPayload?.tracks?.length;
+  if (hasTracks) {
+    const isPlaylistAlreadyPlaying = finalPayload.tracks === bgm.tracks && bgm.is_on;
     if (isPlaylistAlreadyPlaying) return;
-    changeBGM(audioStore, payload, true);
+    changeBGM(audioStore, finalPayload, true);
   }
 }

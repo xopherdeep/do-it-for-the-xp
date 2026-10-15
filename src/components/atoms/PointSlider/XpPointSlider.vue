@@ -132,9 +132,17 @@ const props = withDefaults(defineProps<Props>(), {
     showPointsDisplay: true,
 });
 
+/** The points a difficulty is worth, sent up with `update:rewards` */
+interface DifficultyRewards {
+    xp: number;
+    gp: number;
+    ap: number;
+    difficulty: number;
+}
+
 const emit = defineEmits<{
     'update:modelValue': [value: number];
-    'update:rewards': [rewards: { xp: number; gp: number; ap: number; difficulty: number }];
+    'update:rewards': [rewards: DifficultyRewards];
 }>();
 
 defineOptions({
@@ -191,13 +199,15 @@ const displayFibonacciValue = (index: number) => {
 };
 
 const increaseDifficulty = () => {
-    if (fibonacciIndex.value < fibonacciArray.length - 1) {
+    const canIncrease = fibonacciIndex.value < fibonacciArray.length - 1;
+    if (canIncrease) {
         fibonacciIndex.value++;
     }
 };
 
 const decreaseDifficulty = () => {
-    if (fibonacciIndex.value > 0) {
+    const canDecrease = fibonacciIndex.value > 0;
+    if (canDecrease) {
         fibonacciIndex.value--;
     }
 };
@@ -222,7 +232,8 @@ const showHelp = async () => {
 
 // Sync external modelValue to internal state
 watch(() => props.modelValue, (newVal) => {
-    if (newVal !== fibonacciIndex.value) {
+    const isOutOfSync = newVal !== fibonacciIndex.value;
+    if (isOutOfSync) {
         fibonacciIndex.value = newVal;
     }
 });

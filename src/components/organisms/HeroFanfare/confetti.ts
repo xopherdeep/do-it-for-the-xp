@@ -77,8 +77,10 @@ const startOn = (edge: Edge, bounds: Bounds, random: Random): { x: number; y: nu
 
 const shapeOf = (random: Random): ChipShape => {
   const roll = random();
-  if (roll < 0.08) return "star";
-  if (roll < 0.4) return "diamond";
+  const isStar = roll < 0.08;
+  if (isStar) return "star";
+  const isDiamond = roll < 0.4;
+  if (isDiamond) return "diamond";
   return "square";
 };
 
@@ -131,7 +133,8 @@ export const burstFromEdges = (
 export const stepChips = (chips: Chip[], dt: number, bounds: Bounds): Chip[] => {
   const alive: Chip[] = [];
   for (const chip of chips) {
-    if (chip.delay > 0) {
+    const isWaitingToThrow = chip.delay > 0;
+    if (isWaitingToThrow) {
       chip.delay -= dt;
       alive.push(chip);
       continue;

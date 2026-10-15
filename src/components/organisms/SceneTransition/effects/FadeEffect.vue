@@ -32,8 +32,10 @@ watch(
   () => props.phase,
   (phase) => {
     clearTimeout(timer);
-    if (phase === "cover") timer = setTimeout(() => emit("covered"), duration.value);
-    if (phase === "reveal") timer = setTimeout(() => emit("revealed"), duration.value);
+    const isCover = phase === "cover";
+    const isReveal = phase === "reveal";
+    if (isCover) timer = setTimeout(() => emit("covered"), duration.value);
+    if (isReveal) timer = setTimeout(() => emit("revealed"), duration.value);
   },
   { immediate: true }
 );

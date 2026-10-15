@@ -10,7 +10,9 @@ import { defaultSides, legacyLockedToSides } from "./doorSides";
 
 /** The room's content object, created empty first when the room has none */
 export const ensureContent = (room: Room): RoomContent => {
-  if (!room.content) room.content = {} as RoomContent;
+  const content = room.content;
+  if (content) return content;
+  room.content = {} as RoomContent;
   return room.content;
 };
 
@@ -18,28 +20,34 @@ export const ensureContent = (room: Room): RoomContent => {
 const moveLegacyFieldsIntoContent = (currentRoom: Room): void => {
   const content = ensureContent(currentRoom);
   const rd = currentRoom as Record<string, unknown>;
-  if (rd.selectedBeastIds) {
-    content.beasts = rd.selectedBeastIds as string[];
+  const legacyBeastIds = rd.selectedBeastIds;
+  if (legacyBeastIds) {
+    content.beasts = legacyBeastIds as string[];
     delete rd.selectedBeastIds;
   }
-  if (rd.isMimic !== undefined) {
+  const hasLegacyMimic = rd.isMimic !== undefined;
+  if (hasLegacyMimic) {
     content.isMimic = rd.isMimic as boolean;
     delete rd.isMimic;
   }
-  if (rd.mimicType) {
-    content.mimicType = rd.mimicType as string;
+  const legacyMimicType = rd.mimicType;
+  if (legacyMimicType) {
+    content.mimicType = legacyMimicType as string;
     delete rd.mimicType;
   }
-  if (rd.mimicBeastId) {
-    content.mimicBeastId = rd.mimicBeastId as string;
+  const legacyMimicBeastId = rd.mimicBeastId;
+  if (legacyMimicBeastId) {
+    content.mimicBeastId = legacyMimicBeastId as string;
     delete rd.mimicBeastId;
   }
-  if (rd.lockOnEnter !== undefined) {
+  const hasLegacyLockOnEnter = rd.lockOnEnter !== undefined;
+  if (hasLegacyLockOnEnter) {
     content.lockOnEnter = rd.lockOnEnter as boolean;
     delete rd.lockOnEnter;
   }
-  if (rd.chestType) {
-    content.chest = rd.chestType as string;
+  const legacyChestType = rd.chestType;
+  if (legacyChestType) {
+    content.chest = legacyChestType as string;
     delete rd.chestType;
   }
 };
@@ -47,7 +55,8 @@ const moveLegacyFieldsIntoContent = (currentRoom: Room): void => {
 // Auto-select chest type from content if it exists
 const autoSelectChestType = (currentRoom: Room): void => {
   const content = ensureContent(currentRoom);
-  if (currentRoom.type === "loot") {
+  const isLootRoom = currentRoom.type === "loot";
+  if (isLootRoom) {
     if (content.dungeon) {
       content.chest = "dungeon";
     } else if (content.gold !== undefined) {
@@ -68,19 +77,23 @@ export const prepareRoomForEditing = (currentRoom: Room): void => {
 
   moveLegacyFieldsIntoContent(currentRoom);
 
-  if (!content.beasts) content.beasts = [];
+  const hasBeastList = Boolean(content.beasts);
+  if (!hasBeastList) content.beasts = [];
 
   // Migration: Move legacy locked to sides
-  if (!currentRoom.sides && currentRoom.locked) {
-    currentRoom.sides = legacyLockedToSides(currentRoom.locked);
+  const legacyLocked = currentRoom.locked;
+  const hasLegacyLockedOnly = !currentRoom.sides && !!legacyLocked;
+  if (hasLegacyLockedOnly) {
+    currentRoom.sides = legacyLockedToSides(legacyLocked);
     delete currentRoom.locked;
   }
 
   // With sides, the sides are the truth (play locks doors from them, see lockedFromSides): a `locked` flag kept
   // beside them would keep a door the Game Master opens here locked in play
-  if (currentRoom.sides) delete currentRoom.locked;
+  const hasSides = Boolean(currentRoom.sides);
+  if (hasSides) delete currentRoom.locked;
 
-  if (!currentRoom.sides) {
+  if (!hasSides) {
     currentRoom.sides = defaultSides();
   }
 
@@ -97,9 +110,12 @@ const CONFIG_STEP_ROOM_TYPES = ["loot", "shop", "master", ...TRAVEL_ROOM_TYPES];
  * straight to its config, loot, shops, the Master Room and travel rooms go to their config, and the rest just close.
  */
 export const stepForRoomType = (type: string): TypeStep => {
-  if (type === "monster" || type === "miniboss") return "monster-config";
-  if (type === "boss") return "boss";
-  if (CONFIG_STEP_ROOM_TYPES.includes(type)) return "config";
+  const isSharedConfigType = type === "monster" || type === "miniboss";
+  if (isSharedConfigType) return "monster-config";
+  const isBoss = type === "boss";
+  if (isBoss) return "boss";
+  const hasConfigStep = CONFIG_STEP_ROOM_TYPES.includes(type);
+  if (hasConfigStep) return "config";
   return "close";
 };
 
@@ -137,26 +153,34 @@ export const contentAfterTypeChange = (
   content: RoomContent | undefined
 ): RoomContent => {
   const held: RoomContent = content ?? {};
-  if (fromType === toType) return copyOf(held);
-  if (SHARED_TOKEN_TYPES.includes(toType)) return {};
+  const isSameType = fromType === toType;
+  if (isSameType) return copyOf(held);
+  const isSharedToken = SHARED_TOKEN_TYPES.includes(toType);
+  if (isSharedToken) return {};
 
   const next: RoomContent = {};
-  if (held.name !== undefined) next.name = held.name;
-  if (held.beasts !== undefined && COMBAT_ROOM_TYPES.includes(toType)) next.beasts = held.beasts;
+  const hasName = held.name !== undefined;
+  if (hasName) next.name = held.name;
+  const shouldKeepBeasts = held.beasts !== undefined && COMBAT_ROOM_TYPES.includes(toType);
+  if (shouldKeepBeasts) next.beasts = held.beasts;
 
   const family = CARRIED_WITHIN_FAMILY.find((f) => f.types.includes(fromType) && f.types.includes(toType));
   family?.keys.forEach((key) => {
-    if (held[key] !== undefined) next[key] = held[key];
+    const isHeld = held[key] !== undefined;
+    if (isHeld) next[key] = held[key];
   });
 
-  if (fromType === "boss") delete next.lockOnEnter;
-  if (toType === "boss") next.lockOnEnter = true;
+  const isLeavingBoss = fromType === "boss";
+  if (isLeavingBoss) delete next.lockOnEnter;
+  const isBecomingBoss = toType === "boss";
+  if (isBecomingBoss) next.lockOnEnter = true;
   return copyOf(next);
 };
 
 /** Makes the room `toType` in place: its content is rebuilt (`contentAfterTypeChange`); its sides and the rest stay. */
 export const retypeRoom = (room: Room, toType: string): void => {
-  if (room.type === toType) return;
+  const isSameType = room.type === toType;
+  if (isSameType) return;
   room.content = contentAfterTypeChange(room.type, toType, room.content);
   room.type = toType;
 };
@@ -170,7 +194,8 @@ export const adoptSharedRecord = (shared: Room, mine: Room): Room => {
   const sides = mine.sides ?? adopted.sides;
   if (sides) adopted.sides = copyOf(sides);
   const name = mine.content?.name;
-  if (name !== undefined) ensureContent(adopted).name = name;
+  const hasName = name !== undefined;
+  if (hasName) ensureContent(adopted).name = name;
   return adopted;
 };
 
@@ -183,9 +208,11 @@ export const adoptSharedRecord = (shared: Room, mine: Room): Room => {
 export const pickChestItem = (content: RoomContent | undefined, itemId: string | null): RoomContent => {
   const next: RoomContent = { ...(content ?? {}) };
   delete next.item;
-  if (itemId === null) {
+  const isEmptyPick = itemId === null;
+  if (isEmptyPick) {
     delete next.dungeon;
-    if (next.chest === "dungeon") delete next.chest;
+    const isDungeonChest = next.chest === "dungeon";
+    if (isDungeonChest) delete next.chest;
     return next;
   }
   next.chest = "dungeon";
@@ -206,7 +233,8 @@ export const seedTravelTargets = (
 ): void => {
   const isStairs = type === "stairs-up" || type === "stairs-down";
   const pointsAtOwnFloor = content.targetLevel === currentLevelId;
-  if (isStairs && pointsAtOwnFloor) {
+  const shouldClearSeed = isStairs && pointsAtOwnFloor;
+  if (shouldClearSeed) {
     delete content.targetLevel;
     const isDefaultCell = content.targetCoords?.x === 0 && content.targetCoords?.y === 0;
     if (isDefaultCell) delete content.targetCoords;
@@ -254,14 +282,17 @@ export const applyChestType = (
 
 /** Adds the consumable to the chest, or takes it off when it is already there (a chest always keeps one) */
 export const toggleConsumableItem = (content: RoomContent, itemId: string): void => {
-  if (!content.items) {
+  const items = content.items;
+  if (!items) {
     content.items = [itemId];
-  } else if (content.items.includes(itemId)) {
-    content.items = content.items.filter((i: string) => i !== itemId);
-    if (content.items.length === 0) {
-      content.items = [itemId]; // Keep at least one
-    }
-  } else {
-    content.items.push(itemId);
+    return;
   }
+  const isInChest = items.includes(itemId);
+  if (!isInChest) {
+    items.push(itemId);
+    return;
+  }
+  const remaining = items.filter((i: string) => i !== itemId);
+  const isEmptied = remaining.length === 0;
+  content.items = isEmptied ? [itemId] : remaining; // Keep at least one
 };

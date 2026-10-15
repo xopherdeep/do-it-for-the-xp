@@ -14,19 +14,18 @@ import { stateLineOf } from "../powerRow";
  * line, and Cast works whenever there is no reason. A grounded hero's Powers (outside a fight) keep their meters but
  * never cast: `groundedReason` is the state line.
  */
-const props = withDefaults(
-  defineProps<{
-    ability: Ability;
-    status: AbilityStatus;
-    unlocked: boolean;
-    snapshot: HeroAbilitySnapshot;
-    casting?: boolean;
-    battle?: BattlePowerCard;
-    /** Set while the hero owes the Hospital (docs/Quest-Rooms-Spec.md 5.8): Cast stays disabled and says why. Not used in a fight. */
-    groundedReason?: string | null;
-  }>(),
-  { casting: false, groundedReason: null }
-);
+interface XpPowerCardProps {
+  ability: Ability;
+  status: AbilityStatus;
+  unlocked: boolean;
+  snapshot: HeroAbilitySnapshot;
+  casting?: boolean;
+  battle?: BattlePowerCard;
+  /** Set while the hero owes the Hospital (docs/Quest-Rooms-Spec.md 5.8): Cast stays disabled and says why. Not used in a fight. */
+  groundedReason?: string | null;
+}
+
+const props = withDefaults(defineProps<XpPowerCardProps>(), { casting: false, groundedReason: null });
 
 const emit = defineEmits<{ (e: "cast", abilityId: string): void }>();
 
@@ -81,14 +80,18 @@ const costLine = computed(() =>
 
 /** The one line that says why the Power cannot be cast right now (none when it can) */
 const stateLine = computed(() => {
-  if (props.battle) return props.battle.reason ?? "";
+  const battle = props.battle;
+  if (battle) return battle.reason ?? "";
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
-  if (props.groundedReason && props.status === "available") return props.groundedReason;
+  const groundedLine = props.status === "available" ? props.groundedReason : "";
+  if (groundedLine) return groundedLine;
   return stateLineOf(props.ability, props.status, earned.value, needed.value);
 });
 
 const canCast = computed(() => {
-  if (props.battle) return !props.battle.reason && !props.casting;
+  const battle = props.battle;
+  if (battle) return !battle.reason && !props.casting;
+
   return props.status === "available" && !props.groundedReason && !props.casting;
 });
 

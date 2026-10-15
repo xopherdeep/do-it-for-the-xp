@@ -41,9 +41,13 @@ export const useTempleMeta = (props: TempleGroundsProps) => {
     return id.startsWith('gen-') || id === 'moving-house' || !metadataFor(id);
   });
   const resolveTempleMeta = (id: string) => {
-    templeMeta.value = metadataFor(id);
-    if (!metadataFor(id)) {
-      void metadataForAsync(id).then((meta) => { if (id === props.temple) templeMeta.value = meta; });
+    const knownMeta = metadataFor(id);
+    templeMeta.value = knownMeta;
+    if (!knownMeta) {
+      void metadataForAsync(id).then((meta) => {
+        const isStillThisTemple = id === props.temple;
+        if (isStillThisTemple) templeMeta.value = meta;
+      });
     }
   };
   resolveTempleMeta(props.temple);

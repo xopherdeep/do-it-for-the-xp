@@ -116,18 +116,32 @@
    */
   type Mode = "style" | "colour";
 
-  const props = defineProps<{
+  interface BuilderTrayProps {
     /** The draft look, without the hands */
     modelValue: HeroLook;
     tab: LookTab;
     mode: Mode;
     thumbnails: LookThumbnailer;
-  }>();
+  }
 
-  const emit = defineEmits<{
+  interface BuilderTrayEmits {
     (e: "update:modelValue", look: HeroLook): void;
     (e: "update:mode", mode: Mode): void;
-  }>();
+  }
+
+  const props = defineProps<BuilderTrayProps>();
+
+  const emit = defineEmits<BuilderTrayEmits>();
+
+  interface BuilderTile {
+    option: string;
+    label: string;
+    heading: string | undefined;
+    swatch: string | undefined;
+    lightSwatch: boolean;
+    src: string;
+    chosen: boolean;
+  }
 
   /** The tile pictures are drawn at this size (pixels) */
   const TILE_SIZE = 96;
@@ -158,15 +172,7 @@
   const tiles = computed(() => {
     const styles = props.tab.styles;
     if (!styles) return [];
-    const made: {
-      option: string;
-      label: string;
-      heading: string | undefined;
-      swatch: string | undefined;
-      lightSwatch: boolean;
-      src: string;
-      chosen: boolean;
-    }[] = [];
+    const made: BuilderTile[] = [];
     for (let index = styles.options.length - 1; index >= 0; index--) {
       const option = styles.options[index];
       const swatch = optionSwatch(props.tab, option);
@@ -192,13 +198,15 @@
   };
 
   const pickStyle = (option: string) => {
-    if (props.tab.styles) change(props.tab.styles.key, option);
+    const styles = props.tab.styles;
+    if (styles) change(styles.key, option);
   };
 
   const pickColour = (key: keyof HeroLook, value: string) => change(key, value);
 
   const pickMode = (mode: Mode) => {
-    if (mode !== props.mode) emit("update:mode", mode);
+    const isNewMode = mode !== props.mode;
+    if (isNewMode) emit("update:mode", mode);
   };
 </script>
 

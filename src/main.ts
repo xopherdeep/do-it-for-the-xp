@@ -22,6 +22,7 @@ import XpAppHeader from './components/organisms/XpApp/XpAppHeader.vue'
 import XpAppSection from './components/organisms/XpApp/XpAppSection.vue'
 import XpAppRow from './components/organisms/XpApp/XpAppRow.vue'
 import XpAppChip from './components/organisms/XpApp/XpAppChip.vue'
+import XpAppChips from './components/organisms/XpApp/XpAppChips.vue'
 import XpAppEmpty from './components/organisms/XpApp/XpAppEmpty.vue'
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
@@ -82,7 +83,8 @@ window.addEventListener('unhandledrejection', (event) => {
 const markUserInteracted = () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
 
-  if (window._pendingAudioPlay) {
+  const hasPendingAudioPlay = Boolean(window._pendingAudioPlay);
+  if (hasPendingAudioPlay) {
     window._pendingAudioPlay = false;
   }
 };
@@ -139,6 +141,7 @@ function readyRouterMountApp() {
     .component('xp-app-section', XpAppSection)
     .component('xp-app-row', XpAppRow)
     .component('xp-app-chip', XpAppChip)
+    .component('xp-app-chips', XpAppChips)
     .component('xp-app-empty', XpAppEmpty)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
@@ -200,8 +203,9 @@ declare global {
 if (process.env.NODE_ENV !== 'production') {
   window.unlockPegasus = (index: number) => {
     const store = useUserStore();
-    if (store.currentUser.id) {
-      store.unlockPegasus(store.currentUser.id, index);
+    const userId = store.currentUser.id;
+    if (userId) {
+      store.unlockPegasus(userId, index);
       debug.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
     } else {
       debug.warn("No user logged in.");

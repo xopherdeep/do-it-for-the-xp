@@ -120,11 +120,8 @@ export const buildPowerRow = (
   const ratio = needed > 0 ? Math.min(earned / needed, 1) : 1;
 
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
-  const stateLine = running
-    ? `Running · ${timerLeft} left`
-    : groundedReason && status === "available"
-      ? groundedReason
-      : stateLineOf(ability, status, earned, needed);
+  const restingLine = groundedReason && status === "available" ? groundedReason : stateLineOf(ability, status, earned, needed);
+  const stateLine = running ? `Running · ${timerLeft} left` : restingLine;
 
   return {
     id: ability.id,

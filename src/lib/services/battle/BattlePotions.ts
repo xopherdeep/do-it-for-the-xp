@@ -39,10 +39,12 @@ export const POTIONS: Record<string, PotionRule> = {
 /** Match a potion rule by name, case-insensitively and handling spacing/hyphens. */
 export const findPotionRule = (name: string): { key: string; rule: PotionRule } | null => {
   if (!name) return null;
-  if (POTIONS[name]) return { key: name, rule: POTIONS[name] };
+  const exactRule = POTIONS[name];
+  if (exactRule) return { key: name, rule: exactRule };
   const lower = name.toLowerCase().replace(/[-_\s]+/g, " ").trim();
   for (const [key, rule] of Object.entries(POTIONS)) {
-    if (key.toLowerCase().replace(/[-_\s]+/g, " ").trim() === lower) {
+    const isSameName = key.toLowerCase().replace(/[-_\s]+/g, " ").trim() === lower;
+    if (isSameName) {
       return { key, rule };
     }
   }
@@ -69,7 +71,8 @@ export const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: numb
   const hp = heroPoints(userId, 'hp');
   const mp = heroPoints(userId, 'mp');
   const room = { hp: Math.max(0, hp.max - hp.now), mp: Math.max(0, mp.max - mp.now) };
-  if (rule.full) return room;
+  const isFullRestore = Boolean(rule.full);
+  if (isFullRestore) return room;
   return { hp: Math.min(rule.hp ?? 0, room.hp), mp: Math.min(rule.mp ?? 0, room.mp) };
 };
 
@@ -77,7 +80,8 @@ export const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: numb
 export const reasonOf = (rule: PotionRule, gain: { hp: number; mp: number }): string | null => {
   const canRestoreSomething = gain.hp > 0 || gain.mp > 0;
   if (canRestoreSomething) return null;
-  if (rule.full) return REASON_FULL_STRENGTH;
+  const isFullRestore = Boolean(rule.full);
+  if (isFullRestore) return REASON_FULL_STRENGTH;
   return rule.hp ? REASON_HP_FULL : REASON_MP_FULL;
 };
 
@@ -116,15 +120,19 @@ export const drinkPotion = (userId: string, entryId: string): BattleEffectOutcom
       potion.name.toLowerCase().replace(/[-_\s]+/g, " ") === entryId.toLowerCase().replace(/[-_\s]+/g, " ")
   );
   if (!card) return refuse(NOT_IN_PACK);
-  if (card.reason) return refuse(card.reason);
+  const { reason } = card;
+  if (reason) return refuse(reason);
 
   const match = findPotionRule(card.name);
   const rule = match?.rule ?? POTIONS[card.name];
   const gain = gainOf(rule, userId);
   const store = useUserStore();
-  if (!store.spendInventoryItem(userId, card.id)) return refuse(NOT_IN_PACK);
-  if (gain.hp > 0) store.updateUserHP({ userId, amount: gain.hp });
-  if (gain.mp > 0) store.updateUserMP({ userId, amount: gain.mp });
+  const hasSpentPotion = store.spendInventoryItem(userId, card.id);
+  if (!hasSpentPotion) return refuse(NOT_IN_PACK);
+  const hasHpGain = gain.hp > 0;
+  if (hasHpGain) store.updateUserHP({ userId, amount: gain.hp });
+  const hasMpGain = gain.mp > 0;
+  if (hasMpGain) store.updateUserMP({ userId, amount: gain.mp });
 
   const result = rule.full
     ? 'HP and MP fully restored!'

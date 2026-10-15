@@ -261,7 +261,7 @@ describe("XpRevealPrompt", () => {
     });
 
     it("takes the ring colour from the accent with the minty fallback, and nothing else of the box changes", () => {
-      const source = readFileSync(join(__dirname, "../../src/components/organisms/RevealPrompt/XpRevealPrompt.vue"), "utf8");
+      const source = readFileSync(join(__dirname, "../../src/components/organisms/RevealPrompt/_XpRevealPrompt.scss"), "utf8");
       // the 10 px ring is the accent, with the fallback so a missing accent never kills the box
       expect(source).toContain("0 0 0 10px var(--xp-app-accent, #68d0b8)");
       // the Earthbound rings around it are as eb-box has them, behind the other game styles' own frame

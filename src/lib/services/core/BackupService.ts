@@ -190,7 +190,8 @@ const readEntries = async (storage: BackupStorage): Promise<BackupEntry[]> => {
   const entries: BackupEntry[] = [];
   await storage.forEach((value, key) => {
     // Block body on purpose: forEach stops iterating as soon as the callback returns anything but undefined
-    if (value !== undefined) entries.push({ key, value: toJson(value) });
+    const isStored = value !== undefined;
+    if (isStored) entries.push({ key, value: toJson(value) });
   });
   return entries;
 };
@@ -219,7 +220,8 @@ const parseEntries = (store: string, entries: unknown): BackupEntry[] => {
     if (!isBackupEntry(entry)) {
       throw new BackupFormatError(`"${store}", entry ${index + 1}: every entry needs a "key" (text) and a "value".`);
     }
-    if (seen.has(entry.key)) {
+    const isDuplicateKey = seen.has(entry.key);
+    if (isDuplicateKey) {
       throw new BackupFormatError(`"${store}" lists the key "${entry.key}" more than once.`);
     }
     seen.add(entry.key);
@@ -304,7 +306,8 @@ export class BackupService {
    */
   parseBackup(raw: unknown): BackupFile {
     let data: unknown = raw;
-    if (typeof raw === "string") {
+    const isJsonText = typeof raw === "string";
+    if (isJsonText) {
       try {
         data = JSON.parse(raw);
       } catch {
@@ -319,14 +322,17 @@ export class BackupService {
     if (!isRecord(data)) {
       throw new BackupFormatError("The file is not a backup.");
     }
-    if (data.version !== BACKUP_VERSION) {
+    const isKnownVersion = data.version === BACKUP_VERSION;
+    if (!isKnownVersion) {
       throw new BackupFormatError(
         typeof data.version === "number" && data.version > BACKUP_VERSION
           ? `This backup was made by a newer version of the app (backup version ${data.version}). Update the app and try again.`
           : `This backup has an unknown version. This app reads backup version ${BACKUP_VERSION}.`
       );
     }
-    if (typeof data.exportedAt !== "string") {
+    const { exportedAt } = data;
+    const isDated = typeof exportedAt === "string";
+    if (!isDated) {
       throw new BackupFormatError("The backup has no export date.");
     }
     if (!isRecord(data.stores)) {
@@ -337,10 +343,11 @@ export class BackupService {
     for (const [name, entries] of Object.entries(data.stores)) {
       stores[name] = parseEntries(name, entries);
     }
-    if (!this.stores.some((store) => hasOwn(stores, store.name))) {
+    const hasKnownStore = this.stores.some((store) => hasOwn(stores, store.name));
+    if (!hasKnownStore) {
       throw new BackupFormatError("The backup holds none of the data this version of the app stores, so there is nothing to restore.");
     }
-    return { version: BACKUP_VERSION, exportedAt: data.exportedAt, stores };
+    return { version: BACKUP_VERSION, exportedAt, stores };
   }
 
   /** What restoring this backup would replace, for the confirm dialog and the result message. */
@@ -412,10 +419,11 @@ export class BackupService {
 
     // 4. Only now that every store is written: refresh mirrored copies, then rebuild the user store
     for (const store of plan) {
-      if (!store.afterRestore) continue;
+      const { afterRestore } = store;
+      if (!afterRestore) continue;
       try {
         // A merge leaves other records in the store, and a mirror wants the store's whole contents
-        await store.afterRestore(mode === "merge" ? await readEntries(store.storage) : backup.stores[store.name]);
+        await afterRestore(mode === "merge" ? await readEntries(store.storage) : backup.stores[store.name]);
       } catch (error) {
         debug.error(`Backup restore: post-restore step for ${store.name} failed`, error);
       }

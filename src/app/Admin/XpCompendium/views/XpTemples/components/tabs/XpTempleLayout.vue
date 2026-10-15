@@ -328,7 +328,7 @@ export default defineComponent({
 
     // Initialize a new empty layout
     const initializeNewLayout = () => {
-      creator.initializeGrid();
+      creator.initGrid();
     };
 
     // Handle quick edit popover from context menu
@@ -340,7 +340,8 @@ export default defineComponent({
     const handleJsonApply = async (jsonStr: string) => {
       if (templeData) {
         const result = await templeData.applyRawJson(jsonStr);
-        if (result.success) {
+        const didApply = result.success;
+        if (didApply) {
           isJsonEditorOpen.value = false;
           // Trigger a reload of the layout in the creator hook
           creator.loadTempleLayout();
@@ -349,10 +350,14 @@ export default defineComponent({
     };
 
     const formatRoomContent = (room: any) => {
-      if (!room.content) return 'Standard room';
-      if (room.type === 'monster') return `${room.content.difficulty || 'Normal'} difficulty`;
-      if (room.type === 'loot') return room.content.chest === 'treasure' ? 'Treasure Chest' : 'Gold/Items';
-      if (room.type === 'shop') return 'Active Shop';
+      const content = room.content;
+      if (!content) return 'Standard room';
+      const isMonsterRoom = room.type === 'monster';
+      const isLootRoom = room.type === 'loot';
+      const isShopRoom = room.type === 'shop';
+      if (isMonsterRoom) return `${content.difficulty || 'Normal'} difficulty`;
+      if (isLootRoom) return content.chest === 'treasure' ? 'Treasure Chest' : 'Gold/Items';
+      if (isShopRoom) return 'Active Shop';
       return 'Custom config';
     };
 
@@ -400,18 +405,18 @@ export default defineComponent({
       SIDE_TYPE_INFO: creator.SIDE_TYPE_INFO,
 
       // Floor management
-      promptAddFloor: creator.promptAddFloor,
+      promptAddFloor: creator.openAddFloorPrompt,
       confirmAddFloor: creator.confirmAddFloor,
-      promptCustomFloorName: creator.promptCustomFloorName,
+      promptCustomFloorName: creator.openCustomFloorNamePrompt,
       addFloor: creator.addFloor,
       removeFloor: creator.removeFloor,
       setLevel: creator.setLevel,
 
       // Grid management
-      resizeGrid: creator.resizeGrid,
+      resizeGrid: creator.updateGridSize,
 
       // Cell/Room actions
-      onCellClick: creator.onCellClick,
+      onCellClick: creator.handleCellClick,
       showQuickEditPopover,
       applyQuickType: creator.applyQuickType,
       applyRoomChanges: creator.applyRoomChanges,

@@ -1,8 +1,8 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 
 /** Two slow wavy translucent ribbons across the upper sky. */
 export const aurora: EffectFactory = () => {
-  const effect: WeatherEffect = {
+  return {
     init() { /* stateless */ },
     update() { /* stateless */ },
     draw(f) {
@@ -16,7 +16,8 @@ export const aurora: EffectFactory = () => {
         for (let i = 0; i <= 24; i++) {
           const px = (f.width / 24) * i;
           const py = baseY + Math.sin(i * 0.5 + f.time * (f.reducedMotion ? 0 : 0.6) + k) * 18 + Math.sin(i * 0.9 - f.time * 0.3) * 8;
-          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          const isFirstPoint = i === 0;
+          if (isFirstPoint) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
         for (let i = 24; i >= 0; i--) {
           const px = (f.width / 24) * i;
@@ -33,5 +34,4 @@ export const aurora: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Short translucent streaks and pollen dots that gust across, for plains and mountains. */
@@ -6,7 +6,7 @@ export const wind: EffectFactory = () => {
   const rng = makeRng(71);
   let x = new Float32Array(0), y = new Float32Array(0), k = new Float32Array(0);
   let count = 0, gust = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 20, 90);
       x = new Float32Array(count); y = new Float32Array(count); k = new Float32Array(count);
@@ -17,7 +17,8 @@ export const wind: EffectFactory = () => {
       const v = (40 + f.intensity * 14) * (0.4 + gust) * f.dt;
       for (let i = 0; i < count; i++) {
         x[i] += v * (0.5 + k[i]); y[i] += Math.sin(f.time * 2 + k[i] * 9) * 10 * f.dt;
-        if (x[i] > f.width + 30) { x[i] = -30; y[i] = rng() * f.height; }
+        const isPastRightEdge = x[i] > f.width + 30;
+        if (isPastRightEdge) { x[i] = -30; y[i] = rng() * f.height; }
       }
     },
     draw(f) {
@@ -25,7 +26,8 @@ export const wind: EffectFactory = () => {
       ctx.save();
       ctx.lineCap = "round";
       for (let i = 0; i < count; i++) {
-        if (k[i] > 0.6) {
+        const isStreak = k[i] > 0.6;
+        if (isStreak) {
           ctx.strokeStyle = `rgba(255,255,255,${0.08 + gust * 0.14})`;
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(x[i], y[i]); ctx.lineTo(x[i] - 18 - gust * 30, y[i] + 2); ctx.stroke();
@@ -37,5 +39,4 @@ export const wind: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

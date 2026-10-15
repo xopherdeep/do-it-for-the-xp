@@ -180,7 +180,7 @@ describe("useTempleData API", () => {
       "loadCategories",
       "loadTemple",
       "saveTemple",
-      "calculatePowerRating",
+      "getPowerRating",
       "getBeastsByTier",
       "getCategoryColor",
       "getCategoryName",
@@ -223,7 +223,7 @@ describe("a temple with nothing saved", () => {
     expect(api.previewMaze.value).toBeNull();
     expect(api.templeBeastsWithDetails.value).toEqual([]);
     expect(api.itemMapData.value).toEqual({});
-    expect(api.calculatePowerRating()).toBe(10);
+    expect(api.getPowerRating()).toBe(10);
     expect([api.getBeastsByTier("boss"), api.getBeastsByTier("miniboss"), api.getBeastsByTier("other")]).toEqual([[], [], []]);
     expect(api.isLoading.value).toBe(false);
   });
@@ -336,7 +336,7 @@ describe("a saved temple with two floors", () => {
   it("rates the power from the level and the monster sizes", async () => {
     const { api } = await load();
     // level 3 -> 30; 0.5 * (1 medium + 10 boss + 5 miniboss + 0.5 small + 2 large) = 9.25
-    expect(api.calculatePowerRating()).toBe(39);
+    expect(api.getPowerRating()).toBe(39);
   });
 
   it("splits the monsters by tier", async () => {
@@ -439,7 +439,7 @@ describe("a saved temple with one floor", () => {
       { size: "miniboss", count: 1 },
       { size: "small", count: 1 },
     ]);
-    expect(api.calculatePowerRating()).toBe(38);
+    expect(api.getPowerRating()).toBe(38);
   });
 
   it("lists the beasts on floor 1F and builds an item map for 1F only", async () => {

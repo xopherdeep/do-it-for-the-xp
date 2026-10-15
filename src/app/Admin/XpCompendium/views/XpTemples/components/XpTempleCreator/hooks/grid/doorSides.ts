@@ -82,7 +82,8 @@ export const doorToastIcon = (infoIcon: string, wallType?: string): string => {
   const resolvedIcon = resolveSideIcon(infoIcon, wallType);
 
   let finalIcon = resolvedIcon;
-  if (infoIcon === "DYNAMIC_WALL") {
+  const isDynamicWall = infoIcon === "DYNAMIC_WALL";
+  if (isDynamicWall) {
     finalIcon = "fa-wind";
   }
 
@@ -114,7 +115,8 @@ export const doorIconFor = (facts: DoorFacts): string => {
     return "DYNAMIC_WALL";
   }
 
-  if (state === "masterlocked") {
+  const isBossLocked = state === "masterlocked";
+  if (isBossLocked) {
     return "fas fa-skull";
   }
 
@@ -141,7 +143,8 @@ export const doorClassFor = (facts: Omit<DoorFacts, "adjacentType">): string => 
     return "state-wall";
   }
 
-  if (state === "masterlocked") {
+  const isBossLocked = state === "masterlocked";
+  if (isBossLocked) {
     return "state-masterlocked";
   }
 

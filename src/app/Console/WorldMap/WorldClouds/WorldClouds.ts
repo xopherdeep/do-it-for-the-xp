@@ -77,7 +77,8 @@ export default dC({
     const startThunderSounds = () => {
       // Play thunder sounds at random intervals with varying intensities
       thunderInterval.value = window.setInterval(() => {
-        if (Math.random() > 0.6) { // 40% chance of thunder on each interval
+        const isThunderClap = Math.random() > 0.6;
+        if (isThunderClap) { // 40% chance of thunder on each interval
           const thunderIndex = Math.floor(Math.random() * thunderAudio.value.length);
           const thunder = thunderAudio.value[thunderIndex];
 

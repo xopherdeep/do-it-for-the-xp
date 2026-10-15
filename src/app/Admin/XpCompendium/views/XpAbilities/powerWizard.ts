@@ -85,11 +85,14 @@ const costProblem = (what: "MP" | "AP", amount: number): true | string => {
 const doesProblem = (draft: PowerDraft): true | string => {
   if (!isInGame(draft)) return true;
   const level = draft.characterRequirement?.level;
-  if (level !== undefined && !(level >= 0)) return "Character level can't be negative";
+  const isNegativeLevel = level !== undefined && !(level >= 0);
+  if (isNegativeLevel) return "Character level can't be negative";
   const needsClass = classRequirementOf(draft);
-  if (needsClass && !(needsClass.level >= 1)) return "Class level starts at 1";
+  const isClassLevelTooLow = !!needsClass && !(needsClass.level >= 1);
+  if (isClassLevelTooLow) return "Class level starts at 1";
   const rate = draft.scaling?.rate;
-  if (rate !== undefined && !(rate >= 0 && rate <= 1)) return "Scaling goes from 0 to 100%";
+  const isRateOutOfRange = rate !== undefined && !(rate >= 0 && rate <= 1);
+  if (isRateOutOfRange) return "Scaling goes from 0 to 100%";
   return true;
 };
 
@@ -156,7 +159,8 @@ export const blankPower = (roll: () => number = Math.random): PowerDraft => ({
 /** A whole number from what a field holds; null for an empty field or a word, so the field can be cleared to retype. */
 export const countOf = (text: string): number | null => {
   const trimmed = text.trim();
-  if (trimmed === "") return null;
+  const isEmpty = trimmed === "";
+  if (isEmpty) return null;
   const number = Number(trimmed);
   return Number.isFinite(number) ? Math.trunc(number) : null;
 };
@@ -171,7 +175,8 @@ export const classRequirementOf = (draft: PowerDraft): { name: string; level: nu
 const trimmedRequirement = (requirement: Ability["characterRequirement"]): Ability["characterRequirement"] => {
   const level = requirement?.level;
   const hasClass = Boolean(requirement?.class && Object.keys(requirement.class).length);
-  if (!hasClass && level === undefined) return undefined;
+  const isEmptyRequirement = !hasClass && level === undefined;
+  if (isEmptyRequirement) return undefined;
   return { ...(hasClass ? { class: requirement?.class } : {}), ...(level !== undefined ? { level } : {}) };
 };
 
@@ -216,7 +221,8 @@ const tidyRate = (rate: number): number => Math.round(Math.min(Math.max(rate, 0)
 export const withScaling = (draft: PowerDraft, attribute: string, rate?: number): PowerDraft => {
   const next: PowerDraft = { ...draft };
   delete next.scaling;
-  if (attribute === "none") return next;
+  const isUnscaled = attribute === "none";
+  if (isUnscaled) return next;
   return { ...next, scaling: { attribute, rate: tidyRate(rate ?? scalingOf(draft).rate) } };
 };
 
@@ -296,13 +302,15 @@ const whoLine = (draft: PowerDraft): string => {
 
 const scalingLine = (draft: PowerDraft): string => {
   const { attribute, rate } = scalingOf(draft);
-  if (attribute === "none") return "Does not scale";
+  const isUnscaled = attribute === "none";
+  if (isUnscaled) return "Does not scale";
   return `${labelIn(ATTRIBUTE_CHOICES, attribute)}, ${Math.round(rate * 100)}% a point`;
 };
 
 const apLine = (draft: PowerDraft): string => {
   const { amount, period } = draft.apRequirement;
-  if (!(amount > 0)) return "No AP needed";
+  const hasApCost = amount > 0;
+  if (!hasApCost) return "No AP needed";
   return period === TimePeriod.Flat ? `${amount} AP in total` : `${amount} AP, counted ${period}`;
 };
 

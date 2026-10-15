@@ -16,7 +16,8 @@ declare global {
 import { play$fx } from "./player";
 import $fx from "./library";
 
-if (typeof window !== 'undefined') {
+const hasWindow = typeof window !== 'undefined';
+if (hasWindow) {
   (window as any).play$fx = play$fx;
 }
 

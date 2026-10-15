@@ -87,9 +87,11 @@ export default defineComponent({
     const isSelected = (id: string) => selectedIds.value.includes(id);
 
     const toggleSelection = (id: string) => {
-      if (props.multiple) {
+      const isMultiple = props.multiple;
+      if (isMultiple) {
         const index = selectedIds.value.indexOf(id);
-        if (index === -1) {
+        const isUnselected = index === -1;
+        if (isUnselected) {
           selectedIds.value.push(id);
         } else {
           selectedIds.value.splice(index, 1);

@@ -91,7 +91,8 @@ export default defineComponent({
     };
     const announceLoaded = () => {
       cancelFrame();
-      if (typeof requestAnimationFrame !== "function") {
+      const canRequestFrames = typeof requestAnimationFrame === "function";
+      if (!canRequestFrames) {
         emit("effect-loaded");
         return;
       }
@@ -105,7 +106,8 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      if (props.active) announceLoaded();
+      const isActive = props.active;
+      if (isActive) announceLoaded();
       // Never autoplay on mount unless the preset asks for it and sound is enabled.
       nextTick(syncSound);
     });

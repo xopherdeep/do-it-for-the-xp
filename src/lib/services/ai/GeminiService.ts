@@ -18,14 +18,16 @@ async function runTask<T>(
   input: Record<string, unknown>
 ): Promise<{ ok: true; data: T } | { ok: false; failure: Failure }> {
   const pro = useProStore();
-  if (!pro.licenseKey) {
+  const { licenseKey } = pro;
+  if (!licenseKey) {
     await openProUpsell("aiHelpers");
     return { ok: false, failure: { success: false } };
   }
   try {
-    return { ok: true, data: await askAi<T>(task, input, pro.licenseKey, pro.deviceId) };
+    return { ok: true, data: await askAi<T>(task, input, licenseKey, pro.deviceId) };
   } catch (e) {
-    if (!(e instanceof ProClientError)) throw e;
+    const isProClientError = e instanceof ProClientError;
+    if (!isProClientError) throw e;
     switch (e.code) {
       case "pro_required":
         await openProUpsell("aiHelpers");
@@ -60,13 +62,15 @@ export interface GeminiResponse {
 export async function generateMonsterName(
   options: GenerateMonsterNameOptions
 ): Promise<GeminiResponse> {
-  if (!options.checklistItems.length) {
+  const hasNoItems = !options.checklistItems.length;
+  if (hasNoItems) {
     return { success: false, error: "Please add some checklist items first." };
   }
   const res = await runTask<{ name?: string }>("monster_name", {
     checklistItems: options.checklistItems,
   });
-  if (!res.ok) return res.failure;
+  const isRefused = !res.ok;
+  if (isRefused) return res.failure;
   const name = typeof res.data?.name === "string" ? res.data.name.trim() : "";
   if (!name) return { success: false, error: "No response generated. Please try again." };
   return { success: true, name };
@@ -91,15 +95,18 @@ const cleanList = (list: unknown): string[] =>
 export async function generateChecklistFromName(
   options: GenerateChecklistOptions
 ): Promise<ChecklistResponse> {
-  if (!options.monsterName?.trim()) {
+  const hasNoName = !options.monsterName?.trim();
+  if (hasNoName) {
     return { success: false, error: "Please enter a monster name first." };
   }
   const res = await runTask<{ checklist?: unknown }>("checklist", {
     monsterName: options.monsterName,
   });
-  if (!res.ok) return res.failure;
+  const isRefused = !res.ok;
+  if (isRefused) return res.failure;
   const checklist = cleanList(res.data?.checklist);
-  if (!checklist.length) return { success: false, error: "Failed to parse AI response. Please try again." };
+  const isEmptyChecklist = !checklist.length;
+  if (isEmptyChecklist) return { success: false, error: "Failed to parse AI response. Please try again." };
   return { success: true, checklist };
 }
 
@@ -128,9 +135,11 @@ export async function generateFullBeast(
   options: GenerateFullBeastOptions = {}
 ): Promise<FullBeastResponse> {
   const input: Record<string, unknown> = {};
-  if (options.theme) input.theme = options.theme;
+  const hasTheme = Boolean(options.theme);
+  if (hasTheme) input.theme = options.theme;
   const res = await runTask<{ name?: string; checklist?: unknown }>("full_beast", input);
-  if (!res.ok) return res.failure;
+  const isRefused = !res.ok;
+  if (isRefused) return res.failure;
   const checklist = cleanList(res.data?.checklist);
   const name = res.data?.name;
   const isIncompleteBeast = !name || !checklist.length;
@@ -164,17 +173,21 @@ export async function generateSchedule(
   options: GenerateScheduleOptions
 ): Promise<ScheduleResponse> {
   const taskName = options.taskName || "";
-  if (!taskName.trim()) {
+  const isBlankTask = !taskName.trim();
+  if (isBlankTask) {
     return { success: false, error: "Task name is required." };
   }
   const input: Record<string, unknown> = { taskName };
-  if (options.beastName) input.beastName = options.beastName;
+  const hasBeastName = Boolean(options.beastName);
+  if (hasBeastName) input.beastName = options.beastName;
   const hasChecklist = options.checklist && options.checklist.length > 0;
   if (hasChecklist) input.checklist = options.checklist;
 
   const res = await runTask<Omit<ScheduleResponse, "success">>("schedule", input);
-  if (!res.ok) return res.failure;
-  if (!res.data?.scheduleType) return { success: false, error: "No response" };
+  const isRefused = !res.ok;
+  if (isRefused) return res.failure;
+  const hasSchedule = Boolean(res.data?.scheduleType);
+  if (!hasSchedule) return { success: false, error: "No response" };
   return { success: true, ...res.data };
 }
 

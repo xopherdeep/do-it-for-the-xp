@@ -120,7 +120,8 @@ export const navTabFor = (route: AreaRoute, isProfileOpen: boolean): NavTab => {
 export const placeOfRoute = (route: AreaRoute, canFly: boolean, fallbackHeroId?: string | null): AreaPlace | null => {
   const routeName = typeof route.name === "string" ? route.name : "";
   const heroId = heroOf(route, fallbackHeroId);
-  if (!routeName || !heroId) return null;
+  const isPlaceable = !!routeName && !!heroId;
+  if (!isPlaceable) return null;
 
   const isOverworldOnFoot = routeName === WORLD_MAP_ROUTE && !canFly;
   const portalPlace = lookup(PORTAL_PLACES, isOverworldOnFoot ? WALKING_WORLD_ROUTE : routeName);

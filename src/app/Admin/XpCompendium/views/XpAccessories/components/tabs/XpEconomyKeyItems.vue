@@ -118,15 +118,17 @@ export default defineComponent({
         
         categories.forEach(cat => {
             const items = filteredItems.value.filter(i => i.category === cat);
-            if (items.length > 0) {
+            const hasItems = items.length > 0;
+            if (hasItems) {
                 groups[cat] = items;
             }
         });
 
         // Catch any others if category system changes
         filteredItems.value.forEach(item => {
-            if (!categories.includes(item.category)) {
-                if (!groups['other']) groups['other'] = [];
+            const isListedCategory = categories.includes(item.category);
+            if (!isListedCategory) {
+                groups['other'] ??= [];
                 groups['other'].push(item);
             }
         });
@@ -137,7 +139,8 @@ export default defineComponent({
     const assignItem = async (item: ItemMetadata) => {
         const shops = await shopsDb.getShops();
         
-        if (shops.length === 0) {
+        const hasNoShops = shops.length === 0;
+        if (hasNoShops) {
             const toast = await toastController.create({
                 message: 'No shops available. Create a shop first!',
                 duration: 2000,
@@ -169,7 +172,8 @@ export default defineComponent({
                         const shop = await shopsDb.getShopById(shopId);
                         if (shop) {
                             // Check if already assigned
-                            if (shop.items.some(i => i.itemId === item.id)) {
+                            const isAlreadyAssigned = shop.items.some(i => i.itemId === item.id);
+                            if (isAlreadyAssigned) {
                                  const toast = await toastController.create({
                                     message: `${item.name} is already in ${shop.name}!`,
                                     duration: 2000,
@@ -210,7 +214,8 @@ export default defineComponent({
             await toast.present();
         };
         const heroes = userStore.usersAz.filter((hero: any) => hero.isAdult !== true);
-        if (heroes.length === 0) return say('No heroes to unlock it for.', 'warning');
+        const hasNoHeroes = heroes.length === 0;
+        if (hasNoHeroes) return say('No heroes to unlock it for.', 'warning');
 
         const alert = await alertController.create({
             header: `Unlock ${itemName}`,
@@ -228,7 +233,8 @@ export default defineComponent({
                         if (!userId) return;
                         const hero: any = userStore.users[userId];
                         const who = hero?.name?.nick || hero?.name?.first || 'the hero';
-                        if (userStore.unlockItem(userId, itemName)) void say(`${itemName} unlocked for ${who}!`, 'success');
+                        const isUnlocked = userStore.unlockItem(userId, itemName);
+                        if (isUnlocked) void say(`${itemName} unlocked for ${who}!`, 'success');
                         else void say(`${who} already holds ${itemName}.`, 'warning');
                     }
                 }

@@ -125,7 +125,9 @@ export default defineComponent({
     }));
 
     const modalStyle = computed(() => {
-      if (props.fullscreen) return {};
+      const isFullscreen = props.fullscreen;
+      if (isFullscreen) return {};
+
       return {
         '--height': props.height,
         '--max-height': props.height === 'auto' ? '80vh' : props.height

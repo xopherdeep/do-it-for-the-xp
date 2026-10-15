@@ -168,7 +168,8 @@
 
       async changeRPGSound(ev) {
         const { ui, rpg } = this.theme;
-        if (ev.detail.value === rpg) return;
+        const isSameStyle = ev.detail.value === rpg;
+        if (isSameStyle) return;
         // A Pro style without Pro opens the upsell and the picker goes back to the current style
         const isLocked = isProGameStyle(ev.detail.value) && !(await this.pro.requirePro("gameStyles"));
         if (isLocked) {

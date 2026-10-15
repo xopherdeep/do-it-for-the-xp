@@ -21,24 +21,29 @@ const settling = new Set<string>();
 
 /** Pays whatever chests the hero's run owes now; returns the chests paid (none when streaks are off) */
 export const settleStreakChests = async (heroId: string, now: Date = new Date()): Promise<StreakChest[]> => {
-  if (settling.has(heroId)) return [];
+  const isSettling = settling.has(heroId);
+  if (isSettling) return [];
   settling.add(heroId);
   try {
     const rulesStore = useGameRulesStore();
     await rulesStore.load();
-    if (!rulesStore.streaks) return [];
+    const isStreaksOff = !rulesStore.streaks;
+    if (isStreaksOff) return [];
     const userStore = useUserStore();
     const hero = userStore.users[heroId];
     if (!hero) return [];
 
     const run = dailyStreak(await getQuestLogDb().getEntriesForUser(heroId), heroId, now, ["approved"]);
     const { owed, ledger } = chestsOwed(run, ledgerOf(hero.streakChests));
-    if (!owed.length || !ledger) return [];
+    const isNothingOwed = !owed.length || !ledger;
+    if (isNothingOwed) return [];
 
     const total = chestTotal(owed);
     userStore.setStreakChests(heroId, ledger);
-    if (total.xp > 0) userStore.updateUserXP({ userId: heroId, amount: total.xp, commit: true });
-    if (total.gp > 0) void userStore.updateUserGP({ userId: heroId, wallet: total.gp });
+    const hasXp = total.xp > 0;
+    if (hasXp) userStore.updateUserXP({ userId: heroId, amount: total.xp, commit: true });
+    const hasGp = total.gp > 0;
+    if (hasGp) void userStore.updateUserGP({ userId: heroId, wallet: total.gp });
     return owed;
   } finally {
     settling.delete(heroId);

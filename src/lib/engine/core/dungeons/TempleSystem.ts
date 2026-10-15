@@ -37,6 +37,15 @@ export type { DoorKind, DoorState } from './templeSystem/doors';
 export { MapVisibility } from './templeSystem/visibility';
 export type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
+/** What an opened chest held */
+interface OpenedChest {
+  items?: string[];
+  specialItem?: string;
+  keyFound?: boolean;
+  mapFound?: boolean;
+  compassFound?: boolean;
+}
+
 export class TempleSystem {
   private static instance: TempleSystem;
   private dungeonManager: DungeonManager;
@@ -74,9 +83,7 @@ export class TempleSystem {
   }
   
   public static getInstance(): TempleSystem {
-    if (!TempleSystem.instance) {
-      TempleSystem.instance = new TempleSystem();
-    }
+    TempleSystem.instance ??= new TempleSystem();
     return TempleSystem.instance;
   }
 
@@ -478,13 +485,7 @@ export class TempleSystem {
    * Open a chest and collect its contents
    * @returns Object with collected items
    */
-  public openChest(templeId: string): {
-    items?: string[];
-    specialItem?: string;
-    keyFound?: boolean;
-    mapFound?: boolean;
-    compassFound?: boolean;
-  } | undefined {
+  public openChest(templeId: string): OpenedChest | undefined {
     return chests.openChest(this.runs, templeId);
   }
   
@@ -622,7 +623,8 @@ export class TempleSystem {
     if (!progress) return;
 
     this.pendingSaves.set(`${progress.userId}|${templeId}`, progress);
-    if (this.saveScheduled) return;
+    const isSaveScheduled = this.saveScheduled;
+    if (isSaveScheduled) return;
     this.saveScheduled = true;
     queueMicrotask(() => void this.flushSaves());
   }
@@ -631,7 +633,8 @@ export class TempleSystem {
     this.saveScheduled = false;
     const batch = Array.from(this.pendingSaves.values());
     this.pendingSaves.clear();
-    if (batch.length === 0) return this.writes;
+    const isEmptyBatch = batch.length === 0;
+    if (isEmptyBatch) return this.writes;
 
     // One batch after the other, so an older snapshot never lands after a newer one
     this.writes = this.writes.then(async () => {

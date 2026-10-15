@@ -66,7 +66,8 @@ export default defineComponent({
       ];
 
       // Map all users to profile items if masquerade is active
-      if (this.showMasquerade) {
+      const isMasquerading = this.showMasquerade;
+      if (isMasquerading) {
         const userItems = this.usersAz.map((user) => ({
           id: `user-${user.id}`,
           type: "user",
@@ -256,7 +257,8 @@ export default defineComponent({
             cssClass: "action-temple",
             icon: waterOutline,
             handler: async () => {
-              if (!(await useProStore().requirePro("templeCreator"))) return;
+              const hasPro = await useProStore().requirePro("templeCreator");
+              if (!hasPro) return;
               this.navigateTo({
                 name: "xp-temple-settings",
                 params: { templeId: "new" },

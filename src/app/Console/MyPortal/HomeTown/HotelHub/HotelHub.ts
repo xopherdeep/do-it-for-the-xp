@@ -77,7 +77,8 @@ export default defineComponent({
 
     clickDeposit(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
@@ -91,7 +92,8 @@ export default defineComponent({
 
     clickWithdraw(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
@@ -105,7 +107,8 @@ export default defineComponent({
 
     clickPayDebt(data: { gp?: number | string }) {
       const amount = Number(data.gp);
-      if (amount > 0) {
+      const hasAmount = amount > 0;
+      if (hasAmount) {
         getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
@@ -128,11 +131,13 @@ export default defineComponent({
         this.play$fx("select");
         let lines = this.dialogBlocks;
         for (;;) {
-          const pick = (await this.reveal.ask(
+          const pick = (await this.reveal.showPrompt(
             conciergeMenuPrompt(lines, this.clerkName)
           )) as ConciergeMenuId | "stay";
-          if (pick === "stay") return;
-          if (pick !== "room") {
+          const isStaying = pick === "stay";
+          if (isStaying) return;
+          const isWalkingAway = pick !== "room";
+          if (isWalkingAway) {
             await this.walkAway(pick);
             return;
           }
@@ -146,7 +151,8 @@ export default defineComponent({
 
     /** Leave the desk: out of the hotel, or on to the Town Hall's notice board. */
     async walkAway(pick: "leave" | "events") {
-      if (pick === "leave") this.goBack();
+      const isLeaving = pick === "leave";
+      if (isLeaving) this.goBack();
       else await this.handleCommunityEvents();
     },
 
@@ -157,16 +163,17 @@ export default defineComponent({
       const quote = quoteCare("room", this.user?.stats, Number(this.user?.stats?.level) || 1);
       if (!quote.canPay) {
         this.play$fx("no");
-        await this.reveal.ask(
+        await this.reveal.showPrompt(
           conciergeNotice(roomRefusalLine(quote, this.words), undefined, this.clerkName)
         );
         return;
       }
 
-      const pick = await this.reveal.ask(
+      const pick = await this.reveal.showPrompt(
         roomConfirmPrompt(this.words, quote.cost, this.clerkName)
       );
-      if (pick !== "yes") return;
+      const isDeclined = pick !== "yes";
+      if (isDeclined) return;
       await this.rentRoom(quote);
     },
 
@@ -175,7 +182,9 @@ export default defineComponent({
       try {
         await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
         this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
-        if (quote.mpGain > 0) {
+        const hasMpGain = quote.mpGain > 0;
+        if (hasMpGain) {
+
           this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
         }
         this.play$fx("restoreAll");
@@ -186,7 +195,7 @@ export default defineComponent({
       }
 
       const stats = this.user?.stats;
-      await this.reveal.ask(
+      await this.reveal.showPrompt(
         conciergeNotice(
           roomReceiptLine(quote.cost, stats?.hp, stats?.mp, this.words),
           "bed",
@@ -203,14 +212,14 @@ export default defineComponent({
         this.$router.push({ name: "town-hall", params: { userId: this.userId } });
         return;
       }
-      await this.reveal.ask(
+      await this.reveal.showPrompt(
         conciergeNotice(nothingOnTheBoard(this.words), undefined, this.clerkName)
       );
     },
   },
   setup() {
     const userStore = useUserStore();
-    const { back: goBack } = useBack();
+    const { stepBack: goBack } = useBack();
     const reveal = useRevealPrompt();
     const t = useCopy();
     const { voice: words } = useVoice();

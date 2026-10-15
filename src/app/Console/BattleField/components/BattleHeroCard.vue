@@ -88,20 +88,22 @@
 import { computed, onBeforeUnmount, ref, toRef, watch } from "vue";
 import { useBattlePlayer } from "../hooks/useBattlePlayer";
 
+interface BattleHeroCardProps {
+  /** Whose card this is: the id of a hero in the user store. */
+  userId: string;
+  /** Every increment is one hit on the hero: the card shakes for 400 ms. */
+  hitSignal?: number;
+  /** The hero has fallen: the card goes gray. */
+  downed?: boolean;
+  /** The hero is braced for the next strike: the DEFENDING badge shows. */
+  defending?: boolean;
+}
+
 /** How long one hit shakes the card. The `card-hit` keyframes below run for the same 400 ms. */
 const HIT_SHAKE_MS = 400;
 
 const props = withDefaults(
-  defineProps<{
-    /** Whose card this is: the id of a hero in the user store. */
-    userId: string;
-    /** Every increment is one hit on the hero: the card shakes for 400 ms. */
-    hitSignal?: number;
-    /** The hero has fallen: the card goes gray. */
-    downed?: boolean;
-    /** The hero is braced for the next strike: the DEFENDING badge shows. */
-    defending?: boolean;
-  }>(),
+  defineProps<BattleHeroCardProps>(),
   { hitSignal: 0, downed: false, defending: false }
 );
 
@@ -133,7 +135,8 @@ const initial = computed(() => (Array.from(playerName.value)[0] ?? "?").toUpperC
 const barWidth = (percent: number) => `${Math.round(percent * 10) / 10}%`;
 /** Red while healthy (the app's HP colour), amber at half, red and pulsing when nearly out. */
 const hpTone = computed(() => {
-  if (hpPercentage.value > 50) return "";
+  const isHealthy = hpPercentage.value > 50;
+  if (isHealthy) return "";
   return hpPercentage.value >= 25 ? "is-mid" : "is-low";
 });
 
@@ -142,7 +145,8 @@ const hearts = computed<("full" | "half" | "empty")[]>(() => {
   const count = Math.min(10, Math.max(3, Math.ceil(hpMax.value / 20)));
   const filled = (hpPercentage.value / 100) * count;
   return Array.from({ length: count }, (_, i) => {
-    if (filled >= i + 1) return "full";
+    const isFullHeart = filled >= i + 1;
+    if (isFullHeart) return "full";
     return filled >= i + 0.5 ? "half" : "empty";
   });
 });
@@ -156,7 +160,8 @@ let hitTimer: number | undefined;
 watch(
   () => props.hitSignal,
   (now, before) => {
-    if (now <= before) return;
+    const isStaleSignal = now <= before;
+    if (isStaleSignal) return;
     hitFlip.value = !hitFlip.value;
     isHit.value = true;
     window.clearTimeout(hitTimer);

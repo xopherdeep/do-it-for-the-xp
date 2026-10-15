@@ -163,10 +163,12 @@ const collectRooms = (layout: TempleLayout, floors: string[], grids: Record<stri
       line.forEach((token, col) => {
         const room = layout.rooms[token];
         if (!room) {
-          if (token !== "_") issues.push({ rule: "R1", text: `unknown room token "${token}" at ${floor} (${row},${col})` });
+          const isUnknownToken = token !== "_";
+          if (isUnknownToken) issues.push({ rule: "R1", text: `unknown room token "${token}" at ${floor} (${row},${col})` });
           return;
         }
-        if (IMPASSABLE.has(kindOf(room))) return;
+        const isImpassable = IMPASSABLE.has(kindOf(room));
+        if (isImpassable) return;
         const ref = { floor, row, col };
         rooms.set(roomKey(ref), makeRoom(ref, token, room));
       })
@@ -181,7 +183,8 @@ const firstOfKind = (graph: Pick<TempleGraph, "rooms" | "grids">, floor: string,
   for (let row = 0; row < grid.length; row++) {
     for (let col = 0; col < grid[row].length; col++) {
       const room = graph.rooms.get(roomKey({ floor, row, col }));
-      if (room?.kind === kind) return room;
+      const isOfKind = room?.kind === kind;
+      if (isOfKind) return room;
     }
   }
   return undefined;
@@ -216,7 +219,8 @@ const linkNeighbours = (graph: TempleGraph): void => {
       const [dr, dc] = STEP[direction];
       const to = graph.rooms.get(roomKey({ floor: from.ref.floor, row: from.ref.row + dr, col: from.ref.col + dc }));
       if (!to) continue;
-      if (barrierBetween(from.room, to.room, direction)) continue;
+      const isBarred = Boolean(barrierBetween(from.room, to.room, direction));
+      if (isBarred) continue;
       addDoor(graph, { from: from.key, to: to.key, kind: "door", lock: lockBetween(from, to, direction), direction });
     }
   }
@@ -243,7 +247,8 @@ const linkStairs = (graph: TempleGraph): void => {
       continue;
     }
     const twin = graph.rooms.get(roomKey({ floor: target, row: stairs.ref.row, col: stairs.ref.col }));
-    if (twin?.kind !== twinKind) graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} has no ${twinKind} at ${target} (${stairs.ref.row},${stairs.ref.col})` });
+    const isTwinMissing = twin?.kind !== twinKind;
+    if (isTwinMissing) graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} has no ${twinKind} at ${target} (${stairs.ref.row},${stairs.ref.col})` });
     const landing = stairsLanding(graph, stairs, target, twinKind);
     if (landing) addDoor(graph, { from: stairs.key, to: landing.key, kind: "stairs", lock: "none" });
   }
@@ -256,7 +261,8 @@ const linkStairs = (graph: TempleGraph): void => {
  */
 const linkTeleports = (graph: TempleGraph, layout: TempleLayout): void => {
   for (const pad of graph.rooms.values()) {
-    if (pad.kind !== "teleport") continue;
+    const isTeleport = pad.kind === "teleport";
+    if (!isTeleport) continue;
     const destination = teleportTargetFor(layout, pad.ref.floor, [pad.ref.row, pad.ref.col]);
     const landing = destination && graph.rooms.get(roomKey({ floor: destination.level, row: destination.position[0], col: destination.position[1] }));
     if (!landing) {
@@ -273,7 +279,8 @@ const linkTeleports = (graph: TempleGraph, layout: TempleLayout): void => {
  */
 const linkPits = (graph: TempleGraph): void => {
   for (const pit of graph.rooms.values()) {
-    if (pit.kind !== "pit") continue;
+    const isPit = pit.kind === "pit";
+    if (!isPit) continue;
     const below = neighbourFloorOf(graph.floors, pit.ref.floor, -1);
     if (!below) continue;
     const sameCell = graph.rooms.get(roomKey({ floor: below, row: pit.ref.row, col: pit.ref.col }));
@@ -307,7 +314,10 @@ const findEntrance = (layout: TempleLayout, graph: TempleGraph): string | undefi
     if (room) return room.key;
     graph.issues.push({ rule: "R1", text: `the entrance [${given.join(",")}] is not a room` });
   }
-  for (const room of graph.rooms.values()) if (room.kind === "entrance") return room.key;
+  for (const room of graph.rooms.values()) {
+    const isEntrance = room.kind === "entrance";
+    if (isEntrance) return room.key;
+  }
   return undefined;
 };
 

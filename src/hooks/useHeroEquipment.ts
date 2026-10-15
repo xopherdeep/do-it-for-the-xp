@@ -46,7 +46,7 @@ export function useHeroEquipment(userId: Ref<string> | string) {
   watch(() => user.value?.id, () => load(), { immediate: true });
 
   /** Equip `item` into `hand` slot `index`, or clear the slot when `item` is null. */
-  const clickItem = (item: EquippedItem | null, hand: string, index = 0) => {
+  const setHandItem = (item: EquippedItem | null, hand: string, index = 0) => {
     const isClearingSlot = item === null && hand;
     if (isClearingSlot) {
       equipment.value = equipment.value.filter((i) => !(i.hand === hand && i.slotIndex === index));
@@ -54,9 +54,11 @@ export function useHeroEquipment(userId: Ref<string> | string) {
       return;
     }
     const alreadyEquippedIndex = equipment.value.findIndex((i) => i.faIcon === item?.faIcon);
-    if (alreadyEquippedIndex !== -1) equipment.value.splice(alreadyEquippedIndex, 1);
+    const isAlreadyEquipped = alreadyEquippedIndex !== -1;
+    if (isAlreadyEquipped) equipment.value.splice(alreadyEquippedIndex, 1);
     const slotOccupiedIndex = equipment.value.findIndex((i) => i.hand === hand && i.slotIndex === index);
-    if (slotOccupiedIndex !== -1) equipment.value.splice(slotOccupiedIndex, 1);
+    const isSlotOccupied = slotOccupiedIndex !== -1;
+    if (isSlotOccupied) equipment.value.splice(slotOccupiedIndex, 1);
     const itemToEquip = { ...item, hand, slotIndex: index } as EquippedItem;
     const hasClickHandler = item?.click && typeof item.click === "function";
     if (hasClickHandler) itemToEquip.click = item.click;
@@ -67,5 +69,5 @@ export function useHeroEquipment(userId: Ref<string> | string) {
   const leftHandItem = computed<EquippedItem | null>(() => user.value?.equipment?.leftHand?.[0] || null);
   const rightHandItem = computed<EquippedItem | null>(() => user.value?.equipment?.rightHand?.[0] || null);
 
-  return { equipment, leftHandItem, rightHandItem, clickItem, reload: load };
+  return { equipment, leftHandItem, rightHandItem, setHandItem, refresh: load };
 }

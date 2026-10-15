@@ -1,9 +1,12 @@
 // The hero's alert bell: lets the browser ring an OS notification while the game tab sits in the background,
 // and brings the game back when it is tapped. It only does this: no fetch handler, nothing is ever cached.
+// chemx-allow: LIFECYCLE_ORPHANED_LISTENER a service worker's handlers live as long as the worker itself
 self.addEventListener("install", () => self.skipWaiting());
 
+// chemx-allow: LIFECYCLE_ORPHANED_LISTENER a service worker's handlers live as long as the worker itself
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
+// chemx-allow: LIFECYCLE_ORPHANED_LISTENER a service worker's handlers live as long as the worker itself
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(

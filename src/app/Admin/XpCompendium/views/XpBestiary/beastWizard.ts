@@ -170,7 +170,8 @@ export const openingIndex = (steps: readonly WizardStep<BeastDraft>[], draft: Be
 // ---------------------------------------------------------------------------------------------------------------------
 
 const choresText = (count: number): string => {
-  if (count === 0) return "No chores";
+  const hasNoChores = count === 0;
+  if (hasNoChores) return "No chores";
   return count === 1 ? "1 chore" : `${count} chores`;
 };
 

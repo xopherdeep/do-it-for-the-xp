@@ -36,20 +36,19 @@ import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import type { BattleMenuAction } from "../battle/battleMenu";
 
-const props = withDefaults(
-  defineProps<{
-    text: string;
-    accumulatedLines: string[];
-    isAppendMode: boolean;
-    isVictory: boolean;
-    hasMore: boolean;
-    showMenu: boolean;
-    menuActions: BattleMenuAction[];
-    /** A short hint or question shown above the menu ("Do its chores to win!", "Run away?") */
-    prompt?: string;
-  }>(),
-  { prompt: "" }
-);
+interface BattleDialogBoxProps {
+  text: string;
+  accumulatedLines: string[];
+  isAppendMode: boolean;
+  isVictory: boolean;
+  hasMore: boolean;
+  showMenu: boolean;
+  menuActions: BattleMenuAction[];
+  /** A short hint or question shown above the menu ("Do its chores to win!", "Run away?") */
+  prompt?: string;
+}
+
+const props = withDefaults(defineProps<BattleDialogBoxProps>(), { prompt: "" });
 
 const emit = defineEmits<{
   (e: "advance"): void;

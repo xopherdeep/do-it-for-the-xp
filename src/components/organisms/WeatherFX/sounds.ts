@@ -28,7 +28,9 @@ type SoundContext = {
 let soundContext: SoundContext | null | undefined;
 
 function getContext(): SoundContext | null {
-  if (soundContext !== undefined) return soundContext;
+  const cached = soundContext;
+  const isResolved = cached !== undefined;
+  if (isResolved) return cached;
   try {
     soundContext = require.context("@/assets/audio/weather", false, /\.(ogg|mp3)$/) as unknown as SoundContext;
   } catch {
@@ -38,11 +40,13 @@ function getContext(): SoundContext | null {
 }
 
 function moduleToUrl(mod: unknown): string | null {
-  if (typeof mod === "string") return mod;
+  const isUrl = typeof mod === "string";
+  if (isUrl) return mod;
   const hasDefaultExport = !!mod && typeof mod === "object" && "default" in mod;
   if (hasDefaultExport) {
     const value = (mod as { default: unknown }).default;
-    if (typeof value === "string") return value;
+    const isUrl = typeof value === "string";
+    if (isUrl) return value;
   }
   return null;
 }
@@ -60,7 +64,8 @@ export function getSoundSources(type: WeatherSoundType): { ogg: string | null; m
   }
   (["ogg", "mp3"] as const).forEach((ext) => {
     const key = `./${type}.${ext}`;
-    if (!keys.includes(key)) return;
+    const hasSound = keys.includes(key);
+    if (!hasSound) return;
     try {
       result[ext] = moduleToUrl(ctx(key));
     } catch {

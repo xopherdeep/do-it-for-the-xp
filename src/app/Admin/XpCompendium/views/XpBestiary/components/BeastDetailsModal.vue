@@ -407,7 +407,8 @@ export default defineComponent({
     const isPro = computed(() => pro.isPro);
 
     const clickGenerateMonsterName = async () => {
-      if (!(await pro.requirePro("aiHelpers"))) return;
+      const hasPro = await pro.requirePro("aiHelpers");
+      if (!hasPro) return;
       if (!hasChecklistItems.value) {
         const toast = await toastController.create({
           message: "Add some checklist items first!",
@@ -435,8 +436,10 @@ export default defineComponent({
 
                 const result = await generateMonsterName({ checklistItems: validItems });
 
-                if (result.success && result.name) {
-                  localBeast.name = result.name;
+                const generatedName = result.name;
+                const isNameGenerated = result.success && !!generatedName;
+                if (isNameGenerated) {
+                  localBeast.name = generatedName;
 
                   const toast = await toastController.create({
                     message: `✨ Generated: ${result.name}`,
@@ -476,7 +479,8 @@ export default defineComponent({
 
     // AI-powered checklist generation from monster name
     const clickGenerateChecklist = async () => {
-      if (!(await pro.requirePro("aiHelpers"))) return;
+      const hasPro = await pro.requirePro("aiHelpers");
+      if (!hasPro) return;
       if (!isNameValid.value) {
         const toast = await toastController.create({
           message: "Enter a monster name first!",
@@ -501,9 +505,11 @@ export default defineComponent({
               try {
                 const result = await generateChecklistFromName({ monsterName: localBeast.name });
 
-                if (result.success && result.checklist) {
+                const generatedChecklist = result.checklist;
+                const isChecklistGenerated = result.success && !!generatedChecklist;
+                if (isChecklistGenerated) {
                   // Replace or append to existing checklist
-                  localBeast.checklist = result.checklist;
+                  localBeast.checklist = generatedChecklist;
 
                   const toast = await toastController.create({
                     message: `✨ Generated ${result.checklist.length} tasks!`,
@@ -567,256 +573,4 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped>
-  .secondary-toolbar {
-    --background: rgba(0, 0, 0, 0.3);
-    --padding-start: 8px;
-    --padding-end: 8px;
-  }
-
-  .beast-hint {
-    font-size: 1rem;
-    color: white;
-    margin: 0;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-    font-family: "Apple Kid", sans-serif;
-
-    i {
-      color: var(--ion-color-warning);
-    }
-  }
-
-  .checklist-header {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding-left: 16px;
-    padding-right: 16px;
-
-    ion-label {
-      font-family: "StatusPlz", sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-  }
-
-  // Game fonts for labels
-  ion-label {
-    font-family: "StatusPlz", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 1.2rem;
-  }
-
-  ion-title,
-  ion-button {
-    font-family: "StatusPlz", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.85rem;
-  }
-
-  // Game font for inputs
-  ion-input,
-  ion-textarea {
-    font-family: "Apple Kid", sans-serif;
-    font-size: .85rem;
-    letter-spacing: 1.5px;
-    // line-height: 2;
-  }
-
-  .text-danger {
-    color: var(--ion-color-danger);
-  }
-
-  .empty-checklist {
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-    margin: 10px 0;
-  }
-
-  .add-item-btn {
-    margin-top: 0;
-  }
-
-  .beast-modal-content {
-    --background: transparent;
-
-    &::part(scroll) {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-  }
-
-  .modal-centering-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100%;
-    padding: 20px 0;
-  }
-
-  .modal-battle-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
-    background: black;
-  }
-
-  .beast-card {
-    --background: rgba(30, 20, 40, 0.95);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    max-width: 600px;
-    width: 95%;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-    display: block; // Simplified display
-    max-height: 65vh;
-    overflow-y: auto !important; // Scroll the entire card
-    -webkit-overflow-scrolling: touch;
-
-    /* Custom scrollbar */
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.1);
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--ion-color-primary);
-      border-radius: 3px;
-    }
-  }
-
-  .scrollable-list {
-    background: transparent !important;
-  }
-
-  .checklist-container {
-    padding-bottom: 20px;
-  }
-
-  .beast-name-section {
-    --background: transparent;
-  }
-
-  .name-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-
-    ion-input {
-      flex: 1;
-    }
-
-    .beast-name-input {
-      font-size: 2.2rem;
-      font-weight: bold;
-      letter-spacing: 2px;
-      // --padding-top: 8px;
-      // --padding-bottom: 8px;
-    }
-
-    .generate-btn {
-      flex-shrink: 0;
-      --padding-start: 12px;
-      --padding-end: 12px;
-      margin: 0;
-    }
-  }
-
-  .ai-hint {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.85em;
-    color: var(--ion-color-tertiary);
-
-    i {
-      color: var(--ion-color-warning);
-    }
-  }
-
-  .checklist-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  // Ensure ion-item-sliding and its content match heights
-  ion-item-sliding {
-    --ion-item-background: transparent;
-  }
-
-  .checklist-item {
-    --min-height: auto;
-    --padding-start: 0;
-    --inner-padding-end: 0;
-    margin-bottom: 0;
-    min-height: 52px;
-
-    // Slide hint - grip lines to indicate swipe action
-    .slide-hint {
-      font-size: 1rem;
-      color: var(--ion-color-medium);
-      margin-left: 0;
-      margin-right: 0;
-      padding: 16px 12px;
-      opacity: 0.5;
-      cursor: e-resize;
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
-
-      &:hover {
-        opacity: 0.8;
-        background: rgba(var(--ion-color-danger-rgb), 0.1);
-      }
-    }
-
-    // Task icon styling
-    .task-icon {
-      font-size: 1.25rem;
-      color: var(--ion-color-warning);
-      margin-right: 12px;
-    }
-
-    // Task input styling for text wrapping
-    .checklist-input {
-      white-space: normal;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-    }
-  }
-
-  .reorder-handle {
-    cursor: ns-resize !important;
-    padding: 12px 16px;
-    margin-right: 4px;
-    color: var(--ion-color-medium);
-    font-size: 1.25rem;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-
-    &:hover {
-      color: var(--ion-color-primary);
-      background: rgba(var(--ion-color-primary-rgb), 0.1);
-    }
-
-    &:active {
-      cursor: ns-resize !important;
-      color: var(--ion-color-primary);
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_BeastDetailsModal.scss" />

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { makeRng, softBlob } from "./util";
 
 /** Temple rooms: two warm lantern glows that breathe, dust motes drifting up, a slow shimmer along the edges. */
@@ -7,7 +7,7 @@ export const lantern: EffectFactory = () => {
   let glow: HTMLCanvasElement | null = null;
   let x = new Float32Array(0), y = new Float32Array(0), k = new Float32Array(0);
   let motes = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       glow = softBlob(256, 255, 190, 110, 1);
       motes = Math.round(24 * f.budget);
@@ -17,7 +17,8 @@ export const lantern: EffectFactory = () => {
     update(f) {
       for (let i = 0; i < motes; i++) {
         y[i] -= (6 + k[i] * 10) * f.dt; x[i] += Math.sin(f.time * 1.1 + k[i] * 9) * 6 * f.dt;
-        if (y[i] < -4) { y[i] = f.height + 4; x[i] = rng() * f.width; }
+        const isPastTop = y[i] < -4;
+        if (isPastTop) { y[i] = f.height + 4; x[i] = rng() * f.width; }
       }
     },
     draw(f) {
@@ -50,5 +51,4 @@ export const lantern: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

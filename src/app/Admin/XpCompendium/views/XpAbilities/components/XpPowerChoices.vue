@@ -26,23 +26,26 @@ import type { PowerChoice } from "../powerWizard";
  * Pick one of a short list, big enough for a thumb: tiles for words that fit two or three to a row (class, attribute,
  * AP period, frequency), rows for the long lines (the board and battle effects). The parent owns the value.
  */
+interface PowerChoicesProps {
+  choices: readonly PowerChoice[];
+  modelValue: string;
+  /** What the group is, for a screen reader ("On the quest board") */
+  label: string;
+  layout?: "tiles" | "rows";
+  /** Tiles to a row */
+  columns?: 2 | 3 | 4;
+}
+
 const props = withDefaults(
-  defineProps<{
-    choices: readonly PowerChoice[];
-    modelValue: string;
-    /** What the group is, for a screen reader ("On the quest board") */
-    label: string;
-    layout?: "tiles" | "rows";
-    /** Tiles to a row */
-    columns?: 2 | 3 | 4;
-  }>(),
+  defineProps<PowerChoicesProps>(),
   { layout: "tiles", columns: 3 }
 );
 
 const emit = defineEmits<{ "update:modelValue": [id: string] }>();
 
 const pick = (id: string) => {
-  if (id === props.modelValue) return;
+  const isCurrent = id === props.modelValue;
+  if (isCurrent) return;
   play$fx("cursor");
   emit("update:modelValue", id);
 };

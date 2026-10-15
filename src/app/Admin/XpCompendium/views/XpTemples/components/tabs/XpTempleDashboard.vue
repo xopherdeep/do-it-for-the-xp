@@ -148,8 +148,12 @@ export default defineComponent({
     const resolvedMetadata = ref<TempleMetadata | undefined>(metadataFor(props.templeId));
     watch(() => props.templeId, (id) => {
       resolvedMetadata.value = metadataFor(id);
-      if (!id.startsWith('gen-')) return;
-      void metadataForAsync(id).then((meta) => { if (id === props.templeId) resolvedMetadata.value = meta; });
+      const isGenerated = id.startsWith('gen-');
+      if (!isGenerated) return;
+      void metadataForAsync(id).then((meta) => {
+        const isStillShown = id === props.templeId;
+        if (isStillShown) resolvedMetadata.value = meta;
+      });
     }, { immediate: true });
 
     const templeMetadata = computed(() => {
@@ -162,12 +166,14 @@ export default defineComponent({
     });
 
     const templeName = computed(() => {
-      if (templeData.value?.customName) return templeData.value.customName;
+      const customName = templeData.value?.customName;
+      if (customName) return customName;
       return templeMetadata.value.name;
     });
 
     const templeDescription = computed(() => {
-      if (templeData.value?.customDescription) return templeData.value.customDescription;
+      const customDescription = templeData.value?.customDescription;
+      if (customDescription) return customDescription;
       return templeMetadata.value.description;
     });
 

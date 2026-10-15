@@ -1,6 +1,6 @@
 <template>
   <div class="th-updates">
-    <xp-loading v-if="loading && !notes.length" />
+    <xp-loading v-if="isLoading && !notes.length" />
 
     <ion-card v-else-if="failed && !notes.length" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
@@ -65,7 +65,7 @@ defineProps<{ stats: TownStats }>();
 const emit = defineEmits<{ (event: "trouble"): void }>();
 
 const notes = ref<NewsItem[]>([]);
-const { loading, failed, run } = useTownHallLoad(() => emit("trouble"));
+const { isLoading, failed, run } = useTownHallLoad(() => emit("trouble"));
 
 const reload = () =>
   run(async () => {
