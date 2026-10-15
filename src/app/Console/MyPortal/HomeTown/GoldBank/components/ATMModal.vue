@@ -199,7 +199,7 @@
     </ion-content>
 
     <!-- The ATM questions dialog rises above modal -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
   </ion-modal>
 </template>
 
@@ -249,10 +249,10 @@
         const ask = amountAsk(action, props.user?.stats?.gp, "ATM", voice.value);
         if ("refusal" in ask) {
           play$fx("no");
-          await reveal.ask(noticePrompt(ask.refusal, undefined, "ATM"));
+          await reveal.showPrompt(noticePrompt(ask.refusal, undefined, "ATM"));
           return;
         }
-        const { id, amount } = await reveal.askAmount(ask.prompt);
+        const { id, amount } = await reveal.showAmountPrompt(ask.prompt);
         if (id !== "ok" || !amount) return;
         emit(action, { gp: amount });
       };
@@ -263,7 +263,7 @@
         if (isMenuOpen.value) return;
         isMenuOpen.value = true;
         try {
-          const pick = await reveal.ask(atmMenuPrompt(props.user?.stats?.gp, voice.value));
+          const pick = await reveal.showPrompt(atmMenuPrompt(props.user?.stats?.gp, voice.value));
           if (pick === "leave") await dismiss();
           else if (pick === "deposit" || pick === "withdraw" || pick === "payDebt") await errand(pick);
         } finally {

@@ -232,7 +232,7 @@ export default defineComponent({
 
     const onTrouble = async (id: TabId) => {
       if (reveal.prompt.value) return;
-      const pick = await reveal.ask(courierLatePrompt());
+      const pick = await reveal.showPrompt(courierLatePrompt());
       if (pick === "retry") await tabRefs[id].value?.reload();
     };
 
@@ -249,7 +249,7 @@ export default defineComponent({
     const announceLink = async (result: LinkResult) => {
       if (result === "none") return;
       if (result === "linked") void posting.sendQueue();
-      await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
+      await reveal.showPrompt(linkResultNotice(result, townHall.activeLink?.displayName));
     };
 
     /**
@@ -318,16 +318,16 @@ export default defineComponent({
       await loadLink();
       const link = townHall.activeLink;
       if (link) {
-        const pick = await reveal.ask(linkedStatusPrompt(link.displayName));
+        const pick = await reveal.showPrompt(linkedStatusPrompt(link.displayName));
         if (pick !== "unlink") return;
         try {
-          await reveal.ask(unlinkResultNotice(await townHall.unlink()));
+          await reveal.showPrompt(unlinkResultNotice(await townHall.unlink()));
         } catch (err) {
           debug.error("Town Hall could not unlink this device:", err);
         }
         return;
       }
-      const pick = (await reveal.ask(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
+      const pick = (await reveal.showPrompt(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
       if (pick === "create") window.open(SIGNUP_URL, "_blank", "noopener");
       if (pick === "have") await goToAuthorizePage();
     };
@@ -364,7 +364,7 @@ export default defineComponent({
       eventsTab,
       updatesTab,
       prompt: reveal.prompt,
-      respond: reveal.respond,
+      respond: reveal.submitAnswer,
       // Icons
       businessOutline,
       addOutline,

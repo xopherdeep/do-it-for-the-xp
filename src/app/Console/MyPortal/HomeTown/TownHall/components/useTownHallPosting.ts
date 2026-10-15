@@ -28,7 +28,7 @@ export interface PostingStore {
 export interface PostingDeps {
   store: PostingStore;
   /** The clerk's dialog: `ask` shows a prompt and answers with the choice picked; `prompt` is the one showing, if any */
-  reveal: { ask(options: RevealPromptOptions): Promise<string>; prompt: Ref<unknown> };
+  reveal: { showPrompt(options: RevealPromptOptions): Promise<string>; prompt: Ref<unknown> };
   userId(): string;
   /** What the hero signs with on the public site: a nickname of their own, never their real name (`signingName`) */
   heroName(): string;
@@ -109,7 +109,7 @@ export function useTownHallPosting(deps: PostingDeps) {
 
   /** The clerk asks what to do at the board: post (on the board the hero is looking at), report a bug, or see to the registration */
   const openClerkMenu = async (): Promise<void> => {
-    const pick = await reveal.ask(clerkMenuPrompt(deps.isGameMaster(), voice.value));
+    const pick = await reveal.showPrompt(clerkMenuPrompt(deps.isGameMaster(), voice.value));
     if (pick === "registration") await deps.registerFamily();
     if (pick === "board") openTopic(deps.currentBoard());
     if (pick === "bug") openBug();
@@ -144,10 +144,10 @@ export function useTownHallPosting(deps: PostingDeps) {
     toldAbout = result;
     try {
       if (result.unlinked) {
-        await reveal.ask(registerAgainPrompt());
+        await reveal.showPrompt(registerAgainPrompt());
         return;
       }
-      const pick = await reveal.ask(forbiddenPrompt(deps.isGameMaster()));
+      const pick = await reveal.showPrompt(forbiddenPrompt(deps.isGameMaster()));
       if (pick === "redo") await deps.redoRegistration();
     } catch (error) {
       debug.error("Town Hall could not finish telling about the registration:", error);
@@ -228,7 +228,7 @@ export function useTownHallPosting(deps: PostingDeps) {
     composeOpen.value = false;
     if (!kept.post) return;
     const flushed = flushNow();
-    await reveal.ask(postedNotice(postedOutcome(kept.post, store.isLinked, deps.isGameMaster())));
+    await reveal.showPrompt(postedNotice(postedOutcome(kept.post, store.isLinked, deps.isGameMaster())));
     await deliver(await flushed);
   };
 

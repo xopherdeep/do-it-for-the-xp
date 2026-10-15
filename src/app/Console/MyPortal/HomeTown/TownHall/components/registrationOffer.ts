@@ -8,7 +8,7 @@ import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 export interface RegistrationOfferDeps {
   store: { isLinked: boolean; posts: TownHallPost[] };
   /** The clerk's dialog: `ask` shows a prompt and answers with the choice picked; `prompt` is the one showing, if any */
-  reveal: { ask(options: RevealPromptOptions): Promise<string>; prompt: Ref<unknown> };
+  reveal: { showPrompt(options: RevealPromptOptions): Promise<string>; prompt: Ref<unknown> };
   isGameMaster(): boolean;
   /** The clerk's registration errand */
   registerFamily(): Promise<void>;
@@ -28,7 +28,7 @@ export function registrationOffer(deps: RegistrationOfferDeps): () => Promise<vo
     const mayOffer = deps.isGameMaster() && postsWait && !offered && deps.reveal.prompt.value === null;
     if (!mayOffer) return;
     offered = true;
-    const pick = await deps.reveal.ask(unregisteredOutboxPrompt());
+    const pick = await deps.reveal.showPrompt(unregisteredOutboxPrompt());
     if (pick === "registration") await deps.registerFamily();
   };
 }

@@ -283,7 +283,7 @@ export default defineComponent({
       if (this.isTalking) return;
       this.isTalking = true;
       try {
-        const pick = await this.reveal.ask(clerkPrompt(this.voice, this.clerkLines, this.isOpen));
+        const pick = await this.reveal.showPrompt(clerkPrompt(this.voice, this.clerkLines, this.isOpen));
         if (pick === "atm" && this.isOpen) this.openATM();
       } finally {
         this.isTalking = false;
@@ -322,14 +322,14 @@ export default defineComponent({
             : payDownBills(before, amount);
       const refusal = bankRefusal(action, before, move, this.words);
       if (refusal) {
-        await this.reveal.ask(atmNotice(this.voice, refusal, { sound: "no" }));
+        await this.reveal.showPrompt(atmNotice(this.voice, refusal, { sound: "no" }));
         return;
       }
       const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
       const receipt = bankReceipt(action, before, move, this.words);
       this.userStore.setWallet(this.heroId, move.gp);
       if (clearsBill) announceBillPaid(this.heroId);
-      await this.reveal.ask(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
+      await this.reveal.showPrompt(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
 
     // The shelves rise as the game's sheet at the bottom of the screen, ringed in the shop's colour
@@ -375,7 +375,7 @@ export default defineComponent({
       const isPurchaseBlocked = !ware || this.isBuying || this.turnedAwayWhileClosed();
       if (isPurchaseBlocked) return;
       const stats = this.userStore.users[this.heroId]?.stats;
-      const pick = await this.reveal.ask(walletPitch(this.voice, ware, stats?.gp, Number(stats?.level) || 1, this.words));
+      const pick = await this.reveal.showPrompt(walletPitch(this.voice, ware, stats?.gp, Number(stats?.level) || 1, this.words));
       if (pick !== "yes") return;
 
       // Time passed while the hero thought: the purse is read again before it is charged
@@ -383,9 +383,9 @@ export default defineComponent({
       const result = buyWalletUpgrade(fresh?.gp, Number(fresh?.level) || 1);
       if (result.ok) {
         this.userStore.setWallet(this.heroId, result.gp);
-        await this.reveal.ask(walletReceipt(this.voice, result.offer.limit, this.words));
+        await this.reveal.showPrompt(walletReceipt(this.voice, result.offer.limit, this.words));
       } else {
-        await this.reveal.ask(shopRefusal(this.voice, walletRefusal(result, this.words), "coins"));
+        await this.reveal.showPrompt(shopRefusal(this.voice, walletRefusal(result, this.words), "coins"));
       }
     },
     // The GP leaves the wallet now; the Game Master hands the real thing over later
@@ -401,7 +401,7 @@ export default defineComponent({
         const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
         const reasonCode = error instanceof PurchaseError ? error.code : undefined;
         if (shortBy === null && reasonCode !== "bag-full") debug.error("Purchase failed:", error);
-        await this.reveal.ask(purchaseFailure(this.voice, item.name, shortBy, this.words, reasonCode));
+        await this.reveal.showPrompt(purchaseFailure(this.voice, item.name, shortBy, this.words, reasonCode));
         return;
       }
 
@@ -417,7 +417,7 @@ export default defineComponent({
       const receiptPrompt = isConsumable
         ? consumablePurchaseReceipt(this.voice, item.name, this.words)
         : purchaseReceipt(this.voice, item.name, this.words);
-      await this.reveal.ask(receiptPrompt);
+      await this.reveal.showPrompt(receiptPrompt);
     }
   },
   mounted() {

@@ -27,7 +27,7 @@
     </ion-content>
 
     <!-- Nurse Joy's dialog, offers and receipts: the game's own prompt, not native alerts -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
 
     <!-- The Patients board: every hero's chart, their Vital Statistics, and treatment for the hero at the counter -->
     <xp-hospital-patients

@@ -89,7 +89,7 @@ export default defineComponent({
 
     /** The savings counter: deposit or withdraw, then how much on the stepper. */
     async clickAddSavings() {
-      const pick = await this.reveal.ask(savingsMenuPrompt(this.user.stats.gp, this.words))
+      const pick = await this.reveal.showPrompt(savingsMenuPrompt(this.user.stats.gp, this.words))
       if (pick === "deposit" || pick === "withdraw") await this.moneyErrand(pick)
     },
 
@@ -98,10 +98,10 @@ export default defineComponent({
       const ask = amountAsk(action, this.user.stats.gp, GOLD_APP, this.words)
       if ("refusal" in ask) {
         this.play$fx("no")
-        await this.reveal.ask(noticePrompt(ask.refusal, undefined, GOLD_APP))
+        await this.reveal.showPrompt(noticePrompt(ask.refusal, undefined, GOLD_APP))
         return
       }
-      const { id, amount } = await this.reveal.askAmount(ask.prompt)
+      const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt)
       if (id !== "ok" || !amount) return
       const gp = this.user.stats.gp
       const move = action === "withdraw" ? withdrawFromSavings(gp, amount) : action === "deposit" ? depositToSavings(gp, amount) : payDownBills(gp, amount)
@@ -114,7 +114,7 @@ export default defineComponent({
       const refusal = bankRefusal(action, before, move, this.words)
       if (refusal) {
         this.play$fx("no")
-        await this.reveal.ask(noticePrompt(refusal, undefined, GOLD_APP))
+        await this.reveal.showPrompt(noticePrompt(refusal, undefined, GOLD_APP))
         return
       }
       this.play$fx("select")
@@ -128,7 +128,7 @@ export default defineComponent({
         gp: { ...before, ...move.gp }
       }).then(this.loadUsers)
       if (clearsBill) announceBillPaid(heroId)
-      await this.reveal.ask(noticePrompt(receipt, "coins", GOLD_APP))
+      await this.reveal.showPrompt(noticePrompt(receipt, "coins", GOLD_APP))
     }
   },
   setup(props) {

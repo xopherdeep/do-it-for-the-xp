@@ -128,7 +128,7 @@ export default defineComponent({
         this.play$fx("select");
         let lines = this.dialogBlocks;
         for (;;) {
-          const pick = (await this.reveal.ask(
+          const pick = (await this.reveal.showPrompt(
             conciergeMenuPrompt(lines, this.clerkName)
           )) as ConciergeMenuId | "stay";
           if (pick === "stay") return;
@@ -157,13 +157,13 @@ export default defineComponent({
       const quote = quoteCare("room", this.user?.stats, Number(this.user?.stats?.level) || 1);
       if (!quote.canPay) {
         this.play$fx("no");
-        await this.reveal.ask(
+        await this.reveal.showPrompt(
           conciergeNotice(roomRefusalLine(quote, this.words), undefined, this.clerkName)
         );
         return;
       }
 
-      const pick = await this.reveal.ask(
+      const pick = await this.reveal.showPrompt(
         roomConfirmPrompt(this.words, quote.cost, this.clerkName)
       );
       if (pick !== "yes") return;
@@ -186,7 +186,7 @@ export default defineComponent({
       }
 
       const stats = this.user?.stats;
-      await this.reveal.ask(
+      await this.reveal.showPrompt(
         conciergeNotice(
           roomReceiptLine(quote.cost, stats?.hp, stats?.mp, this.words),
           "bed",
@@ -203,7 +203,7 @@ export default defineComponent({
         this.$router.push({ name: "town-hall", params: { userId: this.userId } });
         return;
       }
-      await this.reveal.ask(
+      await this.reveal.showPrompt(
         conciergeNotice(nothingOnTheBoard(this.words), undefined, this.clerkName)
       );
     },

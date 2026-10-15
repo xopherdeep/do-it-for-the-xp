@@ -89,7 +89,7 @@ export default defineComponent({
         // An admitted hero's lines are read once: the next welcome is the ordinary one
         this.admissionBlocks = [];
         for (;;) {
-          const pick = (await this.reveal.ask(nurseMenuPrompt(lines))) as NurseMenuId | "stay";
+          const pick = (await this.reveal.showPrompt(nurseMenuPrompt(lines))) as NurseMenuId | "stay";
           if (pick === "stay") return;
           if (isWalkAway(pick)) {
             this.walkAway(pick);
@@ -154,10 +154,10 @@ export default defineComponent({
       const quote = quoteCare(kind, this.userStore.getUserById(this.userId)?.stats);
       if (!quote.canPay) {
         this.play$fx("no");
-        await this.reveal.ask(nurseNotice(careRefusalLine(quote, this.words)));
+        await this.reveal.showPrompt(nurseNotice(careRefusalLine(quote, this.words)));
         return;
       }
-      const pick = await this.reveal.ask(careConfirmPrompt(kind, this.words));
+      const pick = await this.reveal.showPrompt(careConfirmPrompt(kind, this.words));
       if (pick !== "yes") return;
       await this.payCoPay(kind);
     },
@@ -171,7 +171,7 @@ export default defineComponent({
       const quote = quoteCare(kind, user?.stats);
       if (!quote.canPay) {
         this.play$fx("no");
-        await this.reveal.ask(nurseNotice(careRefusalLine(quote, this.words)));
+        await this.reveal.showPrompt(nurseNotice(careRefusalLine(quote, this.words)));
         return;
       }
 
@@ -191,7 +191,7 @@ export default defineComponent({
 
       const stats = this.userStore.getUserById(this.userId)?.stats;
       const mp = quote.mpGain > 0 ? stats?.mp : null;
-      await this.reveal.ask(nurseNotice(careReceiptLine(kind, quote.cost, stats?.hp, mp, this.words), "heart"));
+      await this.reveal.showPrompt(nurseNotice(careReceiptLine(kind, quote.cost, stats?.hp, mp, this.words), "heart"));
     },
 
     /**
@@ -203,7 +203,7 @@ export default defineComponent({
       const quote = quoteBenchRest(user?.stats, user?.benchRestAt);
       if (!quote.canRest) {
         this.play$fx("no");
-        await this.reveal.ask(nurseNotice(benchRefusalLine(quote, this.words)));
+        await this.reveal.showPrompt(nurseNotice(benchRefusalLine(quote, this.words)));
         return;
       }
 
@@ -219,7 +219,7 @@ export default defineComponent({
       }
 
       const stats = this.userStore.getUserById(this.userId)?.stats;
-      await this.reveal.ask(nurseNotice(benchReceiptLine(quote.hpGain, stats?.hp, this.words), "heart"));
+      await this.reveal.showPrompt(nurseNotice(benchReceiptLine(quote.hpGain, stats?.hp, this.words), "heart"));
     }
   },
   setup() {

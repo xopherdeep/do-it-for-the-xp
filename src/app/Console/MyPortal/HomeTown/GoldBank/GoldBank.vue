@@ -34,7 +34,7 @@
     </ion-content>
     
     <!-- The banker's dialog, offers and receipts: the game's own prompt, not native alerts -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
 
     <!-- ATM Modal Component -->
     <ATMModal

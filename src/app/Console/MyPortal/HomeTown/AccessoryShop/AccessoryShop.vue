@@ -97,7 +97,7 @@
     </ion-footer>
 
     <!-- The clerk, the wallet and the receipts speak in the game's own dialog, in the shop's colours -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
 
     <!-- Item Inspection and Purchase Modal -->
     <shop-item-modal
