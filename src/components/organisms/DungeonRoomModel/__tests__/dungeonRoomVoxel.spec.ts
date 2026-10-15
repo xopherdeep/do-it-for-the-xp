@@ -74,10 +74,14 @@ describe("dungeonRoomShapes: voxel geometries for treasure chest and dungeon roo
   });
 
   describe("Combat Room States", () => {
-    it("renders cleared victory stand when combat room is cleared", () => {
-      const clearedBoxes = getDungeonRoomBoxes("monster", { cleared: true });
-      const greenPennant = clearedBoxes.find((b) => b.color === "#2e7d32");
-      expect(greenPennant).toBeDefined();
+    it("leaves a pile of bones, with the spoils until they are searched", () => {
+      const isGold = (b: { color: string }) => b.color === "#ffd700";
+      const unsearched = getDungeonRoomBoxes("monster", { cleared: true });
+      const searched = getDungeonRoomBoxes("monster", { cleared: true, searched: true });
+      expect(unsearched.some((b) => b.color === "#efe8d8")).toBe(true);
+      expect(unsearched.some(isGold)).toBe(true);
+      expect(searched.some(isGold)).toBe(false);
+      expect(searched.length).toBeLessThan(unsearched.length);
 
       const mesh = buildDungeonRoomMeshData("monster", { cleared: true });
       expect(mesh.positions.length).toBeGreaterThan(0);

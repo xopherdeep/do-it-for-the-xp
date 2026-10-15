@@ -56,6 +56,8 @@ export interface DungeonRoomModelProps {
   roomType?: string;
   size?: number;
   cleared?: boolean;
+  /** A cleared combat room whose bones were searched: the spoils are gone */
+  searched?: boolean;
   interactive?: boolean;
   showBadge?: boolean;
 }
@@ -65,6 +67,7 @@ const props = withDefaults(defineProps<DungeonRoomModelProps>(), {
   roomType: "",
   size: 130,
   cleared: false,
+  searched: false,
   interactive: true,
   showBadge: true,
 });
@@ -120,6 +123,7 @@ const shapeOptions = computed<DungeonRoomShapeOptions>(() => ({
   isEmpty: isEmpty.value,
   isBoss: isBossChest.value,
   cleared: props.cleared,
+  searched: props.searched,
 }));
 
 const { supported } = useDungeonRoomScene(canvasRef, resolvedType, shapeOptions, {
@@ -147,7 +151,7 @@ const ROOM_TITLES: Record<string, string> = {
   trap: "Spike Trap",
   pit: "Dark Chasm",
   void: "Dark Chasm",
-  cleared: "Victory Trophy",
+  cleared: "Pile of Bones",
   empty: "Dusty Chamber",
 };
 
@@ -164,7 +168,7 @@ const ROOM_CUES: Record<string, string> = {
   save: "Save journey",
   gate: "Step through",
   entrance: "Leave temple",
-  cleared: "Secured",
+  cleared: "Search the bones",
   empty: "Inspect",
 };
 
@@ -180,6 +184,8 @@ const displayName = computed(() => {
 
 const displayCue = computed(() => {
   const type = resolvedType.value;
+  const isSearchedBones = type === "cleared" && props.searched;
+  if (isSearchedBones) return "Searched";
   return ROOM_CUES[type] || "Inspect";
 });
 
