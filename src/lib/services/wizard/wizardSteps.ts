@@ -82,8 +82,10 @@ export const isReady = <Draft>(steps: readonly WizardStep<Draft>[], draft: Draft
   askedIndexes(steps, draft).every((index) => stepVerdict(steps[index], draft).valid);
 
 /** Next is open when this step is valid; the last step's verb needs the whole form. */
-export const canNext = <Draft>(steps: readonly WizardStep<Draft>[], draft: Draft, index: number): boolean =>
-  isLast(steps, draft, index) ? isReady(steps, draft) : (steps[index] ? stepVerdict(steps[index], draft).valid : false);
+export const canNext = <Draft>(steps: readonly WizardStep<Draft>[], draft: Draft, index: number): boolean => {
+  if (isLast(steps, draft, index)) return isReady(steps, draft);
+  return Boolean(steps[index]) && stepVerdict(steps[index], draft).valid;
+};
 
 /**
  * The one line that says why Next is disabled, empty when it is open or the validator gave no words. On the last step

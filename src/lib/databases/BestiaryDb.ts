@@ -98,8 +98,7 @@ export class BestiaryDb extends DbStorageApi {
       return await this.setBeast(clone).then(cloneToast)
     }
 
-    const clone = await this.getBeasts().then(cloneFromBeasts)
-    return clone
+    return this.getBeasts().then(cloneFromBeasts)
   }
 
   public async getBeastById(id) {
@@ -109,8 +108,7 @@ export class BestiaryDb extends DbStorageApi {
   }
 
   public async getBeasts() {
-    const beasts = await this.getAll()
-    return beasts
+    return this.getAll()
   }
 
   // NEW IMPORT/EXPORT FUNCTIONALITY

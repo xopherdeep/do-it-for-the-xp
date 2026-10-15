@@ -97,8 +97,15 @@ const emit = defineEmits<{
   (e: "land", stat: Stat): void;
 }>();
 
+interface VictoryTile {
+  stat: Stat;
+  label: string;
+  icon: string;
+  delay: number;
+}
+
 /** A tile starts rolling `delay` ms after the card appears, so the three numbers land one after another. */
-const TILES: readonly { stat: Stat; label: string; icon: string; delay: number }[] = [
+const TILES: readonly VictoryTile[] = [
   { stat: "xp", label: "XP", icon: "fad fa-star", delay: 0 },
   { stat: "gp", label: "GP", icon: "fad fa-coins", delay: 250 },
   { stat: "ap", label: "AP", icon: "fad fa-bolt", delay: 500 },

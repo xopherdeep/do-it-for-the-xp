@@ -113,8 +113,7 @@ export class AccessoriesDb extends DbStorageApi {
   }
 
   public async getAccessories() {
-    const accessories = await this.getAll()
-    return accessories
+    return this.getAll()
   }
 }
 

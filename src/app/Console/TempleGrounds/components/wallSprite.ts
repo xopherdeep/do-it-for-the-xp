@@ -112,8 +112,15 @@ export const wallBricks = (element: string): WallBrick[] => {
   return bricks;
 };
 
+interface WallHole {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
 /** The box around the blocks that fall (cells, inclusive): the opening the blast leaves. */
-export const wallHole = (): { left: number; right: number; top: number; bottom: number } => {
+export const wallHole = (): WallHole => {
   const runs = wallBricks('wind').filter((brick) => brick.falls).flatMap((brick) => brick.runs);
   return {
     left: Math.min(...runs.map((run) => run.x)),

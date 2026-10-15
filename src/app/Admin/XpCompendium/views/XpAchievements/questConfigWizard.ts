@@ -22,8 +22,16 @@ export type QuestConfigDraft = Partial<
 
 export type QuestKind = "simple" | "beast" | "chain";
 
+/** One segment of step one: the kind, its label and icon, and the line under it. */
+interface QuestKindChoice {
+  value: QuestKind;
+  label: string;
+  icon: string;
+  hint: string;
+}
+
 /** Normal, beast or chain: the segments of step one (the quest's `adventureType`). */
-export const QUEST_KINDS: readonly { value: QuestKind; label: string; icon: string; hint: string }[] = [
+export const QUEST_KINDS: readonly QuestKindChoice[] = [
   { value: "simple", label: "Normal", icon: "check", hint: "A plain chore: make the bed, practise piano." },
   { value: "beast", label: "Beast", icon: "paw-claws", hint: "A chore turned monster. Pick the beast the hero fights." },
   { value: "chain", label: "Chain", icon: "link", hint: "Several quests tied into one arc, done in order." },

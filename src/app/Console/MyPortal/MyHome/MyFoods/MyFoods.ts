@@ -47,8 +47,15 @@ interface FoodSection {
   foods: FoodItem[];
 }
 
+interface FoodGroup {
+  id: FoodCategory;
+  label: string;
+  tag: string;
+  icon: string;
+}
+
 // The kitchen lists its foods in these groups, in this order
-const FOOD_GROUPS: { id: FoodCategory; label: string; tag: string; icon: string }[] = [
+const FOOD_GROUPS: FoodGroup[] = [
   { id: 'meal', label: 'Meals', tag: 'Meal', icon: 'utensils' },
   { id: 'snack', label: 'Snacks', tag: 'Snack', icon: 'cookie' },
   { id: 'dessert', label: 'Desserts', tag: 'Dessert', icon: 'ice-cream' },

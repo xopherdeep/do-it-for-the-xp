@@ -3,7 +3,7 @@
     title="Powers"
     fa-icon="book-spells"
     subtitle="Casting one keeps your move."
-    :busy="busy"
+    :busy="isBusy"
     cy="powers-sheet"
     @back="emit('cancel')"
   >
@@ -15,7 +15,7 @@
           :unlocked="true"
           :snapshot="snapshot"
           :battle="card"
-          :casting="busy"
+          :casting="isBusy"
           @cast="cast"
         />
       </li>
@@ -47,11 +47,11 @@ const emit = defineEmits<{
 }>();
 
 /** Latched by a cast: the page closes the sheet next, so nothing else may fire from it before it is gone. */
-const busy = ref(false);
+const isBusy = ref(false);
 
 const cast = (abilityId: string) => {
-  if (busy.value) return;
-  busy.value = true;
+  if (isBusy.value) return;
+  isBusy.value = true;
   emit("cast", abilityId);
 };
 </script>

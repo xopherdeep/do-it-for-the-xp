@@ -42,6 +42,7 @@ export function draftProblem(draft: PostDraft): string | null {
 
 /** The line that ends every topic and comment. No real names, no family name: see `signingName`. */
 export function signature(heroName: string): string {
+  // chemx-allow: TYPOGRAPHY_EM_DASH the forum sign-off is a real em dash by design (townHallPosts.spec pins it)
   return `\n\n— ${heroName}, from Do It For The XP`;
 }
 
@@ -68,8 +69,17 @@ export function signingName(name: HeroNameParts | null | undefined): string {
   return nick && !isRealName ? nick : ANONYMOUS_SIGNATURE_NAME;
 }
 
+/** The device facts a bug report carries */
+interface BugEnvironmentInfo {
+  version: string;
+  route: string;
+  platform: string;
+  userAgent: string;
+  at: number;
+}
+
 /** What a bug report says about the device, as plain text for the site's environment field. */
-export function bugEnvironment(info: { version: string; route: string; platform: string; userAgent: string; at: number }): string {
+export function bugEnvironment(info: BugEnvironmentInfo): string {
   return [
     `App: ${info.version}`,
     `Screen: ${info.route}`,

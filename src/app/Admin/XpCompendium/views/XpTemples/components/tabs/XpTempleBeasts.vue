@@ -144,8 +144,8 @@ import TempleQuestsHeader from "../quests/TempleQuestsHeader.vue";
 import TempleQuestRowCard from "../quests/TempleQuestRowCard.vue";
 import TempleWakeSheet from "../quests/TempleWakeSheet.vue";
 
-/** The three tiers, boss first: how each is titled, drawn, and how wide its classic cards are */
-const TIERS: Array<{
+/** How a tier is titled, drawn, and how wide its classic cards are */
+interface TierDisplay {
   id: QuestTier;
   title: string;
   icon: string;
@@ -155,7 +155,10 @@ const TIERS: Array<{
   colMd: string;
   colLg: string;
   small: boolean;
-}> = [
+}
+
+/** The three tiers, boss first: how each is titled, drawn, and how wide its classic cards are */
+const TIERS: TierDisplay[] = [
   { id: "boss", title: "Bosses", icon: "fa-crown", placeholderIcon: "fa-crown fa-3x", placeholderLabel: "Boss Room", colSize: "6", colMd: "4", colLg: "3", small: false },
   { id: "miniboss", title: "Minibosses", icon: "fa-helmet-battle", placeholderIcon: "fa-helmet-battle fa-3x", placeholderLabel: "Miniboss", colSize: "6", colMd: "4", colLg: "3", small: false },
   { id: "monster", title: "Monsters", icon: "fa-skull", placeholderIcon: "fa-skull fa-2x", placeholderLabel: "Monster", colSize: "4", colMd: "3", colLg: "2", small: true },

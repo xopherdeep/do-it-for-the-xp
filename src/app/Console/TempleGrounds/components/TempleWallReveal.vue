@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel } from "@/lib/services/feedback/haptics";
 import PixelRuns from "./PixelRuns.vue";
@@ -118,15 +119,17 @@ import { WALL_H, WALL_W, wallBricks, wallCrack, wallHole } from "./wallSprite";
  * is and what would open it, and can only close the sheet. Reduced motion gets the flash and the opening, no crumble.
  * The page owns `open`; it closes the sheet on `leave` or, once the opening has shown, on `done`.
  */
+interface TempleWallRevealProps {
+  open: boolean;
+  wall: BombView | null;
+  /** The temple's element: the stone of the wall and the colour of the light behind it */
+  element?: string;
+  /** What the temple said to the Bomb: the wall is down (or nothing, when it refused the sheet closes at once) */
+  result?: BombResult | null;
+}
+
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    wall: BombView | null;
-    /** The temple's element: the stone of the wall and the colour of the light behind it */
-    element?: string;
-    /** What the temple said to the Bomb: the wall is down (or nothing, when it refused the sheet closes at once) */
-    result?: BombResult | null;
-  }>(),
+  defineProps<TempleWallRevealProps>(),
   { element: "wind", result: null },
 );
 
@@ -151,7 +154,7 @@ const phase = ref<Phase>("arriving");
 const root = ref<HTMLElement | null>(null);
 const bombButton = ref<HTMLButtonElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 
 // Painted once per temple: the stone follows the element
 const bricks = computed(() => wallBricks(props.element));
@@ -162,12 +165,11 @@ const hole = wallHole();
 const busy = computed(() => phase.value === "lit" || phase.value === "flash" || phase.value === "crumbling" || phase.value === "open");
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
 };
 
 const reducedMotion = (): boolean =>

@@ -221,16 +221,18 @@ defineOptions({ name: "xp-beast-card-modal" });
  * it completes the quest through completeQuest, and a quest that needs approval goes on hold as it always does).
  * A tamed, pending or not-yet-due quest only shows its entry.
  */
+interface BeastCardModalProps {
+  quest: Achievement;
+  userId: string | number;
+  status: BeastCardStatus;
+  /** When the quest is due, for the clock; null for a quest with no time */
+  due?: Date | null;
+  /** The board's wording of the due time ("6:00pm", "Tomorrow 6:00pm") */
+  dueLabel?: string;
+}
+
 const props = withDefaults(
-  defineProps<{
-    quest: Achievement;
-    userId: string | number;
-    status: BeastCardStatus;
-    /** When the quest is due, for the clock; null for a quest with no time */
-    due?: Date | null;
-    /** The board's wording of the due time ("6:00pm", "Tomorrow 6:00pm") */
-    dueLabel?: string;
-  }>(),
+  defineProps<BeastCardModalProps>(),
   { due: null, dueLabel: "" }
 );
 

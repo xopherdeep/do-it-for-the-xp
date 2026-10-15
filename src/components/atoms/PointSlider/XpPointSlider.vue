@@ -132,9 +132,17 @@ const props = withDefaults(defineProps<Props>(), {
     showPointsDisplay: true,
 });
 
+/** The points a difficulty is worth, sent up with `update:rewards` */
+interface DifficultyRewards {
+    xp: number;
+    gp: number;
+    ap: number;
+    difficulty: number;
+}
+
 const emit = defineEmits<{
     'update:modelValue': [value: number];
-    'update:rewards': [rewards: { xp: number; gp: number; ap: number; difficulty: number }];
+    'update:rewards': [rewards: DifficultyRewards];
 }>();
 
 defineOptions({

@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Glowing dots that wander with easing and blink, additive. */
@@ -6,7 +6,7 @@ export const fireflies: EffectFactory = () => {
   const rng = makeRng(101);
   let x = new Float32Array(0), y = new Float32Array(0), tx = new Float32Array(0), ty = new Float32Array(0), ph = new Float32Array(0);
   let count = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       count = countFor(f, 12, 40);
       x = new Float32Array(count); y = new Float32Array(count); tx = new Float32Array(count); ty = new Float32Array(count); ph = new Float32Array(count);
@@ -34,5 +34,4 @@ export const fireflies: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

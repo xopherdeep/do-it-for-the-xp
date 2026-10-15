@@ -148,7 +148,13 @@ export const packStatus = (pack: XpPack, packs: readonly XpPack[], snapshot: Pac
   if (!own.length) own = PACK_LISTS.flatMap((list) => ids[list].map((id) => [list, id] as const));
   const present = own.filter(([list, id]) => snapshot[PACK_LIST_STORES[list]].has(id)).length;
   const total = own.length;
-  return { state: present === 0 ? "none" : present === total ? "loaded" : "partial", present, total };
+  return { state: loadState(present, total), present, total };
+};
+
+const loadState = (present: number, total: number): PackStatus["state"] => {
+  const isAbsent = present === 0;
+  if (isAbsent) return "none";
+  return present === total ? "loaded" : "partial";
 };
 
 export interface RemovalPlan {

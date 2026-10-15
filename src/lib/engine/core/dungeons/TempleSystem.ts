@@ -37,6 +37,15 @@ export type { DoorKind, DoorState } from './templeSystem/doors';
 export { MapVisibility } from './templeSystem/visibility';
 export type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
+/** What an opened chest held */
+interface OpenedChest {
+  items?: string[];
+  specialItem?: string;
+  keyFound?: boolean;
+  mapFound?: boolean;
+  compassFound?: boolean;
+}
+
 export class TempleSystem {
   private static instance: TempleSystem;
   private dungeonManager: DungeonManager;
@@ -478,13 +487,7 @@ export class TempleSystem {
    * Open a chest and collect its contents
    * @returns Object with collected items
    */
-  public openChest(templeId: string): {
-    items?: string[];
-    specialItem?: string;
-    keyFound?: boolean;
-    mapFound?: boolean;
-    compassFound?: boolean;
-  } | undefined {
+  public openChest(templeId: string): OpenedChest | undefined {
     return chests.openChest(this.runs, templeId);
   }
   

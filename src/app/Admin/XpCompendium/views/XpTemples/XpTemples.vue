@@ -124,6 +124,14 @@
   import { play$fx } from "@/assets/fx";
   import { useProStore } from "@/lib/store/stores/pro";
 
+  /** The parts of a temple its card label reads */
+  interface TempleLabelSource {
+    id: string;
+    world?: string;
+    customName?: string;
+    name?: string;
+  }
+
   // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
   const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
@@ -394,7 +402,7 @@
       };
 
       // The world's name is painted into the card art; say it for screen readers
-      const templeLabel = (temple: { id: string; world?: string; customName?: string; name?: string }) => {
+      const templeLabel = (temple: TempleLabelSource) => {
         const name = TEMPLE_METADATA[temple.id]?.name || temple.customName || temple.name || temple.id;
         return temple.world ? `${name}, ${temple.world}` : name;
       };

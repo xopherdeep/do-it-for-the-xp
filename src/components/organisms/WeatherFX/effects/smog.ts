@@ -1,4 +1,4 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 import { countFor, makeRng, pulse, softBlob } from "./util";
 
 const resolveWindowIntensity = (reducedMotion: boolean, time: number, index: number, phase: number): number => {
@@ -15,7 +15,7 @@ export const smog: EffectFactory = () => {
   let blob: HTMLCanvasElement | null = null;
   let wx = new Float32Array(0), wy = new Float32Array(0), wp = new Float32Array(0);
   let windows = 0, drift = 0;
-  const effect: WeatherEffect = {
+  return {
     init(f) {
       blob = softBlob(256, 120, 120, 135, 1);
       windows = countFor(f, 10, 40);
@@ -41,5 +41,4 @@ export const smog: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

@@ -1,4 +1,4 @@
-import type { EffectFactory, EffectFrame, WeatherEffect } from "../types";
+import type { EffectFactory, EffectFrame } from "../types";
 import { countFor, makeRng } from "./util";
 
 /** Angled streaks in three depths with splashes at the bottom edge; `heavy` doubles the count. */
@@ -9,7 +9,7 @@ export const rain: EffectFactory = (options = {}) => {
   let splashX = new Float32Array(0), splashT = new Float32Array(0);
   let count = 0, splashes = 0, wind = 0;
 
-  const effect: WeatherEffect = {
+  return {
     init(f: EffectFrame) {
       count = countFor(f, 60, heavy ? 800 : 400);
       x = new Float32Array(count); y = new Float32Array(count); depth = new Float32Array(count); len = new Float32Array(count);
@@ -59,5 +59,4 @@ export const rain: EffectFactory = (options = {}) => {
       ctx.restore();
     },
   };
-  return effect;
 };

@@ -222,6 +222,16 @@
   } from "ionicons/icons";
   import Ionic from "@/lib/mixins/ionic";
 
+  interface AbilityConnection {
+    id: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    status: string;
+    path: string;
+  }
+
   export default defineComponent({
     name: "XpAbilityManager",
     mixins: [Ionic],
@@ -266,15 +276,7 @@
       const startPanPosition = ref({ x: 0, y: 0 });
       const startPanOffset = ref({ x: 0, y: 0 });
       const abilityConnections = ref<
-        Array<{
-          id: string;
-          startX: number;
-          startY: number;
-          endX: number;
-          endY: number;
-          status: string;
-          path: string;
-        }>
+        Array<AbilityConnection>
       >([]);
 
       // Computed properties
@@ -452,15 +454,7 @@
 
       const calculateConnections = () => {
         // Calculate SVG lines for connections between abilities
-        const connections: Array<{
-          id: string;
-          startX: number;
-          startY: number;
-          endX: number;
-          endY: number;
-          status: string;
-          path: string;
-        }> = [];
+        const connections: Array<AbilityConnection> = [];
 
         props.abilities.forEach((ability) => {
           // Initialize position if it doesn't exist

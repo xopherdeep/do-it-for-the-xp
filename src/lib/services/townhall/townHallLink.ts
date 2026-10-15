@@ -10,6 +10,13 @@ export type LinkReturn =
   | { kind: "rejected"; state?: string }
   | { kind: "none" };
 
+interface AuthorizeUrlOptions {
+  site: string;
+  appName: string;
+  returnUrl: string;
+  state: string;
+}
+
 interface PageLocation {
   origin: string;
   pathname: string;
@@ -49,7 +56,7 @@ function withQuery(url: string, query: Record<string, string>): string {
  * appends its answer to success_url; reject_url it uses as given (it adds `success=false` only to one it makes itself), so
  * the app makes it with `success=false` already on.
  */
-export function authorizeUrl(opts: { site: string; appName: string; returnUrl: string; state: string }): string {
+export function authorizeUrl(opts: AuthorizeUrlOptions): string {
   const params = new URLSearchParams({
     app_name: opts.appName,
     app_id: TOWN_HALL_APP_ID,

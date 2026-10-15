@@ -76,8 +76,7 @@ export class ProfileDb extends DbStorageApi {
   }
 
   public async getProfiles() {
-    const profiles = await this.getAll()
-    return profiles
+    return this.getAll()
   }
 
   public async setProfile(profile: NewProfileForm) {

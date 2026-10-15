@@ -37,6 +37,14 @@ export function markChestOpened(runs: TempleRuns, templeId: string, level: strin
   runs.queueSave(templeId);
 }
 
+interface ChestOpenResult {
+  items?: string[];
+  specialItem?: string;
+  keyFound?: boolean;
+  mapFound?: boolean;
+  compassFound?: boolean;
+}
+
 export function openChest(runs: TempleRuns, templeId: string) {
   const templeState = runs.templeStates[templeId];
   if (!templeState) return undefined;
@@ -49,13 +57,7 @@ export function openChest(runs: TempleRuns, templeId: string) {
   
   if (!chestContent) return undefined;
   
-  const result: {
-    items?: string[];
-    specialItem?: string;
-    keyFound?: boolean;
-    mapFound?: boolean;
-    compassFound?: boolean;
-  } = {};
+  const result: ChestOpenResult = {};
   
   // Process items
   if (chestContent.items?.length) {

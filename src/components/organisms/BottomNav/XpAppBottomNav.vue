@@ -38,13 +38,15 @@ import { toFaClass } from "@/lib/utils/faIcon";
 import type { AppNavTab } from "./appBottomNav";
 export type { AppNavTab };
 
+interface XpAppBottomNavProps {
+  tabs: AppNavTab[];
+  modelValue?: string;
+  active?: string;
+  ariaLabel?: string;
+}
+
 const props = withDefaults(
-  defineProps<{
-    tabs: AppNavTab[];
-    modelValue?: string;
-    active?: string;
-    ariaLabel?: string;
-  }>(),
+  defineProps<XpAppBottomNavProps>(),
   {
     modelValue: "",
     active: "",

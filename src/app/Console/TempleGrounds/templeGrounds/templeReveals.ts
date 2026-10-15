@@ -68,6 +68,8 @@ export const useChoiceReveal = () => {
   };
 };
 
+interface TempleClearedReward { xp: number; gp: number; ap: number; levelUp?: boolean }
+
 export const usePegasusReveal = (leaveTemple: () => void) => {
   // The temple cleared: the Pegasus's egg cracks (or the temple lights up, for one without a Pegasus) and the reward
   // counts up. It keeps what it showed while it closes. `Fly home` is the way out of the temple.
@@ -78,7 +80,7 @@ export const usePegasusReveal = (leaveTemple: () => void) => {
 
   const showTempleCleared = (
     pegasus: PegasusView | null,
-    reward: { xp: number; gp: number; ap: number; levelUp?: boolean } = { xp: 0, gp: 0, ap: 0 }
+    reward: TempleClearedReward = { xp: 0, gp: 0, ap: 0 }
   ) => {
     pegasusShown.value = pegasus;
     pegasusReward.value = { xp: reward.xp, gp: reward.gp, ap: reward.ap };

@@ -25,12 +25,7 @@
 <script setup lang="ts">
 import { play$fx } from "@/assets/fx";
 
-/**
- * The shell of a battle sheet (the potion and Powers sheets): the dimmed backdrop, the boxed container with a
- * title and one line of what the sheet does, the list in the default slot, and a Back button. The sheet that
- * holds it owns the list and the busy latch; this shell only plays the close sound and says "back".
- */
-const props = defineProps<{
+interface BattleSheetProps {
   title: string;
   /** Font Awesome icon name without the prefix, e.g. "flask-potion" */
   faIcon: string;
@@ -39,7 +34,14 @@ const props = defineProps<{
   busy: boolean;
   /** The sheet's `data-cy`; the Back button is `${cy}-back` */
   cy: string;
-}>();
+}
+
+/**
+ * The shell of a battle sheet (the potion and Powers sheets): the dimmed backdrop, the boxed container with a
+ * title and one line of what the sheet does, the list in the default slot, and a Back button. The sheet that
+ * holds it owns the list and the busy latch; this shell only plays the close sound and says "back".
+ */
+const props = defineProps<BattleSheetProps>();
 
 const emit = defineEmits<{ (e: "back"): void }>();
 

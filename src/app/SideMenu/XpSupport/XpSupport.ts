@@ -33,11 +33,19 @@ import packageInfo from '@/../package.json'
 // Developer tools are only available outside production builds
 const devToolsAvailable = process.env.NODE_ENV !== 'production';
 
+interface SupportTile {
+  src: string;
+  title: string;
+  desc: string;
+  icon: string;
+  version?: string;
+}
+
 export default defineComponent({
   name: 'xp-support',
   mixins: [Ionic],
   data() {
-    const tiles: Array<{ src: string; title: string; desc: string; icon: string; version?: string }> = [
+    const tiles: SupportTile[] = [
       {
         src: '/support/user-manual',
         title: 'User Manual',

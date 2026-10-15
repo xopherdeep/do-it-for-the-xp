@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { clamp } from "lodash";
 import { play$fx } from "@/assets/fx";
 import { countOf } from "../powerWizard";
 
@@ -41,16 +42,18 @@ import { countOf } from "../powerWizard";
  * value. Typing a number is clamped to the limits; clearing the field to retype changes nothing until a number is
  * there, and leaving the field puts the real value back.
  */
+interface PowerCounterProps {
+  modelValue: number;
+  label: string;
+  hint?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
 const props = withDefaults(
-  defineProps<{
-    modelValue: number;
-    label: string;
-    hint?: string;
-    unit?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-  }>(),
+  defineProps<PowerCounterProps>(),
   { hint: "", unit: "", min: 0, max: 9999, step: 1 }
 );
 
@@ -62,13 +65,13 @@ const field = ref<HTMLInputElement | null>(null);
 const isNumber = computed(() => Number.isFinite(props.modelValue));
 const shown = computed(() => (isNumber.value ? props.modelValue : ""));
 const current = computed(() => (isNumber.value ? props.modelValue : props.min));
-const clamp = (value: number): number => Math.min(Math.max(value, props.min), props.max);
+const toRange = (value: number): number => clamp(value, props.min, props.max);
 
 const canLess = computed(() => current.value > props.min);
 const canMore = computed(() => current.value < props.max);
 
 const bump = (direction: 1 | -1) => {
-  const next = clamp(current.value + direction * props.step);
+  const next = toRange(current.value + direction * props.step);
   if (next === props.modelValue) return;
   play$fx("cursor");
   emit("update:modelValue", next);
@@ -76,7 +79,7 @@ const bump = (direction: 1 | -1) => {
 
 const onType = (event: Event) => {
   const typed = countOf((event.target as HTMLInputElement).value);
-  if (typed !== null) emit("update:modelValue", clamp(typed));
+  if (typed !== null) emit("update:modelValue", toRange(typed));
 };
 
 const settle = () => {

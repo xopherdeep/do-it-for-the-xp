@@ -211,15 +211,17 @@
 
   type StatKey = "ap" | "gp" | "xp";
 
-  // The three kinds of points, in the order the rest of the Admin shows them
-  const STATS: {
+  interface StatOption {
     key: StatKey;
     short: string;
     name: string;
     blurb: string;
     icon: string;
     color: string;
-  }[] = [
+  }
+
+  // The three kinds of points, in the order the rest of the Admin shows them
+  const STATS: StatOption[] = [
     {
       key: "ap",
       short: "AP",

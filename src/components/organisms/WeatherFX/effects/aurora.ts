@@ -1,8 +1,8 @@
-import type { EffectFactory, WeatherEffect } from "../types";
+import type { EffectFactory } from "../types";
 
 /** Two slow wavy translucent ribbons across the upper sky. */
 export const aurora: EffectFactory = () => {
-  const effect: WeatherEffect = {
+  return {
     init() { /* stateless */ },
     update() { /* stateless */ },
     draw(f) {
@@ -33,5 +33,4 @@ export const aurora: EffectFactory = () => {
       ctx.restore();
     },
   };
-  return effect;
 };

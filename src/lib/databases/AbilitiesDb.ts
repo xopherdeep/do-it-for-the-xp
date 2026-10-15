@@ -12,6 +12,20 @@ export const abilitiesStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
+interface AbilityFilters {
+  type?: AbilityType;
+  class?: string;
+  frequency?: TimePeriod;
+  isPreset?: boolean;
+}
+
+interface UserApTotals {
+  total: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+}
+
 export class AbilitiesDb extends DbStorageApi {
   private createAbility(): Ability {
     return {
@@ -53,19 +67,13 @@ export class AbilitiesDb extends DbStorageApi {
   }
 
   public async getAbilities(): Promise<Ability[]> {
-    const abilities = await this.getAll();
-    return abilities;
+    return this.getAll();
   }
 
   /**
    * Gets abilities that match the specified filters
    */
-  public async getFilteredAbilities(filters: {
-    type?: AbilityType;
-    class?: string;
-    frequency?: TimePeriod;
-    isPreset?: boolean;
-  }): Promise<Ability[]> {
+  public async getFilteredAbilities(filters: AbilityFilters): Promise<Ability[]> {
     const abilities = await this.getAbilities();
 
     return abilities.filter((ability) => {
@@ -108,12 +116,7 @@ export class AbilitiesDb extends DbStorageApi {
    */
   public async checkAbilityUnlock(
     abilityId: string,
-    userAp: {
-      total: number;
-      daily: number;
-      weekly: number;
-      monthly: number;
-    },
+    userAp: UserApTotals,
     characterLevel: number,
     characterClasses: { [className: string]: number }
   ): Promise<boolean> {

@@ -9,6 +9,7 @@
  * position = target + distance * (0, sin e, cos e). The view's half-width and half-height are tan(fov/2) times the
  * depth (the half-width times the aspect); every point of the model must land inside (1 - margin) of both.
  */
+import { clamp } from "lodash";
 
 export interface Vec3 {
   x: number;
@@ -70,8 +71,6 @@ const finiteOr = (value: number | undefined, fallback: number): number => {
   const number = value ?? Number.NaN;
   return Number.isFinite(number) ? number : fallback;
 };
-
-const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
 
 /** The rings a `turns` value describes: a number is one cylinder from the bounds' bottom to their top */
 const ringsOf = (bounds: Bounds, turns: number | Ring[] | undefined): Ring[] => {

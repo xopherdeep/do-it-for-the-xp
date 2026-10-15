@@ -14,7 +14,7 @@ async function closeBrowser(): Promise<void> {
   try {
     await Browser.close();
   } catch {
-    // Nothing to close, or nothing that can be closed: the parent is back in the game either way
+    // chemx-allow: best-effort nothing to close, or nothing that can be closed: the parent is back in the game either way
   }
 }
 

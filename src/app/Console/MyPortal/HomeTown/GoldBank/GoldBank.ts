@@ -25,6 +25,7 @@ import {
 import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import {
   type BankAction,
+  bankMove,
   storageMaxed,
   bankReceipt,
   bankRefusal,
@@ -149,7 +150,7 @@ export default defineComponent({
       const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt);
       if (id !== "ok" || !amount) return;
       const gp = this.user.stats.gp;
-      const move = action === "withdraw" ? withdrawFromSavings(gp, amount) : action === "deposit" ? depositToSavings(gp, amount) : payDownBills(gp, amount);
+      const move = bankMove(action, gp, amount);
       await this.applyMove(action, move);
     },
 

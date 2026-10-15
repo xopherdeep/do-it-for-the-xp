@@ -55,13 +55,7 @@ import {
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
-import {
-  buyWalletUpgrade,
-  depositToSavings,
-  hospitalBillOf,
-  payDownBills,
-  withdrawFromSavings,
-} from "@/lib/services/gp/wallet";
+import { buyWalletUpgrade, hospitalBillOf } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 import {
   type ShelfFilter,
@@ -71,7 +65,7 @@ import {
   keepsWare,
   walletWareShortBy,
 } from "@/lib/services/shop/shelfFilter";
-import { type BankAction, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
+import { type BankAction, bankMove, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
 import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import {
   atmNotice,
@@ -314,12 +308,7 @@ export default defineComponent({
       const hero = this.user;
       if (!(amount > 0) || !hero?.stats) return;
       const before = hero.stats.gp;
-      const move =
-        action === "withdraw"
-          ? withdrawFromSavings(before, amount)
-          : action === "deposit"
-            ? depositToSavings(before, amount)
-            : payDownBills(before, amount);
+      const move = bankMove(action, before, amount);
       const refusal = bankRefusal(action, before, move, this.words);
       if (refusal) {
         await this.reveal.showPrompt(atmNotice(this.voice, refusal, { sound: "no" }));

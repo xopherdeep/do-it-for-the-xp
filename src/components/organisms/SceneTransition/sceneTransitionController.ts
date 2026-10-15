@@ -32,13 +32,15 @@ export interface AreaCard {
   element?: string;
 }
 
-export const state = reactive<{
+interface TransitionState {
   plan: TransitionPlan | null;
   phase: TransitionPhase;
   card: AreaCard | null;
   /** Where on screen the hero tapped the building, for the doors' camera push; null to push into the middle. */
   focus: DoorFocus | null;
-}>({
+}
+
+export const state = reactive<TransitionState>({
   plan: null,
   phase: "idle",
   card: null,

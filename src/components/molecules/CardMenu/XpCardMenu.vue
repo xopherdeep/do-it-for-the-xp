@@ -27,6 +27,15 @@
 import { defineComponent } from 'vue';
 import XpIcon from '@/components/atoms/Icon/XpIcon.vue';
 
+type Action = {
+  id: string | number;
+  icon: string;
+  label: string;
+  primary?: string;
+  secondary?: string;
+  click?: () => void;
+};
+
 export default defineComponent({
   name: 'xp-card-menu',
   components: {
@@ -34,27 +43,11 @@ export default defineComponent({
   },
   props: {
     actions: {
-      type: Array as () => Array<{
-        id: string | number;
-        icon: string;
-        label: string;
-        primary?: string;
-        secondary?: string;
-        click?: () => void;
-      }>,
+      type: Array as () => Array<Action>,
       required: true
     }
   },
   setup(props, { emit }) {
-    type Action = {
-      id: string | number;
-      icon: string;
-      label: string;
-      primary?: string;
-      secondary?: string;
-      click?: () => void;
-    };
-
     const handleAction = (action: Action) => {
       if (action.click) {
         action.click();

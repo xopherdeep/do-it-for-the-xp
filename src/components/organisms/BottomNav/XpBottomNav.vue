@@ -114,25 +114,29 @@ export interface NavHandItem {
   [key: string]: unknown;
 }
 
-withDefaults(
-  defineProps<{
-    profileLabel?: string;
-    areaLabel?: string;
-    areaIcon?: string;
-    leftHand?: NavHandItem | null;
-    rightHand?: NavHandItem | null;
-    /** Which tab reads as current */
-    active?: "profile" | "area" | "party" | "";
-  }>(),
-  { profileLabel: "Hero", areaLabel: "Area", areaIcon: "house-user", leftHand: null, rightHand: null, active: "" }
-);
+interface BottomNavProps {
+  profileLabel?: string;
+  areaLabel?: string;
+  areaIcon?: string;
+  leftHand?: NavHandItem | null;
+  rightHand?: NavHandItem | null;
+  /** Which tab reads as current */
+  active?: "profile" | "area" | "party" | "";
+}
 
-defineEmits<{
+interface BottomNavEmits {
   (e: "open-profile"): void;
   (e: "open-area"): void;
   (e: "open-party"): void;
   (e: "use-hand", item: NavHandItem): void;
-}>();
+}
+
+withDefaults(
+  defineProps<BottomNavProps>(),
+  { profileLabel: "Hero", areaLabel: "Area", areaIcon: "house-user", leftHand: null, rightHand: null, active: "" }
+);
+
+defineEmits<BottomNavEmits>();
 </script>
 
 <style lang="scss">

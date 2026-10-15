@@ -129,7 +129,7 @@ interface RevealArt {
  * never answers or buys); a room's actions are taps that act at once. The cancel button is always last. The page owns
  * `open`, and closes the reveal on `choose` or `leave`.
  */
-const props = defineProps<{
+interface TempleChoiceRevealProps {
   open: boolean;
   kind: RevealKind;
   title: string;
@@ -147,7 +147,9 @@ const props = defineProps<{
   element?: string;
   /** Custom pixel-run sprite to render in the stage */
   sprite?: { runs: PixelRun[]; width: number; height: number };
-}>();
+}
+
+const props = defineProps<TempleChoiceRevealProps>();
 
 const emit = defineEmits<{
   (e: "choose", id: string): void;
@@ -173,7 +175,8 @@ watch(
 );
 
 const confirmText = computed(() => props.confirmLabel ?? (props.kind === "shop" ? "Buy" : "Answer"));
-const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : props.kind === "exit" ? "Back" : "Leave"));
+const CANCEL_TEXT: Partial<Record<RevealKind, string>> = { riddle: "Step back", exit: "Back" };
+const cancelText = computed(() => props.cancelLabel ?? CANCEL_TEXT[props.kind] ?? "Leave");
 
 const sprite = computed(() => {
   if (props.sprite) return props.sprite;

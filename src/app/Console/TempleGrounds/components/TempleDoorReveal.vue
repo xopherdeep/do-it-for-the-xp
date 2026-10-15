@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 import { play$fx } from "@/assets/fx";
 import { feel, rumble } from "@/lib/services/feedback/haptics";
 import PixelRuns from "./PixelRuns.vue";
@@ -123,6 +124,15 @@ import {
   padlockShackle,
 } from "./doorSprite";
 
+interface TempleDoorRevealProps {
+  open: boolean;
+  door: DoorView | null;
+  /** The temple's element: the stone and metal of the door */
+  element?: string;
+  /** What the temple said to the key: the door opened, or it would not */
+  result?: "opened" | "refused" | null;
+}
+
 /**
  * A locked door, close up. The door swings in on its stone arch with the lock across it. A hero who holds the key
  * presses Unlock: the key is held up, driven into the lock, the lock springs and drops (the Boss Door's chains fall
@@ -131,14 +141,7 @@ import {
  * and closes the reveal on `leave` or, once the door has swung open, on `done`.
  */
 const props = withDefaults(
-  defineProps<{
-    open: boolean;
-    door: DoorView | null;
-    /** The temple's element: the stone and metal of the door */
-    element?: string;
-    /** What the temple said to the key: the door opened, or it would not */
-    result?: "opened" | "refused" | null;
-  }>(),
+  defineProps<TempleDoorRevealProps>(),
   { element: "wind", result: null },
 );
 
@@ -163,7 +166,7 @@ const phase = ref<Phase>("arriving");
 const root = ref<HTMLElement | null>(null);
 const unlockButton = ref<HTMLButtonElement | null>(null);
 const backButton = ref<HTMLButtonElement | null>(null);
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 let stopRumble: (() => void) | null = null;
 
 // Ticks that match the lock-rattle keyframes: five shakes over 420 ms
@@ -196,12 +199,11 @@ const keyCount = computed(() => {
 const busy = computed(() => phase.value === "keying" || phase.value === "unlocking" || phase.value === "opening");
 
 const later = (ms: number, run: () => void) => {
-  timers.push(setTimeout(run, ms));
+  timers.startTimeout(ms, run);
 };
 
 const clearTimers = () => {
-  timers.forEach((timer) => clearTimeout(timer));
-  timers = [];
+  timers.cancelAll();
   stopRumble?.();
   stopRumble = null;
 };

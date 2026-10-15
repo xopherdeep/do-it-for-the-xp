@@ -44,8 +44,10 @@ export type MovingRoomId =
   | "bedroom" | "bathroom" | "kitchen" | "living" | "dining" | "laundry"
   | "storage" | "garage" | "guest" | "office" | "yard" | "pets";
 
+interface MovingRoom { id: MovingRoomId; label: string; counted?: boolean; max?: number }
+
 /** The rooms the setup asks about; `counted` ones take a number (bedrooms, bathrooms, spare rooms). */
-export const MOVING_ROOMS: readonly { id: MovingRoomId; label: string; counted?: boolean; max?: number }[] = [
+export const MOVING_ROOMS: readonly MovingRoom[] = [
   { id: "bedroom", label: "Bedrooms", counted: true, max: 8 },
   { id: "bathroom", label: "Bathrooms", counted: true, max: 5 },
   { id: "kitchen", label: "Kitchen" },
@@ -321,7 +323,7 @@ const MAX_MINUTES = 180;
 
 const roundMinutes = (minutes: number): number => Math.min(MAX_MINUTES, Math.max(5, Math.round(minutes / 5) * 5));
 
-const questRecord = (fields: {
+interface QuestRecordFields {
   id: string;
   name: string;
   phase: PhaseId;
@@ -335,7 +337,9 @@ const questRecord = (fields: {
   approval: boolean;
   times?: TimeOfDay[];
   daily?: boolean;
-}): Achievement => ({
+}
+
+const questRecord = (fields: QuestRecordFields): Achievement => ({
   id: fields.id,
   achievementName: fields.name,
   categoryId: categoryIdOf(fields.phase),

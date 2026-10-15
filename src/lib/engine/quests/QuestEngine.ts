@@ -83,7 +83,7 @@ class QuestEngine {
                 }
             }
 
-            // 2. Search filter
+            // 2. Typed text: a quest stays only when its name holds it, in any case
             if (filter.search) {
                 const query = filter.search.toLowerCase();
                 const name = (quest.achievementName || '').toLowerCase();
