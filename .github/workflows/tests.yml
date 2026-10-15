@@ -31,9 +31,9 @@ jobs:
       matrix:
         include:
           - name: Verify
-            run: chemx verify
+            run: npx --yes "chemx@$CHEMX_VERSION" verify
           - name: Lint
-            run: chemx lint
+            run: npx --yes "chemx@$CHEMX_VERSION" lint
     steps:
       - uses: actions/checkout@v4
 
@@ -47,9 +47,7 @@ jobs:
           cache: pnpm
 
       - name: Install
-        run: |
-          pnpm install --frozen-lockfile
-          npm install --global "chemx@$CHEMX_VERSION"
+        run: pnpm install --frozen-lockfile
 
       - name: ${{ matrix.name }}
         run: ${{ matrix.run }}
