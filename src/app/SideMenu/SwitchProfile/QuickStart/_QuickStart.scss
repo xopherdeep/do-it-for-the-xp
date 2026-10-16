@@ -1,0 +1,190 @@
+// Quick Start: the Earthbound window of the file select (_SwitchProfile.scss), as a full-screen modal
+$ink: #280828;
+$frame: #383050;
+$mint: #68d0b8;
+$cream: #f7e8a8;
+
+.quick-start-toolbar {
+  --background: #{$frame};
+  --color: #{$cream};
+  font-family: "Twoson", "Apple Kid", sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+
+  ion-button {
+    --color: #{$cream};
+    font-size: 1.3rem;
+  }
+}
+
+.quick-start {
+  --background: #14102e;
+}
+
+.qs-window {
+  background-color: $ink;
+  color: $cream;
+  font-family: "Apple Kid", "StatusPlz", monospace;
+  box-shadow:
+    0 0 0 5px $frame,
+    0 0 0 10px $mint,
+    0 0 0 12px $cream,
+    0 0 0 16px #3d3c55;
+  margin: 24px 16px;
+  overflow: hidden;
+}
+
+.qs-window-header {
+  background: $frame;
+  padding: 8px 14px;
+  border-bottom: 3px solid $mint;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qs-window-title {
+  font-family: "Twoson", "Apple Kid", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.qs-window-sub {
+  font-family: "StatusPlz", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  color: $mint;
+  text-transform: uppercase;
+}
+
+.qs-blurb {
+  margin: 12px 14px 4px;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  color: #fff;
+}
+
+.qs-section {
+  padding: 10px 14px 12px;
+  border-top: 2px dashed rgba(104, 208, 184, 0.25);
+
+  &:first-of-type {
+    border-top: none;
+  }
+}
+
+.qs-heading {
+  margin: 0 0 8px;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: $mint;
+}
+
+.qs-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.qs-cursor {
+  width: 12px;
+  font-size: 1.1rem;
+  color: $cream;
+}
+
+.qs-name-input {
+  flex: 1;
+  --background: #{$frame};
+  --color: #fff;
+  --placeholder-color: rgba(255, 255, 255, 0.45);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border: 2px solid $mint;
+  border-radius: 4px;
+  font-family: "Apple Kid", sans-serif;
+  font-size: 1.3rem;
+  min-height: 44px;
+}
+
+.qs-remove {
+  --color: rgba(247, 232, 168, 0.7);
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.qs-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 20px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: $mint;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.qs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 10px;
+    padding: 4px 0;
+  }
+}
+
+.qs-item-name {
+  font-size: 1.2rem;
+  color: #fff;
+
+  i {
+    color: $mint;
+  }
+}
+
+.qs-item-what {
+  grid-column: 1;
+  grid-row: 2;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.qs-item-pay {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: "Twoson", "Apple Kid", monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.8rem;
+    color: #f59e0b;
+  }
+}
+
+.qs-actions {
+  padding: 4px 16px 32px;
+}
+
+.qs-start {
+  --background: #{$mint};
+  --color: #{$ink};
+  height: 52px;
+  font-family: "Twoson", "Apple Kid", sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}

@@ -4,6 +4,7 @@
  */
 import type { XpPack } from "../packFormat";
 import { FAMILY_PACK } from "./family";
+import { QUICK_START_PACK } from "./quickStart";
 import { CLASSROOM_PACK } from "./classroom";
 import { HOMESCHOOL_PACK } from "./homeschool";
 import { STUDY_PACK } from "./study";
@@ -14,6 +15,7 @@ import { WORKPLACE_PACK } from "./workplace";
 
 export const BUILT_IN_PACKS: readonly XpPack[] = [
   FAMILY_PACK,
+  QUICK_START_PACK,
   CLASSROOM_PACK,
   HOMESCHOOL_PACK,
   STUDY_PACK,
@@ -23,4 +25,4 @@ export const BUILT_IN_PACKS: readonly XpPack[] = [
   WORKPLACE_PACK,
 ];
 
-export { FAMILY_PACK };
+export { FAMILY_PACK, QUICK_START_PACK };
