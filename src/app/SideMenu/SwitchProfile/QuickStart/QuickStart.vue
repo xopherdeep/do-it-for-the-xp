@@ -22,6 +22,41 @@
         tonight. You can make it your own later.
       </p>
 
+      <section class="qs-section qs-gm">
+        <h3 class="qs-heading"><i class="fad fa-crown" aria-hidden="true"></i> You, the Game Master</h3>
+        <p class="qs-note">
+          The Game Master runs the game: you approve finished quests, stock the shop and change the rules. Your
+          4-digit PIN keeps the kids out of those controls.
+        </p>
+        <div class="qs-name-row">
+          <span class="qs-cursor" aria-hidden="true">&#9654;</span>
+          <ion-input
+            v-model="gmName"
+            class="qs-name-input"
+            aria-label="Your name"
+            placeholder="Your name"
+            :maxlength="QUICK_START_NAME_LENGTH"
+            autocapitalize="words"
+            data-cy="quick-start-gm-name"
+          />
+          <ion-input
+            v-model="gmPin"
+            class="qs-name-input qs-pin-input"
+            aria-label="Your 4-digit PIN"
+            placeholder="PIN"
+            type="password"
+            inputmode="numeric"
+            :maxlength="4"
+            data-cy="quick-start-gm-pin"
+          />
+        </div>
+        <p v-if="gmError" class="qs-error" role="alert">{{ gmError }}</p>
+        <p v-else-if="isGmSkipped" class="qs-note qs-skip-note">
+          Leave it blank to just try it. Until you add yourself in Settings > Family, anyone can open the Game Master
+          area.
+        </p>
+      </section>
+
       <section class="qs-section">
         <h3 class="qs-heading"><i class="fad fa-users" aria-hidden="true"></i> Your heroes</h3>
         <div v-for="(_, index) in names" :key="index" class="qs-name-row">
@@ -99,12 +134,16 @@ import {
   QUICK_START_MAX_HEROES,
   QUICK_START_NAME_LENGTH,
   QuickStartError,
+  gameMasterProblem,
   heroNames,
+  isGameMasterSkipped,
   runQuickStart,
 } from "@/lib/services/core/packs/quickStart";
 import debug from "@/lib/utils/debug";
 
 const names = ref<string[]>(["", ""]);
+const gmName = ref("");
+const gmPin = ref("");
 const isStarting = ref(false);
 const { showToast } = useToast();
 
@@ -122,8 +161,12 @@ const rewards = (QUICK_START_PACK.content.rewards ?? []).map((item) => ({
   price: item.basePrice,
 }));
 
+const gameMaster = computed(() => ({ name: String(gmName.value ?? ""), passcode: String(gmPin.value ?? "") }));
+const isGmSkipped = computed(() => isGameMasterSkipped(gameMaster.value));
+const gmError = computed(() => gameMasterProblem(gameMaster.value));
+
 const heroCount = computed(() => heroNames(names.value).length);
-const canStart = computed(() => heroCount.value > 0);
+const canStart = computed(() => heroCount.value > 0 && !gmError.value);
 const startLabel = computed(() => (heroCount.value > 1 ? `Start with ${heroCount.value} heroes` : "Start tonight's game"));
 
 onMounted(() => play$fx("openMenu"));
@@ -149,8 +192,8 @@ async function start() {
   isStarting.value = true;
   play$fx("select");
   try {
-    const heroes = await runQuickStart(names.value);
-    await modalController.dismiss({ heroes }, "started");
+    const { heroes, gameMaster: parent } = await runQuickStart(names.value, gameMaster.value);
+    await modalController.dismiss({ heroes, gameMaster: parent }, "started");
   } catch (error) {
     debug.error("Quick start failed", error);
     play$fx("no");

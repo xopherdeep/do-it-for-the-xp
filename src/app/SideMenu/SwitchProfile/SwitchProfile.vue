@@ -681,9 +681,10 @@ export default defineComponent({
       const hasNoHeroes = !(data?.heroes ?? []).length;
       if (hasNoHeroes) return;
       await loadProfiles();
-      const toast = await toastController.create(
-        rpgToastOptions("Your heroes are ready! Pick one to start tonight's quests.", 4000)
-      );
+      const message = data?.gameMaster
+        ? "Your heroes are ready! Pick one to start tonight's quests. Your own profile opens with your PIN."
+        : "Your heroes are ready! Pick one to start tonight's quests.";
+      const toast = await toastController.create(rpgToastOptions(message, 4000));
       await toast.present();
     };
 
