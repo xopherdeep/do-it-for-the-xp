@@ -18,7 +18,7 @@
     </div>
 
     <!-- Name Section: Clear Typography Hierarchy -->
-    <div class="name-section">
+    <div v-if="!compact" class="name-section">
       <h1 class="profile-name earthbound-title">
         {{ profile?.name.full || "Your Name" }}
       </h1>
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Icon Selectors: Food and Class (Swapped) with Labels -->
-    <div class="selector-section icon-colors">
+    <div v-if="!compact" class="selector-section icon-colors">
       <div
         class="selector-card"
         @click="isFoodSelectorOpen = true"
@@ -135,6 +135,11 @@
       },
       /** The profile is an existing hero being edited, not one being made */
       editing: {
+        type: Boolean,
+        default: false,
+      },
+      /** Only the face: the wizard asks for the name, class and food in its own steps */
+      compact: {
         type: Boolean,
         default: false,
       },

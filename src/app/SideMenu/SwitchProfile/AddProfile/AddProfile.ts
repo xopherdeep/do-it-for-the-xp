@@ -18,6 +18,15 @@ import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
 import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
 
+import {
+  NEW_HERO_STEPS,
+  firstBlockedStep,
+  stepIndex,
+  stepProblem,
+  stepProgress,
+  type NewHeroStepId,
+} from "@/lib/services/profile/newHeroSteps";
+
 import ionic from "@/lib/mixins/ionic";
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
@@ -62,7 +71,8 @@ export const AddProfile = defineComponent({
       // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
       const passcodeError = this.passcodeError;
       if (passcodeError) {
-        this.activeSegment = "account";
+        if (this.isEditing) this.activeSegment = "account";
+        else this.step = "secret";
         const toast = await toastController.create({
           message: passcodeError,
           duration: 2500,
@@ -282,6 +292,68 @@ export const AddProfile = defineComponent({
 
     const activeSegment = ref(props.startTab === "account" ? "account" : "info")
 
+    // --- New hero wizard (a hero being edited keeps the tabs) ---
+    const step = ref<NewHeroStepId>("name");
+    const stepsBack = ref(false);
+    const showAdvanced = ref(false);
+    const heroDraft = computed(() => ({
+      fullName: fullName.value,
+      jobClass: jobClass.value,
+      favoriteFood: favoriteFood.value,
+      passcode: passcode.value,
+      isGameMaster: isGameMaster.value,
+    }));
+    const currentStepIndex = computed(() => stepIndex(step.value));
+    const currentStepInfo = computed(() => NEW_HERO_STEPS[currentStepIndex.value]);
+    const progressPercent = computed(() => Math.round(stepProgress(step.value) * 100));
+    const currentStepProblem = computed(() => stepProblem(step.value, heroDraft.value));
+    const isLastStep = computed(() => currentStepIndex.value === NEW_HERO_STEPS.length - 1);
+    const hasFace = computed(() => Boolean(look.value || avatarImage.value || avatarIndex.value !== 1));
+    const classChoices = JOB_CLASS_OPTIONS.filter((job) => !job.tier || job.tier === 1);
+    const selectedJob = computed(() => JOB_CLASS_OPTIONS.find((job) => job.name === jobClass.value));
+    const selectedFood = computed(() => FOOD_OPTIONS.find((food) => food.value === favoriteFood.value));
+
+    const goToStep = (id: NewHeroStepId) => {
+      stepsBack.value = stepIndex(id) < currentStepIndex.value;
+      step.value = id;
+    };
+    const goNext = async () => {
+      const problem = currentStepProblem.value;
+      if (problem) {
+        play$fx("no");
+        const toast = await toastController.create({
+          message: problem,
+          duration: 1800,
+          position: "top",
+          color: "warning",
+        });
+        await toast.present();
+        return;
+      }
+      play$fx("select");
+      goToStep(NEW_HERO_STEPS[Math.min(currentStepIndex.value + 1, NEW_HERO_STEPS.length - 1)].id);
+    };
+    const goBack = () => {
+      if (currentStepIndex.value === 0) return;
+      play$fx("cursor");
+      goToStep(NEW_HERO_STEPS[currentStepIndex.value - 1].id);
+    };
+    // A tapped choice plays its sound; the hero moves on with Next
+    const pickClass = (name: string) => {
+      play$fx("select");
+      jobClass.value = name;
+    };
+    const pickFood = (value: string) => {
+      play$fx("select");
+      favoriteFood.value = value;
+    };
+    const chooseRole = (gameMaster: boolean) => {
+      if (!canSetFlag.value) return;
+      play$fx("cursor");
+      gameMasterChosen.value = true;
+      isAdult.value = gameMaster;
+    };
+
     // Play sound when switching tabs
     watch(activeSegment, () => {
       play$fx('okdesuka');
@@ -323,6 +395,16 @@ export const AddProfile = defineComponent({
       () => !favoriteFood.value || !favoriteThing.value || !jobClass.value || !fullName.value
     );
     const isSaveDisabled = computed(() => hasMissingRequiredField.value || gameMasterEditLocked.value);
+    // The wizard's last button: never save past a step that still has a problem
+    const beginAdventure = () => {
+      const blocked = firstBlockedStep(heroDraft.value);
+      if (blocked) {
+        play$fx("no");
+        goToStep(blocked);
+        return false;
+      }
+      return true;
+    };
 
     const audioStore = useAudioStore();
     const gameStore = useGameStore();
@@ -360,6 +442,26 @@ export const AddProfile = defineComponent({
       newProfile,
       passcode,
       activeSegment,
+      step,
+      stepsBack,
+      showAdvanced,
+      steps: NEW_HERO_STEPS,
+      currentStepIndex,
+      currentStepInfo,
+      progressPercent,
+      currentStepProblem,
+      isLastStep,
+      hasFace,
+      classChoices,
+      selectedJob,
+      selectedFood,
+      goToStep,
+      goNext,
+      goBack,
+      pickClass,
+      pickFood,
+      chooseRole,
+      beginAdventure,
       arrowBack,
       arrowForward,
       closeOutline,
