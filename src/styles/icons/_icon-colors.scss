@@ -2,6 +2,12 @@
   i {
     &.fa- {
 
+      &save {
+        --fa-primary-color: var(--xp-color-blue, #3b6fb6);
+        --fa-secondary-color: var(--xp-color-gray, #8a8a9a);
+        --fa-secondary-opacity: 1;
+      }
+
       &triangle {
         --fa-primary-color: gold;
         --fa-secondary-color: var(--xp-color-yellow);;

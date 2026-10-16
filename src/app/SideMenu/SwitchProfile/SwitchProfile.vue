@@ -246,9 +246,9 @@
     </ion-grid>
 
     <!-- Left FAB: Toggle Grid / List View (Only when profiles exist) -->
-    <ion-fab v-if="users.length > 0" vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden">
+    <ion-fab v-if="users.length > 0" vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden icon-colors">
       <ion-fab-button color="light" @click="isRetroView = !isRetroView">
-        <ion-icon :icon="isRetroView ? gridOutline : listOutline"></ion-icon>
+        <i class="fad fa-lg" :class="isRetroView ? 'fa-th-large' : 'fa-list'"></i>
       </ion-fab-button>
     </ion-fab>
 
@@ -261,9 +261,9 @@
     </ion-fab>
 
     <!-- Right FAB: Backup Options -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden">
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden icon-colors">
       <ion-fab-button color="light" @click="openBackupOptionsModal">
-        <ion-icon :icon="saveOutline"></ion-icon>
+        <i class="fad fa-save fa-lg"></i>
       </ion-fab-button>
     </ion-fab>
 
