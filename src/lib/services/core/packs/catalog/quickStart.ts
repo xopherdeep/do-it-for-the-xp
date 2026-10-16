@@ -1,6 +1,7 @@
 /**
  * The Quick start pack: the smallest game a family can play tonight. Three evening chores (the dishes, the bedroom,
  * homework) and three rewards a hero can afford after one or two of them, so nobody has to design anything first.
+ * Like every built-in pack it also carries a few timed privileges (Powers) to unlock with AP later.
  * Onboarding loads it with the kids' names and assigns every quest to them (quickStart.ts); loaded from
  * Settings > Packs instead, its quests are open bounties like every other pack's.
  */
@@ -38,5 +39,7 @@ export const QUICK_START_PACK = definePack(
       preset("reward-frost-treat"),
       reward("quick-reward-movie", "Pick the Family Movie", "You choose what everyone watches on movie night.", 90, "film"),
     ],
+    // The cheapest timed privileges, there for when the family grows the game past tonight
+    powers: ["irl-timed-videos", "irl-timed-lantern", "irl-timed-house-dj"],
   }
 );
