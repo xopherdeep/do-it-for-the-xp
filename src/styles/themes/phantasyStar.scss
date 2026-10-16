@@ -30,6 +30,7 @@ ion-app#phantasyStar {
 
   --gs-bar: linear-gradient(180deg, rgba(10, 36, 72, 0.98) 0%, rgba(4, 12, 32, 0.98) 100%);
   --gs-bar-frame: 0 1px 0 0 #40f0ff, 0 3px 0 0 #0a3050, 0 6px 12px 0 rgba(64, 240, 255, 0.3);
+  --gs-bar-frame-top: 0 -1px 0 0 #40f0ff, 0 -3px 0 0 #0a3050, 0 -6px 12px 0 rgba(64, 240, 255, 0.3);
 
   --gs-divider: rgba(64, 240, 255, 0.25);
   --gs-select: rgba(64, 240, 255, 0.12);
