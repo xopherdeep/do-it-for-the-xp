@@ -271,7 +271,16 @@ export class AudioEngine {
     // Safari unlocks each audio element only for a play() made inside a tap, so a song a later screen starts
     // on a timer is blocked again. Once the prompt is answered it never returns: the next tap retries instead.
     events.forEach(eventType => {
-      document.addEventListener(eventType, () => this.retryBlockedAudio(), { capture: true });
+      document.addEventListener(eventType, this.onRetryGesture, { capture: true });
+    });
+  }
+
+  private onRetryGesture = (): void => this.retryBlockedAudio();
+
+  /** Stop retrying blocked songs on taps (the engine lives for the whole app, so only tests tear this down) */
+  public stopRetryingBlockedAudio(): void {
+    ['click', 'touchend', 'keydown'].forEach(eventType => {
+      document.removeEventListener(eventType, this.onRetryGesture, { capture: true });
     });
   }
 
