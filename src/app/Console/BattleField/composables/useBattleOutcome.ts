@@ -86,7 +86,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     const classLevelUp =
       rewards.xp > 0 ? userStore.updateClassXp(ctx.userId, user.jobClass || "default", rewards.xp) : null;
     const hasGp = rewards.gp > 0;
-    if (hasGp) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
+    if (hasGp) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp, kind: "earn", note: "Battle won" });
     const hasAp = rewards.ap > 0;
     if (hasAp) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
     regenerateOnWin();

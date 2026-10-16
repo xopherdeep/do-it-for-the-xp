@@ -193,6 +193,9 @@ import ionic from "@/lib/mixins/ionic";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
 
+/** What the wallet history calls a Game Master's GP award */
+const gmGpNote = (gp: number): string => (gp > 0 ? "Game Master bonus" : "Game Master penalty");
+
 export default defineComponent({
   props: {
     isPenalty: {
@@ -246,7 +249,7 @@ export default defineComponent({
 
       // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
       for (const id of this.members as string[]) {
-        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp });
+        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp, note: gmGpNote(gp) });
         if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
         if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
       }

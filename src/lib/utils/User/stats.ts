@@ -1,3 +1,5 @@
+import type { GpLedgerEntry } from "@/lib/services/gp/gpLedger";
+import type { GpRequest } from "@/lib/services/gp/gpGifts";
 import { DEFAULT_WALLET_LIMIT } from "@/lib/services/gp/wallet";
 interface XPStats {
   now: number;
@@ -12,7 +14,10 @@ interface GPStats {
   hospitalBill?: number;
   wallet: number;
   savings: number;
-  ledger: Entry[]
+  /** The wallet's history, newest last (services/gp/gpLedger.ts) */
+  ledger: GpLedgerEntry[]
+  /** GP other heroes asked this one for (services/gp/gpGifts.ts) */
+  requests?: GpRequest[]
 }
 
 interface HPMPStats {

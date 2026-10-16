@@ -3,6 +3,7 @@ import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
 import { getGPService } from '@/lib/services/gp/GPService';
 import type { GpPurse } from '@/lib/services/gp/wallet';
+import { appendEntry, entryOf, ledgerOf, type GpEntryNote } from '@/lib/services/gp/gpLedger';
 import { levelUpNotification } from '@/lib/services/notifications/Notifications';
 import { notify } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
@@ -159,7 +160,10 @@ export const useUserStore = defineStore('user', () => {
     const { userId } = payload;
 
     if (hasHero(userId)) {
+      const before = { ...(users[userId].stats?.gp ?? {}) };
       const userStats = applyGpChange(users[userId].stats, payload);
+      // The wallet's Activity tab: one line per move, in the caller's words when it gave some
+      userStats.gp.ledger = appendEntry(ledgerOf(before), entryOf(before, userStats.gp, payload));
 
       // Update state
       users[userId].stats = userStats;
@@ -179,10 +183,12 @@ export const useUserStore = defineStore('user', () => {
    * Replace the hero's purse wholesale: what a wallet upgrade from a world shop hands back
    * (new limit, savings and wallet already charged). Persists like every other stat change.
    */
-  function setWallet(userId: string, gp: GpPurse) {
+  function setWallet(userId: string, gp: GpPurse, said: GpEntryNote = {}) {
     const user = users[userId];
     if (!user) return;
+    const before = { ...(user.stats?.gp ?? {}) };
     const stats = applyWallet(user, gp);
+    stats.gp.ledger = appendEntry(ledgerOf(before), entryOf(before, stats.gp, said));
     user.stats = stats;
     if (isCurrentHero(userId)) currentUser.stats = stats;
     persistUser(userId);

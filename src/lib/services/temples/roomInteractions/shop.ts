@@ -60,7 +60,7 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
     const hp = readPoints(ctx.userId, 'hp');
     const isHealthy = hp.now >= hp.max;
     if (isHealthy) return { message: 'You are in fine shape already. Keep your GP.', sound: SFX.error };
-    void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
+    void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price, kind: 'spend', note: `Temple shop: ${ware.name}` });
     const healed = healHero(ctx.userId, POTION_HEAL);
     return { message: `Potion of Vigor: +${healed} HP`, sound: SFX.buy };
   }
@@ -73,7 +73,7 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
     const fitsInBag = canCarry(store.getUserById(ctx.userId), bomb) === 'bag';
     if (!fitsInBag) return { message: BAG_FULL, sound: SFX.error };
     store.addInventoryItem(ctx.userId, bomb);
-    void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
+    void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price, kind: 'spend', note: `Temple shop: ${ware.name}` });
     return { message: 'A Bomb is in your bag.', sound: SFX.buy };
   }
 
@@ -91,7 +91,7 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
   if (isNotStowed) {
     return { message: BAG_FULL, sound: SFX.error };
   }
-  void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
+  void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price, kind: 'spend', note: `Temple shop: ${ware.name}` });
   spendRoom(ctx);
   return { message: `${ware.name} is in your bag.`, sound: SFX.buy };
 };

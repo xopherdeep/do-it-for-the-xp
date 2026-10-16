@@ -154,7 +154,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     const isSold = sale.ok;
     if (!isSold) return sale;
     // The purse moves before updateUserGP's first await; the save is not waited for
-    void updateUserGP({ userId, wallet: -sale.fromWallet, ...(sale.fromSavings ? { savings: -sale.fromSavings } : {}) });
+    void updateUserGP({ userId, wallet: -sale.fromWallet, ...(sale.fromSavings ? { savings: -sale.fromSavings } : {}), kind: 'spend', note: 'Bigger storage' });
     user.storageTier = sale.tier;
     if (isCurrentHero(userId)) syncCurrentUser(user);
     persistUser(userId);

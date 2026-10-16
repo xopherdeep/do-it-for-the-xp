@@ -174,7 +174,7 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
   const isShortOfGp = wallet < price;
   if (isShortOfGp) throw new InsufficientFundsError(item.name, price, wallet);
   const isPaid = price > 0;
-  if (isPaid) await userStore.updateUserGP({ userId, wallet: -price });
+  if (isPaid) await userStore.updateUserGP({ userId, wallet: -price, kind: "spend", note: `Bought ${item.name}` });
 
   try {
     if (isConsumable) {
@@ -189,7 +189,7 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
     });
   } catch (error) {
     // Nothing was recorded, so the Game Master would never learn what to deliver: give the GP back.
-    if (isPaid) await userStore.updateUserGP({ userId, wallet: price });
+    if (isPaid) await userStore.updateUserGP({ userId, wallet: price, kind: "refund", note: `Refund: ${item.name}` });
     throw error;
   }
 };
@@ -279,7 +279,7 @@ export const refundPurchase = (
 
     try {
       const isPaid = entry.price > 0;
-      if (isPaid) await userStore.updateUserGP({ userId: entry.userId, wallet: entry.price });
+      if (isPaid) await userStore.updateUserGP({ userId: entry.userId, wallet: entry.price, kind: "refund", note: `Refund: ${entry.itemName}` });
     } catch (error) {
       await db.updateEntry(entry.id, {
         status: "pending",

@@ -1,6 +1,298 @@
-.my-abilities{
-  #container{
-    background-color: white;
+// My Funds, the wallet app: the look comes from the XpApp kit (src/components/organisms/XpApp/_xp-app.scss); the page
+// adds the wallet card, the amounts, the date range strip and the totals.
+
+.my-gold-points {
+  --wallet-in: #6fdc8c;
+  --wallet-out: #ff7a7a;
+
+  .wallet-content::part(scroll) {
+    padding-top: 12px;
+    padding-bottom: 24px;
   }
 
+  .wallet-footer {
+    background: transparent;
+  }
+
+  // ---- The wallet card: the balance, the gauge to the wallet's limit, and what fits ----------------------------
+
+  .wallet-card {
+    position: relative;
+    margin: 0 12px 18px;
+    padding: 14px 16px 12px;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--xp-app-accent) 32%, transparent), transparent 60%),
+      var(--xp-app-surface);
+    border: var(--xp-app-section-border);
+    border-radius: var(--xp-app-radius-section);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xp-app-accent) 35%, transparent);
+
+    &__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--xp-app-text-dim);
+      font-family: var(--xp-app-font-title);
+      font-size: 0.75rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+
+      i {
+        margin-right: 4px;
+        color: var(--xp-app-accent);
+        --fa-primary-color: var(--xp-app-accent);
+        --fa-secondary-color: var(--xp-app-accent);
+      }
+    }
+
+    &__balance {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin: 6px 0 10px;
+    }
+
+    &__amount {
+      display: inline-block;
+      color: var(--xp-app-accent);
+      font-family: "StatusPlz", "Apple Kid", monospace;
+      font-size: 2.6rem;
+      line-height: 1;
+      text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+
+      &.is-up {
+        animation: wallet-pop 0.5s ease-out;
+      }
+
+      &.is-down {
+        animation: wallet-dip 0.5s ease-out;
+      }
+    }
+
+    &__unit {
+      color: var(--xp-app-text-dim);
+      font-family: var(--xp-app-font-title);
+      font-size: 0.9rem;
+    }
+
+    &__note {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 0 0;
+      color: var(--xp-app-text-dim);
+      font-size: 0.8rem;
+    }
+
+    &__worth {
+      flex: 0 0 auto;
+      color: var(--xp-app-text);
+    }
+
+    &.is-full .wallet-card__note {
+      color: var(--xp-app-accent);
+    }
+  }
+
+  // A segmented gauge, like an RPG's HP bar: the fill is the accent, the empty cells stay dark
+  .wallet-gauge {
+    position: relative;
+    height: 14px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    border-radius: var(--xp-app-radius-chip);
+
+    &::after {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, transparent 0 9px, rgba(0, 0, 0, 0.45) 9px 11px);
+      content: "";
+      pointer-events: none;
+    }
+
+    &__fill {
+      height: 100%;
+      background: linear-gradient(180deg, #ffe58a, var(--xp-app-accent) 55%, color-mix(in srgb, var(--xp-app-accent) 70%, #000));
+      transition: width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+  }
+
+  .is-full .wallet-gauge__fill {
+    animation: wallet-shine 1.6s ease-in-out infinite;
+  }
+
+  // ---- Amounts on the rows ---------------------------------------------------------------------------------------
+
+  .wallet-amount {
+    font-family: "StatusPlz", "Apple Kid", monospace;
+    font-size: 1rem;
+    white-space: nowrap;
+
+    &.is-in {
+      color: var(--wallet-in);
+    }
+
+    &.is-out {
+      color: var(--wallet-out);
+    }
+
+    &.is-move {
+      color: var(--xp-app-text-dim);
+    }
+  }
+
+  .wallet-row--alert .xp-app-row__tile {
+    color: var(--wallet-out);
+    --fa-primary-color: var(--wallet-out);
+    --fa-secondary-color: var(--wallet-out);
+  }
+
+  .xp-app-row__trailing .xp-app-btn + .xp-app-btn {
+    margin-left: 6px;
+  }
+
+  // ---- Activity: the date range strip and the totals --------------------------------------------------------------
+
+  .wallet-ranges {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0 12px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .wallet-range {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 0 12px;
+    background: var(--xp-app-surface);
+    border: 1px solid var(--xp-app-line);
+    border-radius: var(--xp-app-radius-chip);
+    color: var(--xp-app-text-dim);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.75rem;
+    text-transform: var(--xp-app-title-transform);
+    white-space: nowrap;
+
+    &.is-active {
+      background: var(--xp-app-accent);
+      border-color: var(--xp-app-accent);
+      color: var(--xp-app-on-accent);
+    }
+  }
+
+  .wallet-totals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 12px 18px;
+  }
+
+  .wallet-total {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    background: var(--xp-app-surface);
+    border: var(--xp-app-section-border);
+    border-radius: var(--xp-app-radius-section);
+
+    &__label {
+      color: var(--xp-app-text-dim);
+      font-family: var(--xp-app-font-title);
+      font-size: 0.68rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+  }
+
+  // ---- Wallets ------------------------------------------------------------------------------------------------------
+
+  .xp-app-row.is-locked {
+    opacity: 0.55;
+  }
+
+  .wallet-tier__lock,
+  .wallet-tier__owned {
+    color: var(--xp-app-text-dim);
+    font-size: 1rem;
+  }
+
+  .wallet-tier__owned {
+    color: var(--wallet-in);
+    --fa-primary-color: var(--wallet-in);
+    --fa-secondary-color: var(--wallet-in);
+  }
+
+  .wallet-about {
+    padding: 4px 14px;
+
+    p {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      color: var(--xp-app-text);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    i {
+      flex: 0 0 18px;
+      margin-top: 2px;
+      color: var(--xp-app-accent);
+      --fa-primary-color: var(--xp-app-accent);
+      --fa-secondary-color: var(--xp-app-accent);
+    }
+  }
+}
+
+@keyframes wallet-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+    color: #fff3b0;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wallet-dip {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(3px);
+    color: var(--wallet-out);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes wallet-shine {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-gold-points .wallet-card__amount,
+  .my-gold-points .is-full .wallet-gauge__fill {
+    animation: none;
+  }
 }

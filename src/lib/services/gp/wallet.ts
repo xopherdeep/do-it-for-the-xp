@@ -128,7 +128,7 @@ export interface BankMove {
   /** What actually moved, after the limits */
   amount: number;
   /** Why less (or nothing) moved */
-  capped: "none" | "wallet-full" | "savings" | "wallet" | "debt" | "bill";
+  capped: "none" | "wallet-full" | "savings" | "wallet" | "debt" | "bill" | "credit";
   /** How much of `amount` went to the hospital bill (only the pay-down moves set it) */
   billPaid?: number;
 }
@@ -212,4 +212,41 @@ export function payDownBills(gp: GpPurse | null | undefined, requested: number):
   const isCapped = amount !== wanted;
   if (isCapped) capped = owed.hospitalBill + owed.debt < owed.wallet ? "debt" : "wallet";
   return { gp: debtMove.gp, amount, capped, billPaid: billMove.amount };
+}
+
+// --- Loans: the bank lends GP against the wallet's size, and wants a little more back ------------------------------
+
+/** What a loan costs on top: 10% of what was borrowed, to the nearest GP (a loan under 5 GP costs nothing extra). */
+export const LOAN_FEE_RATE = 0.1;
+
+/** The fee on a loan of `amount` GP. */
+export const loanFee = (amount: number): number => Math.round(money(amount) * LOAN_FEE_RATE);
+
+/** The most a hero may owe the bank in all: half the wallet's size (a bigger wallet is a bigger line). */
+export const creditLineOf = (gp?: GpPurse | null): number => Math.floor(walletLimitOf(gp) / 2);
+
+/**
+ * The most the bank will lend right now: what is left of the line once the debt and the new loan's fee are counted,
+ * never past the wallet's room, and nothing while the Hospital is owed (the bill is paid first).
+ */
+export function loanRoom(gp?: GpPurse | null): number {
+  const purse = normalizePurse(gp);
+  const isBillOwed = purse.hospitalBill > 0;
+  if (isBillOwed) return 0;
+  const line = Math.max(0, creditLineOf(gp) - purse.debt);
+  let amount = Math.min(line, Math.max(0, purse.limit - purse.wallet));
+  while (amount > 0 && amount + loanFee(amount) > line) amount--;
+  return amount;
+}
+
+/** Borrow from the bank: the wallet gains the loan, the debt gains the loan and its fee. */
+export function borrowGp(gp: GpPurse | null | undefined, requested: number): BankMove {
+  const purse = normalizePurse(gp);
+  const wanted = money(requested);
+  const amount = Math.min(wanted, loanRoom(gp));
+  const fee = amount > 0 ? loanFee(amount) : 0;
+  let capped: BankMove["capped"] = "none";
+  const isCapped = amount !== wanted;
+  if (isCapped) capped = purse.wallet + amount >= purse.limit ? "wallet-full" : "credit";
+  return { gp: { ...purse, wallet: purse.wallet + amount, debt: purse.debt + amount + fee }, amount, capped };
 }

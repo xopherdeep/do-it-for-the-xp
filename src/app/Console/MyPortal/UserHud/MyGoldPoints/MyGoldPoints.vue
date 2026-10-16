@@ -1,438 +1,330 @@
 <template>
-  <ion-page>
-    <template v-if="user">
+  <ion-page
+    class="my-gold-points"
+    :class="rootClass"
+    :style="rootStyle"
+  >
     <ion-header>
-      <ion-toolbar color="warning">
-        <ion-buttons slot="start">
-          <xp-back-button></xp-back-button>
-          <!-- <ion-icon
-            :icon="serverOutline"
-            size="large"
-          /> -->
-          <i class="fad fa-wallet fa-2x"></i>
-        </ion-buttons>
-
-        <ion-title> My Funds </ion-title>
-      </ion-toolbar>
-      <ion-item v-if="walletSegment === 'activity'">
-        <ion-label>Date Range</ion-label>
-        <ion-select
-          @ionChange="changeDate"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="All Time"
-          :v-bind="date"
+      <ion-toolbar>
+        <xp-app-header
+          title="My Funds"
+          icon="wallet"
+          :meta="headerMeta"
         >
-          <ion-select-option value="All Time">All Time</ion-select-option>
-          <ion-select-option value="today"> Today </ion-select-option>
-          <ion-select-option value="yesterday"> Yesterday </ion-select-option>
-          <ion-select-option value="thisWeek"> This Week </ion-select-option>
-          <ion-select-option value="last7days"> Last 7 Days </ion-select-option>
-          <ion-select-option value="last14days">
-            Last 14 Days
-          </ion-select-option>
-          <ion-select-option value="olives"> Last 30 Days </ion-select-option>
-          <ion-select-option value="olives"> This Month </ion-select-option>
-          <ion-select-option value="olives"> Last Month </ion-select-option>
-          <ion-select-option value="olives"> Last 2 Months </ion-select-option>
-          <ion-select-option value="olives"> Last 3 Months </ion-select-option>
-          <ion-select-option value="olives"> Last 4 Months </ion-select-option>
-          <ion-select-option value="olives"> Last 6 Months </ion-select-option>
-          <ion-select-option value="olives"> This Year </ion-select-option>
-        </ion-select>
-      </ion-item>
+          <template #start>
+            <xp-back-button></xp-back-button>
+          </template>
+        </xp-app-header>
+      </ion-toolbar>
     </ion-header>
 
     <ion-content
-      class="ion-padding"
-      v-if="walletSegment === 'wallet'"
+      v-if="user"
+      class="wallet-content"
     >
-      <ion-card color="gold">
-        <ion-card-header>
-          <ion-card-title>
-            GP Earned
-          </ion-card-title>
-          <!-- <ion-chip>
-            <xp-gp :gp="100" />
-            (Earned)
-          </ion-chip>
-          -
-          <ion-chip>
-            (Spent)
-            <xp-gp :gp="50" />
-          </ion-chip>
-          = -->
-          <ion-card-subtitle class="ion-float-right">
-            Max: {{ user.stats.gp.limit }}
-          </ion-card-subtitle>
-          <ion-progress-bar
-            color="warning"
-            :value="user.stats.gp.wallet / user.stats.gp.limit"
+      <!-- GP: the wallet, its accounts, the money moves and the latest lines of history -->
+      <template v-if="tab === 'wallet'">
+        <section
+          class="wallet-card"
+          :class="{ 'is-full': isWalletFull }"
+          aria-label="Wallet"
+        >
+          <div class="wallet-card__top">
+            <span class="wallet-card__label"><i class="fad fa-wallet"></i> Wallet</span>
+            <span class="wallet-card__max">Max {{ gold(purse.limit) }}</span>
+          </div>
+          <div class="wallet-card__balance">
+            <span
+              :key="walletPulse"
+              class="wallet-card__amount"
+              :class="{ 'is-up': walletDelta > 0, 'is-down': walletDelta < 0 }"
+            >{{ gold(walletShown) }}</span>
+            <span class="wallet-card__unit">GP</span>
+          </div>
+          <div
+            class="wallet-gauge"
+            role="progressbar"
+            :aria-valuenow="purse.wallet"
+            aria-valuemin="0"
+            :aria-valuemax="purse.limit"
           >
-          </ion-progress-bar>
-          <ion-card-title>
-            <xp-gp :gp="user.stats.gp.wallet" />
-            available
-            <i class="fad fa-wallet ion-float-right"></i>
-          </ion-card-title>
-        </ion-card-header>
-        <ion-card-content class="ion-text-right">
-          <ion-list>
-            <ion-item
-              lines="none"
-              @click="clickAddSavings"
-              button
+            <div
+              class="wallet-gauge__fill"
+              :style="{ width: `${fill}%` }"
+            ></div>
+          </div>
+          <p class="wallet-card__note">
+            <template v-if="isWalletFull">Wallet full! New GP goes to savings.</template>
+            <template v-else>{{ gold(purse.limit - purse.wallet) }} more fits in your wallet.</template>
+            <span class="wallet-card__worth">Worth {{ gold(netWorth) }}</span>
+          </p>
+        </section>
+
+        <xp-app-section label="Accounts">
+          <xp-app-row
+            title="Savings"
+            subtitle="Safe at the bank · tap to move GP"
+            icon="piggy-bank"
+            :chevron="false"
+            @click="clickSavings"
+          >
+            <template #trailing>
+              <span class="wallet-amount is-in">{{ gold(purse.savings) }}</span>
+            </template>
+          </xp-app-row>
+          <xp-app-row
+            v-if="purse.hospitalBill > 0"
+            class="wallet-row--alert"
+            title="Hospital bill"
+            subtitle="Grounded until it is paid"
+            icon="hospital"
+            :chevron="false"
+            @click="clickDebt"
+          >
+            <template #trailing>
+              <span class="wallet-amount is-out">{{ gold(purse.hospitalBill) }}</span>
+            </template>
+          </xp-app-row>
+          <xp-app-row
+            title="Debt"
+            :subtitle="purse.debt > 0 ? `You owe the bank · line ${gold(creditLine)}` : `Debt-free · line ${gold(creditLine)}`"
+            icon="file-invoice-dollar"
+            :chevron="false"
+            @click="clickDebt"
+          >
+            <template #trailing>
+              <span
+                class="wallet-amount"
+                :class="purse.debt > 0 ? 'is-out' : 'is-move'"
+              >{{ gold(purse.debt) }}</span>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
+
+        <xp-app-section
+          v-if="requests.length"
+          label="Asked of you"
+        >
+          <xp-app-row
+            v-for="ask in requests"
+            :key="ask.id"
+            :title="`${heroName(userStore.users[ask.fromId])} asks for ${gold(ask.amount)}`"
+            :subtitle="whenCopy(ask.at)"
+            icon="envelope-open-dollar"
+            :chevron="false"
+          >
+            <template #trailing>
+              <button
+                type="button"
+                class="xp-app-btn"
+                @click="payAsk(ask.id, ask.fromId)"
+              >Pay</button>
+              <button
+                type="button"
+                class="xp-app-btn xp-app-btn--ghost"
+                @click="declineAsk(ask.id)"
+              >No</button>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
+
+        <xp-app-section label="Transactions">
+          <xp-app-row
+            title="Pay Loan / Debt"
+            :subtitle="debtSubtitle"
+            icon="file-invoice-dollar"
+            @click="clickDebt"
+          />
+          <xp-app-row
+            title="Cash Out"
+            :subtitle="cashOutSubtitle"
+            icon="money-bill-wave"
+            @click="clickCashOut"
+          />
+          <xp-app-row
+            title="Send / Request"
+            subtitle="Share GP with the family, or ask for some"
+            icon="envelope-open-dollar"
+            @click="clickSendRequest"
+          />
+        </xp-app-section>
+
+        <xp-app-section
+          v-if="pendingCashOuts.length"
+          label="Waiting on a Game Master"
+        >
+          <xp-app-row
+            v-for="entry in pendingCashOuts"
+            :key="entry.id"
+            :title="entry.itemName"
+            :subtitle="whenCopy(entry.createdAt)"
+            icon="hourglass-half"
+            :chevron="false"
+          />
+        </xp-app-section>
+
+        <xp-app-section label="Recent">
+          <template v-if="recent.length">
+            <xp-app-row
+              v-for="entry in recent"
+              :key="entry.id"
+              :title="entry.note"
+              :subtitle="entrySubtitle(entry)"
+              :icon="entryIcon(entry)"
+              :chevron="false"
             >
-              <ion-label>
-                Savings:
-              </ion-label>
-              <xp-gp :gp="user.stats.gp.savings" />
-              <i
-                class="fas fa-plus ion-float-right"
-                slot="end"
-              ></i>
-            </ion-item>
-            <!-- What the Hospital is owed sits above the other debt; it is paid at the Gold Bank, where it lifts the grounding -->
-            <ion-item
-              v-if="user.stats.gp.hospitalBill > 0"
-              lines="none"
-              button
-              class="hospital-bill-row"
-              @click="openBank"
-            >
-              <ion-label>
-                Hospital bill:
-              </ion-label>
-              <xp-gp :gp="user.stats.gp.hospitalBill" />
-              <i
-                slot="end"
-                class="fad fa-hospital ion-float-right"
-              ></i>
-            </ion-item>
-            <ion-item
-              lines="none"
-              button
-              @click="clickPayDebt"
-              :disabled="user.stats.gp.debt === 0"
-            >
-              <ion-label>
-                Debt:
-              </ion-label>
-              <xp-gp :gp="user.stats.gp.debt" />
-              <i
-                slot="end"
-                class="fas fa-minus ion-float-right"
-              ></i>
-            </ion-item>
-          </ion-list>
-        </ion-card-content>
-      </ion-card>
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>
-            Transactions
-          </ion-card-title>
-        </ion-card-header>
-        <ion-list>
-          <ion-item
-            button
-            detail
-            lines="none"
+              <template #trailing>
+                <span
+                  class="wallet-amount"
+                  :class="amountClass(entry)"
+                >{{ amountText(entry) }}</span>
+              </template>
+            </xp-app-row>
+            <xp-app-row
+              title="See all activity"
+              icon="receipt"
+              @click="selectTab('activity')"
+            />
+          </template>
+          <xp-app-empty
+            v-else
+            icon="coins"
+            :text="copyFor('wallet.empty.recent', words)"
+          />
+        </xp-app-section>
+      </template>
+
+      <!-- Activity: every GP move, filtered by when -->
+      <template v-else-if="tab === 'activity'">
+        <div
+          class="wallet-ranges"
+          role="tablist"
+          aria-label="Date range"
+        >
+          <button
+            v-for="option in ranges"
+            :key="option.id"
+            type="button"
+            role="tab"
+            class="wallet-range"
+            :class="{ 'is-active': range === option.id }"
+            :aria-selected="range === option.id"
+            @click="range = option.id; play$fx('cursor')"
+          >{{ option.label }}</button>
+        </div>
+
+        <div class="wallet-totals">
+          <div class="wallet-total">
+            <span class="wallet-total__label">Earned</span>
+            <span class="wallet-amount is-in">{{ totals.earned ? "+" : "" }}{{ gold(totals.earned) }}</span>
+          </div>
+          <div class="wallet-total">
+            <span class="wallet-total__label">Spent</span>
+            <span class="wallet-amount is-out">{{ totals.spent ? "-" : "" }}{{ gold(totals.spent) }}</span>
+          </div>
+          <div class="wallet-total">
+            <span class="wallet-total__label">Net</span>
+            <span
+              class="wallet-amount"
+              :class="totals.net >= 0 ? 'is-in' : 'is-out'"
+            >{{ signOf(totals.net) }}{{ gold(Math.abs(totals.net)) }}</span>
+          </div>
+        </div>
+
+        <xp-app-empty
+          v-if="!days.length"
+          icon="receipt"
+          :text="copyFor(range === 'all' ? 'wallet.empty.recent' : 'wallet.empty.range', words)"
+        />
+        <xp-app-section
+          v-for="group in days"
+          :key="group.day"
+          :label="group.day"
+        >
+          <xp-app-row
+            v-for="entry in group.entries"
+            :key="entry.id"
+            :title="entry.note"
+            :subtitle="entrySubtitle(entry)"
+            :icon="entryIcon(entry)"
+            :chevron="false"
           >
-            <i
-              class="fad fa-file-invoice-dollar fa-2x"
-              slot="start"
-              button
-              detail
-            ></i>
-            <ion-label>
-              <h2>
-                Pay Load / Debt
-              </h2>
-              <p>
+            <template #trailing>
+              <span
+                class="wallet-amount"
+                :class="amountClass(entry)"
+              >{{ amountText(entry) }}</span>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
+      </template>
 
-              </p>
-
-            </ion-label>
-          </ion-item>
-          <ion-item
-            button
-            detail
-            lines="none"
+      <!-- Wallets: the sizes, where each is sold, and how GP works -->
+      <template v-else>
+        <xp-app-section label="Wallet sizes">
+          <xp-app-row
+            v-for="tier in tiers"
+            :key="tier.limit"
+            :title="`${gold(tier.limit)} wallet`"
+            :subtitle="tier.subtitle"
+            icon="wallet"
+            :active="tier.isCurrent"
+            :class="{ 'is-locked': tier.isLocked, 'is-owned': tier.isOwned && !tier.isCurrent }"
+            :chevron="false"
           >
-            <i
-              class="fad fa-hand-holding-usd fa-2x"
-              slot="start"
-            ></i>
-            <ion-label>
-              <h2>
+            <template #trailing>
+              <xp-app-chip
+                v-if="tier.isCurrent"
+                kind="tag"
+                value="Yours"
+              />
+              <xp-app-chip
+                v-else-if="tier.isNext && !tier.isLocked"
+                kind="tag"
+                value="Next"
+              />
+              <i
+                v-else-if="tier.isLocked"
+                class="fad fa-lock wallet-tier__lock"
+                aria-label="Locked"
+              ></i>
+              <i
+                v-else-if="tier.isOwned"
+                class="fad fa-check wallet-tier__owned"
+                aria-label="Owned"
+              ></i>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
 
-                Cash Out
-              </h2>
-              <p>
-
-              </p>
-
-            </ion-label>
-          </ion-item>
-          <ion-item
-            button
-            detail
-            lines="none"
-            @click="openSendRequest"
-          >
-            <i
-              class="fad fa-envelope-open-dollar fa-2x"
-              slot="start"
-            ></i>
-            <ion-label>
-              <h2>
-                Send / Request
-              </h2>
-              <p>
-
-              </p>
-
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card>
+        <xp-app-section label="How GP works">
+          <div class="wallet-about">
+            <p><i class="fad fa-coins"></i> Quests, battles and treasure fill your wallet. When it is full, the rest goes to savings.</p>
+            <p><i class="fad fa-piggy-bank"></i> Savings never fill up. Move GP in and out from the GP tab or the Gold Bank.</p>
+            <p><i class="fad fa-hand-holding-usd"></i> The bank lends up to half your wallet's size ({{ gold(creditLine) }}). You pay back 10% more.</p>
+            <p><i class="fad fa-money-bill-wave"></i> Cash out trades GP for real money ({{ cashOut.gpPerDollar }} GP = $1). A Game Master hands it over.</p>
+            <p><i class="fad fa-store"></i> Bigger wallets are sold in shops around the world, once you reach their level.</p>
+          </div>
+        </xp-app-section>
+      </template>
     </ion-content>
-    <ion-content
-      class="ion-padding"
-      v-if="walletSegment === 'about'"
-    >
-      <ion-grid>
-        <ion-row>
-          <ion-col>
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>
-                  About GP
-                </ion-card-title>
 
-              </ion-card-header>
-              <ion-card-content>
-                Gold points are the currency of Xadion.
-                You'll need a wallet to use them.
-                You start off with a wallet of 0 gold points, with a
-                limit of 1000 gold points. Upgrade your wallet to hold
-                more GP.
-
-              </ion-card-content>
-            </ion-card>
-
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <ion-card>
-              <ion-list>
-                <ion-item>
-                  <ion-checkbox
-                    slot="start"
-                    checked
-                    readonly
-                  />
-                  <i
-                    slot="end"
-                    class="fad fa-wallet ion-margin"
-                  ></i>
-                  <ion-label>
-                    <h5>
-                      Child's Wallet
-                    </h5>
-                    <p>
-                      Maximum: <xp-gp :gp="100" />
-                    </p>
-                  </ion-label>
-                </ion-item>
-                <ion-item>
-                  <ion-checkbox
-                    slot="start"
-                    disabled
-                  />
-                  <i
-                    slot="end"
-                    class="fad fa-wallet fa-2x ion-margin"
-                  ></i>
-                  <ion-label>
-                    <h4>
-                      Adult's Wallet
-                    </h4>
-                    <p>
-                      Maximum: <xp-gp :gp="1000" />
-                    </p>
-                  </ion-label>
-                </ion-item>
-                <ion-item>
-                  <ion-checkbox
-                    slot="start"
-                    disabled
-                  />
-                  <i
-                    slot="end"
-                    class="fad fa-wallet fa-3x ion-margin"
-                  ></i>
-                  <ion-label>
-                    <h3>
-                      Giant's Wallet
-                    </h3>
-                    <p>
-                      Maximum: <xp-gp :gp="10000" />
-                    </p>
-                  </ion-label>
-                </ion-item>
-                <!-- You can continue with more sizes, like so: -->
-                <ion-item>
-                  <ion-checkbox
-                    slot="start"
-                    disabled
-                  />
-                  <i
-                    slot="end"
-                    class="fad fa-wallet fa-4x ion-margin"
-                  ></i>
-                  <ion-label>
-                    <h2>
-                      Titan's Wallet
-                    </h2>
-                    <p>
-                      Maximum: <xp-gp :gp="50000" />
-                    </p>
-                  </ion-label>
-                </ion-item>
-                <ion-item>
-                  <ion-checkbox
-                    slot="start"
-                    disabled
-                  />
-                  <i
-                    slot="end"
-                    class="fad fa-wallet fa-5x ion-margin"
-                  ></i>
-                  <ion-label>
-                    <h1>
-                      Deity's Wallet
-                    </h1>
-                    <p>
-                      Maximum: <xp-gp :gp="100000" />
-                    </p>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
-              <ion-button
-                expand="block"
-                color="primary"
-              >
-                Upgrade Wallet
-              </ion-button>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-content>
-    <ion-footer color="primary">
-      <ion-segment
-        v-model="walletSegment"
-        color="warning"
-      >
-        <ion-segment-button value="activity">
-          <ion-label>
-            <i class="fad fa-coins fa-lg"></i>
-            Activity
-          </ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="wallet">
-          <ion-label>
-            <i class="fad fa-wallet fa-lg"></i>
-            GP
-          </ion-label>
-        </ion-segment-button>
-        <!-- <ion-segment-button value="about">
-          <ion-label>
-            <i class="fad fa-question fa-lg"></i>
-            Debts
-          </ion-label>
-        </ion-segment-button> -->
-        <ion-segment-button value="about">
-          <ion-label>
-            <i class="fad fa-question fa-lg"></i>
-            About
-          </ion-label>
-        </ion-segment-button>
-      </ion-segment>
-      <!-- <ion-toolbar color="warning">
-        <ion-grid>
-          <ion-row>
-            <ion-col size="6">
-              <ion-button
-                color="dark"
-                :router-link="`/my-portal/${userId}`"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                :router-link="`/my-portal/${userId}`"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="pause"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                :router-link="`/my-portal/${userId}`"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="play"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                :router-link="`/my-portal/${userId}`"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="stop"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col class="ion-float-right">
-              <ion-button
-                disabled="true"
-                color="dark"
-                :router-link="`/my-portal/${userId}`"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronForward"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar> -->
+    <ion-footer class="wallet-footer">
+      <xp-app-bottom-nav
+        :tabs="tabs"
+        :model-value="tab"
+        aria-label="Wallet Navigation"
+        @change="selectTab"
+      />
     </ion-footer>
-    </template>
 
-    <!-- The savings and debt questions: the game's own prompt, not native alerts -->
-    <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
+    <!-- Every question in the game's own prompt, not native alerts -->
+    <xp-reveal-prompt
+      :prompt="prompt"
+      @respond="reveal.submitAnswer"
+    />
   </ion-page>
 </template>
 
 <script src="./MyGoldPoints.ts" lang="ts" />
-<style lang="scss" src="./_MyGoldPoints.scss" scoped />
+<style lang="scss" src="./_MyGoldPoints.scss" />

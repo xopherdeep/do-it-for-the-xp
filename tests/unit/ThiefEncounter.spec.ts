@@ -96,7 +96,7 @@ describe("ThiefEncounter service", () => {
       const outcome = stealFromHero("hero-1", store, 0, 0.9);
 
       expect(outcome.stolenGp).toBe(10);
-      expect(mockUpdateUserGP).toHaveBeenCalledWith({ userId: "hero-1", wallet: -10 });
+      expect(mockUpdateUserGP).toHaveBeenCalledWith({ userId: "hero-1", wallet: -10, kind: "spend", note: "Stolen by a thief" });
       expect(outcome.stolenItemName).toBeUndefined();
       expect(outcome.hasEmptyPockets).toBe(false);
     });

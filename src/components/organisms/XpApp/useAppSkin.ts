@@ -19,6 +19,7 @@ export const XP_APP_ACCENTS = {
   storage: "#2fa9a0",
   kitchen: "#c9971f",
   calendar: "#3fbf5f",
+  wallet: "#d4a017",
 } as const;
 
 export type AppAccentName = keyof typeof XP_APP_ACCENTS;

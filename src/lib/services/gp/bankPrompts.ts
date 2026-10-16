@@ -10,8 +10,10 @@ import type { Voice } from '@/lib/services/copy/voices';
 import { type BankAction, bankRefusal, gold } from './bankTeller';
 import {
   type GpPurse,
+  borrowGp,
   depositToSavings,
   hospitalBillOf,
+  loanRoom,
   normalizePurse,
   payDownBills,
   withdrawFromSavings,
@@ -83,6 +85,24 @@ export function savingsMenuPrompt(gp: GpPurse | null | undefined, voice: Voice =
   };
 }
 
+/** The Gold app's debt menu: pay it down, borrow, or never mind. Escape is never mind. */
+export function debtMenuPrompt(gp: GpPurse | null | undefined, voice: Voice = 'adventure'): RevealPromptOptions {
+  const purse = normalizePurse(gp);
+  const owed = purse.debt + purse.hospitalBill;
+  return {
+    speaker: GOLD_APP,
+    accent: 'bank',
+    sprite: 'coins',
+    lines: [copyFor('bank.ask.debtMenu', voice, { debt: gold(owed) })],
+    choices: [
+      { id: 'payDebt', label: payLabel(gp), icon: payIcon(gp), disabled: owed <= 0 },
+      { id: 'borrow', label: 'Borrow GP', icon: 'hand-holding-usd', hint: `Up to ${gold(loanRoom(gp))}` },
+      { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
+    ],
+    cancelId: 'never',
+  };
+}
+
 /** A line from the banker (or the ATM) and one button to dismiss it; the coins rise with it for a money move. */
 export function noticePrompt(line: string, sprite?: RevealPromptOptions['sprite'], speaker: string = BANKER): RevealPromptOptions {
   return noticeOf(speaker, line, { accent: speaker === BANKER ? 'bank' : 'atm', sprite });
@@ -91,8 +111,8 @@ export function noticePrompt(line: string, sprite?: RevealPromptOptions['sprite'
 /** The question for a money move, or the teller's reason there is nothing to ask. */
 export type AmountAsk = { prompt: RevealPromptOptions } | { refusal: string };
 
-const CONFIRM_LABEL: Record<BankAction, string> = { withdraw: 'Withdraw', deposit: 'Deposit', payDebt: 'Pay' };
-const CONFIRM_ICON: Record<BankAction, string> = { withdraw: 'wallet', deposit: 'piggy-bank', payDebt: 'coins' };
+const CONFIRM_LABEL: Record<BankAction, string> = { withdraw: 'Withdraw', deposit: 'Deposit', payDebt: 'Pay', borrow: 'Borrow' };
+const CONFIRM_ICON: Record<BankAction, string> = { withdraw: 'wallet', deposit: 'piggy-bank', payDebt: 'coins', borrow: 'hand-holding-usd' };
 
 /**
  * How much, for a withdrawal, a deposit or a payment: the stepper reaches exactly what the move can take (a
@@ -129,6 +149,11 @@ export function amountAsk(
         bill > 0
           ? copyFor('bank.ask.payBill', voice, { bill: gold(bill) })
           : copyFor('bank.ask.payDebt', voice, { debt: gold(purse.debt) });
+      break;
+    case 'borrow':
+      probe = borrowGp(gp, purse.limit);
+      max = loanRoom(gp);
+      line = copyFor('bank.ask.borrow', voice, { max: gold(max) });
       break;
   }
   const refusal = bankRefusal(action, gp, probe, voice);
