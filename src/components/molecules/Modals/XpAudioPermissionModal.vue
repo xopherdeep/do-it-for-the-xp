@@ -45,26 +45,28 @@ export default defineComponent({
     const audioEngine = AudioEngine.getInstance();
     const audioStore = useAudioStore();
     
-    // We show the modal if audio is NOT ready/granted
+    // Asked at most once a session: after an answer, a blocked song waits for the next tap instead (AudioEngine.retryBlockedAudio)
     const showModal = computed(() => {
-      // Use the reactive state from AudioEngine
-      return !audioEngine.state.audioPermissionGranted;
+      return !audioEngine.state.audioPermissionGranted && !audioEngine.state.audioPromptAnswered;
     });
 
     const enableAudio = async () => {
+      audioEngine.state.audioPromptAnswered = true;
       audioStore.bgm.is_on = true;
       const isMuted = audioEngine.state.muted;
       if (isMuted) {
         audioEngine.unmute();
       }
-      await audioEngine.resumeContext();
-      const currentMusic = audioEngine.state.currentMusic;
-      if (currentMusic) {
-        audioEngine.playMusic(currentMusic);
+      // Start the song before any await: Safari only lets an audio element play inside the tap itself
+      const song = audioEngine.state.pendingMusicId || audioEngine.state.currentMusic;
+      if (song) {
+        audioEngine.playMusic(song);
       }
+      await audioEngine.resumeContext();
     };
 
     const continueSilently = () => {
+      audioEngine.state.audioPromptAnswered = true;
       cancelPendingRouteMusic();
       audioEngine.mute();
       audioEngine.stopAllMusic(0);

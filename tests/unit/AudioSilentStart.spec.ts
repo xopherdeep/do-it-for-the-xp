@@ -14,6 +14,7 @@ describe("Silent Start and Audio Mute Safety", () => {
     engine = AudioEngine.getInstance();
     engine.unmute();
     engine.state.audioPermissionGranted = false;
+    engine.state.audioPromptAnswered = false;
     engine.state.pendingMusicId = "test-track";
   });
 
@@ -99,5 +100,75 @@ describe("Silent Start and Audio Mute Safety", () => {
 
     expect(engine.state.muted).toBe(false);
     expect(audioStore.bgm.is_on).toBe(true);
+  });
+
+  describe("Safari blocking a song on a later screen", () => {
+    const blockedTrack = () => ({
+      play: jest.fn().mockRejectedValue({ name: "NotAllowedError", message: "user activation" }),
+      pause: jest.fn(),
+      volume: 1,
+      paused: true,
+      currentTime: 0,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    });
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    it("does not ask again after Tap to Start when the next screen's song is blocked", async () => {
+      const wrapper = mount(XpAudioPermissionModal);
+      await wrapper.find(".permission-card").trigger("click");
+      expect(engine.state.audioPromptAnswered).toBe(true);
+
+      (engine as any)._musicTracks.set("next-slide", blockedTrack());
+      engine.playMusic("next-slide");
+      await flush();
+
+      expect(engine.state.audioPermissionGranted).toBe(false);
+      expect(engine.state.pendingMusicId).toBe("next-slide");
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find(".xp-audio-permission-overlay").exists()).toBe(false);
+    });
+
+    it("does not ask again after Continue Silently when a sound is blocked", async () => {
+      const wrapper = mount(XpAudioPermissionModal);
+      await wrapper.find(".silent-option").trigger("click");
+
+      engine.state.audioPermissionGranted = false;
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find(".xp-audio-permission-overlay").exists()).toBe(false);
+    });
+
+    it("starts the blocked song on the next tap once the prompt was answered", () => {
+      const track = blockedTrack();
+      track.play = jest.fn().mockResolvedValue(undefined);
+      (engine as any)._musicTracks.set("next-slide", track);
+      engine.state.audioPromptAnswered = true;
+      engine.state.pendingMusicId = "next-slide";
+
+      document.dispatchEvent(new Event("click"));
+
+      expect(track.play).toHaveBeenCalledTimes(1);
+      expect(engine.state.audioPermissionGranted).toBe(true);
+    });
+
+    it("keeps a silent hero silent on the next tap", () => {
+      const track = blockedTrack();
+      (engine as any)._musicTracks.set("next-slide", track);
+      engine.mute();
+      engine.state.audioPromptAnswered = true;
+      engine.state.pendingMusicId = "next-slide";
+
+      document.dispatchEvent(new Event("click"));
+
+      expect(track.play).not.toHaveBeenCalled();
+    });
+
+    it("leaves the first tap to the prompt while it is still unanswered", () => {
+      const playMusicSpy = jest.spyOn(engine, "playMusic");
+      playMusicSpy.mockClear();
+      engine.retryBlockedAudio();
+      expect(playMusicSpy).not.toHaveBeenCalled();
+      expect(engine.state.audioPermissionGranted).toBe(false);
+    });
   });
 });
