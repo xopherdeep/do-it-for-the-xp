@@ -263,7 +263,7 @@
     <!-- Right FAB: Backup Options -->
     <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden">
       <ion-fab-button color="light" @click="openBackupOptionsModal">
-        <ion-icon :icon="cloudDownloadOutline"></ion-icon>
+        <ion-icon :icon="saveOutline"></ion-icon>
       </ion-fab-button>
     </ion-fab>
 
@@ -740,6 +740,7 @@ export default defineComponent({
       fingerPrintOutline,
       fingerPrintSharp,
       cloudDownloadOutline,
+      saveOutline,
       restoreMessage,
       restoreSuccess,
       showRestoreToast,
