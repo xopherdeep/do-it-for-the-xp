@@ -113,7 +113,8 @@ describe("$fx", () => {
     expect($fx.ui.nintendo.key).not.toBe($fx.rpg.earthbound.key);
   });
 
-  it("loops only the coin counter, with one listener", () => {
+  // The coin counter used to replay itself on "ended" and tick forever; it now stops on its own (fx/burst.ts)
+  it("loops no sound by itself", () => {
     const looping = new Set<FakeAudio>();
     const visit = (node: unknown) => {
       if (node instanceof FakeAudio) {
@@ -122,8 +123,7 @@ describe("$fx", () => {
       else if (node && typeof node === "object") Object.values(node).forEach(visit);
     };
     visit($fx);
-    expect([...looping]).toEqual([$fx.rpg.earthbound.countCoins]);
-    expect($fx.rpg.earthbound.countCoins.listeners).toEqual(["ended"]);
+    expect([...looping]).toEqual([]);
   });
 });
 
