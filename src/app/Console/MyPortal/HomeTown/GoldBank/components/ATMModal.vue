@@ -245,7 +245,7 @@
         emit("update:isOpen", false);
       };
 
-      const errand = async (action: BankAction) => {
+      const errand = async (action: Exclude<BankAction, "borrow">) => {
         const ask = amountAsk(action, props.user?.stats?.gp, "ATM", voice.value);
         const isRefused = "refusal" in ask;
         if (isRefused) {
