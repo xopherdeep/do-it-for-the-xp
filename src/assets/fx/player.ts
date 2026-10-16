@@ -3,6 +3,7 @@ import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
 import { feelSound } from "@/lib/services/feedback/soundFeel";
 
 import $fx from "./library";
+import { BURST_MS, endBurst, playBurst } from "./burst";
 
 /** The browser refused to play because the page has not had a tap or key press yet. */
 export const isAutoplayBlocked = (err: { name?: string; message?: string }): boolean => {
@@ -12,6 +13,13 @@ export const isAutoplayBlocked = (err: { name?: string; message?: string }): boo
 
 /** The sound has no source the browser can play: nothing to report */
 const isNotSupported = (err: { name?: string }): boolean => err.name === 'NotSupportedError';
+
+/** Play a sound once from the top */
+const playOnce = (audio: HTMLAudioElement): Promise<void> => {
+  audio.currentTime = 0;
+  audio.loop = false;
+  return audio.play();
+};
 
 export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolean }) => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
@@ -59,9 +67,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
         // Handle stop action
         const isStopRequest = options?.stop;
         if (isStopRequest) {
-          soundFx.pause();
-          soundFx.currentTime = 0;
-          soundFx.loop = false;
+          endBurst(soundFx);
           return;
         }
 
@@ -80,11 +86,10 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
           return;
         }
 
-        soundFx.currentTime = 0;
-        soundFx.loop = false;
-
-        // Monophonic playback for others
-        soundFx.play().catch((err: any) => {
+        // Monophonic playback for others; a ticking sound (the coin counter) runs for its burst and stops itself
+        const burstMs = BURST_MS[targetFx];
+        const playing = burstMs ? playBurst(soundFx, burstMs) : playOnce(soundFx);
+        playing.catch((err: any) => {
           debug.warn('RPG Sound playback was prevented:', err);
           if (isNotSupported(err)) {
             // Suppress NotSupportedError (no supported sources)
