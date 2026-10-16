@@ -7,6 +7,7 @@
 import { useUserStore } from "@/lib/store/stores/user";
 import { notify } from "@/lib/services/notifications/notify";
 import type { NewXpNotification } from "@/lib/services/notifications/Notifications";
+import { normalizePurse } from "./wallet";
 
 export interface GpRequest {
   id: string;
@@ -34,8 +35,10 @@ export const addRequest = (requests: readonly GpRequest[], request: GpRequest): 
 export const removeRequest = (requests: readonly GpRequest[], id: string): GpRequest[] => requests.filter((r) => r.id !== id);
 
 /** A hero's name as the wallet says it */
-export const heroName = (hero?: { name?: { nick?: string; first?: string; full?: string } } | null, fallback = "A hero"): string =>
-  hero?.name?.nick || hero?.name?.first || hero?.name?.full?.split(" ")[0] || fallback;
+export const heroName = (hero?: { name?: { nick?: string; first?: string; full?: string } } | null, fallback = "A hero"): string => {
+  const name = hero?.name ?? {};
+  return name.nick || name.first || String(name.full ?? "").split(" ")[0] || fallback;
+};
 
 let sequence = 0;
 const newId = (prefix: string): string => `${prefix}-${Date.now().toString(36)}-${(sequence++).toString(36)}`;
@@ -49,19 +52,32 @@ const goldNote = (heroId: string, refId: string, title: string, body: string): N
   link: `/my-gold-points/${heroId}/`,
 });
 
-export type GiftResult = { ok: true; amount: number } | { ok: false; reason: "hero" | "self" | "amount" | "short" };
+export type GiftProblem = "hero" | "self" | "amount" | "short";
+
+export type GiftResult = { ok: true; amount: number } | { ok: false; reason: GiftProblem };
+
+/** What a hero's wallet holds */
+const walletOf = (hero: any): number => normalizePurse(hero ? hero.stats?.gp : null).wallet;
+
+/** Why a gift can't go: a hero missing, a gift to oneself, no amount, or more than the giver's wallet holds. */
+export function giftProblem(from: any, to: any, amount: number): GiftProblem | null {
+  const checks: [GiftProblem, boolean][] = [
+    ["hero", !from || !to],
+    ["self", Boolean(from && to) && String(from.id) === String(to.id)],
+    ["amount", !(amount > 0)],
+    ["short", amount > walletOf(from)],
+  ];
+  return checks.find(([, failed]) => failed)?.[0] ?? null;
+}
 
 /** Move GP from one wallet to another and tell the receiver. */
 export async function sendGp(fromId: string, toId: string, gp: number): Promise<GiftResult> {
   const store = useUserStore();
   const from = store.users[fromId];
   const to = store.users[toId];
-  if (!from || !to) return { ok: false, reason: "hero" };
-  if (String(fromId) === String(toId)) return { ok: false, reason: "self" };
   const amount = Math.round(Number(gp) || 0);
-  if (amount <= 0) return { ok: false, reason: "amount" };
-  const wallet = Number(from.stats?.gp?.wallet) || 0;
-  if (amount > wallet) return { ok: false, reason: "short" };
+  const problem = giftProblem(from, to, amount);
+  if (problem) return { ok: false, reason: problem };
 
   // Both wallets move before the first await, so a double tap can't spend the same GP twice
   const sent = store.updateUserGP({ userId: fromId, wallet: -amount, kind: "send", note: `Sent to ${heroName(to)}`, withId: toId });
@@ -77,7 +93,9 @@ export function askForGp(fromId: string, toId: string, gp: number): GpRequest | 
   const from = store.users[fromId];
   const to = store.users[toId];
   const amount = Math.round(Number(gp) || 0);
-  const isUnaskable = !from || !to || String(fromId) === String(toId) || amount <= 0;
+  const problem = giftProblem(from, to, amount);
+  // Asking needs no GP in the asker's wallet
+  const isUnaskable = problem !== null && problem !== "short";
   if (isUnaskable) return null;
   const request: GpRequest = { id: newId("ask"), fromId: String(fromId), amount, at: new Date().toISOString() };
   const stats = (to.stats = to.stats || {});
@@ -91,7 +109,8 @@ const dropRequest = (heroId: string, requestId: string): GpRequest | null => {
   const store = useUserStore();
   const hero = store.users[heroId];
   const request = requestsOf(hero?.stats?.gp).find((r) => r.id === requestId) ?? null;
-  if (!hero || !request) return null;
+  const isMissing = request === null;
+  if (isMissing) return null;
   hero.stats.gp = { ...hero.stats.gp, requests: removeRequest(requestsOf(hero.stats.gp), requestId) };
   store.persistUser(heroId);
   return request;
@@ -100,10 +119,11 @@ const dropRequest = (heroId: string, requestId: string): GpRequest | null => {
 /** Pay a request out of the wallet. A request the wallet can't cover stays open. */
 export async function payRequest(heroId: string, requestId: string): Promise<GiftResult> {
   const store = useUserStore();
-  const request = requestsOf(store.users[heroId]?.stats?.gp).find((r) => r.id === requestId);
-  if (!request) return { ok: false, reason: "hero" };
-  const wallet = Number(store.users[heroId]?.stats?.gp?.wallet) || 0;
-  if (request.amount > wallet) return { ok: false, reason: "short" };
+  const hero = store.users[heroId];
+  const request = requestsOf(hero?.stats?.gp).find((r) => r.id === requestId);
+  const problem = request ? giftProblem(hero, store.users[request.fromId], request.amount) : "hero";
+  const isUnpayable = !request || problem !== null;
+  if (isUnpayable) return { ok: false, reason: problem ?? "hero" };
   dropRequest(heroId, requestId);
   return sendGp(heroId, request.fromId, request.amount);
 }

@@ -166,49 +166,43 @@ export const LEDGER_RANGES: readonly { id: LedgerRange; label: string }[] = [
 const startOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const addDays = (d: Date, n: number): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
-/** The [from, to) window of a range around `now`; `all` has none. Weeks start on Monday, like the calendar's. */
-export function rangeWindow(range: LedgerRange, now: Date = new Date()): { from: Date; to: Date } | null {
+type Window = { from: Date; to: Date };
+
+/** Each range's window, from the start of today; weeks start on Monday, like the calendar's. */
+const RANGE_WINDOWS: Record<Exclude<LedgerRange, "all">, (today: Date, tomorrow: Date) => Window> = {
+  today: (today, tomorrow) => ({ from: today, to: tomorrow }),
+  yesterday: (today) => ({ from: addDays(today, -1), to: today }),
+  week: (today, tomorrow) => ({ from: addDays(today, -((today.getDay() + 6) % 7)), to: tomorrow }),
+  last7: (today, tomorrow) => ({ from: addDays(today, -6), to: tomorrow }),
+  month: (today, tomorrow) => ({ from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow }),
+  last30: (today, tomorrow) => ({ from: addDays(today, -29), to: tomorrow }),
+  year: (today, tomorrow) => ({ from: new Date(today.getFullYear(), 0, 1), to: tomorrow }),
+};
+
+/** The [from, to) window of a range around `now`; `all` has none. */
+export function rangeWindow(range: LedgerRange, now: Date = new Date()): Window | null {
   const today = startOfDay(now);
-  const tomorrow = addDays(today, 1);
-  switch (range) {
-    case "today":
-      return { from: today, to: tomorrow };
-    case "yesterday":
-      return { from: addDays(today, -1), to: today };
-    case "week":
-      return { from: addDays(today, -((today.getDay() + 6) % 7)), to: tomorrow };
-    case "last7":
-      return { from: addDays(today, -6), to: tomorrow };
-    case "month":
-      return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow };
-    case "last30":
-      return { from: addDays(today, -29), to: tomorrow };
-    case "year":
-      return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
-    default:
-      return null;
-  }
+  const windowOf = range === "all" ? undefined : RANGE_WINDOWS[range];
+  return windowOf ? windowOf(today, addDays(today, 1)) : null;
 }
 
 /** The lines in a range, newest first. */
 export function entriesIn(ledger: readonly GpLedgerEntry[], range: LedgerRange = "all", now: Date = new Date()): GpLedgerEntry[] {
   const window = rangeWindow(range, now);
+  const from = window ? window.from.getTime() : -Infinity;
+  const to = window ? window.to.getTime() : Infinity;
   const inside = (entry: GpLedgerEntry) => {
-    if (!window) return true;
     const at = new Date(entry.at).getTime();
-    return at >= window.from.getTime() && at < window.to.getTime();
+    const isAfterStart = at >= from;
+    return isAfterStart && at < to;
   };
   return ledger.filter(isEntry).filter(inside).sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
 /** GP in and out over some lines. Moves between wallet and savings are neither. */
 export function ledgerTotals(entries: readonly GpLedgerEntry[]): { earned: number; spent: number; net: number } {
-  let earned = 0;
-  let spent = 0;
-  for (const entry of entries) {
-    if (entry.gp > 0) earned += entry.gp;
-    if (entry.gp < 0) spent -= entry.gp;
-  }
+  const earned = entries.reduce((sum, entry) => sum + Math.max(0, entry.gp), 0);
+  const spent = entries.reduce((sum, entry) => sum + Math.max(0, -entry.gp), 0);
   return { earned, spent, net: earned - spent };
 }
 
@@ -239,17 +233,15 @@ export const entryIcon = (entry: GpLedgerEntry): string => ENTRY_ICONS[entry.kin
 export function groupByDay(entries: readonly GpLedgerEntry[], now: Date = new Date()): { day: string; entries: GpLedgerEntry[] }[] {
   const today = startOfDay(now).getTime();
   const yesterday = addDays(startOfDay(now), -1).getTime();
-  const label = (at: string): string => {
-    const day = startOfDay(new Date(at)).getTime();
-    if (day === today) return "Today";
-    if (day === yesterday) return "Yesterday";
-    return new Date(at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  };
+  const named: Record<number, string> = { [today]: "Today", [yesterday]: "Yesterday" };
+  const label = (at: string): string =>
+    named[startOfDay(new Date(at)).getTime()] ?? new Date(at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   const groups: { day: string; entries: GpLedgerEntry[] }[] = [];
   for (const entry of entries) {
     const day = label(entry.at);
     const last = groups[groups.length - 1];
-    if (last && last.day === day) last.entries.push(entry);
+    const isSameDay = last?.day === day;
+    if (isSameDay) last.entries.push(entry);
     else groups.push({ day, entries: [entry] });
   }
   return groups;

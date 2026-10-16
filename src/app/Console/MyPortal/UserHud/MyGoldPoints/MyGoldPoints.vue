@@ -216,49 +216,47 @@
         <div class="wallet-totals">
           <div class="wallet-total">
             <span class="wallet-total__label">Earned</span>
-            <span class="wallet-amount is-in">+{{ gold(totals.earned) }}</span>
+            <span class="wallet-amount is-in">{{ totals.earned ? "+" : "" }}{{ gold(totals.earned) }}</span>
           </div>
           <div class="wallet-total">
             <span class="wallet-total__label">Spent</span>
-            <span class="wallet-amount is-out">-{{ gold(totals.spent) }}</span>
+            <span class="wallet-amount is-out">{{ totals.spent ? "-" : "" }}{{ gold(totals.spent) }}</span>
           </div>
           <div class="wallet-total">
             <span class="wallet-total__label">Net</span>
             <span
               class="wallet-amount"
               :class="totals.net >= 0 ? 'is-in' : 'is-out'"
-            >{{ totals.net >= 0 ? "+" : "-" }}{{ gold(Math.abs(totals.net)) }}</span>
+            >{{ signOf(totals.net) }}{{ gold(Math.abs(totals.net)) }}</span>
           </div>
         </div>
 
-        <template v-if="days.length">
-          <xp-app-section
-            v-for="group in days"
-            :key="group.day"
-            :label="group.day"
-          >
-            <xp-app-row
-              v-for="entry in group.entries"
-              :key="entry.id"
-              :title="entry.note"
-              :subtitle="entrySubtitle(entry)"
-              :icon="entryIcon(entry)"
-              :chevron="false"
-            >
-              <template #trailing>
-                <span
-                  class="wallet-amount"
-                  :class="amountClass(entry)"
-                >{{ amountText(entry) }}</span>
-              </template>
-            </xp-app-row>
-          </xp-app-section>
-        </template>
         <xp-app-empty
-          v-else
+          v-if="!days.length"
           icon="receipt"
           :text="copyFor(range === 'all' ? 'wallet.empty.recent' : 'wallet.empty.range', words)"
         />
+        <xp-app-section
+          v-for="group in days"
+          :key="group.day"
+          :label="group.day"
+        >
+          <xp-app-row
+            v-for="entry in group.entries"
+            :key="entry.id"
+            :title="entry.note"
+            :subtitle="entrySubtitle(entry)"
+            :icon="entryIcon(entry)"
+            :chevron="false"
+          >
+            <template #trailing>
+              <span
+                class="wallet-amount"
+                :class="amountClass(entry)"
+              >{{ amountText(entry) }}</span>
+            </template>
+          </xp-app-row>
+        </xp-app-section>
       </template>
 
       <!-- Wallets: the sizes, where each is sold, and how GP works -->

@@ -32,6 +32,7 @@ import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import { whenCopy } from "@/lib/services/notifications/Notifications";
 
 type WalletTab = "activity" | "wallet" | "wallets";
+type GiftMode = "send" | "ask";
 
 /** How many lines the GP tab shows before "See all" */
 const RECENT_LINES = 5;
@@ -101,80 +102,90 @@ export default defineComponent({
       await this.reveal.showPrompt(noticePrompt(receipt, "coins", GOLD_APP));
     },
 
+    /** A move that can't happen: the no sound and the app's reason */
+    async refuse(line: string) {
+      this.play$fx("no");
+      await this.reveal.showPrompt(walletNotice(line));
+    },
+
     /** Trade GP for real money at the Game Master's rate; it waits in Approvals until they hand it over. */
     async clickCashOut() {
       const settings = await loadFamilySettings();
       this.cashOut = settings.cashOut;
       const quote = cashOutQuote(this.user.stats.gp, settings.cashOut, this.user.id);
       const refusal = cashOutRefusal(quote, this.words);
-      if (refusal) {
-        this.play$fx("no");
-        await this.reveal.showPrompt(walletNotice(refusal));
-        return;
-      }
+      if (refusal) return this.refuse(refusal);
       const { id, amount } = await this.reveal.showAmountPrompt(cashOutPrompt(quote, this.words));
-      const isCancelled = id !== "ok" || !amount;
-      if (isCancelled) return;
-      const entry = await requestCashOut(this.user.id, amount, quote.rate);
-      if (!entry) return;
-      this.play$fx("countCoins");
-      await this.loadPendingCashOuts();
-      const cash = dollars(cashValue(amount, quote.rate));
-      await this.reveal.showPrompt(walletNotice(copyFor("wallet.cashOut.sent", this.words, { gp: amount, cash }), true));
+      const isConfirmed = id === "ok" && Number(amount) > 0;
+      if (isConfirmed) await this.cashOutGp(Number(amount), quote.rate);
+    },
+
+    async cashOutGp(amount: number, rate: number) {
+      const entry = await requestCashOut(this.user.id, amount, rate);
+      const isLogged = Boolean(entry);
+      if (isLogged) {
+        this.play$fx("countCoins");
+        await this.loadPendingCashOuts();
+        const cash = dollars(cashValue(amount, rate));
+        await this.reveal.showPrompt(walletNotice(copyFor("wallet.cashOut.sent", this.words, { gp: amount, cash }), true));
+      }
     },
 
     /** Send GP to someone in the family, or ask them for some. */
     async clickSendRequest() {
       const mode = await this.reveal.showPrompt(sendMenuPrompt(this.words));
       const isPicked = mode === "send" || mode === "ask";
-      if (!isPicked) return;
+      if (isPicked) await this.giftErrand(mode as GiftMode);
+    },
+
+    /** Why there is nobody to send to or nothing to send, or null */
+    giftRefusal(mode: GiftMode): string | null {
       const hasNobody = this.family.length === 0;
-      if (hasNobody) {
-        await this.reveal.showPrompt(walletNotice(copyFor("wallet.send.alone", this.words)));
-        return;
-      }
-      const purse = normalizePurse(this.user.stats.gp);
-      const isSendingNothing = mode === "send" && purse.wallet <= 0;
-      if (isSendingNothing) {
-        this.play$fx("no");
-        await this.reveal.showPrompt(walletNotice(copyFor("wallet.send.empty", this.words)));
-        return;
-      }
+      if (hasNobody) return copyFor("wallet.send.alone", this.words);
+      const isSendingNothing = mode === "send" && normalizePurse(this.user.stats.gp).wallet <= 0;
+      return isSendingNothing ? copyFor("wallet.send.empty", this.words) : null;
+    },
+
+    async giftErrand(mode: GiftMode) {
+      const refusal = this.giftRefusal(mode);
+      if (refusal) return this.refuse(refusal);
       const toId = await this.reveal.showPrompt(pickHeroPrompt(mode, this.family, this.user.id, this.words));
       const to = this.userStore.users[toId];
-      if (!to) return;
-      const name = heroName(to);
+      if (to) await this.giftAmount(mode, toId, heroName(to));
+    },
+
+    /** How much to send (up to the wallet) or ask for (up to the wallet's size), then the move */
+    async giftAmount(mode: GiftMode, toId: string, name: string) {
+      const purse = normalizePurse(this.user.stats.gp);
       const max = mode === "send" ? purse.wallet : purse.limit;
       const { id, amount } = await this.reveal.showAmountPrompt(giftAmountPrompt(mode, name, max, purse.wallet, this.words));
-      const isCancelled = id !== "ok" || !amount;
-      if (isCancelled) return;
-      if (mode === "ask") {
-        askForGp(this.user.id, toId, amount);
-        this.play$fx("select");
-        await this.reveal.showPrompt(walletNotice(copyFor("wallet.ask.done", this.words, { name, amount: gold(amount) })));
-        return;
-      }
+      const isConfirmed = id === "ok" && Number(amount) > 0;
+      const finish = mode === "ask" ? this.askGpOf : this.sendGpTo;
+      if (isConfirmed) await finish(toId, name, Number(amount));
+    },
+
+    async askGpOf(toId: string, name: string, amount: number) {
+      askForGp(this.user.id, toId, amount);
+      this.play$fx("select");
+      await this.reveal.showPrompt(walletNotice(copyFor("wallet.ask.done", this.words, { name, amount: gold(amount) })));
+    },
+
+    async sendGpTo(toId: string, name: string, amount: number) {
       const sent = await sendGp(this.user.id, toId, amount);
-      if (!sent.ok) {
-        this.play$fx("no");
-        await this.reveal.showPrompt(walletNotice(copyFor("wallet.send.empty", this.words)));
-        return;
-      }
-      this.play$fx("countCoins");
-      await this.reveal.showPrompt(walletNotice(copyFor("wallet.send.done", this.words, { name, amount: gold(amount) }), true));
+      const line = sent.ok ? copyFor("wallet.send.done", this.words, { name, amount: gold(amount) }) : copyFor("wallet.send.empty", this.words);
+      this.play$fx(sent.ok ? "countCoins" : "no");
+      await this.reveal.showPrompt(walletNotice(line, sent.ok));
     },
 
     /** Pay a request from the family out of the wallet. */
     async payAsk(requestId: string, fromId: string) {
       const result = await payRequest(this.user.id, requestId);
-      if (!result.ok) {
-        this.play$fx("no");
-        await this.reveal.showPrompt(walletNotice(copyFor("wallet.request.short", this.words)));
-        return;
-      }
-      this.play$fx("countCoins");
       const name = heroName(this.userStore.users[fromId]);
-      await this.reveal.showPrompt(walletNotice(copyFor("wallet.request.paid", this.words, { name, amount: gold(result.amount) }), true));
+      const line = result.ok
+        ? copyFor("wallet.request.paid", this.words, { name, amount: gold(result.amount) })
+        : copyFor("wallet.request.short", this.words);
+      this.play$fx(result.ok ? "countCoins" : "no");
+      await this.reveal.showPrompt(walletNotice(line, result.ok));
     },
 
     declineAsk(requestId: string) {
@@ -202,6 +213,11 @@ export default defineComponent({
       const owed = entry.debt + entry.bill;
       const isDebtChange = owed !== 0;
       return isDebtChange ? `${when} · debt ${owed > 0 ? "+" : "-"}${gold(Math.abs(owed))}` : when;
+    },
+
+    /** "+" for a gain, "-" for a loss, nothing for 0 */
+    signOf(n: number): string {
+      return ["-", "", "+"][Math.sign(n) + 1];
     },
 
     entryIcon,

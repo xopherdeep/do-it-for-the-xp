@@ -62,7 +62,8 @@ export const isPendingCashOut = (entry: PurchaseLogEntry, heroId: string): boole
  */
 export async function requestCashOut(heroId: string, gp: number, gpPerDollar: number): Promise<PurchaseLogEntry | null> {
   const userStore = useUserStore();
-  const wallet = Number(userStore.users[heroId]?.stats?.gp?.wallet) || 0;
+  const hero = userStore.users[heroId];
+  const wallet = normalizePurse(hero ? hero.stats?.gp : null).wallet;
   const amount = Math.round(Number(gp) || 0);
   const isUnpayable = amount <= 0 || amount > wallet;
   if (isUnpayable) return null;

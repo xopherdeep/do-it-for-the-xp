@@ -8,7 +8,7 @@ import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
 import { GOLD_APP } from "./bankPrompts";
 import { gold } from "./bankTeller";
-import { type CashOutQuote } from "./cashOut";
+import { type CashOutBlock, type CashOutQuote } from "./cashOut";
 import { heroName } from "./gpGifts";
 
 const base = { speaker: GOLD_APP, accent: "bank" } as const;
@@ -17,18 +17,15 @@ const base = { speaker: GOLD_APP, accent: "bank" } as const;
 export const walletNotice = (line: string, coins = false): RevealPromptOptions =>
   noticeOf(GOLD_APP, line, { accent: "bank", ...(coins ? { sprite: "coins" as const } : {}) });
 
+const CASH_OUT_REFUSALS: Record<CashOutBlock, string> = {
+  off: "wallet.cashOut.off",
+  "not-allowed": "wallet.cashOut.notAllowed",
+  short: "wallet.cashOut.short",
+};
+
 /** Why the hero can't cash out, in the app's words, or null when they can. */
 export function cashOutRefusal(quote: CashOutQuote, voice: Voice = "adventure"): string | null {
-  switch (quote.blocked) {
-    case "off":
-      return copyFor("wallet.cashOut.off", voice);
-    case "not-allowed":
-      return copyFor("wallet.cashOut.notAllowed", voice);
-    case "short":
-      return copyFor("wallet.cashOut.short", voice, { rate: quote.rate });
-    default:
-      return null;
-  }
+  return quote.blocked ? copyFor(CASH_OUT_REFUSALS[quote.blocked], voice, { rate: quote.rate }) : null;
 }
 
 /** The cash out stepper: a dollar's worth of GP per tap, up to what the wallet holds in whole dollars. */

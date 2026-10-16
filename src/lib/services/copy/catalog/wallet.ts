@@ -63,7 +63,7 @@ export const wallet = {
   },
   "wallet.ask.done": {
     simple: "Asked! {name} will see it.",
-    adventure: "Request sent! {name} will find it in their wallet.",
+    adventure: "Your ask for {amount} is sent! {name} will find it in their wallet.",
     classic: "Request for {amount} sent to {name}.",
   },
   "wallet.send.empty": {
