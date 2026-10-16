@@ -40,7 +40,7 @@
             <p v-if="townHall.signedInThroughWebsite">You're signed in through the website.</p>
             <p>Link your For the XP account to post for your family from any device.</p>
             <div class="pro-actions">
-              <ion-button class="pro-button" data-cy="account-link" @click="link.goToAuthorizePage()">Link account</ion-button>
+              <ion-button class="pro-button" data-cy="account-link" @click="link.openAuthorizePage()">Link account</ion-button>
               <ion-button fill="outline" class="pro-button-outline" @click="openSite(SIGNUP_URL)">Create one</ion-button>
             </div>
           </ion-card-content>
@@ -138,7 +138,7 @@ function openSite(url: string): void {
 }
 
 async function unlinkNow(): Promise<void> {
-  const result = await link.unlink();
+  const result = await link.removeLink();
   email.value = undefined;
   const isStillOnSite = result === "removed-here-only";
   if (isStillOnSite) {
@@ -166,8 +166,9 @@ onMounted(async () => {
   if (!isGameMaster) return;
   try {
     await link.loadLink();
-    await link.finishReturn();
-    if (townHall.activeLink) await loadEmail();
+    await link.completeReturn();
+    const hasLink = Boolean(townHall.activeLink);
+    if (hasLink) await loadEmail();
   } catch (error) {
     debug.error("[AccountSettings] the account could not be loaded", error);
   }

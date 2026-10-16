@@ -63,7 +63,7 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
       const isKeepingLink = pick !== "unlink";
       if (isKeepingLink) return;
       try {
-        await reveal.showPrompt(unlinkResultNotice(await link.unlink()));
+        await reveal.showPrompt(unlinkResultNotice(await link.removeLink()));
       } catch (err) {
         debug.error("Town Hall could not unlink this device:", err);
       }
@@ -73,7 +73,7 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
     const isCreatingAccount = pick === "create";
     if (isCreatingAccount) window.open(SIGNUP_URL, "_blank", "noopener");
     const hasAccount = pick === "have";
-    if (hasAccount) await link.goToAuthorizePage();
+    if (hasAccount) await link.openAuthorizePage();
   }
 
   const posting = useTownHallPosting({
@@ -86,7 +86,7 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
     currentBoard: options.currentBoard,
     registerFamily: () => registerFamily(),
     redoRegistration: async () => {
-      await link.unlink();
+      await link.removeLink();
       await registerFamily();
     },
   });
@@ -104,11 +104,11 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
    * Coming back from WordPress's authorize page, the clerk says how it went (the composable checks the return). An ordinary
    * visit by a Game Master whose posts wait for a registration this device lacks is offered Family Registration instead.
    */
-  async function finishLinkReturn(): Promise<void> {
-    const handled = await link.finishReturn();
+  async function completeLinkReturn(): Promise<void> {
+    const handled = await link.completeReturn();
     void posting.sendQueue();
     if (!handled) await offerRegistration();
   }
 
-  return { posting, registerFamily, finishLinkReturn };
+  return { posting, registerFamily, completeLinkReturn };
 }
