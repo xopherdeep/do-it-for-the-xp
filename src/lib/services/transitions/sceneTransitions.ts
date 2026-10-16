@@ -21,6 +21,14 @@ export interface Scene {
 
 export type EffectId = "fade" | "iris" | "doors" | "clouds" | "swirl" | "gate";
 
+/** The looks a battle cover can take; one is picked at random for each encounter. 'swirl' is the EarthBound canvas spiral, the rest are CSS. */
+export const BATTLE_STYLES = ["swirl", "blinds", "checker", "iris", "flash", "slash"] as const;
+export type BattleStyle = (typeof BATTLE_STYLES)[number];
+
+/** A random battle cover style; `rand` is injectable for specs. */
+export const pickBattleStyle = (rand: () => number = Math.random): BattleStyle =>
+  BATTLE_STYLES[Math.min(BATTLE_STYLES.length - 1, Math.floor(rand() * BATTLE_STYLES.length))];
+
 export interface TransitionPlan {
   effect: EffectId;
   /** in = going deeper (into a building, temple or battle); out = coming back. */
@@ -159,7 +167,7 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
 
   // Into a battle, from anywhere
   const isEnteringBattle = to.kind === "battle";
-  if (isEnteringBattle) return { effect: "swirl", direction: "in", sound: "enterBattle" };
+  if (isEnteringBattle) return { effect: "swirl", direction: "in", sound: "enterBattle", variant: pickBattleStyle() };
 
   // Back out of a battle to where the hero was
   const isReturningFromBattle = from.kind === "battle" && ["temple", "region", "town", "world-map"].includes(to.kind);
