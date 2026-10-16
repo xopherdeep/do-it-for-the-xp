@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="gamer-card">
+  <component :is="compact ? 'div' : IonCard" class="gamer-card" :class="{ 'gamer-card--compact': compact }">
     <!-- Avatar Section: Centered and Prominent -->
     <div class="avatar-section">
       <ion-avatar
@@ -14,7 +14,7 @@
           class="img-avatar"
         />
       </ion-avatar>
-      <p class="avatar-caption">{{ avatarCaption }}</p>
+      <p v-if="!compact" class="avatar-caption">{{ avatarCaption }}</p>
     </div>
 
     <!-- Name Section: Clear Typography Hierarchy -->
@@ -101,11 +101,12 @@
     />
 
     <slot></slot>
-  </ion-card>
+  </component>
 </template>
 
 <script lang="ts">
   import { defineComponent, computed, ref } from "vue";
+  import { IonCard } from "@ionic/vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import ionic from "@/lib/mixins/ionic";
   import { heroAvatarSrc } from "@/lib/hero-look/look";
@@ -251,6 +252,7 @@
       });
 
       return {
+        IonCard,
         maxAvatarIndex,
         currentAvatar,
         hasVoxelFace,
@@ -278,6 +280,20 @@
 
   .gamer-card {
     padding: 1.5rem 1rem;
+  }
+
+  // Just the face, set into the new hero wizard's card
+  .gamer-card--compact {
+    padding: 0;
+
+    .avatar-section {
+      margin: 0;
+    }
+
+    .main-avatar {
+      width: 84px;
+      height: 84px;
+    }
   }
 
   .avatar-section {
