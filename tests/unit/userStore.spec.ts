@@ -32,7 +32,7 @@ const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 /** The purse without its history, which the GP specs check on their own */
 const purseOf = (gp: any) => {
-  const { ledger, ...rest } = plain(gp);
+  const { ledger: _ledger, ...rest } = plain(gp);
   return rest;
 };
 /** Let the persistence queue (a microtask, then one await per hero) run to the end */
