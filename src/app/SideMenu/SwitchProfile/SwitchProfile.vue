@@ -28,6 +28,31 @@
           </div>
 
           <div class="eb-slots-list">
+            <!-- Quick Start: name the kids, get three chores and three rewards, play tonight -->
+            <div
+              class="eb-file-slot eb-quick-slot"
+              role="button"
+              tabindex="0"
+              data-cy="quick-start-slot"
+              @click="openQuickStart"
+              @keydown.enter="openQuickStart"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag"><i class="fad fa-bolt"></i></div>
+              <div class="eb-slot-avatar-frame eb-new-avatar">
+                <i class="fad fa-hat-wizard"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-hero-name">Quick Start</div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-desc">Name your kids and play tonight</span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <i class="fad fa-chevron-right eb-new-arrow"></i>
+              </div>
+            </div>
+
             <!-- Start New Game Slot (CTA) -->
             <div
               class="eb-file-slot eb-new-slot"
@@ -276,6 +301,8 @@ import { profileStorage } from "@/lib/databases/profileStorage";
 import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
+import QuickStart from "./QuickStart/QuickStart.vue";
+import { rpgToastOptions } from "@/hooks/useToast";
 import ProfileLoadingModal from "../../../components/templates/modals/ProfileLoadingModal.vue";
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import XpProfileCard from "@/components/molecules/XpProfileCard/XpProfileCard.vue";
@@ -643,6 +670,23 @@ export default defineComponent({
       }
     };
 
+    // Quick Start seeds the heroes and tonight's quests, then the heroes wait here to be picked
+    const openQuickStart = async () => {
+      const modal = await modalController.create({
+        component: QuickStart,
+        cssClass: "fullscreen",
+      });
+      await modal.present();
+      const { data } = await modal.onDidDismiss();
+      const hasNoHeroes = !(data?.heroes ?? []).length;
+      if (hasNoHeroes) return;
+      await loadProfiles();
+      const toast = await toastController.create(
+        rpgToastOptions("Your heroes are ready! Pick one to start tonight's quests.", 4000)
+      );
+      await toast.present();
+    };
+
     // Lifecycle hooks
     onIonViewWillEnter(async () => {
       // Load profiles when entering the view
@@ -690,6 +734,7 @@ export default defineComponent({
       getFoodIcon,
       selectProfile,
       openNewProfileModal,
+      openQuickStart,
       handleRefresh,
       fingerPrintOutline,
       fingerPrintSharp,
