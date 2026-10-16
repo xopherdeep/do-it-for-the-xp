@@ -1,4 +1,4 @@
-import { sceneOf, transitionFor, type Scene } from "@/lib/services/transitions/sceneTransitions";
+import { BATTLE_STYLES, pickBattleStyle, sceneOf, transitionFor, type Scene } from "@/lib/services/transitions/sceneTransitions";
 
 const at = (name: string, params: Record<string, unknown> = {}) => sceneOf({ name, params });
 
@@ -119,6 +119,13 @@ describe("transitionFor", () => {
       expect(transitionFor(from, battle)).toMatchObject({ effect: "swirl", direction: "in", sound: "enterBattle" })
     );
     expect(transitionFor(wind, battle)?.title).toBeUndefined();
+  });
+
+  it("picks a random battle cover style for each encounter", () => {
+    expect(BATTLE_STYLES).toContain(transitionFor(town, battle)?.variant);
+    expect(pickBattleStyle(() => 0)).toBe(BATTLE_STYLES[0]);
+    expect(pickBattleStyle(() => 0.9999)).toBe(BATTLE_STYLES[BATTLE_STYLES.length - 1]);
+    expect(new Set(BATTLE_STYLES.map((_, i) => pickBattleStyle(() => i / BATTLE_STYLES.length))).size).toBe(BATTLE_STYLES.length);
   });
 
   it("fades out of a battle back to a temple or region", () => {

@@ -1,12 +1,20 @@
 <template>
-  <div class="swirl-effect" :class="[`is-${phase}`, { 'is-calm': calm }]" :style="{ '--swirl-ms': `${calm ? 150 : REVEAL_MS}ms` }">
-    <canvas v-if="!calm" ref="canvasEl" class="swirl-canvas" />
+  <div
+    class="swirl-effect"
+    :class="[`is-${phase}`, `style-${look}`, { 'is-calm': calm }]"
+    :style="{ '--swirl-ms': `${calm ? 150 : REVEAL_MS}ms`, '--cover-ms': `${COVER_MS}ms` }"
+  >
+    <canvas v-if="!calm && look === 'swirl'" ref="canvasEl" class="swirl-canvas" />
+    <!-- CSS covers: a few transformed blocks each, so they stay on the compositor -->
+    <template v-else-if="!calm">
+      <i v-for="n in pieceCount" :key="n" class="piece" :style="pieceStyle(n - 1)" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
+import { BATTLE_STYLES, type BattleStyle, type TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
 import { rumble } from "@/lib/services/feedback/haptics";
 import { prefersReducedMotion } from "../sceneTransitionController";
 
@@ -33,6 +41,50 @@ const PALETTE: Array<[number, number, number]> = [
 ];
 
 const calm = ref(prefersReducedMotion());
+// The plan's variant picks the look; anything unknown falls back to the canvas swirl
+const look: BattleStyle = (BATTLE_STYLES as readonly string[]).includes(props.plan.variant ?? "")
+  ? (props.plan.variant as BattleStyle)
+  : "swirl";
+const CHECKER_COLS = 6;
+const CHECKER_ROWS = 10;
+const PIECES: Record<BattleStyle, number> = { swirl: 0, blinds: 10, checker: CHECKER_COLS * CHECKER_ROWS, iris: 4, flash: 2, slash: 7 };
+const pieceCount = PIECES[look];
+
+type PieceStyle = Record<string, string>;
+const rgb = (c: [number, number, number]) => `rgb(${c.join(",")})`;
+const delay = (share: number) => `calc(var(--cover-ms) * ${share.toFixed(3)})`;
+const paletteAt = (i: number) => rgb(PALETTE[i % PALETTE.length]);
+
+/** Each piece's colour and stagger, per look; the per-style keyframes do the moving. */
+const PIECE_STYLES: Record<BattleStyle, (i: number) => PieceStyle> = {
+  swirl: () => ({}),
+  checker: (i) => {
+    const col = i % CHECKER_COLS;
+    const row = Math.floor(i / CHECKER_COLS);
+    // Diagonal sweep from the top-left corner, alternating squares a beat apart
+    const step = (col + row + ((col + row) % 2) * 3) / (CHECKER_COLS + CHECKER_ROWS + 3);
+    return {
+      left: `${(col * 100) / CHECKER_COLS}%`,
+      top: `${(row * 100) / CHECKER_ROWS}%`,
+      width: `${100 / CHECKER_COLS + 0.5}%`,
+      height: `${100 / CHECKER_ROWS + 0.5}%`,
+      background: rgb(PALETTE[(col + row) % 2]),
+      animationDelay: delay(step * 0.6),
+    };
+  },
+  blinds: (i) => ({
+    top: `${i * 10}%`,
+    background: paletteAt(i),
+    transformOrigin: ["left", "right"][i % 2],
+    animationDelay: delay((i % 5) * 0.08),
+  }),
+  slash: (i) => ({ left: `${i * 18 - 20}%`, background: paletteAt(i), animationDelay: delay(i * 0.06) }),
+  // Rings grow in outermost first; the last is the dark core that floods the screen
+  iris: (i) => ({ background: rgb(PALETTE[[4, 3, 2, 0][i]]), animationDelay: delay(i * 0.14) }),
+  // A white strobe over a dark slam
+  flash: (i) => ({ background: ["#fff", rgb(PALETTE[0])][i] }),
+};
+const pieceStyle = PIECE_STYLES[look];
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 
 let raf = 0;
@@ -126,6 +178,12 @@ const startCover = () => {
     timer = setTimeout(() => emit("covered"), CALM_MS);
     return;
   }
+  const isCssCover = look !== "swirl";
+  if (isCssCover) {
+    timer = setTimeout(() => emit("covered"), COVER_MS);
+    stopTicks = rumble(Array.from({ length: Math.floor((COVER_MS - 1) / TICK_MS) }, (_, k) => [(k + 1) * TICK_MS, "tick"] as [number, "tick"]));
+    return;
+  }
   size();
   started = performance.now();
   covered = false;
@@ -194,6 +252,81 @@ onBeforeUnmount(() => {
 }
 .swirl-effect.is-calm.is-reveal {
   animation: swirl-out var(--swirl-ms) linear both;
+}
+/* CSS covers: every piece ends fully opaque at --cover-ms so the screen is solid when 'covered' fires */
+.piece {
+  position: absolute;
+  display: block;
+  will-change: transform, opacity;
+  animation-duration: calc(var(--cover-ms) * 0.4);
+  animation-timing-function: steps(5, end); /* chunky, SNES-ish frames */
+  animation-fill-mode: both;
+}
+.style-blinds .piece {
+  left: 0;
+  width: 100%;
+  height: 10.5%;
+  animation-name: piece-blind;
+}
+.style-checker .piece {
+  animation-name: piece-pop;
+}
+.style-slash .piece {
+  top: -20%;
+  width: 22%;
+  height: 140%;
+  transform-origin: top;
+  animation-name: piece-slash;
+}
+.style-iris .piece {
+  left: 50%;
+  top: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  border-radius: 50%;
+  animation-name: piece-iris;
+  animation-duration: calc(var(--cover-ms) * 0.5);
+}
+.style-iris .piece:nth-child(2) { width: 120vmax; height: 120vmax; margin: -60vmax 0 0 -60vmax; }
+.style-iris .piece:nth-child(3) { width: 80vmax; height: 80vmax; margin: -40vmax 0 0 -40vmax; }
+.style-iris .piece:nth-child(4) { width: 50vmax; height: 50vmax; margin: -25vmax 0 0 -25vmax; animation-name: piece-iris-core; }
+.style-flash .piece {
+  inset: 0;
+  animation-duration: var(--cover-ms);
+  animation-timing-function: linear;
+}
+.style-flash .piece:nth-child(1) { animation-name: piece-strobe; }
+.style-flash .piece:nth-child(2) { animation-name: piece-slam; }
+@keyframes piece-blind {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes piece-pop {
+  from { transform: scale(0) rotate(90deg); }
+  to { transform: scale(1) rotate(0); }
+}
+@keyframes piece-slash {
+  from { transform: skewX(-20deg) scaleY(0); }
+  to { transform: skewX(-20deg) scaleY(1); }
+}
+/* The rings grow in from nothing so the centre is last to go dark */
+@keyframes piece-iris {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+@keyframes piece-iris-core {
+  from { transform: scale(0); }
+  to { transform: scale(4); }
+}
+@keyframes piece-strobe {
+  0%, 20%, 40%, 60% { opacity: 0; }
+  10%, 30%, 50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes piece-slam {
+  0%, 60% { opacity: 0; transform: scale(0.2); }
+  100% { opacity: 1; transform: scale(1); }
 }
 @keyframes swirl-flash {
   0% { opacity: 1; filter: brightness(1.8); }
