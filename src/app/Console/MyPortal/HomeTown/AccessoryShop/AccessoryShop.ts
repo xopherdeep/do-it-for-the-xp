@@ -84,6 +84,7 @@ import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
 import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
 import { WORLD_METADATA, worldColor } from "@/lib/engine/core/worldRegistry";
 import { merchantWorldOn } from "@/lib/services/shops/travelingMerchant";
+import XpMerchantStall from "@/components/organisms/TravelingMerchant/XpMerchantStall.vue";
 import { parentOf } from "@/router/parentOf";
 
 /** What the ATM hands over: the amount picked on its stepper */
@@ -135,6 +136,7 @@ export default defineComponent({
     XpRevealPrompt,
     ShopShelfSlider,
     ShopItemModal,
+    XpMerchantStall,
   },
   mixins: [ionic],
   data() {
@@ -260,6 +262,8 @@ export default defineComponent({
     },
     dynamicShopBackground() {
       // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
+      // The traveling merchant's stall draws the world behind itself, dimmed to dusk (XpMerchantStall)
+      if (this.isTraveling) return {};
       const backgroundImage = this.shopBackgroundUrl;
       return {
         // Quoted: the browser drops an unquoted url() whose file name holds an apostrophe or a space (the old witch's-hut)

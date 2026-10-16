@@ -46,6 +46,13 @@
     justify-content: flex-end;
     padding-bottom: 84px;
     position: relative;
+
+    // The shelf stands in front of the traveling merchant's stall
+    .shop-shelf-slider,
+    .shop-sign {
+      position: relative;
+      z-index: 1;
+    }
   }
 
   // Closed: a scrim dims the shop's picture so the sign reads, and the sign hangs in the middle like a door card
