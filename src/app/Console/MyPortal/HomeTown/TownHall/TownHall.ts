@@ -216,7 +216,7 @@ export default defineComponent({
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
 
     onMounted(loadQuestBoard);
-    onMounted(clerk.finishLinkReturn);
+    onMounted(clerk.completeLinkReturn);
 
     return {
       tabs: TABS,

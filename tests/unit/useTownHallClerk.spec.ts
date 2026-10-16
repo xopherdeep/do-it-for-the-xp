@@ -4,9 +4,9 @@ const mockSendQueue = jest.fn();
 const mockOfferRegistration = jest.fn();
 const mockLink = {
   loadLink: jest.fn(),
-  unlink: jest.fn(),
-  goToAuthorizePage: jest.fn(),
-  finishReturn: jest.fn(),
+  removeLink: jest.fn(),
+  openAuthorizePage: jest.fn(),
+  completeReturn: jest.fn(),
 };
 let mockLinkOptions: { announce(result: string): Promise<void> };
 let mockPostingOptions: { registerFamily(): Promise<void> };
@@ -51,20 +51,20 @@ beforeEach(() => {
   store.activeLink = null;
   showPrompt.mockResolvedValue("");
   mockLink.loadLink.mockResolvedValue(undefined);
-  mockLink.unlink.mockResolvedValue("unlinked");
+  mockLink.removeLink.mockResolvedValue("unlinked");
 });
 
 describe("useTownHallClerk", () => {
   it("offers registration on an ordinary visit and sends the queue", async () => {
-    mockLink.finishReturn.mockResolvedValue(false);
-    await build().finishLinkReturn();
+    mockLink.completeReturn.mockResolvedValue(false);
+    await build().completeLinkReturn();
     expect(mockSendQueue).toHaveBeenCalled();
     expect(mockOfferRegistration).toHaveBeenCalled();
   });
 
   it("does not offer registration on a return from WordPress, but still sends the queue", async () => {
-    mockLink.finishReturn.mockResolvedValue(true);
-    await build().finishLinkReturn();
+    mockLink.completeReturn.mockResolvedValue(true);
+    await build().completeLinkReturn();
     expect(mockSendQueue).toHaveBeenCalled();
     expect(mockOfferRegistration).not.toHaveBeenCalled();
   });
@@ -73,20 +73,20 @@ describe("useTownHallClerk", () => {
     store.activeLink = { displayName: "Pollards" };
     showPrompt.mockResolvedValueOnce("unlink");
     await build().registerFamily();
-    expect(mockLink.unlink).toHaveBeenCalled();
+    expect(mockLink.removeLink).toHaveBeenCalled();
   });
 
   it("keeps the link when the parent picks anything else", async () => {
     store.activeLink = { displayName: "Pollards" };
     showPrompt.mockResolvedValueOnce("close");
     await build().registerFamily();
-    expect(mockLink.unlink).not.toHaveBeenCalled();
+    expect(mockLink.removeLink).not.toHaveBeenCalled();
   });
 
   it("goes to the authorize page for a family that has an account", async () => {
     showPrompt.mockResolvedValueOnce("have");
     await build().registerFamily();
-    expect(mockLink.goToAuthorizePage).toHaveBeenCalled();
+    expect(mockLink.openAuthorizePage).toHaveBeenCalled();
   });
 
   it("opens the signup page for a family that needs an account", async () => {
@@ -94,7 +94,7 @@ describe("useTownHallClerk", () => {
     showPrompt.mockResolvedValueOnce("create");
     await build().registerFamily();
     expect(open).toHaveBeenCalledWith(expect.any(String), "_blank", "noopener");
-    expect(mockLink.goToAuthorizePage).not.toHaveBeenCalled();
+    expect(mockLink.openAuthorizePage).not.toHaveBeenCalled();
     open.mockRestore();
   });
 
@@ -116,6 +116,6 @@ describe("useTownHallClerk", () => {
     showPrompt.mockResolvedValueOnce("have");
     build();
     await mockPostingOptions.registerFamily();
-    expect(mockLink.goToAuthorizePage).toHaveBeenCalled();
+    expect(mockLink.openAuthorizePage).toHaveBeenCalled();
   });
 });
