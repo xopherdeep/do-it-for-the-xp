@@ -25,6 +25,8 @@ export interface AudioState {
   currentTheme: AudioTheme;
   audioReady: boolean;
   audioPermissionGranted: boolean;
+  /** The hero already chose Tap to Start or Continue Silently: the prompt never comes back this session */
+  audioPromptAnswered: boolean;
   pendingMusicId?: string | null;
 }
 
@@ -87,6 +89,7 @@ export class AudioEngine {
     },
     audioReady: false,
     audioPermissionGranted: false,
+    audioPromptAnswered: false,
     pendingMusicId: null
   });
 
@@ -264,6 +267,35 @@ export class AudioEngine {
         }
       }, { once: true });
     });
+
+    // Safari unlocks each audio element only for a play() made inside a tap, so a song a later screen starts
+    // on a timer is blocked again. Once the prompt is answered it never returns: the next tap retries instead.
+    events.forEach(eventType => {
+      document.addEventListener(eventType, () => this.retryBlockedAudio(), { capture: true });
+    });
+  }
+
+  /**
+   * Called inside a user gesture after the audio prompt was answered: re-grant playback and start the song
+   * the browser blocked, synchronously, so Safari counts the tap
+   */
+  public retryBlockedAudio(): void {
+    const isAnswered = this.state.audioPromptAnswered;
+    if (!isAnswered) return;
+
+    this.state.audioPermissionGranted = true;
+
+    const context = this.audioContext;
+    const isSuspended = context && context.state === 'suspended';
+    if (isSuspended) {
+      context.resume().catch(err => debug.error('Failed to resume AudioContext', err));
+    }
+
+    const pendingId = this.state.pendingMusicId;
+    const canPlay = pendingId && !this.state.muted;
+    if (canPlay) {
+      this.playMusic(pendingId);
+    }
   }
 
   /**
