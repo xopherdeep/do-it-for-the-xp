@@ -4,6 +4,7 @@ import { BUILT_IN_PACKS, QUICK_START_PACK } from "@/lib/services/core/packs/cata
 import {
   QUICK_START_MAX_HEROES,
   QuickStartError,
+  gameMasterProblem,
   heroNames,
   quickStartPlan,
   runQuickStart,
@@ -38,7 +39,12 @@ jest.mock("@/lib/databases/ShopsDb", () => ({
 jest.mock("@/lib/databases/TempleDb", () => ({ __esModule: true, templeStorage: { sentinel: "temples" } }));
 jest.mock("@/lib/databases/TempleProgressDb", () => ({ __esModule: true, templeProgressStorage: { sentinel: "templeProgress" } }));
 jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn() } }));
-jest.mock("@/router/_Guards/gm.guard", () => ({ __esModule: true, canManageFamily: () => false, RESTORE_GM_ONLY_MESSAGE: "GM only" }));
+jest.mock("@/router/_Guards/gm.guard", () => ({
+  __esModule: true,
+  canManageFamily: () => false,
+  RESTORE_GM_ONLY_MESSAGE: "GM only",
+  passcodeProblem: (passcode: string) => (/^\d{4}$/.test(passcode) ? null : "Game Masters need a 4-digit passcode"),
+}));
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ loadUsers: jest.fn() }) }));
 
 /** In-memory Ionic Storage stand-in */
@@ -140,10 +146,36 @@ describe("the Quick start plan", () => {
   });
 });
 
+describe("the Game Master step", () => {
+  it("may be skipped, but a name needs a 4-digit PIN and a PIN needs a name", () => {
+    expect(gameMasterProblem(undefined)).toBeNull();
+    expect(gameMasterProblem({ name: " ", passcode: "" })).toBeNull();
+    expect(gameMasterProblem({ name: "Dad", passcode: "" })).toMatch(/4-digit/);
+    expect(gameMasterProblem({ name: "Dad", passcode: "12a4" })).toMatch(/4-digit/);
+    expect(gameMasterProblem({ name: "", passcode: "1234" })).toMatch(/name/);
+    expect(gameMasterProblem({ name: "Dad", passcode: "1234" })).toBeNull();
+  });
+
+  it("adds the parent as a Game Master with their PIN, kept off the kids' quests", () => {
+    const plan = quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "Dad", passcode: "1234" });
+    expect(plan.gameMaster).toMatchObject({ isAdult: true, passcode: "1234", name: { nick: "Dad" } });
+    const profiles = plan.backup.stores.__profiles.map((entry) => entry.value as { id: string });
+    expect(profiles.map((profile) => profile.id)).toEqual([plan.gameMaster?.id, plan.heroes[0].id]);
+    for (const entry of plan.backup.stores.__achievements) {
+      expect((entry.value as Achievement).assignee).toEqual([plan.heroes[0].id]);
+    }
+  });
+
+  it("leaves nobody Game Master when skipped, and refuses a half-filled step", () => {
+    expect(quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "", passcode: "" }).gameMaster).toBeNull();
+    expect(() => quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "Dad", passcode: "12" })).toThrow(QuickStartError);
+  });
+});
+
 describe("running Quick start", () => {
   it("seeds the heroes, the beasts, the quests and the Market's shelf on a new device", async () => {
     const { stores, deps } = device();
-    const heroes = await runQuickStart(["Mia", "Leo"], deps);
+    const { heroes } = await runQuickStart(["Mia", "Leo"], undefined, deps);
     expect(Array.from(stores.__profiles.data.keys())).toEqual(heroes.map((hero) => hero.id));
     expect(stores.__achievements.data.size).toBe(3);
     expect(stores.__beasts.data.size).toBe(3);
@@ -154,7 +186,7 @@ describe("running Quick start", () => {
 
   it("never runs once a profile exists, and leaves that game alone", async () => {
     const { stores, deps } = device({ __profiles: { dad: { id: "dad", isAdult: true } } });
-    await expect(runQuickStart(["Mia"], deps)).rejects.toThrow(QuickStartError);
+    await expect(runQuickStart(["Mia"], undefined, deps)).rejects.toThrow(QuickStartError);
     expect(stores.__profiles.data.size).toBe(1);
     expect(stores.__achievements.data.size).toBe(0);
   });
