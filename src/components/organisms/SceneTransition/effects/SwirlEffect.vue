@@ -50,11 +50,15 @@ const CHECKER_ROWS = 10;
 const PIECES: Record<BattleStyle, number> = { swirl: 0, blinds: 10, checker: CHECKER_COLS * CHECKER_ROWS, iris: 4, flash: 2, slash: 7 };
 const pieceCount = PIECES[look];
 
-/** Each piece's colour and stagger; the per-style keyframes do the moving. */
-const pieceStyle = (i: number): Record<string, string> => {
-  const [r, g, b] = PALETTE[i % PALETTE.length];
-  const color = `rgb(${r}, ${g}, ${b})`;
-  if (look === "checker") {
+type PieceStyle = Record<string, string>;
+const rgb = (c: [number, number, number]) => `rgb(${c.join(",")})`;
+const delay = (share: number) => `calc(var(--cover-ms) * ${share.toFixed(3)})`;
+const paletteAt = (i: number) => rgb(PALETTE[i % PALETTE.length]);
+
+/** Each piece's colour and stagger, per look; the per-style keyframes do the moving. */
+const PIECE_STYLES: Record<BattleStyle, (i: number) => PieceStyle> = {
+  swirl: () => ({}),
+  checker: (i) => {
     const col = i % CHECKER_COLS;
     const row = Math.floor(i / CHECKER_COLS);
     // Diagonal sweep from the top-left corner, alternating squares a beat apart
@@ -64,30 +68,23 @@ const pieceStyle = (i: number): Record<string, string> => {
       top: `${(row * 100) / CHECKER_ROWS}%`,
       width: `${100 / CHECKER_COLS + 0.5}%`,
       height: `${100 / CHECKER_ROWS + 0.5}%`,
-      background: `rgb(${PALETTE[(col + row) % 2].join(",")})`,
-      animationDelay: `calc(var(--cover-ms) * ${(step * 0.6).toFixed(3)})`,
+      background: rgb(PALETTE[(col + row) % 2]),
+      animationDelay: delay(step * 0.6),
     };
-  }
-  if (look === "blinds") {
-    const isEven = i % 2 === 0;
-    return {
-      top: `${i * 10}%`,
-      background: color,
-      transformOrigin: isEven ? "left" : "right",
-      animationDelay: `calc(var(--cover-ms) * ${((i % 5) * 0.08).toFixed(2)})`,
-    };
-  }
-  if (look === "slash") {
-    return { left: `${i * 18 - 20}%`, background: color, animationDelay: `calc(var(--cover-ms) * ${(i * 0.06).toFixed(2)})` };
-  }
-  if (look === "iris") {
-    // Rings close in from the edge, outermost first; the last is the dark bullseye
-    const ring = i === pieceCount - 1 ? PALETTE[0] : PALETTE[PALETTE.length - 1 - i];
-    return { background: `rgb(${ring.join(",")})`, animationDelay: `calc(var(--cover-ms) * ${(i * 0.14).toFixed(2)})` };
-  }
-  // flash: a white strobe over a dark slam
-  return i === 0 ? { background: "#fff" } : { background: `rgb(${PALETTE[0].join(",")})` };
+  },
+  blinds: (i) => ({
+    top: `${i * 10}%`,
+    background: paletteAt(i),
+    transformOrigin: ["left", "right"][i % 2],
+    animationDelay: delay((i % 5) * 0.08),
+  }),
+  slash: (i) => ({ left: `${i * 18 - 20}%`, background: paletteAt(i), animationDelay: delay(i * 0.06) }),
+  // Rings grow in outermost first; the last is the dark core that floods the screen
+  iris: (i) => ({ background: rgb(PALETTE[[4, 3, 2, 0][i]]), animationDelay: delay(i * 0.14) }),
+  // A white strobe over a dark slam
+  flash: (i) => ({ background: ["#fff", rgb(PALETTE[0])][i] }),
 };
+const pieceStyle = PIECE_STYLES[look];
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 
 let raf = 0;
