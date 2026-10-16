@@ -45,12 +45,3 @@ export const doorSounds = {
   doorPortal: new Audio(earthbound.teleport),
 };
 
-
-coins.addEventListener(
-  "ended",
-  function () {
-    this.currentTime = 0;
-    this.play();
-  },
-  false
-);
