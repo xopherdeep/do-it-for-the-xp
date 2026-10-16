@@ -43,7 +43,7 @@ export const settleStreakChests = async (heroId: string, now: Date = new Date())
     const hasXp = total.xp > 0;
     if (hasXp) userStore.updateUserXP({ userId: heroId, amount: total.xp, commit: true });
     const hasGp = total.gp > 0;
-    if (hasGp) void userStore.updateUserGP({ userId: heroId, wallet: total.gp });
+    if (hasGp) void userStore.updateUserGP({ userId: heroId, wallet: total.gp, kind: "earn", note: "Streak chest" });
     return owed;
   } finally {
     settling.delete(heroId);

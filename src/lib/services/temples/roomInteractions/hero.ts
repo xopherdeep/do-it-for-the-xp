@@ -32,7 +32,7 @@ export const earnGold = (userId: string, amount: number): number => {
   const gp = heroGold(amount, store.getUserById(userId));
   // The wallet moves before updateUserGP's first await; the save is not waited for
   const hasGold = gp > 0;
-  if (hasGold) void store.updateUserGP({ userId, wallet: gp });
+  if (hasGold) void store.updateUserGP({ userId, wallet: gp, kind: "earn", note: "Temple treasure" });
   return gp;
 };
 

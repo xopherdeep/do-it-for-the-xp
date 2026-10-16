@@ -131,7 +131,7 @@ export function admitToHospital(userId: string, cause: AdmissionCause = "battle"
   if (hasMpGain) store.updateUserMP({ userId, amount: treatment.mpGain });
 
   const charge = chargeHospitalBill(hero.stats?.gp);
-  store.setWallet(userId, charge.gp);
+  store.setWallet(userId, charge.gp, { kind: "bill", note: "Hospital stay" });
 
   const admission: HospitalAdmission = {
     userId,
@@ -171,7 +171,7 @@ export function forgiveBill(userId: string, gmId: string, now: Date = new Date()
   const isNothingForgiven = forgiven <= 0;
   if (isNothingForgiven) return 0;
 
-  store.setWallet(userId, gp);
+  store.setWallet(userId, gp, { kind: "refund", note: "Hospital bill forgiven" });
   const notes = forgiveNotes(nameOf(store.users[gmId], "A Game Master"), nameOf(hero), forgiven);
   try {
     useNotificationsStore().push({

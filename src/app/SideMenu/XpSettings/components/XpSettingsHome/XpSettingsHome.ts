@@ -93,10 +93,9 @@ export default defineComponent({
       {
         id: 'reward',
         title: 'Rewards',
-        description: 'Cash out GP and more reward rules.',
+        description: 'Cash out GP: the rate and who can.',
         icon: require('@/assets/icons/target.png'),
         route: '/xp-settings/reward',
-        soon: true
       },
       {
         id: 'party',

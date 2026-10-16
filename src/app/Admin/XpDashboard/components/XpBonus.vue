@@ -246,7 +246,7 @@ export default defineComponent({
 
       // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
       for (const id of this.members as string[]) {
-        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp });
+        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp, note: gp > 0 ? "Game Master bonus" : "Game Master penalty" });
         if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
         if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
       }

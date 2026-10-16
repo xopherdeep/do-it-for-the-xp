@@ -183,7 +183,7 @@ export default defineComponent({
 
       this.isLoading = true;
       try {
-        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost, kind: "spend", note: "Hospital care" });
         this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
         const hasMpGain = quote.mpGain > 0;
         if (hasMpGain) {

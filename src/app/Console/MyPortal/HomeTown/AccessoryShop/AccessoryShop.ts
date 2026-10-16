@@ -101,6 +101,9 @@ const SHELF_FILTERS: ReadonlyArray<{ id: ShelfFilter; label: string }> = [
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
 
+/** How the wallet's history names an ATM move */
+const ATM_NOTES: Record<BankAction, string> = { withdraw: "withdrew", deposit: "deposited", payDebt: "paid debt", borrow: "borrowed" };
+
 const resolveAssetUrl = (asset: any): string => {
   if (!asset) return "";
   const isAssetPath = typeof asset === "string";
@@ -324,7 +327,7 @@ export default defineComponent({
       }
       const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
       const receipt = bankReceipt(action, before, move, this.words);
-      this.userStore.setWallet(this.heroId, move.gp);
+      this.userStore.setWallet(this.heroId, move.gp, { kind: action, note: `ATM: ${ATM_NOTES[action]}` });
       if (clearsBill) announceBillPaid(this.heroId);
       await this.reveal.showPrompt(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
@@ -381,7 +384,7 @@ export default defineComponent({
       const result = buyWalletUpgrade(fresh?.gp, Number(fresh?.level) || 1);
       const isPaid = result.ok;
       if (isPaid) {
-        this.userStore.setWallet(this.heroId, result.gp);
+        this.userStore.setWallet(this.heroId, result.gp, { kind: "upgrade", note: `Wallet upgrade (${result.offer.limit} GP)` });
         await this.reveal.showPrompt(walletReceipt(this.voice, result.offer.limit, this.words));
       } else {
         await this.reveal.showPrompt(shopRefusal(this.voice, walletRefusal(result, this.words), "coins"));

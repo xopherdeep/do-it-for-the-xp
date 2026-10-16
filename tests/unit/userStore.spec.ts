@@ -29,6 +29,12 @@ jest.mock("@/lib/services/notifications/notify", () => ({ notify: (input: unknow
 
 /** A plain copy of a profile slice, so assertions do not depend on Vue proxies */
 const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+/** The purse without its history, which the GP specs check on their own */
+const purseOf = (gp: any) => {
+  const { ledger, ...rest } = plain(gp);
+  return rest;
+};
 /** Let the persistence queue (a microtask, then one await per hero) run to the end */
 const flush = async () => {
   for (let tick = 0; tick < 10; tick += 1) await Promise.resolve();
@@ -171,26 +177,41 @@ describe("GP and the wallet", () => {
   it("starts a purse for a hero with no stats", async () => {
     const store = freshStore({ ava: {} });
     await store.updateUserGP({ userId: "ava", wallet: 40 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
     expect(mockSyncGP).toHaveBeenCalledWith("ava");
   });
 
   it("adds to wallet, savings and debt, and skips the ones left out", async () => {
     const store = freshStore({ ava: { stats: { gp: { wallet: 10, savings: 5, debt: 2, limit: 500 } } } });
     await store.updateUserGP({ userId: "ava", wallet: 5, debt: 3 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 15, savings: 5, debt: 5, limit: 500 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 15, savings: 5, debt: 5, limit: 500 });
   });
 
   it("sends wallet overflow to savings", async () => {
     const store = freshStore({ ava: { stats: { gp: { wallet: 90, savings: 7, debt: 0 } } } });
     await store.updateUserGP({ userId: "ava", wallet: 80 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 100, savings: 77, debt: 0 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 100, savings: 77, debt: 0 });
   });
 
   it("gives stats that lack a purse the starting purse", async () => {
     const store = freshStore({ ava: { stats: { level: 3 } } });
     await store.updateUserGP({ userId: "ava", savings: 12 });
-    expect(plain(store.users.ava.stats)).toEqual({ level: 3, gp: { wallet: 0, savings: 12, debt: 0, hospitalBill: 0, limit: 100 } });
+    expect(plain(store.users.ava.stats).level).toBe(3);
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 12, debt: 0, hospitalBill: 0, limit: 100 });
+  });
+
+  it("writes each move to the wallet's history, in the caller's words when it gives some", async () => {
+    const store = freshStore({ ava: { stats: { gp: { wallet: 90, savings: 7, debt: 0 } } } });
+    await store.updateUserGP({ userId: "ava", wallet: 80, note: "Quest: Feed the cat" });
+    await store.updateUserGP({ userId: "ava", wallet: -30 });
+    store.setWallet("ava", { wallet: 20, savings: 127 }, { kind: "deposit" });
+    const ledger = plain(store.users.ava.stats.gp.ledger);
+    expect(ledger.map((line: any) => [line.kind, line.gp, line.note])).toEqual([
+      ["earn", 80, "Quest: Feed the cat"],
+      ["spend", -30, "GP spent"],
+      ["deposit", 0, "Deposited to savings"],
+    ]);
+    expect(ledger[0]).toMatchObject({ wallet: 10, savings: 70 });
   });
 
   it("does nothing for an unknown hero", async () => {
@@ -203,14 +224,14 @@ describe("GP and the wallet", () => {
     const store = freshStore({ ava: { stats: { gp: { wallet: 10, savings: 20, debt: 3, limit: 100, extra: "kept" } } } });
     store.loginUser(store.users.ava);
     store.setWallet("ava", { wallet: "40" as unknown as number, limit: 300 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 20, debt: 3, hospitalBill: 0, limit: 300, extra: "kept" });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 20, debt: 3, hospitalBill: 0, limit: 300, extra: "kept" });
     expect(store.currentUser.stats).toBe(store.users.ava.stats);
   });
 
   it("falls back to 0 for a broken number and to the starting limit", () => {
     const store = freshStore({ ava: {} });
     store.setWallet("ava", { wallet: Number.NaN, savings: undefined, limit: -5 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
     expect(() => store.setWallet("ghost", { wallet: 1 })).not.toThrow();
   });
 });

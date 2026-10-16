@@ -37,6 +37,7 @@ import {
   storageTopUpQuestion
 } from "@/lib/services/gp/bankTeller";
 import { BANKER, amountAsk, bankMenuPrompt, noticePrompt, type BankMenuId } from "@/lib/services/gp/bankPrompts";
+import { type GpEntryNote, withEntry } from "@/lib/services/gp/gpLedger";
 import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
@@ -251,17 +252,19 @@ export default defineComponent({
       const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0
       const heroId = this.user.id
       const receipt = bankReceipt(action, before, move, this.words)
-      await this.savePurse(move.gp)
+      await this.savePurse(move.gp, { kind: action })
       if (clearsBill) announceBillPaid(heroId)
       // The coins rise with the receipt
       await this.reveal.showPrompt(noticePrompt(receipt, "coins"))
     },
 
-    savePurse(purse: Purse) {
+    savePurse(purse: Purse, said: GpEntryNote = {}) {
+      const before = this.user.stats.gp
       const updatedStats = {
         ...this.user.stats,
-        // keep the GP ledger and anything else the purse carries; the rules only speak for the four numbers
-        gp: { ...this.user.stats.gp, ...purse }
+        // keep the GP ledger and anything else the purse carries; the rules only speak for the four numbers, and the
+        // move gets its line in the wallet's history
+        gp: withEntry(before, { ...before, ...purse }, said)
       }
       return this.profileDb.updateStats(this.user.id, updatedStats).then(this.loadUsers)
     },

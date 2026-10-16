@@ -1,3 +1,4 @@
+import type { GpEntryKind } from "@/lib/services/gp/gpLedger";
 /**
  * Level-up information returned from updateUserXP
  */
@@ -32,6 +33,11 @@ export interface GpPayload {
   debt?: number;
   /** A change to what the hero owes the Hospital (negative pays it down) */
   hospitalBill?: number;
+  /** What the wallet's history calls the move ("Quest: Feed the cat"); left out, it reads "GP earned" or "GP spent" */
+  note?: string;
+  kind?: GpEntryKind;
+  /** The other hero of a gift */
+  withId?: string;
 }
 
 /** What recordAPGain is given: the hero, the AP, where it came from and (optionally) when */

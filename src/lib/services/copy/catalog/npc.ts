@@ -86,6 +86,21 @@ export const npc = {
     adventure: "Name an amount to pay first.",
     classic: "Specify an amount to pay.",
   },
+  "bank.refusal.loanBill": {
+    simple: "Pay the Hospital first. Then ask again.",
+    adventure: "The bank won't lend while the Hospital is owed. Pay that bill first.",
+    classic: "Loans unavailable while a hospital bill is outstanding.",
+  },
+  "bank.refusal.loanWalletFull": {
+    simple: "Your wallet is full. No room for a loan.",
+    adventure: "Your wallet is already full. There's no room for a loan.",
+    classic: "Wallet full. Loan declined.",
+  },
+  "bank.refusal.loanLine": {
+    simple: "You owe too much to borrow more.",
+    adventure: "You've borrowed all the bank will lend ({line}). Pay some back first.",
+    classic: "Credit line of {line} in use. Repay to borrow again.",
+  },
   "bank.receipt.withdraw": {
     simple: "You took out {amount}. Wallet: {wallet}",
     adventure: "{amount} withdrawn. Wallet: {wallet} | Savings: {savings}.",
@@ -105,6 +120,11 @@ export const npc = {
     simple: "You paid {amount}. Bill: {bill}",
     adventure: "{amount} paid. Wallet: {wallet} | Bill: {bill} | Debt: {debt}.",
     classic: "Paid {amount}. Wallet: {wallet} | Bill: {bill} | Debt: {debt}.",
+  },
+  "bank.receipt.borrow": {
+    simple: "You got {amount}. You owe {debt}.",
+    adventure: "{amount} lent. Wallet: {wallet} | You owe: {debt}.",
+    classic: "Loan of {amount}. Wallet: {wallet} | Debt: {debt}.",
   },
   "bank.receipt.billFree": {
     simple: "Bill paid. You are free!",
@@ -130,6 +150,11 @@ export const npc = {
     simple: "Your debt is gone!",
     adventure: "That clears your debt entirely!",
     classic: "Debt cleared.",
+  },
+  "bank.cap.credit": {
+    simple: "That is all the bank will lend.",
+    adventure: "That's all the bank will lend you for now.",
+    classic: "Credit line reached.",
   },
 
   // ---- Gold Bank: storage for home ------------------------------------------------------------------------------
@@ -209,6 +234,16 @@ export const npc = {
     simple: "You owe {debt}. How much will you pay?",
     adventure: "You owe {debt}. How much will you pay down?",
     classic: "Debt: {debt}. Pay how much?",
+  },
+  "bank.ask.borrow": {
+    simple: "Borrow up to {max}. Pay back 10% more.",
+    adventure: "The bank can lend you up to {max}. You'll pay back 10% more. How much?",
+    classic: "Loan up to {max}, 10% fee. Borrow how much?",
+  },
+  "bank.ask.debtMenu": {
+    simple: "You owe {debt}. Pay or borrow?",
+    adventure: "You owe {debt}. Pay it down, or borrow from the bank?",
+    classic: "Debt: {debt}. Select a transaction.",
   },
 
   // ---- Shops ----------------------------------------------------------------------------------------------------

@@ -15,17 +15,40 @@ export interface FamilySettings {
   dayOffBroadcast: boolean;
   /** Daily streaks (services/streaks): the HUD flame, Streak Shields and streak chests. On unless switched off. */
   streaks: boolean;
+  /** Cash out (Settings > Rewards): heroes trade GP for real money; every cash out waits in Approvals for a Game Master */
+  cashOut: CashOutSettings;
 }
+
+export interface CashOutSettings {
+  enabled: boolean;
+  /** GP for one unit of real money ($1) */
+  gpPerDollar: number;
+  /** The heroes who may cash out; empty is every hero */
+  heroIds: string[];
+}
+
+/** The rates the settings offer, GP per $1 */
+export const CASH_OUT_RATES: readonly number[] = [5, 10, 20, 25, 50, 100];
 
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   trustedHour: false,
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
   dayOffBroadcast: false,
   streaks: true,
+  cashOut: { enabled: true, gpPerDollar: 10, heroIds: [] },
 };
 
 const clock = (value: unknown, fallback: string): string =>
   typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : fallback;
+
+const normalizeCashOut = (stored: Partial<CashOutSettings> | null | undefined): CashOutSettings => {
+  const rate = Math.round(Number(stored?.gpPerDollar));
+  return {
+    enabled: stored?.enabled !== false,
+    gpPerDollar: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_FAMILY_SETTINGS.cashOut.gpPerDollar,
+    heroIds: Array.isArray(stored?.heroIds) ? stored!.heroIds.filter(Boolean).map(String) : [],
+  };
+};
 
 const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySettings => ({
   trustedHour: stored?.trustedHour === true,
@@ -36,6 +59,7 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
   },
   dayOffBroadcast: stored?.dayOffBroadcast === true,
   streaks: stored?.streaks !== false,
+  cashOut: normalizeCashOut(stored?.cashOut),
 });
 
 export const loadFamilySettings = async (): Promise<FamilySettings> => {

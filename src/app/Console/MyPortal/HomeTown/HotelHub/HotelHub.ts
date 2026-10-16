@@ -180,7 +180,7 @@ export default defineComponent({
     async rentRoom(quote: CareQuote) {
       this.isLoading = true;
       try {
-        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost, kind: "spend", note: "Hotel stay" });
         this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
         const hasMpGain = quote.mpGain > 0;
         if (hasMpGain) {

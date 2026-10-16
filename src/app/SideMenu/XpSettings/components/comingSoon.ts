@@ -40,7 +40,6 @@ export const CHORE_COMING_SOON: ComingSoonItem[] = [
 ];
 
 export const REWARD_COMING_SOON: ComingSoonItem[] = [
-  { title: "Cash out GP", description: "Trade gold for real money at a rate you set, for the heroes you pick" },
   { title: "Approve every purchase", description: "Check game-item purchases too, not only Real Life rewards" },
 ];
 

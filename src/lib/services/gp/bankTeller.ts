@@ -5,14 +5,25 @@
 import { copyFor } from "../copy/copy";
 import type { Voice } from "../copy/voices";
 import type { NextStorageTier, StoragePurchase } from "../inventory/Storage";
-import { type BankMove, type GpPurse, type Purse, depositToSavings, normalizePurse, payDownBills, withdrawFromSavings } from "./wallet";
+import {
+  type BankMove,
+  type GpPurse,
+  type Purse,
+  borrowGp,
+  creditLineOf,
+  depositToSavings,
+  normalizePurse,
+  payDownBills,
+  withdrawFromSavings,
+} from "./wallet";
 
-export type BankAction = "withdraw" | "deposit" | "payDebt";
+export type BankAction = "withdraw" | "deposit" | "payDebt" | "borrow";
 
 const BANK_MOVES: Record<BankAction, (gp: GpPurse | null | undefined, amount: number) => BankMove> = {
   withdraw: withdrawFromSavings,
   deposit: depositToSavings,
   payDebt: payDownBills,
+  borrow: borrowGp,
 };
 
 /** The purse after the teller does `action` with `amount` GP (paying debt clears the hospital bill first). */
@@ -49,6 +60,13 @@ export function bankRefusal(action: BankAction, before: GpPurse | null | undefin
       if (isWalletEmpty) return copyFor("bank.refusal.walletEmptyDebt", voice);
       return copyFor("bank.refusal.namePay", voice);
     }
+    case "borrow": {
+      const isBillOwed = purse.hospitalBill > 0;
+      if (isBillOwed) return copyFor("bank.refusal.loanBill", voice);
+      const isWalletFull = purse.wallet >= purse.limit;
+      if (isWalletFull) return copyFor("bank.refusal.loanWalletFull", voice);
+      return copyFor("bank.refusal.loanLine", voice, { line: gold(creditLineOf(purse)) });
+    }
   }
 }
 
@@ -79,7 +97,8 @@ export function bankReceipt(action: BankAction, before: GpPurse | null | undefin
   const lineOf: Record<BankAction, () => string> = {
     withdraw: () => copyFor("bank.receipt.withdraw", voice, sums),
     deposit: () => copyFor("bank.receipt.deposit", voice, sums),
-    payDebt: () => payDebtReceipt(purse, move, voice)
+    payDebt: () => payDebtReceipt(purse, move, voice),
+    borrow: () => copyFor("bank.receipt.borrow", voice, { amount: gold(move.amount), wallet: gold(after.wallet), debt: gold(after.debt) }),
   };
   const line = lineOf[action]?.() ?? "";
   const noteOf: Partial<Record<BankMove["capped"], () => string>> = {
@@ -87,7 +106,8 @@ export function bankReceipt(action: BankAction, before: GpPurse | null | undefin
     savings: () => copyFor("bank.cap.savings", voice),
     wallet: () => copyFor("bank.cap.wallet", voice),
     // a hero who owed only the Hospital has no debt to clear: the receipt already says the bill is paid
-    debt: () => (purse.debt > 0 ? copyFor("bank.cap.debt", voice) : "")
+    debt: () => (purse.debt > 0 ? copyFor("bank.cap.debt", voice) : ""),
+    credit: () => copyFor("bank.cap.credit", voice),
   };
   const note = noteOf[move.capped]?.();
   return note ? `${line} ${note}` : line;

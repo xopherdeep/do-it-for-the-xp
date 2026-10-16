@@ -299,7 +299,7 @@ export class BattleService {
       return { success: false, message: "Not enough GP for bribe" };
     }
 
-    this.userStore.updateUserGP({ userId: hero.id, wallet: -cost });
+    this.userStore.updateUserGP({ userId: hero.id, wallet: -cost, kind: "spend", note: "Bribe to escape" });
     this.stopAttackTimer();
 
     const escape: EscapeReport = {

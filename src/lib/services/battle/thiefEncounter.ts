@@ -20,7 +20,7 @@ export interface HeroProfileLike {
 export interface UserStoreLike {
   users: Record<string, HeroProfileLike>;
   currentUser: HeroProfileLike & { id?: string | null };
-  updateUserGP: (payload: { userId: string; wallet: number }) => Promise<void> | void;
+  updateUserGP: (payload: { userId: string; wallet: number; kind?: "spend"; note?: string }) => Promise<void> | void;
   spendInventoryItem: (userId: string, entryId: string, qty?: number) => boolean;
 }
 
@@ -92,7 +92,7 @@ export const stealFromHero = (
 
   const hasGpToDeduct = stolenGp > 0;
   if (hasGpToDeduct) {
-    void userStore.updateUserGP({ userId, wallet: -stolenGp });
+    void userStore.updateUserGP({ userId, wallet: -stolenGp, kind: "spend", note: "Stolen by a thief" });
   }
 
   const inventory = Array.isArray(user?.inventory) ? user.inventory : [];

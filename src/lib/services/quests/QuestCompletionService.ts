@@ -65,7 +65,9 @@ export const applyQuestRewards = (
   userId: string,
   rewards: QuestRewards,
   source: string,
-  at?: string
+  at?: string,
+  /** What the wallet's history calls the GP: "Quest: Feed the cat" */
+  label?: string
 ): LevelUpInfo | null => {
   const userStore = useUserStore();
   const isUnknownHero = !userStore.users[userId];
@@ -74,7 +76,7 @@ export const applyQuestRewards = (
   const paid = paidQuestRewards(userId, rewards);
   const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
   const hasGp = paid.gp > 0;
-  if (hasGp) void userStore.updateUserGP({ userId, wallet: paid.gp });
+  if (hasGp) void userStore.updateUserGP({ userId, wallet: paid.gp, kind: "earn", ...(label ? { note: label } : {}) });
   const hasAp = paid.ap > 0;
   if (hasAp) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
   return levelUp;
@@ -124,7 +126,7 @@ export const completeQuest = async (
   if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: owed };
 
   const paid = paidQuestRewards(userId, owed);
-  const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`);
+  const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`, undefined, `Quest: ${quest.achievementName}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
   announcePaid(userId, quest.id, owed.xp, source);
   return { entry: settled || entry, levelUp, awaitingApproval, paid };
@@ -187,7 +189,7 @@ export const approveCompletion = (entryId: string, reviewerId?: string): Promise
     // entry already approved and pays nothing)
     const owed = withHuntBonus(entry);
     const shouldPay = !entry.rewardsApplied;
-    if (shouldPay) applyQuestRewards(entry.userId, owed, `quest:${entry.questId}`, entry.completedAt);
+    if (shouldPay) applyQuestRewards(entry.userId, owed, `quest:${entry.questId}`, entry.completedAt, `Quest: ${entry.questName}`);
     const settled = await getQuestLogDb().updateEntry(entryId, {
       status: "approved",
       rewardsApplied: true,
