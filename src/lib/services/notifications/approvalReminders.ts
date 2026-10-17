@@ -14,12 +14,24 @@ export const DEFAULT_APPROVAL_WAIT_HOURS = 2;
 const HOUR_MS = 60 * 60 * 1000;
 const WAIT_KEY = "xp.approvalReminderHours";
 
-/** How long a claim may wait before the Game Master is reminded, in hours (stored per device) */
+/** The stored wait meaning "never remind" */
+export const APPROVAL_REMINDERS_OFF = 0;
+
+/** Parse a stored wait: nothing stored is the default, 0 is off, any other positive number is hours */
+export const parseApprovalWaitHours = (stored: string | null): number => {
+  const isUnset = stored === null || stored === "";
+  if (isUnset) return DEFAULT_APPROVAL_WAIT_HOURS;
+  const hours = Number(stored);
+  const isOff = hours === APPROVAL_REMINDERS_OFF;
+  if (isOff) return APPROVAL_REMINDERS_OFF;
+  const isUsable = Number.isFinite(hours) && hours > 0;
+  return isUsable ? hours : DEFAULT_APPROVAL_WAIT_HOURS;
+};
+
+/** How long a claim may wait before the Game Master is reminded, in hours (stored per device); 0 means off */
 export const approvalWaitHours = (): number => {
   try {
-    const stored = Number(localStorage.getItem(WAIT_KEY));
-    const isUsable = Number.isFinite(stored) && stored > 0;
-    return isUsable ? stored : DEFAULT_APPROVAL_WAIT_HOURS;
+    return parseApprovalWaitHours(localStorage.getItem(WAIT_KEY));
   } catch (error) {
     debug.warn("[approvalReminders] could not read the reminder wait", error);
     return DEFAULT_APPROVAL_WAIT_HOURS;

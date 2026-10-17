@@ -2,6 +2,7 @@ import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import {
   approvalAlertCopy,
   nextReminderAt,
+  parseApprovalWaitHours,
   pendingApprovalReminders,
 } from "@/lib/services/notifications/approvalReminders";
 import { claimWaitingNotification, claimsWaitingSummary, dedupeKeyOf } from "@/lib/services/notifications/Notifications";
@@ -63,5 +64,19 @@ describe("the copy and the tap", () => {
     expect(dedupeKeyOf(first.kind, first.refId, NOW)).not.toBe(dedupeKeyOf(second.kind, second.refId, NOW));
     expect(claimsWaitingSummary("mum", 3, NOW).title).toBe("3 chores await your word");
     expect(claimsWaitingSummary("mum", 1, NOW).title).toBe("A chore awaits your word");
+  });
+});
+
+describe("parseApprovalWaitHours", () => {
+  it("defaults when nothing is stored", () => {
+    expect(parseApprovalWaitHours(null)).toBe(2);
+    expect(parseApprovalWaitHours("")).toBe(2);
+    expect(parseApprovalWaitHours("junk")).toBe(2);
+    expect(parseApprovalWaitHours("-3")).toBe(2);
+  });
+
+  it("reads hours, and 0 as off", () => {
+    expect(parseApprovalWaitHours("4")).toBe(4);
+    expect(parseApprovalWaitHours("0")).toBe(0);
   });
 });
