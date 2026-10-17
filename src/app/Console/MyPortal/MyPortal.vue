@@ -7,11 +7,14 @@
       </div>
       <xp-main-hud v-if="isUserFabOn && user?.stats" :stats="user.stats">
         <template #avatar>
-          <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" />
+          <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" @open-guide="openGuide" />
         </template>
       </xp-main-hud>
       <!-- Timed privileges (30 minutes of games...): the countdown floats above the bottom nav on every screen -->
       <xp-power-timer-bar v-if="user?.id && !battleState('active')" :hero-id="user.id" floating />
+      <!-- THE GUIDE: after the tour, the goal of the game, then the hero's one next step under the HUD -->
+      <xp-guide v-if="user?.id && user.stats && !battleState('active')" ref="guide" :hero-id="String(user.id)"
+        :ready="guideReady" />
     </template>
 
     <!-- FABs: Retired 2026-10-10 now that 3D voxel models match navigation menus 1:1 across all plazas.
@@ -57,7 +60,8 @@
       <xp-world-map-modal :is-open="isPegasusModalOpen" @close="closePegasusModal" />
 
       <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
-      <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)" />
+      <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"
+        @done="guideReady = true" />
     </template>
   </xp-portal-page>
 </template>

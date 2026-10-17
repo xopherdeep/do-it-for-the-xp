@@ -22,6 +22,8 @@ import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
 import XpPowerTimerBar from "@/components/organisms/PowerTimers/XpPowerTimerBar.vue";
 import XpFirstRunTour from "@/components/organisms/FirstRunTour/XpFirstRunTour.vue";
+import XpGuide from "@/components/organisms/Guide/XpGuide.vue";
+import { hasSeenTour } from "@/lib/services/tutorial/firstRunTour";
 import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
 
 // Define interface for equipment items
@@ -60,7 +62,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour },
+  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour, XpGuide },
   mixins: [ionic],
   name: "my-portal",
   data() {
@@ -242,6 +244,14 @@ export default defineComponent({
       return say(itemCardLine(name), 4000);
     };
 
+    // The Guide speaks once the tour is over (or straight away for a hero who saw it before); the avatar menu reopens it
+    const guide = ref<InstanceType<typeof XpGuide> | null>(null);
+    const guideReady = ref(hasSeenTour(String(userId || "")));
+    const openGuide = () => {
+      guideReady.value = true;
+      guide.value?.open();
+    };
+
     const openParty = () => router.push(`/my-portal/${userId}/my-party`);
 
     // The Area tab: where the hero stands, or the last place they stood while Party or Profile is open
@@ -258,6 +268,9 @@ export default defineComponent({
       rightHandItem,
       useHand,
       openParty,
+      guide,
+      guideReady,
+      openGuide,
       isPegasusModalOpen,
       openPegasusModal,
       closePegasusModal,

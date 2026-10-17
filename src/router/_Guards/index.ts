@@ -10,6 +10,7 @@ import { handleWorldGuard } from "./world.guard";
 import { handleProGuard } from "./pro.guard";
 import { handleTransitionGuard } from "./transition.guard";
 import { handleAreaGuard } from "./area.guard";
+import { handleGuideGuard } from "./guide.guard";
 
 /**
  * Applies all router guards to the provided router instance.
@@ -82,6 +83,9 @@ export function useRouterGuards(router: Router): void {
 
   // 8. The Area tab remembers the last place the hero stood (afterEach, side effect only)
   handleAreaGuard(router);
+
+  // 9. The Guide notes the Beast Log and the shops once the hero reaches them (afterEach, side effect only)
+  handleGuideGuard(router);
 }
 
 // Re-export individual guards for testing or direct use
@@ -95,3 +99,4 @@ export { handleBattleTimerGuard } from "./battle.guard";
 export { handleBgmGuard } from "./bgm.guard";
 export { handleTransitionGuard } from "./transition.guard";
 export { handleAreaGuard } from "./area.guard";
+export { handleGuideGuard } from "./guide.guard";
