@@ -1,7 +1,7 @@
 import { SettingsRoutes } from "@/router/SideMenu";
 import { ACCOUNT_COMING_SOON } from "@/app/SideMenu/XpSettings/components/comingSoon";
 import { FAQ_GROUPS, MANUAL_CHAPTERS } from "@/app/SideMenu/XpSupport/helpContent";
-import XpSettingsHome from "@/app/SideMenu/XpSettings/components/XpSettingsHome/XpSettingsHome";
+import { ALL_SETTINGS_ITEMS } from "@/app/SideMenu/XpSettings/components/XpSettingsHome/settingsSections";
 
 // Settings, Account is the menu's way to the family's Town Hall link; only social sign-in is still planned
 describe("Account settings", () => {
@@ -24,8 +24,7 @@ describe("Account settings", () => {
   });
 
   it("shows the Account tile as a live setting", () => {
-    const setup = (XpSettingsHome as unknown as { setup: () => { settingsItems: { id: string; route: string; soon?: boolean }[] } }).setup;
-    const account = setup().settingsItems.find((item) => item.id === "account");
+    const account = ALL_SETTINGS_ITEMS.find((item) => item.id === "account");
     expect(account?.soon).toBeUndefined();
     expect(account?.route).toBe("/xp-settings/account");
   });

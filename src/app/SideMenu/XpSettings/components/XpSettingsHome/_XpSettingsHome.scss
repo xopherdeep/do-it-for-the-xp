@@ -2,101 +2,97 @@
   ion-content {
     --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
   }
-  
-  // Each card's border is a 16px box-shadow drawn outside it, so the grid
-  // pads 16px and gaps 48px: every visible gap (edges, between columns,
-  // between rows) comes out the same 16px as the page padding
-  ion-grid {
-    padding: 16px;
-  }
 
-  ion-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 48px;
-  }
+  .settings-row {
+    --min-height: 76px;
 
-  ion-col {
-    display: flex;
-    padding: 0;
-    margin: 0;
-    // ion-col sizes itself with inline width and flex; the grid sizes it here
-    width: auto !important;
-    max-width: none !important;
-    flex: none !important;
-
-    &.full-row {
-      grid-column: 1 / -1;
+    h2 {
+      margin: 0 0 2px;
+      font-size: 1rem;
     }
-  }
 
-  .settings-card {
-    // beat the theme's ion-card width and margin (set under ion-app#earthbound)
-    width: 100% !important;
-    margin: 0 !important;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    cursor: pointer;
-    
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    ion-card-header {
-      padding: 1rem 0.5rem;
-      
-      ion-thumbnail {
-        --size: 85px;
-        max-width: var(--size) !important;
-        max-height: var(--size) !important;
-        min-height: var(--size) !important;
-        min-width: var(--size) !important;
-        margin: 0 auto 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        padding: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      ion-card-title {
-        // the theme sets card titles to 20px under ion-app#earthbound; "Notifications" needs less to fit a half-width card
-        font-size: 15px !important;
-        font-weight: bold;
-        margin-top: 0.5rem;
-        color: var(--ion-color-rpg);
-        overflow-wrap: break-word;
-      }
-    }
-    
-    hr {
-      background: rgba(255, 255, 255, 0.1);
+    p {
       margin: 0;
-    }
-    
-    ion-card-content {
-      flex-grow: 1;
-      padding: 1rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      line-height: 1.25;
       color: var(--ion-color-medium);
     }
   }
-}
 
-.xp-settings-home {
+  // The picture stands on its own, no plate behind it, so it can be big
+  .settings-row__icon {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    margin: 0 14px 0 0;
+  }
+
   // Planned pages: dimmed so the working ones lead
-  .settings-card--soon {
-    ion-thumbnail,
-    ion-card-content {
+  .settings-row--soon {
+    .settings-row__icon,
+    ion-label {
       opacity: 0.55;
     }
   }
 
   .soon-badge {
-    margin-top: 6px;
     font-size: 10px;
+  }
+
+  // XP Pro: one full-width gold-framed card at the end
+  .settings-pro {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 28px 16px 24px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #fff6dc;
+    background:
+      radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+      linear-gradient(140deg, #4a2178, #150a2c);
+    box-shadow:
+      0 0 0 2px #0b0610,
+      0 0 0 4px #e8b030,
+      0 0 0 6px #0b0610,
+      0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+
+  .settings-pro__crown {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+    background: radial-gradient(circle at 35% 30%, #fff2a8, #e8b030 55%, #7a4a10);
+    box-shadow: 0 0 0 2px #0b0610;
+    --fa-primary-color: #7a4a10;
+    --fa-secondary-color: #0b0610;
+  }
+
+  .settings-pro__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      font-size: 1.1rem;
+      color: #fff2a8;
+    }
+
+    small {
+      font-size: 0.8rem;
+      color: rgba(255, 246, 220, 0.7);
+    }
+  }
+
+  .settings-pro__go {
+    flex: none;
+    --fa-primary-color: #e8b030;
+    --fa-secondary-color: #e8b030;
   }
 }
