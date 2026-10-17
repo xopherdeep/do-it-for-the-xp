@@ -127,6 +127,9 @@ const worldBackground = (world: string): string => {
   }
 };
 
+// Boobeedeedle's balloon: transparent where the world should show through (tools/art/merchant_frame.py)
+const MERCHANT_FRAME = require("@/assets/images/backgrounds/shops/traveling-merchant.webp");
+
 export default defineComponent({
   props: ["userId", "merchant"],
   name: "accessory-shop",
@@ -258,14 +261,21 @@ export default defineComponent({
         this.shopBackgrounds.default;
       return resolveAssetUrl(candidate);
     },
+    // The balloon's basket and envelope, painted with a see-through middle, hung in front of the world he is visiting
+    merchantFrameUrl(): string {
+      return this.isTraveling ? resolveAssetUrl(MERCHANT_FRAME) : "";
+    },
     dynamicShopBackground() {
       // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
       const backgroundImage = this.shopBackgroundUrl;
+      // The balloon's window looks at the lower half of the world's picture: its big title ("MOUNTAINS") sits in the
+      // upper half, and the lower half is the ground and the road he has landed on.
+      const isWorldSeenFromBalloon = this.isTraveling;
       return {
         // Quoted: the browser drops an unquoted url() whose file name holds an apostrophe or a space (the old witch's-hut)
         backgroundImage: `url("${backgroundImage}")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: isWorldSeenFromBalloon ? 'auto 200%' : 'cover',
+        backgroundPosition: isWorldSeenFromBalloon ? 'center bottom' : 'center',
         backgroundRepeat: 'no-repeat'
       };
     },

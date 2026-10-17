@@ -68,7 +68,7 @@ export const SHOP_CLERK_DEFAULTS: Record<string, ShopClerkDefault> = {
   },
   "traveling-merchant": {
     shopkeep: "Boobeedeedle",
-    greeting: "Ah, It's you! Here's what I have today.",
+    greeting: "Hullo, hullo! Fresh off the road, and it's all laid out for you. Have a look!",
   },
   "theia-city": {
     shopkeep: "The Watcher",

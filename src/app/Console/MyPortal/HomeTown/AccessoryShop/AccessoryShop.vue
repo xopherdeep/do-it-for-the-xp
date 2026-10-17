@@ -19,6 +19,8 @@
     <ion-content class="shop-content" :scroll-y="false" :style="dynamicShopBackground">
       <xp-loading v-if="isLoading" />
       <div v-else class="shop-floor">
+        <!-- Boobeedeedle rides a balloon: his basket frames the world he is visiting, which shows through -->
+        <img v-if="merchantFrameUrl" class="merchant-frame" :src="merchantFrameUrl" alt="" aria-hidden="true" />
         <!-- A shut door: the picture dims behind a store-hours sign -->
         <div v-if="!isOpen" class="shop-closed">
           <div class="closed-sign rpg-box" role="status">
