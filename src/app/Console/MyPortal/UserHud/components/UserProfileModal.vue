@@ -197,6 +197,9 @@
       @close="isAvatarSelectorOpen = false" @selected="onAvatarSelected" :fullscreen="true" />
 
     <!-- Custom Stat Selector Modal -->
+    <xp-class-codex :is-open="isClassSelectOpen" :user="user" :portrait="avatarSrc"
+      @close="isClassSelectOpen = false" @chosen="onClassChosen" />
+
     <xp-stat-selector-modal :is-open="statSelector.isOpen" :title="statSelector.title" :options="statSelector.options"
       :columns="statSelector.columns" :fullscreen="statSelector.fullscreen" :height="statSelector.height"
       :selected-value="statSelector.selectedValue" @close="statSelector.isOpen = false"
@@ -226,12 +229,12 @@ import {
   IonList,
   IonSpinner,
   IonToggle,
-  alertController,
-  toastController
+  alertController
 } from "@ionic/vue";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS, PILLARS, type PillarType } from "@/constants";
 import AvatarSelector from "@/app/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
+import XpClassCodex from "./ClassCodex/XpClassCodex.vue";
 import XpTextStyleBar from "./XpTextStyleBar.vue";
 import XpProfileStatBox from "@/components/molecules/ProfileStatBox/XpProfileStatBox.vue";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
@@ -239,7 +242,6 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
-import { classLevelsOf, classRequirementLabel, isClassUnlocked } from "@/lib/services/stats/ClassPassives";
 import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
@@ -272,6 +274,7 @@ export default defineComponent({
     IonToggle,
     AvatarSelector,
     XpStatSelectorModal,
+    XpClassCodex,
     XpTextStyleBar,
     XpProfileStatBox,
     XpCloseButton,
@@ -393,51 +396,14 @@ export default defineComponent({
       onSelect: () => { } // No parameter here = No ESLint error
     });
 
-    /**
-     * The class picker. Tier-2 classes (Paladin, Ninja, Sage) stay locked, greyed with their requirement
-     * ("Warrior 10 + Monk 10"), until the hero's class levels meet JOB_UNLOCK_REQUIREMENTS; tapping a
-     * locked one only says what it takes.
-     */
-    const classOptions = () => {
-      const levels = classLevelsOf(props.user?.stats?.classes);
-      return JOB_CLASS_OPTIONS.map((job) => {
-        const locked = !isClassUnlocked(job.name, levels);
-        return { ...job, locked, lockHint: locked ? classRequirementLabel(job.name) : '' };
-      });
-    };
-
-    const toastLockedClass = async (name: string) => {
-      play$fx('no');
-      const toast = await toastController.create({
-        message: `${name} is sealed. Needs ${classRequirementLabel(name)}.`,
-        duration: 2200,
-        position: 'top',
-        cssClass: 'rpg-toast',
-      });
-      await toast.present();
-    };
-
+    // Choose Your Class: the full-screen class select (XpClassCodex); setJobClass refuses a sealed class
+    const isClassSelectOpen = ref(false);
     const openClassSelector = () => {
-      statSelector.value = {
-        isOpen: true,
-        title: 'Choose Your Class',
-        options: classOptions(),
-        columns: 2,
-        fullscreen: false,
-        height: '70vh',
-        selectedValue: props.user?.jobClass || 'Adventurer',
-        onSelect: (val: string) => {
-          if (!isClassUnlocked(val, classLevelsOf(props.user?.stats?.classes))) {
-            void toastLockedClass(val);
-            return;
-          }
-          if (isHeroInStore()) {
-            userStore.users[props.user.id].jobClass = val;
-            userStore.persistUser(props.user.id);
-          }
-          statSelector.value.isOpen = false;
-        }
-      };
+      play$fx('openMenu');
+      isClassSelectOpen.value = true;
+    };
+    const onClassChosen = (name: string) => {
+      if (isHeroInStore()) userStore.setJobClass(props.user.id, name);
     };
 
     const openFoodSelector = () => {
@@ -715,6 +681,8 @@ export default defineComponent({
       openAvatarSelector,
       onAvatarSelected,
       openClassSelector,
+      isClassSelectOpen,
+      onClassChosen,
       openFoodSelector,
       getClassIcon,
       getClassLevel,

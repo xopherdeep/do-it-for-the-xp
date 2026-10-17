@@ -427,8 +427,7 @@
       const onClassSelect = (val: string) => {
         const heroId = props.user?.id;
         if (heroId) userStore.setJobClass(heroId, val);
-
-        classSelectorOpen.value = false;
+        // The class screen celebrates first, then closes itself with `close`
       };
 
       return {
