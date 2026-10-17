@@ -6,6 +6,7 @@ import { isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestS
 import type { Enemy, EscapeReport } from "@/lib/services/battle/BattleService";
 import { admitToHospital, hospitalRoute } from "@/lib/services/hometown/hospitalAdmission";
 import { CARRIED_TO_HOSPITAL_LINE } from "@/lib/services/hometown/hospitalBill";
+import { adjustForLateness, isQuestLockedNow } from "@/lib/services/quests/lateChores";
 import { completeQuest, isQuestStillOpen, recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { classPassive, rewardsWithPassive, winRegen } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
@@ -139,7 +140,11 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
    */
   const isWindowOpen = async (quest: Quest): Promise<boolean> => {
     try {
-      return await isQuestStillOpen(quest, ctx.userId, new Date(), questEffects());
+      const now = new Date();
+      const isOpen = await isQuestStillOpen(quest, ctx.userId, now, questEffects());
+      // A chore the family locked when it ran late pays nothing, however the fight went
+      const isLocked = isOpen && (await isQuestLockedNow(quest, ctx.userId, now));
+      return isOpen && !isLocked;
     } catch (error) {
       debug.warn("The quest log could not be read before the win; it pays as before", error);
       return true;
@@ -184,7 +189,9 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       return { rewards, held, levelUp: claim?.levelUp ?? null, classLevelUp: null };
     }
 
-    const rewards = rewardsForHero(base);
+    // A win after the due time pays the family's late share (the whole loot unless the Game Master chose less)
+    const late = await adjustForLateness(quest, ctx.userId, base);
+    const rewards = rewardsForHero(late.rewards);
     const ups = commitRewards(rewards);
     await recordBattleCompletion(quest, ctx.userId, rewards).catch((error) =>
       debug.error("Failed to record quest battle completion", error)

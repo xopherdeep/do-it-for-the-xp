@@ -46,6 +46,7 @@ import { format, set } from "date-fns";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { DAY_TOKENS, effectiveDeadline } from "@/lib/engine/quests/QuestSchedule";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { lateCheckFor } from "@/lib/services/quests/lateChores";
 import { cardDueLabelFor } from "@/lib/services/quests/QuestList";
 import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
@@ -486,7 +487,9 @@ export default defineComponent({
         const entries = await getQuestLogDb().getEntries();
         // The hero's items (a snooze, a pull-in) count the same way the board counted them
         const effects = (this as any).user?.questEffects;
-        const check = checkClaimWindow(this.item, entries, heroId, new Date(), effects);
+        const now = new Date();
+        const { status: late } = await lateCheckFor(this.item, heroId, now);
+        const check = checkClaimWindow(this.item, entries, heroId, now, effects, late);
         if (!check.canClaim) {
           // The log says the window is used up already; show it the way the board would
           this.claimed = check.isUsedUp;
@@ -505,7 +508,7 @@ export default defineComponent({
         this.claiming = false;
       }
     },
-    announceClaim({ awaitingApproval, levelUp, paid }: CompletionResult) {
+    announceClaim({ awaitingApproval, levelUp, paid, lateNote }: CompletionResult) {
       const nick = this.user.name.nick;
       if (awaitingApproval) {
         this.say("Sent to the Game Master for approval", nick, 2200);
@@ -513,7 +516,7 @@ export default defineComponent({
       }
       // What landed in the pocket: a Thief's or Ninja's GP comes with the class bonus on top
       const { xp, gp, ap } = paid ?? this.rewards;
-      this.say(`+${xp} XP · +${gp} GP · +${ap} AP`, `${nick} tamed ${this.item.achievementName || "the quest"}!`);
+      this.say(`+${xp} XP · +${gp} GP · +${ap} AP${lateNote ? ` (${lateNote})` : ""}`, `${nick} tamed ${this.item.achievementName || "the quest"}!`);
       if (!levelUp?.didLevelUp) return;
       const { newLevel } = levelUp;
       setTimeout(() => {

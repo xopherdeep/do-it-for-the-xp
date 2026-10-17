@@ -9,6 +9,7 @@ import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { lateCheckFor } from "@/lib/services/quests/lateChores";
 import { completeQuest } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { nickOf, questListCounts, questListFor } from "@/lib/services/quests/QuestList";
@@ -292,7 +293,9 @@ export default defineComponent({
         const heroId = String(this.userId);
         const entries = await getQuestLogDb().getEntries();
         const effects = (this as any).userStore.getUserById(this.userId)?.questEffects;
-        const check = checkClaimWindow(row.quest, entries, heroId, new Date(), effects);
+        const now = new Date();
+        const { status: late } = await lateCheckFor(row.quest, heroId, now);
+        const check = checkClaimWindow(row.quest, entries, heroId, now, effects, late);
         if (!check.canClaim) {
           // The row was out of date: show the board as the log has it
           await this.loadBoard();
@@ -330,10 +333,10 @@ export default defineComponent({
       });
     },
     // Paid: the battle's loot card counts it up. Held: the same card, its tiles locked until the Game Master says yes
-    announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid }: CompletionResult) {
+    announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid, lateNote }: CompletionResult) {
       const nick = (this as any).userStore.getUserById(this.userId)?.name?.nick || "The hero";
       void showRewards(
-        questRewardsCard({ nick, questName: row.title, rewards: paid ?? row.rewards, held: awaitingApproval, levelUp }),
+        questRewardsCard({ nick, questName: row.title, rewards: paid ?? row.rewards, held: awaitingApproval, levelUp, lateNote }),
       );
     },
     async say(header: string, message?: string, duration = 2000) {

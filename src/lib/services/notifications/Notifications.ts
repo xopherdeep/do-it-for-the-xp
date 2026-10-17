@@ -11,6 +11,7 @@ import { POINT_ICONS } from "@/constants/POINT_ICONS";
 export type XpNotificationKind =
   | "quest-due"
   | "quest-overdue"
+  | "late-penalty"
   | "approved"
   | "rejected"
   | "level-up"
@@ -134,6 +135,8 @@ export const iconOfKind = (kind: XpNotificationKind): string => {
       return "fa-hourglass-half";
     case "quest-overdue":
       return "fa-alarm-exclamation";
+    case "late-penalty":
+      return "fa-exclamation-triangle";
     case "approved":
       return "fa-check-double";
     case "rejected":

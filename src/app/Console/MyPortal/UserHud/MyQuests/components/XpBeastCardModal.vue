@@ -179,6 +179,7 @@ import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { grudgeLabel, marksFor } from "@/lib/services/battle/questGrudge";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { lateCheckFor } from "@/lib/services/quests/lateChores";
 import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -435,10 +436,10 @@ const hunt = () => {
 };
 
 // The battle's loot card counts the claim up over the closing card (locked tiles when the Game Master approves first)
-const announce = ({ awaitingApproval, levelUp, paid }: CompletionResult) => {
+const announce = ({ awaitingApproval, levelUp, paid, lateNote }: CompletionResult) => {
   const nick = userStore.getUserById(heroId.value)?.name?.nick || "The hero";
   void showRewards(
-    questRewardsCard({ nick, questName: questTitle.value, rewards: paid ?? rewards.value, held: awaitingApproval, levelUp }),
+    questRewardsCard({ nick, questName: questTitle.value, rewards: paid ?? rewards.value, held: awaitingApproval, levelUp, lateNote }),
   );
 };
 
@@ -452,7 +453,9 @@ const claim = async () => {
     // assignee's clear of a shared quest (Team Effort, Rat Race) already used the window up
     const log = await getQuestLogDb().getEntries();
     const effects = userStore.getUserById(heroId.value)?.questEffects;
-    const check = checkClaimWindow(props.quest, log, heroId.value, new Date(), effects);
+    const now = new Date();
+    const { status: late } = await lateCheckFor(props.quest, heroId.value, now);
+    const check = checkClaimWindow(props.quest, log, heroId.value, now, effects, late);
     if (!check.canClaim) {
       void say(questTitle.value, check.notice);
       close();
