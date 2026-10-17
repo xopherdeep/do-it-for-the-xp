@@ -56,12 +56,12 @@ export default class User {
 
 /**
  * A hero's name block from what the form holds. Accepts "First Last", "First Middle Last" (any
- * number of middle names) and an optional nickname after "aka", e.g. "Sam Jo Smith aka Sammy".
+ * number of middle names) and an optional nickname after "aka" or "a.k.a.", e.g. "Sam J. Smith a.k.a. Sammy".
  */
 export function nameFromFull({ full, first, last, middle, nick, preferred }: any) {
   const name = { full, first, last, middle, nick, preferred }
   if (full) {
-    const [realName, akaNick] = String(full).split(/\s+aka\s+/i)
+    const [realName, akaNick] = String(full).split(/\s+(?:aka|a\.k\.a\.?)\s+/i)
     const parts = realName.trim().split(/\s+/).filter(Boolean)
     const hasParts = parts.length > 0
     if (hasParts) {
