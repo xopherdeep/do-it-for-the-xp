@@ -36,12 +36,18 @@ const SEEN_BY_ROUTE: Readonly<Record<string, keyof GuideRecord>> = {
   shop: "shopSeen",
 };
 
+/** The record field a route marks, when this hero has not had it marked yet. */
+const unseenField = (routeName: unknown, heroId: string): keyof GuideRecord | undefined => {
+  const field = typeof routeName === "string" ? SEEN_BY_ROUTE[routeName] : undefined;
+  const isUnseen = Boolean(field) && !guideRecordOf(useUserStore().getUserById(heroId))[field as keyof GuideRecord];
+  return isUnseen ? field : undefined;
+};
+
 /** Note that the hero reached a route the Guide is waiting on (the router's afterEach calls this). */
 export const markRouteSeen = (routeName: unknown, heroId: string | undefined): void => {
-  const field = typeof routeName === "string" ? SEEN_BY_ROUTE[routeName] : undefined;
-  if (!field || !heroId) return;
-  if (guideRecordOf(useUserStore().getUserById(heroId))[field]) return;
-  markGuide(heroId, { [field]: true });
+  if (!heroId) return;
+  const field = unseenField(routeName, heroId);
+  if (field) markGuide(heroId, { [field]: true });
 };
 
 export interface ChampionPaid {
@@ -57,7 +63,8 @@ export interface ChampionPaid {
 export const crownChampion = (heroId: string, now: Date = new Date()): ChampionPaid | null => {
   const store = useUserStore();
   const user = store.getUserById(heroId);
-  if (!user || guideRecordOf(user).championAt) return null;
+  const canCrown = Boolean(user) && !guideRecordOf(user).championAt;
+  if (!canCrown) return null;
   store.setGuide(heroId, { championAt: now.toISOString() });
 
   const { xp, gp, ap } = CHAMPION_REWARD;

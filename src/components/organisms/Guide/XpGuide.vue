@@ -62,7 +62,8 @@ const say = async (message: string) => {
 };
 
 const go = async (target: GuideStep) => {
-  if (target.go.kind === "celebrate") return celebrate();
+  const isCelebration = target.go.kind === "celebrate";
+  if (isCelebration) return celebrate();
   play$fx("select");
   await router.push({ name: target.go.name, params: { ...(target.go.params ?? {}), userId: props.heroId } });
 };
@@ -87,7 +88,8 @@ const talk = async (lead: readonly string[] = [], heading?: string) => {
   } finally {
     isTalking.value = false;
   }
-  if (pick === "go") await go(current);
+  const wantsToGo = pick === "go";
+  if (wantsToGo) await go(current);
 };
 
 /** The Sky Champion celebration: the Guide's speech, the title, then the one-time reward counted up. */
@@ -108,7 +110,8 @@ const celebrate = async () => {
       ],
       cancelId: "later",
     });
-    if (pick !== "claim") return;
+    const isClaimed = pick === "claim";
+    if (!isClaimed) return;
     const paid = crownChampion(props.heroId);
     if (!paid) return;
     await showRewards({
@@ -143,11 +146,10 @@ defineExpose({ open });
 let waitTimer: number | undefined;
 const speakWhenFree = () => {
   window.clearTimeout(waitTimer);
-  const isReady = props.ready && loaded.value && !isTalking.value;
-  if (!isReady) return;
   const needsIntro = !record.value.introSeen;
   const needsCelebration = step.value.id === "champion";
-  if (!needsIntro && !needsCelebration) return;
+  const hasSomethingToSay = props.ready && loaded.value && !isTalking.value && (needsIntro || needsCelebration);
+  if (!hasSomethingToSay) return;
   if (isBusy()) {
     waitTimer = window.setTimeout(speakWhenFree, RETRY_MS);
     return;
@@ -155,9 +157,9 @@ const speakWhenFree = () => {
   if (needsIntro) {
     markGuide(props.heroId, { introSeen: true });
     void talk(GUIDE_INTRO_LINES, GUIDE_INTRO_TITLE);
-    return;
+  } else {
+    void celebrate();
   }
-  void celebrate();
 };
 watch(() => [props.ready, loaded.value, step.value.id, record.value.introSeen], speakWhenFree, { immediate: true });
 onBeforeUnmount(() => window.clearTimeout(waitTimer));

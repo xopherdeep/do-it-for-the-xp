@@ -119,7 +119,8 @@ export const normalPegasi = (slots: unknown): boolean[] => {
   const flags = Array.from({ length: PEGASUS_COUNT }, () => false);
   const isList = Array.isArray(slots);
   const isMap = !isList && Boolean(slots) && typeof slots === "object";
-  if (!isList && !isMap) return flags;
+  const hasSlots = isList || isMap;
+  if (!hasSlots) return flags;
   const source = slots as Record<number, unknown>;
   for (let i = 0; i < PEGASUS_COUNT; i += 1) flags[i] = Boolean(source[i]);
   return flags;
@@ -164,7 +165,8 @@ export const nextTemple = (pegasi: readonly boolean[]): GuideTemple | null =>
 /** The steps once all nine Pegasi are free: there is always something, so the Guide never dead-ends. */
 const championStep = (progress: GuideProgress, freed: number): GuideStep => {
   const base = { freed, champion: true };
-  if (progress.streakAtRisk) {
+  const isStreakAtRisk = progress.streakAtRisk;
+  if (isStreakAtRisk) {
     return {
       ...base,
       id: "save-streak",
@@ -178,7 +180,8 @@ const championStep = (progress: GuideProgress, freed: number): GuideStep => {
       go: BEAST_LOG,
     };
   }
-  if (progress.openQuests > 0) {
+  const hasOpenQuests = progress.openQuests > 0;
+  if (hasOpenQuests) {
     return {
       ...base,
       id: "daily-beasts",
@@ -213,7 +216,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
   const freed = freedCount(pegasi);
   const base = { freed, champion: progress.champion };
 
-  if (!progress.questsSeen && freed === 0) {
+  const isBrandNew = !progress.questsSeen && freed === 0;
+  if (isBrandNew) {
     return {
       ...base,
       id: "quests",
@@ -230,7 +234,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
 
   const temple = nextTemple(pegasi);
   if (!temple) {
-    if (progress.champion) return championStep(progress, freed);
+    const isCrowned = progress.champion;
+    if (isCrowned) return championStep(progress, freed);
     return {
       ...base,
       id: "champion",
@@ -243,7 +248,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
   }
 
   const isFirstPegasus = freed === 0;
-  if (!isFirstPegasus && !progress.shopSeen) {
+  const needsShop = !isFirstPegasus && !progress.shopSeen;
+  if (needsShop) {
     return {
       ...base,
       id: "shop",
@@ -290,7 +296,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
   }
 
   const hasWonARoom = record.clearedRooms > 0 || record.visitedRooms > 1;
-  if (isFirstPegasus && !hasWonARoom) {
+  const needsFirstRoom = isFirstPegasus && !hasWonARoom;
+  if (needsFirstRoom) {
     return {
       ...base,
       id: "first-room",
