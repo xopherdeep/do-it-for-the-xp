@@ -39,16 +39,35 @@
             </ion-label>
             <ion-select
               slot="end"
-              interface="popover"
-              :value="cashOut.gpPerDollar"
-              @ionChange="setCashOut({ gpPerDollar: Number($event.detail.value) })"
+              class="reward-settings__rate"
+              interface="action-sheet"
+              aria-label="Rate"
+              :value="rateChoice"
+              @ionChange="pickRate($event.detail.value)"
             >
               <ion-select-option
                 v-for="rate in rates"
                 :key="rate"
                 :value="rate"
               >{{ rate }} GP = $1</ion-select-option>
+              <ion-select-option value="custom">Custom...</ion-select-option>
             </ion-select>
+          </ion-item>
+          <ion-item v-if="isCustomRate" :disabled="!cashOut.enabled || !canManage" data-cy="custom-rate">
+            <ion-label position="stacked">
+              <h2>Custom rate</h2>
+              <p>GP that make $1 (1 to {{ MAX_CASH_OUT_RATE }})</p>
+            </ion-label>
+            <ion-input
+              type="number"
+              inputmode="numeric"
+              class="reward-settings__custom"
+              :min="1"
+              :max="MAX_CASH_OUT_RATE"
+              :value="cashOut.gpPerDollar"
+              aria-label="Custom rate in GP per dollar"
+              @ionChange="setCustomRate($event.detail.value)"
+            ></ion-input>
           </ion-item>
           <ion-item-divider>
             <ion-label>Heroes who can cash out</ion-label>
@@ -92,6 +111,7 @@ import {
   IonCheckbox,
   IonContent,
   IonHeader,
+  IonInput,
   IonItem,
   IonItemDivider,
   IonLabel,
@@ -111,6 +131,8 @@ import { heroName } from "@/lib/services/gp/gpGifts";
 import {
   CASH_OUT_RATES,
   DEFAULT_FAMILY_SETTINGS,
+  MAX_CASH_OUT_RATE,
+  clampCashOutRate,
   loadFamilySettings,
   saveFamilySettings,
   type CashOutSettings,
@@ -135,6 +157,24 @@ const setCashOut = (change: Partial<CashOutSettings>) => {
   void saveFamilySettings(family.value);
 };
 
+// Custom: the rate is not one of the presets (or the Game Master just chose Custom and has not typed one yet)
+const chosenCustom = ref(false);
+const isCustomRate = computed(() => chosenCustom.value || !rates.includes(cashOut.value.gpPerDollar));
+const rateChoice = computed(() => (isCustomRate.value ? "custom" : cashOut.value.gpPerDollar));
+
+const pickRate = (value: string | number) => {
+  const isCustomPick = value === "custom";
+  chosenCustom.value = isCustomPick;
+  if (!isCustomPick) setCashOut({ gpPerDollar: Number(value) });
+};
+
+const setCustomRate = (value: string | number | null | undefined) => {
+  const rate = clampCashOutRate(value);
+  const isUnchanged = rate === null || rate === cashOut.value.gpPerDollar;
+  if (isUnchanged) return;
+  setCashOut({ gpPerDollar: rate });
+};
+
 const isPicked = (heroId: string): boolean => cashOut.value.heroIds.includes(String(heroId));
 
 const toggleHero = (heroId: string, picked: boolean) => {
@@ -146,6 +186,17 @@ const toggleHero = (heroId: string, picked: boolean) => {
 </script>
 
 <style lang="scss" scoped>
+// The closed select and its sheet read at the size of the rest of the page
+.reward-settings__rate {
+  font-size: 1.1rem;
+  min-width: 9rem;
+  justify-content: flex-end;
+}
+
+.reward-settings__custom {
+  font-size: 1.2rem;
+}
+
 .reward-settings__note p {
   margin: 0;
   font-size: 0.85rem;
