@@ -1,0 +1,466 @@
+// The daily streak as a collectible foil card, cut from the same cloth as the XP Pro license card: a triple-ring pixel
+// frame in the tier's foil, a giant day count over a burning flame, the road to the next chest, shield pips, and a
+// holo layer from Blaze up. Not scoped, so the overlay can place it; every class carries the xp-streak-card prefix.
+
+.xp-streak-card {
+  // Cold Embers: ash grey on charcoal
+  --sc-base-1: #3b3f46;
+  --sc-base-2: #101216;
+  --sc-foil-hi: #e4e8ee;
+  --sc-foil: #8d95a3;
+  --sc-foil-lo: #3d424c;
+  --sc-ink: #eef1f6;
+  --sc-dim: rgba(238, 241, 246, 0.6);
+  --sc-fire-hi: #9aa0aa;
+  --sc-fire-lo: #565c66;
+  --sc-glow: rgba(160, 170, 185, 0.25);
+  --sc-edge: #0b0610;
+  --sc-holo: 0;
+  --sc-font: var(--gs-font, "StatusPlz"), monospace;
+  --sc-title-font: var(--gs-font-title, "Twoson"), "StatusPlz", sans-serif;
+
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  border-radius: 12px;
+  color: var(--sc-ink);
+  isolation: isolate;
+  touch-action: pan-y;
+  font-family: var(--sc-font);
+  transform: perspective(800px) rotateX(var(--sc-rx, 0deg)) rotateY(var(--sc-ry, 0deg));
+  transition: transform 0.25s ease-out;
+  box-shadow:
+    0 0 0 2px var(--sc-edge),
+    0 0 0 4px var(--sc-foil),
+    0 0 0 6px var(--sc-edge),
+    0 0 28px var(--sc-glow),
+    0 14px 26px rgba(0, 0, 0, 0.6);
+  animation: sc-deal 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  background:
+    radial-gradient(ellipse at 50% 38%, var(--sc-glow), transparent 62%),
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.035) 6px 8px),
+    linear-gradient(160deg, var(--sc-base-1), var(--sc-base-2));
+
+  // Spark: a small warm light on charcoal
+  &.is-spark {
+    --sc-base-1: #4a3322;
+    --sc-base-2: #14100c;
+    --sc-foil: #b08a64;
+    --sc-foil-lo: #4a3622;
+    --sc-fire-hi: #ffc060;
+    --sc-fire-lo: #d2560a;
+    --sc-glow: rgba(255, 150, 60, 0.25);
+  }
+
+  // Flame: bronze on ember red
+  &.is-flame {
+    --sc-base-1: #6a2410;
+    --sc-base-2: #1c0804;
+    --sc-foil-hi: #ffd2b0;
+    --sc-foil: #d8803e;
+    --sc-foil-lo: #6a3418;
+    --sc-fire-hi: #ffd23f;
+    --sc-fire-lo: #ff6a00;
+    --sc-glow: rgba(255, 120, 30, 0.35);
+  }
+
+  // Blaze: silver on molten orange
+  &.is-blaze {
+    --sc-base-1: #8a3406;
+    --sc-base-2: #260a02;
+    --sc-foil-hi: #ffffff;
+    --sc-foil: #cfd6e2;
+    --sc-foil-lo: #5a6074;
+    --sc-fire-hi: #fff2a0;
+    --sc-fire-lo: #ff5a00;
+    --sc-glow: rgba(255, 140, 20, 0.5);
+    --sc-holo: 0.6;
+  }
+
+  // Inferno: gold on crimson
+  &.is-inferno {
+    --sc-base-1: #8c1320;
+    --sc-base-2: #260309;
+    --sc-foil-hi: #fff2a8;
+    --sc-foil: #f0b830;
+    --sc-foil-lo: #7a4a10;
+    --sc-fire-hi: #fff7c0;
+    --sc-fire-lo: #ff3d00;
+    --sc-glow: rgba(255, 70, 30, 0.55);
+    --sc-holo: 0.85;
+  }
+
+  // Legendary: gold on royal purple, full holo
+  &.is-legend {
+    --sc-base-1: #52208a;
+    --sc-base-2: #12082c;
+    --sc-foil-hi: #fff2a8;
+    --sc-foil: #f6c640;
+    --sc-foil-lo: #7a4a10;
+    --sc-fire-hi: #ffffff;
+    --sc-fire-lo: #ffb300;
+    --sc-glow: rgba(190, 120, 255, 0.6);
+    --sc-holo: 1;
+  }
+
+  &.is-unlit {
+    --sc-fire-hi: #70757f;
+    --sc-fire-lo: #3f444d;
+    --sc-glow: rgba(120, 128, 142, 0.18);
+  }
+}
+
+.xp-streak-card__face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 2px var(--sc-foil-lo),
+    inset 0 2px 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.xp-streak-card__art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.xp-streak-card__watermark {
+  position: absolute;
+  right: -22px;
+  bottom: -26px;
+  font-size: 190px;
+  opacity: 0.07;
+  transform: rotate(-10deg);
+  --fa-primary-color: var(--sc-foil);
+  --fa-secondary-color: var(--sc-foil);
+}
+
+.xp-streak-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.xp-streak-card__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.xp-streak-card__wordmark {
+  font-family: var(--sc-title-font);
+  font-size: 18px;
+  line-height: 1.1;
+  color: var(--sc-foil-hi);
+  text-shadow: 0 2px 0 var(--sc-foil-lo), 0 0 10px var(--sc-glow);
+}
+
+.xp-streak-card__caption,
+.xp-streak-card__label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--sc-dim);
+}
+
+.xp-streak-card__status {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--sc-foil-lo);
+  background: linear-gradient(180deg, var(--sc-foil-hi), var(--sc-foil));
+  box-shadow: 0 0 0 2px var(--sc-edge);
+
+  .is-risk & {
+    color: #fff;
+    background: linear-gradient(180deg, #ff6a3a, #b01800);
+    animation: sc-pulse 1.1s steps(2) infinite;
+  }
+
+  .is-unlit & {
+    color: #d5d9e0;
+    background: linear-gradient(180deg, #5a606b, #30343c);
+  }
+}
+
+// The giant count sits over the flame
+.xp-streak-card__hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+}
+
+.xp-streak-card__flame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 150px;
+  filter: drop-shadow(0 0 16px var(--sc-glow));
+  animation: sc-flicker 1.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+
+  i {
+    --fa-primary-color: var(--sc-fire-hi);
+    --fa-primary-opacity: 1;
+    --fa-secondary-color: var(--sc-fire-lo);
+    --fa-secondary-opacity: 1;
+  }
+}
+
+.xp-streak-card__count {
+  position: relative;
+  z-index: 1;
+  margin-top: 26px;
+  font-family: var(--sc-title-font);
+  font-size: 68px;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--sc-edge);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 var(--sc-edge), 0 0 18px var(--sc-glow);
+}
+
+.xp-streak-card__unit {
+  position: absolute;
+  z-index: 1;
+  bottom: 4px;
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: var(--sc-foil-hi);
+  text-shadow: 0 2px 0 var(--sc-edge);
+}
+
+.xp-streak-card__stars {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.18);
+
+  .lit {
+    color: var(--sc-foil-hi);
+    text-shadow: 0 0 8px var(--sc-glow);
+  }
+}
+
+.xp-streak-card__road {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.xp-streak-card__bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 2px var(--sc-edge), inset 0 0 0 1px var(--sc-foil-lo);
+  overflow: visible;
+}
+
+.xp-streak-card__fill {
+  display: block;
+  height: 100%;
+  min-width: 14px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--sc-fire-hi), var(--sc-fire-lo));
+  box-shadow: 0 0 10px var(--sc-glow);
+  transform-origin: left;
+  animation: sc-fill 0.9s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.xp-streak-card__chest {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 22px;
+  filter: drop-shadow(0 2px 0 var(--sc-edge));
+  --fa-primary-color: var(--sc-foil-hi);
+  --fa-secondary-color: var(--sc-foil);
+  --fa-secondary-opacity: 1;
+}
+
+.xp-streak-card__prize {
+  font-size: 11px;
+  color: var(--sc-ink);
+}
+
+.xp-streak-card__lost {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1px var(--sc-foil-lo);
+}
+
+.xp-streak-card__bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.xp-streak-card__shields {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 17px;
+
+  i {
+    --fa-primary-color: #bfe3ff;
+    --fa-secondary-color: #4a8fd1;
+    --fa-secondary-opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(120, 190, 255, 0.7));
+
+    &.empty {
+      --fa-primary-color: #5a606b;
+      --fa-secondary-color: #30343c;
+      filter: none;
+      opacity: 0.7;
+    }
+  }
+
+  small {
+    font-size: 10px;
+    color: var(--sc-dim);
+  }
+}
+
+.xp-streak-card__best {
+  text-align: right;
+}
+
+.xp-streak-card__value {
+  display: block;
+  font-family: var(--sc-title-font);
+  font-size: 18px;
+  color: var(--sc-foil-hi);
+
+  i {
+    --fa-primary-color: var(--sc-foil-hi);
+    --fa-secondary-color: var(--sc-foil);
+    font-size: 14px;
+  }
+}
+
+.xp-streak-card__embers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.xp-streak-card__ember {
+  position: absolute;
+  bottom: 28%;
+  left: calc(14% + var(--n, 1) * 9%);
+  width: 4px;
+  height: 4px;
+  background: var(--sc-fire-hi);
+  box-shadow: 0 0 6px var(--sc-fire-lo);
+  opacity: 0;
+  animation: sc-ember 3s calc(var(--n, 1) * 0.37s) linear infinite;
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) {
+      --n: #{$i};
+    }
+  }
+
+  .is-unlit &,
+  .is-spark & {
+    display: none;
+  }
+}
+
+.xp-streak-card__holo,
+.xp-streak-card__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.xp-streak-card__holo {
+  opacity: calc(var(--sc-holo) * 0.28);
+  mix-blend-mode: color-dodge;
+  background: linear-gradient(115deg, transparent 15%, #ff5fa8 30%, #ffe65f 42%, #5fffb0 54%, #5fa8ff 66%, transparent 82%);
+  background-size: 220% 100%;
+  animation: sc-holo 6s linear infinite;
+}
+
+.xp-streak-card__sheen::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(-160%) skewX(-12deg);
+  animation: sc-sheen 5s ease-in-out 0.8s infinite;
+}
+
+@keyframes sc-deal {
+  from {
+    opacity: 0;
+    transform: perspective(800px) translateY(26px) rotate(-5deg) scale(0.92);
+  }
+}
+
+@keyframes sc-flicker {
+  0%, 100% { transform: scale(1) rotate(-1.5deg); }
+  35% { transform: scale(1.05, 1.1) rotate(1.5deg); }
+  70% { transform: scale(0.97, 1.03) rotate(-0.5deg); }
+}
+
+@keyframes sc-fill {
+  from { transform: scaleX(0); }
+}
+
+@keyframes sc-ember {
+  0% { opacity: 0; transform: translateY(0) scale(1); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-190px) translateX(calc(var(--n) * 3px - 14px)) scale(0.3); }
+}
+
+@keyframes sc-pulse {
+  50% { opacity: 0.6; }
+}
+
+@keyframes sc-holo {
+  to { background-position: -220% 0; }
+}
+
+@keyframes sc-sheen {
+  0% { transform: translateX(-160%) skewX(-12deg); }
+  28%, 100% { transform: translateX(520%) skewX(-12deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-streak-card,
+  .xp-streak-card__flame,
+  .xp-streak-card__fill,
+  .xp-streak-card__ember,
+  .xp-streak-card__holo,
+  .xp-streak-card__sheen::after,
+  .xp-streak-card__status {
+    animation: none;
+  }
+}
