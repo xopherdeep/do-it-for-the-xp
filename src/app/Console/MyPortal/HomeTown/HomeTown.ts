@@ -55,15 +55,7 @@ export default dC({
           router.push({ name: "hotel", params: { userId } });
         },
       },
-      // TODO: Uncomment when temple is implemented
-      // {
-      //   label: "Temple",
-      //   faIcon: "place-of-worship",
-      //   side: "bottom",
-      //   click() {
-      //     router.push({ name: "temple", params: { userId } });
-      //   },
-      // },
+      // No Temple building here: the `temple` route needs a temple id, and temples are entered from the World Map regions.
       {
         label: "Bank",
         faIcon: "piggy-bank",
