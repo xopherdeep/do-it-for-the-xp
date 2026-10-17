@@ -11,6 +11,7 @@ import {
 } from '@/lib/services/inventory/Storage';
 import { isVoice, type Voice } from '@/lib/services/copy/voices';
 import { isHeroSkin, type HeroSkin } from '@/lib/services/profile/heroSkin';
+import { isHeroTheme, type HeroTheme } from '@/lib/services/profile/heroTheme';
 import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
 import type { GpPayload } from './types';
 
@@ -360,6 +361,17 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     return true;
   }
 
+  /** The hero's game style and menu sounds (services/profile/heroTheme.ts). False, changing nothing, for an unknown hero or theme. */
+  function setThemeChoice(userId: string, theme: HeroTheme): boolean {
+    const user = users[userId];
+    const isUnknownChoice = !user || !isHeroTheme(theme);
+    if (isUnknownChoice) return false;
+    user.themeChoice = { rpg: theme.rpg, ui: theme.ui };
+    if (isCurrentHero(userId)) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
   /** Whether the simple voice reads lines aloud on its own for this hero (the speaker button always works). */
   function setAutoRead(userId: string, autoRead: boolean) {
     const user = users[userId];
@@ -391,6 +403,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setQuestGrudges,
     setVoice,
     setSkin,
+    setThemeChoice,
     setAutoRead
   };
 }

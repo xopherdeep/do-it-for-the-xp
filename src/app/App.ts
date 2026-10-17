@@ -56,6 +56,7 @@ import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useHeroSkinSync } from "@/hooks/useHeroSkinSync";
+import { useHeroThemeSync } from "@/hooks/useHeroThemeSync";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { useFamilyStore } from "@/lib/store/stores/family";
@@ -305,6 +306,7 @@ export default defineComponent({
     
     useQueryProvider();
     useHeroSkinSync();
+    useHeroThemeSync();
     // Android's Back button goes up from a page with no history instead of quitting the app
     useHardwareBack();
 

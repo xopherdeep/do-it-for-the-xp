@@ -2,6 +2,7 @@ import type { NewProfileForm } from "@/lib/databases/ProfileDb"
 import Stats from "./stats"
 import { v4 as uuidv4 } from 'uuid'
 import { isHeroSkin, type HeroSkin } from "@/lib/services/profile/heroSkin"
+import { themeOf, type HeroTheme } from "@/lib/services/profile/heroTheme"
 
 export interface ProfileName {
   fullName: string,
@@ -37,6 +38,8 @@ export default class User {
   public unlockedItems: string[]
   /** Retro or Modern; missing on a hero who never chose (services/profile/heroSkin.ts) */
   declare public skin?: HeroSkin
+  /** Game style and menu sounds of this hero; missing on a hero who never chose (services/profile/heroTheme.ts) */
+  declare public themeChoice?: HeroTheme
 
   constructor(defaults: NewProfileForm) {
     this.id = defaults?.id || uuidv4()
@@ -52,6 +55,8 @@ export default class User {
     this.isAdult = defaults.isAdult
     this.unlockedItems = Array.isArray(defaults.unlockedItems) ? [...defaults.unlockedItems] : []
     if (isHeroSkin(defaults.skin)) this.skin = defaults.skin
+    const theme = themeOf(defaults)
+    if (theme) this.themeChoice = theme
   }
   setName(name: any) {
     return nameFromFull(name)
@@ -90,7 +95,7 @@ export type StoredProfile = Record<string, any>
 export type ProfileFormValues = NewProfileForm & { look?: unknown; avatarImage?: string }
 
 /** The only fields the profile form edits. Everything else on a stored hero is not the form's to touch. */
-const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "favoriteFood", "jobClass", "isAdult", "skin"] as const
+const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "favoriteFood", "jobClass", "isAdult", "skin", "themeChoice"] as const
 
 /**
  * The record to save when the form edits a hero that already exists: the stored record with the

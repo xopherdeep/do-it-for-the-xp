@@ -446,6 +446,7 @@ describe("signing in, masquerading, loading", () => {
         "setStreakChests",
         "setVoice",
         "setSkin",
+        "setThemeChoice",
         "setWallet",
         "spendInventoryItem",
         "stopImpersonating",

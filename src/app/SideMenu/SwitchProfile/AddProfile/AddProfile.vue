@@ -102,7 +102,10 @@
                 </p>
               </div>
 
-              <!-- 3. STYLE, 4. CLASS and 5. FOOD: one card grid -->
+              <!-- 3. STYLE: look and feel, game style, menu sounds -->
+              <hero-style-picker v-else-if="step === 'style'" v-bind="styleChoice" @pick="setStyleChoice" />
+
+              <!-- 4. CLASS and 5. FOOD: one card grid -->
               <div v-else-if="isChoiceStep" class="choice-grid" :class="{ 'choice-grid--small': step === 'food' }">
                 <button
                   v-for="card in choiceCards"
@@ -176,7 +179,7 @@
               <div v-else class="wizard-fields">
                 <ul class="summary">
                   <li><i class="fad fa-signature"></i><span>Name</span><strong>{{ fullName.trim() }}</strong></li>
-                  <li v-if="selectedSkin"><i :class="['fad', selectedSkin.icon]"></i><span>Style</span><strong>{{ selectedSkin.label }}</strong></li>
+                  <li v-if="styleSummary"><i :class="['fad', styleSummary.icon]"></i><span>Style</span><strong>{{ styleSummary.text }}</strong></li>
                   <li v-if="selectedJob"><i :class="['fad', selectedJob.icon]"></i><span>Class</span><strong>{{ selectedJob.name }}</strong></li>
                   <li v-if="selectedFood"><i :class="['fad', selectedFood.icon]"></i><span>Food</span><strong>{{ selectedFood.value }}</strong></li>
                   <li v-if="favoriteThing"><i class="fad fa-star"></i><span>Loves</span><strong>{{ favoriteThing }}</strong></li>
@@ -490,3 +493,4 @@
 </template>
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped src="./_AddProfile.css" />
+<style scoped src="./_WizardFields.css" />
