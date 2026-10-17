@@ -228,6 +228,8 @@ export interface QuickTaskInput {
   /** "HH:mm"; empty means any time that day */
   dueByTime?: string;
   requiresApproval?: boolean;
+  /** False when a hero (not a Game Master) posts the task: a hero's own task always waits for a Game Master */
+  isGm?: boolean;
   rewards?: Partial<QuestRewards>;
   /** Leave blank and AchievementDb.setTask mints one */
   id?: string;
@@ -271,6 +273,8 @@ export const newQuickTask = (input: QuickTaskInput, now: Date = new Date()): Ach
   if (!assigneeId) throw new Error("Pick who the task is for.");
   const day = quickTaskDay(input.due, now);
   const rewards = { ...QUICK_TASK_REWARDS, ...input.rewards };
+  const isHeroPosting = input.isGm === false;
+  const needsApproval = isHeroPosting || Boolean(input.requiresApproval);
   return {
     id: input.id || "",
     achievementName: title,
@@ -278,7 +282,7 @@ export const newQuickTask = (input: QuickTaskInput, now: Date = new Date()): Ach
     beastId: "",
     subAchievementIds: [],
     bonusAchievement: false,
-    requiresApproval: Boolean(input.requiresApproval),
+    requiresApproval: needsApproval,
     type: "individual",
     assignee: [assigneeId],
     basicSchedule: "once",
