@@ -87,3 +87,74 @@ jobs:
         run: node tools/ci/pr-specs.mjs HEAD^1
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+
+  # Browser smoke test: boots the dev server and drives a few Cypress specs (390x844) against it.
+  # NOT BLOCKING while it proves itself: `continue-on-error: true` keeps a flaky run from turning master red.
+  # It runs on pushes to master and on manual dispatch only (a dev server plus Cypress costs several GB and minutes).
+  # TO MAKE IT A GATE once it has been green for a couple of weeks: delete `continue-on-error`, then (optionally)
+  # drop the `if:` so it also runs on pull requests, and mark "E2E smoke" as a required check in branch protection.
+  e2e-smoke:
+    name: E2E smoke
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Cypress downloads its binary in the package's postinstall (allowed in pnpm-workspace.yaml). The binary is
+      # cached across runs; `cypress install` below is a no-op on a cache hit and a download on a miss.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: cypress-${{ runner.os }}-
+
+      - name: Cypress binary
+        run: pnpm exec cypress install
+
+      - name: Start the dev server
+        run: |
+          nohup pnpm serve --no-open > dev-server.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fs http://localhost:8100 > /dev/null; then echo "dev server up after about $((i * 5))s"; exit 0; fi
+            sleep 5
+          done
+          echo "dev server did not answer on :8100"; tail -n 50 dev-server.log; exit 1
+        env:
+          CI: "true"
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      # One cypress run per spec so a failure names the spec; all three run even if an earlier one fails.
+      - name: Spec new-hero
+        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/new-hero.spec.js
+      - name: Spec battle
+        if: ${{ !cancelled() }}
+        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
+      - name: Spec quest beast card
+        if: ${{ !cancelled() }}
+        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/quest-detail-fab.spec.js
+
+      - name: Upload screenshots and server log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-artifacts
+          path: |
+            tests/e2e/screenshots
+            tests/e2e/videos
+            dev-server.log
+          if-no-files-found: ignore
+          retention-days: 7
