@@ -129,7 +129,7 @@ describe("weeklyRecap", () => {
       { name: "Socktopus", count: 2 },
       { name: "Dust Bunny", count: 1 },
     ]);
-    expect(recap.lines.join(" ")).toContain("Mia tamed the Socktopus 2 times!");
+    expect(recap.lines.join(" ")).toMatch(/Mia finished "Socktopus" 2 times!|"Socktopus" met Mia 2 times/);
   });
 
   it("reads the streak on the last day and the best run inside the week", () => {

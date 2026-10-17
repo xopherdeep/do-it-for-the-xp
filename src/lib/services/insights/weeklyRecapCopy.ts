@@ -15,8 +15,8 @@ const seedOf = (text: string): number => [...text].reduce((total, char) => (tota
 
 const pick = <T>(options: readonly T[], seed: number, salt: number): T => options[(seed + salt * 7) % options.length];
 
-/** "the Socktopus", but never "the the Socktopus" */
-const withThe = (name: string): string => (/^the\s/i.test(name) ? name : `the ${name}`);
+/** A chore's name is whatever the family typed ("Tame the Socktopus", "Dishes after dinner"), so it goes in quotes */
+const quoted = (name: string): string => `"${name}"`;
 
 const heroLines = (hero: HeroRecap, seed: number): string[] => {
   const lines: string[] = [];
@@ -26,8 +26,8 @@ const heroLines = (hero: HeroRecap, seed: number): string[] => {
     lines.push(
       pick(
         [
-          `${hero.name} tamed ${withThe(topBeast.name)} ${topBeast.count} times!`,
-          `${withThe(topBeast.name)} met ${hero.name} ${topBeast.count} times this week and lost every time.`,
+          `${hero.name} finished ${quoted(topBeast.name)} ${topBeast.count} times!`,
+          `${quoted(topBeast.name)} met ${hero.name} ${topBeast.count} times this week and lost every time.`,
         ],
         seed,
         hero.name.length
