@@ -8,6 +8,7 @@
  */
 import { Capacitor } from "@capacitor/core";
 import debug from "@/lib/utils/debug";
+import { ensureAlertChannels } from "./alertChannels";
 
 export type AlertPermission = "granted" | "denied" | "prompt" | "unsupported";
 /** What the hero answered when the game asked about battle alerts; "unasked" until they have */
@@ -179,22 +180,7 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
   if (!plugin) return { shown: false, reason: "unsupported" };
   const isDenied = nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted";
   if (isDenied) return { shown: false, reason: "denied" };
-  try {
-    await plugin.createChannel({
-      id: "battle-alerts",
-      name: "Battle Alerts",
-      description: "Ambush and battle alerts",
-      importance: 4,
-    });
-    await plugin.createChannel({
-      id: "chore-reminders",
-      name: "Chore Reminders",
-      description: "Upcoming chore deadlines",
-      importance: 3,
-    });
-  } catch {
-    // chemx-allow: best-effort the channel may already exist, or the plugin lacks the method in mocks and on the web
-  }
+  await ensureAlertChannels(plugin);
   await plugin.schedule({
     notifications: [
       {

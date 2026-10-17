@@ -2,7 +2,6 @@ import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "v
 import { play$fx } from "@/assets/fx";
 import { modalController, toastController } from "@ionic/vue";
 import { useRoute } from "vue-router";
-import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -18,9 +17,19 @@ import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
 import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
 
+import {
+  NEW_HERO_STEPS,
+  firstBlockedStep,
+  stepIndex,
+  stepProblem,
+  stepProgress,
+  type NewHeroStepId,
+} from "@/lib/services/profile/newHeroSteps";
+
+import { EDIT_TABS, FEATURE_OPTIONS, ROLE_CHOICES } from "./formOptions";
+import type { ChoiceCard, FeatureKey } from "./formOptions";
 import ionic from "@/lib/mixins/ionic";
 
-import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
@@ -34,25 +43,12 @@ export const AddProfile = defineComponent({
   mixins: [ionic],
   components: {
     InputSettings,
-    XpGp,
     XpHeroFanfare,
     GamerCard
   },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
-    },
-    moveFocus(event: Event, nextInput: string) {
-      const target = event.target as HTMLInputElement;
-      const el = this.$refs[nextInput] as HTMLInputElement;
-      const canFocusNextInput = target.value.length === 1 && el && typeof el.focus === 'function';
-      if (canFocusNextInput) {
-        el.focus();
-      }
-    },
-    getAvatarSrc(index: number) {
-      const paddedIdx = index.toString().padStart(3, "0");
-      return this.requireAvatar(`./${paddedIdx}-gamer.svg`);
     },
     async clickSaveProfile() {
       // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
@@ -62,7 +58,8 @@ export const AddProfile = defineComponent({
       // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
       const passcodeError = this.passcodeError;
       if (passcodeError) {
-        this.activeSegment = "account";
+        if (this.isEditing) this.activeSegment = "account";
+        else this.step = "secret";
         const toast = await toastController.create({
           message: passcodeError,
           duration: 2500,
@@ -169,8 +166,6 @@ export const AddProfile = defineComponent({
     const favoriteThing = ref("");
     const foodOptions = ref(FOOD_OPTIONS);
     const jobClass = ref("");
-    const jobClassOptions = ref(JOB_CLASS_OPTIONS);
-    const maxAvatarIndex = requireAvatar.keys().length;
     // The 3D hero built in the look builder (GamerCard), and the picture of its face; none until they build one
     const look = ref<HeroLook | undefined>(undefined);
     const avatarImage = ref<string | undefined>(undefined);
@@ -195,37 +190,6 @@ export const AddProfile = defineComponent({
 
     const closeModal = () => {
       modalController.dismiss();
-    };
-
-    const profileAdded = () => {
-      clearForm();
-    };
-
-    const clearForm = () => {
-      fullName.value = "";
-      favoriteThing.value = "";
-      favoriteFood.value = "";
-      jobClass.value = "";
-      avatarIndex.value = 1;
-      look.value = undefined;
-      avatarImage.value = undefined;
-      equipment.value = undefined;
-      email.value = "";
-      passcode.value = "";
-    };
-
-    const previousAvatar = () => {
-      const hasPreviousAvatar = avatarIndex.value > 1;
-      if (hasPreviousAvatar) {
-        avatarIndex.value--;
-      }
-    };
-
-    const nextAvatar = () => {
-      const hasNextAvatar = avatarIndex.value < maxAvatarIndex;
-      if (hasNextAvatar) {
-        avatarIndex.value++;
-      }
     };
 
     const setProfile = (profile) => {
@@ -282,6 +246,86 @@ export const AddProfile = defineComponent({
 
     const activeSegment = ref(props.startTab === "account" ? "account" : "info")
 
+    // --- New hero wizard (a hero being edited keeps the tabs) ---
+    const step = ref<NewHeroStepId>("name");
+    const stepsBack = ref(false);
+    const showAdvanced = ref(false);
+    const heroDraft = computed(() => ({
+      fullName: fullName.value,
+      jobClass: jobClass.value,
+      favoriteFood: favoriteFood.value,
+      passcode: passcode.value,
+      isGameMaster: isGameMaster.value,
+    }));
+    const currentStepIndex = computed(() => stepIndex(step.value));
+    const currentStepInfo = computed(() => NEW_HERO_STEPS[currentStepIndex.value]);
+    const progressPercent = computed(() => Math.round(stepProgress(step.value) * 100));
+    const currentStepProblem = computed(() => stepProblem(step.value, heroDraft.value));
+    const isLastStep = computed(() => currentStepIndex.value === NEW_HERO_STEPS.length - 1);
+    const hasFace = computed(() => Boolean(look.value || avatarImage.value || avatarIndex.value !== 1));
+    const classCards: ChoiceCard[] = JOB_CLASS_OPTIONS.filter((job) => !job.tier || job.tier === 1).map((job) => ({
+      key: job.name,
+      label: job.name,
+      icon: job.icon,
+      hint: job.creed,
+    }));
+    const foodCards: ChoiceCard[] = FOOD_OPTIONS.map((food) => ({ key: food.value, label: food.value, icon: food.icon }));
+    const selectedJob = computed(() => JOB_CLASS_OPTIONS.find((job) => job.name === jobClass.value));
+    const selectedFood = computed(() => FOOD_OPTIONS.find((food) => food.value === favoriteFood.value));
+
+    const goToStep = (id: NewHeroStepId) => {
+      stepsBack.value = stepIndex(id) < currentStepIndex.value;
+      step.value = id;
+    };
+    const goNext = async () => {
+      const problem = currentStepProblem.value;
+      if (problem) {
+        play$fx("no");
+        const toast = await toastController.create({
+          message: problem,
+          duration: 1800,
+          position: "top",
+          color: "warning",
+        });
+        await toast.present();
+        return;
+      }
+      play$fx("select");
+      goToStep(NEW_HERO_STEPS[Math.min(currentStepIndex.value + 1, NEW_HERO_STEPS.length - 1)].id);
+    };
+    const goBack = () => {
+      const isFirstStep = currentStepIndex.value === 0;
+      if (isFirstStep) return;
+      play$fx("cursor");
+      goToStep(NEW_HERO_STEPS[currentStepIndex.value - 1].id);
+    };
+    // A tapped choice plays its sound; the hero moves on with Next
+    const pickClass = (name: string) => {
+      play$fx("select");
+      jobClass.value = name;
+    };
+    const pickFood = (value: string) => {
+      play$fx("select");
+      favoriteFood.value = value;
+    };
+    // The class and food steps are one grid of cards: each step says which cards, which is chosen, and what a tap does
+    const choiceCardsByStep: Partial<Record<NewHeroStepId, ChoiceCard[]>> = { class: classCards, food: foodCards };
+    const choicePickers: Partial<Record<NewHeroStepId, (key: string) => void>> = { class: pickClass, food: pickFood };
+    const choiceCards = computed(() => choiceCardsByStep[step.value] ?? []);
+    const isChoiceStep = computed(() => choiceCards.value.length > 0);
+    const chosenByStep = computed<Partial<Record<NewHeroStepId, string>>>(() => ({
+      class: jobClass.value,
+      food: favoriteFood.value,
+    }));
+    const chosenKey = computed(() => chosenByStep.value[step.value]);
+    const pickChoice = (key: string) => choicePickers[step.value]?.(key);
+    const chooseRole = (gameMaster: boolean) => {
+      if (!canSetFlag.value) return;
+      play$fx("cursor");
+      gameMasterChosen.value = true;
+      isAdult.value = gameMaster;
+    };
+
     // Play sound when switching tabs
     watch(activeSegment, () => {
       play$fx('okdesuka');
@@ -294,10 +338,9 @@ export const AddProfile = defineComponent({
       community: true
     })
 
-    const toggleReward = () => features.value.rewards = !features.value.rewards
-    const toggleGoal = () => features.value.goals = !features.value.goals
-    const toggleBattles = () => features.value.battles = !features.value.battles
-    const toggleCommunity = () => features.value.community = !features.value.community
+    const toggleFeature = (key: FeatureKey) => {
+      features.value[key] = !features.value[key];
+    };
 
 
     const hidePasscode = ref(true)
@@ -323,6 +366,16 @@ export const AddProfile = defineComponent({
       () => !favoriteFood.value || !favoriteThing.value || !jobClass.value || !fullName.value
     );
     const isSaveDisabled = computed(() => hasMissingRequiredField.value || gameMasterEditLocked.value);
+    // The wizard's last button: never save past a step that still has a problem
+    const beginAdventure = () => {
+      const blocked = firstBlockedStep(heroDraft.value);
+      if (blocked) {
+        play$fx("no");
+        goToStep(blocked);
+        return false;
+      }
+      return true;
+    };
 
     const audioStore = useAudioStore();
     const gameStore = useGameStore();
@@ -360,9 +413,30 @@ export const AddProfile = defineComponent({
       newProfile,
       passcode,
       activeSegment,
-      arrowBack,
-      arrowForward,
-      closeOutline,
+      step,
+      stepsBack,
+      showAdvanced,
+      steps: NEW_HERO_STEPS,
+      currentStepIndex,
+      currentStepInfo,
+      progressPercent,
+      currentStepProblem,
+      isLastStep,
+      hasFace,
+      choiceCards,
+      isChoiceStep,
+      chosenKey,
+      pickChoice,
+      roles: ROLE_CHOICES,
+      editTabs: EDIT_TABS,
+      featureOptions: FEATURE_OPTIONS,
+      selectedJob,
+      selectedFood,
+      goToStep,
+      goNext,
+      goBack,
+      chooseRole,
+      beginAdventure,
       avatarIndex,
       look,
       avatarImage,
@@ -384,19 +458,11 @@ export const AddProfile = defineComponent({
       isSaveDisabled,
       passcodeError,
       jobClass,
-      jobClassOptions,
-      maxAvatarIndex,
-      nextAvatar,
       passcodeType,
-      previousAvatar,
       setGameMaster,
       setProfile,
       storage,
-      toggleBattles,
-      toggleCommunity,
-      toggleGoal,
-      toggleReward,
-      profileAdded,
+      toggleFeature,
       showFanfare,
       isEditing,
       requireAvatar,

@@ -10,8 +10,8 @@
           <i class="fas fa-times text-xl mr-2" />
         </ion-button>
       </ion-buttons>
-      <ion-title class="text-xl font-bold">New Profile</ion-title>
-      <ion-buttons slot="end">
+      <ion-title class="text-xl font-bold">{{ isEditing ? "Edit Profile" : "New Hero" }}</ion-title>
+      <ion-buttons v-if="isEditing" slot="end">
         <ion-button
           :disabled="isSaveDisabled"
           @click="clickSaveProfile"
@@ -25,8 +25,209 @@
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide rpg-box ion-padding">
-    <!-- v-if="activeSegment === 'info'" -->
-    <ion-grid class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">
+    <!-- NEW HERO: one question at a time, the hero grows as it is answered -->
+    <div v-if="!isEditing" class="hero-wizard icon-colors">
+      <!-- The quest trail: where you are, where you've been -->
+      <nav class="wizard-trail" aria-label="Hero creation steps">
+        <div class="wizard-trail__track">
+          <div class="wizard-trail__fill" :style="{ width: progressPercent + '%' }"></div>
+        </div>
+        <ol>
+          <li
+            v-for="(s, i) in steps"
+            :key="s.id"
+            :class="{ done: i < currentStepIndex, current: i === currentStepIndex }"
+          >
+            <button
+              type="button"
+              :disabled="i > currentStepIndex"
+              :aria-current="i === currentStepIndex ? 'step' : undefined"
+              @click="goToStep(s.id)"
+            >
+              <span class="wizard-trail__dot">
+                <i :class="['fad', i < currentStepIndex ? 'fa-check' : s.icon]"></i>
+              </span>
+              <span class="wizard-trail__label">{{ s.title }}</span>
+            </button>
+          </li>
+        </ol>
+      </nav>
+
+      <ion-card class="wizard-card">
+        <!-- The hero, always in view -->
+        <div class="wizard-hero">
+          <div class="wizard-hero__face">
+            <gamer-card
+              ref="gamerCard"
+              compact
+              :profile="newProfile"
+              :equipment="equipment"
+              :editing="isEditing"
+              v-model:avatarIndex="avatarIndex"
+              v-model:jobClass="jobClass"
+              v-model:favoriteFood="favoriteFood"
+              v-model:look="look"
+              v-model:avatarImage="avatarImage"
+            />
+            <span class="wizard-hero__edit" aria-hidden="true"><i class="fad fa-pencil"></i></span>
+          </div>
+          <div class="wizard-hero__info">
+            <h2 class="wizard-hero__name" :class="{ empty: !fullName.trim() }">
+              {{ fullName.trim() || "???" }}
+            </h2>
+            <p class="wizard-hero__title">
+              Lv 1 {{ selectedJob?.name || "Hero" }}
+            </p>
+            <div class="wizard-hero__badges">
+              <span v-if="selectedFood" class="badge"><i :class="['fad', selectedFood.icon]"></i>{{ selectedFood.value }}</span>
+              <span v-if="isGameMaster" class="badge badge--gm"><i class="fad fa-crown"></i>GM</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-body">
+          <p class="wizard-kicker">Step {{ currentStepIndex + 1 }} of {{ steps.length }}</p>
+          <h3 class="wizard-prompt">{{ currentStepInfo.prompt }}</h3>
+
+          <transition :name="stepsBack ? 'step-back' : 'step-next'" mode="out-in">
+            <div :key="step" class="wizard-step">
+              <!-- 1. NAME -->
+              <div v-if="step === 'name'" class="wizard-fields">
+                <label class="field-label" for="hero-name">Hero name</label>
+                <ion-input
+                  id="hero-name"
+                  v-model="fullName"
+                  class="rpg-input wizard-input"
+                  placeholder="e.g. Master Chief"
+                  maxlength="40"
+                  enterkeyhint="next"
+                  autocapitalize="words"
+                  @keyup.enter="goNext"
+                ></ion-input>
+                <p class="field-hint">A real name, a nickname, or both.</p>
+
+                <label class="field-label" for="hero-thing">Favorite thing <span class="optional">optional</span></label>
+                <ion-input
+                  id="hero-thing"
+                  v-model="favoriteThing"
+                  class="rpg-input wizard-input"
+                  placeholder="e.g. Dragons"
+                  maxlength="40"
+                ></ion-input>
+              </div>
+
+              <!-- 2. LOOK -->
+              <div v-else-if="step === 'look'" class="wizard-center">
+                <button type="button" class="big-action" @click="gamerCard?.openAvatarPicker()">
+                  <i class="fad fa-sparkles"></i>
+                  {{ hasFace ? "Change my hero" : "Build my hero" }}
+                </button>
+                <p class="field-hint">
+                  Pick a skin, hair and outfit, or choose a ready-made portrait.
+                  <br />You can always change it later.
+                </p>
+              </div>
+
+              <!-- 3. CLASS and 4. FOOD: one card grid -->
+              <div v-else-if="isChoiceStep" class="choice-grid" :class="{ 'choice-grid--small': step === 'food' }">
+                <button
+                  v-for="card in choiceCards"
+                  :key="card.key"
+                  type="button"
+                  class="choice-card"
+                  :class="{ active: card.key === chosenKey }"
+                  :aria-pressed="card.key === chosenKey"
+                  @click="pickChoice(card.key)"
+                >
+                  <i :class="['fad fa-2x', card.icon]"></i>
+                  <strong>{{ card.label }}</strong>
+                  <small v-if="card.hint">{{ card.hint }}</small>
+                  <span v-if="card.key === chosenKey" class="choice-check"><i class="fas fa-check"></i></span>
+                </button>
+              </div>
+
+              <!-- 5. SECRET -->
+              <div v-else-if="step === 'secret'" class="wizard-fields">
+                <span class="field-label">Who is playing?</span>
+                <div class="role-row">
+                  <button
+                    v-for="role in roles"
+                    :key="role.title"
+                    type="button"
+                    class="choice-card"
+                    :class="{ active: role.isGameMaster === isGameMaster }"
+                    :aria-pressed="role.isGameMaster === isGameMaster"
+                    :disabled="!canSetFlag"
+                    @click="chooseRole(role.isGameMaster)"
+                  >
+                    <i :class="['fad fa-2x', role.icon]"></i>
+                    <strong>{{ role.title }}</strong>
+                    <small>{{ role.hint }}</small>
+                  </button>
+                </div>
+                <p v-if="profilesLoaded && !canSetFlag" class="field-hint field-hint--warn">
+                  Only a Game Master can make another Game Master.
+                </p>
+
+                <label class="field-label" for="hero-pin">
+                  Secret code
+                  <span v-if="!isGameMaster" class="optional">optional</span>
+                </label>
+                <div class="pin-row">
+                  <ion-input
+                    id="hero-pin"
+                    inputmode="numeric"
+                    maxlength="4"
+                    class="pin-input wizard-pin"
+                    v-model="passcode"
+                    :type="passcodeType"
+                    placeholder="••••"
+                    :clearOnEdit="false"
+                  ></ion-input>
+                  <button
+                    type="button"
+                    class="pin-eye"
+                    :aria-label="hidePasscode ? 'Show code' : 'Hide code'"
+                    @click="hidePasscode = !hidePasscode"
+                  >
+                    <i :class="['fad', hidePasscode ? 'fa-eye' : 'fa-eye-slash']"></i>
+                  </button>
+                </div>
+                <p class="field-hint" :class="{ 'field-hint--warn': passcode && passcodeError }">
+                  {{ (passcode && passcodeError) || (isGameMaster ? "4 digits. You'll need it to open the Game Master tools." : "4 digits to keep your save file safe.") }}
+                </p>
+              </div>
+
+              <!-- 6. READY -->
+              <div v-else class="wizard-fields">
+                <ul class="summary">
+                  <li><i class="fad fa-signature"></i><span>Name</span><strong>{{ fullName.trim() }}</strong></li>
+                  <li v-if="selectedJob"><i :class="['fad', selectedJob.icon]"></i><span>Class</span><strong>{{ selectedJob.name }}</strong></li>
+                  <li v-if="selectedFood"><i :class="['fad', selectedFood.icon]"></i><span>Food</span><strong>{{ selectedFood.value }}</strong></li>
+                  <li v-if="favoriteThing"><i class="fad fa-star"></i><span>Loves</span><strong>{{ favoriteThing }}</strong></li>
+                  <li>
+                    <i :class="['fad', isGameMaster ? 'fa-crown' : 'fa-shield-alt']"></i><span>Role</span>
+                    <strong>{{ isGameMaster ? "Game Master" : "Hero" }}</strong>
+                  </li>
+                  <li><i class="fad fa-lock-alt"></i><span>Code</span><strong>{{ passcode ? "Set" : "None" }}</strong></li>
+                </ul>
+                <button type="button" class="advanced-toggle" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
+                  <i class="fad fa-gamepad"></i> Game options
+                  <i :class="['fad', showAdvanced ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </button>
+                <div v-if="showAdvanced" class="wizard-options">
+                  <label v-for="option in featureOptions" :key="option.key">
+                    <span>{{ option.short }}</span><ion-toggle v-model="features[option.key]" color="rpg"></ion-toggle>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </ion-card>
+    </div>
+
+    <ion-grid v-else class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">
       <gamer-card
         ref="gamerCard"
         :profile="newProfile"
@@ -39,44 +240,6 @@
         v-model:look="look"
         v-model:avatarImage="avatarImage"
       />
-
-      <!-- <ion-card class="w-full shadow-lg">
-        <ion-segment
-          v-model="activeSegment"
-          class="overflow-visible p-2 mx-2"
-        >
-          <ion-segment-button
-            value="info"
-            class="segment-button-custom overflow-visible"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1 overflow-visible">
-              <i class="fad fa-user fa-2x"></i>
-              <span class="text-xs">Who</span>
-            </div>
-          </ion-segment-button>
-          <ion-segment-button
-            value="account"
-            class="segment-button-custom overflow-visible"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1 overflow-visible">
-              <i class="fad fa-fingerprint fa-2x"></i>
-              <span class="text-xs">Pin</span>
-            </div>
-          </ion-segment-button>
-          <ion-segment-button
-            value="features"
-            class="segment-button-custom"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-gamepad fa-2x text-primary"></i>
-              <span class="text-xs">On/Off</span>
-            </div>
-          </ion-segment-button>
-        </ion-segment>
-      </ion-card> -->
 
       <ion-card
         v-if="activeSegment === 'info'"
@@ -191,22 +354,6 @@
 
       <ion-card v-if="activeSegment === 'account'">
         <ion-list class="p-0 space-y-4 pb-2">
-          <!-- <ion-item class="p-4">
-            <div class="w-full">
-              <ion-label class="font-medium block mb-1">
-                Email Address
-                <p class="text-sm text-gray-500">Used for account recovery and notifications</p>
-              </ion-label>
-              <ion-input
-                v-model="email"
-                type="email"
-                autocomplete="off"
-                class="bg-gray-50 rounded-lg mt-1"
-                placeholder="Enter your email address"
-              ></ion-input>
-            </div>
-          </ion-item> -->
-
           <!-- A Game Master's PIN is neither shown to nor editable by anybody who is not a Game Master -->
           <ion-item v-if="gameMasterEditLocked">
             <ion-label>
@@ -264,66 +411,19 @@
       >
         <ion-list class="p-0">
           <ion-item
+            v-for="option in featureOptions"
+            :key="option.key"
             button
-            @click="toggleReward"
+            @click="toggleFeature(option.key)"
           >
             <ion-label class="font-medium">
-              Buy from Shops
-              <p class="text-sm text-gray-500">Allowed this player access to shops and purchase rewards.</p>
+              {{ option.title }}
+              <p class="text-sm text-gray-500">{{ option.hint }}</p>
             </ion-label>
             <ion-checkbox
               slot="end"
-              v-model="features.rewards"
+              v-model="features[option.key]"
               @click.stop
-              color="rpg"
-            />
-          </ion-item>
-
-          <ion-item
-            button
-            @click="toggleGoal"
-          >
-            <ion-label class="font-medium">
-              Save towards Goals
-              <p class="text-sm text-gray-500">Allowed player access to the banks and saves toward goals.</p>
-            </ion-label>
-            <ion-checkbox
-              v-model="features.goals"
-              @click.stop
-              slot="end"
-              color="rpg"
-            />
-          </ion-item>
-
-          <ion-item
-            button
-            @click="toggleBattles"
-          >
-            <ion-label class="font-medium">
-              Random Battles
-              <p class="text-sm text-gray-500">Turn on/off random battles. If off, players will have to manually check
-                their achievements.</p>
-            </ion-label>
-            <ion-checkbox
-              v-model="features.battles"
-              @click.stop
-              slot="end"
-              color="rpg"
-            />
-          </ion-item>
-
-          <ion-item
-            button
-            @click="toggleCommunity"
-          >
-            <ion-label class="font-medium">
-              Participate in Town Hall
-              <p class="text-sm text-gray-500">For players who want to participate in Town Hall.</p>
-            </ion-label>
-            <ion-checkbox
-              v-model="features.community"
-              @click.stop
-              slot="end"
               color="rpg"
             />
           </ion-item>
@@ -332,7 +432,28 @@
       <InputSettings v-if="activeSegment === 'preferences'" />
     </ion-grid>
   </ion-content>
-  <ion-footer>
+  <ion-footer v-if="!isEditing">
+    <ion-toolbar class="rpg-box wizard-footer">
+      <div class="wizard-footer__row">
+        <button type="button" class="wizard-btn wizard-btn--back" :disabled="currentStepIndex === 0" @click="goBack">
+          <i class="fad fa-chevron-left"></i> Back
+        </button>
+        <button
+          v-if="!isLastStep"
+          type="button"
+          class="wizard-btn wizard-btn--next"
+          :class="{ 'is-blocked': currentStepProblem }"
+          @click="goNext"
+        >
+          {{ step === 'look' && !hasFace ? "Skip" : "Next" }} <i class="fad fa-chevron-right"></i>
+        </button>
+        <button v-else type="button" class="wizard-btn wizard-btn--next wizard-btn--begin" @click="beginAdventure() && clickSaveProfile()">
+          Begin Adventure! <i class="fad fa-flag-checkered"></i>
+        </button>
+      </div>
+    </ion-toolbar>
+  </ion-footer>
+  <ion-footer v-else>
 
     <ion-toolbar class="rpg-box">
       <ion-segment
@@ -340,45 +461,17 @@
         class="overflow-visible p-2 mx-2"
       >
         <ion-segment-button
-          value="info"
+          v-for="tab in editTabs"
+          :key="tab.value"
+          :value="tab.value"
           class="segment-button-custom overflow-visible"
           color="rpg"
         >
           <div class="flex flex-col items-center gap-1 overflow-visible">
-            <i class="fad fa-user fa-2x"></i>
-            <span class="text-xs">Who</span>
+            <i :class="['fad fa-2x', tab.icon, tab.iconClass]"></i>
+            <span class="text-xs">{{ tab.label }}<span v-if="tab.flagsGameMaster && isGameMaster" class="text-danger"> *</span></span>
           </div>
         </ion-segment-button>
-        <ion-segment-button
-          value="account"
-          class="segment-button-custom overflow-visible"
-          color="rpg"
-        >
-          <div class="flex flex-col items-center gap-1 overflow-visible">
-            <i class="fad fa-fingerprint fa-2x"></i>
-            <span class="text-xs">Pin<span v-if="isGameMaster" class="text-danger"> *</span></span>
-          </div>
-        </ion-segment-button>
-        <ion-segment-button
-          value="features"
-          class="segment-button-custom"
-          color="rpg"
-        >
-          <div class="flex flex-col items-center gap-1">
-            <i class="fad fa-gamepad fa-2x text-primary"></i>
-            <span class="text-xs">On/Off</span>
-          </div>
-        </ion-segment-button>
-        <!-- <ion-segment-button
-            value="preferences"
-            class="segment-button-custom flex-shrink"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-ear fa-2x"></i>
-              <span class="text-xs">Preferences</span>
-            </div>
-          </ion-segment-button> -->
       </ion-segment>
     </ion-toolbar>
   </ion-footer>

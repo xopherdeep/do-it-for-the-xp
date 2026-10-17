@@ -18,145 +18,113 @@
   </ion-header>
 
   <ion-content class="bg-slide bg-slide-modal ion-padding dialpad-content">
-    <div class="dialpad-container">
-      <!-- Profile Card -->
-      <div class="profile-card rpg-box">
-        <ion-avatar class="profile-avatar">
-          <ion-img v-if="profile?.avatarImage || profile?.avatar" :src="currentAvatar" />
-        </ion-avatar>
-        <div class="profile-info">
-          <h2 class="profile-name earthbound-text">
+    <div class="dialpad-container" :class="`dialpad--${skin}`">
+      <!-- Hero card: the save file being opened -->
+      <div class="hero-card">
+        <div class="hero-portrait">
+          <ion-img v-if="currentAvatar" :src="currentAvatar" class="hero-portrait__img" />
+          <i v-else class="fad fa-user-shield hero-portrait__fallback" />
+          <span class="hero-level">Lv {{ heroLevel }}</span>
+        </div>
+        <div class="hero-info">
+          <h2 class="hero-name">{{ profile?.name?.nick || profile?.name?.full }}</h2>
+          <p class="hero-full" v-if="profile?.name?.nick && profile?.name?.full">
             {{ profile?.name?.full }}
-          </h2>
-          <p class="profile-aka" v-if="profile?.name?.nick">
-            aka {{ profile?.name?.nick }}
           </p>
-        </div>
-        <div class="profile-icons icon-colors">
-          <i :class="`fad ${selectedJobIcon} fa-2x`" />
-          <i :class="`fad ${selectedFoodIcon} fa-2x`" />
-        </div>
-      </div>
-
-      <!-- Dialpad -->
-      <div class="dial-pad rpg-box">
-        <!-- Passcode Display Row -->
-        <div class="passcode-display">
-          <div class="passcode-dots">
-            <span
-              v-for="i in 4"
-              :key="i"
-              class="dot"
-              :class="{ filled: inputCode.length >= i, error: hasError }"
-            >
-              <template v-if="inputCode.length >= i">
-                {{ showPass ? inputCode[i - 1] : "*" }}
-              </template>
+          <div class="hero-tags icon-colors">
+            <span class="hero-tag">
+              <i :class="`fad ${selectedJobIcon}`" />
+              {{ profile?.jobClass || "Hero" }}
+            </span>
+            <span class="hero-tag" v-if="profile?.favoriteFood">
+              <i :class="`fad ${selectedFoodIcon}`" />
+              {{ profile?.favoriteFood }}
             </span>
           </div>
         </div>
+      </div>
 
-        <ion-grid>
-          <ion-row>
-            <ion-col v-for="n in [1, 2, 3]" :key="n">
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button"
-                :disabled="inputCode.length >= 4"
-                @pointerdown="appendToCode(n)"
-              >
-                {{ n }}
-              </ion-button>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col v-for="n in [4, 5, 6]" :key="n">
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button"
-                :disabled="inputCode.length >= 4"
-                @pointerdown="appendToCode(n)"
-              >
-                {{ n }}
-              </ion-button>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col v-for="n in [7, 8, 9]" :key="n">
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button"
-                :disabled="inputCode.length >= 4"
-                @pointerdown="appendToCode(n)"
-              >
-                {{ n }}
-              </ion-button>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button action-button"
-                @pointerdown="removeLastDigit()"
-              >
-                <xp-icon icon="backspace" />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button"
-                :disabled="inputCode.length >= 4"
-                @pointerdown="appendToCode(0)"
-              >
-                0
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button action-button"
-                @pointerdown="clearCode()"
-              >
-                <xp-icon icon="trash" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
+      <!-- Keypad -->
+      <div class="dial-pad">
+        <div
+          class="pin-slots"
+          :class="{ 'pin-slots--error': hasError }"
+          role="status"
+          :aria-label="`${inputCode.length} of 4 digits entered`"
+        >
+          <span
+            v-for="i in 4"
+            :key="i"
+            class="pin-slot"
+            :class="{
+              'pin-slot--filled': inputCode.length >= i,
+              'pin-slot--next': inputCode.length === i - 1,
+            }"
+          >
+            <span v-if="inputCode.length >= i" class="pin-slot__gem">
+              {{ showPass ? inputCode[i - 1] : "" }}
+            </span>
+          </span>
+        </div>
 
-          <!-- Action Row -->
-          <ion-row class="action-row">
-            <ion-col size="4">
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button action-button"
-                @click="toggleShowPass"
-              >
-                <i class="fad fa-lg" :class="hideIcon" />
-              </ion-button>
-            </ion-col>
-            <ion-col size="8">
-              <ion-button
-                expand="block"
-                fill="clear"
-                class="dial-button unlock-button"
-                :class="{ 'unlock-ready': isPasscodeValid }"
-                :disabled="!isPasscodeValid"
-                @click="clickUnlock"
-              >
-                <i class="fad fa-lock-open" />
-                <span class="unlock-text">Unlock</span>
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
+        <div class="keys">
+          <button
+            v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
+            :key="n"
+            type="button"
+            class="key ion-activatable"
+            :disabled="inputCode.length >= 4"
+            @pointerdown="appendToCode(n)"
+          >
+            {{ n }}
+          </button>
+          <button
+            type="button"
+            class="key ion-activatable key--action"
+            aria-label="Delete last digit"
+            @pointerdown="removeLastDigit()"
+          >
+            <xp-icon icon="backspace" />
+          </button>
+          <button
+            type="button"
+            class="key ion-activatable"
+            :disabled="inputCode.length >= 4"
+            @pointerdown="appendToCode(0)"
+          >
+            0
+          </button>
+          <button
+            type="button"
+            class="key ion-activatable key--action"
+            aria-label="Clear passcode"
+            @pointerdown="clearCode()"
+          >
+            <xp-icon icon="trash" />
+          </button>
+        </div>
+
+        <div class="action-row">
+          <button
+            type="button"
+            class="key ion-activatable key--action key--eye"
+            :aria-label="showPass ? 'Hide passcode' : 'Show passcode'"
+            :aria-pressed="showPass"
+            @click="toggleShowPass"
+          >
+            <i class="fad fa-lg" :class="hideIcon" />
+          </button>
+          <button
+            type="button"
+            class="key ion-activatable key--unlock"
+            :class="{ 'key--ready': isPasscodeValid }"
+            :disabled="!isPasscodeValid"
+            @click="clickUnlock"
+          >
+            <i class="fad" :class="lockIcon" />
+            <span class="unlock-text">Unlock</span>
+          </button>
+        </div>
       </div>
     </div>
   </ion-content>
@@ -178,6 +146,7 @@
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
   import { play$fx } from "@/assets/fx";
   import { useTimers } from "@/hooks/useTimers";
+  import { useGameStore } from "@/lib/store/stores/game";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -202,6 +171,11 @@
       const showPass = ref(false);
       const hasError = ref(false);
       const timers = useTimers();
+      const gameStore = useGameStore();
+
+      // The Retro / Modern toggle of the profile modal picks the keypad's skin
+      const skin = computed(() => (gameStore.fabStyle === "retro" ? "retro" : "modern"));
+      const heroLevel = computed(() => props.profile?.stats?.level || 1);
 
       // Avatar
       const currentAvatar = computed(() => {
@@ -340,6 +314,8 @@
 
       return {
         inputCode,
+        skin,
+        heroLevel,
         showPass,
         hasError,
         currentAvatar,

@@ -1,182 +1,468 @@
-  .dialpad-content {
-    --padding-top: 1rem;
-    --padding-bottom: 1rem;
-    --padding-start: 1rem;
-    --padding-end: 1rem;
+@use "@/styles/themes/earthbound" as eb;
+
+// The passcode screen: a hero card over a chunky keypad, on the sliding diamond background.
+// Two skins follow the Retro / Modern toggle (useGameStore().fabStyle): the markup is the same and only the --dp-*
+// tokens and a few rules marked "retro" differ. Retro windows use eb-box(), so they follow the chosen Game Style.
+
+.dialpad-content {
+  --padding-top: 1rem;
+  --padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  --padding-start: calc(1rem + env(safe-area-inset-left, 0px));
+  --padding-end: calc(1rem + env(safe-area-inset-right, 0px));
+}
+
+// ---- Tokens ------------------------------------------------------------------------------------------------------
+
+.dialpad--modern {
+  --dp-window: rgba(20, 17, 28, 0.86);
+  --dp-window-edge: 1px solid rgba(255, 255, 255, 0.08);
+  --dp-radius: 18px;
+  --dp-text: #f2eefb;
+  --dp-text-dim: rgba(242, 238, 251, 0.6);
+  --dp-accent: #{eb.$eb-color-mint-green};
+  --dp-accent-dark: #2f8a4a;
+  --dp-font: "StatusPlz", "Apple Kid", sans-serif;
+  --dp-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+
+  --dp-key-face: linear-gradient(180deg, #3b3453 0%, #2a2539 100%);
+  --dp-key-lip: #110e18;
+  --dp-key-edge: 1px solid rgba(255, 255, 255, 0.1);
+  --dp-key-shine: rgba(255, 255, 255, 0.14);
+  --dp-key-radius: 14px;
+  --dp-key-text: #f2eefb;
+  --dp-key-action: rgba(242, 238, 251, 0.7);
+
+  --dp-slot-bg: #0e0b15;
+  --dp-slot-edge: 2px solid rgba(255, 255, 255, 0.12);
+  --dp-slot-radius: 12px;
+}
+
+.dialpad--retro {
+  --dp-window: #{eb.$eb-color-dark-purple};
+  --dp-radius: 1px;
+  --dp-text: #{eb.$eb-color-cream};
+  --dp-text-dim: rgba(231, 230, 179, 0.65);
+  --dp-accent: #{eb.$eb-color-pale-yellow};
+  --dp-accent-dark: #a8925a;
+  --dp-font: "StatusPlz", "Apple Kid", monospace;
+  --dp-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
+
+  --dp-key-face: #{eb.$eb-color-medium-purple};
+  --dp-key-lip: #120412;
+  --dp-key-edge: 2px solid #{eb.$eb-color-cream};
+  --dp-key-shine: rgba(231, 230, 179, 0.25);
+  --dp-key-radius: 0;
+  --dp-key-text: #{eb.$eb-color-cream};
+  --dp-key-action: #{eb.$eb-color-minty-blue};
+
+  --dp-slot-bg: #120412;
+  --dp-slot-edge: 2px solid rgba(231, 230, 179, 0.55);
+  --dp-slot-radius: 0;
+}
+
+// ---- Layout -----------------------------------------------------------------------------------------------------
+
+.dialpad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 400px;
+  min-height: 100%;
+  margin: 0 auto;
+  gap: 1.25rem;
+  font-family: var(--dp-font);
+  color: var(--dp-text);
+
+  &.dialpad--retro {
+    // eb-box() draws its frame as rings outside the box, so leave room for them
+    gap: 2.25rem;
+    padding: 16px;
+  }
+}
+
+.hero-card,
+.dial-pad {
+  width: 100%;
+  background: var(--dp-window);
+  border: var(--dp-window-edge, 0);
+  border-radius: var(--dp-radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+
+  .dialpad--retro & {
+    @include eb.eb-box();
+  }
+}
+
+// ---- Hero card --------------------------------------------------------------------------------------------------
+
+.hero-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.hero-portrait {
+  position: relative;
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, rgba(128, 216, 144, 0.28), transparent 70%), var(--dp-slot-bg);
+  border: var(--dp-slot-edge);
+  border-radius: var(--dp-slot-radius);
+
+  &__img {
+    width: 58px;
+    height: 58px;
+    image-rendering: pixelated;
   }
 
-  .dialpad-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 400px;
-    margin: 0 auto;
-    gap: 1.5rem;
-    height: 100%;
+  &__fallback {
+    font-size: 2rem;
+    color: var(--dp-text-dim);
+  }
+}
+
+.hero-level {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  font-family: var(--dp-font);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #14111c;
+  background: var(--dp-accent);
+  border-radius: 999px;
+  box-shadow: 0 2px 0 var(--dp-accent-dark);
+
+  .dialpad--retro & {
+    border-radius: 0;
+    border: 1px solid #120412;
+  }
+}
+
+.hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-name {
+  margin: 0;
+  font-family: var(--dp-font);
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--dp-accent);
+  text-shadow: var(--dp-shadow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .dialpad--retro & {
+    text-transform: uppercase;
+  }
+}
+
+.hero-full {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--dp-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 8px 2px 6px;
+  font-size: 0.75rem;
+  color: var(--dp-text);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+
+  i {
+    font-size: 0.95rem;
   }
 
-  .profile-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 12px;
+  .dialpad--retro & {
+    border-radius: 0;
+    border-color: rgba(231, 230, 179, 0.4);
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// ---- Keypad -----------------------------------------------------------------------------------------------------
+
+.dial-pad {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+// PIN slots: empty sockets that take a gem per digit
+.pin-slots {
+  display: flex;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 0.25rem 0 1.1rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.08);
+
+  .dialpad--retro & {
+    border-bottom-color: rgba(231, 230, 179, 0.3);
   }
 
-  .profile-avatar {
-    width: 60px;
-    height: 60px;
-    flex-shrink: 0;
+  &--error {
+    animation: dp-shake 0.45s ease;
+  }
+}
 
-    ion-img {
-      width: 100%;
-      height: 100%;
-    }
+.pin-slot {
+  position: relative;
+  width: 48px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: var(--dp-slot-bg);
+  border: var(--dp-slot-edge);
+  border-radius: var(--dp-slot-radius);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.55);
+  transition: border-color 0.15s ease;
+
+  // The blinking cursor under the slot that takes the next digit
+  &--next::after {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: 7px;
+    height: 3px;
+    background: var(--dp-accent);
+    animation: dp-blink 1s steps(2, start) infinite;
   }
 
-  .profile-info {
-    flex: 1;
-    min-width: 0;
+  &--filled {
+    border-color: var(--dp-accent);
   }
 
-  .profile-name {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  .pin-slots--error & {
+    border-color: var(--ion-color-danger);
+  }
+}
+
+// The gem: a cut diamond that pops in with a flash, the digit on top when the passcode is shown
+.pin-slot__gem {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-family: var(--dp-font);
+  font-size: 1.05rem;
+  color: #14111c;
+  isolation: isolate;
+  animation: dp-gem-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    transform: rotate(45deg);
+    background: linear-gradient(135deg, #fff 0%, var(--dp-accent) 35%, var(--dp-accent-dark) 100%);
+    box-shadow: 0 0 12px var(--dp-accent);
+    z-index: -1;
   }
 
-  .profile-aka {
-    margin: 0.25rem 0 0;
-    font-size: 0.85rem;
-    color: var(--ion-color-success);
-    font-style: italic;
-  }
-
-  .profile-icons {
-    display: flex;
-    gap: 0.75rem;
-    flex-shrink: 0;
-  }
-
-  // Dialpad
-  .dial-pad {
-    width: 100%;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 12px;
-  }
-
-  // Passcode Display (inside dialpad)
-  .passcode-display {
-    padding: 1rem 0;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .passcode-dots {
-    display: flex;
-    gap: 1.25rem;
-    justify-content: center;
-  }
-
-  .dot {
-    width: 40px;
-    height: 40px;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border: 2px solid var(--dp-accent);
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    opacity: 0;
+    animation: dp-gem-flash 0.4s ease-out;
+  }
+
+  .pin-slots--error &::before {
+    background: linear-gradient(135deg, #fff 0%, var(--ion-color-danger) 40%, #6b0f1a 100%);
+    box-shadow: 0 0 12px var(--ion-color-danger);
+  }
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 10px;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 2px dashed rgba(255, 255, 255, 0.08);
+
+  .dialpad--retro & {
+    border-top-color: rgba(231, 230, 179, 0.3);
+  }
+}
+
+// A chunky key: a face over a dark lip that sinks when pressed
+.key {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 58px;
+  margin-bottom: 5px;
+  padding: 0;
+  font-family: var(--dp-font);
+  font-size: 1.6rem;
+  color: var(--dp-key-text);
+  text-shadow: var(--dp-shadow);
+  background: var(--dp-key-face);
+  border: var(--dp-key-edge);
+  border-radius: var(--dp-key-radius);
+  box-shadow: 0 5px 0 var(--dp-key-lip), inset 0 2px 0 var(--dp-key-shine);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.1s ease;
+
+  // Ionic's tap-click adds .ion-activated on touch, where iOS would skip :active
+  &:active:not(:disabled),
+  &.ion-activated:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--dp-key-lip), inset 0 2px 6px rgba(0, 0, 0, 0.35);
+    filter: brightness(1.25);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--dp-accent);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  &--action {
     font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--ion-color-success);
-    transition: all 0.2s ease;
+    color: var(--dp-key-action);
+  }
+}
 
-    &.filled {
-      background: var(--ion-color-success);
-      border-color: var(--ion-color-success);
-      box-shadow: 0 0 12px rgba(var(--ion-color-success-rgb), 0.5);
-      color: #000;
-    }
+.key--unlock {
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 
-    &.error {
-      background: var(--ion-color-danger);
-      border-color: var(--ion-color-danger);
-      animation: shake 0.4s ease;
-      color: #fff;
-    }
+  .unlock-text {
+    margin-top: 2px;
   }
 
-  @keyframes shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
+  &.key--ready {
+    color: #14111c;
+    text-shadow: none;
+    background: linear-gradient(180deg, #fff 0%, var(--dp-accent) 30%, var(--dp-accent) 100%);
+    border-color: var(--dp-accent-dark);
+    box-shadow: 0 5px 0 var(--dp-accent-dark), inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 0 18px var(--dp-accent);
+    animation: dp-ready-glow 1.6s ease-in-out infinite;
 
-    20%,
-    60% {
-      transform: translateX(-4px);
-    }
-
-    40%,
-    80% {
-      transform: translateX(4px);
+    &:active,
+    &.ion-activated {
+      box-shadow: 0 1px 0 var(--dp-accent-dark), inset 0 2px 6px rgba(0, 0, 0, 0.25);
+      animation: none;
     }
   }
+}
 
-  .dial-button {
-    --padding-top: 1rem;
-    --padding-bottom: 1rem;
-    font-size: 1.5rem;
-    font-weight: 600;
-    min-height: 56px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    // Let Ionic's native ripple handle touch feedback - no custom animations
-    touch-action: manipulation;
+// ---- Motion -----------------------------------------------------------------------------------------------------
 
-    &.action-button {
-      font-size: 1.25rem;
-    }
+@keyframes dp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
   }
 
-  .action-row {
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  15%,
+  55% {
+    transform: translateX(-8px);
   }
 
-  .unlock-button {
-    border-color: rgba(255, 255, 255, 0.2);
-
-    .unlock-text {
-      margin-left: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    &.unlock-ready {
-      border-color: var(--ion-color-success);
-      background: rgba(var(--ion-color-success-rgb), 0.15);
-      color: var(--ion-color-success);
-
-      &:hover {
-        background: rgba(var(--ion-color-success-rgb), 0.25);
-      }
-    }
-
-    &:disabled {
-      opacity: 0.4;
-    }
+  35%,
+  75% {
+    transform: translateX(8px);
   }
+}
+
+@keyframes dp-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes dp-gem-pop {
+  from {
+    transform: scale(0.2);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes dp-gem-flash {
+  from {
+    opacity: 0.9;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes dp-ready-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-slots--error,
+  .pin-slot--next::after,
+  .pin-slot__gem,
+  .pin-slot__gem::after,
+  .key--unlock.key--ready {
+    animation: none;
+  }
+
+  .key {
+    transition: none;
+  }
+}

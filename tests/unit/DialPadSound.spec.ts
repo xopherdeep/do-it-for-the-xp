@@ -1,4 +1,5 @@
 import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import DialPad from "@/app/SideMenu/SwitchProfile/DialPad.vue";
 import { play$fx } from "@/assets/fx";
 import { soundEffects } from "@/lib/engine/audio/soundRegistry";
@@ -54,6 +55,7 @@ describe("Passcode Screen & UI FX Sound Mapping", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    setActivePinia(createPinia());
   });
 
   describe("soundEffects registry and $fx mapping", () => {
@@ -98,7 +100,6 @@ describe("Passcode Screen & UI FX Sound Mapping", () => {
             "ion-grid": true,
             "ion-row": true,
             "ion-col": true,
-            "ion-button": true,
           },
         },
       });

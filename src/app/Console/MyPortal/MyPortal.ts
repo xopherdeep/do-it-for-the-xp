@@ -15,6 +15,7 @@ import { play$fx } from "@/assets/fx";
 import { itemCardLine } from "@/lib/services/items/ItemRules";
 import { lanternOverdue } from "@/lib/services/quests/ItemEffects";
 import { startQuestWatch } from "@/lib/services/notifications/questWatch";
+import { startReminderTaps } from "@/lib/services/notifications/reminderTaps";
 import { canFly } from "@/lib/services/travel/flight";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
@@ -176,14 +177,19 @@ export default defineComponent({
     // hours and quests overdue, once per quest per day, on mount and every five minutes while the portal is up
     const notificationsStore = useNotificationsStore();
     let stopQuestWatch: (() => void) | null = null;
+    let stopReminderTaps: (() => void) | null = null;
     onMounted(() => {
       if (!userId) return;
       void notificationsStore.load(String(userId));
       stopQuestWatch = startQuestWatch(String(userId));
+      // A tap on a phone reminder opens the quest it was about
+      stopReminderTaps = startReminderTaps((link) => void router.push(link));
     });
     onBeforeUnmount(() => {
       stopQuestWatch?.();
       stopQuestWatch = null;
+      stopReminderTaps?.();
+      stopReminderTaps = null;
     });
     // The hero's hands: read from the profile, saved on every change (shared with the temples)
     const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(userId));

@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="gamer-card">
+  <component :is="compact ? 'div' : IonCard" class="gamer-card" :class="{ 'gamer-card--compact': compact }">
     <!-- Avatar Section: Centered and Prominent -->
     <div class="avatar-section">
       <ion-avatar
@@ -14,11 +14,11 @@
           class="img-avatar"
         />
       </ion-avatar>
-      <p class="avatar-caption">{{ avatarCaption }}</p>
+      <p v-if="!compact" class="avatar-caption">{{ avatarCaption }}</p>
     </div>
 
     <!-- Name Section: Clear Typography Hierarchy -->
-    <div class="name-section">
+    <div v-if="!compact" class="name-section">
       <h1 class="profile-name earthbound-title">
         {{ profile?.name.full || "Your Name" }}
       </h1>
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Icon Selectors: Food and Class (Swapped) with Labels -->
-    <div class="selector-section icon-colors">
+    <div v-if="!compact" class="selector-section icon-colors">
       <div
         class="selector-card"
         @click="isFoodSelectorOpen = true"
@@ -101,11 +101,12 @@
     />
 
     <slot></slot>
-  </ion-card>
+  </component>
 </template>
 
 <script lang="ts">
   import { defineComponent, computed, ref } from "vue";
+  import { IonCard } from "@ionic/vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import ionic from "@/lib/mixins/ionic";
   import { heroAvatarSrc } from "@/lib/hero-look/look";
@@ -135,6 +136,11 @@
       },
       /** The profile is an existing hero being edited, not one being made */
       editing: {
+        type: Boolean,
+        default: false,
+      },
+      /** Only the face: the wizard asks for the name, class and food in its own steps */
+      compact: {
         type: Boolean,
         default: false,
       },
@@ -246,6 +252,7 @@
       });
 
       return {
+        IonCard,
         maxAvatarIndex,
         currentAvatar,
         hasVoxelFace,
@@ -273,6 +280,20 @@
 
   .gamer-card {
     padding: 1.5rem 1rem;
+  }
+
+  // Just the face, set into the new hero wizard's card
+  .gamer-card--compact {
+    padding: 0;
+
+    .avatar-section {
+      margin: 0;
+    }
+
+    .main-avatar {
+      width: 84px;
+      height: 84px;
+    }
   }
 
   .avatar-section {

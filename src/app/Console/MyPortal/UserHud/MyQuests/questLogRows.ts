@@ -87,6 +87,13 @@ export function sectionsByWindow(rows: readonly QuestListRow[], now: Date): Ques
   }));
 }
 
+/** The row a link to one quest points at (a notification's tap), or null when that quest is not on the board. */
+export function linkedQuestRow(rows: readonly QuestListRow[], questId: string | number | undefined): QuestListRow | null {
+  const hasNoLink = questId === undefined || questId === "";
+  if (hasNoLink) return null;
+  return rows.find((row) => String(row.quest.id) === String(questId)) ?? null;
+}
+
 /** The status MyTask reads: used-up quests are done, quests that are not due yet are notDue. */
 export function boardStatusOf(status: QuestListStatus): "open" | "done" | "notDue" {
   if (isUsedUp(status)) return "done";

@@ -291,6 +291,13 @@ ion-app {
       }
     }
 
+    // A bottom bar runs flush to the bottom of the phone, the way the top bar meets the system bar:
+    // the frame keeps its top and sides, the bottom rings are clipped and the fill runs through the safe area
+    ion-footer ion-toolbar.rpg-box {
+      margin-bottom: 0;
+      clip-path: inset(-20px -20px 0 -20px);
+    }
+
     // Card styling
     ion-card {
       @include eb-box();

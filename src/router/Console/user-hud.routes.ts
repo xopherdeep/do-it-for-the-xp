@@ -8,8 +8,9 @@ const UserHudRoutes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
+    // A link to one quest (a notification's tap): the quest log opens that quest's beast card
     path: '/my-tasks/:userId?/task/:taskId?/',
-    component: () => import ('@/app/Console/MyPortal/UserHud/MyTask/MyTask.vue'),
+    component: () => import ('@/app/Console/MyPortal/UserHud/MyQuests/MyQuests.vue'),
     props: true,
   },
   {

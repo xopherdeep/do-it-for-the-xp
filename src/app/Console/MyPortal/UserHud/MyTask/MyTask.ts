@@ -1,3 +1,4 @@
+import { play$fx } from "@/assets/fx";
 import { defineComponent, ref } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { IonicSlides, modalController } from "@ionic/vue";
@@ -235,10 +236,8 @@ export default defineComponent({
     addUpGP() {
       const hasGp = Boolean(this.rewards.gp);
       if (!hasGp) return;
-      this.$fx.rpg[this.$fx.theme.rpg].countCoins.play();
-      setTimeout(() => {
-        this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
-      }, 4000);
+      play$fx("countCoins", { loop: true });
+      setTimeout(() => play$fx("countCoins", { stop: true }), 4000);
       this.startCounting();
       this.temp.gp.wallet = (this as any).user.stats.gp.wallet;
       this.temp.gp.gained = this.rewards.gp;
@@ -251,7 +250,7 @@ export default defineComponent({
       // alert()
       const $fx = (this as any).$fx;
       const theme = $fx.theme;
-      $fx.rpg[theme.rpg].countCoins.pause();
+      play$fx("countCoins", { stop: true });
       $fx.rpg[theme.rpg].fillPoints.pause();
       $fx.rpg[theme.rpg].fillPoints.currentTime = 0;
     },
