@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from "vue";
+  import { computed, ref } from "vue";
   import { IonItem, IonLabel, IonSelect, IonSelectOption } from "@ionic/vue";
   import { canManageFamily } from "@/router/_Guards/gm.guard";
   import { approvalWaitHours, setApprovalWaitHours } from "@/lib/services/notifications/approvalReminders";
@@ -37,7 +37,8 @@
     { hours: 8, label: "8 hours" },
   ];
 
-  const isGameMaster = canManageFamily();
+  // Read again each time: on a shared device the Game Master and a hero take turns with this page open
+  const isGameMaster = computed(() => canManageFamily());
   const hours = ref(approvalWaitHours());
 
   const handleChange = (event: CustomEvent<{ value: number }>) => {
