@@ -34,6 +34,11 @@ jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
   recordBattleCompletion: (...args: unknown[]) => mockRecordBattleCompletion(...args),
   isQuestStillOpen: (...args: unknown[]) => mockIsQuestStillOpen(...args),
 }));
+// The family's late chore rules are off here (tests/unit/LatePenalties.spec.ts and QuestCompletion.spec.ts cover them)
+jest.mock("@/lib/services/quests/lateChores", () => ({
+  adjustForLateness: async (_quest: unknown, _hero: unknown, rewards: unknown) => ({ rewards, isReduced: false }),
+  isQuestLockedNow: async () => false,
+}));
 const mockTemples = { markRoomCleared: jest.fn(), refreshQuestRooms: jest.fn() };
 jest.mock("@/lib/engine/core/dungeons/TempleSystem", () => ({
   TempleSystem: { getInstance: () => mockTemples },

@@ -241,7 +241,15 @@ export function hintLine(canClaim: boolean, voice: Voice = "adventure"): string 
  * What the card lets the hero do. Hunt is lit while a step is left: with every step checked the beast is already down,
  * and a fight started then would arm the chores afresh and wipe the checked steps, so Claim takes over.
  */
-export function cardActions(status: BeastCardStatus, steps: readonly CardStep[], voice: Voice = "adventure"): CardActions {
+export function cardActions(
+  status: BeastCardStatus,
+  steps: readonly CardStep[],
+  voice: Voice = "adventure",
+  /** The family locked this chore when it ran late: the card only shows why ("Too late: this one closed at 6:00pm") */
+  lockedNotice = ""
+): CardActions {
+  const isLocked = lockedNotice !== "";
+  if (isLocked) return { canCheck: false, canHunt: false, canClaim: false, showButtons: false, note: lockedNotice };
   const workable = isWorkable(status);
   const everyStepDone = steps.length > 0 && steps.every((step) => step.checked);
   return {

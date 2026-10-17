@@ -27,6 +27,21 @@ export type LateOverride = "family" | "allow" | "lock" | "noPenalty";
 
 export const LATE_OVERRIDES: readonly LateOverride[] = ["family", "allow", "lock", "noPenalty"];
 
+/** The chore form's select, in plain words */
+export const LATE_OVERRIDE_LABELS: Record<LateOverride, string> = {
+  family: "Use the family's rule",
+  allow: "Allow late",
+  lock: "Lock when late",
+  noPenalty: "No penalty",
+};
+
+export const LATE_OVERRIDE_HINTS: Record<LateOverride, string> = {
+  family: "Late works as set in the Chores settings.",
+  allow: "This chore can always be finished late, even when the family locks late chores.",
+  lock: "Once the due time passes, this chore closes and can't be claimed.",
+  noPenalty: "Missing the due time costs nothing for this chore, whatever the family penalty.",
+};
+
 export type PenaltyMode = "percent" | "flat";
 
 /** The family's late-chore switches (kept in the family settings) */
@@ -52,6 +67,12 @@ export const DEFAULT_LATE_CHORES: LateChoreSettings = {
   penaltyMode: "percent",
   penaltyAmount: 25,
 };
+
+/** The late shares the settings offer, percent of the reward */
+export const LATE_SHARES: readonly number[] = [0, 10, 25, 50, 75, 90, 100];
+/** The penalty amounts the settings offer: percent of the reward, or a flat number of XP and of GP */
+export const PERCENT_PENALTIES: readonly number[] = [5, 10, 25, 50, 75, 100];
+export const FLAT_PENALTIES: readonly number[] = [1, 2, 5, 10, 20, 50];
 
 /** The most a flat penalty may be set to, per currency */
 export const MAX_FLAT_PENALTY = 1000;
@@ -145,7 +166,8 @@ export const paysLessWhenLate = (rule: LateRule): boolean => rule.lateShare < 10
 
 /** A late finish's pay: the rule's share of each reward (whole numbers, rounded). On time, pass the rewards through. */
 export const lateReward = (rewards: QuestRewards, rule: LateRule): QuestRewards => {
-  if (!paysLessWhenLate(rule)) return { ...rewards };
+  const isFullPay = !paysLessWhenLate(rule);
+  if (isFullPay) return { ...rewards };
   const share = (amount: number) => Math.round((Math.max(0, amount) * rule.lateShare) / 100);
   return { xp: share(rewards.xp), gp: share(rewards.gp), ap: share(rewards.ap) };
 };
@@ -165,7 +187,8 @@ export const NO_PENALTY: Penalty = { xp: 0, gp: 0 };
  * AP is never taken. Nothing when the rule has no penalty.
  */
 export const latePenalty = (rule: LateRule, rewards: QuestRewards): Penalty => {
-  if (!rule.penalty) return { ...NO_PENALTY };
+  const hasNoPenalty = !rule.penalty;
+  if (hasNoPenalty) return { ...NO_PENALTY };
   const isPercent = rule.penaltyMode === "percent";
   const take = (reward: number) => (isPercent ? Math.round((Math.max(0, reward) * rule.penaltyAmount) / 100) : rule.penaltyAmount);
   return { xp: take(rewards.xp), gp: take(rewards.gp) };
@@ -199,7 +222,9 @@ export const penaltyKeyOf = (heroId: string, questId: string, deadline: Date): s
 /** "-12 XP, -5 GP" */
 export const penaltyLine = (penalty: Penalty): string => {
   const parts: string[] = [];
-  if (penalty.xp > 0) parts.push(`-${penalty.xp} XP`);
-  if (penalty.gp > 0) parts.push(`-${penalty.gp} GP`);
+  const hasXp = penalty.xp > 0;
+  if (hasXp) parts.push(`-${penalty.xp} XP`);
+  const hasGp = penalty.gp > 0;
+  if (hasGp) parts.push(`-${penalty.gp} GP`);
   return parts.join(", ");
 };

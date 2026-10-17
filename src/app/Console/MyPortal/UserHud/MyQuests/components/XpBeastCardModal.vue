@@ -230,11 +230,13 @@ interface BeastCardModalProps {
   due?: Date | null;
   /** The board's wording of the due time ("6:00pm", "Tomorrow 6:00pm") */
   dueLabel?: string;
+  /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; empty otherwise */
+  lockedNotice?: string;
 }
 
 const props = withDefaults(
   defineProps<BeastCardModalProps>(),
-  { due: null, dueLabel: "" }
+  { due: null, dueLabel: "", lockedNotice: "" }
 );
 
 const emit = defineEmits<{
@@ -301,7 +303,7 @@ const stateChip = computed(() => stateWord(props.status, voice.value));
 
 const shownSteps = computed(() => stepsForState(props.status, steps.value));
 const progress = computed(() => progressLine(shownSteps.value));
-const actions = computed(() => cardActions(props.status, steps.value, voice.value));
+const actions = computed(() => cardActions(props.status, steps.value, voice.value, props.lockedNotice));
 const listReady = computed(() => actions.value.canClaim);
 // Every quest earns it by winning its fight; a Game Master's approval pays it on top, once (a claim never does)
 const bonusLabel = huntBonusLabel();

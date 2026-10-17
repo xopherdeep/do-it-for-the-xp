@@ -15,6 +15,7 @@ import {
   latePenalty,
   lateRuleFor,
   lateStatus,
+  lockedNotice,
   paysLessWhenLate,
   penaltyKeyOf,
   penaltyLine,
@@ -72,6 +73,29 @@ export const isQuestLockedNow = async (quest: Achievement, heroId: string, now: 
   return status.state === "locked";
 };
 
+/**
+ * The chores on the hero's board the family has locked for being late, quest id -> "Too late: this one closed at 6:00pm".
+ * Only chores still open count; a tamed or waiting one has nothing to lock.
+ */
+export const lockedNoticesFor = async (
+  board: readonly QuestBoardItem[],
+  heroId: string,
+  now: Date = new Date()
+): Promise<Record<string, string>> => {
+  const settings = await loadFamilySettings();
+  const effects = effectsOf(String(heroId));
+  const notices: Record<string, string> = {};
+  for (const item of board) {
+    const isSettled = item.status !== "open" || item.pending;
+    if (isSettled) continue;
+    const rule = lateRuleFor(item.quest, settings.lateChores);
+    const { state, deadline } = lateStatus(item.quest, rule, effects, now);
+    const isLocked = state === "locked";
+    if (isLocked) notices[String(item.quest.id)] = lockedNotice(deadline, now);
+  }
+  return notices;
+};
+
 export const latePenaltyNotification = (
   heroId: string,
   quest: { id: string | number; achievementName: string },
@@ -107,8 +131,10 @@ const takeFromHero = async (heroId: string, penalty: Penalty, note: string): Pro
     levelFloorXp: getXpForLevel(Number(stats?.level) || 1),
     gp: Number(stats?.gp?.wallet) || 0,
   });
-  if (taken.xp > 0) store.updateUserXP({ userId: heroId, amount: -taken.xp, commit: true });
-  if (taken.gp > 0) await store.updateUserGP({ userId: heroId, wallet: -taken.gp, kind: "spend", note });
+  const hasXp = taken.xp > 0;
+  if (hasXp) store.updateUserXP({ userId: heroId, amount: -taken.xp, commit: true });
+  const hasGp = taken.gp > 0;
+  if (hasGp) await store.updateUserGP({ userId: heroId, wallet: -taken.gp, kind: "spend", note });
   return taken;
 };
 

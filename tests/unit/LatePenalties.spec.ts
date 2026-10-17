@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
-import { chargeLatePenalties, latePenaltyNotification } from "@/lib/services/quests/lateChores";
+import { chargeLatePenalties, latePenaltyNotification, lockedNoticesFor } from "@/lib/services/quests/lateChores";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
@@ -185,6 +185,21 @@ describe("chargeLatePenalties", () => {
     setActivePinia(createPinia());
     addHero({}, { pause: { from: new Date(2026, 9, 10, 12, 0).toISOString(), until: new Date(2026, 9, 10, 23, 0).toISOString() } });
     expect(await chargeLatePenalties([item()], HERO, AT_7PM)).toEqual([]);
+  });
+});
+
+describe("lockedNoticesFor", () => {
+  it("names the open chores the family locked for being late", async () => {
+    addHero();
+    mockLateChores = { lockLate: true };
+    const board = [item({ id: "a" }), item({ id: "b", lateRule: "allow" }), item({ id: "c" }, { status: "done" })];
+    expect(await lockedNoticesFor(board, HERO, AT_5PM)).toEqual({});
+    expect(await lockedNoticesFor(board, HERO, AT_7PM)).toEqual({ a: "Too late: this one closed at 6:00pm" });
+  });
+
+  it("locks nothing when the family has not switched the lock on", async () => {
+    addHero();
+    expect(await lockedNoticesFor([item()], HERO, AT_7PM)).toEqual({});
   });
 });
 

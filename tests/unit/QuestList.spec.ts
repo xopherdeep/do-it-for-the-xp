@@ -83,6 +83,19 @@ describe("questListFor", () => {
     expect(rows[6].statusLabel).toBe("Tamed");
   });
 
+  it("marks the open rows the family locked, and leaves a tamed one alone", () => {
+    const board = [
+      onBoard(makeQuest({ id: "closed", dueByTime: "08:00" }), "open", { overdue: true }),
+      onBoard(makeQuest({ id: "fine", dueByTime: "18:00" })),
+      onBoard(makeQuest({ id: "tamed", dueByTime: "07:00" }), "done"),
+    ];
+    const notice = "Too late: this one closed at 8:00am";
+    const rows = questListFor("hero-1", NOON, board, users, undefined, { closed: notice, tamed: notice });
+    expect(rows.find((row) => row.id === "closed")?.lockedNotice).toBe(notice);
+    expect(rows.find((row) => row.id === "fine")?.lockedNotice).toBeUndefined();
+    expect(rows.find((row) => row.id === "tamed")?.lockedNotice).toBeUndefined();
+  });
+
   it("labels due times relative to the day it is read", () => {
     const rows = questListFor(
       "hero-1",

@@ -9,7 +9,7 @@ import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
-import { lateCheckFor } from "@/lib/services/quests/lateChores";
+import { lateCheckFor, lockedNoticesFor } from "@/lib/services/quests/lateChores";
 import { completeQuest } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { nickOf, questListCounts, questListFor } from "@/lib/services/quests/QuestList";
@@ -125,7 +125,7 @@ export default defineComponent({
     // The board as a plain to-do list: every quest with its assignee, due time and status
     listRows(): QuestListRow[] {
       const effects = (this as any).userStore.getUserById(this.userId)?.questEffects;
-      return questListFor(String(this.userId), new Date(), this.board, (this as any).userStore.users, effects);
+      return questListFor(String(this.userId), new Date(), this.board, (this as any).userStore.users, effects, this.lockedNotices);
     },
     listCounts(): Record<QuestListStatus, number> {
       return questListCounts(this.listRows);
@@ -396,6 +396,8 @@ export default defineComponent({
     const { rootClass, rootStyle } = useAppSkin("quests");
 
     const board = ref<QuestBoardItem[]>([]);
+    // Quest id -> why the family locked it for being late ("Too late: this one closed at 6:00pm")
+    const lockedNotices = ref<Record<string, string>>({});
     const isLoading = ref(true);
     // The family's own beasts: the tile of a quest wears its beast's portrait
     const familyBeasts = ref<Beast[]>([]);
@@ -415,7 +417,11 @@ export default defineComponent({
         const items = await getQuestEngine().getQuestBoardForUser(props.userId, new Date(), {
           search: params.search,
         }, effects);
-        if (isNewestRequest(request)) board.value = items;
+        const locked = await lockedNoticesFor(items, String(props.userId), new Date());
+        if (isNewestRequest(request)) {
+          board.value = items;
+          lockedNotices.value = locked;
+        }
       } finally {
         if (isNewestRequest(request)) isLoading.value = false;
 
@@ -462,6 +468,7 @@ export default defineComponent({
       t,
       params,
       board,
+      lockedNotices,
       loadBoard,
       isLoading,
       familyBeasts,
