@@ -94,7 +94,7 @@ export function linkedQuestRow(rows: readonly QuestListRow[], questId: string | 
   return rows.find((row) => String(row.quest.id) === String(questId)) ?? null;
 }
 
-/** The status MyTask reads: used-up quests are done, quests that are not due yet are notDue. */
+/** The board status of a quest: used-up quests are done, quests that are not due yet are notDue. */
 export function boardStatusOf(status: QuestListStatus): "open" | "done" | "notDue" {
   if (isUsedUp(status)) return "done";
   return status === "later" ? "notDue" : "open";

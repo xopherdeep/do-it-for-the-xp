@@ -190,7 +190,7 @@ describe("approveCompletion", () => {
 /**
  * A battle win completes its quest (docs/Quest-Rooms-Spec.md 7.5), and the log, not the screen the fight began on,
  * says whether the window is still open: every hero's log, so a shared quest a sibling already cleared is not paid
- * twice (5.4). The same rule MyTask's claim reads.
+ * twice (5.4). The same rule the beast card's claim reads.
  */
 describe("isQuestStillOpen", () => {
   const SIBLING = "hero-2";

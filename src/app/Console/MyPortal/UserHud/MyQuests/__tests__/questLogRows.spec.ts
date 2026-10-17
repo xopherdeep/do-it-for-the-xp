@@ -116,7 +116,7 @@ describe("the Board's due windows", () => {
     expect(windowOf(monthly, NOON)).toBe("later");
   });
 
-  it("opens the quest with the status MyTask expects", () => {
+  it("opens the quest with the status the board expects", () => {
     expect(boardStatusOf("open")).toBe("open");
     expect(boardStatusOf("overdue")).toBe("open");
     expect(boardStatusOf("pending")).toBe("done");
