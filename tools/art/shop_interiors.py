@@ -8,6 +8,8 @@ Usage (GEMINI_API_KEY in the environment):
   python3 tools/art/shop_interiors.py -n 3 crystal-caverns   # three takes to pick from
   python3 tools/art/shop_interiors.py --sheet             # rebuild the review sheet (Snow Shack | takes, phone crop drawn on)
   python3 tools/art/shop_interiors.py --install hermits-tent=2 theia-city   # take #2, take #1 -> shops/<id>.webp
+  python3 tools/art/shop_interiors.py -n 3 traveling-merchant   # the balloon: its window is drawn flat magenta, and
+                                                                # --install keys that out so the world shows through
 Env: XP_GEMINI_MODEL pins a model (default: the first of GEMINI_MODELS the key can use)."""
 import base64, io, json, os, sys, threading, urllib.error, urllib.request
 from PIL import Image, ImageDraw
@@ -75,6 +77,18 @@ SHOPS = {
              "where a white winged pegasus pokes its head over the half door, lanterns on the posts",
         clerk="Francis the Rancher, a cheerful rancher with a wide brown cowboy hat, a bushy moustache, a plaid shirt and "
               "a leather vest, standing behind a wooden counter"),
+    # Boobeedeedle's balloon has no room of its own: the shop draws the world he is visiting behind this picture, so
+    # the window is painted flat magenta and --install turns it see-through (see key_out_window)
+    "traveling-merchant": dict(
+        name="Traveling Merchant's Balloon", region="wherever he has landed today", cutout=True,
+        room="the inside of the wicker basket of a patched red-and-cream striped hot air balloon, seen from within: the "
+             "big striped balloon canopy and its burner hang across the top of the picture, thick rope rigging and wooden "
+             "posts run down both sides, a woven wicker basket wall and a plank counter run along the bottom, crates, "
+             "sacks, bottles, a brass telescope and a few hanging lanterns pile up in the lower corners. The whole open "
+             "middle of the picture, between the canopy, the rigging and the counter, is ONE flat solid pure magenta "
+             "(#FF00FF) window with no sky, no ground, no clouds, no horizon and no outline of its own",
+        clerk="Boobeedeedle, a plump cheerful peddler in flight goggles, a patched brown coat and a floppy hat, leaning on "
+              "the counter at the lower right corner of the picture, small, looking at the viewer"),
     # Home Town's general store; any shop without a picture of its own shows it too
     "hometown-market": dict(
         name="Hometown Market", region="Home Town", dest=os.path.join(ROOT, "src", "assets", "images", "midjourney", "shop.webp"),
@@ -94,6 +108,9 @@ SHOPS = {
               "over a pink dress, holding a clipboard, standing behind a curved wooden reception counter"),
 }
 
+CUTOUT_NOTE = """
+This picture is a FRAME that goes in front of another picture: keep the middle of the picture, between the canopy, the rigging and the counter, completely empty and flat pure magenta (#FF00FF) with hard edges. Do not paint anything in it, do not use magenta anywhere else, and put the shopkeeper at the edge as described, not in the middle. Ignore the instruction above about a shopkeeper in the middle and an open floor patch."""
+
 PROMPT = """The attached picture is the Snow Shack, a shop interior from our retro 16-bit SNES-era fantasy RPG for a portrait phone screen. Paint a NEW shop interior for the same game, the {name} in {region}.
 Match the attached picture exactly in: art style (crisp pixel art with the same pixel size, outlines, dithering and shading), the top-down three-quarter view, the level of detail, the warm lantern lighting and the composition: shelves and goods along the back wall and both sides, the shopkeeper in the middle of the picture behind a counter, curved or angled counters with goods at the lower left and lower right, and an open patch of floor at the bottom centre where the customer stands.
 The room: {room}.
@@ -111,7 +128,7 @@ def paint(key, n):
     buf = io.BytesIO()
     Image.open(ANCHOR).convert("RGB").save(buf, "PNG")
     anchor = base64.b64encode(buf.getvalue()).decode()
-    prompt = PROMPT.format(**SHOPS[key])
+    prompt = PROMPT.format(**SHOPS[key]) + (CUTOUT_NOTE if SHOPS[key].get("cutout") else "")
     models = [GEMINI_MODEL] if GEMINI_MODEL else list(GEMINI_MODELS)
     for _ in range(n):
         for model in models:
@@ -162,12 +179,39 @@ def sheet():
     out.save(path); print(path)
 
 
+def key_out_window(im, tolerance=110, feather=40):
+    """RGB picture with a flat magenta window -> RGBA with that window see-through. Pixels near #FF00FF go transparent,
+    a band beyond the tolerance fades in, and magenta fringe on the edge is pulled back toward the neighbouring colour."""
+    im = im.convert("RGB")
+    px = im.load()
+    w, h = im.size
+    out = Image.new("RGBA", im.size)
+    op = out.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b = px[x, y]
+            dist = ((255 - r) ** 2 + g ** 2 + (255 - b) ** 2) ** 0.5
+            if dist <= tolerance:
+                op[x, y] = (0, 0, 0, 0)
+                continue
+            alpha = 255 if dist >= tolerance + feather else int(255 * (dist - tolerance) / feather)
+            if alpha < 255:
+                # a half-keyed edge pixel: remove the magenta it picked up
+                spill = min(r, b) - g
+                if spill > 0:
+                    r, b = max(0, r - spill // 2), max(0, b - spill // 2)
+            op[x, y] = (r, g, b, alpha)
+    return out
+
+
 def install(picks):
     for pick in picks:
         key, _, i = pick.partition("=")
         if key not in SHOPS: sys.exit(f"unknown shop {key}; pick from {list(SHOPS)}")
         src, dest = take_path(key, int(i or 1)), SHOPS[key].get("dest") or os.path.join(SHOP_DIR, f"{key}.webp")
-        Image.open(src).convert("RGB").save(dest, "WEBP", quality=88, method=6)
+        take = Image.open(src).convert("RGB")
+        if SHOPS[key].get("cutout"): take = key_out_window(take)
+        take.save(dest, "WEBP", quality=88, method=6)
         print(f"{src} -> {dest}")
 
 
