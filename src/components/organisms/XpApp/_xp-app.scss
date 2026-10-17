@@ -500,6 +500,12 @@
     opacity: 0.8;
   }
 
+  &__icon {
+    margin-right: 4px;
+    --fa-primary-color: currentColor;
+    --fa-secondary-color: currentColor;
+  }
+
   &--xp {
     --chip-rgb: 95, 217, 122;
   }

@@ -5,6 +5,8 @@ export type AppChipKind = "xp" | "gp" | "ap" | "mp" | "hp" | "qty" | "tag";
 export interface AppChipSpec {
   kind: AppChipKind;
   value: string | number;
+  /** Optional Font Awesome duotone glyph, e.g. `fa-camera` */
+  icon?: string;
   class?: string;
 }
 

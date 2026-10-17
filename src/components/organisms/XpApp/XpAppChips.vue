@@ -1,5 +1,5 @@
 <template>
-  <xp-app-chip v-for="(chip, i) in chips" :key="`${chip.kind}-${i}`" :kind="chip.kind" :value="chip.value"
+  <xp-app-chip v-for="(chip, i) in chips" :key="`${chip.kind}-${i}`" :kind="chip.kind" :value="chip.value" :icon="chip.icon"
     :class="chip.class" />
 </template>
 
