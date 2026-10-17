@@ -9,8 +9,8 @@
  */
 
 /**
- * Keys look like "./avatars/001-gamer.svg" (relative to src/assets/images/), the shape MyTask.ts
- * passes to `$requireImg`. Only the avatar SVGs are in this context; widen the RegExp (or require
+ * Keys look like "./avatars/001-gamer.svg" (relative to src/assets/images/), the shape the avatar pickers
+ * pass to `$requireImg`. Only the avatar SVGs are in this context; widen the RegExp (or require
  * the file directly) if another folder needs a runtime lookup.
  */
 const requireImg = require.context("@/assets/images/", true, /^\.\/avatars\/[^/]+\.svg$/);

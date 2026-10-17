@@ -1,6 +1,5 @@
 import XpFabPageMenu from "./XpFabPageMenu.vue" 
 import XpFabUserHud from "./XpFabUserHud.vue" 
-import XpFabQuickDraw from "./XpFabQuickDraw.vue"
 import XpFabPageShortcuts from "./XpFabPageShortcuts.vue"
 import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
 import { Swiper, SwiperSlide } from "swiper/vue";
@@ -18,7 +17,6 @@ export default {
   SwiperSlide,
   CardUserStats,
   XpFabPageMenu, 
-  XpFabQuickDraw,
   XpFabPageShortcuts,
   XpFabUserHud,
   XpEquipmentModal,

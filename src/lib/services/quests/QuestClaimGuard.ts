@@ -13,7 +13,7 @@ import {
  * A claim screen can be stale (a card left open, a list row nobody refreshed), so the claim reads the log of
  * EVERY hero before it pays: a window the hero already used up (a pending claim counts) or a shared quest
  * (Team Effort, Rat Race) another assignee cleared is closed, and paying it again would pay twice.
- * The quest card (MyTask) and the list row (MyQuests) both claim through this one rule.
+ * The beast card and the list row (MyQuests) both claim through this one rule.
  */
 export interface ClaimCheck {
   /** The quest is due and its window still has room: the claim may be recorded */

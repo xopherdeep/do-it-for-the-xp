@@ -15,9 +15,8 @@
     </template>
 
     <!-- FABs: Retired 2026-10-10 now that 3D voxel models match navigation menus 1:1 across all plazas.
-         The quick-draw FAB hands live in bottom nav; the Pegasus map opens from the avatar menu next to Save & Quit. -->
+         The hands live in the bottom nav; the Pegasus map opens from the avatar menu next to Save & Quit. -->
     <template #fabs v-if="user">
-      <!-- <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="openAreaMenu" /> -->
       <!-- <xp-fab-page-menu v-if="isUserFabOn && fabStyle === 'retro'" :user="user" :page-name="compass.name" :key="`menu-${route.path}`" /> -->
       <!-- <xp-fab-page-shortcuts v-if="isUserFabOn && fabStyle === 'modern'" :shortcuts="userActions" :key="`shortcuts-${route.path}`" /> -->
     </template>
