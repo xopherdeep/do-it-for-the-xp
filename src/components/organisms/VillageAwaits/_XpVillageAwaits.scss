@@ -1,0 +1,48 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
+// An Earthbound text box above the quest list: the window, a bobbing caret, the Game Style's frame
+.village-awaits {
+  @include eb-box;
+  display: grid;
+  gap: 4px;
+  width: calc(100% - 32px);
+  margin: 14px 16px 8px;
+  padding: 10px 14px;
+  border: 0;
+  text-align: left;
+  font-family: "StatusPlz", sans-serif;
+  cursor: pointer;
+
+  &__head {
+    font-size: 1rem;
+    color: #f2c14e;
+    i {
+      margin-right: 6px;
+    }
+  }
+
+  &__line {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  &__go {
+    justify-self: end;
+    font-size: 0.8rem;
+    i {
+      animation: village-bob 0.9s steps(2) infinite;
+    }
+  }
+}
+
+@keyframes village-bob {
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .village-awaits__go i {
+    animation: none;
+  }
+}

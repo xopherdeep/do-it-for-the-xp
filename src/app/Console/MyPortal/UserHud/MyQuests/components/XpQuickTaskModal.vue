@@ -143,13 +143,14 @@
               <i class="fad fa-crown quick-task-row-icon" />
               <span
                 class="quick-task-row-text"
-                @click="requiresApproval = !requiresApproval"
+                @click="toggleApproval"
               >
                 Game Master must approve
-                <small>{{ requiresApproval ? "Loot waits for a GM's OK" : "Loot pays out when it's done" }}</small>
+                <small>{{ approvalNote }}</small>
               </span>
               <ion-toggle
                 v-model="requiresApproval"
+                :disabled="!isGm"
                 class="quick-task-toggle"
                 aria-label="Game Master must approve"
               />
@@ -202,6 +203,8 @@ import { v4 as uuidv4 } from "uuid";
 import AchievementDb, { achievementStorage, type Achievement } from "@/lib/databases/AchievementDb";
 import { newQuickTask, nickOf, QUICK_TASK_REWARDS, type FamilyMembers } from "@/lib/services/quests/QuestList";
 import { play$fx } from "@/assets/fx";
+import { useUserStore } from "@/lib/store/stores/user";
+import { resolveGmAccess } from "@/router/_Guards/gm.guard";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 
 /**
@@ -227,7 +230,20 @@ const dueChoice = ref<DueChoice>("today");
 const todayIso = format(new Date(), "yyyy-MM-dd");
 const pickedDay = ref(todayIso);
 const dueByTime = ref("");
-const requiresApproval = ref(false);
+const userStore = useUserStore();
+// A Game Master chooses whether the task needs a Game Master's OK; a hero's own task always does
+const isGm = computed(() => {
+  const access = resolveGmAccess(userStore);
+  return access === "game-master" || access === "masquerade";
+});
+const requiresApproval = ref(!isGm.value);
+const approvalNote = computed(() => {
+  if (!isGm.value) return "Loot waits for a Game Master's OK";
+  return requiresApproval.value ? "Loot waits for a GM's OK" : "Loot pays out when it's done";
+});
+const toggleApproval = () => {
+  if (isGm.value) requiresApproval.value = !requiresApproval.value;
+};
 const rewards = reactive({
   xp: String(QUICK_TASK_REWARDS.xp),
   gp: String(QUICK_TASK_REWARDS.gp),
@@ -275,6 +291,7 @@ const save = async () => {
       due: dueChoice.value === "pick" ? pickedDay.value : dueChoice.value,
       dueByTime: dueByTime.value,
       requiresApproval: requiresApproval.value,
+      isGm: isGm.value,
       rewards: { xp: Number(rewards.xp), gp: Number(rewards.gp), ap: Number(rewards.ap) },
     });
     await new AchievementDb(achievementStorage).setTask(task);

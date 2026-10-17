@@ -16,6 +16,10 @@
             <ion-badge color="danger" class="notification-badge" v-if="hasUnreadNotifications">
               {{ notificationBadgeLabel }}
             </ion-badge>
+            <ion-badge color="warning" class="notification-badge approvals-badge" v-if="waitingCount > 0"
+              :aria-label="`${waitingCount} chores waiting for approval`">
+              <i class="fad fa-clipboard-check"></i> {{ waitingCount }}
+            </ion-badge>
           </div>
 
           <ion-badge class="name-badge">
@@ -56,6 +60,8 @@ import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { play$fx } from "@/assets/fx";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { abbreviateNumber } from "@/lib/utils/format";
+import { waitingClaimCount } from "@/lib/services/quests/waitingClaims";
+import { APPROVALS_LINK } from "@/lib/services/notifications/Notifications";
 import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import {
   menuController,
@@ -138,6 +144,19 @@ export default defineComponent({
         action.id === USER_MENU_CONFIG.notifications.id ? { ...action, badge } : action
       );
 
+      const waiting = (this as any).waitingCount;
+      const hasWaiting = waiting > 0;
+      if (hasWaiting) {
+        actions.splice(1, 0, {
+          label: "Approvals",
+          faIcon: "clipboard-check",
+          badge: waiting,
+          click: () => {
+            this.$router.push(APPROVALS_LINK);
+          },
+        });
+      }
+
       actions.push({
         label: "Menu",
         faIcon: "bars",
@@ -183,6 +202,8 @@ export default defineComponent({
       if (!count) return undefined;
       return count > 99 ? "99+" : count;
     });
+    // A Game Master sees how many chores wait on their word (always zero for a hero)
+    const waitingCount = computed(() => waitingClaimCount.value);
     const fabActive = ref(false);
     const showSaveQuitModal = ref(false);
 
@@ -336,6 +357,7 @@ export default defineComponent({
       unreadNotifications,
       hasUnreadNotifications,
       notificationBadgeLabel,
+      waitingCount,
       walletOutline,
       colorWand,
       fitnessOutline,

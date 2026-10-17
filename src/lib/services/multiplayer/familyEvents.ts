@@ -6,7 +6,14 @@
 import { v4 as uuidv4 } from "uuid";
 import type { HeroCard } from "./heroCard";
 
-export type FamilyEventKind = "hero.card" | "hero.leveled" | "quest.done" | "reward.granted";
+export type FamilyEventKind =
+  | "hero.card"
+  | "hero.leveled"
+  | "quest.done"
+  | "quest.claimed"
+  | "quest.approved"
+  | "quest.rejected"
+  | "reward.granted";
 
 export interface FamilyEvent {
   /** uuid v4, made on the device */
@@ -31,6 +38,9 @@ export const EVENT_KINDS: Record<FamilyEventKind, EventKindRule> = {
   "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
   "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
   "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
+  "quest.claimed": { scope: "family", writer: "home", fields: ["questId", "difficulty", "requiresApproval"] },
+  "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
+  "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
   "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
 };
 
@@ -92,3 +102,22 @@ export const leveledEvent = (heroId: string, level: number, jobClass: string, de
 
 export const questDoneEvent = (heroId: string, deviceId: string, d: { difficulty: number; xp: number; fight: boolean }): FamilyEvent =>
   newEvent("quest.done", heroId, deviceId, { difficulty: d.difficulty, xp: d.xp, fight: d.fight });
+
+export const questClaimedEvent = (
+  heroId: string,
+  deviceId: string,
+  d: { questId: string; difficulty: number; requiresApproval: boolean },
+): FamilyEvent =>
+  newEvent("quest.claimed", heroId, deviceId, {
+    questId: d.questId,
+    difficulty: d.difficulty,
+    requiresApproval: d.requiresApproval,
+  });
+
+/** The Game Master's verdict on a held claim: `quest.approved`, or `quest.rejected` with the note the hero saw */
+export const questReviewedEvent = (
+  heroId: string,
+  deviceId: string,
+  d: { questId: string; approved: boolean; note: string },
+): FamilyEvent =>
+  newEvent(d.approved ? "quest.approved" : "quest.rejected", heroId, deviceId, { questId: d.questId, note: d.note });

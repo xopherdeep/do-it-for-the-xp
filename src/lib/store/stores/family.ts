@@ -9,7 +9,7 @@ import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
 import { normalizeCode, phoneLabel } from "@/lib/services/multiplayer/deviceLink";
 import { markPaid, newestSeq, rewardsToPay, trimPaid } from "@/lib/services/multiplayer/eventInbox";
 import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
-import { questDoneEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
+import { questClaimedEvent, questDoneEvent, questReviewedEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import {
   bindFamily,
   claimDevice,
@@ -24,7 +24,7 @@ import {
   saveHero,
 } from "@/lib/services/multiplayer/familyServer";
 import type { BindAnswer, FamilyProblem, HeroPhone, LinkCode, ServerHero } from "@/lib/services/multiplayer/familyServer";
-import { onHeroRemoved, onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { onHeroRemoved, onQuestClaimed, onQuestPaid, onQuestReviewed, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
@@ -231,6 +231,16 @@ export const useFamilyStore = defineStore("family", () => {
     const difficulty = await difficultyOf(paid.questId);
     const { deviceId } = await ensureIdentity();
     await queueEvents([questDoneEvent(paid.heroId, deviceId, { difficulty, xp: paid.xp, fight: paid.fight })]);
+  }
+
+  /** A claim made, or settled by a Game Master: the approval loop's events (FAMILY_EVENTS.md). Unknown heroes send nothing. */
+  async function queueApprovalEvent(heroId: string, build: (deviceId: string) => FamilyEvent): Promise<void> {
+    const mayQueue = canQueue();
+    if (!mayQueue) return;
+    const isKnown = cards.isKnown(heroId, (await loaded()).lastCards);
+    if (!isKnown) return;
+    const { deviceId } = await ensureIdentity();
+    await queueEvents([build(deviceId)]);
   }
 
   let downloading: Promise<void> | null = null;
@@ -627,6 +637,20 @@ export const useFamilyStore = defineStore("family", () => {
     stops.push(
       onQuestPaid((paid) => {
         queueQuestDone(paid).catch((error) => debug.warn("family: could not queue a paid quest", error));
+      })
+    );
+    stops.push(
+      onQuestClaimed((claim) => {
+        queueApprovalEvent(claim.heroId, (deviceId) => questClaimedEvent(claim.heroId, deviceId, claim)).catch((error) =>
+          debug.warn("family: could not queue a claim", error)
+        );
+      })
+    );
+    stops.push(
+      onQuestReviewed((review) => {
+        queueApprovalEvent(review.heroId, (deviceId) => questReviewedEvent(review.heroId, deviceId, review)).catch((error) =>
+          debug.warn("family: could not queue a review", error)
+        );
       })
     );
     stops.push(watch(() => useUserStore().users, () => queueCardsSoon(), { deep: true }));

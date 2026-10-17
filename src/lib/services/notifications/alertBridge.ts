@@ -19,6 +19,10 @@ export interface HeroAlert {
   id: number;
   title: string;
   body: string;
+  /** The app page a tap on the alert opens (reminderTaps.ts) */
+  link?: string;
+  /** The Android channel; battle alerts unless said */
+  channelId?: "battle-alerts" | "chore-reminders";
 }
 
 export interface AlertResult {
@@ -187,9 +191,9 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
         id: alert.id,
         title: alert.title,
         body: alert.body,
-        channelId: "battle-alerts",
+        channelId: alert.channelId ?? "battle-alerts",
         ...(at ? { schedule: { at, allowWhileIdle: true } } : {}),
-        extra: { kind: "battle-alert" },
+        extra: { kind: alert.link ? "approval-alert" : "battle-alert", ...(alert.link ? { link: alert.link } : {}) },
       },
     ],
   });

@@ -300,3 +300,20 @@ describe("newQuickTask", () => {
     expect(ahead).toMatchObject({ status: "later", dueLabel: "Tomorrow 5:00pm" });
   });
 });
+
+describe("newQuickTask approval", () => {
+  const base = { title: "Bins", assigneeId: "hero-2" };
+
+  it("is honor system unless asked, for a Game Master or an unknown poster", () => {
+    expect(newQuickTask(base, NOON).requiresApproval).toBe(false);
+    expect(newQuickTask({ ...base, isGm: true }, NOON).requiresApproval).toBe(false);
+  });
+
+  it("follows the Game Master toggle", () => {
+    expect(newQuickTask({ ...base, isGm: true, requiresApproval: true }, NOON).requiresApproval).toBe(true);
+  });
+
+  it("always waits for a Game Master when a hero posts it", () => {
+    expect(newQuickTask({ ...base, isGm: false, requiresApproval: false }, NOON).requiresApproval).toBe(true);
+  });
+});

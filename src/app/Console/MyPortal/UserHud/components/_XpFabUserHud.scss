@@ -84,6 +84,17 @@ ion-fab {
         line-height: 1.1;
         text-align: center;
       }
+
+      // The Game Master's count of chores waiting on their word, opposite the unread badge
+      .approvals-badge {
+        top: auto;
+        bottom: 2px;
+        right: -2px;
+        color: #2b1b00;
+        i {
+          font-size: 0.65rem;
+        }
+      }
     }
 
     .name-badge {
