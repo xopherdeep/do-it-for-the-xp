@@ -8,6 +8,7 @@
  */
 import { Capacitor } from "@capacitor/core";
 import debug from "@/lib/utils/debug";
+import { ensureAlertChannels } from "./alertChannels";
 
 export type AlertPermission = "granted" | "denied" | "prompt" | "unsupported";
 /** What the hero answered when the game asked about battle alerts; "unasked" until they have */
@@ -38,7 +39,6 @@ const WORKER_PATH = `${process.env.BASE_URL ?? "./"}alerts-sw.js`;
 /** How long to wait for the worker to take charge before the alert falls back to the plain constructor. */
 const WORKER_READY_MS = 3000;
 const CHOICE_KEY = "xp.battleAlerts";
-const REMINDERS_KEY = "xp.choreReminders";
 
 /** True inside the packaged (Capacitor) app, false in a browser. Synchronous on purpose, see requestAlertPermission. */
 export const isNativeApp = (): boolean => {
@@ -174,30 +174,6 @@ export const requestAlertPermission = async (): Promise<AlertPermission> => {
   }
 };
 
-/**
- * Android 8+ drops a notification whose channel does not exist, so every path that schedules one creates the
- * channels first (creating an existing channel is a no-op).
- */
-export const ensureAlertChannels = async (plugin: any): Promise<void> => {
-  try {
-    await plugin.createChannel({
-      id: "battle-alerts",
-      name: "Battle Alerts",
-      description: "Ambush and battle alerts",
-      importance: 4,
-    });
-    await plugin.createChannel({
-      id: "chore-reminders",
-      name: "Chore Reminders",
-      description: "Upcoming chore deadlines",
-      importance: 4,
-    });
-  } catch (error) {
-    // the plugin lacks the method in mocks and on the web
-    debug.warn("[alertBridge] could not create the alert channels", error);
-  }
-};
-
 /** Book (or fire now, with no `at`) an alert in the packaged app; the same id replaces the one already booked. */
 const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => {
   const plugin = await loadLocalNotifications();
@@ -314,23 +290,5 @@ export const setBattleAlertsChoice = (choice: "on" | "off"): void => {
   } catch (error) {
     // private mode or blocked storage: the hero is simply asked again next time
     debug.warn("[alertBridge] could not keep the alerts choice", error);
-  }
-};
-
-/** Whether the hero wants chore reminders on this device. They are on until the hero turns them off. */
-export const choreRemindersChoice = (): "on" | "off" => {
-  try {
-    return localStorage.getItem(REMINDERS_KEY) === "off" ? "off" : "on";
-  } catch {
-    return "on";
-  }
-};
-
-export const setChoreRemindersChoice = (choice: "on" | "off"): void => {
-  try {
-    localStorage.setItem(REMINDERS_KEY, choice);
-  } catch (error) {
-    // private mode or blocked storage: the hero keeps the default
-    debug.warn("[alertBridge] could not keep the reminders choice", error);
   }
 };

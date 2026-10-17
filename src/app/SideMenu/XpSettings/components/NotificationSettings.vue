@@ -74,9 +74,8 @@
     requestAlertPermission,
     battleAlertsChoice,
     setBattleAlertsChoice,
-    choreRemindersChoice,
-    setChoreRemindersChoice,
   } from "@/lib/services/notifications/alertBridge";
+  import { choreRemindersChoice, setChoreRemindersChoice } from "@/lib/services/notifications/reminderChoice";
 
   export default defineComponent({
     name: "NotificationSettings",
