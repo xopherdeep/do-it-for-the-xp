@@ -33,6 +33,17 @@ export interface CashOutSettings {
 /** The rates the settings offer, GP per $1 */
 export const CASH_OUT_RATES: readonly number[] = [5, 10, 20, 25, 50, 100];
 
+/** A custom rate stays within this many GP per dollar */
+export const MAX_CASH_OUT_RATE = 10000;
+
+/** A typed rate as a whole number of GP per dollar, 1 to the maximum; null for anything that is not a number */
+export const clampCashOutRate = (value: unknown): number | null => {
+  const rate = Math.round(Number(value));
+  const isNumber = value !== "" && value !== null && value !== undefined && Number.isFinite(rate);
+  if (!isNumber) return null;
+  return Math.min(MAX_CASH_OUT_RATE, Math.max(1, rate));
+};
+
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   trustedHour: false,
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
@@ -46,10 +57,10 @@ const clock = (value: unknown, fallback: string): string =>
   typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : fallback;
 
 const normalizeCashOut = (stored: Partial<CashOutSettings> | null | undefined): CashOutSettings => {
-  const rate = Math.round(Number(stored?.gpPerDollar));
+  const rate = Number(stored?.gpPerDollar) > 0 ? clampCashOutRate(stored?.gpPerDollar) : null;
   return {
     enabled: stored?.enabled !== false,
-    gpPerDollar: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_FAMILY_SETTINGS.cashOut.gpPerDollar,
+    gpPerDollar: rate ?? DEFAULT_FAMILY_SETTINGS.cashOut.gpPerDollar,
     heroIds: Array.isArray(stored?.heroIds) ? stored!.heroIds.filter(Boolean).map(String) : [],
   };
 };
