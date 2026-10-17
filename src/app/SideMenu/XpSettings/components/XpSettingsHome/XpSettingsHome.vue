@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, 'xp-settings-page']">
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-title> Settings </ion-title>
@@ -19,37 +19,36 @@
       :fullscreen="true"
       class="rpg-box bg-slide ion-padding"
     >
-      <ion-grid class="max-w-5xl rpg-box">
-        <ion-row>
-          <ion-col
-            v-for="(item, index) in settingsItems"
-            :size="isFullRow(index) ? '12' : '6'"
-            :class="{ 'full-row': isFullRow(index) }"
-            :key="item.id"
-          >
-            <ion-card
+      <!-- One panel for each question: who plays, how the game runs, what this phone does, the account -->
+      <ion-card v-for="section in sections" :key="section.id" class="settings-section" :data-section="section.id">
+        <ion-list>
+          <ion-item-group>
+            <ion-item-divider>
+              <ion-label>{{ section.title }}</ion-label>
+            </ion-item-divider>
+            <ion-item
+              v-for="item in section.items"
+              :key="item.id"
               button
-              :routerLink="item.route"
-              class="settings-card"
-              :class="{ 'settings-card--soon': item.soon }"
+              detail
+              lines="full"
+              :router-link="item.route"
+              class="settings-row"
+              :class="{ 'settings-row--soon': item.soon }"
+              :data-test="`settings-${item.id}`"
             >
-              <ion-card-header class="ion-text-center">
-                <ion-thumbnail class="mx-auto">
-                  <ion-img :src="item.icon" />
-                </ion-thumbnail>
-                <ion-card-title>
-                  {{ item.title }}
-                </ion-card-title>
-                <ion-badge v-if="item.soon" color="medium" class="soon-badge">Coming soon</ion-badge>
-              </ion-card-header>
-              <hr />
-              <ion-card-content class="rpg-box">
-                {{ item.description }}
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+              <ion-thumbnail slot="start" class="settings-row__icon">
+                <ion-img :src="item.icon" alt="" />
+              </ion-thumbnail>
+              <ion-label class="ion-text-wrap">
+                <h2>{{ item.title }}</h2>
+                <p>{{ item.description }}</p>
+              </ion-label>
+              <ion-badge v-if="item.soon" slot="end" color="medium" class="soon-badge">Soon</ion-badge>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
