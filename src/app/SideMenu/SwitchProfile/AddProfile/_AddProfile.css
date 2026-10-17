@@ -476,12 +476,31 @@
 }
 
 .summary li {
+  padding: 0;
+  font-size: 1.2rem;
+}
+
+.summary-row {
+  width: 100%;
   display: grid;
-  grid-template-columns: 2rem 4.5rem 1fr;
+  grid-template-columns: 2rem 4.5rem 1fr 1rem;
   align-items: center;
   gap: 0.25rem;
   padding: 0.45rem 0.85rem;
-  font-size: 1.2rem;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.summary-row:active {
+  background: rgba(231, 230, 179, 0.1);
+}
+
+.summary-row__go {
+  font-size: 0.8rem;
+  opacity: 0.55;
 }
 
 .summary li + li {
