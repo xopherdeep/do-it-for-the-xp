@@ -2,10 +2,11 @@ import type { Ref } from "vue";
 import type { Router } from "vue-router";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
-import { isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import type { Enemy, EscapeReport } from "@/lib/services/battle/BattleService";
 import { admitToHospital, hospitalRoute } from "@/lib/services/hometown/hospitalAdmission";
 import { CARRIED_TO_HOSPITAL_LINE } from "@/lib/services/hometown/hospitalBill";
+import { claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { completeQuest, isQuestStillOpen, recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { classPassive, rewardsWithPassive, winRegen } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
@@ -171,7 +172,8 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       return { rewards: NOTHING, held: false, levelUp: null, classLevelUp: null };
     }
 
-    const needsApproval = Boolean(quest.requiresApproval) && !isTrustedHour(questEffects(), new Date());
+    // A won fight has no camera: a photo chore is still held for the Game Master, who sees "No photo sent"
+    const needsApproval = claimNeedsApproval(quest, questEffects(), new Date());
     if (needsApproval) {
       const claim = await completeQuest(quest, ctx.userId, "battle").catch((error) => {
         debug.error("Failed to log the battle for approval", error);

@@ -42,6 +42,10 @@ they are not shown to the other families in the base.
   characters, may be an empty string); for an approval always `""`.
 - The reviewer is not sent. Who approved is a device matter (`QuestLogEntry.reviewedBy`).
 
+## Photo proof is local-only today
+
+A chore can ask for a photo when it is claimed (`Achievement.requiresPhoto`). The picture stays on the hero's device (`ClaimPhotoDb`, deleted 7 days after the claim is settled) and is never part of `quest.claimed` or any other event, the outbox or a backup. Uploading one would need a new `claim.photo` kind, server-side storage, and a parent's consent first.
+
 ## Rules the server can rely on
 
 - A Game Master's own chore that needs approval is held for ANOTHER Game Master, never self-approved while

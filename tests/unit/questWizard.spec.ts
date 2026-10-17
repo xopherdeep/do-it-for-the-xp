@@ -355,6 +355,12 @@ describe("how a hero's quest is protected", () => {
     expect(quest).toMatchObject({ difficulty: 5, xp: 500, gp: 50, ap: 5 });
   });
 
+  it("a chore that asks for a photo carries the flag and forces approval on for a Game Master too", () => {
+    const { quest } = buildWizardQuest({ ...picked("bed-basilisk", { requiresApproval: false }), requiresPhoto: true }, gmCtx);
+    expect(quest).toMatchObject({ requiresPhoto: true, requiresApproval: true });
+    expect(buildWizardQuest(picked("bed-basilisk", {}), gmCtx).quest.requiresPhoto).toBeUndefined();
+  });
+
   it("always needs the Game Master's approval, whatever the draft says", () => {
     const { quest } = buildWizardQuest(picked("bed-basilisk", { requiresApproval: false }), kidCtx);
     expect(quest.requiresApproval).toBe(true);

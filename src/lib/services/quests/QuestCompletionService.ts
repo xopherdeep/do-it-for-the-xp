@@ -1,9 +1,10 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
-import { countedHeroesOf, isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { countedHeroesOf, isQuestOpenFor, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { AUTO_APPROVED_NOTE, isSoleGameMaster } from "@/lib/services/quests/approvalRouting";
 import { announceClaim } from "@/lib/services/quests/approvalFlow";
+import { asksForPhoto, claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
@@ -109,7 +110,8 @@ export const completeQuest = async (
 ): Promise<CompletionResult> => {
   const rewards = questRewards(quest);
   const users = useUserStore().users;
-  const wantsApproval = Boolean(quest.requiresApproval) && !isTrustedHour(users[userId]?.questEffects, new Date());
+  // A photo chore is always reviewed, trusted hour or not (claimPhotos.ts)
+  const wantsApproval = claimNeedsApproval(quest, users[userId]?.questEffects, new Date());
   // A Game Master with no other Game Master to ask is approved on the spot, with a note saying so
   const isAutoApproved = wantsApproval && isSoleGameMaster(userId, users);
   const awaitingApproval = wantsApproval && !isAutoApproved;
@@ -127,6 +129,7 @@ export const completeQuest = async (
     rewards,
     ...(isAutoApproved ? { note: AUTO_APPROVED_NOTE } : {}),
     ...(huntBonusXp > 0 ? { huntBonusXp } : {}),
+    ...(asksForPhoto(quest) ? { requiresPhoto: true } : {}),
   });
   clearGrudges(quest, userId);
   announceClaim(entry, quest.difficulty, awaitingApproval);

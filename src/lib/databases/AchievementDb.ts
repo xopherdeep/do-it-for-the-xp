@@ -23,6 +23,8 @@ export interface Achievement {
   localImage?: string;
   bonusAchievement: boolean;
   requiresApproval: boolean;
+  /** Ask for a photo when the hero claims it (claimPhotos.ts). Forces approval on: a photo chore is always reviewed. */
+  requiresPhoto?: boolean;
   beastId?: string;
   /**
    * The Game Master chose "no beast" on the quest form: the library stops suggesting one for this quest

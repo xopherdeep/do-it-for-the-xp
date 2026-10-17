@@ -7,6 +7,7 @@ import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import debug from "@/lib/utils/debug";
 import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
+import { runClaimPhotoPurge } from "@/lib/services/quests/claimPhotoRetention";
 import { scheduleDueReminders } from "./deviceReminders";
 import { runWeeklyRecapWatch } from "./weeklyRecapWatch";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
@@ -110,6 +111,7 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   }
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;
+  await runClaimPhotoPurge(now.getTime());
   const reminders = await scheduleDueReminders(remindersOf(board, effects, now, id), now);
   return { pushed, reminders };
 };

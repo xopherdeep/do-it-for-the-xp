@@ -39,13 +39,15 @@ export interface QuestLogEntry {
    * WON fight (`source: "battle"`), paid when the Game Master approves it, once. Absent on a claim, which never earns it.
    */
   huntBonusXp?: number;
+  /** The chore asked for a photo when this was claimed; the picture itself lives in ClaimPhotoDb, on this device only */
+  requiresPhoto?: boolean;
   reviewedAt?: string;
   reviewedBy?: string;
   note?: string;
 }
 
 export type NewQuestLogEntry = Pick<QuestLogEntry, "questId" | "questName" | "userId" | "status" | "source" | "rewards"> &
-  Partial<Pick<QuestLogEntry, "rewardsApplied" | "note" | "completedAt" | "huntBonusXp">>;
+  Partial<Pick<QuestLogEntry, "rewardsApplied" | "note" | "completedAt" | "huntBonusXp" | "requiresPhoto">>;
 
 /** Local calendar day key, e.g. 2026-10-08 (not UTC, so late-night chores count for the right day). */
 export const toDayKey = (date: Date = new Date()): string => {
@@ -71,6 +73,7 @@ export class QuestLogDb extends DbStorageApi {
       rewardsApplied: input.rewardsApplied ?? false,
       note: input.note,
       ...(input.huntBonusXp && input.huntBonusXp > 0 ? { huntBonusXp: input.huntBonusXp } : {}),
+      ...(input.requiresPhoto ? { requiresPhoto: true } : {}),
     };
     await this.set(entry.id, entry);
     return entry;

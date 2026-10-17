@@ -32,7 +32,6 @@ export const FAMILY_COMING_SOON: ComingSoonItem[] = [
 
 export const CHORE_COMING_SOON: ComingSoonItem[] = [
   { title: "Finish overdue chores", description: "Let heroes mark past chores done and still collect the reward" },
-  { title: "Photo proof", description: "Heroes add a photo when they finish; Game Masters review it later" },
   { title: "Lock late chores", description: "A chore not done by its due time can't be claimed" },
   { title: "Late penalty", description: "Take points when a chore isn't done on time" },
   { title: "Auto-save GP", description: "Put a share of every reward straight into savings" },
