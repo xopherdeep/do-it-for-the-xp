@@ -34,6 +34,11 @@ export const USER_MENU_CONFIG = {
     icon: "fa-bell-exclamation",
     id: "notifications"
   },
+  guide: {
+    label: "Guide",
+    icon: "fa-flag",
+    action: "openGuide"
+  },
   pegasus: {
     label: "Pegasus",
     icon: "fa-pegasus",

@@ -232,6 +232,18 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   /**
+   * What the Guide (services/guide/guideState.ts) remembers for a hero: the intro said, the Beast Log and a shop seen,
+   * the tracker hidden, the Sky Champion celebration had. Merges the patch into the record and saves.
+   */
+  function setGuide(userId: string, patch: Record<string, unknown>) {
+    const user = users[userId];
+    if (!user) return;
+    user.guide = { ...(user.guide || {}), ...JSON.parse(JSON.stringify(patch)) };
+    if (isCurrentHero(userId)) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
    * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
    * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
    * Returns true when the item was newly unlocked.
@@ -394,6 +406,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setQuestEffects,
     setPowerTimers,
     setStreakChests,
+    setGuide,
     unlockItem,
     setEquipment,
     setLook,

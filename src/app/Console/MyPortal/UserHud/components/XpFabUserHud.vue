@@ -120,7 +120,7 @@ export default defineComponent({
       default: false,
     },
   },
-  emits: ["open-profile", "open-pegasus"],
+  emits: ["open-profile", "open-pegasus", "open-guide"],
   computed: {
     userAvatar() {
       return heroAvatarSrc(this.user, (key: string) => this.$requireAvatar(key));
@@ -249,6 +249,8 @@ export default defineComponent({
 
         emit("open-pegasus"); // The portal (or the temple) owns the world map modal
       }
+      const isOpenGuide = action.action === "openGuide";
+      if (isOpenGuide) emit("open-guide"); // The portal owns the Guide
     };
 
     const staticActions: RpgMenuAction[] = [
@@ -329,6 +331,11 @@ export default defineComponent({
             params: { userId: userId.value },
           });
         },
+      },
+      {
+        label: USER_MENU_CONFIG.guide.label,
+        action: USER_MENU_CONFIG.guide.action,
+        faIcon: USER_MENU_CONFIG.guide.icon,
       },
       {
         label: USER_MENU_CONFIG.pegasus.label,
