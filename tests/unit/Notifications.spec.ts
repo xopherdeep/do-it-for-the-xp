@@ -196,6 +196,13 @@ describe("questWatch.pickQuestAlerts", () => {
     expect(kindsAt(new Date(2026, 9, 11, 12, 0))).toEqual(["quest-overdue"]);
   });
 
+  it("sends nothing for a chore the late rule has locked, and still nags about the others", () => {
+    const board = [row(quest("shut", "11:00"), { overdue: true }), row(quest("late", "11:30"), { overdue: true })];
+    const locked = { shut: "Too late: this one closed at 11:00am" };
+    const alerts = pickQuestAlerts(board, undefined, NOON, HERO, locked);
+    expect(alerts.map((a) => [a.notification.kind, a.notification.refId])).toEqual([["quest-overdue", "late"]]);
+  });
+
   it("lists device reminders for the open quests still ahead", () => {
     const reminders = remindersOf([row(quest("soon", "13:30", "Dishes")), row(quest("late", "11:00"), { overdue: true })], undefined, NOON);
     expect(reminders).toEqual([
