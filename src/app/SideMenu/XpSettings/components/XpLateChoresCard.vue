@@ -42,7 +42,7 @@
         </ion-label>
         <ion-select
           slot="end"
-          interface="popover"
+          interface="action-sheet"
           data-cy="late-share-select"
           :value="late.lateShare"
           @ionChange="rules.setLateChores({ lateShare: Number($event.detail.value) })"
@@ -70,7 +70,7 @@
         </ion-label>
         <ion-select
           slot="end"
-          interface="popover"
+          interface="action-sheet"
           data-cy="late-mode-select"
           :value="late.penaltyMode"
           @ionChange="changeMode($event.detail.value)"
@@ -85,7 +85,7 @@
         </ion-label>
         <ion-select
           slot="end"
-          interface="popover"
+          interface="action-sheet"
           data-cy="late-amount-select"
           :value="late.penaltyAmount"
           @ionChange="rules.setLateChores({ penaltyAmount: Number($event.detail.value) })"

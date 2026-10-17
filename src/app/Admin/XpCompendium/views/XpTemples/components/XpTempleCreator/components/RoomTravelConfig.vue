@@ -9,7 +9,7 @@
         :modelValue="targetLevel || undefined"
         :placeholder="automaticFloor"
         @ionChange="$event.detail.value && $emit('update:targetLevel', $event.detail.value)"
-        interface="popover"
+        interface="action-sheet"
         class="glass-select"
       >
         <ion-select-option v-for="floor in floors" :key="floor" :value="floor">

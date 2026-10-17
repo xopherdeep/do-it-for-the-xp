@@ -55,7 +55,7 @@
                   <ion-select
                     v-model="selectedSuggested"
                     @ionChange="applySuggestedBackground"
-                    interface="popover"
+                    interface="action-sheet"
                   >
                     <ion-select-option value="-1">Custom</ion-select-option>
                     <ion-select-option value="44,0"
@@ -701,7 +701,7 @@
                 </ion-item-divider>
 
                 <ion-item>
-                  <ion-select
+                  <ion-select interface="action-sheet"
                     v-model="selectedAspectRatio"
                     @ionChange="applyAspectRatio"
                   >
@@ -770,7 +770,7 @@
             <ion-select
               v-model="selectedCustomPreset"
               @ionChange="applyCustomPreset"
-              interface="popover"
+              interface="action-sheet"
               placeholder="Select a saved preset"
             >
               <ion-select-option
