@@ -27,6 +27,17 @@
                 @ionChange="handleAmbushAlertsChange"
               ></ion-toggle>
             </ion-item>
+            <ion-item lines="none">
+              <ion-label>
+                <h2>Chore reminders</h2>
+                <p>A reminder on your phone half an hour before a chore is due, even when the game is closed.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="choreReminders"
+                :disabled="ambushAlertsDisabled"
+                @ionChange="handleChoreRemindersChange"
+              ></ion-toggle>
+            </ion-item>
           </ion-item-group>
         </ion-list>
       </ion-card>
@@ -64,6 +75,7 @@
     battleAlertsChoice,
     setBattleAlertsChoice,
   } from "@/lib/services/notifications/alertBridge";
+  import { choreRemindersChoice, setChoreRemindersChoice } from "@/lib/services/notifications/reminderChoice";
 
   export default defineComponent({
     name: "NotificationSettings",
@@ -86,6 +98,7 @@
     mixins: [ionic],
     setup() {
       const ambushAlerts = ref(battleAlertsChoice() === "on");
+      const choreReminders = ref(choreRemindersChoice() === "on");
       const ambushAlertsDisabled = ref(false);
       const ambushAlertsMessage = ref(
         "A heads-up when a beast ambushes your hero while the game is in the background."
@@ -117,7 +130,7 @@
             setBattleAlertsChoice("off");
             ambushAlerts.value = false;
             const toast = await toastController.create(
-              rpgToastOptions("Your browser blocked alerts. Allow them in the site settings, then try again.", 3000)
+              rpgToastOptions("Alerts are blocked. Allow notifications in the site or phone settings, then try again.", 3000)
             );
             await toast.present();
           }
@@ -126,7 +139,29 @@
         }
       };
 
+      const handleChoreRemindersChange = async (event: any) => {
+        const isOn = event.detail.checked;
+        if (!isOn) {
+          setChoreRemindersChoice("off");
+          return;
+        }
+        const perm = await requestAlertPermission();
+        const isGranted = perm === "granted";
+        if (isGranted) {
+          setChoreRemindersChoice("on");
+          return;
+        }
+        setChoreRemindersChoice("off");
+        choreReminders.value = false;
+        const toast = await toastController.create(
+          rpgToastOptions("Alerts are blocked. Allow notifications in your phone's settings, then try again.", 3000)
+        );
+        await toast.present();
+      };
+
       return {
+        choreReminders,
+        handleChoreRemindersChange,
         ambushAlerts,
         ambushAlertsDisabled,
         ambushAlertsMessage,
