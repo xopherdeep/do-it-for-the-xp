@@ -1,4 +1,4 @@
-import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "vue";
+import { computed, ref, defineComponent, onMounted, onUnmounted } from "vue";
 import { play$fx } from "@/assets/fx";
 import { modalController, toastController } from "@ionic/vue";
 import { useRoute } from "vue-router";
@@ -15,7 +15,6 @@ import type { NewProfileForm } from "@/lib/databases/ProfileDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
 import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
-import InputSettings from "../../XpSettings/components/InputSettings.vue";
 
 import {
   NEW_HERO_STEPS,
@@ -26,9 +25,9 @@ import {
   type NewHeroStepId,
 } from "@/lib/services/profile/newHeroSteps";
 
-import { EDIT_TABS, FEATURE_OPTIONS, ROLE_CHOICES } from "./formOptions";
+import { FEATURE_OPTIONS, ROLE_CHOICES } from "./formOptions";
 import { useHeroStyleChoice } from "./useHeroStyleChoice";
-import type { ChoiceCard, FeatureKey } from "./formOptions";
+import type { ChoiceCard } from "./formOptions";
 import ionic from "@/lib/mixins/ionic";
 
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
@@ -44,7 +43,6 @@ export const AddProfile = defineComponent({
   props: ["id", "profile", "presetGameMaster", "startTab"],
   mixins: [ionic],
   components: {
-    InputSettings,
     XpHeroFanfare,
     GamerCard,
     HeroStylePicker
@@ -61,8 +59,7 @@ export const AddProfile = defineComponent({
       // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
       const passcodeError = this.passcodeError;
       if (passcodeError) {
-        if (this.isEditing) this.activeSegment = "account";
-        else this.step = "secret";
+        this.step = "secret";
         const toast = await toastController.create({
           message: passcodeError,
           duration: 2500,
@@ -216,13 +213,6 @@ export const AddProfile = defineComponent({
       equipment.value = profile.equipment || undefined;
     };
 
-    const setGameMaster = (event: CustomEvent<{ checked: boolean }>) => {
-      // Backstop: the toggle is disabled for anyone without a say, but never trust the UI alone
-      if (!canSetFlag.value) return;
-      gameMasterChosen.value = true;
-      isAdult.value = event.detail.checked === true;
-    };
-
     // The toggle unlocks only once the device's profiles are known (the store may not have
     // caught up yet), the same load the Game Master route guard does before it decides.
     const loadProfilesForGameMasterCheck = async () => {
@@ -250,10 +240,11 @@ export const AddProfile = defineComponent({
       }
     };
 
-    const activeSegment = ref(props.startTab === "account" ? "account" : "info")
-
     // --- New hero wizard (a hero being edited keeps the tabs) ---
-    const step = ref<NewHeroStepId>("name");
+    // A new hero starts at the first question; an existing hero opens on the summary (or the secret code, from the PIN shortcut)
+    const editingStep: NewHeroStepId = props.startTab === "account" ? "secret" : "ready";
+    const openingStep: NewHeroStepId = isEditing ? editingStep : "name";
+    const step = ref<NewHeroStepId>(openingStep);
     const stepsBack = ref(false);
     const showAdvanced = ref(false);
     const heroDraft = computed(() => ({
@@ -299,6 +290,21 @@ export const AddProfile = defineComponent({
       play$fx("select");
       goToStep(NEW_HERO_STEPS[Math.min(currentStepIndex.value + 1, NEW_HERO_STEPS.length - 1)].id);
     };
+    // After the face is made (Done in the 3D builder, or a portrait picked): a new hero moves on, an edit goes back to the summary
+    const afterFace = () => {
+      const isOnFaceStep = step.value === "look";
+      if (!isOnFaceStep) return;
+      if (isEditing) goToStep("ready");
+      else void goNext();
+    };
+    // An edit has no Next: Done goes back to the summary (a step that is not right yet says so first)
+    const backToSummary = async () => {
+      const problem = currentStepProblem.value;
+      if (problem) return goNext();
+      play$fx("select");
+      goToStep("ready");
+    };
+    const heroLevel = computed(() => (isEditing ? Number(props.profile?.stats?.level) || 1 : 1));
     const goBack = () => {
       const isFirstStep = currentStepIndex.value === 0;
       if (isFirstStep) return;
@@ -332,21 +338,12 @@ export const AddProfile = defineComponent({
       isAdult.value = gameMaster;
     };
 
-    // Play sound when switching tabs
-    watch(activeSegment, () => {
-      play$fx('okdesuka');
-    });
-
     const features = ref({
       rewards: true,
       goals: true,
       battles: true,
       community: true
     })
-
-    const toggleFeature = (key: FeatureKey) => {
-      features.value[key] = !features.value[key];
-    };
 
 
     const hidePasscode = ref(true)
@@ -370,9 +367,7 @@ export const AddProfile = defineComponent({
       stats: props.profile?.stats || new Stats(),
     }))
 
-    const hasMissingRequiredField = computed(
-      () => !favoriteFood.value || !favoriteThing.value || !jobClass.value || !fullName.value
-    );
+    const hasMissingRequiredField = computed(() => !favoriteFood.value || !jobClass.value || !fullName.value);
     const isSaveDisabled = computed(() => hasMissingRequiredField.value || gameMasterEditLocked.value);
     // The wizard's last button: never save past a step that still has a problem
     const beginAdventure = () => {
@@ -420,7 +415,6 @@ export const AddProfile = defineComponent({
       // profile,
       newProfile,
       passcode,
-      activeSegment,
       step,
       stepsBack,
       showAdvanced,
@@ -436,7 +430,6 @@ export const AddProfile = defineComponent({
       chosenKey,
       pickChoice,
       roles: ROLE_CHOICES,
-      editTabs: EDIT_TABS,
       featureOptions: FEATURE_OPTIONS,
       selectedJob,
       selectedFood,
@@ -446,6 +439,9 @@ export const AddProfile = defineComponent({
       goToStep,
       goNext,
       goBack,
+      afterFace,
+      backToSummary,
+      heroLevel,
       chooseRole,
       beginAdventure,
       avatarIndex,
@@ -470,10 +466,8 @@ export const AddProfile = defineComponent({
       passcodeError,
       jobClass,
       passcodeType,
-      setGameMaster,
       setProfile,
       storage,
-      toggleFeature,
       showFanfare,
       isEditing,
       requireAvatar,

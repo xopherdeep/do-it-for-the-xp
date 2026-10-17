@@ -72,7 +72,7 @@
       :is-open="isAvatarSelectorOpen"
       :max-avatar-index="maxAvatarIndex"
       :fullscreen="true"
-      @close="isAvatarSelectorOpen = false"
+      @close="closeAvatarSelector"
       @build="buildHero"
     />
 
@@ -151,6 +151,7 @@
       "update:favoriteFood",
       "update:look",
       "update:avatarImage",
+      "face-done",
     ],
     name: "GamerCard",
     mixins: [ionic],
@@ -236,6 +237,13 @@
       const saveLook = (look: HeroLook, image?: string) => {
         emit("update:look", look);
         emit("update:avatarImage", image);
+        emit("face-done");
+      };
+
+      // Closing the portrait picker after choosing one finishes the face, like Done in the 3D builder
+      const closeAvatarSelector = () => {
+        isAvatarSelectorOpen.value = false;
+        if (portraitPicked.value) emit("face-done");
       };
 
       const selectedFoodIcon = computed(() => {
@@ -261,6 +269,7 @@
         buildHero,
         usePortrait,
         saveLook,
+        closeAvatarSelector,
         isLookOpen,
         selectedJobIcon,
         selectedFoodIcon,

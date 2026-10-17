@@ -21,21 +21,6 @@ export const FEATURE_OPTIONS: FeatureOption[] = [
   { key: "community", title: "Participate in Town Hall", short: "Town Hall", hint: "For players who want to participate in Town Hall." },
 ];
 
-/** The tabs under an existing hero's edit form. `flagsGameMaster` marks the tab that needs a Game Master's PIN. */
-export interface EditTab {
-  value: "info" | "account" | "features";
-  icon: string;
-  label: string;
-  iconClass?: string;
-  flagsGameMaster?: boolean;
-}
-
-export const EDIT_TABS: EditTab[] = [
-  { value: "info", icon: "fa-user", label: "Who" },
-  { value: "account", icon: "fa-fingerprint", label: "Pin", flagsGameMaster: true },
-  { value: "features", icon: "fa-gamepad", label: "On/Off", iconClass: "text-primary" },
-];
-
 /** Who is playing, on the new-hero wizard's secret-code step. */
 export const ROLE_CHOICES = [
   { isGameMaster: false, icon: "fa-shield-alt", title: "Hero", hint: "Does quests, earns loot" },
