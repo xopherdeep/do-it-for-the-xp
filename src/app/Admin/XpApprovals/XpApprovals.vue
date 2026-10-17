@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="[$options.name, ...rootClass]" :style="rootStyle">
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
@@ -160,6 +160,7 @@
   import type { ReviewOutcome } from "@/lib/services/quests/approvalFlow";
   import { claimsFor } from "@/lib/services/quests/waitingClaims";
   import { play$fx } from "@/assets/fx";
+  import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
   import {
     fulfillPurchase,
     refundPurchase,
@@ -200,6 +201,8 @@
     },
     setup() {
       const userStore = useUserStore();
+      // Follows the profile's Retro / Modern toggle, like the other phone apps
+      const { rootClass, rootStyle } = useAppSkin("quests");
       const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
       const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
         "achievements"
@@ -599,6 +602,8 @@
       };
 
       return {
+        rootClass,
+        rootStyle,
         activeSegment,
         pendingAchievements,
         pendingAccessories,

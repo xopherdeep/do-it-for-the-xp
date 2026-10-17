@@ -174,14 +174,14 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
   }
   // 3a. A temple plays its own theme when it has one (BGM.temples["fire-temple"]), else the dungeon set
   else if (routeName === "temple" && BGM.temples?.[String(to.params.temple)]) {
-    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { track: "random", startDelay, saveBookmark: true });
+    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { track: "random", startDelay });
   }
   // 3b. A generated temple (gen-<slug>) plays its element's theme (its record is in the TempleDb, so the pick is async)
   else if (routeName === "temple" && String(to.params.temple).startsWith("gen-")) {
     const fullPath = to.fullPath;
     void metadataForAsync(String(to.params.temple)).then((meta) => {
       const tracks = BGM.temples?.[`${meta.element}-temple`] ?? terrains?.dungeon;
-      const picked = createBgmPayload(tracks, { track: "random", startDelay, saveBookmark: true });
+      const picked = createBgmPayload(tracks, { track: "random", startDelay });
       const play = () => {
         const hasNothingNewToPlay = !picked || (picked.tracks === bgm.tracks && bgm.is_on);
         if (hasNothingNewToPlay) return;
@@ -207,7 +207,6 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
     payload = createBgmPayload(terrains?.[terrainKey], {
       track: "random",
       startDelay,
-      saveBookmark: true,
     });
   }
 
