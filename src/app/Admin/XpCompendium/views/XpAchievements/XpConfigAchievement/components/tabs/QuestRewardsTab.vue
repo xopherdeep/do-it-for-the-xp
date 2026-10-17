@@ -75,6 +75,7 @@
         data-test="approval-row"
         @click="showApprovalModal = true"
       />
+      <QuestPhotoRuleItem :model-value="Boolean(achievement.requiresPhoto)" @update:model-value="togglePhoto" />
       <xp-app-row
         :icon="achievement.bonusAchievement ? 'question-square' : 'exclamation'"
         title="Priority"
@@ -90,6 +91,7 @@
 import { computed, inject } from 'vue';
 import { IonButton, IonChip, IonInput, IonItem, IonLabel, IonList } from '@ionic/vue';
 import AchievementRewardsTab from "../AchievementRewardsTab.vue";
+import QuestPhotoRuleItem from "../QuestPhotoRuleItem.vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
@@ -109,6 +111,7 @@ const {
   setMinutes,
   resetMinutes,
   showApprovalModal,
+  togglePhoto,
   showBonusModal
 } = inject(AchievementFormInjectionKey)!;
 
@@ -118,9 +121,10 @@ const TIER_ICONS: Record<QuestTier, string> = { monster: 'fa-ghost', miniboss: '
 // "Difficulty: Easy (3)": the slider at the bottom of the step moves it
 const difficultyText = computed(() => difficultyLabel(achievement.value.difficulty));
 
-const approvalLine = computed(
-  () => `${achievement.value.requiresApproval ? 'Review' : 'Honor system'}: ${approvalHint(achievement.value.requiresApproval)}`
-);
+const approvalLine = computed(() => {
+  if (achievement.value.requiresPhoto) return 'Review: a photo is sent, so the Game Master always approves';
+  return `${achievement.value.requiresApproval ? 'Review' : 'Honor system'}: ${approvalHint(achievement.value.requiresApproval)}`;
+});
 const priorityLine = computed(
   () => `${achievement.value.bonusAchievement ? 'Bonus' : 'Required'}: ${priorityHint(achievement.value.bonusAchievement)}`
 );

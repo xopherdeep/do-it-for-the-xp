@@ -9,7 +9,7 @@ import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
-import { completeQuest } from "@/lib/services/quests/QuestCompletionService";
+import { claimWithProof } from "@/components/organisms/ClaimPhoto/claimWithProof";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { nickOf, questListCounts, questListFor } from "@/lib/services/quests/QuestList";
 import type { QuestListRow, QuestListStatus } from "@/lib/services/quests/QuestList";
@@ -301,7 +301,10 @@ export default defineComponent({
           this.say(row.title, check.notice, 2200);
           return;
         }
-        const result = await completeQuest(row.quest, heroId, "claim");
+        // A photo chore asks for the picture first; backing out claims nothing
+        const result = await claimWithProof(row.quest, heroId, "claim");
+        const isBackedOut = !result;
+        if (isBackedOut) return;
         await this.celebrate(row, result.awaitingApproval);
         await this.loadBoard();
         void this.loadTamed();
