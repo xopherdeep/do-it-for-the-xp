@@ -13,6 +13,7 @@ export type XpNotificationKind =
   | "quest-overdue"
   | "approved"
   | "rejected"
+  | "claim-waiting"
   | "level-up"
   | "blood-moon"
   | "purchase"
@@ -138,6 +139,8 @@ export const iconOfKind = (kind: XpNotificationKind): string => {
       return "fa-check-double";
     case "rejected":
       return "fa-times-octagon";
+    case "claim-waiting":
+      return "fa-clipboard-check";
     case "level-up":
       return "fa-arrow-alt-circle-up";
     case "blood-moon":
@@ -217,6 +220,36 @@ export const rejectedNotification = (
   title: "Quest sent back",
   body: note ? `"${entry.questName}" was not approved: ${note}` : `"${entry.questName}" was not approved. It is open again.`,
   link: questBoardLink(heroId, entry.questId),
+});
+
+/** The Game Master's approvals screen, where claim-waiting notifications lead. */
+export const APPROVALS_LINK = "/game-master/approvals";
+
+/** A hero's claim is waiting on the Game Master (one per claim: the refId is the quest log entry). */
+export const claimWaitingNotification = (
+  gmId: string,
+  entry: { id: string; questName: string },
+  heroName: string,
+  now: Date = new Date()
+): NewXpNotification => ({
+  heroId: gmId,
+  kind: "claim-waiting",
+  refId: entry.id,
+  title: "The village awaits your word",
+  body: `${heroName} says "${entry.questName}" is done. Approve it to pay the reward.`,
+  link: APPROVALS_LINK,
+  createdAt: now.toISOString(),
+});
+
+/** The summary for claims that have waited a while: one per Game Master per day per count. */
+export const claimsWaitingSummary = (gmId: string, count: number, now: Date = new Date()): NewXpNotification => ({
+  heroId: gmId,
+  kind: "claim-waiting",
+  refId: `waiting-${count}`,
+  title: count === 1 ? "A chore awaits your word" : `${count} chores await your word`,
+  body: count === 1 ? "A hero is waiting for you to check their chore." : "Heroes are waiting for you to check their chores.",
+  link: APPROVALS_LINK,
+  createdAt: now.toISOString(),
 });
 
 export const levelUpNotification = (heroId: string, newLevel: number, levelsGained = 1): NewXpNotification => ({

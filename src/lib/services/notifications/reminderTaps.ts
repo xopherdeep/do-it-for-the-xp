@@ -1,11 +1,14 @@
 import debug from "@/lib/utils/debug";
 import { isNativeApp, loadLocalNotifications } from "./alertBridge";
 
-/** The quest page a tapped reminder points at, or null for any other alert (an ambush alert has no link). */
+/** The pages a tapped alert may open: a quest's card, or the Game Master's approvals */
+const OPENABLE_LINKS = ["/my-tasks/", "/game-master/approvals"];
+
+/** The page a tapped reminder points at, or null for any other alert (an ambush alert has no link). */
 export const reminderLinkOf = (extra: unknown): string | null => {
   const link = (extra as { link?: unknown } | null | undefined)?.link;
-  const isQuestLink = typeof link === "string" && link.startsWith("/my-tasks/");
-  return isQuestLink ? link : null;
+  const isOpenable = typeof link === "string" && OPENABLE_LINKS.some((prefix) => link.startsWith(prefix));
+  return isOpenable ? link : null;
 };
 
 /**
