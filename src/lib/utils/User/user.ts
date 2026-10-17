@@ -36,7 +36,7 @@ export default class User {
   /** A new hero starts with no items unlocked; temples, shops and the Pegasi add to this (see ItemEffects.ts) */
   public unlockedItems: string[]
   /** Retro or Modern; missing on a hero who never chose (services/profile/heroSkin.ts) */
-  public skin?: HeroSkin
+  declare public skin?: HeroSkin
 
   constructor(defaults: NewProfileForm) {
     this.id = defaults?.id || uuidv4()
