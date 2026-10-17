@@ -46,7 +46,6 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import { mapStores } from "pinia";
 
-import MyTask from "@/app/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
 import type Swiper from "swiper";
 import { Controller, Navigation } from "swiper/modules";
@@ -77,11 +76,9 @@ export const XpDiscoverAchievements = defineComponent({
     IonSearchbar,
     IonToolbar,
     XpLoading,
-    MyTask,
   },
   data() {
     return {
-      activeModal: 0,
       swiperNavigation: {
         nextEl: "#swiper-forward",
         prevEl: "#swiper-back",
@@ -169,16 +166,6 @@ export const XpDiscoverAchievements = defineComponent({
 
     },
 
-    clickItem(item) {
-      this.activeModal = item.id;
-    },
-    isModalOpen(id) {
-      return this.activeModal == id;
-    },
-    clickComplete() {
-      this.activeModal = 0;
-      this.presentAlertMultipleButtons();
-    },
     slidePrev() {
       this.page--;
     },
