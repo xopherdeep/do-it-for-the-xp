@@ -185,6 +185,7 @@ import { questRewards } from "@/lib/services/quests/QuestCompletionService";
 import { lateCheckFor } from "@/lib/services/quests/lateChores";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
+import type { SentBack } from "@/lib/services/quests/sentBack";
 import { formatQuestName } from "@/lib/utils/format";
 import debug from "@/lib/utils/debug";
 import {
@@ -234,11 +235,13 @@ interface BeastCardModalProps {
   dueLabel?: string;
   /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; empty otherwise */
   lockedNotice?: string;
+  /** The Game Master sent the hero's latest claim of this chore back, with a note; null otherwise */
+  sentBack?: SentBack | null;
 }
 
 const props = withDefaults(
   defineProps<BeastCardModalProps>(),
-  { due: null, dueLabel: "", lockedNotice: "" }
+  { due: null, dueLabel: "", lockedNotice: "", sentBack: null }
 );
 
 const emit = defineEmits<{
@@ -305,7 +308,7 @@ const stateChip = computed(() => stateWord(props.status, voice.value));
 
 const shownSteps = computed(() => stepsForState(props.status, steps.value));
 const progress = computed(() => progressLine(shownSteps.value));
-const actions = computed(() => cardActions(props.status, steps.value, voice.value, props.lockedNotice));
+const actions = computed(() => cardActions(props.status, steps.value, voice.value, props.lockedNotice, props.sentBack));
 const listReady = computed(() => actions.value.canClaim);
 // Every quest earns it by winning its fight; a Game Master's approval pays it on top, once (a claim never does)
 const bonusLabel = huntBonusLabel();

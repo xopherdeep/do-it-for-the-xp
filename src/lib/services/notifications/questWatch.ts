@@ -8,7 +8,7 @@ import debug from "@/lib/utils/debug";
 import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
 import { runClaimPhotoPurge } from "@/lib/services/quests/claimPhotoRetention";
-import { chargeLatePenalties, latePenaltyNotification } from "@/lib/services/quests/lateChores";
+import { chargeLatePenalties, latePenaltyNotification, lockedNoticesFor } from "@/lib/services/quests/lateChores";
 import { scheduleDueReminders } from "./deviceReminders";
 import { runWeeklyRecapWatch } from "./weeklyRecapWatch";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
@@ -34,19 +34,24 @@ export interface QuestAlert {
  * due-soon note for every open quest due within DUE_SOON_MS. The deadline is the board's one due-date rule
  * (effectiveDeadline: a weekly quest is due on its week's last day, not every evening of it). Quests waiting on
  * the Game Master, done quests (a shared one another assignee cleared included) and quests not due today are
- * left alone, and so is everything while Chronos' Clock holds time.
+ * left alone, and so is everything while Chronos' Clock holds time. A chore the late rule has locked (`lockedNotices`,
+ * from lockedNoticesFor) gets no alert at all: it closed, and the board already says "Too late: this one closed at 6:00pm".
  */
 export const pickQuestAlerts = (
   board: readonly QuestBoardItem[],
   effects: HeroQuestEffects | undefined,
   now: Date,
-  heroId: string
+  heroId: string,
+  lockedNotices: Readonly<Record<string, string>> = {}
 ): QuestAlert[] => {
   if (isSchedulePaused(effects, now)) return [];
   const alerts: QuestAlert[] = [];
   for (const item of board) {
     const isClosedOrAwaitingApproval = item.status !== "open" || item.pending;
     if (isClosedOrAwaitingApproval) continue;
+    // A chore the family's late rule has locked is closed: the board says so, and nagging cannot help the hero
+    const isLocked = String(item.quest.id) in lockedNotices;
+    if (isLocked) continue;
     const deadline = effectiveDeadline(item.quest, effects, now);
     const quest = { id: String(item.quest.id), achievementName: String(item.quest.achievementName ?? "A quest") };
     const isOverdue = item.overdue || (deadline && now > deadline);
@@ -106,7 +111,8 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   const board = await getQuestEngine().getQuestBoardForUser(id, now, undefined, effects);
 
   let pushed = 0;
-  for (const alert of pickQuestAlerts(board, effects, now, id)) {
+  const lockedNotices = await lockedNoticesFor(board, id, now);
+  for (const alert of pickQuestAlerts(board, effects, now, id, lockedNotices)) {
     const isPushed = notifications.push(alert.notification, now);
     if (isPushed) pushed += 1;
   }

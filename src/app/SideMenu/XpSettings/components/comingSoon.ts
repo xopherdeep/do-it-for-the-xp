@@ -21,7 +21,7 @@ export const THEME_COMING_SOON: ComingSoonItem[] = [
 ];
 
 export const ALERTS_COMING_SOON: ComingSoonItem[] = [
-  { title: "Game Master reminders", description: "Remind Game Masters when a hero's chore is due" },
+  { title: "Game Master reminders", description: "Remind Game Masters when a hero's chore is nearly due" },
   { title: "Done notices", description: "Tell Game Masters, or other heroes, when a chore is finished" },
 ];
 

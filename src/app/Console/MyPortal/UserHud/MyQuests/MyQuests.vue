@@ -71,7 +71,7 @@
       <!-- A tap on a quest opens its bestiary entry: the beast, its checklist, and Hunt / Claim -->
       <XpBeastCardModal v-if="activeRow" @didDismiss="onTaskDismissed" :quest="activeRow.quest"
         :status="activeRow.status" :due="activeRow.due" :dueLabel="activeRow.dueLabel" :userId="userId"
-        :lockedNotice="activeRow.lockedNotice" />
+        :lockedNotice="activeRow.lockedNotice" :sentBack="activeRow.sentBack" />
     </ion-content>
 
     <ion-footer class="quests-footer">

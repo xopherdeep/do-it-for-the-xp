@@ -6,6 +6,7 @@ import debug from "@/lib/utils/debug";
 import { cancelAlert, scheduleAlert, showAlert } from "./alertBridge";
 import {
   APPROVAL_ALERT_ID,
+  APPROVAL_REMINDERS_OFF,
   approvalAlertCopy,
   approvalWaitHours,
   nextReminderAt,
@@ -44,7 +45,13 @@ export const runApprovalWatch = async (gmId: string, now: Date = new Date()): Pr
     return { waiting: 0, overdue: 0, nudged: false };
   }
 
-  const waitMs = approvalWaitHours() * 60 * 60 * 1000;
+  const waitHours = approvalWaitHours();
+  const areRemindersOff = waitHours === APPROVAL_REMINDERS_OFF;
+  if (areRemindersOff) {
+    await cancelAlert(APPROVAL_ALERT_ID);
+    return { waiting: claims.length, overdue: 0, nudged: false };
+  }
+  const waitMs = waitHours * 60 * 60 * 1000;
   const overdue = pendingApprovalReminders(claims, now, waitMs);
   const upcoming = nextReminderAt(claims, now, waitMs);
   if (upcoming) {

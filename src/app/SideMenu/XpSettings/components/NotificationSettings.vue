@@ -38,6 +38,7 @@
                 @ionChange="handleChoreRemindersChange"
               ></ion-toggle>
             </ion-item>
+            <approval-reminder-row />
           </ion-item-group>
         </ion-list>
       </ion-card>
@@ -67,6 +68,7 @@
   } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
   import { rpgToastOptions } from "@/hooks/useToast";
+  import ApprovalReminderRow from "./ApprovalReminderRow.vue";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
   import { ALERTS_COMING_SOON } from "./comingSoon";
   import {
@@ -94,6 +96,7 @@
       IonCard,
       IonButtons,
       XpComingSoonCard,
+      ApprovalReminderRow,
     },
     mixins: [ionic],
     setup() {
