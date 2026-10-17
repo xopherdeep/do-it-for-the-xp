@@ -27,32 +27,6 @@
   <ion-content class="bg-slide rpg-box ion-padding">
     <!-- NEW HERO: one question at a time, the hero grows as it is answered -->
     <div v-if="!isEditing" class="hero-wizard icon-colors">
-      <!-- The quest trail: where you are, where you've been -->
-      <nav class="wizard-trail" aria-label="Hero creation steps">
-        <div class="wizard-trail__track">
-          <div class="wizard-trail__fill" :style="{ width: progressPercent + '%' }"></div>
-        </div>
-        <ol>
-          <li
-            v-for="(s, i) in steps"
-            :key="s.id"
-            :class="{ done: i < currentStepIndex, current: i === currentStepIndex }"
-          >
-            <button
-              type="button"
-              :disabled="i > currentStepIndex"
-              :aria-current="i === currentStepIndex ? 'step' : undefined"
-              @click="goToStep(s.id)"
-            >
-              <span class="wizard-trail__dot">
-                <i :class="['fad', i < currentStepIndex ? 'fa-check' : s.icon]"></i>
-              </span>
-              <span class="wizard-trail__label">{{ s.title }}</span>
-            </button>
-          </li>
-        </ol>
-      </nav>
-
       <ion-card class="wizard-card">
         <!-- The hero, always in view -->
         <div class="wizard-hero">
@@ -225,6 +199,32 @@
           </transition>
         </div>
       </ion-card>
+
+      <!-- The quest trail: where you are, where you've been -->
+      <nav class="wizard-trail" aria-label="Hero creation steps">
+        <div class="wizard-trail__track">
+          <div class="wizard-trail__fill" :style="{ width: progressPercent + '%' }"></div>
+        </div>
+        <ol>
+          <li
+            v-for="(s, i) in steps"
+            :key="s.id"
+            :class="{ done: i < currentStepIndex, current: i === currentStepIndex }"
+          >
+            <button
+              type="button"
+              :disabled="i > currentStepIndex"
+              :aria-current="i === currentStepIndex ? 'step' : undefined"
+              @click="goToStep(s.id)"
+            >
+              <span class="wizard-trail__dot">
+                <i :class="['fad', i < currentStepIndex ? 'fa-check' : s.icon]"></i>
+              </span>
+              <span class="wizard-trail__label">{{ s.title }}</span>
+            </button>
+          </li>
+        </ol>
+      </nav>
     </div>
 
     <ion-grid v-else class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">

@@ -192,26 +192,39 @@
 
 /* ---- New hero wizard ---- */
 /* Everything sits on the dark card (never straight on the checkered field) so it always reads */
-.hero-wizard {
+/* The Back / Next buttons live in the page footer, outside the wizard, so they share its colours */
+.hero-wizard,
+.wizard-footer {
   --wz-ink: #f7e8a8;
   --wz-soft: #e7e6b3;
   --wz-mint: #68d0b8;
   --wz-deep: #280828;
   --wz-panel: #1c0620;
   --wz-line: rgba(231, 230, 179, 0.18);
+}
 
+.hero-wizard {
+  /* The card sits in the middle of the free space with the same gap on every side (the page's own padding), and the
+     quest trail rests at the bottom, just above the Back / Next buttons */
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding-top: 16px;
   max-width: 560px;
   margin: 0 auto;
-  padding-bottom: 1.5rem;
   font-family: "Apple Kid", sans-serif;
 }
 
 /* -- Quest trail -- */
 .wizard-trail {
   position: relative;
-  margin: 0.25rem auto 0;
+  flex: none;
+  /* 35px = the card's 16px frame + a 16px gap + the trail's own 3px ring; 6px lines its outer edge up with the card's */
+  margin: 35px 6px 0;
   padding: 0.6rem 0.5rem 0.5rem;
-  width: calc(100% - 2.5em);
+  width: calc(100% - 12px);
+  box-sizing: border-box;
   border-radius: 12px;
   background: var(--wz-deep);
   border: 3px solid var(--wz-mint);
@@ -306,8 +319,11 @@
 }
 
 /* -- The card -- */
-.wizard-card {
-  margin-top: 1rem;
+.hero-wizard ion-card.wizard-card {
+  /* Auto top and bottom margins centre the card in the free space. The card's frame is drawn about 16px outside its
+     box, so the 16px side margin is what keeps the frame off the screen edge. The theme gives every ion-card its own
+     margin, so this one has to be firm. */
+  margin: auto 16px !important;
   padding: 0;
 }
 
@@ -694,63 +710,77 @@
   padding: 0.35rem 0.75rem;
 }
 
+/* The buttons wear the same frame as the cards and the trail: teal rim, cream inner line, dark purple fill */
 .wizard-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-height: 48px;
+  gap: 0.6rem;
+  min-height: 50px;
   padding: 0 1.25rem;
-  border-radius: 10px;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.4rem;
-  transition: transform 0.1s ease, opacity 0.15s ease;
+  border-radius: 8px;
+  border: 3px solid var(--wz-mint);
+  background: var(--wz-deep);
+  color: var(--wz-ink);
+  font-family: "StatusPlz", sans-serif;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 2px var(--wz-deep), inset 0 0 0 3px rgba(247, 232, 168, 0.55), 0 3px 0 #123f36;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.15s ease;
+}
+
+.wizard-btn i {
+  --fa-primary-color: var(--wz-ink);
+  --fa-secondary-color: var(--wz-mint);
+  font-size: 1.1rem;
+}
+
+.wizard-btn:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 0 0 2px var(--wz-deep), inset 0 0 0 3px rgba(247, 232, 168, 0.55), 0 0 0 #123f36;
 }
 
 .wizard-btn--back {
-  background: none;
-  border: 2px solid rgba(231, 230, 179, 0.35);
-  color: #e7e6b3;
+  border-color: rgba(104, 208, 184, 0.5);
+  color: var(--wz-soft);
 }
 
 .wizard-btn--back:disabled {
   visibility: hidden;
 }
 
+.wizard-btn--back {
+  min-width: 120px;
+}
+
+/* Back sits at the far left and Next at the far right with space between (the row is space-between); a hidden Back on
+   the first step still holds its place, so Next never drifts */
 .wizard-btn--next {
-  flex: 1;
-  max-width: 240px;
+  flex: none;
+  min-width: 150px;
   margin-left: auto;
-  border: 3px solid #f7e8a8;
-  background: #68d0b8;
-  color: #280828;
-  box-shadow: 0 4px 0 #2d7a68;
+  background: #1c0f3a;
+  box-shadow: inset 0 0 0 2px #1c0f3a, inset 0 0 0 3px rgba(247, 232, 168, 0.7), 0 0 14px rgba(104, 208, 184, 0.4), 0 3px 0 #123f36;
 }
 
-.wizard-btn--next i {
-  --fa-primary-color: #280828;
-  --fa-secondary-color: #280828;
-}
-
-.wizard-btn--next:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #2d7a68;
-}
-
+/* Not yet: the name, class, food or code this step needs is missing */
 .wizard-btn--next.is-blocked {
-  border-color: rgba(231, 230, 179, 0.35);
-  background: #3d3c55;
-  color: rgba(231, 230, 179, 0.75);
-  box-shadow: none;
+  border-color: rgba(231, 230, 179, 0.5);
+  background: var(--wz-deep);
+  color: rgba(231, 230, 179, 0.6);
+  box-shadow: inset 0 0 0 2px var(--wz-deep), inset 0 0 0 3px rgba(231, 230, 179, 0.28), 0 3px 0 #120412;
 }
 
 .wizard-btn--next.is-blocked i {
-  --fa-primary-color: rgba(231, 230, 179, 0.75);
-  --fa-secondary-color: rgba(231, 230, 179, 0.75);
+  --fa-primary-color: rgba(231, 230, 179, 0.6);
+  --fa-secondary-color: rgba(231, 230, 179, 0.4);
 }
 
 .wizard-btn--begin {
+  flex: 1;
   max-width: none;
+  border-color: var(--wz-ink);
   animation: nudge 1.4s ease-in-out infinite;
 }
 
