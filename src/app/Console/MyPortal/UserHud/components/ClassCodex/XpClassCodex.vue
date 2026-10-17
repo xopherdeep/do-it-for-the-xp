@@ -7,7 +7,7 @@
   >
     <div
       class="cs-screen"
-      :class="[`is-${skin}`, { 'is-celebrating': celebrating }]"
+      :class="`is-${skin}`"
       :style="crestStyle(shown?.name)"
       data-cy="class-select"
     >
@@ -124,120 +124,11 @@
             </button>
           </section>
 
-          <!-- Sealed: what it takes, with a bar per parent class -->
-          <section
-            v-if="shown.sealed"
-            class="cs-panel cs-unlock"
-           
-            data-cy="class-unlock"
-          >
-            <h3 class="cs-heading"><i class="fad fa-lock"></i> To unlock</h3>
-            <div
-              v-for="part in shown.requirementProgress"
-              :key="part.name"
-              class="cs-need"
-              :class="{ 'is-met': part.met }"
-            >
-              <span class="cs-need-name">{{ part.name }} Lv {{ part.needed }}</span>
-              <span class="cs-meter">
-                <span
-                  class="cs-meter-fill"
-                  :style="{ transform: `scaleX(${Math.min(1, part.level / part.needed)})` }"
-                ></span>
-              </span>
-              <span class="cs-need-count">{{ Math.min(part.level, part.needed) }}/{{ part.needed }}</span>
-            </div>
-          </section>
-
-          <!-- The five pillars as bars on one shared scale -->
-          <section
-            class="cs-panel"
-           
-          >
-            <h3 class="cs-heading"><i class="fad fa-chart-bar"></i> Starting power</h3>
-            <ul class="cs-bars">
-              <li
-                v-for="pillar in shown.power"
-                :key="pillar.key"
-                class="cs-bar"
-                :class="{ 'is-trained': pillar.rank }"
-                :style="{ '--pillar': `var(--ion-color-${pillar.color})` }"
-              >
-                <i :class="['fad', pillar.icon, 'cs-bar-icon']"></i>
-                <span class="cs-bar-name">{{ pillar.name }}</span>
-                <span class="cs-meter">
-                  <span
-                    class="cs-meter-fill"
-                    :style="{ transform: `scaleX(${pillar.share})` }"
-                  ></span>
-                </span>
-                <span class="cs-bar-value">{{ pillar.value }}</span>
-                <span
-                  class="cs-bar-rank"
-                  :title="pillar.rank || ''"
-                >{{ rankMark(pillar.rank) }}</span>
-              </li>
-            </ul>
-            <p class="cs-start">
-              <span class="is-hp">{{ shown.startingHp }} HP</span>
-              <span class="is-mp">{{ shown.startingMp }} MP</span>
-              <span class="cs-legend">&#9733; trains every level</span>
-            </p>
-          </section>
-
-          <section
-            class="cs-panel"
-           
-          >
-            <p class="cs-passive">
-              <i class="fad fa-sparkles"></i>
-              <span>{{ shown.passive }}</span>
-            </p>
-            <p class="cs-description">{{ shown.description }}</p>
-
-            <button
-              type="button"
-              class="cs-more"
-              :aria-expanded="showMore"
-              @click="toggleMore"
-            >
-              <i :class="['fas', showMore ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
-              {{ showMore ? "Less" : "More about the " + shown.name }}
-            </button>
-
-            <div
-              v-if="showMore"
-              class="cs-more-body"
-            >
-              <h4 class="cs-subheading">In real life</h4>
-              <ul class="cs-lines">
-                <li
-                  v-for="line in shown.realLife"
-                  :key="line"
-                >{{ line }}</li>
-              </ul>
-              <template v-if="shown.growsInto.length">
-                <h4 class="cs-subheading">Grows into</h4>
-                <ul class="cs-evolutions">
-                  <li
-                    v-for="evolution in shown.growsInto"
-                    :key="evolution.name"
-                    class="cs-evolution"
-                    :style="crestStyle(evolution.name)"
-                  >
-                    <i :class="['fad', evolution.icon, 'cs-evolution-crest']"></i>
-                    <span class="cs-evolution-name">{{ evolution.name }}</span>
-                    <span class="cs-evolution-need">{{ evolution.requirement }}</span>
-                    <i
-                      v-if="evolution.met"
-                      class="fad fa-check-circle cs-evolution-met"
-                      title="Ready"
-                    ></i>
-                  </li>
-                </ul>
-              </template>
-            </div>
-          </section>
+          <xp-class-details
+            :key="shown.name"
+            :entry="shown"
+            :skin="skin"
+          />
         </div>
       </ion-content>
 
@@ -292,65 +183,16 @@
         </button>
       </footer>
 
-      <!-- The confirm step: an RPG dialog over the dock -->
-      <div
-        v-if="confirming && shown"
-        class="cs-dialog-backdrop"
-        @click.self="cancelConfirm"
-      >
-        <div
-          class="cs-dialog"
-         
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="cs-dialog-title"
-          data-cy="class-confirm-dialog"
-        >
-          <i :class="['fad', shown.icon, 'cs-dialog-crest']"></i>
-          <p
-            id="cs-dialog-title"
-            class="cs-dialog-title"
-          >Become a {{ shown.name }}?</p>
-          <p class="cs-dialog-text">
-            <template v-if="currentName">Your {{ currentName }} levels stay yours, so you can switch back any time.</template>
-            <template v-else>You can switch classes any time.</template>
-          </p>
-          <div class="cs-dialog-actions">
-            <button
-              ref="yesButton"
-              type="button"
-              class="cs-choice is-yes"
-              data-cy="class-confirm-yes"
-              @click="confirm"
-            >Yes</button>
-            <button
-              type="button"
-              class="cs-choice"
-              data-cy="class-confirm-no"
-              @click="cancelConfirm"
-            >Not yet</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- The celebration: a flash, rays and the new emblem. Tap to skip. -->
-      <div
-        v-if="celebrating && celebrated"
-        class="cs-celebration"
-        data-cy="class-celebration"
-        @click="finishCelebration"
-      >
-        <span class="cs-flash"></span>
-        <span class="cs-rays"></span>
-        <span
-          v-for="n in 10"
-          :key="n"
-          class="cs-spark"
-          :style="{ '--i': n }"
-        ></span>
-        <i :class="['fad', celebrated.icon, 'cs-celebration-emblem']"></i>
-        <p class="cs-celebration-text">You are now a<br /><strong>{{ celebrated.name }}!</strong></p>
-      </div>
+      <xp-class-confirm
+        v-if="overlayEntry"
+        :mode="overlay"
+        :entry="overlayEntry"
+        :current-name="currentName"
+        :skin="skin"
+        @confirm="confirm"
+        @cancel="cancelConfirm"
+        @done="finishCelebration"
+      />
     </div>
   </ion-modal>
 </template>
@@ -361,14 +203,18 @@
   import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
   import { play$fx } from "@/assets/fx";
   import { useGameStore } from "@/lib/store/stores/game";
-  import { classCodex, type ClassCodexEntry, type PillarRank } from "@/lib/services/stats/ClassCodex";
+  import { classCodex, type ClassCodexEntry } from "@/lib/services/stats/ClassCodex";
   import { canonicalClassName, classLevelsOf } from "@/lib/services/stats/ClassPassives";
+  import XpClassDetails from "./XpClassDetails.vue";
+  import XpClassConfirm from "./XpClassConfirm.vue";
+  import { crestStyle } from "./classCrest";
 
   /**
    * Choose Your Class: a full-screen class select, opened from the hero sheet and from the class crest in the
-   * equipment dock. Tier tabs on top, a stage with the emblem (swipe or the arrows to browse), the five pillars as
-   * bars, and the roster and one button in the dock. Changing class asks once, then celebrates; the host saves the
-   * pick on `chosen` and closes the screen on `close`. The rules come from the pure module ClassCodex.ts.
+   * equipment dock. Tier tabs on top, a stage with the emblem (swipe, the arrows or the arrow keys to browse), the
+   * pillars and Codex lines (XpClassDetails), and the roster and one button in the dock. Changing class asks once,
+   * then celebrates (XpClassConfirm); the host saves the pick on `chosen` and closes the screen on `close`.
+   * The rules come from the pure module ClassCodex.ts.
    */
   const props = defineProps<{
     isOpen: boolean;
@@ -383,50 +229,24 @@
     (e: "chosen", name: string): void;
   }>();
 
+  type Direction = "left" | "right" | "none";
+  type Overlay = "ask" | "celebrate" | "none";
+
   const gameStore = useGameStore();
   const skin = computed(() => (gameStore.fabStyle === "retro" ? "retro" : "modern"));
 
-  // One tint per class (all at least 4.5:1 on the dark purple)
-  const CREST_RGB: Record<string, [number, number, number]> = {
-    Warrior: [255, 82, 82],
-    Mage: [64, 196, 255],
-    Thief: [105, 240, 174],
-    Monk: [255, 215, 64],
-    Knight: [125, 165, 220],
-    Berserker: [230, 45, 60],
-    "White Mage": [250, 235, 190],
-    "Black Mage": [160, 110, 255],
-    Assassin: [150, 165, 188],
-    Ranger: [85, 190, 95],
-    "Martial Artist": [255, 176, 20],
-    Mystic: [35, 200, 188],
-    Paladin: [255, 160, 90],
-    Ninja: [196, 140, 255],
-    Sage: [130, 230, 215],
-  };
-  const crestStyle = (name?: string) => {
-    const [r, g, b] = (name && CREST_RGB[name]) || [247, 232, 168];
-    return { "--crest": `rgb(${r}, ${g}, ${b})`, "--crest-rgb": `${r}, ${g}, ${b}` };
-  };
-
-  const tierLabel = (tier: ClassCodexEntry["tier"]) => {
-    const isCrown = tier === 3;
-    if (isCrown) return "Crown class";
-    const isAdvanced = tier === 2;
-    if (isAdvanced) return "Advanced class";
-    return "Base class";
-  };
-
-  const RANK_MARKS: Record<PillarRank, string> = { Primary: "★★★", Secondary: "★★", Tertiary: "★" };
-  const rankMark = (rank: PillarRank | null) => (rank ? RANK_MARKS[rank] : "");
+  const TIER_NAMES: Record<number, string> = { 1: "Base", 2: "Advanced", 3: "Crown" };
+  const TIER_LABELS: Record<ClassCodexEntry["tier"], string> = { 1: "Base class", 2: "Advanced class", 3: "Crown class" };
+  const tierLabel = (tier: ClassCodexEntry["tier"]) => TIER_LABELS[tier];
+  const SWIPE_MIN_PX = 48;
 
   const entries = computed<ClassCodexEntry[]>(() => classCodex(classLevelsOf(props.user?.stats?.classes)));
   const currentName = computed(() => {
     const name = canonicalClassName(props.user?.jobClass);
-    return entries.value.some((entry) => entry.name === name) ? name : "";
+    const isKnownClass = entries.value.some((entry) => entry.name === name);
+    return isKnownClass ? name : "";
   });
 
-  const TIER_NAMES: Record<number, string> = { 1: "Base", 2: "Advanced", 3: "Crown" };
   const tiers = computed(() =>
     [1, 2, 3].map((id) => {
       const inTier = entries.value.filter((entry) => entry.tier === id);
@@ -436,22 +256,20 @@
 
   const activeTier = ref(1);
   const selectedName = ref("");
-  const direction = ref<"left" | "right" | "none">("none");
+  const direction = ref<Direction>("none");
   const tierEntries = computed(() => entries.value.filter((entry) => entry.tier === activeTier.value));
   const shown = computed<ClassCodexEntry | null>(
     () => tierEntries.value.find((entry) => entry.name === selectedName.value) ?? tierEntries.value[0] ?? null
   );
   const isCurrent = computed(() => !!shown.value && shown.value.name === currentName.value);
 
-  const showMore = ref(false);
-  const confirming = ref(false);
-  const celebrating = ref(false);
+  const overlay = ref<Overlay>("none");
   const celebrated = ref<ClassCodexEntry | null>(null);
+  const overlayEntry = computed(() => (overlay.value === "celebrate" ? celebrated.value : shown.value));
   const shaking = ref(false);
 
   const rail = ref<HTMLElement | null>(null);
   const content = ref<{ $el?: { scrollToTop?: (duration?: number) => void } } | null>(null);
-  const yesButton = ref<HTMLButtonElement | null>(null);
 
   const prefersReducedMotion = () =>
     typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -461,27 +279,27 @@
     await nextTick();
     const strip = rail.value;
     const crest = strip?.querySelector<HTMLElement>(`[data-class="${shown.value?.name}"]`);
-    const hasNothingToCenter = !strip || !crest || typeof strip.scrollTo !== "function";
-    if (hasNothingToCenter) return;
-    strip.scrollTo({
-      left: crest.offsetLeft - (strip.clientWidth - crest.offsetWidth) / 2,
-      behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto",
-    });
+    const cannotScroll = !strip || !crest || typeof strip.scrollTo !== "function";
+    if (cannotScroll) return;
+    const animate = smooth && !prefersReducedMotion();
+    strip.scrollTo({ left: crest.offsetLeft - (strip.clientWidth - crest.offsetWidth) / 2, behavior: animate ? "smooth" : "auto" });
   };
 
-  const show = (name: string, towards: "left" | "right" | "none") => {
+  const show = (name: string, towards: Direction) => {
     direction.value = towards;
     selectedName.value = name;
-    showMore.value = false;
     content.value?.$el?.scrollToTop?.(0);
     void centerRail(true);
   };
 
+  const indexIn = (list: ClassCodexEntry[], name?: string) => list.findIndex((entry) => entry.name === name);
+
   /** Browse within the tier, wrapping round at the ends. */
   const step = (by: number) => {
     const list = tierEntries.value;
-    if (list.length < 2) return;
-    const at = Math.max(0, list.findIndex((entry) => entry.name === shown.value?.name));
+    const hasNowhereToGo = list.length < 2;
+    if (hasNowhereToGo) return;
+    const at = Math.max(0, indexIn(list, shown.value?.name));
     const next = list[(at + by + list.length) % list.length];
     play$fx("cursor");
     show(next.name, by > 0 ? "right" : "left");
@@ -491,26 +309,20 @@
     const isShown = entry.name === shown.value?.name;
     if (isShown) return;
     const list = tierEntries.value;
-    const from = list.findIndex((candidate) => candidate.name === shown.value?.name);
-    const to = list.findIndex((candidate) => candidate.name === entry.name);
+    const goesRight = indexIn(list, entry.name) > indexIn(list, shown.value?.name);
     play$fx("cursor");
-    show(entry.name, to > from ? "right" : "left");
+    show(entry.name, goesRight ? "right" : "left");
   };
 
   const pickTier = (id: number) => {
-    if (id === activeTier.value) return;
+    const isActive = id === activeTier.value;
+    if (isActive) return;
     play$fx("cursor");
     activeTier.value = id;
-    const first = tierEntries.value[0];
-    show(first?.name ?? "", "none");
+    show(tierEntries.value[0]?.name ?? "", "none");
   };
 
-  const toggleMore = () => {
-    play$fx(showMore.value ? "closeMenu" : "openMenu");
-    showMore.value = !showMore.value;
-  };
-
-  // Swipe: a mostly-sideways drag of 48px or more pages the stage
+  // Swipe: a mostly-sideways drag of SWIPE_MIN_PX or more pages the stage
   let touchStart: { x: number; y: number } | null = null;
   const onTouchStart = (event: TouchEvent) => {
     const touch = event.touches[0];
@@ -520,24 +332,34 @@
     const touch = event.changedTouches[0];
     const start = touchStart;
     touchStart = null;
-    if (!touch || !start) return;
+    const hasNoDrag = !touch || !start;
+    if (hasNoDrag) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
-    const isSwipe = Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.5;
+    const isSwipe = Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy) * 1.5;
     if (isSwipe) step(dx < 0 ? 1 : -1);
   };
 
+  /** What the dock button says and shows: sealed, already yours, or ready. */
+  const stateOf = (entry: ClassCodexEntry | null, current: boolean): string => {
+    if (!entry) return "none";
+    const isSealed = entry.sealed;
+    if (isSealed) return "sealed";
+    return current ? "current" : "ready";
+  };
+  const buttonState = computed(() => ({ state: stateOf(shown.value, isCurrent.value), entry: shown.value }));
   const confirmLabel = computed(() => {
-    const entry = shown.value;
-    if (!entry) return "";
-    if (entry.sealed) return `Sealed · ${entry.requirement}`;
-    if (isCurrent.value) return "This is your class";
-    return `Become a ${entry.name}`;
+    const { state, entry } = buttonState.value;
+    const labels: Record<string, string> = {
+      none: "",
+      sealed: `Sealed · ${entry?.requirement ?? ""}`,
+      current: "This is your class",
+      ready: `Become a ${entry?.name ?? ""}`,
+    };
+    return labels[state];
   });
-  const confirmIcon = computed(() => {
-    if (shown.value?.sealed) return "fa-lock";
-    return isCurrent.value ? "fa-check-circle" : "fa-sparkles";
-  });
+  const CONFIRM_ICONS: Record<string, string> = { none: "", sealed: "fa-lock", current: "fa-check-circle", ready: "fa-sparkles" };
+  const confirmIcon = computed(() => CONFIRM_ICONS[buttonState.value.state]);
 
   const shake = () => {
     shaking.value = false;
@@ -547,43 +369,40 @@
     });
   };
 
-  const askConfirm = async () => {
-    const entry = shown.value;
-    if (!entry || isCurrent.value) return;
-    if (entry.sealed) {
+  /** The dock button: a sealed class buzzes and shakes, a ready one opens the confirm step. */
+  const askConfirm = () => {
+    const { state } = buttonState.value;
+    const isSealed = state === "sealed";
+    if (isSealed) {
       play$fx("no");
       shake();
-      return;
     }
+    const isReady = state === "ready";
+    if (!isReady) return;
     play$fx("select");
-    confirming.value = true;
-    await nextTick();
-    yesButton.value?.focus();
+    overlay.value = "ask";
   };
 
   const cancelConfirm = () => {
     play$fx("closeMenu");
-    confirming.value = false;
-  };
-
-  let celebrationTimer: number | undefined;
-  const finishCelebration = () => {
-    window.clearTimeout(celebrationTimer);
-    celebrationTimer = undefined;
-    const wasCelebrating = celebrating.value;
-    if (wasCelebrating) emit("close");
+    overlay.value = "none";
   };
 
   const confirm = () => {
     const entry = shown.value;
-    const isBlocked = !entry || entry.sealed || isCurrent.value;
+    const isReady = buttonState.value.state === "ready";
+    const isBlocked = !entry || !isReady;
     if (isBlocked) return;
-    confirming.value = false;
     play$fx("levelUp");
     emit("chosen", entry.name);
     celebrated.value = entry;
-    celebrating.value = true;
-    celebrationTimer = window.setTimeout(finishCelebration, prefersReducedMotion() ? 1200 : 2200);
+    overlay.value = "celebrate";
+  };
+
+  const finishCelebration = () => {
+    const wasCelebrating = overlay.value === "celebrate";
+    overlay.value = "none";
+    if (wasCelebrating) emit("close");
   };
 
   const close = () => {
@@ -592,54 +411,50 @@
   };
 
   const onDismiss = () => {
-    window.clearTimeout(celebrationTimer);
-    celebrationTimer = undefined;
-    celebrating.value = false;
-    confirming.value = false;
+    overlay.value = "none";
     emit("close");
   };
 
-  // Arrow keys browse, Enter asks, Escape backs out of the confirm step
+  // Arrow keys browse; Escape backs out of the confirm step
+  const KEY_STEPS: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
   const onKey = (event: KeyboardEvent) => {
-    if (celebrating.value) return;
-    if (confirming.value) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        cancelConfirm();
-      }
-      return;
+    const isAsking = overlay.value === "ask";
+    const isBackingOut = isAsking && event.key === "Escape";
+    if (isBackingOut) {
+      event.preventDefault();
+      event.stopPropagation();
+      cancelConfirm();
     }
-    if (event.key === "ArrowRight") step(1);
-    else if (event.key === "ArrowLeft") step(-1);
+    const by = KEY_STEPS[event.key];
+    const isBrowsing = overlay.value === "none" && !!by;
+    if (isBrowsing) step(by);
+  };
+
+  const listenToKeys = (on: boolean) => {
+    const hasNoDocument = typeof document === "undefined";
+    if (hasNoDocument) return;
+    document.removeEventListener("keydown", onKey, true);
+    if (on) document.addEventListener("keydown", onKey, true);
   };
 
   // Each time the screen opens it starts on the hero's own class, in its tier
   watch(
     () => props.isOpen,
     (open) => {
-      if (typeof document !== "undefined") {
-        document.removeEventListener("keydown", onKey, true);
-        if (open) document.addEventListener("keydown", onKey, true);
-      }
+      listenToKeys(open);
       if (!open) return;
       const own = entries.value.find((entry) => entry.name === currentName.value);
       activeTier.value = own?.tier ?? 1;
       direction.value = "none";
       selectedName.value = own?.name ?? "";
-      showMore.value = false;
-      confirming.value = false;
-      celebrating.value = false;
+      overlay.value = "none";
       celebrated.value = null;
       void centerRail();
     },
     { immediate: true }
   );
 
-  onBeforeUnmount(() => {
-    window.clearTimeout(celebrationTimer);
-    if (typeof document !== "undefined") document.removeEventListener("keydown", onKey, true);
-  });
+  onBeforeUnmount(() => listenToKeys(false));
 </script>
 
 <style lang="scss" scoped src="./_XpClassCodex.scss" />

@@ -1,0 +1,300 @@
+  @use "@/styles/themes/earthbound.scss" as *;
+
+  // The overlays of Choose Your Class (XpClassConfirm): the confirm dialog and the celebration. Both sit over the
+  // whole screen (its .cs-screen is position: relative). The crest colour comes in as --crest.
+
+  $ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---- Confirm dialog ---- */
+  .cs-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 16px calc(24px + var(--ion-safe-area-bottom, 0px));
+    background: rgba(8, 2, 12, 0.6);
+    animation: cs-fade 160ms ease both;
+  }
+
+  .cs-dialog {
+    width: 100%;
+    max-width: 420px;
+    padding: 18px 18px 16px;
+    border-radius: 18px;
+    background: #2a1036;
+    border: 1px solid rgba(var(--crest-rgb), 0.5);
+    text-align: center;
+    animation: cs-rise 220ms $ease-out both;
+  }
+
+  .cs-dialog-crest {
+    font-size: 2.4rem;
+    color: var(--crest);
+    --fa-primary-color: var(--crest);
+    --fa-secondary-color: var(--crest);
+  }
+
+  .cs-dialog-title {
+    margin: 8px 0 4px;
+    font-family: $eb-font-status;
+    font-size: 1.4rem;
+    color: $eb-color-pale-yellow;
+  }
+
+  .cs-dialog-text {
+    margin: 0 0 14px;
+    font-size: 1.15rem;
+    line-height: 1.4;
+    opacity: 0.85;
+  }
+
+  .cs-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .cs-choice {
+    position: relative;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: $eb-color-cream;
+    font-family: $eb-font-status;
+    font-size: 1.1rem;
+    cursor: pointer;
+
+    &.is-yes {
+      background: var(--crest);
+      color: #1a0620;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $eb-color-pale-yellow;
+      outline-offset: 2px;
+    }
+  }
+
+  /* ---- Celebration ---- */
+  .cs-celebration {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    overflow: hidden;
+    background: rgba(8, 2, 12, 0.82);
+    animation: cs-fade 200ms ease both;
+    cursor: pointer;
+  }
+
+  .cs-flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    animation: cs-flash 420ms ease-out both;
+  }
+
+  .cs-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 160vmax;
+    height: 160vmax;
+    margin: -80vmax 0 0 -80vmax;
+    background: repeating-conic-gradient(rgba(var(--crest-rgb), 0.28) 0deg 10deg, transparent 10deg 24deg);
+    mask-image: radial-gradient(circle, #000 0%, transparent 45%);
+    -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 45%);
+    animation: cs-spin 9s linear infinite;
+  }
+
+  .cs-spark {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px;
+    border-radius: 2px;
+    background: var(--crest);
+    opacity: 0;
+    transform: rotate(calc(var(--i) * 36deg)) translateY(0);
+    animation: cs-spark 900ms 120ms $ease-out both;
+  }
+
+  .cs-celebration-emblem {
+    position: relative;
+    font-size: 6rem;
+    color: var(--crest);
+    --fa-primary-color: var(--crest);
+    --fa-secondary-color: var(--crest);
+    --fa-secondary-opacity: 0.55;
+    filter: drop-shadow(0 0 18px rgba(var(--crest-rgb), 0.7));
+    animation: cs-pop 620ms $ease-out both;
+  }
+
+  .cs-celebration-text {
+    position: relative;
+    margin: 0;
+    text-align: center;
+    font-family: $eb-font-status;
+    font-size: 1.3rem;
+    color: $eb-color-cream;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+    animation: cs-rise 360ms 260ms $ease-out both;
+
+    strong {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 2.2rem;
+      font-weight: normal;
+      color: var(--crest);
+    }
+  }
+
+  /* ---- Retro skin: an Earthbound window, the menu cursor, stepped motion ---- */
+  .is-retro {
+    &.cs-dialog-backdrop {
+      padding-left: 28px;
+      padding-right: 28px;
+      padding-bottom: calc(40px + var(--ion-safe-area-bottom, 0px));
+    }
+
+    .cs-dialog {
+      @include eb-box();
+      border: 0;
+      animation: cs-rise 200ms steps(4) both;
+    }
+
+    // The menu cursor: a hand-drawn arrow before the focused or hovered choice
+    .cs-choice {
+      border-radius: 0;
+      background: transparent;
+      text-align: left;
+      padding-left: 30px;
+
+      &.is-yes {
+        background: transparent;
+        color: $eb-color-pale-yellow;
+      }
+
+      &:focus-visible {
+        outline: none;
+      }
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        margin-top: -7px;
+        border: 7px solid transparent;
+        border-left: 11px solid $eb-color-pale-yellow;
+        border-right: 0;
+        opacity: 0;
+        animation: cs-cursor 600ms steps(2) infinite;
+      }
+    }
+
+    // The cursor sits on Yes unless the other choice is pointed at or focused
+    .cs-dialog-actions:not(:has(.cs-choice:not(.is-yes):is(:hover, :focus-visible))) .cs-choice.is-yes::before,
+    .cs-choice:not(.is-yes):is(:hover, :focus-visible)::before {
+      opacity: 1;
+    }
+
+    .cs-celebration-emblem {
+      animation-timing-function: steps(6);
+    }
+
+    .cs-rays {
+      animation-timing-function: steps(36);
+    }
+  }
+
+  /* ---- Keyframes ---- */
+  @keyframes cs-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes cs-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+
+  @keyframes cs-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes cs-flash {
+    0% {
+      opacity: 0.9;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes cs-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+
+    60% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes cs-spark {
+    0% {
+      opacity: 1;
+      transform: rotate(calc(var(--i) * 36deg)) translateY(0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: rotate(calc(var(--i) * 36deg)) translateY(-150px);
+    }
+  }
+
+  @keyframes cs-cursor {
+    50% {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cs-dialog-backdrop,
+    .cs-dialog,
+    .cs-celebration,
+    .cs-celebration *,
+    .cs-choice::before {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .cs-flash,
+    .cs-rays,
+    .cs-spark {
+      display: none;
+    }
+  }
