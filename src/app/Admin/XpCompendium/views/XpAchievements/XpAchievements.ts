@@ -115,21 +115,16 @@ export default defineComponent({
         const category = grouped.find(
           (group: any) => group.categoryId === achievement.categoryId
         );
-        // TODO: do the same for assignee, but its an array of ids
-        const assignee = grouped.find((group: any) =>
-          achievement.assignee.includes(group.assignee)
-        );
+        // A quest can have several assignees: it joins the group of each one, creating the group when it is new.
+        const assigneeIds: any[] = [achievement.assignee].flat().filter(Boolean);
 
-        const assigneeIds = achievement.assignee;
         switch ((this as any).groupBy) {
           case "assignee":
-            if (assignee) {
-              assignee.achievements.push(achievement);
-            } else if (assigneeIds) {
-              assigneeIds.forEach((assignee: any) => {
-                grouped.push({ assignee, achievements: [achievement] });
-              });
-            }
+            assigneeIds.forEach((assigneeId: any) => {
+              const group = grouped.find((g: any) => g.assignee === assigneeId);
+              if (group) group.achievements.push(achievement);
+              else grouped.push({ assignee: assigneeId, achievements: [achievement] });
+            });
             break;
 
           default:

@@ -136,7 +136,7 @@ export const completeQuest = async (
  * Whether the hero can still complete the quest at `now`, read from the quest log of EVERY hero: a shared quest
  * (Team Effort, Rat Race) a sibling already cleared, or a window the hero used up on another screen (a claim, a
  * pending one too), is closed, so a battle win that ends after it is not paid a second time. False when the quest is
- * not due at `now`. The same rule the board and MyTask's claim read (QuestSchedule.getQuestProgressFor).
+ * not due at `now`. The same rule the board and the beast card's claim read (QuestSchedule.getQuestProgressFor).
  * @param effects The hero's item effects (snoozes, pull-ins), as the board read them
  */
 export const isQuestStillOpen = async (
