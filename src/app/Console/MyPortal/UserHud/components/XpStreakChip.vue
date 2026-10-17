@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { alertController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { useHeroStreak } from "@/hooks/useHeroStreak";
 import { lostYesterday } from "@/lib/services/streaks/dailyStreak";
-import { streakAriaLabel, streakChipLabel, streakHeader, streakLines } from "@/lib/services/streaks/streakCopy";
+import { streakCardModel } from "@/lib/services/streaks/streakCard";
+import { streakAriaLabel, streakChipLabel } from "@/lib/services/streaks/streakCopy";
+import XpStreakCard from "./XpStreakCard.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
@@ -26,27 +27,21 @@ const justLost = computed(() => lostYesterday(streak.value) && streak.value.curr
 const visible = computed(() => enabled.value && (streak.value.current > 0 || justLost.value));
 const label = computed(() => streakChipLabel(streak.value) || "0");
 
-const openStreakBox = async () => {
+const isOpen = ref(false);
+const card = computed(() => streakCardModel(streak.value));
+
+const openStreakBox = (): void => {
   play$fx("openMenu");
-  const lines = streakLines(streak.value)
-    .map((line) => `<p>${line}</p>`)
-    .join("");
-  const alert = await alertController.create({
-    header: streakHeader(streak.value),
-    message: lines,
-    cssClass: "rpg-alert streak-alert",
-    buttons: [
-      {
-        text: "Records",
-        handler: () => {
-          play$fx("select");
-          void router.push({ name: "my-records", params: { userId: heroId.value } });
-        },
-      },
-      { text: "OK", role: "cancel", handler: () => play$fx("closeMenu") },
-    ],
-  });
-  await alert.present();
+  isOpen.value = true;
+};
+const closeStreakBox = (): void => {
+  play$fx("closeMenu");
+  isOpen.value = false;
+};
+const openRecords = (): void => {
+  play$fx("select");
+  isOpen.value = false;
+  void router.push({ name: "my-records", params: { userId: heroId.value } });
 };
 </script>
 
@@ -66,9 +61,82 @@ const openStreakBox = async () => {
       <i v-for="n in streak.shields" :key="n" class="fad fa-shield" />
     </span>
   </button>
+  <Teleport to="body">
+    <Transition name="streak-pop">
+      <div v-if="isOpen" class="streak-overlay" data-cy="streak-overlay" @click.self="closeStreakBox">
+        <div class="streak-stack" role="dialog" aria-modal="true" aria-label="Daily streak">
+          <XpStreakCard :model="card" />
+          <div class="streak-actions">
+            <button type="button" class="streak-btn" data-cy="streak-records" @click="openRecords">Records</button>
+            <button type="button" class="streak-btn streak-btn--close" data-cy="streak-close" @click="closeStreakBox">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
+.streak-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(40, 10, 0, 0.7), rgba(0, 0, 0, 0.88));
+}
+
+.streak-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.streak-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.streak-btn {
+  flex: 1;
+  min-height: 42px;
+  border: 2px solid #3fd0c0;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #123a3e, #061a1e);
+  box-shadow: inset 0 0 0 2px #061a1e, inset 0 0 0 3px #f6e9c8, 0 3px 0 rgba(0, 0, 0, 0.6);
+  color: #fff6dc;
+  font-family: "StatusPlz", sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:active {
+    transform: translateY(2px);
+  }
+
+  &--close {
+    border-color: #ffd23f;
+    background: linear-gradient(180deg, #5a3a12, #2b1a06);
+  }
+}
+
+.streak-pop-enter-active,
+.streak-pop-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.streak-pop-enter-from,
+.streak-pop-leave-to {
+  opacity: 0;
+}
+
 .streak-chip {
   display: inline-flex;
   align-items: center;
