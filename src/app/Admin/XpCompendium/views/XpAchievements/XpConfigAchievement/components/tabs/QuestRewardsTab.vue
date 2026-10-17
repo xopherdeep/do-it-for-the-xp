@@ -84,6 +84,7 @@
         @click="showBonusModal = true"
       />
     </xp-app-section>
+    <QuestLateRuleItem />
   </div>
 </template>
 
@@ -92,6 +93,7 @@ import { computed, inject } from 'vue';
 import { IonButton, IonChip, IonInput, IonItem, IonLabel, IonList } from '@ionic/vue';
 import AchievementRewardsTab from "../AchievementRewardsTab.vue";
 import QuestPhotoRuleItem from "../QuestPhotoRuleItem.vue";
+import QuestLateRuleItem from "./QuestLateRuleItem.vue";
 import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";

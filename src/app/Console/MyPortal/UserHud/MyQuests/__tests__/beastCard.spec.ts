@@ -235,6 +235,17 @@ describe("cardActions / isClaimable", () => {
     expect(cardActions("open", steps).note).toBe("");
   });
 
+  it("only shows why a chore the family locked for being late cannot be worked", () => {
+    const note = "Too late: this one closed at 6:00pm";
+    expect(cardActions("overdue", allDone, "adventure", note)).toEqual({
+      canCheck: false,
+      canHunt: false,
+      canClaim: false,
+      showButtons: false,
+      note,
+    });
+  });
+
   it("shows a tamed or pending quest with every step done", () => {
     expect(stepsForState("done", steps).every((step) => step.checked)).toBe(true);
     expect(stepsForState("pending", steps).every((step) => step.checked)).toBe(true);

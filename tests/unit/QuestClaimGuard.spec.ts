@@ -92,3 +92,27 @@ describe("checkClaimWindow", () => {
     expect(checkClaimWindow(makeQuest(), [makeEntry({ status: "rejected" })], "hero-1", NOON).canClaim).toBe(true);
   });
 });
+
+describe("checkClaimWindow and locked chores", () => {
+  const closedAt6 = { state: "locked" as const, deadline: new Date(2026, 9, 10, 18, 0, 0) };
+  const EVENING = new Date(2026, 9, 10, 19, 0, 0);
+
+  it("refuses a locked chore with a friendly reason", () => {
+    expect(checkClaimWindow(makeQuest(), [], "hero-1", EVENING, undefined, closedAt6)).toEqual({
+      canClaim: false,
+      isUsedUp: false,
+      awaitingApproval: false,
+      notice: "Too late: this one closed at 6:00pm",
+    });
+  });
+
+  it("lets a late chore through when it is not locked", () => {
+    const late = { state: "late" as const, deadline: closedAt6.deadline };
+    expect(checkClaimWindow(makeQuest(), [], "hero-1", EVENING, undefined, late).canClaim).toBe(true);
+  });
+
+  it("still says used up for a chore already tamed, locked or not", () => {
+    const check = checkClaimWindow(makeQuest(), [makeEntry()], "hero-1", EVENING, undefined, closedAt6);
+    expect(check).toMatchObject({ canClaim: false, isUsedUp: true, notice: "You already tamed this quest." });
+  });
+});

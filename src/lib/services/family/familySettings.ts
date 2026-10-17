@@ -1,5 +1,6 @@
 import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { dayKeyOf, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { DEFAULT_LATE_CHORES, normalizeLateChores, type LateChoreSettings } from "@/lib/services/quests/lateRules";
 
 /**
  * What the Game Master lets the family do (docs/Items-And-Classes-Contract.md, B), and the family-wide game rules
@@ -17,6 +18,8 @@ export interface FamilySettings {
   streaks: boolean;
   /** Cash out (Settings > Rewards): heroes trade GP for real money; every cash out waits in Approvals for a Game Master */
   cashOut: CashOutSettings;
+  /** Late chores (Settings > Chores): lock, reduced pay and penalty, all off until the Game Master turns them on */
+  lateChores: LateChoreSettings;
 }
 
 export interface CashOutSettings {
@@ -36,6 +39,7 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   dayOffBroadcast: false,
   streaks: true,
   cashOut: { enabled: true, gpPerDollar: 10, heroIds: [] },
+  lateChores: { ...DEFAULT_LATE_CHORES },
 };
 
 const clock = (value: unknown, fallback: string): string =>
@@ -60,6 +64,7 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
   dayOffBroadcast: stored?.dayOffBroadcast === true,
   streaks: stored?.streaks !== false,
   cashOut: normalizeCashOut(stored?.cashOut),
+  lateChores: normalizeLateChores(stored?.lateChores),
 });
 
 export const loadFamilySettings = async (): Promise<FamilySettings> => {

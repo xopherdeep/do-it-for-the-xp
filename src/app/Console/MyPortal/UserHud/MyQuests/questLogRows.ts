@@ -125,6 +125,8 @@ export function subtitleOf(row: QuestListRow): string {
 
 /** The word at the end of a row that cannot be finished from here: Pending, Later, Tamed or "Done by Mia". */
 export function stateLabelOf(row: QuestListRow): string {
+  const isLocked = Boolean(row.lockedNotice);
+  if (isLocked) return "Locked";
   const labels: Partial<Record<QuestListStatus, string>> = { pending: "Pending", later: "Later", done: row.statusLabel };
   return labels[row.status] ?? "";
 }
@@ -207,7 +209,7 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
     requiresPhoto: row.requiresPhoto,
     chips,
     hasChips: chips.length > 0,
-    canFinish: row.status === "open" || row.status === "overdue",
+    canFinish: (row.status === "open" || row.status === "overdue") && !row.lockedNotice,
     source: row,
   };
 }

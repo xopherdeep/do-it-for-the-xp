@@ -10,6 +10,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
 import { claimWithProof } from "@/components/organisms/ClaimPhoto/claimWithProof";
+import { lateCheckFor, lockedNoticesFor } from "@/lib/services/quests/lateChores";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { nickOf, questListCounts, questListFor } from "@/lib/services/quests/QuestList";
 import type { QuestListRow, QuestListStatus } from "@/lib/services/quests/QuestList";
@@ -126,7 +127,7 @@ export default defineComponent({
     // The board as a plain to-do list: every quest with its assignee, due time and status
     listRows(): QuestListRow[] {
       const effects = (this as any).userStore.getUserById(this.userId)?.questEffects;
-      return questListFor(String(this.userId), new Date(), this.board, (this as any).userStore.users, effects);
+      return questListFor(String(this.userId), new Date(), this.board, (this as any).userStore.users, effects, this.lockedNotices);
     },
     listCounts(): Record<QuestListStatus, number> {
       return questListCounts(this.listRows);
@@ -294,7 +295,9 @@ export default defineComponent({
         const heroId = String(this.userId);
         const entries = await getQuestLogDb().getEntries();
         const effects = (this as any).userStore.getUserById(this.userId)?.questEffects;
-        const check = checkClaimWindow(row.quest, entries, heroId, new Date(), effects);
+        const now = new Date();
+        const { status: late } = await lateCheckFor(row.quest, heroId, now);
+        const check = checkClaimWindow(row.quest, entries, heroId, now, effects, late);
         if (!check.canClaim) {
           // The row was out of date: show the board as the log has it
           await this.loadBoard();
@@ -335,10 +338,10 @@ export default defineComponent({
       });
     },
     // Paid: the battle's loot card counts it up. Held: the same card, its tiles locked until the Game Master says yes
-    announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid }: CompletionResult) {
+    announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid, lateNote }: CompletionResult) {
       const nick = (this as any).userStore.getUserById(this.userId)?.name?.nick || "The hero";
       void showRewards(
-        questRewardsCard({ nick, questName: row.title, rewards: paid ?? row.rewards, held: awaitingApproval, levelUp }),
+        questRewardsCard({ nick, questName: row.title, rewards: paid ?? row.rewards, held: awaitingApproval, levelUp, lateNote }),
       );
     },
     async say(header: string, message?: string, duration = 2000) {
@@ -398,6 +401,8 @@ export default defineComponent({
     const { rootClass, rootStyle } = useAppSkin("quests");
 
     const board = ref<QuestBoardItem[]>([]);
+    // Quest id -> why the family locked it for being late ("Too late: this one closed at 6:00pm")
+    const lockedNotices = ref<Record<string, string>>({});
     const isLoading = ref(true);
     // The family's own beasts: the tile of a quest wears its beast's portrait
     const familyBeasts = ref<Beast[]>([]);
@@ -417,7 +422,11 @@ export default defineComponent({
         const items = await getQuestEngine().getQuestBoardForUser(props.userId, new Date(), {
           search: params.search,
         }, effects);
-        if (isNewestRequest(request)) board.value = items;
+        const locked = await lockedNoticesFor(items, String(props.userId), new Date());
+        if (isNewestRequest(request)) {
+          board.value = items;
+          lockedNotices.value = locked;
+        }
       } finally {
         if (isNewestRequest(request)) isLoading.value = false;
 
@@ -464,6 +473,7 @@ export default defineComponent({
       t,
       params,
       board,
+      lockedNotices,
       loadBoard,
       isLoading,
       familyBeasts,
