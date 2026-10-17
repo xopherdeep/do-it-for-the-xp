@@ -217,18 +217,14 @@
 }
 
 /* -- Quest trail -- */
-.wizard-trail {
+.hero-wizard ion-card.wizard-trail {
+  /* The same pixel frame as the card above it (the theme's ion-card box), so the two read as one set. The 35px top
+     margin = the card's 16px frame + a 16px gap + the trail frame's own 3px. */
   position: relative;
   flex: none;
-  /* 35px = the card's 16px frame + a 16px gap + the trail's own 3px ring; 6px lines its outer edge up with the card's */
-  margin: 35px 6px 0;
-  padding: 0.6rem 0.5rem 0.5rem;
-  width: calc(100% - 12px);
+  margin: 35px 16px 24px !important;
+  padding: 0.6rem 0.25rem 0.5rem;
   box-sizing: border-box;
-  border-radius: 12px;
-  background: var(--wz-deep);
-  border: 3px solid var(--wz-mint);
-  box-shadow: 0 0 0 3px var(--wz-deep), 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
 .wizard-trail__track {
@@ -237,13 +233,13 @@
   left: 9%;
   right: 9%;
   height: 4px;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--wz-line);
 }
 
 .wizard-trail__fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--wz-mint);
   transition: width 0.4s ease;
 }
@@ -278,7 +274,7 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 3px;
   border: 2px solid rgba(231, 230, 179, 0.35);
   background: var(--wz-panel);
   color: rgba(231, 230, 179, 0.55);
@@ -287,7 +283,7 @@
 }
 
 .wizard-trail__label {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   letter-spacing: 0.5px;
   color: rgba(231, 230, 179, 0.6);
 }

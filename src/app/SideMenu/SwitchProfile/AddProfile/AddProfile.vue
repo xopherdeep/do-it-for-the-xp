@@ -78,7 +78,7 @@
                   autocapitalize="words"
                   @keyup.enter="goNext"
                 ></ion-input>
-                <p class="field-hint">Like Sam J. Smith a.k.a. Sammy. What comes after a.k.a. is what we call you.</p>
+                <p class="field-hint">Like Sam J. Smith a.k.a. Sammy (aka works too). What comes after it is what we call you.</p>
 
                 <label class="field-label" for="hero-thing">Favorite thing <span class="optional">optional</span></label>
                 <ion-input
@@ -102,7 +102,7 @@
                 </p>
               </div>
 
-              <!-- 3. CLASS and 4. FOOD: one card grid -->
+              <!-- 3. STYLE, 4. CLASS and 5. FOOD: one card grid -->
               <div v-else-if="isChoiceStep" class="choice-grid" :class="{ 'choice-grid--small': step === 'food' }">
                 <button
                   v-for="card in choiceCards"
@@ -120,7 +120,7 @@
                 </button>
               </div>
 
-              <!-- 5. SECRET -->
+              <!-- 6. SECRET -->
               <div v-else-if="step === 'secret'" class="wizard-fields">
                 <span class="field-label">Who is playing?</span>
                 <div class="role-row">
@@ -172,10 +172,11 @@
                 </p>
               </div>
 
-              <!-- 6. READY -->
+              <!-- 7. READY -->
               <div v-else class="wizard-fields">
                 <ul class="summary">
                   <li><i class="fad fa-signature"></i><span>Name</span><strong>{{ fullName.trim() }}</strong></li>
+                  <li v-if="selectedSkin"><i :class="['fad', selectedSkin.icon]"></i><span>Style</span><strong>{{ selectedSkin.label }}</strong></li>
                   <li v-if="selectedJob"><i :class="['fad', selectedJob.icon]"></i><span>Class</span><strong>{{ selectedJob.name }}</strong></li>
                   <li v-if="selectedFood"><i :class="['fad', selectedFood.icon]"></i><span>Food</span><strong>{{ selectedFood.value }}</strong></li>
                   <li v-if="favoriteThing"><i class="fad fa-star"></i><span>Loves</span><strong>{{ favoriteThing }}</strong></li>
@@ -201,7 +202,7 @@
       </ion-card>
 
       <!-- The quest trail: where you are, where you've been -->
-      <nav class="wizard-trail" aria-label="Hero creation steps">
+      <ion-card class="wizard-trail" role="navigation" aria-label="Hero creation steps">
         <div class="wizard-trail__track">
           <div class="wizard-trail__fill" :style="{ width: progressPercent + '%' }"></div>
         </div>
@@ -224,7 +225,7 @@
             </button>
           </li>
         </ol>
-      </nav>
+      </ion-card>
     </div>
 
     <ion-grid v-else class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">

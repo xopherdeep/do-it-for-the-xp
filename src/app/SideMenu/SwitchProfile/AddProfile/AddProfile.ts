@@ -9,6 +9,7 @@ import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+import { DEFAULT_HERO_SKIN, isHeroSkin, type HeroSkin } from "@/lib/services/profile/heroSkin";
 
 import { ProfileDb } from "@/lib/databases";
 import type { NewProfileForm } from "@/lib/databases/ProfileDb";
@@ -26,7 +27,7 @@ import {
   type NewHeroStepId,
 } from "@/lib/services/profile/newHeroSteps";
 
-import { EDIT_TABS, FEATURE_OPTIONS, ROLE_CHOICES } from "./formOptions";
+import { EDIT_TABS, FEATURE_OPTIONS, ROLE_CHOICES, SKIN_CHOICES } from "./formOptions";
 import type { ChoiceCard, FeatureKey } from "./formOptions";
 import ionic from "@/lib/mixins/ionic";
 
@@ -166,6 +167,8 @@ export const AddProfile = defineComponent({
     const favoriteThing = ref("");
     const foodOptions = ref(FOOD_OPTIONS);
     const jobClass = ref("");
+    // Retro or Modern: the hero's own look and feel (services/profile/heroSkin.ts)
+    const skin = ref<HeroSkin>(DEFAULT_HERO_SKIN);
     // The 3D hero built in the look builder (GamerCard), and the picture of its face; none until they build one
     const look = ref<HeroLook | undefined>(undefined);
     const avatarImage = ref<string | undefined>(undefined);
@@ -201,6 +204,7 @@ export const AddProfile = defineComponent({
       favoriteThing.value = profile.favoriteThing;
       favoriteFood.value = profile.favoriteFood;
       jobClass.value = profile.jobClass;
+      if (isHeroSkin(profile.skin)) skin.value = profile.skin;
       isAdult.value = profile.isAdult === true;
       wasGameMaster.value = profile.isAdult === true;
       legacyGameMaster.value = needsGameMasterPasscode(profile);
@@ -308,12 +312,18 @@ export const AddProfile = defineComponent({
       play$fx("select");
       favoriteFood.value = value;
     };
+    const pickSkin = (value: string) => {
+      play$fx("select");
+      if (isHeroSkin(value)) skin.value = value;
+    };
+    const selectedSkin = computed(() => SKIN_CHOICES.find((card) => card.key === skin.value));
     // The class and food steps are one grid of cards: each step says which cards, which is chosen, and what a tap does
-    const choiceCardsByStep: Partial<Record<NewHeroStepId, ChoiceCard[]>> = { class: classCards, food: foodCards };
-    const choicePickers: Partial<Record<NewHeroStepId, (key: string) => void>> = { class: pickClass, food: pickFood };
+    const choiceCardsByStep: Partial<Record<NewHeroStepId, ChoiceCard[]>> = { style: SKIN_CHOICES, class: classCards, food: foodCards };
+    const choicePickers: Partial<Record<NewHeroStepId, (key: string) => void>> = { style: pickSkin, class: pickClass, food: pickFood };
     const choiceCards = computed(() => choiceCardsByStep[step.value] ?? []);
     const isChoiceStep = computed(() => choiceCards.value.length > 0);
     const chosenByStep = computed<Partial<Record<NewHeroStepId, string>>>(() => ({
+      style: skin.value,
       class: jobClass.value,
       food: favoriteFood.value,
     }));
@@ -358,6 +368,7 @@ export const AddProfile = defineComponent({
       favoriteThing: favoriteThing.value,
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
+      skin: skin.value,
       isAdult: isGameMaster.value,
       stats: props.profile?.stats || new Stats(),
     }))
@@ -432,6 +443,7 @@ export const AddProfile = defineComponent({
       featureOptions: FEATURE_OPTIONS,
       selectedJob,
       selectedFood,
+      selectedSkin,
       goToStep,
       goNext,
       goBack,

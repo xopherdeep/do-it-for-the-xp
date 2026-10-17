@@ -114,6 +114,7 @@ export const useUserStore = defineStore('user', () => {
     clearQuestGrudge,
     setQuestGrudges,
     setVoice,
+    setSkin,
     setAutoRead
   } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP });
 
@@ -512,6 +513,7 @@ export const useUserStore = defineStore('user', () => {
     clearQuestGrudge,
     setQuestGrudges,
     setVoice,
+    setSkin,
     setAutoRead,
     persistUser,
     getAPInTimeRange,

@@ -10,6 +10,7 @@ import {
   type StoragePurchase
 } from '@/lib/services/inventory/Storage';
 import { isVoice, type Voice } from '@/lib/services/copy/voices';
+import { isHeroSkin, type HeroSkin } from '@/lib/services/profile/heroSkin';
 import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
 import type { GpPayload } from './types';
 
@@ -348,6 +349,17 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     return true;
   }
 
+  /** The hero's Retro / Modern look (services/profile/heroSkin.ts). False, changing nothing, for an unknown hero or skin. */
+  function setSkin(userId: string, skin: HeroSkin): boolean {
+    const user = users[userId];
+    const isUnknownChoice = !user || !isHeroSkin(skin);
+    if (isUnknownChoice) return false;
+    user.skin = skin;
+    if (isCurrentHero(userId)) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
   /** Whether the simple voice reads lines aloud on its own for this hero (the speaker button always works). */
   function setAutoRead(userId: string, autoRead: boolean) {
     const user = users[userId];
@@ -378,6 +390,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     clearQuestGrudge,
     setQuestGrudges,
     setVoice,
+    setSkin,
     setAutoRead
   };
 }

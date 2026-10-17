@@ -555,7 +555,8 @@ export class AudioEngine {
   /** Stop one leaving song for good: its fade ends, it pauses and the next play starts it from the top */
   private silenceTrack(id: string, track: HTMLAudioElement): void {
     const frame = this._musicFadeOuts.get(id);
-    if (frame !== undefined) cancelAnimationFrame(frame);
+    const isFading = frame !== undefined;
+    if (isFading) cancelAnimationFrame(frame);
     this._musicFadeOuts.delete(id);
     track.pause();
     track.volume = 0;
