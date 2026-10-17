@@ -437,6 +437,7 @@ describe("signing in, masquerading, loading", () => {
         "setBedRestAt",
         "setBenchRestAt",
         "setEquipment",
+        "setGuide",
         "setItemCooldown",
         "setJobClass",
         "setLook",
