@@ -1,5 +1,6 @@
 import { watch } from "vue";
 import { sameTheme, themeOf } from "@/lib/services/profile/heroTheme";
+import { isPreviewingLook } from "@/lib/services/profile/lookPreview";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -33,6 +34,8 @@ export function useHeroThemeSync(): void {
   watch(
     () => [gameStore.theme.rpg, gameStore.theme.ui] as const,
     ([rpg, ui]) => {
+      const isTryingOn = isPreviewingLook.value;
+      if (isTryingOn) return;
       const heroId = hero().id;
       const current = themeOf(hero());
       const isChangeToKeep = Boolean(heroId) && !(current && sameTheme(current, { rpg, ui }));

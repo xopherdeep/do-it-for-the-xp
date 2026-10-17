@@ -1,7 +1,9 @@
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import { DEFAULT_HERO_SKIN, isHeroSkin, type HeroSkin } from "@/lib/services/profile/heroSkin";
 import { themeOf } from "@/lib/services/profile/heroTheme";
+import { isPreviewingLook } from "@/lib/services/profile/lookPreview";
+import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useProStore } from "@/lib/store/stores/pro";
 import { GAME_STYLE_NAMES, GAME_STYLES, isProGameStyle, UI_STYLES } from "@/lib/utils/gameStyle";
@@ -10,11 +12,15 @@ import { SKIN_CHOICES } from "./formOptions";
 /**
  * What the new-hero wizard's Style step holds: Retro or Modern, the game style and the menu sounds. The game style and
  * sounds start as the device's current choice. A Pro game style without Pro opens the upsell and the pick stays put.
+ * Each pick is tried on at once, so the hero sees (and hears) it; leaving the wizard puts back the look it found, and
+ * nothing is written onto the hero who is signed in meanwhile (isPreviewingLook).
  */
 export function useHeroStyleChoice() {
   const gameStore = useGameStore();
   const pro = useProStore();
   pro.init().catch(() => undefined);
+
+  const audioStore = useAudioStore();
 
   const skin = ref<HeroSkin>(DEFAULT_HERO_SKIN);
   const rpgStyle = ref(gameStore.theme.rpg);
@@ -30,8 +36,33 @@ export function useHeroStyleChoice() {
     }
   };
 
+  // The look the app wore before the first try-on, to put back when the wizard closes
+  let found: { fab: HeroSkin; rpg: string; ui: string } | null = null;
+  const tryOn = (change: () => void): void => {
+    found ??= { fab: gameStore.fabStyle, rpg: gameStore.theme.rpg, ui: gameStore.theme.ui };
+    isPreviewingLook.value = true;
+    change();
+  };
+  const wearTheme = (rpg: string, ui: string): void => {
+    gameStore.changeSoundFX({ rpg, ui });
+    // The sound player reads its own copy of the choice
+    const fx = audioStore.bgm?.$fx;
+    if (fx) fx.theme = { ...fx.theme, rpg, ui };
+  };
+  onBeforeUnmount(() => {
+    const before = found;
+    if (!before) return;
+    gameStore.setFabStyle(before.fab);
+    wearTheme(before.rpg, before.ui);
+    // The hooks' watchers run after this tick: keep the guard up until they have seen the put-back
+    void nextTick(() => {
+      isPreviewingLook.value = false;
+    });
+  });
+
   const pickSkin = (value: string): void => {
     if (!isHeroSkin(value)) return;
+    tryOn(() => gameStore.setFabStyle(value));
     play$fx("select");
     skin.value = value;
   };
@@ -40,12 +71,14 @@ export function useHeroStyleChoice() {
     if (!isKnown) return;
     const isLocked = isProGameStyle(value) && !(await pro.requirePro("gameStyles"));
     if (isLocked) return;
+    tryOn(() => wearTheme(value, uiSounds.value));
     play$fx("select");
     rpgStyle.value = value;
   };
   const pickUiSounds = (value: string): void => {
     const isKnown = (UI_STYLES as readonly string[]).includes(value);
     if (!isKnown) return;
+    tryOn(() => wearTheme(rpgStyle.value, value));
     play$fx("select");
     uiSounds.value = value;
   };

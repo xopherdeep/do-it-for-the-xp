@@ -1,5 +1,6 @@
 import { watch } from "vue";
 import { skinOf } from "@/lib/services/profile/heroSkin";
+import { isPreviewingLook } from "@/lib/services/profile/lookPreview";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -26,6 +27,8 @@ export function useHeroSkinSync(): void {
   watch(
     () => gameStore.fabStyle,
     (style) => {
+      const isTryingOn = isPreviewingLook.value;
+      if (isTryingOn) return;
       const heroId = hero().id;
       const isSwitchToKeep = Boolean(heroId) && skinOf(hero()) !== style;
       if (isSwitchToKeep) userStore.setSkin(heroId as string, style);

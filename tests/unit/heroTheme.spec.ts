@@ -33,3 +33,11 @@ describe("heroTheme", () => {
     expect(nameFromFull({ full: "Sam" }).first).toBe("Sam");
   });
 });
+
+describe("look preview", () => {
+  it("starts off, so the sync hooks write changes onto the hero", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { isPreviewingLook } = require("@/lib/services/profile/lookPreview");
+    expect(isPreviewingLook.value).toBe(false);
+  });
+});
