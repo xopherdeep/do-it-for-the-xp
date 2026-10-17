@@ -1,6 +1,6 @@
 import { passcodeProblem } from "@/router/_Guards/gm.guard";
 
-export type NewHeroStepId = "name" | "look" | "class" | "food" | "secret" | "ready";
+export type NewHeroStepId = "name" | "look" | "style" | "class" | "food" | "secret" | "ready";
 
 export interface NewHeroStep {
   id: NewHeroStepId;
@@ -12,10 +12,11 @@ export interface NewHeroStep {
   icon: string;
 }
 
-/** The order a new hero is made in: who, face, class, food, secret code, then the reveal. */
+/** The order a new hero is made in: who, face, look and feel, class, food, secret code, then the reveal. */
 export const NEW_HERO_STEPS: NewHeroStep[] = [
   { id: "name", title: "Name", prompt: "What do they call you, hero?", icon: "fa-signature" },
   { id: "look", title: "Look", prompt: "Make your hero's face", icon: "fa-user-ninja" },
+  { id: "style", title: "Style", prompt: "How should your game look?", icon: "fa-palette" },
   { id: "class", title: "Class", prompt: "Choose your calling", icon: "fa-swords" },
   { id: "food", title: "Food", prompt: "What fuels your adventures?", icon: "fa-utensils" },
   { id: "secret", title: "Secret", prompt: "Lock your save file", icon: "fa-lock-alt" },

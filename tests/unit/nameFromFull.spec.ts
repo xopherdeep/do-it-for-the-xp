@@ -7,6 +7,12 @@ describe("nameFromFull", () => {
     expect(name).toMatchObject({ first: "Sam", middle: "J.", last: "Smith", nick: "Sammy" });
   });
 
+  it("reads every spelling of a.k.a. people type", () => {
+    for (const spelling of ["a.k.a.", "a.k.a", "aka", "aka.", "AKA", "A.K.A."]) {
+      expect(nameFromFull({ full: `Sam J. Smith ${spelling} Sammy` })).toMatchObject({ first: "Sam", last: "Smith", nick: "Sammy" });
+    }
+  });
+
   it("still reads the older spelling, aka, in any case", () => {
     expect(nameFromFull({ full: "Alex Kim aka Lex" })).toMatchObject({ first: "Alex", last: "Kim", nick: "Lex" });
     expect(nameFromFull({ full: "Alex Kim AKA Lex" }).nick).toBe("Lex");

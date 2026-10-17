@@ -1,6 +1,7 @@
 import type { NewProfileForm } from "@/lib/databases/ProfileDb"
 import Stats from "./stats"
 import { v4 as uuidv4 } from 'uuid'
+import { isHeroSkin, type HeroSkin } from "@/lib/services/profile/heroSkin"
 
 export interface ProfileName {
   fullName: string,
@@ -34,6 +35,8 @@ export default class User {
   public isAdult: boolean
   /** A new hero starts with no items unlocked; temples, shops and the Pegasi add to this (see ItemEffects.ts) */
   public unlockedItems: string[]
+  /** Retro or Modern; missing on a hero who never chose (services/profile/heroSkin.ts) */
+  declare public skin?: HeroSkin
 
   constructor(defaults: NewProfileForm) {
     this.id = defaults?.id || uuidv4()
@@ -48,6 +51,7 @@ export default class User {
     this.jobClass = defaults.jobClass
     this.isAdult = defaults.isAdult
     this.unlockedItems = Array.isArray(defaults.unlockedItems) ? [...defaults.unlockedItems] : []
+    if (isHeroSkin(defaults.skin)) this.skin = defaults.skin
   }
   setName(name: any) {
     return nameFromFull(name)
@@ -61,7 +65,7 @@ export default class User {
 export function nameFromFull({ full, first, last, middle, nick, preferred }: any) {
   const name = { full, first, last, middle, nick, preferred }
   if (full) {
-    const [realName, akaNick] = String(full).split(/\s+(?:aka|a\.k\.a\.?)\s+/i)
+    const [realName, akaNick] = String(full).split(/\s+a\.?k\.?a\.?\s+/i)
     const parts = realName.trim().split(/\s+/).filter(Boolean)
     const hasParts = parts.length > 0
     if (hasParts) {
@@ -86,7 +90,7 @@ export type StoredProfile = Record<string, any>
 export type ProfileFormValues = NewProfileForm & { look?: unknown; avatarImage?: string }
 
 /** The only fields the profile form edits. Everything else on a stored hero is not the form's to touch. */
-const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "favoriteFood", "jobClass", "isAdult"] as const
+const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "favoriteFood", "jobClass", "isAdult", "skin"] as const
 
 /**
  * The record to save when the form edits a hero that already exists: the stored record with the

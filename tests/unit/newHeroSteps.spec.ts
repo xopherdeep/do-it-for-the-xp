@@ -51,6 +51,6 @@ describe("newHeroSteps", () => {
   it("reports progress from the first step to the last", () => {
     expect(stepProgress(NEW_HERO_STEPS[0].id)).toBe(0);
     expect(stepProgress(NEW_HERO_STEPS[NEW_HERO_STEPS.length - 1].id)).toBe(1);
-    expect(stepIndex("class")).toBe(2);
+    expect(stepIndex("class")).toBe(3);
   });
 });

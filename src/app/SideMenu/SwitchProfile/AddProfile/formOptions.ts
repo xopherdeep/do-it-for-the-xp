@@ -49,3 +49,9 @@ export interface ChoiceCard {
   icon: string;
   hint?: string;
 }
+
+/** The look and feel on the new-hero wizard's style step: the two skins of the whole app, chosen once and kept on the hero. */
+export const SKIN_CHOICES: ChoiceCard[] = [
+  { key: "retro", label: "Retro", icon: "fa-gamepad", hint: "Pixel windows, like an old RPG" },
+  { key: "modern", label: "Modern", icon: "fa-mobile-alt", hint: "Clean phone-app screens" },
+];

@@ -128,11 +128,11 @@ export function playRouteMusic(payload: BGMPayload): void {
       // Check again after delay to ensure BGM wasn't toggled off or muted
       const isBgmStillOn = (!audioStore.bgm || audioStore.bgm.is_on !== false) && !engine.state.muted;
       if (isBgmStillOn) {
-        engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
+        engine.playMusic(currentTrackId, 1000);
       }
     }, delay);
   } else {
-    engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
+    engine.playMusic(currentTrackId, 1000);
   }
 }
 

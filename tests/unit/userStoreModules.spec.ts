@@ -254,6 +254,7 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "clearQuestGrudge",
       "setQuestGrudges",
       "setVoice",
+      "setSkin",
       "setAutoRead",
     ]);
 

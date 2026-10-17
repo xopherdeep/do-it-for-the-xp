@@ -53,6 +53,8 @@ export interface NewProfileForm {
   jobClass: string
   jobClasses?: JobClass[];
   isAdult: boolean
+  /** Retro or Modern look (services/profile/heroSkin.ts). Missing: the device's own choice stands. */
+  skin?: 'retro' | 'modern'
   birthday?: string
   stats: Stats
   equipment?: Equipment;

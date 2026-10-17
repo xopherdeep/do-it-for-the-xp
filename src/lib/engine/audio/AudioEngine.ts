@@ -73,6 +73,8 @@ export class AudioEngine {
   private _currentTrackSequence: string[] = [];
   private _currentTrackIndex = 0;
   private _musicFadeAnimationId: number | null = null;
+  /** Fade-out frames of the songs leaving, by track id, so a song called back mid-fade can stop its own fade */
+  private _musicFadeOuts = new Map<string, number>();
 
   // Reactive state for the audio system
   public state = reactive<AudioState>({
@@ -550,66 +552,56 @@ export class AudioEngine {
     this._currentTrackIndex = 0;
   }
 
+  /** Stop one leaving song for good: its fade ends, it pauses and the next play starts it from the top */
+  private silenceTrack(id: string, track: HTMLAudioElement): void {
+    const frame = this._musicFadeOuts.get(id);
+    const isFading = frame !== undefined;
+    if (isFading) cancelAnimationFrame(frame);
+    this._musicFadeOuts.delete(id);
+    track.pause();
+    track.volume = 0;
+    track.currentTime = 0;
+  }
+
   /**
    * Stop all currently playing music tracks
-   * This ensures only one BGM track plays at a time
+   * This ensures only one BGM track plays at a time. A stopped song always starts over: songs do not keep a place.
    * @param fadeOutTime Time in ms to fade out
    * @param excludeId Optional track ID to exclude from stopping
-   * @param saveBookmarks Whether to preserve the current time of stopped tracks (bookmarking)
    */
-  public stopAllMusic(fadeOutTime = 1000, excludeId?: string, saveBookmarks = false): void {
+  public stopAllMusic(fadeOutTime = 1000, excludeId?: string): void {
     const fadeFrame = this._musicFadeAnimationId;
     if (fadeFrame) cancelAnimationFrame(fadeFrame);
     this._musicFadeAnimationId = null;
 
-    // Get all loaded music tracks
-    const trackIds = Array.from(this._musicTracks.keys());
-
-    // Stop each track
-    trackIds.forEach(id => {
+    this._musicTracks.forEach((track, id) => {
       const isExcluded = id === excludeId;
-      if (isExcluded) return; // Skip the excluded track
+      if (isExcluded) return;
 
-      const track = this._musicTracks.get(id);
-      if (!track) return;
-
-      const isInstantStop = fadeOutTime <= 0;
-      if (isInstantStop) {
-        track.pause();
-        track.volume = 0;
-        if (!saveBookmarks) {
-          track.currentTime = 0;
-        }
+      const isFadeable = fadeOutTime > 0 && !track.paused;
+      if (!isFadeable) {
+        this.silenceTrack(id, track);
         return;
       }
 
-      const isStillPlaying = !track.paused;
-      if (isStillPlaying) {
-        const startVolume = track.volume;
-        const startTime = Date.now();
+      // One fade per song: a second stop does not stack another on it
+      const isAlreadyFading = this._musicFadeOuts.has(id);
+      if (isAlreadyFading) return;
 
-        const fadeOut = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(1, elapsed / fadeOutTime);
+      const startVolume = track.volume;
+      const startTime = Date.now();
+      const fadeOut = () => {
+        const progress = Math.min(1, (Date.now() - startTime) / fadeOutTime);
+        track.volume = startVolume * (1 - progress);
 
-          track.volume = startVolume * (1 - progress);
-
-          const isFadeUnfinished = progress < 1;
-          if (isFadeUnfinished) {
-            requestAnimationFrame(fadeOut);
-          } else {
-            track.pause();
-            track.volume = 0;
-            if (!saveBookmarks) {
-              track.currentTime = 0;
-            }
-          }
-        };
-
-        requestAnimationFrame(fadeOut);
-      } else {
-        track.volume = 0;
-      }
+        const isFadeUnfinished = progress < 1;
+        if (isFadeUnfinished) {
+          this._musicFadeOuts.set(id, requestAnimationFrame(fadeOut));
+        } else {
+          this.silenceTrack(id, track);
+        }
+      };
+      this._musicFadeOuts.set(id, requestAnimationFrame(fadeOut));
     });
 
     if (!excludeId) {
@@ -621,9 +613,8 @@ export class AudioEngine {
    * Play a music track
    * @param id Track identifier
    * @param fadeInTime Time in ms to fade in (default: 1000)
-   * @param saveBookmarks Whether to bookmark currently playing tracks when stopping them
    */
-  public playMusic(id: string, fadeInTime = 1000, saveBookmarks = false): void {
+  public playMusic(id: string, fadeInTime = 1000): void {
     const fadeFrame = this._musicFadeAnimationId;
     if (fadeFrame) cancelAnimationFrame(fadeFrame);
     this._musicFadeAnimationId = null;
@@ -631,7 +622,7 @@ export class AudioEngine {
     // If engine is muted, ensure tracks are stopped and do not start playback
     const isMuted = this.state.muted;
     if (isMuted) {
-      this.stopAllMusic(0, undefined, saveBookmarks);
+      this.stopAllMusic(0);
       this.state.currentMusic = id;
       this.state.pendingMusicId = null;
       return;
@@ -654,8 +645,12 @@ export class AudioEngine {
       return;
     }
 
+    // A song that is not the one playing right now starts from its beginning, even when it was still fading out
+    const isNotCurrentSong = this.state.currentMusic !== id;
+    if (isNotCurrentSong) this.silenceTrack(id, track);
+
     // Stop all other music with fade out - ensures only one track plays at a time
-    this.stopAllMusic(fadeInTime, id, saveBookmarks);
+    this.stopAllMusic(fadeInTime, id);
 
     // Set new current music
     this.state.currentMusic = id;
@@ -736,9 +731,8 @@ export class AudioEngine {
   /**
    * Stop the current music track
    * @param fadeOutTime Time in ms to fade out (default: 1000)
-   * @param saveBookmark Whether to preserve the current time of this track
    */
-  public stopMusic(fadeOutTime = 1000, saveBookmark = false): void {
+  public stopMusic(fadeOutTime = 1000): void {
     const fadeFrame = this._musicFadeAnimationId;
     if (fadeFrame) cancelAnimationFrame(fadeFrame);
     this._musicFadeAnimationId = null;
@@ -768,9 +762,7 @@ export class AudioEngine {
       } else {
         currentTrack.pause();
         currentTrack.volume = 0;
-        if (!saveBookmark) {
-          currentTrack.currentTime = 0;
-        }
+        currentTrack.currentTime = 0;
         this.state.currentMusic = null;
 
         // Update media session state
@@ -782,9 +774,7 @@ export class AudioEngine {
     if (isInstantStop) {
       currentTrack.pause();
       currentTrack.volume = 0;
-      if (!saveBookmark) {
-        currentTrack.currentTime = 0;
-      }
+      currentTrack.currentTime = 0;
       this.state.currentMusic = null;
 
       // Update media session state

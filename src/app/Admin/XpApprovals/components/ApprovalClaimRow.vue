@@ -1,7 +1,7 @@
 <template>
   <ion-item-sliding class="claim-row">
     <ion-item lines="none" class="claim-row__item">
-      <div class="claim xp-app--retro">
+      <div class="claim">
         <div class="claim__head">
           <span class="claim__avatar" aria-hidden="true">
             <img v-if="avatar" :src="avatar" alt="" />
@@ -99,6 +99,7 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
   --min-height: 0;
 }
 
+// Colours, frame and corners come from the kit tokens of the page's skin (`.xp-app--retro` / `.xp-app--modern`)
 .claim {
   display: grid;
   gap: 8px;
@@ -106,11 +107,12 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
   box-sizing: border-box;
   margin: 6px 0;
   padding: 10px;
-  background: #121a45;
-  border: 2px solid #e7e6b3;
-  color: #e7e6b3;
-  font-family: "StatusPlz", "Apple Kid", monospace;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-section);
+  color: var(--xp-app-text);
+  font-family: var(--xp-app-font-body);
+  text-shadow: var(--xp-app-text-shadow);
 }
 
 .claim__head {
@@ -126,9 +128,10 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
   height: 40px;
   place-items: center;
   overflow: hidden;
-  background: #1b2660;
-  border: 1px solid rgba(231, 230, 179, 0.55);
-  color: #f7e8a8;
+  background: var(--xp-app-tile-bg);
+  border: var(--xp-app-tile-border);
+  border-radius: var(--xp-app-radius-tile);
+  color: var(--xp-app-tile-fg);
   font-size: 1.2rem;
 
   img {
@@ -146,7 +149,8 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
   margin: 0;
   font-size: 1rem;
   line-height: 1.2;
-  color: #f7e8a8;
+  font-family: var(--xp-app-font-title);
+  color: var(--xp-app-text);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -154,7 +158,7 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
 .claim__meta {
   margin: 2px 0 0;
   font-size: 0.75rem;
-  color: rgba(231, 230, 179, 0.75);
+  color: var(--xp-app-text-dim);
 }
 
 .claim__chips {
@@ -172,18 +176,18 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
 .claim__btn {
   min-height: 44px;
   padding: 0 8px;
-  border: 2px solid #0b1030;
-  border-radius: 0;
+  border: var(--xp-app-btn-border, 0);
+  border-radius: var(--xp-app-radius-control);
   font-family: inherit;
   font-size: 0.95rem;
-  text-transform: uppercase;
+  text-transform: var(--xp-app-title-transform);
   letter-spacing: 0.5px;
-  color: #f7e8a8;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
-  box-shadow: inset 0 0 0 2px rgba(247, 232, 168, 0.55);
+  color: var(--xp-app-on-accent);
+  text-shadow: var(--xp-app-on-accent-shadow, 1px 1px 0 rgba(0, 0, 0, 0.7));
+  box-shadow: var(--xp-app-btn-ring, none);
   cursor: pointer;
-  --fa-primary-color: #f7e8a8;
-  --fa-secondary-color: #f7e8a8;
+  --fa-primary-color: var(--xp-app-on-accent);
+  --fa-secondary-color: var(--xp-app-on-accent);
 
   &:active {
     transform: translateY(1px);
