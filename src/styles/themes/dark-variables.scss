@@ -13,7 +13,8 @@
     --xp-color-dark-pink: #ffc0cb;
     --xp-color-dark-lightBlue: skyblue;
   }
-@media (prefers-color-scheme: dark) {
+/* The game is dark-only (its art, text and index.html's color-scheme are made for a dark ground), so Ionic gets its
+   dark palette whatever the phone is set to; following the phone would show white lists with cream text. */
   body {
     --ion-color-primary: #428cff;
     --ion-color-primary-rgb: 66, 140, 255;
@@ -165,4 +166,3 @@
 
     --ion-card-background: #1e1e1e;
   }
-}
