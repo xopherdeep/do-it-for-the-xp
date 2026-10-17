@@ -123,10 +123,12 @@ export function subtitleOf(row: QuestListRow): string {
   return [stepsLabel(row.quest), recurring, dueText(row)].filter(Boolean).join(" · ");
 }
 
-/** The word at the end of a row that cannot be finished from here: Pending, Later, Tamed or "Done by Mia". */
+/** The word at the end of a row that cannot be finished from here: Locked, Sent back, Pending, Later, Tamed or "Done by Mia". */
 export function stateLabelOf(row: QuestListRow): string {
   const isLocked = Boolean(row.lockedNotice);
   if (isLocked) return "Locked";
+  const isSentBack = Boolean(row.sentBack) && (row.status === "open" || row.status === "overdue");
+  if (isSentBack) return "Sent back";
   const labels: Partial<Record<QuestListStatus, string>> = { pending: "Pending", later: "Later", done: row.statusLabel };
   return labels[row.status] ?? "";
 }

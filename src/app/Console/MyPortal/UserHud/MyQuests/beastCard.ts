@@ -7,6 +7,7 @@ import { clampMarks, MAX_GRUDGE_MARKS } from "@/lib/services/battle/questGrudge"
 import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
 import type { QuestListStatus } from "@/lib/services/quests/QuestList";
+import { sentBackLine, type SentBack } from "@/lib/services/quests/sentBack";
 import { questBeastId, questTier } from "@/lib/services/temples/questRooms";
 import type { QuestTier } from "@/lib/services/temples/questRooms";
 import { standInMonster } from "@/lib/services/temples/RoomBeast";
@@ -246,7 +247,9 @@ export function cardActions(
   steps: readonly CardStep[],
   voice: Voice = "adventure",
   /** The family locked this chore when it ran late: the card only shows why ("Too late: this one closed at 6:00pm") */
-  lockedNotice = ""
+  lockedNotice = "",
+  /** The Game Master sent the hero's latest claim back: a workable card says so, with the note */
+  sentBack: SentBack | null = null
 ): CardActions {
   const isLocked = lockedNotice !== "";
   if (isLocked) return { canCheck: false, canHunt: false, canClaim: false, showButtons: false, note: lockedNotice };
@@ -257,7 +260,7 @@ export function cardActions(
     canHunt: workable && !everyStepDone,
     canClaim: isClaimable(status, steps),
     showButtons: workable,
-    note: stateNote(status, voice),
+    note: sentBack && workable ? sentBackLine(sentBack) : stateNote(status, voice),
   };
 }
 

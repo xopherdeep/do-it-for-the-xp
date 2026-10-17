@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays, format, isSameDay, startOfDay } from
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import type { SentBack } from "./sentBack";
 import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
@@ -39,6 +40,8 @@ export interface QuestListRow {
   quest: Achievement;
   /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; absent otherwise */
   lockedNotice?: string;
+  /** The Game Master sent the hero's latest claim of this open chore back (sentBack.ts); absent otherwise */
+  sentBack?: SentBack;
 }
 
 /** A profile as far as the list cares; the user store keeps profiles untyped. */
@@ -194,7 +197,9 @@ export const questListFor = (
   users: FamilyMembers,
   effects?: HeroQuestEffects,
   /** Quest id -> why the family locked it (lateChores.lockedNoticesFor): such a row cannot be finished */
-  locked: Readonly<Record<string, string>> = {}
+  locked: Readonly<Record<string, string>> = {},
+  /** Quest id -> the Game Master's note on a sent-back claim (sentBack.sentBackFor) */
+  sentBack: Readonly<Record<string, SentBack>> = {}
 ): QuestListRow[] => {
   const rows: QuestListRow[] = [];
   for (const item of board) {
@@ -215,6 +220,7 @@ export const questListFor = (
       rewards: rewardsOf(quest),
       quest,
       ...(isWorkableStatus(status) && locked[String(quest.id)] ? { lockedNotice: locked[String(quest.id)] } : {}),
+      ...(isWorkableStatus(status) && sentBack[String(quest.id)] ? { sentBack: sentBack[String(quest.id)] } : {}),
     });
   }
   return rows.sort(compareRows);
