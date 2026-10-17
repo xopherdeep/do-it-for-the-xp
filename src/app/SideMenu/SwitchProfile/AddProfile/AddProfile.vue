@@ -98,13 +98,13 @@
                   id="hero-name"
                   v-model="fullName"
                   class="rpg-input wizard-input"
-                  placeholder="e.g. Master Chief"
+                  placeholder="First M. Last a.k.a. Nickname"
                   maxlength="40"
                   enterkeyhint="next"
                   autocapitalize="words"
                   @keyup.enter="goNext"
                 ></ion-input>
-                <p class="field-hint">A real name, a nickname, or both.</p>
+                <p class="field-hint">Like Sam J. Smith a.k.a. Sammy. What comes after a.k.a. is what we call you.</p>
 
                 <label class="field-label" for="hero-thing">Favorite thing <span class="optional">optional</span></label>
                 <ion-input
@@ -291,9 +291,9 @@
                     <ion-input
                       v-model="fullName"
                       class="rpg-input mt-1"
-                      placeholder="First M. Last (e.g. Master Chief)"
+                      placeholder="First M. Last a.k.a. Nickname"
                     ></ion-input>
-                    <p class="helper-text ml-2 mt-1">First M. Last aka Nickname</p>
+                    <p class="helper-text ml-2 mt-1">First M. Last a.k.a. Nickname</p>
                   </div>
                 </ion-item>
 
