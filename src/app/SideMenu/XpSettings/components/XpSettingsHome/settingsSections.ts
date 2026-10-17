@@ -105,7 +105,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   },
   {
     id: "account",
-    title: "Account & plan",
+    title: "Account",
     items: [
       {
         id: "account",
@@ -114,13 +114,18 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         icon: require("@/assets/icons/014-individual.svg"),
         route: "/xp-settings/account",
       },
-      {
-        id: "pro",
-        title: "XP Pro",
-        description: "Your plan and key, or restore Pro on this device.",
-        icon: require("@/assets/icons/new.png"),
-        route: "/xp-settings/pro",
-      },
     ],
   },
 ];
+
+/** XP Pro: the plan is not a setting like the others, so it closes the page as one full-width card */
+export const PRO_ITEM: SettingsItem = {
+  id: "pro",
+  title: "XP Pro",
+  description: "Your plan and key, or restore Pro on this device.",
+  icon: require("@/assets/icons/new.png"),
+  route: "/xp-settings/pro",
+};
+
+/** Every page the Settings page opens, in the order it shows them */
+export const ALL_SETTINGS_ITEMS: SettingsItem[] = [...SETTINGS_SECTIONS.flatMap((section) => section.items), PRO_ITEM];

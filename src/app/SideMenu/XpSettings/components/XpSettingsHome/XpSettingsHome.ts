@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue'
 import ionic from "@/lib/mixins/ionic";
-import { SETTINGS_SECTIONS } from "./settingsSections";
+import { PRO_ITEM, SETTINGS_SECTIONS } from "./settingsSections";
 const requireIconImg = require.context("@/assets/icons/", false, /\.svg$/);
 
 import {
@@ -19,6 +19,7 @@ export default defineComponent({
       pizzaOutline,
       pizzaSharp,
       sections: SETTINGS_SECTIONS,
+      proItem: PRO_ITEM,
     };
   },
 })

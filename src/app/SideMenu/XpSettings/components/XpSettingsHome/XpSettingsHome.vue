@@ -37,9 +37,7 @@
               :class="{ 'settings-row--soon': item.soon }"
               :data-test="`settings-${item.id}`"
             >
-              <ion-thumbnail slot="start" class="settings-row__icon">
-                <ion-img :src="item.icon" alt="" />
-              </ion-thumbnail>
+              <ion-img slot="start" class="settings-row__icon" :src="item.icon" alt="" />
               <ion-label class="ion-text-wrap">
                 <h2>{{ item.title }}</h2>
                 <p>{{ item.description }}</p>
@@ -49,6 +47,16 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <!-- XP Pro closes the page, full width -->
+      <router-link :to="proItem.route" class="settings-pro" :data-test="`settings-${proItem.id}`">
+        <span class="settings-pro__crown" aria-hidden="true"><i class="fad fa-crown"></i></span>
+        <span class="settings-pro__text">
+          <strong>{{ proItem.title }}</strong>
+          <small>{{ proItem.description }}</small>
+        </span>
+        <i class="fad fa-chevron-right settings-pro__go" aria-hidden="true"></i>
+      </router-link>
     </ion-content>
   </ion-page>
 </template>

@@ -1,9 +1,9 @@
-import { SETTINGS_SECTIONS } from "@/app/SideMenu/XpSettings/components/XpSettingsHome/settingsSections";
+import { ALL_SETTINGS_ITEMS, SETTINGS_SECTIONS } from "@/app/SideMenu/XpSettings/components/XpSettingsHome/settingsSections";
 import settingsRoutes from "@/router/SideMenu/settings.routes";
 
 /** The Settings page lists every page under /xp-settings once, grouped. */
 describe("the Settings page sections", () => {
-  const items = SETTINGS_SECTIONS.flatMap((section) => section.items);
+  const items = ALL_SETTINGS_ITEMS;
   const pathsOf = (): string[] => {
     const root = Array.isArray(settingsRoutes) ? settingsRoutes[0] : (settingsRoutes as any);
     return (root.children ?? []).map((child: any) => child.path).filter((path: string) => path !== "");
@@ -32,5 +32,10 @@ describe("the Settings page sections", () => {
   it("groups the pages by the question they answer, with no empty group", () => {
     expect(SETTINGS_SECTIONS.map((section) => section.id)).toEqual(["family", "game", "device", "account"]);
     for (const section of SETTINGS_SECTIONS) expect(section.items.length).toBeGreaterThan(0);
+  });
+
+  it("closes the page with XP Pro, outside the groups", () => {
+    expect(ALL_SETTINGS_ITEMS[ALL_SETTINGS_ITEMS.length - 1].id).toBe("pro");
+    expect(SETTINGS_SECTIONS.flatMap((section) => section.items).some((item) => item.id === "pro")).toBe(false);
   });
 });
