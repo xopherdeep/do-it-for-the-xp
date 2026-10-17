@@ -31,13 +31,28 @@ export interface NewHeroDraft {
   isGameMaster: boolean;
 }
 
+type StepCheck = (draft: NewHeroDraft) => string | null;
+
+/** What each step asks before the hero may leave it; a step with no entry can always be left. */
+const STEP_CHECKS: Partial<Record<NewHeroStepId, StepCheck>> = {
+  name: (draft) => {
+    const hasName = draft.fullName.trim().length > 0;
+    return hasName ? null : "Every hero needs a name";
+  },
+  class: (draft) => {
+    const hasClass = Boolean(draft.jobClass);
+    return hasClass ? null : "Pick a class to continue";
+  },
+  food: (draft) => {
+    const hasFood = Boolean(draft.favoriteFood);
+    return hasFood ? null : "Pick a favorite food to continue";
+  },
+  secret: (draft) => passcodeProblem(draft.passcode, draft.isGameMaster),
+};
+
 /** Why a step cannot be left yet, or null when it can. Words are for the hero, so keep them friendly. */
 export function stepProblem(id: NewHeroStepId, draft: NewHeroDraft): string | null {
-  if (id === "name") return draft.fullName.trim() ? null : "Every hero needs a name";
-  if (id === "class") return draft.jobClass ? null : "Pick a class to continue";
-  if (id === "food") return draft.favoriteFood ? null : "Pick a favorite food to continue";
-  if (id === "secret") return passcodeProblem(draft.passcode, draft.isGameMaster);
-  return null;
+  return STEP_CHECKS[id]?.(draft) ?? null;
 }
 
 /** The first step (in order) that still has a problem, or null when the hero is ready to save. */

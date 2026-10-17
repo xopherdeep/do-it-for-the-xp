@@ -2,7 +2,6 @@ import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "v
 import { play$fx } from "@/assets/fx";
 import { modalController, toastController } from "@ionic/vue";
 import { useRoute } from "vue-router";
-import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -27,9 +26,10 @@ import {
   type NewHeroStepId,
 } from "@/lib/services/profile/newHeroSteps";
 
+import { EDIT_TABS, FEATURE_OPTIONS, ROLE_CHOICES } from "./formOptions";
+import type { ChoiceCard, FeatureKey } from "./formOptions";
 import ionic from "@/lib/mixins/ionic";
 
-import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
@@ -43,25 +43,12 @@ export const AddProfile = defineComponent({
   mixins: [ionic],
   components: {
     InputSettings,
-    XpGp,
     XpHeroFanfare,
     GamerCard
   },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
-    },
-    moveFocus(event: Event, nextInput: string) {
-      const target = event.target as HTMLInputElement;
-      const el = this.$refs[nextInput] as HTMLInputElement;
-      const canFocusNextInput = target.value.length === 1 && el && typeof el.focus === 'function';
-      if (canFocusNextInput) {
-        el.focus();
-      }
-    },
-    getAvatarSrc(index: number) {
-      const paddedIdx = index.toString().padStart(3, "0");
-      return this.requireAvatar(`./${paddedIdx}-gamer.svg`);
     },
     async clickSaveProfile() {
       // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
@@ -179,8 +166,6 @@ export const AddProfile = defineComponent({
     const favoriteThing = ref("");
     const foodOptions = ref(FOOD_OPTIONS);
     const jobClass = ref("");
-    const jobClassOptions = ref(JOB_CLASS_OPTIONS);
-    const maxAvatarIndex = requireAvatar.keys().length;
     // The 3D hero built in the look builder (GamerCard), and the picture of its face; none until they build one
     const look = ref<HeroLook | undefined>(undefined);
     const avatarImage = ref<string | undefined>(undefined);
@@ -205,37 +190,6 @@ export const AddProfile = defineComponent({
 
     const closeModal = () => {
       modalController.dismiss();
-    };
-
-    const profileAdded = () => {
-      clearForm();
-    };
-
-    const clearForm = () => {
-      fullName.value = "";
-      favoriteThing.value = "";
-      favoriteFood.value = "";
-      jobClass.value = "";
-      avatarIndex.value = 1;
-      look.value = undefined;
-      avatarImage.value = undefined;
-      equipment.value = undefined;
-      email.value = "";
-      passcode.value = "";
-    };
-
-    const previousAvatar = () => {
-      const hasPreviousAvatar = avatarIndex.value > 1;
-      if (hasPreviousAvatar) {
-        avatarIndex.value--;
-      }
-    };
-
-    const nextAvatar = () => {
-      const hasNextAvatar = avatarIndex.value < maxAvatarIndex;
-      if (hasNextAvatar) {
-        avatarIndex.value++;
-      }
     };
 
     const setProfile = (profile) => {
@@ -309,7 +263,13 @@ export const AddProfile = defineComponent({
     const currentStepProblem = computed(() => stepProblem(step.value, heroDraft.value));
     const isLastStep = computed(() => currentStepIndex.value === NEW_HERO_STEPS.length - 1);
     const hasFace = computed(() => Boolean(look.value || avatarImage.value || avatarIndex.value !== 1));
-    const classChoices = JOB_CLASS_OPTIONS.filter((job) => !job.tier || job.tier === 1);
+    const classCards: ChoiceCard[] = JOB_CLASS_OPTIONS.filter((job) => !job.tier || job.tier === 1).map((job) => ({
+      key: job.name,
+      label: job.name,
+      icon: job.icon,
+      hint: job.creed,
+    }));
+    const foodCards: ChoiceCard[] = FOOD_OPTIONS.map((food) => ({ key: food.value, label: food.value, icon: food.icon }));
     const selectedJob = computed(() => JOB_CLASS_OPTIONS.find((job) => job.name === jobClass.value));
     const selectedFood = computed(() => FOOD_OPTIONS.find((food) => food.value === favoriteFood.value));
 
@@ -334,7 +294,8 @@ export const AddProfile = defineComponent({
       goToStep(NEW_HERO_STEPS[Math.min(currentStepIndex.value + 1, NEW_HERO_STEPS.length - 1)].id);
     };
     const goBack = () => {
-      if (currentStepIndex.value === 0) return;
+      const isFirstStep = currentStepIndex.value === 0;
+      if (isFirstStep) return;
       play$fx("cursor");
       goToStep(NEW_HERO_STEPS[currentStepIndex.value - 1].id);
     };
@@ -347,6 +308,17 @@ export const AddProfile = defineComponent({
       play$fx("select");
       favoriteFood.value = value;
     };
+    // The class and food steps are one grid of cards: each step says which cards, which is chosen, and what a tap does
+    const choiceCardsByStep: Partial<Record<NewHeroStepId, ChoiceCard[]>> = { class: classCards, food: foodCards };
+    const choicePickers: Partial<Record<NewHeroStepId, (key: string) => void>> = { class: pickClass, food: pickFood };
+    const choiceCards = computed(() => choiceCardsByStep[step.value] ?? []);
+    const isChoiceStep = computed(() => choiceCards.value.length > 0);
+    const chosenByStep = computed<Partial<Record<NewHeroStepId, string>>>(() => ({
+      class: jobClass.value,
+      food: favoriteFood.value,
+    }));
+    const chosenKey = computed(() => chosenByStep.value[step.value]);
+    const pickChoice = (key: string) => choicePickers[step.value]?.(key);
     const chooseRole = (gameMaster: boolean) => {
       if (!canSetFlag.value) return;
       play$fx("cursor");
@@ -366,10 +338,9 @@ export const AddProfile = defineComponent({
       community: true
     })
 
-    const toggleReward = () => features.value.rewards = !features.value.rewards
-    const toggleGoal = () => features.value.goals = !features.value.goals
-    const toggleBattles = () => features.value.battles = !features.value.battles
-    const toggleCommunity = () => features.value.community = !features.value.community
+    const toggleFeature = (key: FeatureKey) => {
+      features.value[key] = !features.value[key];
+    };
 
 
     const hidePasscode = ref(true)
@@ -452,19 +423,20 @@ export const AddProfile = defineComponent({
       currentStepProblem,
       isLastStep,
       hasFace,
-      classChoices,
+      choiceCards,
+      isChoiceStep,
+      chosenKey,
+      pickChoice,
+      roles: ROLE_CHOICES,
+      editTabs: EDIT_TABS,
+      featureOptions: FEATURE_OPTIONS,
       selectedJob,
       selectedFood,
       goToStep,
       goNext,
       goBack,
-      pickClass,
-      pickFood,
       chooseRole,
       beginAdventure,
-      arrowBack,
-      arrowForward,
-      closeOutline,
       avatarIndex,
       look,
       avatarImage,
@@ -486,19 +458,11 @@ export const AddProfile = defineComponent({
       isSaveDisabled,
       passcodeError,
       jobClass,
-      jobClassOptions,
-      maxAvatarIndex,
-      nextAvatar,
       passcodeType,
-      previousAvatar,
       setGameMaster,
       setProfile,
       storage,
-      toggleBattles,
-      toggleCommunity,
-      toggleGoal,
-      toggleReward,
-      profileAdded,
+      toggleFeature,
       showFanfare,
       isEditing,
       requireAvatar,
