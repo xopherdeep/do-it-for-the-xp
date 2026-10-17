@@ -23,6 +23,8 @@ export interface Achievement {
   localImage?: string;
   bonusAchievement: boolean;
   requiresApproval: boolean;
+  /** Ask for a photo when the hero claims it (claimPhotos.ts). Forces approval on: a photo chore is always reviewed. */
+  requiresPhoto?: boolean;
   /**
    * What happens when this chore is late (services/quests/lateRules.ts): absent or "family" follows the family's late
    * chore rules; "allow" never locks it, "lock" locks it when late, "noPenalty" takes no penalty for it.

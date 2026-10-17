@@ -20,6 +20,8 @@ export interface QuestSeed {
   schedule: "daily" | "weekly";
   difficulty: 1 | 2 | 3;
   requiresApproval?: boolean;
+  /** Ask for a photo when claimed; forces approval on (no pack in the catalogue sets it yet) */
+  requiresPhoto?: boolean;
   /**
    * The parts of the day the chore belongs to. Two or more make one daily quest done that many times
    * (brushing teeth morning and night); none leaves it untimed, shown only under the calendar's All tab.
@@ -40,7 +42,8 @@ export const questFromSeed = (seed: QuestSeed): Achievement => ({
   categoryId: seed.categoryId,
   beastId: seed.beastId ?? "",
   subAchievementIds: [],
-  requiresApproval: Boolean(seed.requiresApproval),
+  requiresApproval: Boolean(seed.requiresApproval) || Boolean(seed.requiresPhoto),
+  ...(seed.requiresPhoto ? { requiresPhoto: true } : {}),
   bonusAchievement: false,
   // An open bounty: any player the game already has can claim it, so a pack needs no profiles
   type: "asNeeded",

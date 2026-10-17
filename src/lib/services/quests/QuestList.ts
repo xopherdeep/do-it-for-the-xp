@@ -33,6 +33,8 @@ export interface QuestListRow {
   /** STATUS_LABELS, or "Done by Mia" when other assignees cleared a shared quest without the hero */
   statusLabel: string;
   requiresApproval: boolean;
+  /** The chore asks for a photo when it is claimed */
+  requiresPhoto: boolean;
   rewards: QuestRewards;
   quest: Achievement;
   /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; absent otherwise */
@@ -208,7 +210,8 @@ export const questListFor = (
       dueLabel: due || status !== "later" ? dueLabelFor(due, date) : dayLabelFor(parseDate(quest.startsOn) || date, date),
       status,
       statusLabel: (status === "done" && doneByLabelFor(item, userId, users)) || STATUS_LABELS[status],
-      requiresApproval: Boolean(quest.requiresApproval),
+      requiresApproval: Boolean(quest.requiresApproval) || Boolean(quest.requiresPhoto),
+      requiresPhoto: Boolean(quest.requiresPhoto),
       rewards: rewardsOf(quest),
       quest,
       ...(isWorkableStatus(status) && locked[String(quest.id)] ? { lockedNotice: locked[String(quest.id)] } : {}),
@@ -235,6 +238,8 @@ export interface QuickTaskInput {
   /** "HH:mm"; empty means any time that day */
   dueByTime?: string;
   requiresApproval?: boolean;
+  /** Ask for a photo when it is claimed; forces approval on. A hero may ask for one on their own task. */
+  requiresPhoto?: boolean;
   /** False when a hero (not a Game Master) posts the task: a hero's own task always waits for a Game Master */
   isGm?: boolean;
   rewards?: Partial<QuestRewards>;
@@ -281,7 +286,7 @@ export const newQuickTask = (input: QuickTaskInput, now: Date = new Date()): Ach
   const day = quickTaskDay(input.due, now);
   const rewards = { ...QUICK_TASK_REWARDS, ...input.rewards };
   const isHeroPosting = input.isGm === false;
-  const needsApproval = isHeroPosting || Boolean(input.requiresApproval);
+  const needsApproval = isHeroPosting || Boolean(input.requiresApproval) || Boolean(input.requiresPhoto);
   return {
     id: input.id || "",
     achievementName: title,
@@ -290,6 +295,7 @@ export const newQuickTask = (input: QuickTaskInput, now: Date = new Date()): Ach
     subAchievementIds: [],
     bonusAchievement: false,
     requiresApproval: needsApproval,
+    ...(input.requiresPhoto ? { requiresPhoto: true } : {}),
     type: "individual",
     assignee: [assigneeId],
     basicSchedule: "once",

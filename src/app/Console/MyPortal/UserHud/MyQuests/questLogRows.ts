@@ -165,6 +165,8 @@ export interface QuestLogRow {
   who: string;
   rewards: QuestRewards;
   requiresApproval: boolean;
+  /** The chore asks for a photo */
+  requiresPhoto: boolean;
   /** The chips under the subtitle: the rewards, "GM approves", then who else shares it */
   chips: AppChipSpec[];
   /** Any chip to draw under the subtitle */
@@ -191,6 +193,7 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
   const who = isHeroAlone ? "" : row.assigneeName;
   const chips = rewardChips(row.rewards);
   if (row.requiresApproval) chips.push({ kind: "tag", value: "GM approves" });
+  if (row.requiresPhoto) chips.push({ kind: "tag", value: "Photo proof" });
   if (who) chips.push({ kind: "tag", value: who });
   return {
     id: row.id,
@@ -203,6 +206,7 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
     who,
     rewards: row.rewards,
     requiresApproval: row.requiresApproval,
+    requiresPhoto: row.requiresPhoto,
     chips,
     hasChips: chips.length > 0,
     canFinish: (row.status === "open" || row.status === "overdue") && !row.lockedNotice,

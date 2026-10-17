@@ -54,6 +54,7 @@
                   <ion-note>{{ formatDate(entry.completedAt) }}</ion-note>
                 </p>
                 <p class="rewards">{{ xpApText(withHuntBonus(entry)) }}</p>
+                <approval-photo :entry="entry" />
               </ion-label>
               <ion-badge color="warning" slot="end">
                 <xp-gp :gp="entry.rewards.gp" />
@@ -166,6 +167,7 @@
   import { format } from "date-fns";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
+  import ApprovalPhoto from "./components/ApprovalPhoto.vue";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
@@ -210,6 +212,7 @@
     components: {
       XpLoading,
       XpTownHallApprovals,
+      ApprovalPhoto,
     },
     setup() {
       const userStore = useUserStore();

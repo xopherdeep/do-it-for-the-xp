@@ -79,6 +79,13 @@
           :aria-label="statusLabels.approval"
         />
         <i
+          v-if="achievement.requiresPhoto"
+          class="fad fa-camera"
+          role="img"
+          title="Asks for a photo"
+          aria-label="Asks for a photo"
+        />
+        <i
           v-if="achievement.bonusAchievement"
           class="fad fa-gift"
           role="img"

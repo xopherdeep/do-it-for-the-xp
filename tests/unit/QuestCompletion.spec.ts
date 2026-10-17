@@ -547,6 +547,33 @@ describe("the quest-paid signal", () => {
   });
 });
 
+describe("completeQuest: photo chores", () => {
+  const photoQuest = (): Achievement => ({ ...quest(false), requiresPhoto: true } as unknown as Achievement);
+
+  it("a photo chore is held for the Game Master even when it did not ask for approval", async () => {
+    addHero("Warrior");
+    const result = await completeQuest(photoQuest(), HERO_ID, "claim");
+    expect(result.awaitingApproval).toBe(true);
+    expect(result.entry.status).toBe("pending");
+    expect(result.entry.requiresPhoto).toBe(true);
+    expect(stats().xp.now).toBe(0);
+  });
+
+  it("a photo chore is held in a trusted hour too", async () => {
+    addHero("Warrior");
+    useUserStore().users[HERO_ID].questEffects = { trustedUntil: new Date(Date.now() + 3600_000).toISOString() };
+    const result = await completeQuest(photoQuest(), HERO_ID, "claim");
+    expect(result.awaitingApproval).toBe(true);
+  });
+
+  it("an ordinary chore still pays at once and carries no photo flag", async () => {
+    addHero("Warrior");
+    const result = await completeQuest(quest(false), HERO_ID, "claim");
+    expect(result.awaitingApproval).toBe(false);
+    expect(result.entry.requiresPhoto).toBeUndefined();
+  });
+});
+
 describe("completeQuest and late chores", () => {
   // Due at midnight sharp: any time of day is after the due time
   const lateQuest = (extra: Record<string, unknown> = {}): Achievement =>

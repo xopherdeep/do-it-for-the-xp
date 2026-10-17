@@ -282,6 +282,13 @@ describe("newQuickTask", () => {
     expect(new Date(task.startsOn)).toEqual(new Date(2026, 9, 10, 0, 0));
   });
 
+  it("a task that asks for a photo needs approval, and a plain one carries no photo flag", () => {
+    const photo = newQuickTask({ title: "Bed", assigneeId: "gm-1", requiresApproval: false, requiresPhoto: true }, NOON);
+    expect(photo).toMatchObject({ requiresPhoto: true, requiresApproval: true });
+    const plain = newQuickTask({ title: "Bins", assigneeId: "gm-1" }, NOON);
+    expect(plain.requiresPhoto).toBeUndefined();
+  });
+
   it("starts tomorrow's and dated tasks on their day, with the approval flag and chosen rewards", () => {
     const tomorrow = newQuickTask({ title: "Mow", assigneeId: "gm-1", due: "tomorrow", requiresApproval: true }, NOON);
     expect(new Date(tomorrow.startsOn)).toEqual(new Date(2026, 9, 11, 0, 0));

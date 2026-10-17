@@ -229,6 +229,7 @@
               <xp-app-chip kind="gp" :value="rewards.gp" />
               <xp-app-chip kind="ap" :value="rewards.ap" />
               <xp-app-chip v-if="needsApproval" kind="tag" value="GM approves" />
+              <xp-app-chip v-if="draft.requiresPhoto" kind="tag" value="Photo proof" />
             </div>
           </article>
 
@@ -246,7 +247,20 @@
             <i :class="['fad', draft.requiresApproval ? 'fa-check-square' : 'fa-square']" aria-hidden="true"></i>
             <span>Needs approval</span>
           </button>
-          <p v-else class="qw-note" data-test="kid-note">
+          <!-- Any chore may ask for a photo: the Game Master looks at it when they approve -->
+          <button
+            type="button"
+            class="qw-toggle"
+            :class="{ 'is-on': draft.requiresPhoto }"
+            role="switch"
+            :aria-checked="Boolean(draft.requiresPhoto)"
+            data-test="photo-toggle"
+            @click="togglePhoto"
+          >
+            <i :class="['fad', draft.requiresPhoto ? 'fa-check-square' : 'fa-square']" aria-hidden="true"></i>
+            <span>Ask for a photo</span>
+          </button>
+          <p v-if="!isGm" class="qw-note" data-test="kid-note">
             <i class="fad fa-shield-check" aria-hidden="true"></i>
             {{ t("questWizard.ready.kidNote") }}
           </p>
@@ -594,7 +608,16 @@ const partyNames = computed(() => {
 
 const toggleApproval = () => {
   play$fx("cursor");
+  // A photo chore is always reviewed, so approval stays on while it asks for a photo
+  const isPhotoChore = Boolean(draft.value.requiresPhoto);
+  if (isPhotoChore) return;
   draft.value = { ...draft.value, requiresApproval: !draft.value.requiresApproval };
+};
+
+const togglePhoto = () => {
+  play$fx("cursor");
+  const requiresPhoto = !draft.value.requiresPhoto;
+  draft.value = { ...draft.value, requiresPhoto, requiresApproval: requiresPhoto || draft.value.requiresApproval };
 };
 
 // ---- Summon (Back and Next are the shell's) ------------------------------------------------------------------------

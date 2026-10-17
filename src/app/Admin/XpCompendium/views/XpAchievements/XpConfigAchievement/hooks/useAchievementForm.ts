@@ -619,8 +619,16 @@ export function useAchievementForm() {
   });
 
   const toggleApproval = (val: boolean) => {
-    achievement.value.requiresApproval = val;
+    // A photo chore is always reviewed: approval stays on while it asks for a photo
+    achievement.value.requiresApproval = val || Boolean(achievement.value.requiresPhoto);
     autosave(); // Trigger save
+  };
+
+  const togglePhoto = (val: boolean) => {
+    achievement.value.requiresPhoto = val;
+    const asksForPhoto = val === true;
+    if (asksForPhoto) achievement.value.requiresApproval = true;
+    autosave();
   };
 
   const toggleBonus = (val: boolean) => {
@@ -630,6 +638,7 @@ export function useAchievementForm() {
 
   return {
     // State
+    togglePhoto,
     achievement,
     achievements,
     beasts,

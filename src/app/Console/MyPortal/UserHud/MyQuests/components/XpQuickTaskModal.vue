@@ -155,6 +155,22 @@
                 aria-label="Game Master must approve"
               />
             </div>
+            <div class="quick-task-row">
+              <i class="fad fa-camera quick-task-row-icon" />
+              <span
+                class="quick-task-row-text"
+                @click="requiresPhoto = !requiresPhoto"
+              >
+                Ask for a photo
+                <small>{{ photoNote }}</small>
+              </span>
+              <ion-toggle
+                v-model="requiresPhoto"
+                class="quick-task-toggle"
+                data-test="quick-task-photo"
+                aria-label="Ask for a photo"
+              />
+            </div>
           </div>
         </section>
       </form>
@@ -241,8 +257,14 @@ const approvalNote = computed(() => {
   if (!isGm.value) return "Loot waits for a Game Master's OK";
   return requiresApproval.value ? "Loot waits for a GM's OK" : "Loot pays out when it's done";
 });
+// A photo is always reviewed, so asking for one puts the Game Master's OK on (a hero's task already has it)
+const requiresPhoto = ref(false);
+const photoNote = computed(() =>
+  requiresPhoto.value ? "A picture goes to the Game Master with the claim" : "No picture needed"
+);
 const toggleApproval = () => {
-  if (isGm.value) requiresApproval.value = !requiresApproval.value;
+  const canToggle = isGm.value && !requiresPhoto.value;
+  if (canToggle) requiresApproval.value = !requiresApproval.value;
 };
 const rewards = reactive({
   xp: String(QUICK_TASK_REWARDS.xp),
@@ -291,6 +313,7 @@ const save = async () => {
       due: dueChoice.value === "pick" ? pickedDay.value : dueChoice.value,
       dueByTime: dueByTime.value,
       requiresApproval: requiresApproval.value,
+      requiresPhoto: requiresPhoto.value,
       isGm: isGm.value,
       rewards: { xp: Number(rewards.xp), gp: Number(rewards.gp), ap: Number(rewards.ap) },
     });

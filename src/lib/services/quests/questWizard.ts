@@ -239,6 +239,8 @@ export interface WizardDraft {
   heroIds: string[];
   /** A Game Master's toggle on the last screen; a hero's quest always needs approval */
   requiresApproval: boolean;
+  /** Ask for a photo when the chore is claimed (anyone may; it forces approval on). Absent means no. */
+  requiresPhoto?: boolean;
 }
 
 export interface NewDraftOptions {
@@ -434,7 +436,8 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     categoryId: ctx.categoryId,
     ...beastFields,
     subAchievementIds: [],
-    requiresApproval: ctx.isGm ? draft.requiresApproval : true,
+    requiresApproval: ctx.isGm ? draft.requiresApproval || Boolean(draft.requiresPhoto) : true,
+    ...(draft.requiresPhoto ? { requiresPhoto: true } : {}),
     bonusAchievement: false,
     type: "individual",
     assignee: heroIds,

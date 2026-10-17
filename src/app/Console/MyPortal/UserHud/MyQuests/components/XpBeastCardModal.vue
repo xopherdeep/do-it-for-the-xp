@@ -66,6 +66,7 @@
           <xp-app-chip v-if="rewards.gp" kind="gp" :value="rewards.gp" />
           <xp-app-chip v-if="rewards.ap" kind="ap" :value="rewards.ap" />
           <xp-app-chip v-if="quest.requiresApproval" kind="tag" value="GM approves" />
+          <xp-app-chip v-if="quest.requiresPhoto" kind="tag" value="Photo proof" data-test="photo-chip" />
         </div>
       </div>
 
@@ -179,8 +180,9 @@ import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { grudgeLabel, marksFor } from "@/lib/services/battle/questGrudge";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { claimWithProof } from "@/components/organisms/ClaimPhoto/claimWithProof";
+import { questRewards } from "@/lib/services/quests/QuestCompletionService";
 import { lateCheckFor } from "@/lib/services/quests/lateChores";
-import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
 import { formatQuestName } from "@/lib/utils/format";
@@ -463,7 +465,10 @@ const claim = async () => {
       close();
       return;
     }
-    const result = await completeQuest(props.quest, heroId.value, "claim");
+    // A photo chore asks for the picture first; backing out claims nothing
+    const result = await claimWithProof(props.quest, heroId.value, "claim");
+    const isBackedOut = !result;
+    if (isBackedOut) return;
     // The steps did their job: a quest that comes round again starts with a clean checklist
     clearBattleProgress(ctx.value);
     announce(result);
