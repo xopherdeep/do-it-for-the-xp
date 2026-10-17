@@ -1,5 +1,5 @@
 <template>
-  <span class="xp-app-chip" :class="`xp-app-chip--${kind}`"><span v-if="prefix" class="xp-app-chip__unit">{{ prefix }}</span><span class="xp-app-chip__value">{{ value }}</span><template v-if="suffix">{{ " " }}<span class="xp-app-chip__unit">{{ suffix }}</span></template></span>
+  <span class="xp-app-chip" :class="`xp-app-chip--${kind}`"><i v-if="icon" :class="['fad', icon, 'xp-app-chip__icon']" aria-hidden="true"></i><span v-if="prefix" class="xp-app-chip__unit">{{ prefix }}</span><span class="xp-app-chip__value">{{ value }}</span><template v-if="suffix">{{ " " }}<span class="xp-app-chip__unit">{{ suffix }}</span></template></span>
 </template>
 
 <script setup lang="ts">
@@ -14,6 +14,8 @@ export type { AppChipKind };
 const props = defineProps<{
   kind: AppChipKind;
   value: string | number;
+  /** Optional Font Awesome duotone glyph before the value, e.g. `fa-camera` */
+  icon?: string;
 }>();
 
 const UNITS: Partial<Record<AppChipKind, string>> = { xp: "XP", gp: "GP", ap: "AP", mp: "MP", hp: "HP" };

@@ -3,21 +3,25 @@
     <button v-if="photo" type="button" class="approval-photo__thumb" data-test="photo-thumb" aria-label="Open the photo" @click.stop="isViewerOpen = true">
       <img :src="photo" alt="Photo proof" />
     </button>
-    <p v-else-if="loaded" class="approval-photo__none" data-test="photo-none">
+    <p v-else-if="loaded && !hideWhenMissing" class="approval-photo__none" data-test="photo-none">
       <i class="fad fa-camera-slash" aria-hidden="true"></i> No photo sent
     </p>
 
     <ion-modal :is-open="isViewerOpen" class="approval-photo-modal" @didDismiss="isViewerOpen = false">
-      <ion-header>
+      <ion-header class="approval-photo__bar">
         <ion-toolbar>
           <ion-title>{{ entry.questName }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button aria-label="Close" @click="isViewerOpen = false"><i class="fad fa-times fa-lg"></i></ion-button>
+            <ion-button class="approval-photo__close" aria-label="Close the photo" @click="isViewerOpen = false">
+              <i class="fad fa-times fa-lg" aria-hidden="true"></i>
+            </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content class="approval-photo__viewer">
-        <img v-if="photo" class="approval-photo__full" :src="photo" alt="Photo proof, full size" data-test="photo-full" />
+      <ion-content class="approval-photo__viewer" @click="isViewerOpen = false">
+        <div class="approval-photo__stage">
+          <img v-if="photo" class="approval-photo__full" :src="photo" alt="Photo proof, full size. Tap to close." data-test="photo-full" />
+        </div>
       </ion-content>
     </ion-modal>
   </div>
@@ -39,9 +43,11 @@ defineOptions({ name: "approval-photo" });
  */
 interface ApprovalPhotoProps {
   entry: Pick<QuestLogEntry, "id" | "questName" | "requiresPhoto">;
+  /** The History tab: draw nothing at all when the photo is gone (purged after 7 days), not "No photo sent" */
+  hideWhenMissing?: boolean;
 }
 
-const props = defineProps<ApprovalPhotoProps>();
+const props = withDefaults(defineProps<ApprovalPhotoProps>(), { hideWhenMissing: false });
 
 const photo = ref("");
 const loaded = ref(false);
@@ -93,14 +99,49 @@ watch(() => props.entry.id, load);
   opacity: 0.8;
 }
 
+.approval-photo__bar ion-toolbar {
+  --background: #14100b;
+  --color: #f7e8a8;
+  --border-width: 0 0 2px 0;
+  --border-color: #f7e8a8;
+}
+
+.approval-photo__bar ion-title {
+  font-family: "StatusPlz", sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #f7e8a8;
+}
+
+.approval-photo__close {
+  --color: #f7e8a8;
+  --fa-primary-color: #f7e8a8;
+  --fa-secondary-color: #f7e8a8;
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .approval-photo__viewer {
   --background: #14100b;
+  cursor: zoom-out;
+}
+
+.approval-photo__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 8px;
 }
 
 .approval-photo__full {
   display: block;
-  width: 100%;
+  max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  border: 3px solid #2b2118;
 }
 </style>

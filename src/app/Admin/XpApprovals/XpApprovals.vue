@@ -41,43 +41,22 @@
       </div>
       <template v-else>
         <ion-list v-if="activeSegment === 'achievements'">
-          <ion-item-sliding v-for="entry in pendingAchievements" :key="entry.id">
-            <ion-item>
-              <ion-avatar slot="start" class="hero-avatar">
-                <ion-img v-if="heroAvatar(entry.userId)" :src="heroAvatar(entry.userId)" />
-                <i v-else class="fad fa-scroll"></i>
-              </ion-avatar>
-              <ion-label class="ion-text-wrap">
-                <h2>{{ entry.questName }}</h2>
-                <p>
-                  Submitted by {{ heroName(entry.userId) }}
-                  <ion-note>{{ formatDate(entry.completedAt) }}</ion-note>
-                </p>
-                <p class="rewards">{{ xpApText(withHuntBonus(entry)) }}</p>
-                <approval-photo :entry="entry" />
-              </ion-label>
-              <ion-badge color="warning" slot="end">
-                <xp-gp :gp="entry.rewards.gp" />
-              </ion-badge>
-            </ion-item>
-            <ion-item-options side="end">
-              <ion-item-option color="success" @click="approveItem(entry)">
-                <i class="fad fa-check fa-lg"></i>
-                Approve
-              </ion-item-option>
-              <ion-item-option color="danger" @click="rejectItem(entry)">
-                <i class="fad fa-times fa-lg"></i>
-                Reject
-              </ion-item-option>
-            </ion-item-options>
-          </ion-item-sliding>
+          <approval-claim-row
+            v-for="entry in pendingAchievements"
+            :key="entry.id"
+            :entry="entry"
+            :hero-name="heroName(entry.userId)"
+            :avatar="heroAvatar(entry.userId)"
+            @approve="approveItem"
+            @reject="rejectItem"
+          />
           <ion-item v-if="pendingAchievements.length === 0">
             <ion-label class="ion-text-center">
               <i class="fad fa-check-circle fa-3x text-success"></i>
               <p>No pending achievement approvals</p>
             </ion-label>
           </ion-item>
-          <p v-else class="swipe-hint">Swipe a quest left to approve or reject it.</p>
+          <p v-else class="swipe-hint">Tap Approve or Send back. You can also swipe a quest left.</p>
         </ion-list>
 
         <ion-list v-if="activeSegment === 'accessories'">
@@ -138,6 +117,7 @@
               </p>
               <p v-if="row.detail" class="rewards">{{ row.detail }}</p>
               <p v-if="row.note" class="review-note">Note: {{ row.note }}</p>
+              <approval-photo v-if="row.photoEntry" :entry="row.photoEntry" hide-when-missing />
             </ion-label>
             <ion-badge :color="row.badge.color" slot="end">
               {{ row.badge.label }}
@@ -168,6 +148,7 @@
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
   import ApprovalPhoto from "./components/ApprovalPhoto.vue";
+  import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
@@ -204,6 +185,8 @@
     detail: string;
     note?: string;
     badge: { label: string; color: string };
+    /** A quest that asked for a photo: its thumbnail shows while the device still holds it (7 days) */
+    photoEntry?: QuestLogEntry;
   }
 
   export default defineComponent({
@@ -213,6 +196,7 @@
       XpLoading,
       XpTownHallApprovals,
       ApprovalPhoto,
+      ApprovalClaimRow,
     },
     setup() {
       const userStore = useUserStore();
@@ -270,9 +254,6 @@
         return format(date, "MMM d, h:mma");
       };
 
-      const xpApText = (rewards: QuestRewards) =>
-        `+${rewards.xp} XP · +${rewards.ap} AP`;
-
       const rewardLine = (rewards: QuestRewards) =>
         `+${rewards.xp} XP · +${rewards.gp} GP · +${rewards.ap} AP`;
 
@@ -304,6 +285,7 @@
             detail: entry.status === "approved" ? rewardLine(withHuntBonus(entry)) : "",
             note: entry.note,
             badge: statusBadge(entry.status),
+            photoEntry: entry.requiresPhoto ? entry : undefined,
           })
         );
         const purchases = recentPurchaseReviews.value.map(
@@ -450,7 +432,7 @@
         if (!isKnownHero) {
           // applyQuestRewards silently skips unknown heroes, so don't claim a payout.
           void showToast(
-            "That hero no longer exists, so there is no one to pay. Reject the quest instead.",
+            "That hero no longer exists, so there is no one to pay. Send the quest back instead.",
             "warning"
           );
           return;
@@ -488,13 +470,14 @@
       const rejectItem = async (entry: QuestLogEntry) => {
         const hero = heroName(entry.userId);
         const alert = await alertController.create({
-          header: "Reject Quest",
-          message: `Reject "${entry.questName}" from ${hero}? The quest will open up again for them.`,
+          header: "Send Quest Back",
+          message: `Send "${entry.questName}" back to ${hero}? The quest will open up again for them.`,
           inputs: [
             {
               name: "note",
               type: "textarea",
               placeholder: "A short note for the hero (optional)",
+              attributes: { maxlength: 140 },
             },
           ],
           buttons: [
@@ -503,7 +486,7 @@
               role: "cancel",
             },
             {
-              text: "Reject",
+              text: "Send back",
               handler: (data) => {
                 const note = String(data?.note ?? "").trim();
                 void runReview(entry, async () => {
@@ -511,7 +494,7 @@
                   const isUnsettled = !result.ok;
                   if (isUnsettled) return unsettled(result.reason);
                   return {
-                    message: `Rejected. "${entry.questName}" is open again for ${hero}.`,
+                    message: `Sent back. "${entry.questName}" is open again for ${hero}.`,
                     color: "medium",
                   };
                 });
@@ -624,8 +607,6 @@
         heroName,
         heroAvatar,
         formatDate,
-        xpApText,
-        withHuntBonus,
         approveItem,
         rejectItem,
         fulfilItem,
