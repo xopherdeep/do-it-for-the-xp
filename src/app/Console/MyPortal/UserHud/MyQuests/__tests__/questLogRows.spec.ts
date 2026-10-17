@@ -6,6 +6,7 @@ import type { QuestListRow } from "@/lib/services/quests/QuestList";
 import { browseLibrary } from "@/lib/services/bestiary/librarySuggest";
 import {
   boardStatusOf,
+  linkedQuestRow,
   sectionsByWindow,
   stepsLabel,
   subtitleOf,
@@ -196,5 +197,22 @@ describe("a row's tile and chips", () => {
     expect(ids.get("shared")).toMatchObject({ who: "Max +1", requiresApproval: true, canFinish: true });
     expect(ids.get("waiting")).toMatchObject({ stateLabel: "Pending", canFinish: false });
     expect(ids.get("tamed")).toMatchObject({ stateLabel: "Tamed", canFinish: false, title: "Clean The Kitchen" });
+  });
+});
+
+describe("linkedQuestRow", () => {
+  const rows = ["quest-1", "quest-2"].map((id) =>
+    questListFor("hero-1", NOON, [{ quest: makeQuest({ id, achievementName: id }), status: "open", pending: false, overdue: false } as QuestBoardItem], {}, undefined)[0]
+  );
+
+  it("finds the row a notification link points at, whatever the id's type", () => {
+    expect(linkedQuestRow(rows, "quest-2")?.quest.id).toBe("quest-2");
+    expect(linkedQuestRow([{ ...rows[0], quest: makeQuest({ id: 7 as unknown as string }) }], "7")?.quest.id).toBe(7);
+  });
+
+  it("answers null for a quest that is no longer on the board, and for no link at all", () => {
+    expect(linkedQuestRow(rows, "gone")).toBeNull();
+    expect(linkedQuestRow(rows, undefined)).toBeNull();
+    expect(linkedQuestRow(rows, "")).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import {
   reminderIdOf,
   scheduleDueReminders,
 } from "@/lib/services/notifications/deviceReminders";
+import { reminderLinkOf } from "@/lib/services/notifications/reminderTaps";
 
 /** The phone path of the device reminders: channels, the soon reminder, and taking back finished chores. */
 const NOON = new Date(2026, 9, 10, 12, 0);
@@ -72,5 +73,26 @@ describe("deviceReminders on a phone", () => {
     const reminders = dishes(new Date(NOON.getTime() + 2 * 3600e3));
     expect(await scheduleDueReminders(reminders, NOON, onPhone(plugin))).toEqual({ scheduled: 0, reason: "off" });
     expect(plugin.schedule).not.toHaveBeenCalled();
+  });
+});
+
+describe("reminder taps", () => {
+  it("only follows a reminder's quest link", () => {
+    expect(reminderLinkOf({ questId: "q1", link: "/my-tasks/hero-1/task/q1/" })).toBe("/my-tasks/hero-1/task/q1/");
+    expect(reminderLinkOf({ kind: "battle-alert" })).toBeNull();
+    expect(reminderLinkOf({ link: "https://elsewhere.example" })).toBeNull();
+    expect(reminderLinkOf(undefined)).toBeNull();
+  });
+
+  it("books the link on the reminder so the tap knows where to go", async () => {
+    localStorage.clear();
+    const plugin = pluginWith();
+    const link = "/my-tasks/hero-1/task/q1/";
+    const reminders = [{ questId: "q1", title: "Dishes", body: "Due.", deadline: new Date(NOON.getTime() + 2 * 3600e3), link }];
+    await scheduleDueReminders(reminders, NOON, onPhone(plugin));
+    expect(plugin.schedule).toHaveBeenCalledWith({
+      notifications: [expect.objectContaining({ extra: { questId: "q1", link } })],
+    });
+    localStorage.clear();
   });
 });
