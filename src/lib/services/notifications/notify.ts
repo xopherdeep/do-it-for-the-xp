@@ -1,4 +1,5 @@
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import debug from "@/lib/utils/debug";
 import { bloodMoonNotification } from "./Notifications";
 import type { NewXpNotification, XpNotification } from "./Notifications";
 
@@ -11,6 +12,16 @@ export const notify = (input: NewXpNotification): XpNotification | null => {
     return useNotificationsStore().push(input);
   } catch {
     return null;
+  }
+};
+
+/** A held claim was settled: its "waiting" notices are read in every Game Master's feed. Never throws. */
+export const settleWaiting = (entryId: string): void => {
+  try {
+    useNotificationsStore().markReadByRef("claim-waiting", entryId);
+  } catch (error) {
+    // no store in a spec without Pinia: there are no notices to settle
+    debug.warn("[notify] could not settle the waiting notices", error);
   }
 };
 

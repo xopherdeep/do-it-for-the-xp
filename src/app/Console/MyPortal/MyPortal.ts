@@ -15,6 +15,7 @@ import { play$fx } from "@/assets/fx";
 import { itemCardLine } from "@/lib/services/items/ItemRules";
 import { lanternOverdue } from "@/lib/services/quests/ItemEffects";
 import { startQuestWatch } from "@/lib/services/notifications/questWatch";
+import { startApprovalWatch } from "@/lib/services/notifications/approvalWatch";
 import { startReminderTaps } from "@/lib/services/notifications/reminderTaps";
 import { canFly } from "@/lib/services/travel/flight";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
@@ -178,10 +179,13 @@ export default defineComponent({
     const notificationsStore = useNotificationsStore();
     let stopQuestWatch: (() => void) | null = null;
     let stopReminderTaps: (() => void) | null = null;
+    let stopApprovalWatch: (() => void) | null = null;
     onMounted(() => {
       if (!userId) return;
       void notificationsStore.load(String(userId));
       stopQuestWatch = startQuestWatch(String(userId));
+      // A Game Master hears of claims waiting on their word (a hero's run finds nothing and stays quiet)
+      stopApprovalWatch = startApprovalWatch(String(userId));
       // A tap on a phone reminder opens the quest it was about
       stopReminderTaps = startReminderTaps((link) => void router.push(link));
     });
@@ -190,6 +194,8 @@ export default defineComponent({
       stopQuestWatch = null;
       stopReminderTaps?.();
       stopReminderTaps = null;
+      stopApprovalWatch?.();
+      stopApprovalWatch = null;
     });
     // The hero's hands: read from the profile, saved on every change (shared with the temples)
     const { equipment, leftHandItem, rightHandItem, setHandItem: clickItem } = useHeroEquipment(String(userId));

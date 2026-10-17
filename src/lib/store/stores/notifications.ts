@@ -124,6 +124,21 @@ export const useNotificationsStore = defineStore("notifications", () => {
     return false;
   }
 
+  /** Read every notification of a kind about one thing, in every feed (a settled claim's notices). Returns how many. */
+  function markReadByRef(kind: XpNotification["kind"], refId: string, at: Date = new Date()): number {
+    let marked = 0;
+    for (const heroId of Object.keys(byHero)) {
+      const matches = byHero[heroId].filter((entry) => entry.kind === kind && entry.refId === refId && !entry.readAt);
+      for (const entry of matches) entry.readAt = at.toISOString();
+      const hasMatches = matches.length > 0;
+      if (hasMatches) {
+        marked += matches.length;
+        persist(heroId);
+      }
+    }
+    return marked;
+  }
+
   function markAllRead(heroId: string, at: Date = new Date()): number {
     const key = String(heroId);
     let marked = 0;
@@ -177,6 +192,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
     load,
     push,
     markRead,
+    markReadByRef,
     markAllRead,
     remove,
     clear,

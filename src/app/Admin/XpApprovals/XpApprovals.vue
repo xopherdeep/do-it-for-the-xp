@@ -173,25 +173,19 @@
   import { withHuntBonus } from "@/lib/services/quests/huntBonus";
   import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
   import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
-  import {
-    approveCompletion,
-    paidQuestRewards,
-    rejectCompletion,
-  } from "@/lib/services/quests/QuestCompletionService";
+  import { approveClaim, rejectClaim } from "@/lib/services/quests/approvalFlow";
+  import type { ReviewOutcome } from "@/lib/services/quests/approvalFlow";
+  import { claimsFor } from "@/lib/services/quests/waitingClaims";
+  import { play$fx } from "@/assets/fx";
   import {
     fulfillPurchase,
     refundPurchase,
   } from "@/lib/services/shop/PurchaseService";
-  import {
-    approvedNotification,
-    rejectedNotification,
-  } from "@/lib/services/notifications/Notifications";
-  import { notify } from "@/lib/services/notifications/notify";
 
   const HISTORY_LIMIT = 20;
 
   type ToastColor = "success" | "warning" | "danger" | "medium";
-  interface ReviewOutcome {
+  interface ReviewMessage {
     message: string;
     color?: ToastColor;
   }
@@ -357,7 +351,8 @@
             const isQuestsLoaded = quests.status === "fulfilled";
             if (isQuestsLoaded) {
               const [pending, entries] = quests.value;
-              pendingAchievements.value = pending;
+              // Your own chore is not yours to approve while another Game Master could
+              pendingAchievements.value = claimsFor(userStore.currentUser.id, pending, userStore.users);
               recentReviews.value = entries
                 .filter((entry) => entry.status !== "pending")
                 .slice(0, HISTORY_LIMIT);
@@ -420,12 +415,12 @@
 
       const runReview = async (
         entry: { id: string },
-        review: () => Promise<ReviewOutcome>
+        review: () => Promise<ReviewMessage>
       ) => {
         const isInFlight = reviewing.has(entry.id);
         if (isInFlight) return;
         reviewing.add(entry.id);
-        let outcome: ReviewOutcome;
+        let outcome: ReviewMessage;
         try {
           outcome = await review();
         } catch (error) {
@@ -440,6 +435,11 @@
         await loadApprovals();
         void showToast(outcome.message, outcome.color);
       };
+
+      const unsettled = (reason: Extract<ReviewOutcome, { ok: false }>["reason"]): ReviewMessage =>
+        reason === "own-claim"
+          ? { message: "Another Game Master has to check your own quest.", color: "warning" }
+          : { message: "That quest is no longer waiting for approval.", color: "warning" };
 
       const approveItem = async (entry: QuestLogEntry) => {
         const hero = heroName(entry.userId);
@@ -467,22 +467,12 @@
               text: "Approve",
               handler: () => {
                 void runReview(entry, async () => {
-                  const approved = await approveCompletion(
-                    entry.id,
-                    userStore.currentUser.id ?? undefined
-                  );
-                  const isApproved = approved?.status === "approved";
-                  if (!isApproved) {
-                    return {
-                      message: "That quest is no longer waiting for approval.",
-                      color: "warning",
-                    };
-                  }
-                  // The log keeps the board's rate; the toast says what was paid (class GP bonus included)
-                  const paid = rewardLine(paidQuestRewards(approved.userId, withHuntBonus(approved)));
-                  notify(approvedNotification(approved.userId, approved, paid));
+                  const result = await approveClaim(entry.id, userStore.currentUser.id ?? undefined);
+                  const isUnsettled = !result.ok;
+                  if (isUnsettled) return unsettled(result.reason);
+                  play$fx("select");
                   return {
-                    message: `Approved! ${hero} earned ${paid}`,
+                    message: `Approved! ${hero} earned ${result.line}`,
                   };
                 });
               },
@@ -501,7 +491,7 @@
             {
               name: "note",
               type: "textarea",
-              placeholder: "Reason for rejection (optional)",
+              placeholder: "A short note for the hero (optional)",
             },
           ],
           buttons: [
@@ -514,19 +504,9 @@
               handler: (data) => {
                 const note = String(data?.note ?? "").trim();
                 void runReview(entry, async () => {
-                  const rejected = await rejectCompletion(
-                    entry.id,
-                    userStore.currentUser.id ?? undefined,
-                    note || undefined
-                  );
-                  const isRejected = rejected?.status === "rejected";
-                  if (!isRejected) {
-                    return {
-                      message: "That quest is no longer waiting for approval.",
-                      color: "warning",
-                    };
-                  }
-                  notify(rejectedNotification(rejected.userId, rejected, note || undefined));
+                  const result = await rejectClaim(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
+                  const isUnsettled = !result.ok;
+                  if (isUnsettled) return unsettled(result.reason);
                   return {
                     message: `Rejected. "${entry.questName}" is open again for ${hero}.`,
                     color: "medium",

@@ -43,6 +43,10 @@
           <ion-button expand="block" class="recap-share" data-cy="share-recap" @click="shareRecap">
             <i class="fad fa-share-alt mr-2" aria-hidden="true"></i>Share my week
           </ion-button>
+          <ion-button expand="block" fill="outline" color="warning" data-cy="open-recap"
+            :router-link="`/my-recap/${encodeURIComponent(userId || '')}/`">
+            <i class="fad fa-users mr-2" aria-hidden="true"></i>This week in the village
+          </ion-button>
         </section>
 
         <!-- Streak -->

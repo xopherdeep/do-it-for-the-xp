@@ -13,6 +13,8 @@
     </ion-header>
 
     <ion-content class="my-tasks" :class="`view-${view}`">
+      <!-- A Game Master with chores waiting on their word sees the village's prompt (hidden for a hero) -->
+      <XpVillageAwaits />
       <XpLoading v-if="isLoading" />
 
       <!--

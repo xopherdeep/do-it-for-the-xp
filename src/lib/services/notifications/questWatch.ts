@@ -9,6 +9,7 @@ import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotifica
 import type { NewXpNotification } from "./Notifications";
 import { chargeLatePenalties, latePenaltyNotification } from "@/lib/services/quests/lateChores";
 import { scheduleDueReminders } from "./deviceReminders";
+import { runWeeklyRecapWatch } from "./weeklyRecapWatch";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
 
 /**
@@ -114,6 +115,8 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
     const isPenaltyPushed = notifications.push(latePenaltyNotification(id, quest, penalty.taken, now), now);
     if (isPenaltyPushed) pushed += 1;
   }
+  const isRecapPushed = await runWeeklyRecapWatch(id, now);
+  if (isRecapPushed) pushed += 1;
   const reminders = await scheduleDueReminders(remindersOf(board, effects, now, id), now);
   return { pushed, reminders };
 };

@@ -71,7 +71,7 @@ describe("parentOf: heroes' pages", () => {
   });
 
   it("sends My Home's pages to My Home and the hero's own screens to the portal home", () => {
-    ["cook-food", "craft-item", "storage", "calendar", "my-tasks", "my-abilities", "my-gold-points", "my-inventory", "my-profile"].forEach(
+    ["cook-food", "craft-item", "storage", "calendar", "my-tasks", "my-abilities", "my-gold-points", "my-records", "my-recap", "my-inventory", "my-profile"].forEach(
       (name) => expect(parentOf(route(name, `/${name}/${HERO}`, { userId: HERO }))).toBe(`/my-portal/${HERO}/my-home`),
     );
     expect(parentOf(route("my-party", `/my-portal/${HERO}/my-party`, { userId: HERO }))).toBe("/xp-profile");

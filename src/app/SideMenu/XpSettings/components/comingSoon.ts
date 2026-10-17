@@ -31,7 +31,6 @@ export const FAMILY_COMING_SOON: ComingSoonItem[] = [
 ];
 
 export const CHORE_COMING_SOON: ComingSoonItem[] = [
-  { title: "Game Masters do chores too", description: "Give quests to Game Masters and track them like a hero's" },
   { title: "Photo proof", description: "Heroes add a photo when they finish; Game Masters review it later" },
   { title: "Auto-save GP", description: "Put a share of every reward straight into savings" },
 ];
