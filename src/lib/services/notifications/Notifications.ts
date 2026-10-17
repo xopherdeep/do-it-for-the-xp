@@ -19,6 +19,7 @@ export type XpNotificationKind =
   | "power-cast"
   | "hospital"
   | "gold"
+  | "weekly-recap"
   | "system";
 
 export interface XpNotification {
@@ -150,6 +151,8 @@ export const iconOfKind = (kind: XpNotificationKind): string => {
       return "fa-hospital";
     case "gold":
       return "fa-coins";
+    case "weekly-recap":
+      return "fa-scroll-old";
     default:
       return "fa-bell";
   }
