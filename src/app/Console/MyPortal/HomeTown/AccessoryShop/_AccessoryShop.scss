@@ -47,11 +47,40 @@
     padding-bottom: 84px;
     position: relative;
 
-    // The shelf stands in front of the traveling merchant's stall
+    // The shelf stands in front of the traveling merchant's balloon
     .shop-shelf-slider,
     .shop-sign {
       position: relative;
       z-index: 1;
+    }
+  }
+
+  // The balloon's basket and envelope over the world picture; the middle of the image is see-through
+  .merchant-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    // a little taller than the floor, so its sway never shows the world under its bottom edge
+    height: calc(100% + 8px);
+    object-fit: cover;
+    object-position: center bottom;
+    pointer-events: none;
+    animation: merchant-sway 4.2s ease-in-out infinite alternate;
+  }
+
+  @keyframes merchant-sway {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-5px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .merchant-frame {
+      animation: none;
     }
   }
 
