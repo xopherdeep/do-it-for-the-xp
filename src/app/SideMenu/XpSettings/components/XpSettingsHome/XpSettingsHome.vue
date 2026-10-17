@@ -19,6 +19,8 @@
       :fullscreen="true"
       class="rpg-box bg-slide ion-padding"
     >
+      <xp-backup-nudge />
+
       <!-- One panel for each question: who plays, how the game runs, what this phone does, the account -->
       <ion-card v-for="section in sections" :key="section.id" class="settings-section" :data-section="section.id">
         <ion-list>

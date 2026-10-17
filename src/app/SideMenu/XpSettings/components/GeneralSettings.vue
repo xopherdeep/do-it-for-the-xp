@@ -26,7 +26,7 @@
               <ion-icon slot="start" color="rpg" :icon="cloudDownloadOutline"></ion-icon>
               <ion-label>
                 <h2>Back up everything</h2>
-                <p>Download one file with all of your family's data</p>
+                <p>Download one file with all of your family's data. {{ backupAge }}.</p>
               </ion-label>
             </ion-item>
 
@@ -101,6 +101,7 @@
   import { GENERAL_COMING_SOON } from "./comingSoon";
   import { resetTour } from "@/lib/services/tutorial/firstRunTour";
   import { useUserStore } from "@/lib/store/stores/user";
+  import { backupAgeLabel, lastBackupAt, recordBackup } from "@/lib/services/core/backupReminder";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
 
@@ -212,6 +213,8 @@
             "Packing your backup...",
             () => backupService.exportAll()
           );
+          recordBackup();
+          this.lastBackup = lastBackupAt();
           await this.showToast(`Backup saved as ${fileName} (${summary.total} entries)`, 5000);
         } catch (error) {
           await this.showToast(`Backup failed: ${errorMessage(error)}`, 6000);
@@ -328,9 +331,14 @@
       const isBackupBusy = ref(false); // A backup or restore is running
       const userStore = useUserStore();
       const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
+      // When the last backup was made, and how to say so under "Back up everything"
+      const lastBackup = ref(lastBackupAt());
+      const backupAge = computed(() => backupAgeLabel(lastBackup.value));
 
       return {
         isBackupBusy,
+        lastBackup,
+        backupAge,
         currentHeroId,
         mapOutline,
         comingSoon: GENERAL_COMING_SOON,

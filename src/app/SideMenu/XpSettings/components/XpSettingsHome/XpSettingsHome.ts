@@ -1,6 +1,7 @@
 import { defineComponent } from 'vue'
 import ionic from "@/lib/mixins/ionic";
 import { PRO_ITEM, SETTINGS_SECTIONS } from "./settingsSections";
+import XpBackupNudge from "../XpBackupNudge.vue";
 const requireIconImg = require.context("@/assets/icons/", false, /\.svg$/);
 
 import {
@@ -12,6 +13,7 @@ import {
 export default defineComponent({
   name: 'xp-settings-home',
   mixins: [ionic],
+  components: { XpBackupNudge },
   setup() {
     return {
       arrowBack,
