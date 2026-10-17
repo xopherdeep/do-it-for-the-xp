@@ -28,7 +28,8 @@ export const levelUpsOf = (feed: readonly XpNotification[], heroId: string): Rec
     const isLevelUp = note.kind === "level-up" && String(note.heroId) === String(heroId);
     const level = Number(String(note.refId || "").replace(/^level-/, ""));
     const isLevelKnown = Number.isFinite(level) && level > 0;
-    if (isLevelUp && isLevelKnown) ups.push({ heroId: String(heroId), level, at: note.createdAt });
+    const isCounted = isLevelUp && isLevelKnown;
+    if (isCounted) ups.push({ heroId: String(heroId), level, at: note.createdAt });
   }
   return ups;
 };

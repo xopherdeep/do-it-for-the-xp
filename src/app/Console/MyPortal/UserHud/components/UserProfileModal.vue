@@ -125,6 +125,11 @@
           <i class="fad fa-scroll-old mr-2" aria-hidden="true"></i>
           Hero Records
         </ion-button>
+        <ion-button expand="block" fill="outline" color="warning" class="records-button" data-cy="open-recap"
+          @click="openRecap">
+          <i class="fad fa-users mr-2" aria-hidden="true"></i>
+          This week in the village
+        </ion-button>
 
         <!-- Five Pillars Explanation - shows when no accordion is open -->
         <Transition name="pillars-fade">
@@ -313,6 +318,12 @@ export default defineComponent({
       play$fx('select');
       await modal.value?.$el?.dismiss();
       await router.push({ name: 'my-records', params: { userId: String(props.user?.id || '') } });
+    };
+
+    const openRecap = async () => {
+      play$fx('select');
+      await modal.value?.$el?.dismiss();
+      await router.push({ name: 'my-recap', params: { userId: String(props.user?.id || '') } });
     };
 
     // Toggle accordion when clicking stat boxes
@@ -721,6 +732,7 @@ export default defineComponent({
       modal,
       dismiss,
       openRecords,
+      openRecap,
 
       // Computed
       xpProgress,

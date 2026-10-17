@@ -69,10 +69,12 @@ export const recapLinesOf = (recap: WeeklyRecap): string[] => {
   }
   const lines: string[] = [];
   const isSolo = recap.heroes.filter((hero) => hero.chores > 0).length === 1 && recap.heroes.length === 1;
-  if (recap.teamWin) {
+  const isCrowned = Boolean(recap.heroOfTheWeek) && !isSolo;
+  const isTeamWin = recap.teamWin;
+  if (isTeamWin) {
     lines.push(pick(["Everyone finished level: this week is a team win!", "No hero pulled ahead. What a team!"], seed, 1));
-  } else if (recap.heroOfTheWeek && !isSolo) {
-    const hero = recap.heroOfTheWeek;
+  } else if (isCrowned) {
+    const hero = recap.heroOfTheWeek!;
     lines.push(`${hero.name} is hero of the week with ${plural(hero.chores, "chore")} done!`);
   }
   lines.push(

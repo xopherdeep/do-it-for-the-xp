@@ -1,0 +1,216 @@
+.my-recap {
+  --recap-gold: #ffd23f;
+  --recap-ink: #f4ecd8;
+  --recap-dim: #b8a98a;
+
+  .recap-loading {
+    display: flex;
+    justify-content: center;
+    padding: 48px 0;
+  }
+
+  .recap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 14px 120px;
+    color: var(--recap-ink);
+  }
+
+  h2,
+  h3 {
+    margin: 0;
+    font-family: "StatusPlz", sans-serif;
+    letter-spacing: 1px;
+    color: var(--recap-gold);
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  .recap-family,
+  .recap-hero {
+    padding: 14px;
+    border-radius: 6px;
+  }
+
+  .recap-family {
+    border: 3px solid var(--recap-gold);
+    background: linear-gradient(180deg, #2b1a4a, #120a24);
+  }
+
+  .recap-hero {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(16, 10, 32, 0.85);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .recap-span {
+    display: flex;
+    gap: 8px;
+
+    button {
+      flex: 1;
+      min-height: 44px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--recap-dim);
+      font-family: "StatusPlz", sans-serif;
+      font-size: 0.85rem;
+
+      &.on {
+        border-color: var(--recap-gold);
+        color: var(--recap-gold);
+      }
+    }
+  }
+
+  .recap-range {
+    margin: 2px 0 10px;
+    font-size: 0.8rem;
+    color: var(--recap-dim);
+  }
+
+  .recap-numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .big-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 4px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+
+    &.xp .big-value {
+      color: #9be564;
+    }
+
+    &.gp .big-value {
+      color: var(--recap-gold);
+    }
+  }
+
+  .big-value {
+    font-family: "StatusPlz", sans-serif;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .big-label {
+    font-family: "StatusPlz", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: var(--recap-dim);
+  }
+
+  .recap-crown {
+    margin: 0 0 8px;
+    font-family: "StatusPlz", sans-serif;
+    color: var(--recap-gold);
+  }
+
+  .recap-lines {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+
+    li::marker {
+      content: "\25B8  ";
+      color: var(--recap-gold);
+    }
+  }
+
+  .recap-empty {
+    margin: 4px 0 0;
+    color: var(--recap-dim);
+    font-size: 0.9rem;
+  }
+
+  .recap-share {
+    --background: #d96b0c;
+    --background-activated: #8a2f00;
+    font-family: "StatusPlz", sans-serif;
+  }
+
+  .recap-hero-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .recap-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--recap-gold);
+    background: #fff;
+    object-fit: cover;
+  }
+
+  .recap-badge {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--recap-gold);
+  }
+
+  .recap-facts {
+    display: grid;
+    gap: 4px;
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+    }
+
+    dt {
+      color: var(--recap-dim);
+    }
+
+    dd {
+      margin: 0;
+      font-family: "StatusPlz", sans-serif;
+      text-align: right;
+    }
+  }
+
+  .beast-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .beast-count {
+      font-family: "StatusPlz", sans-serif;
+      color: var(--recap-gold);
+    }
+  }
+}

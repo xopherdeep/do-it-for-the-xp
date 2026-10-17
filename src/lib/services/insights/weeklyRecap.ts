@@ -131,10 +131,12 @@ const weekdayOf = (dayKey: string): number => {
 /** The first and last day of the week `span` asks for on `now` */
 export const weekRangeOf = (now: Date, span: RecapSpan = "rolling", weekStartsOn = 1): { from: string; to: string } => {
   const today = toDayKey(now);
-  if (span === "rolling") return { from: shiftDayKey(today, -6), to: today };
+  const isRolling = span === "rolling";
+  if (isRolling) return { from: shiftDayKey(today, -6), to: today };
   const sinceStart = (weekdayOf(today) - clampWeekday(weekStartsOn) + 7) % 7;
   const thisStart = shiftDayKey(today, -sinceStart);
-  if (span === "calendar") return { from: thisStart, to: today };
+  const isCalendar = span === "calendar";
+  if (isCalendar) return { from: thisStart, to: today };
   const from = shiftDayKey(thisStart, -7);
   return { from, to: shiftDayKey(from, 6) };
 };
