@@ -173,12 +173,11 @@ export const requestAlertPermission = async (): Promise<AlertPermission> => {
   }
 };
 
-/** Book (or fire now, with no `at`) an alert in the packaged app; the same id replaces the one already booked. */
-const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => {
-  const plugin = await loadLocalNotifications();
-  if (!plugin) return { shown: false, reason: "unsupported" };
-  const isDenied = nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted";
-  if (isDenied) return { shown: false, reason: "denied" };
+/**
+ * Android 8+ drops a notification whose channel does not exist, so every path that schedules one creates the
+ * channels first (creating an existing channel is a no-op).
+ */
+export const ensureAlertChannels = async (plugin: any): Promise<void> => {
   try {
     await plugin.createChannel({
       id: "battle-alerts",
@@ -190,11 +189,21 @@ const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => 
       id: "chore-reminders",
       name: "Chore Reminders",
       description: "Upcoming chore deadlines",
-      importance: 3,
+      importance: 4,
     });
-  } catch {
-    // chemx-allow: best-effort the channel may already exist, or the plugin lacks the method in mocks and on the web
+  } catch (error) {
+    // the plugin lacks the method in mocks and on the web
+    debug.warn("[alertBridge] could not create the alert channels", error);
   }
+};
+
+/** Book (or fire now, with no `at`) an alert in the packaged app; the same id replaces the one already booked. */
+const bookNative = async (alert: HeroAlert, at?: Date): Promise<AlertResult> => {
+  const plugin = await loadLocalNotifications();
+  if (!plugin) return { shown: false, reason: "unsupported" };
+  const isDenied = nativePermissionOf((await plugin.checkPermissions())?.display) !== "granted";
+  if (isDenied) return { shown: false, reason: "denied" };
+  await ensureAlertChannels(plugin);
   await plugin.schedule({
     notifications: [
       {

@@ -238,6 +238,26 @@ describe("deviceReminders", () => {
     plugin.requestPermissions.mockResolvedValue({ display: "denied" });
     expect(await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => plugin })).toEqual({ scheduled: 0, reason: "denied" });
   });
+
+  it("creates the chore channel before booking and takes back reminders for quests no longer ahead", async () => {
+    const calls: string[] = [];
+    const plugin = {
+      checkPermissions: jest.fn().mockResolvedValue({ display: "granted" }),
+      createChannel: jest.fn(async ({ id }: any) => void calls.push(`channel:${id}`)),
+      getPending: jest.fn().mockResolvedValue({
+        notifications: [
+          { id: reminderIdOf("gone"), extra: { questId: "gone" } },
+          { id: 7001, extra: { kind: "battle-alert" } },
+        ],
+      }),
+      cancel: jest.fn(async () => void calls.push("cancel")),
+      schedule: jest.fn(async () => void calls.push("schedule")),
+    };
+    const reminders = [{ questId: "q1", title: "Dishes", body: "Due by 2:00pm.", deadline: new Date(NOON.getTime() + 2 * 3600e3) }];
+    await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => plugin });
+    expect(calls).toEqual(["channel:battle-alerts", "channel:chore-reminders", "cancel", "schedule"]);
+    expect(plugin.cancel).toHaveBeenCalledWith({ notifications: [{ id: reminderIdOf("gone") }] });
+  });
 });
 
 describe("notifications store", () => {
