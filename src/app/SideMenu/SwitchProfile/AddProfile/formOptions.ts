@@ -55,3 +55,23 @@ export const SKIN_CHOICES: ChoiceCard[] = [
   { key: "retro", label: "Retro", icon: "fa-gamepad", hint: "Pixel windows, like an old RPG" },
   { key: "modern", label: "Modern", icon: "fa-mobile-alt", hint: "Clean phone-app screens" },
 ];
+
+/** An icon for each game style on the style step (the names come from GAME_STYLE_NAMES) */
+export const GAME_STYLE_ICONS: Record<string, string> = {
+  earthbound: "fa-star",
+  chronoTrigger: "fa-hourglass",
+  finalFantasy: "fa-sparkles",
+  zelda: "fa-shield-alt",
+  dragonQuest: "fa-dragon",
+  pokemon: "fa-paw",
+  secretOfMana: "fa-leaf",
+  phantasyStar: "fa-rocket",
+  virtualBoy: "fa-glasses",
+  marioRpg: "fa-heart",
+};
+
+/** The two menu sound sets (src/assets/fx/uiSounds.ts) */
+export const UI_SOUND_CHOICES: ChoiceCard[] = [
+  { key: "nintendo", label: "Nintendo", icon: "fa-gamepad" },
+  { key: "sony", label: "PlayStation", icon: "fa-gamepad-alt" },
+];

@@ -55,6 +55,8 @@ export interface NewProfileForm {
   isAdult: boolean
   /** Retro or Modern look (services/profile/heroSkin.ts). Missing: the device's own choice stands. */
   skin?: 'retro' | 'modern'
+  /** Game style and menu sounds (services/profile/heroTheme.ts). Missing: the device's own choice stands. */
+  themeChoice?: { rpg: string; ui: string }
   birthday?: string
   stats: Stats
   equipment?: Equipment;
