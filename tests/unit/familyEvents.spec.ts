@@ -1,6 +1,14 @@
 import { DEFAULT_LOOK } from "@/lib/hero-look/types";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
-import { cardEvent, EVENT_KINDS, leveledEvent, newEvent, questDoneEvent } from "@/lib/services/multiplayer/familyEvents";
+import {
+  cardEvent,
+  EVENT_KINDS,
+  leveledEvent,
+  newEvent,
+  questClaimedEvent,
+  questDoneEvent,
+  questReviewedEvent,
+} from "@/lib/services/multiplayer/familyEvents";
 
 const now = new Date("2026-10-13T12:00:00Z");
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -11,6 +19,9 @@ describe("EVENT_KINDS", () => {
       "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
       "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
       "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
+      "quest.claimed": { scope: "family", writer: "home", fields: ["questId", "difficulty", "requiresApproval"] },
+      "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
+      "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
       "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
     }));
 });
@@ -55,5 +66,24 @@ describe("event builders", () => {
     const e = questDoneEvent("h-1", "d1", { difficulty: 2, xp: 40, fight: true });
     expect(e).toMatchObject({ kind: "quest.done", data: { difficulty: 2, xp: 40, fight: true } });
     expect(Object.keys(e.data).sort()).toEqual(["difficulty", "fight", "xp"]);
+  });
+});
+
+describe("the approval loop's events", () => {
+  it("quest.claimed carries the quest, its difficulty and whether it waits, never its name", () => {
+    const e = questClaimedEvent("h-1", "d1", { questId: "q-9", difficulty: 3, requiresApproval: true });
+    expect(e).toMatchObject({ kind: "quest.claimed", heroId: "h-1", deviceId: "d1" });
+    expect(e.data).toEqual({ questId: "q-9", difficulty: 3, requiresApproval: true });
+  });
+
+  it("a verdict is quest.approved or quest.rejected with the note the hero read", () => {
+    expect(questReviewedEvent("h-1", "d1", { questId: "q-9", approved: true, note: "" })).toMatchObject({
+      kind: "quest.approved",
+      data: { questId: "q-9", note: "" },
+    });
+    expect(questReviewedEvent("h-1", "d1", { questId: "q-9", approved: false, note: "Under the bed too" })).toMatchObject({
+      kind: "quest.rejected",
+      data: { questId: "q-9", note: "Under the bed too" },
+    });
   });
 });
