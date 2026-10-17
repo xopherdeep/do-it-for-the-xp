@@ -1,0 +1,281 @@
+  @use "@/styles/themes/earthbound.scss" as *;
+
+  // The reading half of Choose Your Class (XpClassDetails). The crest colour comes in as --crest from the screen.
+  // Retro draws Earthbound windows and block bars; Modern draws soft glass cards and smooth bars.
+
+  $panel-modern: rgba(255, 255, 255, 0.06);
+  $line-modern: rgba(255, 255, 255, 0.12);
+  $ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  .cs-details {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ---- Panels ---- */
+  .cs-panel {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: $panel-modern;
+    border: 1px solid $line-modern;
+  }
+
+  .cs-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-family: $eb-font-status;
+    font-size: 0.95rem;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+    color: $eb-color-pale-yellow;
+  }
+
+  .cs-subheading {
+    margin: 12px 0 6px;
+    font-family: $eb-font-status;
+    font-size: 0.9rem;
+    font-weight: normal;
+    color: $eb-color-pale-yellow;
+  }
+
+  // A bar: a track and a fill that scales from the left (transform only, so it never relays the page)
+  .cs-meter {
+    position: relative;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .cs-meter-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(var(--crest-rgb), 0.7), var(--crest));
+    transition: transform 420ms $ease-out;
+  }
+
+  .cs-bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cs-bar {
+    display: grid;
+    grid-template-columns: 20px 66px 1fr 26px 36px;
+    align-items: center;
+    gap: 8px;
+    font-family: $eb-font-status;
+    font-size: 0.95rem;
+
+    .cs-meter-fill {
+      background: var(--pillar);
+    }
+
+    &:not(.is-trained) {
+      .cs-bar-name,
+      .cs-bar-value {
+        opacity: 0.6;
+      }
+
+      .cs-meter-fill {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  .cs-bar-icon {
+    color: var(--pillar);
+    --fa-primary-color: var(--pillar);
+    --fa-secondary-color: var(--pillar);
+    text-align: center;
+  }
+
+  .cs-bar-value {
+    text-align: right;
+  }
+
+  .cs-bar-name {
+    white-space: nowrap;
+  }
+
+  .cs-bar-rank {
+    white-space: nowrap;
+    font-size: 0.7rem;
+    color: $eb-color-pale-yellow;
+    letter-spacing: -1px;
+  }
+
+  .cs-start {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 10px 0 0;
+    font-family: $eb-font-status;
+    font-size: 0.9rem;
+
+    .is-hp {
+      color: #ff8a80;
+    }
+
+    .is-mp {
+      color: #82b1ff;
+    }
+  }
+
+  .cs-legend {
+    margin-left: auto;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .cs-passive {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+
+    i {
+      flex: none;
+      margin-top: 3px;
+      color: var(--crest);
+    }
+  }
+
+  .cs-description {
+    margin: 10px 0 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    opacity: 0.85;
+  }
+
+  .cs-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--crest);
+    font-family: $eb-font-status;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .cs-lines {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.4;
+
+    li + li {
+      margin-top: 4px;
+    }
+  }
+
+  .cs-evolutions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cs-evolution {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    font-family: $eb-font-status;
+  }
+
+  .cs-evolution-crest {
+    color: var(--crest);
+    --fa-primary-color: var(--crest);
+    --fa-secondary-color: var(--crest);
+    font-size: 1.3rem;
+  }
+
+  .cs-evolution-need {
+    font-size: 0.8rem;
+    opacity: 0.75;
+  }
+
+  .cs-evolution-met {
+    color: $eb-color-mint-green;
+  }
+
+  // Sealed: one row per parent class
+  .cs-unlock {
+    border-color: rgba(255, 180, 168, 0.4);
+  }
+
+  .cs-need {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 44px;
+    align-items: center;
+    gap: 10px;
+    font-family: $eb-font-status;
+    font-size: 0.95rem;
+
+    & + & {
+      margin-top: 8px;
+    }
+
+    .cs-meter-fill {
+      background: #ffb4a8;
+    }
+
+    &.is-met .cs-meter-fill {
+      background: $eb-color-mint-green;
+    }
+  }
+
+  .cs-need-count {
+    text-align: right;
+  }
+
+  /* ---- Retro skin ---- */
+  .cs-details.is-retro {
+    gap: 30px;
+
+    // The Earthbound window (the game style's frame), 16px wide outside the panel
+    .cs-panel {
+      @include eb-box();
+      border: 0;
+      padding: 12px;
+    }
+
+    // Block bars: the track and fill cut into cells
+    .cs-meter {
+      height: 12px;
+      border-radius: 0;
+      background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 8px, transparent 8px 10px);
+    }
+
+    .cs-meter-fill {
+      border-radius: 0;
+      mask-image: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+      -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+      transition-timing-function: steps(8);
+    }
+
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cs-meter-fill {
+      transition: none;
+    }
+  }

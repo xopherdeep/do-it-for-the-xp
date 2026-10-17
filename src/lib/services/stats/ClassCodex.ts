@@ -74,6 +74,22 @@ export interface ClassCodexEntry {
   heroLevel: number;
   /** Tier 1: the advanced classes it parents. Tier 2: the crown classes it parents, each with the other parent. Tier 3: nothing. */
   growsInto: CodexEvolution[];
+  /** All five pillars in the profile's order (Body, Mind, Spirit, Heart, Legend), each with its starting power. */
+  power: CodexPower[];
+}
+
+/** One bar of the class-select screen: how strong a class starts in a pillar. */
+export interface CodexPower {
+  key: PillarType;
+  name: string;
+  icon: string;
+  color: string;
+  /** The class's base stats in this pillar, added up. */
+  value: number;
+  /** `value` over the strongest start any class has in any pillar (0 to 1), so every bar shares one scale. */
+  share: number;
+  /** Primary, Secondary or Tertiary when the class trains this pillar; null when it does not. */
+  rank: PillarRank | null;
 }
 
 /** Pillar names as heroes read them in the profile (UserProfileModal) and the class descriptions. */
@@ -121,6 +137,35 @@ const codexTier = (tier: number | undefined): 1 | 2 | 3 => {
   return 1;
 };
 
+const PILLAR_ORDER: PillarType[] = ['physical', 'mental', 'vibrational', 'relational', 'eternal'];
+
+/** A class's base stats in one pillar, added up (the three PILLARS stats of that pillar). */
+export const pillarPower = (job: Pick<JobClass, 'baseStats'>, pillar: PillarType): number =>
+  Object.keys(PILLARS[pillar].stats).reduce((sum, stat) => sum + (job.baseStats?.[stat] ?? 0), 0);
+
+/** The strongest start any class has in any pillar: the full length of a class-select bar. */
+export const PILLAR_POWER_MAX = Math.max(
+  1,
+  ...JOB_CLASS_OPTIONS.flatMap((job) => PILLAR_ORDER.map((pillar) => pillarPower(job, pillar)))
+);
+
+const powerOf = (job: JobClass): CodexPower[] => {
+  const ranked = [job.primaryPillar, job.secondaryPillar, job.tertiaryPillar];
+  return PILLAR_ORDER.map((key) => {
+    const value = pillarPower(job, key);
+    const rankIndex = ranked.indexOf(key);
+    return {
+      key,
+      name: PILLAR_LABELS[key],
+      icon: PILLARS[key].icon,
+      color: PILLARS[key].color,
+      value,
+      share: Math.min(1, value / PILLAR_POWER_MAX),
+      rank: rankIndex >= 0 ? RANKS[rankIndex] : null,
+    };
+  });
+};
+
 const buildEntry = (job: JobClass, levels: Record<string, number>): ClassCodexEntry => {
   const tier = codexTier(job.tier);
   const requirement = JOB_UNLOCK_REQUIREMENTS[job.name] ?? {};
@@ -145,6 +190,7 @@ const buildEntry = (job: JobClass, levels: Record<string, number>): ClassCodexEn
     })),
     heroLevel: levelIn(levels, job.name),
     growsInto: tier < 3 ? evolutionsOf(job.name, levels) : [],
+    power: powerOf(job),
   };
 };
 

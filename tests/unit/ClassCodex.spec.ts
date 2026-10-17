@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { useUserStore } from "@/lib/store/stores/user";
-import { classCodex, classCodexEntry, PILLAR_LABELS } from "@/lib/services/stats/ClassCodex";
+import { classCodex, classCodexEntry, PILLAR_LABELS, PILLAR_POWER_MAX, pillarPower } from "@/lib/services/stats/ClassCodex";
 import { classLevelsOf, classPassive, classRequirementLabel } from "@/lib/services/stats/ClassPassives";
 import { JOB_CLASS_OPTIONS } from "@/constants/JOB_CLASS_OPTIONS";
 import { PILLARS } from "@/constants/PILLARS";
@@ -248,6 +248,32 @@ describe("sealed classes", () => {
     expect(entry("Knight", classLevelsOf({ Warrior: { level: 4 } })).requirementProgress).toEqual([
       { name: "Warrior", level: 4, needed: 10, met: false },
     ]);
+  });
+});
+
+describe("power", () => {
+  it("lists the five pillars in the profile's order with the class's base stats added up", () => {
+    const warrior = entry("Warrior");
+    expect(warrior.power.map((p) => p.name)).toEqual(["Body", "Mind", "Spirit", "Heart", "Legend"]);
+    // Warrior: defense 8 + strength 12 + endurance 10
+    expect(warrior.power[0].value).toBe(30);
+    expect(warrior.power.every((p) => p.value === pillarPower(JOB_CLASS_OPTIONS[0], p.key))).toBe(true);
+  });
+
+  it("ranks only the three pillars the class trains", () => {
+    const mage = entry("Mage");
+    const job = JOB_CLASS_OPTIONS.find((j) => j.name === "Mage")!;
+    expect(mage.power.find((p) => p.key === job.primaryPillar)?.rank).toBe("Primary");
+    expect(mage.power.find((p) => p.key === job.secondaryPillar)?.rank).toBe("Secondary");
+    expect(mage.power.find((p) => p.key === job.tertiaryPillar)?.rank).toBe("Tertiary");
+    expect(mage.power.filter((p) => p.rank === null)).toHaveLength(2);
+  });
+
+  it("puts every bar on one scale: the strongest start of any class fills it", () => {
+    const shares = classCodex(fresh).flatMap((c) => c.power.map((p) => p.share));
+    expect(Math.max(...shares)).toBe(1);
+    expect(shares.every((share) => share >= 0 && share <= 1)).toBe(true);
+    expect(PILLAR_POWER_MAX).toBe(Math.max(...classCodex(fresh).flatMap((c) => c.power.map((p) => p.value))));
   });
 });
 
