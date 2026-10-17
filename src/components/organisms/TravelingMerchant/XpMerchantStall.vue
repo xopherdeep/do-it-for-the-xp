@@ -40,19 +40,23 @@ import { computed } from "vue";
 import XpPixelSprite from "./XpPixelSprite.vue";
 import { STALL_SPRITES } from "./merchantStallSprites";
 
-const props = withDefaults(
-  defineProps<{
-    /** The picture of the world he stands in today, behind the stall */
-    backdrop?: string;
-    /** Who minds the stall */
-    shopkeeper?: string;
-    /** What he calls out */
-    line?: string;
-    /** Hide the call while he is already talking, or the stall is shut */
-    quiet?: boolean;
-  }>(),
-  { backdrop: "", shopkeeper: "Boobeedeedle", line: "", quiet: false }
-);
+interface XpMerchantStallProps {
+  /** The picture of the world he stands in today, behind the stall */
+  backdrop?: string;
+  /** Who minds the stall */
+  shopkeeper?: string;
+  /** What he calls out */
+  line?: string;
+  /** Hide the call while he is already talking, or the stall is shut */
+  quiet?: boolean;
+}
+
+const props = withDefaults(defineProps<XpMerchantStallProps>(), {
+  backdrop: "",
+  shopkeeper: "Boobeedeedle",
+  line: "",
+  quiet: false,
+});
 
 defineEmits<{ (event: "talk"): void }>();
 
