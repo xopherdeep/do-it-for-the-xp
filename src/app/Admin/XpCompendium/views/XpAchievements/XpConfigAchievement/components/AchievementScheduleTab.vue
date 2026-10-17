@@ -271,7 +271,7 @@
                     data-cy="custom-period"
                     @click.capture="lockedTap"
                   >
-                    <ion-select
+                    <ion-select interface="action-sheet"
                       :value="achievement.customPeriodType"
                       @ionChange="pro.isPro && updateField('customPeriodType', $event.detail.value)"
                       mode="ios"

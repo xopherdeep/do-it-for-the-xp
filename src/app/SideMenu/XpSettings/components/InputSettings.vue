@@ -68,7 +68,7 @@
           @click="play$fx"
           :value="$fx.theme.ui"
           placeholder="Select One"
-          interface="popover"
+          interface="action-sheet"
         >
           <ion-select-option value="nintendo">Nintendo</ion-select-option>
           <ion-select-option value="sony">Playstation</ion-select-option>
@@ -84,7 +84,7 @@
           :value="$fx.theme.rpg"
           ok-text="Okay"
           cancel-text="Dismiss"
-          interface="popover"
+          interface="action-sheet"
         >
           <ion-select-option value="earthbound"
             >Down to Earth</ion-select-option

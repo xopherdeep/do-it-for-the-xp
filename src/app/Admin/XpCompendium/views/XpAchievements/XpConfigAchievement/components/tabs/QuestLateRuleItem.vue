@@ -7,7 +7,7 @@
       </ion-label>
       <ion-select
         slot="end"
-        interface="popover"
+        interface="action-sheet"
         aria-label="What happens when this chore is late"
         data-test="late-rule-select"
         :value="choice"

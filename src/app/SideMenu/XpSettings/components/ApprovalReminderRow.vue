@@ -6,7 +6,7 @@
     </ion-label>
     <ion-select
       slot="end"
-      interface="popover"
+      interface="action-sheet"
       data-cy="approval-reminders-select"
       :value="hours"
       @ionChange="handleChange"

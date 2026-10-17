@@ -27,7 +27,7 @@
           <ion-label position="stacked">Temple</ion-label>
           <ion-select
             v-model="templeId"
-            interface="popover"
+            interface="action-sheet"
             placeholder="Choose a temple"
           >
             <ion-select-option
