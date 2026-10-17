@@ -35,6 +35,8 @@ export interface QuestListRow {
   requiresApproval: boolean;
   rewards: QuestRewards;
   quest: Achievement;
+  /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; absent otherwise */
+  lockedNotice?: string;
 }
 
 /** A profile as far as the list cares; the user store keeps profiles untyped. */
@@ -152,6 +154,8 @@ export const doneByLabelFor = (item: QuestBoardItem, userId: string, users: Fami
   return others.length > 1 ? `Done by ${name} +${others.length - 1}` : `Done by ${name}`;
 };
 
+const isWorkableStatus = (status: QuestListStatus): boolean => status === "open" || status === "overdue";
+
 const statusOf = (item: QuestBoardItem, due: Date | null, date: Date): QuestListStatus | null => {
   const { quest, status, pending, overdue } = item;
   const isDone = status === "done";
@@ -186,7 +190,9 @@ export const questListFor = (
   date: Date,
   board: QuestBoardItem[],
   users: FamilyMembers,
-  effects?: HeroQuestEffects
+  effects?: HeroQuestEffects,
+  /** Quest id -> why the family locked it (lateChores.lockedNoticesFor): such a row cannot be finished */
+  locked: Readonly<Record<string, string>> = {}
 ): QuestListRow[] => {
   const rows: QuestListRow[] = [];
   for (const item of board) {
@@ -205,6 +211,7 @@ export const questListFor = (
       requiresApproval: Boolean(quest.requiresApproval),
       rewards: rewardsOf(quest),
       quest,
+      ...(isWorkableStatus(status) && locked[String(quest.id)] ? { lockedNotice: locked[String(quest.id)] } : {}),
     });
   }
   return rows.sort(compareRows);

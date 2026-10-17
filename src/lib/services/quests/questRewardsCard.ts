@@ -14,14 +14,16 @@ export interface QuestRewardsCardInput {
   /** The Game Master approves first: the tiles count up locked. */
   held: boolean;
   levelUp?: LevelUpInfo | null;
+  /** "Late: paid 50% of the loot", said under the title when the finish was late and paid less */
+  lateNote?: string;
 }
 
-export const questRewardsCard = ({ nick, questName, rewards, held, levelUp }: QuestRewardsCardInput): VictoryCardState => {
+export const questRewardsCard = ({ nick, questName, rewards, held, levelUp, lateNote }: QuestRewardsCardInput): VictoryCardState => {
   const hero = nick.trim() || "The hero";
   const leveled = !held && Boolean(levelUp?.didLevelUp);
   return {
     title: held ? "WELL DONE!" : "YOU WON!",
-    subtitle: held ? `${hero} sent it to the Game Master` : `${hero} did it!`,
+    subtitle: `${held ? `${hero} sent it to the Game Master` : `${hero} did it!`}${lateNote ? ` ${lateNote}.` : ""}`,
     rewards: { xp: rewards.xp || 0, gp: rewards.gp || 0, ap: rewards.ap || 0 },
     questName,
     held,

@@ -6,6 +6,7 @@ import {
   type QuestPartyFields,
   type QuestScheduleFields,
 } from "@/lib/engine/quests/QuestSchedule";
+import { lockedNotice, type LateStatus } from "./lateRules";
 
 /**
  * Whether a claim may go through right now, read from the quest log. Pure: no storage, no Vue.
@@ -36,15 +37,19 @@ const noticeFor = (isUsedUp: boolean, awaitingApproval: boolean): string => {
 /**
  * @param entries The quest log of every hero (QuestLogDb.getEntries)
  * @param effects The hero's item effects (a snooze, a pull-in), counted the way the board counted them
+ * @param late Whether the chore is late for this hero (lateChores.lateCheckFor): a locked chore is refused with a friendly line
  */
 export const checkClaimWindow = (
   quest: QuestScheduleFields & QuestPartyFields,
   entries: QuestLogEntry[],
   heroId: string,
   now: Date,
-  effects?: HeroQuestEffects
+  effects?: HeroQuestEffects,
+  late?: LateStatus
 ): ClaimCheck => {
   const progress = getQuestProgressFor(quest, entries, heroId, now, effects);
+  const isLocked = Boolean(progress?.isOpen) && late?.state === "locked";
+  if (isLocked) return { canClaim: false, isUsedUp: false, awaitingApproval: false, notice: lockedNotice(late?.deadline ?? null, now) };
   if (progress?.isOpen) return { canClaim: true, isUsedUp: false, awaitingApproval: false, notice: "" };
   const isUsedUp = Boolean(progress);
   const awaitingApproval = isUsedUp && hasPendingClaimFor(quest, entries, heroId, now, effects);

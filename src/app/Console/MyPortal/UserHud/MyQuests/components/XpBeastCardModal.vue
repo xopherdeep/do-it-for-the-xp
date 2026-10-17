@@ -179,6 +179,7 @@ import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { grudgeLabel, marksFor } from "@/lib/services/battle/questGrudge";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { lateCheckFor } from "@/lib/services/quests/lateChores";
 import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -229,11 +230,13 @@ interface BeastCardModalProps {
   due?: Date | null;
   /** The board's wording of the due time ("6:00pm", "Tomorrow 6:00pm") */
   dueLabel?: string;
+  /** "Too late: this one closed at 6:00pm" when the family locked the chore for being late; empty otherwise */
+  lockedNotice?: string;
 }
 
 const props = withDefaults(
   defineProps<BeastCardModalProps>(),
-  { due: null, dueLabel: "" }
+  { due: null, dueLabel: "", lockedNotice: "" }
 );
 
 const emit = defineEmits<{
@@ -300,7 +303,7 @@ const stateChip = computed(() => stateWord(props.status, voice.value));
 
 const shownSteps = computed(() => stepsForState(props.status, steps.value));
 const progress = computed(() => progressLine(shownSteps.value));
-const actions = computed(() => cardActions(props.status, steps.value, voice.value));
+const actions = computed(() => cardActions(props.status, steps.value, voice.value, props.lockedNotice));
 const listReady = computed(() => actions.value.canClaim);
 // Every quest earns it by winning its fight; a Game Master's approval pays it on top, once (a claim never does)
 const bonusLabel = huntBonusLabel();
@@ -435,10 +438,10 @@ const hunt = () => {
 };
 
 // The battle's loot card counts the claim up over the closing card (locked tiles when the Game Master approves first)
-const announce = ({ awaitingApproval, levelUp, paid }: CompletionResult) => {
+const announce = ({ awaitingApproval, levelUp, paid, lateNote }: CompletionResult) => {
   const nick = userStore.getUserById(heroId.value)?.name?.nick || "The hero";
   void showRewards(
-    questRewardsCard({ nick, questName: questTitle.value, rewards: paid ?? rewards.value, held: awaitingApproval, levelUp }),
+    questRewardsCard({ nick, questName: questTitle.value, rewards: paid ?? rewards.value, held: awaitingApproval, levelUp, lateNote }),
   );
 };
 
@@ -452,7 +455,9 @@ const claim = async () => {
     // assignee's clear of a shared quest (Team Effort, Rat Race) already used the window up
     const log = await getQuestLogDb().getEntries();
     const effects = userStore.getUserById(heroId.value)?.questEffects;
-    const check = checkClaimWindow(props.quest, log, heroId.value, new Date(), effects);
+    const now = new Date();
+    const { status: late } = await lateCheckFor(props.quest, heroId.value, now);
+    const check = checkClaimWindow(props.quest, log, heroId.value, now, effects, late);
     if (!check.canClaim) {
       void say(questTitle.value, check.notice);
       close();

@@ -23,6 +23,11 @@ export interface Achievement {
   localImage?: string;
   bonusAchievement: boolean;
   requiresApproval: boolean;
+  /**
+   * What happens when this chore is late (services/quests/lateRules.ts): absent or "family" follows the family's late
+   * chore rules; "allow" never locks it, "lock" locks it when late, "noPenalty" takes no penalty for it.
+   */
+  lateRule?: "family" | "allow" | "lock" | "noPenalty";
   beastId?: string;
   /**
    * The Game Master chose "no beast" on the quest form: the library stops suggesting one for this quest

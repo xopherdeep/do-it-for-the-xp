@@ -56,6 +56,16 @@ jest.mock("@/lib/databases/QuestLogDb", () => ({
   }),
 }));
 
+// The family's late chore rules: off, as a family that never opened the card has them
+let mockLateChores: Record<string, unknown> = {};
+jest.mock("@/lib/services/family/familySettings", () => {
+  const actual = jest.requireActual("@/lib/services/family/familySettings");
+  return {
+    ...actual,
+    loadFamilySettings: jest.fn(async () => ({ ...actual.DEFAULT_FAMILY_SETTINGS, lateChores: mockLateChores })),
+  };
+});
+
 const HERO_ID = "hero-1";
 
 const addHero = (jobClass: string) => {
@@ -89,6 +99,7 @@ const quest = (requiresApproval = false): Achievement =>
 beforeEach(() => {
   setActivePinia(createPinia());
   log.length = 0;
+  mockLateChores = {};
 });
 
 describe("paidQuestRewards", () => {
@@ -533,5 +544,44 @@ describe("the quest-paid signal", () => {
     addHero("Warrior");
     await recordBattleCompletion(quest(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
     expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+  });
+});
+
+describe("completeQuest and late chores", () => {
+  // Due at midnight sharp: any time of day is after the due time
+  const lateQuest = (extra: Record<string, unknown> = {}): Achievement =>
+    ({ ...quest(), dueByTime: "00:00", ...extra }) as unknown as Achievement;
+
+  it("pays a late finish in full when the family never chose a reduced share", async () => {
+    addHero("Warrior");
+    const result = await completeQuest(lateQuest(), HERO_ID, "claim");
+    expect(result.paid).toEqual({ xp: 30, gp: 40, ap: 2 });
+    expect(result.lateNote).toBeUndefined();
+  });
+
+  it("pays the late share and says so", async () => {
+    addHero("Warrior");
+    mockLateChores = { reducedPay: true, lateShare: 50 };
+    const result = await completeQuest(lateQuest(), HERO_ID, "claim");
+    expect(result.paid).toEqual({ xp: 15, gp: 20, ap: 1 });
+    expect(result.entry.rewards).toEqual({ xp: 15, gp: 20, ap: 1 });
+    expect(result.lateNote).toBe("Late: paid 50% of the loot");
+    expect(stats().gp.wallet).toBe(20);
+  });
+
+  it("holds the reduced share for the Game Master's approval", async () => {
+    addHero("Warrior");
+    mockLateChores = { reducedPay: true, lateShare: 50 };
+    const held = await completeQuest(lateQuest({ requiresApproval: true }), HERO_ID, "claim");
+    expect(stats().gp.wallet).toBe(0);
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(stats().gp.wallet).toBe(20);
+  });
+
+  it("pays an on-time finish in full whatever the rule", async () => {
+    addHero("Warrior");
+    mockLateChores = { reducedPay: true, lateShare: 50 };
+    const result = await completeQuest(lateQuest({ dueByTime: "23:59" }), HERO_ID, "claim");
+    expect(result.paid).toEqual({ xp: 30, gp: 40, ap: 2 });
   });
 });

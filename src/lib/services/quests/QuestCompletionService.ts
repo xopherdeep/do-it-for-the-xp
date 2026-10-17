@@ -2,6 +2,8 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
 import { countedHeroesOf, isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { adjustForLateness } from "@/lib/services/quests/lateChores";
+import { lateRewardLine } from "@/lib/services/quests/lateRules";
 import { AUTO_APPROVED_NOTE, isSoleGameMaster } from "@/lib/services/quests/approvalRouting";
 import { announceClaim } from "@/lib/services/quests/approvalFlow";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
@@ -42,6 +44,8 @@ export interface CompletionResult {
   awaitingApproval: boolean;
   /** What landed in the hero's pocket; the quest's rate when the claim is held or the hero is unknown. */
   paid: QuestRewards;
+  /** "Late: paid 50% of the loot" when the family pays late finishes less and this one was late; absent otherwise */
+  lateNote?: string;
 }
 
 const toNumber = (value: unknown): number => {
@@ -107,7 +111,11 @@ export const completeQuest = async (
   userId: string,
   source: QuestLogSource = "claim"
 ): Promise<CompletionResult> => {
-  const rewards = questRewards(quest);
+  // A finish after the due time pays the family's late share (all of it unless the Game Master chose less); the log keeps
+  // what was owed, so a held claim is approved at the same reduced rate
+  const late = await adjustForLateness(quest, userId, questRewards(quest), new Date());
+  const rewards = late.rewards;
+  const lateNote = late.isReduced ? lateRewardLine(late.rule) : undefined;
   const users = useUserStore().users;
   const wantsApproval = Boolean(quest.requiresApproval) && !isTrustedHour(users[userId]?.questEffects, new Date());
   // A Game Master with no other Game Master to ask is approved on the spot, with a note saying so
@@ -133,13 +141,13 @@ export const completeQuest = async (
 
   // The held line is what the hero will be paid once the Game Master says yes
   const owed = { ...rewards, xp: rewards.xp + huntBonusXp };
-  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: owed };
+  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: owed, lateNote };
 
   const paid = paidQuestRewards(userId, owed);
   const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`, undefined, `Quest: ${quest.achievementName}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
   announcePaid(userId, quest.id, owed.xp, source);
-  return { entry: settled || entry, levelUp, awaitingApproval, paid };
+  return { entry: settled || entry, levelUp, awaitingApproval, paid, lateNote };
 };
 
 /**

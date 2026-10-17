@@ -7,6 +7,7 @@ import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import debug from "@/lib/utils/debug";
 import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
+import { chargeLatePenalties, latePenaltyNotification } from "@/lib/services/quests/lateChores";
 import { scheduleDueReminders } from "./deviceReminders";
 import { runWeeklyRecapWatch } from "./weeklyRecapWatch";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
@@ -107,6 +108,12 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   for (const alert of pickQuestAlerts(board, effects, now, id)) {
     const isPushed = notifications.push(alert.notification, now);
     if (isPushed) pushed += 1;
+  }
+  // Late chores the family penalises: the points go once per chore window, and the hero hears of each
+  for (const penalty of await chargeLatePenalties(board, id, now)) {
+    const quest = { id: penalty.questId, achievementName: penalty.questName };
+    const isPenaltyPushed = notifications.push(latePenaltyNotification(id, quest, penalty.taken, now), now);
+    if (isPenaltyPushed) pushed += 1;
   }
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;

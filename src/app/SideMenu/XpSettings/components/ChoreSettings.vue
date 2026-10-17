@@ -29,6 +29,7 @@
           </ion-item>
         </ion-list>
       </ion-card>
+      <xp-late-chores-card :can-manage="canManage" />
       <ion-card class="max-w-2xl">
         <ion-card-content>
           <p>Today each quest carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium. More family-wide chore rules are on the way.</p>
@@ -58,6 +59,7 @@ import {
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import XpComingSoonCard from "./XpComingSoonCard.vue";
+import XpLateChoresCard from "./XpLateChoresCard.vue";
 import { CHORE_COMING_SOON } from "./comingSoon";
 
 const items = CHORE_COMING_SOON;
