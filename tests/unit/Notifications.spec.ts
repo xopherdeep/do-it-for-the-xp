@@ -24,6 +24,7 @@ import {
   REMINDER_LEAD_MS,
   reminderIdOf,
   reminderTimeOf,
+  IMMINENT_DELAY_MS,
   scheduleDueReminders,
 } from "@/lib/services/notifications/deviceReminders";
 import { POINT_ICONS } from "@/constants/POINT_ICONS";
@@ -257,6 +258,58 @@ describe("deviceReminders", () => {
     await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => plugin });
     expect(calls).toEqual(["channel:battle-alerts", "channel:chore-reminders", "cancel", "schedule"]);
     expect(plugin.cancel).toHaveBeenCalledWith({ notifications: [{ id: reminderIdOf("gone") }] });
+  });
+
+  it("rings once, soon, for a quest already inside its lead time, and never twice", async () => {
+    localStorage.clear();
+    const plugin = {
+      checkPermissions: jest.fn().mockResolvedValue({ display: "granted" }),
+      getPending: jest.fn().mockResolvedValue({ notifications: [] }),
+      schedule: jest.fn().mockResolvedValue(undefined),
+    };
+    const deps = { isNative: async () => true, plugin: async () => plugin };
+    const reminders = [{ questId: "q1", title: "Dishes", body: "Due by 12:10pm.", deadline: new Date(NOON.getTime() + 10 * 60e3) }];
+    expect(await scheduleDueReminders(reminders, NOON, deps)).toEqual({ scheduled: 1 });
+    expect(plugin.schedule).toHaveBeenCalledWith({
+      notifications: [expect.objectContaining({ schedule: { at: new Date(NOON.getTime() + IMMINENT_DELAY_MS), allowWhileIdle: true } })],
+    });
+    expect(await scheduleDueReminders(reminders, NOON, deps)).toEqual({ scheduled: 0, reason: "nothing-due" });
+    expect(plugin.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ring again inside the window for a quest whose lead-time reminder was booked", async () => {
+    localStorage.clear();
+    const plugin = {
+      checkPermissions: jest.fn().mockResolvedValue({ display: "granted" }),
+      getPending: jest.fn().mockResolvedValue({ notifications: [] }),
+      schedule: jest.fn().mockResolvedValue(undefined),
+    };
+    const deps = { isNative: async () => true, plugin: async () => plugin };
+    const deadline = new Date(NOON.getTime() + 2 * 3600e3);
+    const reminders = [{ questId: "q1", title: "Dishes", body: "Due.", deadline }];
+    await scheduleDueReminders(reminders, NOON, deps);
+    const insideWindow = new Date(deadline.getTime() - 10 * 60e3);
+    expect(await scheduleDueReminders(reminders, insideWindow, deps)).toEqual({ scheduled: 0, reason: "nothing-due" });
+    expect(plugin.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes back booked reminders when nothing is ahead or the hero turned reminders off", async () => {
+    localStorage.clear();
+    const plugin = {
+      checkPermissions: jest.fn().mockResolvedValue({ display: "granted" }),
+      getPending: jest.fn().mockResolvedValue({ notifications: [{ id: reminderIdOf("done"), extra: { questId: "done" } }] }),
+      cancel: jest.fn().mockResolvedValue(undefined),
+      schedule: jest.fn().mockResolvedValue(undefined),
+    };
+    const deps = { isNative: async () => true, plugin: async () => plugin };
+    expect(await scheduleDueReminders([], NOON, deps)).toEqual({ scheduled: 0, reason: "nothing-due" });
+    expect(plugin.cancel).toHaveBeenCalledWith({ notifications: [{ id: reminderIdOf("done") }] });
+
+    localStorage.setItem("xp.choreReminders", "off");
+    const reminders = [{ questId: "q1", title: "Dishes", body: "Due.", deadline: new Date(NOON.getTime() + 2 * 3600e3) }];
+    expect(await scheduleDueReminders(reminders, NOON, deps)).toEqual({ scheduled: 0, reason: "off" });
+    expect(plugin.schedule).not.toHaveBeenCalled();
+    localStorage.clear();
   });
 });
 

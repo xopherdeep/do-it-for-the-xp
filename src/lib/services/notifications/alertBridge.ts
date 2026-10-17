@@ -38,6 +38,7 @@ const WORKER_PATH = `${process.env.BASE_URL ?? "./"}alerts-sw.js`;
 /** How long to wait for the worker to take charge before the alert falls back to the plain constructor. */
 const WORKER_READY_MS = 3000;
 const CHOICE_KEY = "xp.battleAlerts";
+const REMINDERS_KEY = "xp.choreReminders";
 
 /** True inside the packaged (Capacitor) app, false in a browser. Synchronous on purpose, see requestAlertPermission. */
 export const isNativeApp = (): boolean => {
@@ -313,5 +314,23 @@ export const setBattleAlertsChoice = (choice: "on" | "off"): void => {
   } catch (error) {
     // private mode or blocked storage: the hero is simply asked again next time
     debug.warn("[alertBridge] could not keep the alerts choice", error);
+  }
+};
+
+/** Whether the hero wants chore reminders on this device. They are on until the hero turns them off. */
+export const choreRemindersChoice = (): "on" | "off" => {
+  try {
+    return localStorage.getItem(REMINDERS_KEY) === "off" ? "off" : "on";
+  } catch {
+    return "on";
+  }
+};
+
+export const setChoreRemindersChoice = (choice: "on" | "off"): void => {
+  try {
+    localStorage.setItem(REMINDERS_KEY, choice);
+  } catch (error) {
+    // private mode or blocked storage: the hero keeps the default
+    debug.warn("[alertBridge] could not keep the reminders choice", error);
   }
 };
