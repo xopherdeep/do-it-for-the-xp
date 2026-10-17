@@ -5,7 +5,7 @@ import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import debug from "@/lib/utils/debug";
-import { byClockCopy, questDueNotification, questOverdueNotification } from "./Notifications";
+import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
 import { scheduleDueReminders } from "./deviceReminders";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
@@ -60,7 +60,12 @@ export const pickQuestAlerts = (
 };
 
 /** The device reminders for the open quests that still lie ahead (the watch schedules them each run). */
-export const remindersOf = (board: readonly QuestBoardItem[], effects: HeroQuestEffects | undefined, now: Date): DueReminder[] => {
+export const remindersOf = (
+  board: readonly QuestBoardItem[],
+  effects: HeroQuestEffects | undefined,
+  now: Date,
+  heroId?: string
+): DueReminder[] => {
   if (isSchedulePaused(effects, now)) return [];
   const reminders: DueReminder[] = [];
   for (const item of board) {
@@ -70,11 +75,14 @@ export const remindersOf = (board: readonly QuestBoardItem[], effects: HeroQuest
     const hasNoDeadlineAhead = !deadline || deadline <= now;
     if (hasNoDeadlineAhead) continue;
     const name = String(item.quest.achievementName ?? "A quest");
+    const hasHero = Boolean(heroId);
+    const link = hasHero ? questBoardLink(String(heroId), String(item.quest.id)) : undefined;
     reminders.push({
       questId: String(item.quest.id),
       title: name,
       body: `Due ${byClockCopy(deadline)}.`,
       deadline,
+      link,
     });
   }
   return reminders;
@@ -99,7 +107,7 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
     const isPushed = notifications.push(alert.notification, now);
     if (isPushed) pushed += 1;
   }
-  const reminders = await scheduleDueReminders(remindersOf(board, effects, now), now);
+  const reminders = await scheduleDueReminders(remindersOf(board, effects, now, id), now);
   return { pushed, reminders };
 };
 

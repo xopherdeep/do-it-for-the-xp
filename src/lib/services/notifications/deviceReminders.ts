@@ -15,6 +15,8 @@ export interface DueReminder {
   body: string;
   /** When the quest is due */
   deadline: Date;
+  /** The app page a tap on the reminder opens (the quest's card) */
+  link?: string;
 }
 
 export interface ReminderResult {
@@ -159,7 +161,7 @@ export const scheduleDueReminders = async (
         body: reminder.body,
         channelId: "chore-reminders",
         schedule: { at, allowWhileIdle: true },
-        extra: { questId: reminder.questId },
+        extra: { questId: reminder.questId, link: reminder.link },
       })),
     });
     // A booked lead-time reminder counts too, so the quest does not ring again once it is inside the window

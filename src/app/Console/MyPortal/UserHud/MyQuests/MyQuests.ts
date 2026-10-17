@@ -35,7 +35,7 @@ import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/compo
 import debug from "@/lib/utils/debug";
 import { useTimers } from "@/hooks/useTimers";
 import { useCopy } from "@/hooks/useVoice";
-import { sectionsByWindow, toLogRow } from "./questLogRows";
+import { linkedQuestRow, sectionsByWindow, toLogRow } from "./questLogRows";
 import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
 import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 import type { QuestLogRow } from "./questLogRows";
@@ -65,7 +65,8 @@ const savedView = (): QuestLogView => {
 };
 
 export default defineComponent({
-  props: ["userId"],
+  // taskId: a link to one quest (a notification's tap) opens that quest's beast card once the board is in
+  props: ["userId", "taskId"],
   name: "my-quests",
   components: {
     XpBeastCardModal,
@@ -87,9 +88,21 @@ export default defineComponent({
       // the row that just paid out (or went to the Game Master): it wears a stamp for a beat, then lands in Done
       celebrating: null as { id: string; pending: boolean } | null,
       landed: "",
+      // the linked quest has been looked for (once, so closing its card does not reopen it)
+      linkedQuestChecked: false,
     };
   },
   mixins: [ionic],
+  watch: {
+    isLoading() {
+      this.openLinkedQuest();
+    },
+    // Another notification's link while this page is open
+    taskId() {
+      this.linkedQuestChecked = false;
+      this.openLinkedQuest();
+    },
+  },
   activated() {
     this.$fx.ui[this.$fx.theme.ui].openPage.play();
     // const mp3 = this.$requireAudio('./take_item.mp3')
@@ -164,6 +177,16 @@ export default defineComponent({
     },
   },
   methods: {
+    // The board has loaded: open the quest the link points at, if it is still there
+    openLinkedQuest() {
+      const isNotReady = !this.taskId || this.linkedQuestChecked || this.isLoading;
+      if (isNotReady) return;
+      this.linkedQuestChecked = true;
+      const row = linkedQuestRow(this.listRows, this.taskId);
+      if (!row) return;
+      this.activeRow = row;
+      this.clickItem(row.quest);
+    },
     clickItem(item: any) {
       this.activeModal = item.id;
     },
