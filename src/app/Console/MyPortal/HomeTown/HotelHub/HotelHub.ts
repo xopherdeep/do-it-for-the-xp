@@ -1,4 +1,6 @@
 import { defineComponent } from "vue";
+import { npcNews } from "@/lib/services/guide/guideProgress";
+import { linesWithNews } from "@/lib/services/guide/npcHints";
 import ionic from "@/lib/mixins/ionic";
 
 import { useBack } from "@/hooks/useBack";
@@ -129,7 +131,8 @@ export default defineComponent({
       this.isTalking = true;
       try {
         this.play$fx("select");
-        let lines = this.dialogBlocks;
+        // The concierge passes on a traveler's news about the hero's quest (once per step)
+        let lines = linesWithNews(this.dialogBlocks, await npcNews(String(this.userId || this.userStore.currentUser.id || ""), "hotel"));
         for (;;) {
           const pick = (await this.reveal.showPrompt(
             conciergeMenuPrompt(lines, this.clerkName)

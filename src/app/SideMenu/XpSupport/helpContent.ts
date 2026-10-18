@@ -153,7 +153,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "On foot you can only reach Home Town and the Plains. Free your first Pegasus in the Wind Temple to fly.",
       "Temples are mazes of beasts, locked doors and chests. Beat the boss to free its Pegasus.",
       "Tools from temple chests help in battle, but no tool ever does a chore for you.",
-      "The Next chip under your HUD always shows your next step. Tap it and the Guide explains; the X tucks it away, and Guide in your avatar menu brings it back.",
+      "Lost? Ask around town: the shopkeeper, the hotel and the bank pass on news about your next step. Journal in your avatar menu repeats your goal.",
       "Free all nine Pegasi to become a Sky Champion (500 XP, 300 GP and 9 AP, once). After that the Guide keeps you on today's beasts and your streak.",
     ],
   },

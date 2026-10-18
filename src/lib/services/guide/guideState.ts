@@ -10,8 +10,8 @@ export interface GuideRecord {
   introSeen?: boolean;
   questsSeen?: boolean;
   shopSeen?: boolean;
-  /** The hero tucked the tracker away; the avatar menu's Guide brings it back */
-  hidden?: boolean;
+  /** The last piece of news each townsperson told the hero (npcHints.ts), by role: the step's key */
+  heard?: Record<string, string>;
   /** ISO time of the Sky Champion celebration (the reward is paid once, when this is first set) */
   championAt?: string;
 }
@@ -20,6 +20,13 @@ export interface GuideRecord {
 export const guideRecordOf = (user: { guide?: unknown } | null | undefined): GuideRecord => {
   const record = user?.guide;
   return record && typeof record === "object" ? (record as GuideRecord) : {};
+};
+
+/** A townsperson told the hero this step's news: they keep quiet about it until the step moves on. */
+export const markHeard = (heroId: string, role: string, stepKey: string): void => {
+  if (!heroId) return;
+  const heard = guideRecordOf(useUserStore().getUserById(heroId)).heard ?? {};
+  markGuide(heroId, { heard: { ...heard, [role]: stepKey } });
 };
 
 export const markGuide = (heroId: string, patch: GuideRecord): void => {

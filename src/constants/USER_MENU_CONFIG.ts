@@ -35,8 +35,8 @@ export const USER_MENU_CONFIG = {
     id: "notifications"
   },
   guide: {
-    label: "Guide",
-    icon: "fa-flag",
+    label: "Journal",
+    icon: "fa-book-open",
     action: "openGuide"
   },
   pegasus: {

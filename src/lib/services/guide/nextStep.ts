@@ -93,22 +93,17 @@ export type GuideStepId =
   | "daily-beasts"
   | "rest";
 
-/** Where the Go button leads: a route (the caller adds the hero's id), or the champion celebration. */
-export type GuideGo =
-  | { kind: "route"; name: string; params?: Record<string, string> }
-  | { kind: "celebrate" };
-
 export interface GuideStep {
   id: GuideStepId;
-  /** Changes whenever the step does (two "free a Pegasus" steps differ by temple), for the tracker's pulse */
+  /** Changes whenever the step does (two "free a Pegasus" steps differ by temple), so an NPC knows the news is new */
   key: string;
-  /** The tracker's one line */
+  /** The goal in a few words, as the Journal heads it */
   title: string;
-  /** What the Guide says when the tracker is tapped */
+  /** What the Guide says in the Journal */
   lines: string[];
-  goLabel: string;
-  go: GuideGo;
-  /** Pegasi freed so far, for the "3 / 9" chip */
+  /** What townsfolk say about it (the shop, the hotel, the bank): a rumor that points the way, never a shortcut */
+  hint: string;
+  /** Pegasi freed so far */
   freed: number;
   /** The hero is a Sky Champion */
   champion: boolean;
@@ -152,17 +147,6 @@ const capital = (text: string): string => text.charAt(0).toUpperCase() + text.sl
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-
-/**
- * Go never drops the hero inside a temple (owner, 2026-10-18): it leads to the region the temple stands in, and the hero
- * walks through the door themselves. A flight goes to the world map, where the hero picks the region and flies.
- */
-const toRegion = (temple: GuideTemple): GuideGo => ({ kind: "route", name: temple.route });
-
-const WORLD_MAP: GuideGo = { kind: "route", name: "world-map" };
-
-const BEAST_LOG: GuideGo = { kind: "route", name: "my-tasks" };
-
 /** The first temple on the path whose Pegasus is still trapped, or null when all nine fly. */
 export const nextTemple = (pegasi: readonly boolean[]): GuideTemple | null =>
   GUIDE_TEMPLES.find((temple) => !pegasi[temple.pegasus]) ?? null;
@@ -181,8 +165,7 @@ const championStep = (progress: GuideProgress, freed: number): GuideStep => {
         `Champion, your ${progress.streakDays}-day streak needs you!`,
         "Beat one chore beast before bedtime to keep it alive.",
       ],
-      goLabel: "Beast Log",
-      go: BEAST_LOG,
+      hint: `Your ${progress.streakDays}-day streak ends at midnight unless you beat a chore beast today!`,
     };
   }
   const hasOpenQuests = progress.openQuests > 0;
@@ -196,8 +179,7 @@ const championStep = (progress: GuideProgress, freed: number): GuideStep => {
         "The Pegasi are safe, but chore beasts come back every day.",
         `${plural(progress.openQuests, "beast")} still ${progress.openQuests === 1 ? "waits" : "wait"} on today's board. A true champion keeps the village clean!`,
       ],
-      goLabel: "Beast Log",
-      go: BEAST_LOG,
+      hint: `${plural(progress.openQuests, "chore beast")} still ${progress.openQuests === 1 ? "roams" : "roam"} today's board. Check your Beast Log!`,
     };
   }
   const streakLine =
@@ -210,8 +192,7 @@ const championStep = (progress: GuideProgress, freed: number): GuideStep => {
     key: `rest:${progress.streakDays}`,
     title: "All done today, champion!",
     lines: ["Every beast on today's board is beaten. Nice work!", streakLine],
-    goLabel: "Beast Log",
-    go: BEAST_LOG,
+    hint: "Every beast on today's board is beaten. Rest up, champion, and come back tomorrow!",
   };
 };
 
@@ -232,8 +213,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
         "First, meet your chore beasts! Every chore is a beast, and your Beast Log lists today's.",
         "Finish a real chore, then tap it to win XP and GP!",
       ],
-      goLabel: "Beast Log",
-      go: BEAST_LOG,
+      hint: "Every chore is a beast in disguise. Your Beast Log lists today's, so start there!",
     };
   }
 
@@ -247,8 +227,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
       key: "champion",
       title: "All nine Pegasi are free!",
       lines: ["You did it! All nine Pegasi fly free again.", "Come and claim your reward, hero!"],
-      goLabel: "Celebrate",
-      go: { kind: "celebrate" },
+      hint: "All nine Pegasi fly free! The whole town is talking about you.",
     };
   }
 
@@ -264,8 +243,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
         "You can fly now! But first, a hero needs good gear.",
         "Spend some of your GP at the Accessory Shop in Home Town.",
       ],
-      goLabel: "Go shopping",
-      go: { kind: "route", name: "shop" },
+      hint: "A hero with wings needs good gear. The Accessory Shop in Home Town has new stock!",
     };
   }
 
@@ -282,8 +260,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
           `${capital(temple.place)} is the Wind Temple on ${temple.region}. ${temple.pegasusName}, the first Pegasus, is trapped inside!`,
           "Walk to the Plains and step through the temple doors.",
         ],
-        goLabel: "To the Plains",
-        go: toRegion(temple),
+        hint: `The Wind Temple stands on the Plains, just past the edge of town. ${temple.pegasusName} is trapped inside!`,
       };
     }
     return {
@@ -295,8 +272,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
         `${temple.pegasusName} is trapped in ${temple.place} on ${temple.region}.`,
         "Open the world map, fly there with your Pegasus and step inside.",
       ],
-      goLabel: "World map",
-      go: WORLD_MAP,
+      hint: `${temple.pegasusName} is trapped in ${temple.place} on ${temple.region}. Call your Pegasus from the world map and fly there!`,
     };
   }
 
@@ -312,8 +288,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
         "Temples are mazes full of beasts, locked doors and treasure.",
         "Beat what waits in the room, then pick a door and keep exploring.",
       ],
-      goLabel: `To ${temple.region}`,
-      go: toRegion(temple),
+      hint: `${capital(temple.place)} is a maze. Beat the beast in each room and its doors open.`,
     };
   }
 
@@ -326,8 +301,7 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
       `${temple.pegasusName} waits behind the boss of ${temple.place}.`,
       "Find the boss, win, and open the Pegasus chest to set it free!",
     ],
-    goLabel: `To ${temple.region}`,
-    go: toRegion(temple),
+    hint: `${temple.pegasusName} sleeps behind the boss of ${temple.place}. Beat the boss and open the Pegasus chest!`,
   };
 };
 
@@ -340,7 +314,8 @@ export const GUIDE_INTRO_LINES: readonly string[] = [
   "Nine Pegasi are trapped in nine temples across the world. Only you can set them free!",
   "Beat chore beasts in real life to earn XP and GP. That makes you strong enough for the temples.",
   "Then head to the Wind Temple on the Plains. Free Aura, the first Pegasus, and you can fly anywhere!",
-  "Your next step always sits at the top of the screen. Tap it any time and I'll help.",
+  "Not sure what's next? Ask around town. The shopkeeper, the hotel and the bank always hear the latest news.",
+  "And your Journal in the avatar menu remembers your goal.",
 ];
 
 /** The Sky Champion celebration, said when the ninth Pegasus is free. */

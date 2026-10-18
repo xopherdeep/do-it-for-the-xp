@@ -71,12 +71,12 @@ describe("nextGuideStep", () => {
 
     const walk = nextGuideStep(start({ questsSeen: true }));
     expect(walk.id).toBe("walk-to-temple");
-    expect(walk.go).toEqual({ kind: "route", name: "world-plains" });
+    expect(walk.hint).toContain("Plains");
 
     const entered = { "wind-temple": { visitedRooms: 1, clearedRooms: 0, cleared: false } };
     const room = nextGuideStep(start({ questsSeen: true, temples: entered }));
     expect(room.id).toBe("first-room");
-    expect(room.go).toEqual({ kind: "route", name: "world-plains" });
+    expect(room.hint).toContain("maze");
 
     const explored = { "wind-temple": { visitedRooms: 3, clearedRooms: 1, cleared: false } };
     expect(nextGuideStep(start({ questsSeen: true, temples: explored })).title).toBe("Free Aura");
@@ -90,12 +90,12 @@ describe("nextGuideStep", () => {
     const fly = nextGuideStep(start({ questsSeen: true, shopSeen: true, pegasi: freeing(3) }));
     expect(fly.id).toBe("fly-to-temple");
     expect(fly.title).toBe("Fly to the Rootvault Hollow");
-    expect(fly.go).toEqual({ kind: "route", name: "world-map" });
+    expect(fly.hint).toContain("world map");
 
     const inside = { "earth-temple": { visitedRooms: 1, clearedRooms: 0, cleared: false } };
     const free = nextGuideStep(start({ questsSeen: true, shopSeen: true, pegasi: freeing(3), temples: inside }));
     expect(free.title).toBe("Free Terra");
-    expect(free.go).toEqual({ kind: "route", name: "world-forest" });
+    expect(free.hint).toContain("Pegasus chest");
   });
 
   it("skips the Beast Log step for a hero who already flies", () => {
@@ -105,7 +105,7 @@ describe("nextGuideStep", () => {
   it("celebrates once all nine are free", () => {
     const step = nextGuideStep(start({ questsSeen: true, shopSeen: true, pegasi: ALL }));
     expect(step.id).toBe("champion");
-    expect(step.go).toEqual({ kind: "celebrate" });
+    expect(step.freed).toBe(9);
   });
 
   it("never runs out after the celebration", () => {

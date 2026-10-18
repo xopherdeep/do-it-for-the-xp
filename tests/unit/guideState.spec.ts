@@ -3,7 +3,7 @@
  */
 import { createPinia, setActivePinia } from "pinia";
 import { CHAMPION_REWARD } from "@/lib/services/guide/nextStep";
-import { crownChampion, guideRecordOf, markGuide, markRouteSeen } from "@/lib/services/guide/guideState";
+import { crownChampion, guideRecordOf, markGuide, markHeard, markRouteSeen } from "@/lib/services/guide/guideState";
 import { HERO, addHero, hero, wallet } from "./templeFixtures";
 
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -39,8 +39,8 @@ describe("guide record", () => {
 
   it("merges patches", () => {
     markGuide(HERO, { introSeen: true });
-    markGuide(HERO, { hidden: true });
-    expect(guideRecordOf(hero())).toEqual({ introSeen: true, hidden: true });
+    markGuide(HERO, { shopSeen: true });
+    expect(guideRecordOf(hero())).toEqual({ introSeen: true, shopSeen: true });
   });
 });
 
@@ -57,5 +57,14 @@ describe("crownChampion", () => {
 
   it("does nothing for an unknown hero", () => {
     expect(crownChampion("nobody")).toBeNull();
+  });
+});
+
+describe("markHeard", () => {
+  it("remembers the last news per townsperson", () => {
+    markHeard(HERO, "shop", "quests");
+    markHeard(HERO, "bank", "quests");
+    markHeard(HERO, "shop", "walk-to-temple:wind-temple");
+    expect(guideRecordOf(hero()).heard).toEqual({ shop: "walk-to-temple:wind-temple", bank: "quests" });
   });
 });

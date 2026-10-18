@@ -12,7 +12,7 @@
       </xp-main-hud>
       <!-- Timed privileges (30 minutes of games...): the countdown floats above the bottom nav on every screen -->
       <xp-power-timer-bar v-if="user?.id && !battleState('active')" :hero-id="user.id" floating />
-      <!-- THE GUIDE: after the tour, the goal of the game, then the hero's one next step under the HUD -->
+      <!-- THE GUIDE: after the tour, the goal of the game; the Journal in the avatar menu says the current goal -->
       <xp-guide v-if="user?.id && user.stats && !battleState('active')" ref="guide" :hero-id="String(user.id)"
         :ready="guideReady" />
     </template>
