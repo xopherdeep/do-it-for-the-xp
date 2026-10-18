@@ -10,11 +10,13 @@ import XpStreakCard from "./XpStreakCard.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
- * The daily streak flame on the HUD (services/streaks/dailyStreak.ts): the days in a row, lit once today is kept and
+ * The daily streak flame (as a badge on the bottom nav's Profile tab) (services/streaks/dailyStreak.ts): the days in a row, lit once today is kept and
  * flickering while it is at risk; grey with a 0 on the day after a streak ended. Shields show as small pips. A tap
  * opens the streak box: days, next chest, shields, best, and a way to Hero Records. Draws nothing with streaks
  * switched off, or with no streak.
  */
+const props = withDefaults(defineProps<{ variant?: "chip" | "badge" }>(), { variant: "chip" });
+
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
@@ -50,14 +52,14 @@ const openRecords = (): void => {
     v-if="visible"
     type="button"
     class="streak-chip"
-    :class="{ kept: streak.doneToday, 'at-risk': streak.atRisk, lost: justLost }"
+    :class="{ 'streak-chip--badge': props.variant === 'badge', kept: streak.doneToday, 'at-risk': streak.atRisk, lost: justLost }"
     data-cy="streak-chip"
     :aria-label="justLost ? 'Your streak ended. Finish a quest to start a new one.' : streakAriaLabel(streak)"
     @click.stop="openStreakBox"
   >
     <i class="fad fa-fire" aria-hidden="true" />
     <span class="streak-days">{{ label }}</span>
-    <span v-if="streak.shields > 0" class="streak-shields" aria-hidden="true">
+    <span v-if="streak.shields > 0 && props.variant === 'chip'" class="streak-shields" aria-hidden="true">
       <i v-for="n in streak.shields" :key="n" class="fad fa-shield" />
     </span>
   </button>
@@ -172,6 +174,28 @@ const openRecords = (): void => {
     font-size: 0.55rem;
     --fa-primary-color: #bfe3ff;
     --fa-secondary-color: #4a8fd1;
+  }
+
+  // Small enough to sit on a nav icon; the padding keeps the tap target bigger than it looks
+  &--badge {
+    gap: 2px;
+    min-height: 16px;
+    padding: 1px 4px;
+    border-width: 1.5px;
+    border-radius: 8px;
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+
+    .fa-fire {
+      font-size: 0.65rem;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+    }
   }
 
   &.kept {
