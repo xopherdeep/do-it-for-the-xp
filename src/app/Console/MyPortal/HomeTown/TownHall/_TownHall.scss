@@ -51,7 +51,16 @@ $th-rose: #ffb4b4;
       --color-checked: #{$th-purple};
       --background-checked: #{$th-yellow};
       --indicator-color: transparent;
+      // Five tabs share a phone's width evenly (Ionic's own minimum width would push the last one off screen)
+      --padding-start: 2px;
+      --padding-end: 2px;
+      flex: 1 1 0;
+      min-width: 0;
       min-height: 56px;
+
+      ion-label {
+        font-size: 0.75rem;
+      }
     }
   }
 

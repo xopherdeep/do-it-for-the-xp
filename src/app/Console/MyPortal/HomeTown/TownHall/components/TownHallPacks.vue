@@ -39,7 +39,6 @@
       <template v-for="item in shared" :key="item.topic.id">
         <xp-pack-card
           v-if="item.pack"
-          class="th-packs__pack"
           :pack="item.pack"
           :status="statusOf(item.pack)"
           :busy="isBusy"
@@ -203,11 +202,6 @@ defineExpose({ reload });
     margin-bottom: 6px;
     font-size: 0.85em;
     opacity: 0.8;
-  }
-
-  // XpPackCard drops the theme's card margin for the Settings grid; the tab lists its cards like the Board does
-  &__pack {
-    margin: 16px auto !important;
   }
 }
 </style>

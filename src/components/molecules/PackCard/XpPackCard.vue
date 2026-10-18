@@ -71,10 +71,8 @@ const termsLine = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+// The card keeps the theme's width and margin; a grid that lays cards out itself (Settings > Packs) overrides them
 .pack-card {
-  // beat the theme's ion-card width and margin (set under ion-app#earthbound)
-  width: 100% !important;
-  margin: 0 !important;
   display: flex;
   flex-direction: column;
 
