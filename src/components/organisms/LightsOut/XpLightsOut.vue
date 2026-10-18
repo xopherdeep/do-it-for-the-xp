@@ -1,7 +1,7 @@
 <template>
   <div v-if="isAsleep" class="xp-lights-out" data-cy="lights-out" role="dialog" aria-modal="true" aria-labelledby="lights-out-title">
     <div class="xp-lights-out__stars" aria-hidden="true"></div>
-    <div class="xp-lights-out__box rpg-box">
+    <ion-card class="xp-lights-out__box rpg-box">
       <i class="fad fa-moon-stars xp-lights-out__moon" aria-hidden="true"></i>
       <h1 id="lights-out-title" class="xp-lights-out__title">Lights out</h1>
       <p class="xp-lights-out__line">Sleep well, {{ heroName }}. Your quests will keep until morning.</p>
@@ -10,14 +10,14 @@
         <i class="fad fa-users mr-2" aria-hidden="true"></i>
         Choose a profile
       </ion-button>
-    </div>
+    </ion-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { IonButton } from "@ionic/vue";
+import { IonButton, IonCard } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { isLightsOut, wakeUpLine } from "@/lib/services/family/lightsOut";
 import { useBattleStore } from "@/lib/store/stores/battle";
@@ -96,6 +96,7 @@ const chooseProfile = () => {
   position: relative;
   max-width: 360px;
   width: 100%;
+  margin: 0;
   padding: 24px 20px;
   text-align: center;
 }

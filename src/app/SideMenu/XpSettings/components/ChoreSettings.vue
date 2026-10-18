@@ -58,7 +58,7 @@
       </ion-card>
       <ion-card class="max-w-2xl">
         <ion-card-content>
-          <p>Today each quest carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium. More family-wide chore rules are on the way.</p>
+          <p>Each quest also carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium.</p>
         </ion-card-content>
       </ion-card>
     </ion-content>
@@ -83,7 +83,9 @@ import {
   IonToggle,
   IonToolbar,
 } from "@ionic/vue";
+import { computed } from "vue";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import { AUTO_SAVE_PERCENTS } from "@/lib/services/family/familySettings";
 import XpLateChoresCard from "./XpLateChoresCard.vue";
@@ -92,6 +94,8 @@ const percents = AUTO_SAVE_PERCENTS;
 const percentLabel = (percent: number): string => (percent ? `${percent}% to savings` : "Off");
 const rules = useGameRulesStore();
 void rules.load();
-// Only a Game Master changes the family's rules; a hero sees how they are set
-const canManage = canManageFamily();
+// Only a Game Master changes the family's rules; a hero sees how they are set. Read live: on a cold start the
+// profiles load after the page does
+const userStore = useUserStore();
+const canManage = computed(() => canManageFamily(userStore));
 </script>
