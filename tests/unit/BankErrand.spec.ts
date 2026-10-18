@@ -89,7 +89,7 @@ describe("runBankErrand: refusals and no-ops", () => {
     const errand = runBankErrand(HERO, "payDebt", 60);
 
     expect(errand).toMatchObject({ ok: false });
-    expect(errand && !errand.ok && errand.refusal).toBeTruthy();
+    expect(errand?.line).toBeTruthy();
     expect(purse().hospitalBill).toBe(60);
     expect(purse().ledger ?? []).toHaveLength(0);
   });

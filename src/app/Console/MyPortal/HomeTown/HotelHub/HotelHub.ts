@@ -98,14 +98,18 @@ export default defineComponent({
     // paying the Hospital's bill to 0 lifts the grounding and tells the family.
     async atmErrand(action: BankAction, data: GpAmount) {
       const errand = runBankErrand(String(this.userId), action, Number(data?.gp), this.words, `ATM: ${ATM_NOTES[action]}`);
-      if (!errand) return;
-      if (!errand.ok) {
+      // No amount, or no hero loaded: the ATM says nothing
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isPaid = errand?.ok === true;
+      if (isRefused) {
         this.play$fx("no");
-        await this.reveal.showPrompt(conciergeNotice(errand.refusal, undefined, "ATM"));
-        return;
+        await this.reveal.showPrompt(conciergeNotice(line, undefined, "ATM"));
       }
-      this.play$fx(action === "payDebt" ? "finish" : "countCoins");
-      await this.reveal.showPrompt(conciergeNotice(errand.receipt, "coins", "ATM"));
+      if (isPaid) {
+        this.play$fx(action === "payDebt" ? "finish" : "countCoins");
+        await this.reveal.showPrompt(conciergeNotice(line, "coins", "ATM"));
+      }
     },
 
     /**

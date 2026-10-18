@@ -324,12 +324,12 @@ export default defineComponent({
     // Gold Bank's rules: a refusal says why, and paying the Hospital's bill to 0 lifts the grounding.
     async atmErrand(action: BankAction, data: GpAmount) {
       const errand = runBankErrand(this.heroId, action, Number(data?.gp), this.words, `ATM: ${ATM_NOTES[action]}`);
-      if (!errand) return;
-      if (!errand.ok) {
-        await this.reveal.showPrompt(atmNotice(this.voice, errand.refusal, { sound: "no" }));
-        return;
-      }
-      await this.reveal.showPrompt(atmNotice(this.voice, errand.receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
+      // No amount, or no hero loaded: the ATM says nothing
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isPaid = errand?.ok === true;
+      if (isRefused) await this.reveal.showPrompt(atmNotice(this.voice, line, { sound: "no" }));
+      if (isPaid) await this.reveal.showPrompt(atmNotice(this.voice, line, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
 
     // The shelves rise as the game's sheet at the bottom of the screen, ringed in the shop's colour

@@ -9,16 +9,19 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { type BankAction, bankMove, bankReceipt, bankRefusal } from "./bankTeller";
 import { hospitalBillOf } from "./wallet";
 
-export type BankErrand =
-  | { ok: false; refusal: string }
-  | { ok: true; receipt: string; clearsBill: boolean };
+/** What the counter says: the receipt once the purse is saved (`ok`), or the teller's reason for moving nothing. */
+export interface BankErrand {
+  ok: boolean;
+  line: string;
+  clearsBill: boolean;
+}
 
 /** How the wallet's history names an ATM move */
 export const ATM_NOTES: Record<BankAction, string> = { withdraw: "withdrew", deposit: "deposited", payDebt: "paid debt", borrow: "borrowed" };
 
 /**
  * Do `action` with `amount` GP for the hero. Null when there is nothing to move (no amount, or no hero loaded);
- * otherwise the refusal in the teller's words, or the receipt once the purse is saved.
+ * otherwise the teller's line: the refusal, or the receipt once the purse is saved.
  */
 export function runBankErrand(heroId: string, action: BankAction, amount: number, voice: Voice = "adventure", note?: string): BankErrand | null {
   const store = useUserStore();
@@ -28,11 +31,11 @@ export function runBankErrand(heroId: string, action: BankAction, amount: number
   const before = stats.gp;
   const move = bankMove(action, before, amount);
   const refusal = bankRefusal(action, before, move, voice);
-  if (refusal) return { ok: false, refusal };
+  if (refusal) return { ok: false, line: refusal, clearsBill: false };
 
   const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
   const receipt = bankReceipt(action, before, move, voice);
   store.setWallet(heroId, move.gp, note ? { kind: action, note } : { kind: action });
   if (clearsBill) announceBillPaid(heroId);
-  return { ok: true, receipt, clearsBill };
+  return { ok: true, line: receipt, clearsBill };
 }

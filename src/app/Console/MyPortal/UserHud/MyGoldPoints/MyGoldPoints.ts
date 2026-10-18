@@ -86,14 +86,17 @@ export default defineComponent({
     /** Every bank move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
     async applyMove(action: BankAction, amount: number) {
       const errand = runBankErrand(this.user.id, action, amount, this.words);
-      if (!errand) return;
-      if (!errand.ok) {
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isMoved = errand?.ok === true;
+      if (isRefused) {
         this.play$fx("no");
-        await this.reveal.showPrompt(noticePrompt(errand.refusal, undefined, GOLD_APP));
-        return;
+        await this.reveal.showPrompt(noticePrompt(line, undefined, GOLD_APP));
       }
-      this.play$fx("countCoins");
-      await this.reveal.showPrompt(noticePrompt(errand.receipt, "coins", GOLD_APP));
+      if (isMoved) {
+        this.play$fx("countCoins");
+        await this.reveal.showPrompt(noticePrompt(line, "coins", GOLD_APP));
+      }
     },
 
     /** A move that can't happen: the no sound and the app's reason */
