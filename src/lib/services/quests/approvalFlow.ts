@@ -36,6 +36,7 @@ export const announceClaim = (entry: QuestLogEntry, difficulty: number | undefin
     questId: String(entry.questId),
     difficulty: Number(difficulty) > 0 ? Number(difficulty) : 1,
     requiresApproval: held,
+    ...(entry.phoneClaimId ? { phoneClaimId: entry.phoneClaimId } : {}),
   });
   const isPaidAtOnce = !held;
   if (isPaidAtOnce) return;
@@ -58,6 +59,9 @@ const heldClaim = async (entryId: string, reviewerId: string | undefined): Promi
   return mayReview ? entry : "own-claim";
 };
 
+/** The phone claim id of an entry made from the hero's phone, for the verdict multiplayer sends back to it */
+const phoneOf = (entry: QuestLogEntry): { phoneClaimId?: string } => (entry.phoneClaimId ? { phoneClaimId: entry.phoneClaimId } : {});
+
 const settled = (entry: QuestLogEntry): void => {
   settleWaiting(entry.id);
   refreshWaitingClaims().catch((error) => debug.warn("[approvalFlow] could not count the waiting claims", error));
@@ -71,9 +75,10 @@ export const approveClaim = async (entryId: string, reviewerId?: string): Promis
   const result = await approveCompletion(entryId, reviewerId);
   const approved = result?.status === "approved" ? result : null;
   if (!approved) return { ok: false, reason: "gone" };
-  const line = rewardLineOf(paidQuestRewards(approved.userId, withHuntBonus(approved)));
+  const paid = paidQuestRewards(approved.userId, withHuntBonus(approved));
+  const line = rewardLineOf(paid);
   notify(approvedNotification(approved.userId, approved, line));
-  emitQuestReviewed({ heroId: approved.userId, questId: String(approved.questId), approved: true, note: "" });
+  emitQuestReviewed({ heroId: approved.userId, questId: String(approved.questId), approved: true, note: "", ...phoneOf(approved), paid });
   settled(approved);
   return { ok: true, entry: approved, line };
 };
@@ -88,7 +93,7 @@ export const rejectClaim = async (entryId: string, reviewerId?: string, note?: s
   const rejected = result?.status === "rejected" ? result : null;
   if (!rejected) return { ok: false, reason: "gone" };
   notify(rejectedNotification(rejected.userId, rejected, cleanNote || undefined));
-  emitQuestReviewed({ heroId: rejected.userId, questId: String(rejected.questId), approved: false, note: cleanNote });
+  emitQuestReviewed({ heroId: rejected.userId, questId: String(rejected.questId), approved: false, note: cleanNote, ...phoneOf(rejected) });
   settled(rejected);
   return { ok: true, entry: rejected, line: "" };
 };

@@ -34,6 +34,48 @@ export const family = {
   "family.questsElsewhere": {
     adventure: "Your quests are on the family device.",
   },
+  "family.phoneQuests": {
+    adventure: "Quests",
+  },
+  "family.phoneNoQuests": {
+    adventure: "No quests to claim right now. Well done, hero!",
+  },
+  "family.phoneClaims": {
+    adventure: "My claims",
+  },
+  "family.phoneClaimDone": {
+    adventure: "Done!",
+  },
+  "family.phoneClaimed": {
+    adventure: "Claimed! Your Game Master will check {quest}.",
+  },
+  "family.phoneClaimedPaid": {
+    adventure: "Claimed! {quest} pays as soon as the family device hears.",
+  },
+  "family.phoneClaimOffline": {
+    adventure: "No signal. {quest} is saved here and goes when you're back online.",
+  },
+  "family.phonePhoto": {
+    adventure: "Show your Game Master in person: a phone claim can't carry the photo.",
+  },
+  "family.claim.unsent": {
+    adventure: "Not sent yet",
+  },
+  "family.claim.waiting": {
+    adventure: "Sent",
+  },
+  "family.claim.pending": {
+    adventure: "Waiting for your Game Master",
+  },
+  "family.claim.approved": {
+    adventure: "Approved",
+  },
+  "family.claim.rejected": {
+    adventure: "Not this time",
+  },
+  "family.claim.refused": {
+    adventure: "Couldn't send",
+  },
   "family.linked": {
     adventure: "Welcome, {nickname}! This phone is yours now.",
   },

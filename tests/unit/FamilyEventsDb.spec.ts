@@ -28,7 +28,7 @@ describe("FamilyEventsDb", () => {
   });
 
   it("the empty state holds nothing and does not know the home", () => {
-    expect(EMPTY_FAMILY_EVENTS).toEqual({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown" });
+    expect(EMPTY_FAMILY_EVENTS).toEqual({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown", takenClaims: [], lastSheets: {} });
   });
 
   it("returns the empty state when nothing is stored", async () => {
@@ -51,6 +51,8 @@ describe("FamilyEventsDb", () => {
       lastCards: { "h-1": "{\"level\":4}" },
       ageGroupPicks: { "h-2": "teen" },
       home: "home",
+      takenClaims: [{ id: "c1", at: "2026-10-13T12:00:00.000Z" }],
+      lastSheets: { "h-1": "{}" },
     };
     await db.saveState(state);
     expect(await storage.get("state")).toEqual(state);

@@ -5,7 +5,8 @@ import type { QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 
 /**
  * What this device keeps for the family server: the events waiting to be sent, how far it has read the server's events,
- * the rewards it has paid, the last card it sent per hero, and the Game Master's age-group picks.
+ * the rewards it has paid, the last card and sheet it sent per hero, the hero-phone claims it took, and the Game Master's
+ * age-group picks.
  *
  * This database is never added to BACKUP_STORES: a backup must not carry a queue (a restore would resend old events)
  * and the numbers belong to this device.
@@ -31,9 +32,22 @@ export interface FamilyEventsState {
   /** heroId -> the age group the Game Master picked */
   ageGroupPicks: Record<string, AgeGroup>;
   home: HomeStatus;
+  /** Claims taken from hero phones (the `quest.claimed` event ids), so each is logged once; dropped after 90 days */
+  takenClaims: { id: string; at: string }[];
+  /** heroId -> the sheetKey of the last `hero.sheet` sent for the hero's phones */
+  lastSheets: Record<string, string>;
 }
 
-const emptyFamilyEvents = (): FamilyEventsState => ({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown" });
+const emptyFamilyEvents = (): FamilyEventsState => ({
+  outbox: [],
+  lastSeq: 0,
+  paidRewards: [],
+  lastCards: {},
+  ageGroupPicks: {},
+  home: "unknown",
+  takenClaims: [],
+  lastSheets: {},
+});
 
 /** A state with nothing in it, frozen all the way down: ask the database for one to edit */
 export const EMPTY_FAMILY_EVENTS: FamilyEventsState = (() => {
@@ -42,6 +56,8 @@ export const EMPTY_FAMILY_EVENTS: FamilyEventsState = (() => {
   Object.freeze(empty.paidRewards);
   Object.freeze(empty.lastCards);
   Object.freeze(empty.ageGroupPicks);
+  Object.freeze(empty.takenClaims);
+  Object.freeze(empty.lastSheets);
   return Object.freeze(empty);
 })();
 
@@ -65,6 +81,8 @@ const readState = (stored: unknown): FamilyEventsState => {
     lastCards: recordOr<string>(saved.lastCards, empty.lastCards),
     ageGroupPicks: recordOr<AgeGroup>(saved.ageGroupPicks, empty.ageGroupPicks),
     home: HOME_STATUSES.includes(saved.home as HomeStatus) ? (saved.home as HomeStatus) : empty.home,
+    takenClaims: listOr<FamilyEventsState["takenClaims"][number]>(saved.takenClaims, empty.takenClaims),
+    lastSheets: recordOr<string>(saved.lastSheets, empty.lastSheets),
   };
 };
 

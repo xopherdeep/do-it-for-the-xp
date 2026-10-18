@@ -18,6 +18,7 @@ import {
   IonToolbar,
 } from "@ionic/vue";
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
+import HeroPhoneBoard from "./components/HeroPhoneBoard.vue";
 import { useCopy } from "@/hooks/useVoice";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import debug from "@/lib/utils/debug";
@@ -42,6 +43,7 @@ export const HeroPhone = defineComponent({
     IonToolbar,
     XpHeroModel,
     "xp-hero-model": XpHeroModel,
+    "hero-phone-board": HeroPhoneBoard,
   },
   setup() {
     const router = useRouter();
@@ -50,6 +52,8 @@ export const HeroPhone = defineComponent({
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
+    /** The family device sent this hero's sheet: the board shows it (two-phone play) */
+    const hasSheet = computed(() => Boolean(family.phoneState?.sheet));
 
     const pageTitle = computed(() => {
       const heroNickname = card.value?.nickname;
@@ -69,11 +73,13 @@ export const HeroPhone = defineComponent({
       const isVisible = typeof document !== "undefined" && document.visibilityState === "visible";
       if (isVisible) {
         family.refreshCard().catch((err) => debug.warn("hero-phone: could not refresh card", err));
+        family.syncPhone().catch((err) => debug.warn("hero-phone: could not sync", err));
       }
     };
 
     onMounted(() => {
       family.refreshCard().catch((err) => debug.warn("hero-phone: could not refresh card", err));
+      family.syncPhone().catch((err) => debug.warn("hero-phone: could not sync", err));
       const hasDoc = typeof document !== "undefined";
       if (hasDoc) {
         document.addEventListener("visibilitychange", onVisibilityChange);
@@ -89,6 +95,7 @@ export const HeroPhone = defineComponent({
 
     return {
       card,
+      hasSheet,
       handleStartFresh,
       isUnlinked,
       pageTitle,

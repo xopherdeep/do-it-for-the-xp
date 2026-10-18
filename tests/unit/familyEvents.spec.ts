@@ -19,10 +19,12 @@ describe("EVENT_KINDS", () => {
       "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
       "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
       "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
-      "quest.claimed": { scope: "family", writer: "home", fields: ["questId", "difficulty", "requiresApproval"] },
+      "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval"] },
       "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
       "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
       "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
+      "hero.sheet": { scope: "family", writer: "home", fields: ["stats", "quests"] },
+      "claim.settled": { scope: "family", writer: "home", fields: ["claimId", "questId", "status", "note", "xp", "gp", "ap"] },
     }));
 });
 
