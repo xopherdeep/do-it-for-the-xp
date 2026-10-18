@@ -51,6 +51,7 @@ import { isActive as sceneTransitionActive } from "@/components/organisms/SceneT
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import XpRewardsOverlay from "@/components/organisms/RewardsOverlay/XpRewardsOverlay.vue";
+import XpLightsOut from "@/components/organisms/LightsOut/XpLightsOut.vue";
 import debug from "@/lib/utils/debug";
 import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
@@ -65,6 +66,7 @@ import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
 import { play$fx } from "@/assets/fx";
 import { useProStore } from "@/lib/store/stores/pro";
 import { allowedGameStyle } from "@/lib/utils/gameStyle";
+import { watchHeroReminderRemovals } from "@/lib/services/notifications/deviceReminders";
 
 const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
   const isBelowMinimum = requestedTrack < 0;
@@ -101,6 +103,7 @@ export default defineComponent({
     XpStudioSplash,
     XpGlobalDialog,
     XpRewardsOverlay,
+    XpLightsOut,
     XpSceneTransition,
   },
   data() {
@@ -320,6 +323,8 @@ export default defineComponent({
     ];
 
     userStore.loadUsers();
+    // A removed hero's chore reminders leave the device with them
+    watchHeroReminderRemovals();
 
     // Multiplayer ships hidden: with the flag off nothing here runs and no request is made
     const isMultiplayerOn = multiplayerEnabled();

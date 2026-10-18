@@ -394,6 +394,28 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     persistUser(userId);
   }
 
+  /** The hero's picture from the avatar picker (`"007-gamer"`). False, changing nothing, for an unknown hero or an empty choice. */
+  function setAvatar(userId: string, avatar: string): boolean {
+    const user = users[userId];
+    const hasNothingToSet = !user || !avatar;
+    if (hasNothingToSet) return false;
+    user.avatar = avatar;
+    if (isCurrentHero(userId)) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
+  /** The hero's favorite food (a FOOD_OPTIONS value, or "None"). False, changing nothing, for an unknown hero or an empty choice. */
+  function setFavoriteFood(userId: string, food: string): boolean {
+    const user = users[userId];
+    const hasNothingToSet = !user || !food;
+    if (hasNothingToSet) return false;
+    user.favoriteFood = food;
+    if (isCurrentHero(userId)) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
   return {
     addInventoryItem,
     spendInventoryItem,
@@ -417,6 +439,8 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setVoice,
     setSkin,
     setThemeChoice,
-    setAutoRead
+    setAutoRead,
+    setAvatar,
+    setFavoriteFood
   };
 }

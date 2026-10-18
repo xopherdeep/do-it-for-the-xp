@@ -50,11 +50,7 @@
             data-cy="quick-start-gm-pin"
           />
         </div>
-        <p v-if="gmError" class="qs-error" role="alert">{{ gmError }}</p>
-        <p v-else-if="isGmSkipped" class="qs-note qs-skip-note">
-          Leave it blank to just try it. Until you add yourself in Settings > Family, anyone can open the Game Master
-          area.
-        </p>
+        <p v-if="isGmStarted && gmError" class="qs-error" role="alert">{{ gmError }}</p>
       </section>
 
       <section class="qs-section">
@@ -136,7 +132,6 @@ import {
   QuickStartError,
   gameMasterProblem,
   heroNames,
-  isGameMasterSkipped,
   runQuickStart,
 } from "@/lib/services/core/packs/quickStart";
 import debug from "@/lib/utils/debug";
@@ -162,7 +157,8 @@ const rewards = (QUICK_START_PACK.content.rewards ?? []).map((item) => ({
 }));
 
 const gameMaster = computed(() => ({ name: String(gmName.value ?? ""), passcode: String(gmPin.value ?? "") }));
-const isGmSkipped = computed(() => isGameMasterSkipped(gameMaster.value));
+// The hint waits until the parent starts typing, so the form doesn't open on an error
+const isGmStarted = computed(() => Boolean(gameMaster.value.name.trim() || gameMaster.value.passcode));
 const gmError = computed(() => gameMasterProblem(gameMaster.value));
 
 const heroCount = computed(() => heroNames(names.value).length);

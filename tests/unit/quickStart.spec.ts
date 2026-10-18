@@ -12,6 +12,9 @@ import {
 import type { QuickStartDeps } from "@/lib/services/core/packs/quickStart";
 import { DEFAULT_WALLET_LIMIT } from "@/lib/services/gp/wallet";
 import type { Achievement } from "@/lib/databases/AchievementDb";
+import { isSealed, pinMatches } from "@/lib/services/profile/pinSeal";
+
+const DAD = { name: "Dad", passcode: "1234" };
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -28,6 +31,7 @@ jest.mock("@/lib/databases/AchievementDb", () => ({
 jest.mock("@/lib/databases/BestiaryDb", () => ({ __esModule: true, beastStorage: { sentinel: "beasts" } }));
 jest.mock("@/lib/databases/ChatDb", () => ({ __esModule: true, chatStorage: { sentinel: "chat" } }));
 jest.mock("@/lib/databases/DosDontsDb", () => ({ __esModule: true, dosDontsStorage: { sentinel: "dosDonts" } }));
+jest.mock("@/lib/databases/PackLibraryDb", () => ({ __esModule: true, packLibraryStorage: { sentinel: "packs" } }));
 jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileStorage: { sentinel: "profiles" } }));
 jest.mock("@/lib/databases/PurchaseLogDb", () => ({ __esModule: true, purchaseLogStorage: { sentinel: "purchaseLog" } }));
 jest.mock("@/lib/databases/QuestLogDb", () => ({ __esModule: true, questLogStorage: { sentinel: "questLog" } }));
@@ -124,7 +128,7 @@ describe("the Quick start pack", () => {
 
 describe("the Quick start plan", () => {
   it("makes a hero per name, none a Game Master, each with a different class and picture", () => {
-    const { heroes } = quickStartPlan(["Mia", "Leo"], new Map(), new Date(), ids);
+    const { heroes } = quickStartPlan(["Mia", "Leo"], new Map(), new Date(), ids, DAD);
     expect(heroes.map((hero) => hero.name.nick)).toEqual(["Mia", "Leo"]);
     expect(heroes.every((hero) => hero.isAdult === false)).toBe(true);
     expect(new Set(heroes.map((hero) => hero.jobClass)).size).toBe(2);
@@ -132,7 +136,7 @@ describe("the Quick start plan", () => {
   });
 
   it("assigns every quest to every hero as their own to do", () => {
-    const { heroes, backup } = quickStartPlan(["Mia", "Leo"], new Map(), new Date(), ids);
+    const { heroes, backup } = quickStartPlan(["Mia", "Leo"], new Map(), new Date(), ids, DAD);
     const quests = backup.stores.__achievements.map((entry) => entry.value as Achievement);
     expect(quests).toHaveLength(3);
     for (const quest of quests) {
@@ -147,18 +151,21 @@ describe("the Quick start plan", () => {
 });
 
 describe("the Game Master step", () => {
-  it("may be skipped, but a name needs a 4-digit PIN and a PIN needs a name", () => {
-    expect(gameMasterProblem(undefined)).toBeNull();
-    expect(gameMasterProblem({ name: " ", passcode: "" })).toBeNull();
+  it("can't be skipped: a name needs a 4-digit PIN and a PIN needs a name", () => {
+    expect(gameMasterProblem(undefined)).toMatch(/name/);
+    expect(gameMasterProblem({ name: " ", passcode: "" })).toMatch(/name/);
     expect(gameMasterProblem({ name: "Dad", passcode: "" })).toMatch(/4-digit/);
     expect(gameMasterProblem({ name: "Dad", passcode: "12a4" })).toMatch(/4-digit/);
     expect(gameMasterProblem({ name: "", passcode: "1234" })).toMatch(/name/);
     expect(gameMasterProblem({ name: "Dad", passcode: "1234" })).toBeNull();
   });
 
-  it("adds the parent as a Game Master with their PIN, kept off the kids' quests", () => {
-    const plan = quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "Dad", passcode: "1234" });
-    expect(plan.gameMaster).toMatchObject({ isAdult: true, passcode: "1234", name: { nick: "Dad" } });
+  it("adds the parent as a Game Master with their PIN sealed, kept off the kids' quests", () => {
+    const plan = quickStartPlan(["Mia"], new Map(), new Date(), ids, DAD);
+    expect(plan.gameMaster).toMatchObject({ isAdult: true, name: { nick: "Dad" } });
+    expect(isSealed(plan.gameMaster.passcode)).toBe(true);
+    expect(pinMatches(plan.gameMaster, "1234")).toBe(true);
+    expect(JSON.stringify(plan.backup)).not.toContain('"1234"');
     const profiles = plan.backup.stores.__profiles.map((entry) => entry.value as { id: string });
     expect(profiles.map((profile) => profile.id)).toEqual([plan.gameMaster?.id, plan.heroes[0].id]);
     for (const entry of plan.backup.stores.__achievements) {
@@ -166,8 +173,9 @@ describe("the Game Master step", () => {
     }
   });
 
-  it("leaves nobody Game Master when skipped, and refuses a half-filled step", () => {
-    expect(quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "", passcode: "" }).gameMaster).toBeNull();
+  it("refuses a blank or half-filled step", () => {
+    expect(() => quickStartPlan(["Mia"], new Map(), new Date(), ids)).toThrow(QuickStartError);
+    expect(() => quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "", passcode: "" })).toThrow(QuickStartError);
     expect(() => quickStartPlan(["Mia"], new Map(), new Date(), ids, { name: "Dad", passcode: "12" })).toThrow(QuickStartError);
   });
 });
@@ -175,8 +183,8 @@ describe("the Game Master step", () => {
 describe("running Quick start", () => {
   it("seeds the heroes, the beasts, the quests and the Market's shelf on a new device", async () => {
     const { stores, deps } = device();
-    const { heroes } = await runQuickStart(["Mia", "Leo"], undefined, deps);
-    expect(Array.from(stores.__profiles.data.keys())).toEqual(heroes.map((hero) => hero.id));
+    const { heroes, gameMaster } = await runQuickStart(["Mia", "Leo"], DAD, deps);
+    expect(Array.from(stores.__profiles.data.keys())).toEqual([gameMaster.id, ...heroes.map((hero) => hero.id)]);
     expect(stores.__achievements.data.size).toBe(3);
     expect(stores.__beasts.data.size).toBe(3);
     expect(stores.__accessories.data.size).toBe(3);
@@ -186,7 +194,7 @@ describe("running Quick start", () => {
 
   it("never runs once a profile exists, and leaves that game alone", async () => {
     const { stores, deps } = device({ __profiles: { dad: { id: "dad", isAdult: true } } });
-    await expect(runQuickStart(["Mia"], undefined, deps)).rejects.toThrow(QuickStartError);
+    await expect(runQuickStart(["Mia"], DAD, deps)).rejects.toThrow(QuickStartError);
     expect(stores.__profiles.data.size).toBe(1);
     expect(stores.__achievements.data.size).toBe(0);
   });

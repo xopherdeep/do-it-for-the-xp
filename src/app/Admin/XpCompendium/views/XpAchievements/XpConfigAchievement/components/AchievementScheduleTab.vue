@@ -209,7 +209,7 @@
             <div class="sub-label mb-2">WHICH DAYS?</div>
             <div class="day-selector">
               <div
-                v-for="day in daysOfWeek"
+                v-for="day in orderedDays"
                 :key="day.value"
                 class="day-unit"
                 :class="day.color"
@@ -310,6 +310,7 @@ import {
   IonButton,
 } from '@ionic/vue';
 import { BASIC_SCHEDULE_ICONS } from "@/constants";
+import { useWeekStart } from "@/hooks/useWeekStart";
 import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
 import { play$fx } from "@/assets/fx";
 import { TIMES_OF_DAY, type TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
@@ -377,6 +378,10 @@ const daysOfWeek = [
   { label: getLocalDayName(5), value: 'fri', color: 'green', symbol: '♀' },
   { label: getLocalDayName(6), value: 'sat', color: 'blue', symbol: '♄' },
 ];
+
+// The row begins on the family's first day of the week (Settings > General)
+const weekStart = useWeekStart();
+const orderedDays = computed(() => [...daysOfWeek.slice(weekStart.value), ...daysOfWeek.slice(0, weekStart.value)]);
 
 // XP Pro: custom repeats, the times-of-day chips and "times per day" above 1 are Pro. A free family can still
 // see (and keep) what a saved quest already has; only changing it opens the upsell.

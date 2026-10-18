@@ -333,6 +333,11 @@ describe("editPost", () => {
     expect(edited.createdAt).toBe(NOW);
   });
 
+  it("keeps a shared pack with the fixed post", () => {
+    const edited = editPost({ ...failed, board: "pack-exchange", pack: "{}" }, topicDraft({ board: "pack-exchange" }), true);
+    expect(edited.pack).toBe("{}");
+  });
+
   it("queues a Game Master's fixed post at once", () => {
     const edited = editPost(failed, fixed, true);
     expect(edited.status).toBe("queued");

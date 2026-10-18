@@ -367,10 +367,7 @@ export default defineComponent({
       const paddedIndex = index.toString().padStart(3, "0");
       const newAvatar = `${paddedIndex}-gamer`;
 
-      // Update user in store directly via the users reactive object
-      if (isHeroInStore()) {
-        userStore.users[props.user.id].avatar = newAvatar;
-      }
+      if (isHeroInStore()) userStore.setAvatar(props.user.id, newAvatar);
     };
 
     // Stat selector state
@@ -416,9 +413,7 @@ export default defineComponent({
         height: 'auto',
         selectedValue: props.user?.favoriteFood || 'None',
         onSelect: (val: string) => {
-          if (isHeroInStore()) {
-            userStore.users[props.user.id].favoriteFood = val;
-          }
+          if (isHeroInStore()) userStore.setFavoriteFood(props.user.id, val);
           statSelector.value.isOpen = false;
         }
       };

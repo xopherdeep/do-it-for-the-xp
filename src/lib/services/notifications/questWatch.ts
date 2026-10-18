@@ -125,7 +125,7 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;
   await runClaimPhotoPurge(now.getTime());
-  const reminders = await scheduleDueReminders(remindersOf(board, effects, now, id), now);
+  const reminders = await scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
   return { pushed, reminders };
 };
 

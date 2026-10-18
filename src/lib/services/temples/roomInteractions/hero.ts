@@ -2,6 +2,7 @@
  * The hero's body and purse: read HP, MP and gold off the profile, and move them (hurt, heal, restore mana,
  * pay gold found in a temple). Everything goes through the Pinia user store.
  */
+import { rewardGpPayload } from "@/lib/services/gp/autoSave";
 import { useUserStore } from '@/lib/store/stores/user';
 import { admitToHospital } from '@/lib/services/hometown/hospitalAdmission';
 import { heroGold } from '@/lib/services/stats/StatEffects';
@@ -32,7 +33,7 @@ export const earnGold = (userId: string, amount: number): number => {
   const gp = heroGold(amount, store.getUserById(userId));
   // The wallet moves before updateUserGP's first await; the save is not waited for
   const hasGold = gp > 0;
-  if (hasGold) void store.updateUserGP({ userId, wallet: gp, kind: "earn", note: "Temple treasure" });
+  if (hasGold) void store.updateUserGP(rewardGpPayload(userId, gp, "Temple treasure"));
   return gp;
 };
 

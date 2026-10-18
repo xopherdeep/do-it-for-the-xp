@@ -69,7 +69,53 @@
         </ion-list>
       </ion-card>
 
-      <xp-coming-soon-card v-if="canManage" title="Family rules" :items="comingSoon" />
+      <ion-card v-if="canManage" class="max-w-2xl family-bedtime" data-cy="bedtime-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Bedtime</ion-label>
+          </ion-item-divider>
+          <ion-item>
+            <ion-label class="ion-text-wrap">
+              <h2>Lights out</h2>
+              <p>Between these times a hero's portal goes to sleep: no quests, shops or temples until morning. Game Masters are never locked out.</p>
+            </ion-label>
+            <ion-toggle data-cy="bedtime-toggle" :checked="rules.bedtime.enabled" @ionChange="rules.setBedtime({ enabled: $event.detail.checked })"></ion-toggle>
+          </ion-item>
+          <ion-item :disabled="!rules.bedtime.enabled">
+            <ion-label>
+              <h2>Lights out at</h2>
+            </ion-label>
+            <ion-select
+              slot="end"
+              class="family-bedtime__clock"
+              interface="action-sheet"
+              aria-label="Lights out at"
+              :value="rules.bedtime.from"
+              @ionChange="rules.setBedtime({ from: $event.detail.value })"
+            >
+              <ion-select-option v-for="clock in clocks" :key="clock" :value="clock">{{ clockLabel(clock) }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item :disabled="!rules.bedtime.enabled" lines="none">
+            <ion-label>
+              <h2>Wake up at</h2>
+            </ion-label>
+            <ion-select
+              slot="end"
+              class="family-bedtime__clock"
+              interface="action-sheet"
+              aria-label="Wake up at"
+              :value="rules.bedtime.to"
+              @ionChange="rules.setBedtime({ to: $event.detail.value })"
+            >
+              <ion-select-option v-for="clock in clocks" :key="clock" :value="clock">{{ clockLabel(clock) }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
+        <ion-card-content v-if="rules.bedtime.enabled && rules.bedtime.from === rules.bedtime.to" class="family-bedtime__note">
+          <p>Pick two different times, or the bedtime never starts.</p>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
@@ -83,17 +129,17 @@ import User from "@/lib/utils/User";
 import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import XpFamilyPhones from "./XpFamilyPhones.vue";
-import XpComingSoonCard from "./XpComingSoonCard.vue";
-import { FAMILY_COMING_SOON } from "./comingSoon";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { dialogMessage } from "@/lib/utils/dialogMessage";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import {
+  BEDTIME_CLOCKS,
+  clockLabel,
   DEFAULT_FAMILY_SETTINGS,
   loadFamilySettings,
-  saveFamilySettings,
   type FamilySettings,
 } from "@/lib/services/family/familySettings";
 
@@ -118,7 +164,7 @@ const writeFamilyLock = (locked: boolean): void => {
 export default defineComponent({
   name: "xp-settings-family",
   mixins: [ionic],
-  components: { XpProfileItem, XpFamilyPhones, XpComingSoonCard },
+  components: { XpProfileItem, XpFamilyPhones },
   setup() {
     // "Family setup is complete" hides the add, edit and delete buttons; kept on this device across visits
     const lockFamily = ref(readFamilyLock());
@@ -144,19 +190,25 @@ export default defineComponent({
     // Load profiles when component mounts
     loadProfiles();
 
+    // Saved through the game rules, so the lights-out screen follows the bedtime card at once
+    const rules = useGameRulesStore();
+    void rules.load();
+
     // The Item rules card: whether the Trusted Hour Power may cast
     const family = ref<FamilySettings>(JSON.parse(JSON.stringify(DEFAULT_FAMILY_SETTINGS)));
     loadFamilySettings().then((loaded) => (family.value = loaded));
     const setFamily = (change: Partial<FamilySettings>) => {
       if (!canManage.value) return;
       family.value = { ...family.value, ...change };
-      void saveFamilySettings(family.value);
+      void rules.save(change);
     };
 
     return {
       family,
       setFamily,
-      comingSoon: FAMILY_COMING_SOON,
+      rules,
+      clocks: BEDTIME_CLOCKS,
+      clockLabel,
       userStore,
       requireAvatar,
       profiles,
@@ -229,4 +281,16 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.family-bedtime__clock {
+  font-size: 1.1rem;
+  min-width: 7rem;
+  justify-content: flex-end;
+}
+
+.family-bedtime__note p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+</style>

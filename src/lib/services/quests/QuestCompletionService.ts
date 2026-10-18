@@ -9,6 +9,8 @@ import { announceClaim } from "@/lib/services/quests/approvalFlow";
 import { asksForPhoto, claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
+import { rewardGpPayload } from "@/lib/services/gp/autoSave";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
 /**
@@ -86,7 +88,7 @@ export const applyQuestRewards = (
   const paid = paidQuestRewards(userId, rewards);
   const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
   const hasGp = paid.gp > 0;
-  if (hasGp) void userStore.updateUserGP({ userId, wallet: paid.gp, kind: "earn", ...(label ? { note: label } : {}) });
+  if (hasGp) void userStore.updateUserGP(rewardGpPayload(userId, paid.gp, label));
   const hasAp = paid.ap > 0;
   if (hasAp) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
   return levelUp;
@@ -122,6 +124,8 @@ export const completeQuest = async (
   options: CompletionOptions = {}
 ): Promise<CompletionResult> => {
   const at = options.at ?? new Date();
+  // The auto-save share is read from the rules when the GP is paid
+  await useGameRulesStore().load();
   // A finish after the due time pays the family's late share (all of it unless the Game Master chose less); the log keeps
   // what was owed, so a held claim is approved at the same reduced rate
   const late = await adjustForLateness(quest, userId, questRewards(quest), at);
@@ -218,6 +222,7 @@ const reviewEntry = async (
 
 export const approveCompletion = (entryId: string, reviewerId?: string): Promise<QuestLogEntry | null> =>
   reviewEntry(entryId, async (entry) => {
+    await useGameRulesStore().load();
     // The quest's rate, and the hunt bonus a won fight wrote on the hold: paid here, once (a second approval finds the
     // entry already approved and pays nothing)
     const owed = withHuntBonus(entry);

@@ -36,7 +36,7 @@ jest.mock("@ionic/vue", () => ({
   toastController: { create: (options: unknown) => mockToast(options) },
 }));
 
-const mockSet = jest.fn((_accessory: Accessory) => Promise.resolve());
+const mockSet = jest.fn((accessory: Accessory) => Promise.resolve(String(accessory.id ?? "new-item")));
 const mockGet = jest.fn();
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
   ...jest.requireActual("@/lib/databases/AccessoriesDb"),
@@ -50,6 +50,30 @@ jest.mock("@/lib/databases/AccessoriesDb", () => ({
     }
   },
 }));
+
+// The shops the Stock it step lists: Hometown Market already sells the saved item, the ranch does not
+const mockShops = jest.fn();
+const mockSetShop = jest.fn((_shop: unknown) => Promise.resolve());
+jest.mock("@/lib/databases/ShopsDb", () => ({
+  ...jest.requireActual("@/lib/databases/ShopsDb"),
+  __esModule: true,
+  default: { getShops: () => mockShops(), setShop: (shop: unknown) => mockSetShop(shop) },
+}));
+jest.mock("@/lib/services/shops/shopStock", () => ({
+  ...jest.requireActual("@/lib/services/shops/shopStock"),
+  stockDefaultShops: () => Promise.resolve(),
+}));
+const shelvesNow = () => [
+  { id: "pegasus-ranch", name: "Pegasus Ranch", description: "", world: "plains", icon: "fad fa-farm", items: [] },
+  {
+    id: "hometown-market",
+    name: "Hometown Market",
+    description: "",
+    world: "hometown",
+    icon: "fad fa-store-alt",
+    items: [{ itemId: "item-1", type: 1, price: 70 }],
+  },
+];
 
 const slot = { template: "<div><slot /></div>" };
 const stubs = {
@@ -112,8 +136,10 @@ const isShut = (wrapper: Form, test: string) => wrapper.get(`[data-test="${test}
 
 beforeEach(() => {
   mockBack.mockReset();
-  mockSet.mockReset();
-  mockSet.mockResolvedValue(undefined);
+  mockSet.mockClear();
+  mockShops.mockReset();
+  mockShops.mockImplementation(() => Promise.resolve(shelvesNow()));
+  mockSetShop.mockClear();
   mockGet.mockReset();
   mockToast.mockClear();
 });
@@ -224,6 +250,29 @@ describe("a new item", () => {
     expect(mockToast).toHaveBeenCalledTimes(1);
   });
 
+  it("puts a new item on the Hometown Market's shelf unless another shop is picked", async () => {
+    const wrapper = await mountForm();
+    await tap(wrapper, `type-${AccessoryType.RealLife}`);
+    await type(wrapper, "name", "Pizza night");
+    await tap(wrapper, "next");
+    await tap(wrapper, "price-25");
+    await tap(wrapper, "next");
+    await tap(wrapper, "next");
+    // Hometown first, in the registry's order, and already ticked
+    expect(wrapper.findAll('[data-test^="shelf-"]').map((row) => row.attributes("data-test"))).toEqual([
+      "shelf-hometown-market",
+      "shelf-pegasus-ranch",
+    ]);
+    expect(wrapper.get('[data-test="shelves"]').text()).toContain("Sold in 1 shop");
+    await tap(wrapper, "shelf-pegasus-ranch");
+    expect(wrapper.get('[data-test="shelves"]').text()).toContain("Sold in 2 shops");
+
+    await tap(wrapper, "submit");
+    const written = mockSetShop.mock.calls.map(([shop]) => shop as { id: string; items: { itemId: string }[] });
+    expect(written.map((shop) => shop.id).sort()).toEqual(["hometown-market", "pegasus-ranch"]);
+    for (const shop of written) expect(shop.items.map((slot) => slot.itemId)).toContain("new-item");
+  });
+
   it("takes the tags typed with commas", async () => {
     const wrapper = await mountForm();
     await type(wrapper, "tag-input", "clothing, book");
@@ -289,6 +338,28 @@ describe("editing a saved item (the route passes the id)", () => {
     expect(record.expiryDate).toBe("2026-12-31");
     expect(record.purchaseHistory).toHaveLength(1);
     expect(record.rewardCount).toBe(2);
+  });
+
+  it("shows the shelves the item is on, and moves it when they change, keeping a price on a shelf it stays on", async () => {
+    mockGet.mockResolvedValue(saved);
+    const wrapper = await mountForm("item-1");
+    expect(wrapper.get('[data-test="shelf-hometown-market"]').attributes("aria-checked")).toBe("true");
+    expect(wrapper.get('[data-test="shelf-pegasus-ranch"]').attributes("aria-checked")).toBe("false");
+
+    await tap(wrapper, "shelf-hometown-market");
+    await tap(wrapper, "shelf-pegasus-ranch");
+    await tap(wrapper, "submit");
+    const written = mockSetShop.mock.calls.map(([shop]) => shop as { id: string; items: { itemId: string }[] });
+    expect(written.find((shop) => shop.id === "hometown-market")?.items).toEqual([]);
+    expect(written.find((shop) => shop.id === "pegasus-ranch")?.items.map((slot) => slot.itemId)).toEqual(["item-1"]);
+  });
+
+  it("writes no shop when the shelves did not change", async () => {
+    mockGet.mockResolvedValue(saved);
+    const wrapper = await mountForm("item-1");
+    await tap(wrapper, "submit");
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSetShop).not.toHaveBeenCalled();
   });
 
   it("starts a new item, and says so, when the id is not in the shop any more", async () => {
