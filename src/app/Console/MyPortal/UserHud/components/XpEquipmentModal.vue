@@ -22,7 +22,21 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="icon-colors bg-slide bg-slide-equipment">
+    <ion-content class="icon-colors bg-slide bg-slide-equipment" :class="{ 'is-equip-mode': !isBattle }">
+      <!-- Equip mode: the hands and the hero holding them stay on top while the bag scrolls under them -->
+      <equipment-stage
+        v-if="!isBattle"
+        class="equipment-stage-bar"
+        :left-item="leftHandSlots[0]"
+        :right-item="rightHandSlots[0]"
+        :look="user?.look"
+        :job-class="user?.jobClass"
+        :selected="selectedItem?.faIcon ?? null"
+        :retro="isRetro"
+        @select-hand="selectHand"
+        @change-class="openClassSelector"
+        @drop="onStageDrop"
+      />
       <ion-grid>
         <ion-row>
           <ion-col size="12" class="ion-flex ion-flex-column">
@@ -32,6 +46,9 @@
               :locked-items="lockedItemsArray"
               :lock-hint="lockHint"
               :no-drag="isBattle"
+              :selected="isBattle ? null : selectedItem?.faIcon ?? null"
+              :hand-of="handOf"
+              :retro="isRetro"
               @display-info="openItemInfo"
               @equip-item="equipItem"
             />
@@ -40,7 +57,20 @@
       </ion-grid>
     </ion-content>
 
-    <div class="equipment-dock icon-colors">
+    <!-- Equip mode: the card under the cursor, with a button per hand -->
+    <ion-footer v-if="!isBattle" class="equipment-detail-footer icon-colors" :class="{ 'is-retro': isRetro }">
+      <equipment-detail
+        :item="infoItem"
+        :held-in="selectedHand"
+        :locked="isSelectedLocked"
+        :lock-hint="selectedItem ? lockHint(selectedItem) : ''"
+        :retro="isRetro"
+        @equip="equipSelected"
+        @unequip="unequipSelected"
+      />
+    </ion-footer>
+
+    <div class="equipment-dock icon-colors" v-if="isBattle">
       <equipped-items-card
         :equipment="equipment"
         :left-hand-items="equipmentOnLeft"
@@ -53,9 +83,9 @@
       />
     </div>
 
-    <!-- Item Info Modal - only mount when needed -->
+    <!-- The fight's item card: what it does now and a Use button -->
     <item-info-modal
-      v-if="selectedItem"
+      v-if="selectedItem && isBattle"
       :is-open="itemInfoOpen"
       :item="infoItem"
       :is-equipped="isSelectedItemEquipped"
@@ -64,8 +94,6 @@
       :mode="mode"
       :battle-card="selectedBattleCard"
       @close="closeItemInfo"
-      @equip="handleEquipFromModal"
-      @unequip="handleUnequipFromModal"
       @use="useSelectedItem"
     />
 
@@ -85,6 +113,10 @@
   import { useEquipmentItems, EquipmentItem } from "./equipment/EquipmentItems";
   import EquipmentGrid from "./equipment/EquipmentGrid.vue";
   import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
+  import EquipmentStage from "./equipment/EquipmentStage.vue";
+  import EquipmentDetail from "./equipment/EquipmentDetail.vue";
+  import { useEquipHands } from "./equipment/useEquipHands";
+  import { useGameStore } from "@/lib/store/stores/game";
   import ItemInfoModal from "./equipment/ItemInfoModal.vue";
   import XpClassCodex from "./ClassCodex/XpClassCodex.vue";
   import { toastController } from "@ionic/vue";
@@ -100,6 +132,8 @@
     components: {
       EquipmentGrid,
       EquippedItemsCard,
+      EquipmentStage,
+      EquipmentDetail,
       ItemInfoModal,
       XpClassCodex,
       XpCloseButton,
@@ -148,55 +182,37 @@
       const itemInfoOpen = ref(false);
       const selectedItem = ref<EquipmentItem | null>(null);
 
-      // Equipment slots
-      const leftHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
-      const rightHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
-      const equippedItems = ref(new Set<string>());
-
       const isBattle = computed(() => props.mode === "battle");
 
-      // Equip mode keeps the hands it edits; battle mode only shows what the hero already holds
-      watch(
-        () => (isBattle.value ? (props.equipment as (EquipmentItem & { slotIndex?: number })[]) : null),
-        (held) => {
-          if (!held) return;
-          const hands: Record<string, (EquipmentItem | null)[]> = { left: [null, null], right: [null, null] };
-          equippedItems.value = new Set<string>();
-          held.forEach((entry) => {
-            const slots = hands[entry.hand ?? ""];
-            const index = entry.slotIndex ?? 0;
-            const hasNoFreeHandSlot = !slots || index > 1;
-            if (hasNoFreeHandSlot) return;
-            slots[index] = equipmentItems.specialItems.find((item) => item.faIcon === entry.faIcon) ?? entry;
-            equippedItems.value.add(entry.faIcon);
-          });
-          leftHandSlots.value = hands.left;
-          rightHandSlots.value = hands.right;
-        },
-        { immediate: true, deep: true }
-      );
-
-      const equipmentOnLeft = computed(
-        () =>
-          leftHandSlots.value.filter((item) => item !== null) as EquipmentItem[]
-      );
-
-      const equipmentOnRight = computed(
-        () =>
-          rightHandSlots.value.filter(
-            (item) => item !== null
-          ) as EquipmentItem[]
-      );
+      const gameStore = useGameStore();
+      const isRetro = computed(() => gameStore.fabStyle === "retro");
 
       const specialItems = computed(() => equipmentItems.specialItems);
 
-      const equippedItemsArray = computed(() =>
-        Array.from(equippedItems.value)
+      // The hands as this screen edits them; each change goes to the page, which saves it
+      const {
+        leftHandSlots, rightHandSlots, equippedIcons: equippedItemsArray, setHandItem: performEquip, clearHandItem: performUnequip,
+      } = useEquipHands(
+        () => props.equipment as EquipmentItem[],
+        () => specialItems.value,
+        (item, hand, index) => emit("equip-item", item, hand, index)
       );
+      const isEquippedIcon = (faIcon: string) => equippedItemsArray.value.includes(faIcon);
+      const filled = (slots: (EquipmentItem | null)[]) => slots.filter((item) => item !== null) as EquipmentItem[];
+      const equipmentOnLeft = computed(() => filled(leftHandSlots.value));
+      const equipmentOnRight = computed(() => filled(rightHandSlots.value));
+
+      /** The hand holding an item, for the tile's L / R badge and the card's Take off */
+      const handOf = (faIcon: string): "left" | "right" | null => {
+        const isInLeftHand = leftHandSlots.value[0]?.faIcon === faIcon;
+        if (isInLeftHand) return "left";
+        const isInRightHand = rightHandSlots.value[0]?.faIcon === faIcon;
+        return isInRightHand ? "right" : null;
+      };
 
       const isSelectedItemEquipped = computed(() => {
         if (!selectedItem.value) return false;
-        return equippedItems.value.has(selectedItem.value.faIcon);
+        return isEquippedIcon(selectedItem.value.faIcon);
       });
 
       // Items the hero has not unlocked yet (a profile without an unlockedItems list holds everything)
@@ -207,6 +223,17 @@
       );
       const isLocked = (item: EquipmentItem) => lockedItemsArray.value.includes(item.faIcon);
       const lockHint = (item: EquipmentItem) => unlockHintOf(item.name);
+
+      const selectedHand = computed(() => {
+        const item = selectedItem.value;
+        return item ? handOf(item.faIcon) : null;
+      });
+      const isSelectedLocked = computed(() => {
+        const item = selectedItem.value;
+        return item ? isLocked(item) : false;
+      });
+      const catalogueEntry = (item: EquipmentItem) =>
+        specialItems.value.find((entry) => entry.faIcon === item.faIcon) ?? item;
 
       // A locked item says how it is earned instead of opening or equipping
       const refuseLocked = async (item: EquipmentItem) => {
@@ -229,12 +256,51 @@
             emit("use-item", item);
             return;
           }
-        } else if (isLocked(item)) {
-          void refuseLocked(item);
+        } else {
+          // Equip mode has no popup: the cursor moves to the tile and the card below shows it. A second tap on
+          // the same tile equips it to a free hand; a locked tile shows as ??? with how it is earned
+          const isSecondTap = selectedItem.value?.faIcon === item.faIcon;
+          selectedItem.value = item;
+          if (isLocked(item)) {
+            play$fx("no");
+            return;
+          }
+          const shouldQuickEquip = isSecondTap && !isEquippedIcon(item.faIcon);
+          if (shouldQuickEquip) {
+            void handleEquipRequest(item);
+            return;
+          }
+          play$fx("cursor");
           return;
         }
         selectedItem.value = item;
         itemInfoOpen.value = true;
+      };
+
+      /** A hand tapped on the stage: the cursor goes to what it holds */
+      const selectHand = (hand: "left" | "right") => {
+        const held = (hand === "left" ? leftHandSlots : rightHandSlots).value[0];
+        if (!held) {
+          play$fx("no");
+          return;
+        }
+        selectedItem.value = catalogueEntry(held);
+        play$fx("cursor");
+      };
+
+      const equipInto = async (item: EquipmentItem, hand: "left" | "right") => {
+        if (isLocked(item)) {
+          await refuseLocked(item);
+          return;
+        }
+        await performEquip(catalogueEntry(item), hand, 0);
+      };
+      const equipSelected = (hand: "left" | "right") => selectedItem.value && equipInto(selectedItem.value, hand);
+      const unequipSelected = (hand: "left" | "right") => performUnequip(hand, 0);
+      // A tile dragged onto a hand (a mouse; a phone taps the card's buttons)
+      const onStageDrop = (item: EquipmentItem, hand: "left" | "right") => {
+        selectedItem.value = catalogueEntry(item);
+        return equipInto(item, hand);
       };
 
       const closeItemInfo = () => {
@@ -247,7 +313,15 @@
       watch(
         () => props.isOpen,
         (open) => {
-          if (open) return;
+          if (open) {
+            // Equip mode opens with the cursor on the left hand's item, else the first item
+            const shouldPlaceCursor = !isBattle.value && !selectedItem.value;
+            if (shouldPlaceCursor) {
+              const first = leftHandSlots.value[0] ?? rightHandSlots.value[0] ?? specialItems.value[0];
+              selectedItem.value = first ? catalogueEntry(first) : null;
+            }
+            return;
+          }
           itemInfoOpen.value = false;
           classSelectorOpen.value = false;
         }
@@ -270,22 +344,6 @@
         closeItemInfo();
       };
 
-      const handleEquipFromModal = async (
-        item: EquipmentItem,
-        hand: string,
-        index: number
-      ) => {
-        await performEquip(item, hand, index);
-      };
-
-      const handleUnequipFromModal = async (
-        item: EquipmentItem,
-        hand: string,
-        index: number
-      ) => {
-        await performUnequip(hand, index);
-      };
-
       const handleEquipRequest = async (
         item: EquipmentItem | null,
         hand?: string,
@@ -296,12 +354,12 @@
         if (isUnequipWithoutHand) return;
 
         if (item) {
-          const shouldRefuseLockedItem = isLocked(item) && !equippedItems.value.has(item.faIcon);
+          const shouldRefuseLockedItem = isLocked(item) && !isEquippedIcon(item.faIcon);
           if (shouldRefuseLockedItem) {
             await refuseLocked(item);
             return;
           }
-          const isEquipped = equippedItems.value.has(item.faIcon);
+          const isEquipped = isEquippedIcon(item.faIcon);
           if (isEquipped) {
             // Already equipped - unequip it
             const leftIndex = leftHandSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
@@ -330,79 +388,6 @@
             } else {
               await performEquip(item, "left", 0); // Replace left by default
             }
-          }
-        }
-      };
-
-      const performEquip = async (
-        item: EquipmentItem,
-        hand: string,
-        index: number
-      ) => {
-        const targetSlots = hand === "left" ? leftHandSlots : rightHandSlots;
-        let replacedItemName: string | null = null;
-
-        // Check if already equipped elsewhere
-        const isEquippedElsewhere = equippedItems.value.has(item.faIcon);
-        if (isEquippedElsewhere) {
-          const otherHand = hand === "left" ? "right" : "left";
-          const otherSlots = hand === "left" ? rightHandSlots : leftHandSlots;
-          const otherIndex = otherSlots.value.findIndex((slot) => slot?.faIcon === item.faIcon);
-
-          const isInOtherHand = otherIndex !== -1;
-          if (isInOtherHand) {
-            await performUnequip(otherHand, otherIndex, false);
-          }
-        }
-
-        // Check if replacing
-        const currentItemInSlot = targetSlots.value[index];
-        if (currentItemInSlot) {
-          replacedItemName = currentItemInSlot.name;
-          equippedItems.value.delete(currentItemInSlot.faIcon);
-        }
-
-        // Equip
-        targetSlots.value[index] = { ...item };
-        equippedItems.value.add(item.faIcon);
-        emit("equip-item", targetSlots.value[index], hand, index);
-
-        const message = replacedItemName
-          ? `${replacedItemName} replaced with ${item.name}`
-          : `${item.name} equipped to ${hand} hand`;
-        const color = replacedItemName ? "warning" : "success";
-        const toast = await toastController.create({
-          message,
-          duration: 2000,
-          position: "bottom",
-          color,
-          cssClass: "rpg-toast",
-        });
-        await toast.present();
-      };
-
-      const performUnequip = async (
-        hand: string,
-        index: number,
-        showToast = true
-      ) => {
-        const targetSlots = hand === "left" ? leftHandSlots : rightHandSlots;
-        const itemToUnequip = targetSlots.value[index];
-
-        if (itemToUnequip) {
-          targetSlots.value[index] = null;
-          equippedItems.value.delete(itemToUnequip.faIcon);
-          emit("equip-item", null, hand, index);
-
-          if (showToast) {
-            const toast = await toastController.create({
-              message: `${itemToUnequip.name} unequipped`,
-              duration: 2000,
-              position: "bottom",
-              color: "medium",
-              cssClass: "rpg-toast",
-            });
-            await toast.present();
           }
         }
       };
@@ -445,12 +430,18 @@
         leftHandSlots,
         rightHandSlots,
         isBattle,
+        isRetro,
+        handOf,
+        selectedHand,
+        isSelectedLocked,
+        selectHand,
+        equipSelected,
+        unequipSelected,
+        onStageDrop,
         selectedBattleCard,
         openItemInfo,
         closeItemInfo,
         useSelectedItem,
-        handleEquipFromModal,
-        handleUnequipFromModal,
         handleEquipRequest,
         equipItem,
         close,
@@ -464,35 +455,4 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  .xp-equipment-modal {
-    ion-header ion-toolbar {
-      --background: #230828;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    ion-content {
-      --background: transparent;
-      overflow: visible;
-
-      ion-grid {
-        padding: 2.5%;
-        padding-bottom: 120px; // Space for the dock
-      }
-    }
-
-    .equipment-dock {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.05);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-      padding: 0.25rem 1rem;
-      z-index: 100;
-    }
-  }
-</style>
+<style lang="scss" scoped src="./_XpEquipmentModal.scss"></style>

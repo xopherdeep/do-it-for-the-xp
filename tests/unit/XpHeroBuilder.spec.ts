@@ -186,9 +186,9 @@ describe("XpHeroBuilder", () => {
       equipment: { leftHand: [{ faIcon: "fa-sword" }], rightHand: [] },
     });
 
-    // On Body the hero wears it, and carries what the profile equips
+    // On Body the hero wears it, and carries what the profile equips (mirrored: the Left hand item is on screen left)
     expect(stageLook(wrapper).hat).toBe("crown");
-    expect(stageLook(wrapper).leftHand).toBe("fa-sword");
+    expect(stageLook(wrapper).rightHand).toBe("fa-sword");
 
     await tab(wrapper, "Hair").trigger("click");
     expect(stageLook(wrapper).hat).toBe("none");
@@ -225,15 +225,15 @@ describe("XpHeroBuilder", () => {
     const picked = stageLook(wrapper);
     expect(picked).not.toBe(onBody);
     expect(picked.outfit).toBe("robe");
-    expect(picked.leftHand).toBe("fa-sword");
+    expect(picked.rightHand).toBe("fa-sword");
     await tab(wrapper, "Face").trigger("click");
     expect(stageLook(wrapper)).toBe(picked);
 
     // New equipment changes the hands, so that is a new hero too
     await wrapper.setProps({ equipment: { leftHand: [], rightHand: [{ faIcon: "fa-shield" }] } });
     expect(stageLook(wrapper)).not.toBe(picked);
-    expect(stageLook(wrapper).rightHand).toBe("fa-shield");
-    expect(stageLook(wrapper).leftHand).toBeUndefined();
+    expect(stageLook(wrapper).leftHand).toBe("fa-shield");
+    expect(stageLook(wrapper).rightHand).toBeUndefined();
   });
 
   it("makes a new stage look when the hat comes off for Hair and goes back on", async () => {

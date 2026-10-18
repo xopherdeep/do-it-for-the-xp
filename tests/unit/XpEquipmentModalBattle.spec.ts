@@ -6,6 +6,7 @@ import XpEquipmentModal from "@/app/Console/MyPortal/UserHud/components/XpEquipm
 import EquippedItemsCard from "@/app/Console/MyPortal/UserHud/components/equipment/EquippedItemsCard.vue";
 import EquipmentGrid from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentGrid.vue";
 import ItemInfoModal from "@/app/Console/MyPortal/UserHud/components/equipment/ItemInfoModal.vue";
+import EquipmentDetail from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentDetail.vue";
 import XpClassCodex from "@/app/Console/MyPortal/UserHud/components/ClassCodex/XpClassCodex.vue";
 import type { EquipmentItem } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -147,7 +148,7 @@ describe("XpEquipmentModal in battle mode", () => {
     expect(codex()?.props("isOpen")).toBe(false);
   });
 
-  it("battle mode: the card shows the effect line instead of the catalogue lore, equip mode keeps the lore", async () => {
+  it("battle mode: the card shows the effect line instead of the catalogue lore, the equip card keeps the lore", async () => {
     const lore = "Freezes the traps next to you";
     mounted = await battle();
     await iceWandTile(mounted).trigger("click");
@@ -160,7 +161,7 @@ describe("XpEquipmentModal in battle mode", () => {
 
     mounted = await open();
     await iceWandTile(mounted).trigger("click");
-    expect(mounted.findComponent(ItemInfoModal).find(".description-box").text()).toContain(lore);
+    expect(mounted.findComponent(EquipmentDetail).text()).toContain(lore);
   });
 
   it("battle mode: a card with a reason disables Use and shows why", async () => {
@@ -284,33 +285,86 @@ describe("XpEquipmentModal in battle mode", () => {
     expect(mounted.emitted("use-item")).toHaveLength(2);
   });
 
-  it("equip mode is unchanged", async () => {
+  it("equip mode: a tap moves the cursor and the card below shows the item, with no popup", async () => {
     mounted = await open();
     await iceWandTile(mounted).trigger("click");
 
-    const info = mounted.findComponent(ItemInfoModal);
-    expect(info.props("mode")).toBe("equip");
+    expect(mounted.findComponent(ItemInfoModal).exists()).toBe(false);
+    expect(iceWandTile(mounted).classes()).toContain("is-selected");
+    const detail = mounted.findComponent(EquipmentDetail);
+    expect(detail.props("item")).toMatchObject({ name: "Ice Wand" });
+    expect(mounted.find("[data-cy=detail-mp]").text()).toBe("10 MP");
+    expect(mounted.find("[data-cy=chip-temple]").exists()).toBe(true);
+    expect(mounted.find("[data-cy=chip-battle]").exists()).toBe(true);
+    expect(detail.text()).toContain("Freezes the traps next to you.");
     expect(mounted.find("[data-cy=item-use]").exists()).toBe(false);
-    expect(mounted.find("[data-cy=item-reason]").exists()).toBe(false);
-    expect(info.findAll(".slot-btn")).toHaveLength(4);
-    expect(info.text()).toContain("EQUIP");
     expect(mounted.findComponent(EquipmentGrid).props("noDrag")).toBe(false);
     expect(mounted.find(".grid-item").attributes("draggable")).toBe("true");
-    expect(mounted.findComponent(EquippedItemsCard).props("readonly")).toBe(false);
+    expect(mounted.findComponent(EquippedItemsCard).exists()).toBe(false);
     expect(mounted.find("[data-cy=change-class]").exists()).toBe(true);
 
-    // a container still opens its card instead of using
+    // a container is only shown, never used
     await bottlesTile(mounted).trigger("click");
     expect(mounted.emitted("use-item")).toBeUndefined();
-    expect(mounted.findComponent(ItemInfoModal).props("item")).toMatchObject({ name: "Bottles" });
+    expect(mounted.findComponent(EquipmentDetail).props("item")).toMatchObject({ name: "Bottles" });
   });
 
-  it("equip mode is unchanged: a dock drop still equips", async () => {
+  it("equip mode: the card's hand buttons equip, and the hand holding the item reads Take off", async () => {
     mounted = await open();
-    await mounted.findAll(".equipment-slot")[0].trigger("drop", { dataTransfer: { getData: () => DROPPED } });
+    await iceWandTile(mounted).trigger("click");
+    await mounted.find("[data-cy=equip-right]").trigger("click");
     await flushPromises();
-    expect(mounted.findComponent(EquippedItemsCard).emitted("equip")).toHaveLength(1);
-    expect(mounted.emitted("equip-item")).toHaveLength(1);
+
+    const equipped = mounted.emitted("equip-item") as unknown[][];
+    expect(equipped).toHaveLength(1);
+    expect(equipped[0][0]).toMatchObject({ name: "Ice Wand" });
+    expect(equipped[0].slice(1)).toEqual(["right", 0]);
+    expect(mounted.find("[data-cy=hand-right]").text()).toContain("Ice Wand");
+    expect(iceWandTile(mounted).find(".equipped-tag").text()).toBe("R");
+
+    const takeOff = mounted.find("[data-cy=equip-right]");
+    expect(takeOff.text()).toContain("Take off");
+    await takeOff.trigger("click");
+    await flushPromises();
+    expect(equipped).toHaveLength(2);
+    expect(equipped[1]).toEqual([null, "right", 0]);
+    expect(mounted.find("[data-cy=hand-right]").text()).toContain("Empty");
+  });
+
+  it("equip mode: a second tap on the same tile equips it to a free hand", async () => {
+    mounted = await open();
+    await iceWandTile(mounted).trigger("click");
+    expect(mounted.emitted("equip-item")).toBeUndefined();
+    await iceWandTile(mounted).trigger("click");
+    await flushPromises();
+    const equipped = mounted.emitted("equip-item") as unknown[][];
+    expect(equipped).toHaveLength(1);
+    expect(equipped[0].slice(1)).toEqual(["left", 0]);
+  });
+
+  it("equip mode: a locked item shows as ??? with how it is earned, and cannot be equipped", async () => {
+    mounted = await open({ user: { id: "u1", jobClass: "Mage", unlockedItems: [] } });
+    await tile(mounted, "bow-arrow").trigger("click");
+    await tile(mounted, "bow-arrow").trigger("click");
+    await flushPromises();
+
+    expect(mounted.find(".equipment-detail .detail-name").text()).toBe("???");
+    expect(mounted.find("[data-cy=detail-hint]").text()).toContain("Light Temple");
+    expect(mounted.find("[data-cy=equip-left]").attributes("disabled")).toBeDefined();
+    expect(mounted.emitted("equip-item")).toBeUndefined();
+  });
+
+  it("equip mode: the hands show what the hero holds, and a tile dropped on a hand equips there", async () => {
+    mounted = await open({ equipment: [heldIce] });
+    expect(mounted.find("[data-cy=hand-left]").text()).toContain("Ice Wand");
+    expect(iceWandTile(mounted).find(".equipped-tag").text()).toBe("L");
+
+    await mounted.find("[data-cy=hand-right]").trigger("drop", { dataTransfer: { getData: () => DROPPED } });
+    await flushPromises();
+    const equipped = mounted.emitted("equip-item") as unknown[][];
+    expect(equipped).toHaveLength(2); // out of the left hand, into the right
+    expect(equipped[0]).toEqual([null, "left", 0]);
+    expect(equipped[1].slice(1)).toEqual(["right", 0]);
     expect(mounted.emitted("use-item")).toBeUndefined();
   });
 });

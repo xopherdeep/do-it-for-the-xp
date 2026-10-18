@@ -12,6 +12,7 @@ import { animateHero } from "../voxel/animate";
 import { buildHero, disposeHero, groupMesh, PART_NAMES } from "../voxel/build";
 import { buildMeshData, visibleFaces } from "../voxel/mesh";
 import { body, hair, hat, head, held, heldKind } from "../voxel/parts";
+import { GEAR_BY_ICON } from "../voxel/held";
 import { box } from "../voxel/shape";
 
 /**
@@ -166,6 +167,20 @@ describe("parts", () => {
     const total = headHeight + 8; // legs 3 + torso 5
     expect(headHeight / total).toBeGreaterThan(0.4);
     expect(headHeight / total).toBeLessThan(0.5);
+  });
+
+  it("holds every Equipment screen item as a model of its own", () => {
+    const icons = Object.keys(GEAR_BY_ICON);
+    const kinds = icons.map((icon) => heldKind(icon));
+    expect(new Set(kinds).size).toBe(icons.length);
+    expect(heldKind("flashlight")).toBe("lantern");
+    expect(heldKind("fa-wand-magic ice")).toBe("iceWand");
+    expect(heldKind("bolt")).toBe("lightning");
+    for (const icon of icons) {
+      const item = held(icon);
+      expect(item?.boxes.length).toBeGreaterThan(2);
+      expect(item?.raise).toBeGreaterThan(0);
+    }
   });
 
   it("maps icon names to held items, and nothing for an empty hand", () => {

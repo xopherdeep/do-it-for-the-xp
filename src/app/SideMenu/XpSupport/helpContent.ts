@@ -272,7 +272,11 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         question: "How do I change my class?",
-        answer: "Open the Equipment menu from the bottom bar and use the Class Codex. New classes unlock when you reach level 10 in the class before them.",
+        answer: "Open the Equipment menu from the bottom bar and tap your class under your hero to open the Class Codex. New classes unlock when you reach level 10 in the class before them.",
+      },
+      {
+        question: "How do I put an item in my hand?",
+        answer: "Open the Equipment menu from the bottom bar and tap an item to see what it does and where it works. Then tap Left hand or Right hand, or tap the item again to put it in a free hand. Your hero holds it, and the button on that side of the bottom bar uses it.",
       },
     ],
   },
