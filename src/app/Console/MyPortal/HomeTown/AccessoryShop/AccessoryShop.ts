@@ -49,15 +49,15 @@ import shopsDb, {
 } from "@/lib/databases/ShopsDb";
 import { hoursSummary, isShopOpen, opensAtLabel } from "@/lib/services/shops/shopHours";
 import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
+import { stockDefaultShops } from "@/lib/services/shops/shopStock";
 import {
   buyItem as purchaseItem,
   InsufficientFundsError,
   PurchaseError,
-  isConsumableItem,
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
-import { buyWalletUpgrade, hospitalBillOf } from "@/lib/services/gp/wallet";
+import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 import {
   type ShelfFilter,
@@ -67,8 +67,8 @@ import {
   keepsWare,
   walletWareShortBy,
 } from "@/lib/services/shop/shelfFilter";
-import { type BankAction, bankMove, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
-import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
+import type { BankAction } from "@/lib/services/gp/bankTeller";
+import { ATM_NOTES, runBankErrand } from "@/lib/services/gp/bankErrand";
 import {
   atmNotice,
   clerkPrompt,
@@ -102,9 +102,6 @@ const SHELF_FILTERS: ReadonlyArray<{ id: ShelfFilter; label: string }> = [
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
-
-/** How the wallet's history names an ATM move */
-const ATM_NOTES: Record<BankAction, string> = { withdraw: "withdrew", deposit: "deposited", payDebt: "paid debt", borrow: "borrowed" };
 
 const resolveAssetUrl = (asset: any): string => {
   if (!asset) return "";
@@ -323,27 +320,16 @@ export default defineComponent({
       return this.atmErrand("payDebt", data);
     },
 
-    // The ATM asks how much (on its stepper) and hands the amount over; the move and its receipt are the shop's,
-    // by the same rules as the Gold Bank: a refusal says why, and paying the Hospital's bill to 0 lifts the grounding.
+    // The ATM asks how much (on its stepper) and hands the amount over; the move and its receipt follow the
+    // Gold Bank's rules: a refusal says why, and paying the Hospital's bill to 0 lifts the grounding.
     async atmErrand(action: BankAction, data: GpAmount) {
-      const amount = Number(data?.gp);
-      const hero = this.user;
-      // No amount to move, or no purse to move it in: nothing happens
-      const stats = amount > 0 ? hero?.stats : undefined;
-      if (!stats) return;
-
-      const before = stats.gp;
-      const move = bankMove(action, before, amount);
-      const refusal = bankRefusal(action, before, move, this.words);
-      if (refusal) {
-        await this.reveal.showPrompt(atmNotice(this.voice, refusal, { sound: "no" }));
-        return;
-      }
-      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
-      const receipt = bankReceipt(action, before, move, this.words);
-      this.userStore.setWallet(this.heroId, move.gp, { kind: action, note: `ATM: ${ATM_NOTES[action]}` });
-      if (clearsBill) announceBillPaid(this.heroId);
-      await this.reveal.showPrompt(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
+      const errand = runBankErrand(this.heroId, action, Number(data?.gp), this.words, `ATM: ${ATM_NOTES[action]}`);
+      // No amount, or no hero loaded: the ATM says nothing
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isPaid = errand?.ok === true;
+      if (isRefused) await this.reveal.showPrompt(atmNotice(this.voice, line, { sound: "no" }));
+      if (isPaid) await this.reveal.showPrompt(atmNotice(this.voice, line, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
 
     // The shelves rise as the game's sheet at the bottom of the screen, ringed in the shop's colour
@@ -411,8 +397,10 @@ export default defineComponent({
       const isTurnedAway = this.turnedAwayWhileClosed();
       if (isTurnedAway) return;
       this.isBuying = true;
+      let isPacked = false;
       try {
-        await purchaseItem(this.heroId, item);
+        const entry = await purchaseItem(this.heroId, item);
+        isPacked = entry.status === "fulfilled";
       } catch (error) {
         this.isBuying = false;
         const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
@@ -430,9 +418,9 @@ export default defineComponent({
       } finally {
         this.isBuying = false;
       }
-      // Consumables are packed in the bag immediately; real-life goods await Game Master handover
-      const isConsumable = isConsumableItem(item);
-      const receiptPrompt = isConsumable
+      // Consumables are packed in the bag immediately; real-life goods, and game items when the family approves every
+      // purchase, await Game Master handover
+      const receiptPrompt = isPacked
         ? consumablePurchaseReceipt(this.voice, item.name, this.words)
         : purchaseReceipt(this.voice, item.name, this.words);
       await this.reveal.showPrompt(receiptPrompt);
@@ -519,6 +507,8 @@ export default defineComponent({
     const loadShelf = async () => {
       const thisLoad = ++latestLoad;
       try {
+        // A shop nobody has stocked yet opens with the default potions, whatever pack the family loaded
+        await stockDefaultShops().catch((error) => debug.warn("Failed to stock the default potions:", error));
         const requested = props.merchant ? await shopsDb.getShopById(props.merchant) : null;
         const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
         const accessories = await accessoriesDb.getAccessories();

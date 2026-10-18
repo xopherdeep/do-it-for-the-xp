@@ -30,12 +30,37 @@
         </ion-list>
       </ion-card>
       <xp-late-chores-card :can-manage="canManage" />
+      <ion-card class="max-w-2xl" data-cy="auto-save-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Savings</ion-label>
+          </ion-item-divider>
+          <ion-item lines="none" class="setting-stacked">
+            <div class="setting-stacked__body">
+              <ion-label class="ion-text-wrap">
+                <h2>Auto-save GP</h2>
+                <p>Put a share of every reward (quests, won fights, streak chests, temple treasure) straight into the hero's savings at the Gold Bank.</p>
+              </ion-label>
+              <ion-select
+                class="setting-stacked__select"
+                interface="action-sheet"
+                aria-label="Auto-save GP"
+                data-cy="auto-save-percent"
+                :value="rules.autoSavePercent"
+                :disabled="!canManage"
+                @ionChange="rules.setAutoSavePercent(Number($event.detail.value))"
+              >
+                <ion-select-option v-for="percent in percents" :key="percent" :value="percent">{{ percentLabel(percent) }}</ion-select-option>
+              </ion-select>
+            </div>
+          </ion-item>
+        </ion-list>
+      </ion-card>
       <ion-card class="max-w-2xl">
         <ion-card-content>
-          <p>Today each quest carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium. More family-wide chore rules are on the way.</p>
+          <p>Each quest also carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium.</p>
         </ion-card-content>
       </ion-card>
-      <xp-coming-soon-card :items="items" />
     </ion-content>
   </ion-page>
 </template>
@@ -52,19 +77,25 @@ import {
   IonLabel,
   IonList,
   IonPage,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToggle,
   IonToolbar,
 } from "@ionic/vue";
+import { computed } from "vue";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
-import XpComingSoonCard from "./XpComingSoonCard.vue";
+import { AUTO_SAVE_PERCENTS } from "@/lib/services/family/familySettings";
 import XpLateChoresCard from "./XpLateChoresCard.vue";
-import { CHORE_COMING_SOON } from "./comingSoon";
 
-const items = CHORE_COMING_SOON;
+const percents = AUTO_SAVE_PERCENTS;
+const percentLabel = (percent: number): string => (percent ? `${percent}% to savings` : "Off");
 const rules = useGameRulesStore();
 void rules.load();
-// Only a Game Master changes the family's rules; a hero sees how they are set
-const canManage = canManageFamily();
+// Only a Game Master changes the family's rules; a hero sees how they are set. Read live: on a cold start the
+// profiles load after the page does
+const userStore = useUserStore();
+const canManage = computed(() => canManageFamily(userStore));
 </script>

@@ -24,6 +24,11 @@ import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
 import { templeStorage } from "@/lib/databases/TempleDb";
 import { templeProgressStorage } from "@/lib/databases/TempleProgressDb";
+import { castLogStorage } from "@/lib/databases/CastLogDb";
+import { familySettingsStorage } from "@/lib/databases/FamilySettingsDb";
+import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
+import { notificationsStorage } from "@/lib/databases/NotificationsDb";
+import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
 
 // Every database module is swapped for a sentinel storage: the registry spec only has to see WHICH
 // storage sits on which line. All behaviour specs inject in-memory fakes through the constructor.
@@ -47,6 +52,12 @@ jest.mock("@/lib/databases/TempleProgressDb", () => ({
   __esModule: true,
   templeProgressStorage: { sentinel: "templeProgress" },
 }));
+jest.mock("@/lib/databases/CastLogDb", () => ({ __esModule: true, castLogStorage: { sentinel: "castLog" } }));
+jest.mock("@/lib/databases/FamilySettingsDb", () => ({ __esModule: true, familySettingsStorage: { sentinel: "familySettings" } }));
+jest.mock("@/lib/databases/LatePenaltyLogDb", () => ({ __esModule: true, latePenaltyStorage: { sentinel: "latePenalties" } }));
+jest.mock("@/lib/databases/NotificationsDb", () => ({ __esModule: true, notificationsStorage: { sentinel: "notifications" } }));
+jest.mock("@/lib/services/core/localSettingsBackup", () => ({ __esModule: true, localSettingsStorage: { sentinel: "localSettings" } }));
+jest.mock("@/lib/services/core/backupFile", () => ({ __esModule: true, saveBackupFile: jest.fn() }));
 jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveProfiles: jest.fn().mockResolvedValue(undefined) },
@@ -168,6 +179,11 @@ describe("BACKUP_STORES registry", () => {
       "__purchaseLog",
       "__chat",
       "__dosDonts",
+      "__family_settings",
+      "__castLog",
+      "__latePenalties",
+      "__notifications",
+      "__localSettings",
       "__packs",
     ]);
   });
@@ -187,7 +203,19 @@ describe("BACKUP_STORES registry", () => {
     expect(storageOf("__purchaseLog")).toBe(purchaseLogStorage);
     expect(storageOf("__chat")).toBe(chatStorage);
     expect(storageOf("__dosDonts")).toBe(dosDontsStorage);
+    expect(storageOf("__family_settings")).toBe(familySettingsStorage);
+    expect(storageOf("__castLog")).toBe(castLogStorage);
+    expect(storageOf("__latePenalties")).toBe(latePenaltyStorage);
+    expect(storageOf("__notifications")).toBe(notificationsStorage);
+    expect(storageOf("__localSettings")).toBe(localSettingsStorage);
     expect(storageOf("__packs")).toBe(packLibraryStorage);
+  });
+
+  it("keeps device-only and private stores out of the file", () => {
+    const names = BACKUP_STORES.map((store) => store.name);
+    ["__xp_family_events", "__xp_hero_device", "__xp_town_hall", "__xp_pro", "__xp_claim_photos"].forEach((name) =>
+      expect(names).not.toContain(name)
+    );
   });
 
   it("never reuses a name or a storage, and every store has a label", () => {
@@ -270,61 +298,25 @@ describe("createBackup", () => {
   });
 });
 
-describe("downloadBackup", () => {
-  const backup = backupOf({ __profiles: [["p1", hero("p1")]] });
-  const RealBlob = global.Blob;
-  let clicked: Array<{ download: string; href: string }>;
-  let clickSpy: jest.SpyInstance;
+describe("exportAll", () => {
+  const backupStore = (): BackupStoreDef => ({ name: "__profiles", label: "Profiles", storage: new FakeStorage("profiles", [], { p1: hero("p1") }).asStorage() });
 
-  /** jsdom's Blob cannot be read back, so a stand-in keeps what it was built from */
-  class CapturingBlob {
-    constructor(readonly parts: unknown[], readonly options?: { type?: string }) {}
-  }
+  it("hands the pretty-printed backup to the saver under the export date's file name and reports where it went", async () => {
+    const saveFile = jest.fn(async (fileName: string) => ({ fileName, savedTo: "in Documents" }));
+    const result = await new BackupService([backupStore()], jest.fn(), () => true, saveFile).exportAll();
 
-  beforeEach(() => {
-    clicked = [];
-    clickSpy = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
-      clicked.push({ download: this.download, href: this.href });
-    });
-  });
-
-  afterEach(() => {
-    clickSpy.mockRestore();
-    jest.useRealTimers();
-    global.Blob = RealBlob;
-    delete (URL as unknown as Record<string, unknown>).createObjectURL;
-    delete (URL as unknown as Record<string, unknown>).revokeObjectURL;
-  });
-
-  it("downloads pretty-printed JSON as a Blob file named for the export date, then frees the URL", () => {
-    jest.useFakeTimers();
-    global.Blob = CapturingBlob as unknown as typeof Blob;
-    const createObjectURL = jest.fn((_blob: unknown) => "blob:backup-1");
-    const revokeObjectURL = jest.fn();
-    Object.assign(URL, { createObjectURL, revokeObjectURL });
-
-    const fileName = new BackupService([], jest.fn()).downloadBackup(backup);
-
+    const [fileName, json] = saveFile.mock.calls[0] as unknown as [string, string];
+    const backup = JSON.parse(json) as BackupFile;
     expect(fileName).toBe(backupFileName(new Date(backup.exportedAt)));
-    expect(clicked).toEqual([{ download: fileName, href: "blob:backup-1" }]);
-    const blob = createObjectURL.mock.calls[0][0] as CapturingBlob;
-    expect(blob.options).toEqual({ type: "application/json" });
-    expect(blob.parts).toEqual([JSON.stringify(backup, null, 2)]);
-    expect(document.querySelector("a[download]")).toBeNull();
-
-    expect(revokeObjectURL).not.toHaveBeenCalled();
-    jest.advanceTimersByTime(10_000);
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:backup-1");
+    expect(json).toBe(JSON.stringify(backup, null, 2));
+    expect(backup.stores.__profiles).toEqual([{ key: "p1", value: hero("p1") }]);
+    expect(result).toEqual(expect.objectContaining({ fileName, savedTo: "in Documents" }));
+    expect(result.summary.total).toBe(1);
   });
 
-  it("falls back to a data: URL where Blob URLs do not exist", () => {
-    const fileName = new BackupService([], jest.fn()).downloadBackup(backup);
-
-    expect(clicked).toHaveLength(1);
-    expect(clicked[0].download).toBe(fileName);
-    const prefix = "data:application/json;charset=utf-8,";
-    expect(clicked[0].href.startsWith(prefix)).toBe(true);
-    expect(JSON.parse(decodeURIComponent(clicked[0].href.slice(prefix.length)))).toEqual(backup);
+  it("fails, instead of reporting a backup, when the file could not be saved", async () => {
+    const saveFile = jest.fn().mockRejectedValue(new Error("The share sheet was closed"));
+    await expect(new BackupService([backupStore()], jest.fn(), () => true, saveFile).exportAll()).rejects.toThrow("share sheet was closed");
   });
 });
 

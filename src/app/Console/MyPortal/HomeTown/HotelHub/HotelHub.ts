@@ -7,10 +7,10 @@ import { useBack } from "@/hooks/useBack";
 import { useCopy, useVoice } from "@/hooks/useVoice";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
-import { getGPService } from "@/lib/services/gp";
+import type { BankAction } from "@/lib/services/gp/bankTeller";
+import { ATM_NOTES, runBankErrand } from "@/lib/services/gp/bankErrand";
 import { quoteCare } from "@/lib/services/hometown/Lodging";
 import type { CareQuote } from "@/lib/services/hometown/Lodging";
 import {
@@ -27,6 +27,11 @@ import {
   getHotelMetadata,
   type HotelMetadata,
 } from "@/lib/engine/core/hotelRegistry";
+
+/** What the ATM hands over: the amount picked on its stepper */
+interface GpAmount {
+  gp?: number | string;
+}
 
 export default defineComponent({
   props: ["userId", "world"],
@@ -77,48 +82,33 @@ export default defineComponent({
       this.showAtm = true;
     },
 
-    clickDeposit(data: { gp?: number | string }) {
-      const amount = Number(data.gp);
-      const hasAmount = amount > 0;
-      if (hasAmount) {
-        getGPService()
-          .depositToSavings(this.userId, amount)
-          .then(() => {
-            this.play$fx("countCoins");
-          })
-          .catch((error) => {
-            debug.log("Deposit error:", error.message);
-          });
-      }
+    clickDeposit(data: GpAmount) {
+      return this.atmErrand("deposit", data);
     },
 
-    clickWithdraw(data: { gp?: number | string }) {
-      const amount = Number(data.gp);
-      const hasAmount = amount > 0;
-      if (hasAmount) {
-        getGPService()
-          .withdrawFromSavings(this.userId, amount)
-          .then(() => {
-            this.play$fx("countCoins");
-          })
-          .catch((error) => {
-            debug.log("Withdraw error:", error.message);
-          });
-      }
+    clickWithdraw(data: GpAmount) {
+      return this.atmErrand("withdraw", data);
     },
 
-    clickPayDebt(data: { gp?: number | string }) {
-      const amount = Number(data.gp);
-      const hasAmount = amount > 0;
-      if (hasAmount) {
-        getGPService()
-          .payDebtFromWallet(this.userId, amount)
-          .then(() => {
-            this.play$fx("finish");
-          })
-          .catch((error) => {
-            debug.log("Pay debt error:", error.message);
-          });
+    clickPayDebt(data: GpAmount) {
+      return this.atmErrand("payDebt", data);
+    },
+
+    // The lobby ATM works like the shop's: a refusal says why, the move gets its line in the wallet's history, and
+    // paying the Hospital's bill to 0 lifts the grounding and tells the family.
+    async atmErrand(action: BankAction, data: GpAmount) {
+      const errand = runBankErrand(String(this.userId), action, Number(data?.gp), this.words, `ATM: ${ATM_NOTES[action]}`);
+      // No amount, or no hero loaded: the ATM says nothing
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isPaid = errand?.ok === true;
+      if (isRefused) {
+        this.play$fx("no");
+        await this.reveal.showPrompt(conciergeNotice(line, undefined, "ATM"));
+      }
+      if (isPaid) {
+        this.play$fx(action === "payDebt" ? "finish" : "countCoins");
+        await this.reveal.showPrompt(conciergeNotice(line, "coins", "ATM"));
       }
     },
 

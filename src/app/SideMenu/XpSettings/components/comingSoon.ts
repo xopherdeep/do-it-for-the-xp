@@ -7,37 +7,25 @@ export interface ComingSoonItem {
   description: string;
 }
 
+/** Every screen's words are written in English in the code, so a second language needs a translation pass first */
 export const GENERAL_COMING_SOON: ComingSoonItem[] = [
   { title: "App language", description: "Play in Spanish, French, German or Japanese" },
-  { title: "Landing page", description: "Pick the screen you see after signing in" },
-  { title: "Start the week on Sunday", description: "Calendars begin on Sunday instead of Monday" },
-  { title: "Helper dialogs", description: "Turn the in-app guides and walkthroughs on or off" },
   { title: "Family overview", description: "See the whole family from Choose A Profile" },
 ];
 
+/** Each game style paints its own windows and colors, so a dark mode and color sets need a pass over every style */
 export const THEME_COMING_SOON: ComingSoonItem[] = [
   { title: "Dark mode", description: "A darker look across the app" },
   { title: "Color theme", description: "Fantasy and retro color sets" },
 ];
 
+/** Telling a Game Master's own phone about a hero's chore goes through the family server, which ships switched off (multiplayerFlag) */
 export const ALERTS_COMING_SOON: ComingSoonItem[] = [
   { title: "Game Master reminders", description: "Remind Game Masters when a hero's chore is nearly due" },
   { title: "Done notices", description: "Tell Game Masters, or other heroes, when a chore is finished" },
 ];
 
-/** The stored bedtime (familySettings.ts) is kept, but nothing locks, warns or blocks at night yet */
-export const FAMILY_COMING_SOON: ComingSoonItem[] = [
-  { title: "Bedtime", description: "Set when the family's night begins and ends, and lock the portal after lights out" },
-];
-
-export const CHORE_COMING_SOON: ComingSoonItem[] = [
-  { title: "Auto-save GP", description: "Put a share of every reward straight into savings" },
-];
-
-export const REWARD_COMING_SOON: ComingSoonItem[] = [
-  { title: "Approve every purchase", description: "Check game-item purchases too, not only Real Life rewards" },
-];
-
+/** Parties across families go through the family server, which ships switched off (multiplayerFlag) */
 export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Parties with friends", description: "Form parties and guilds with other families" },
   { title: "Family circle posts", description: "See posts from families in your circle, and choose who can post or read" },

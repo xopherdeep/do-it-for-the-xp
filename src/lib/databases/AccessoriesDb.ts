@@ -92,13 +92,15 @@ export class AccessoriesDb extends DbStorageApi {
     }
   }
 
-  public async setAccessory(accessory: Accessory) {
+  /** Saves the item and answers with its id (minted here for a new item) */
+  public async setAccessory(accessory: Accessory): Promise<string> {
     const id = accessory.id ? accessory.id : uuidv4()
     await this.set(id, {
       ...this.createAccessory(),
       ...accessory,
       id
     })
+    return String(id)
   }
 
   public async deleteAccessory(accessory: Accessory) {

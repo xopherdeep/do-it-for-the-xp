@@ -8,6 +8,7 @@ import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { levelUpsOf, recapHeroesOf } from "@/lib/services/insights/recapRoster";
 import { recapShareText, weeklyRecap } from "@/lib/services/insights/weeklyRecap";
 import type { RecapLevelUp, RecapSpan } from "@/lib/services/insights/weeklyRecap";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
@@ -48,8 +49,15 @@ export default defineComponent({
     const viewerId = computed(() => String(props.userId || userStore.currentUser?.id || ""));
     const isGameMaster = computed(() => canManageFamily());
     const heroes = computed(() => recapHeroesOf(userStore.users));
+    // "This week" starts on the family's first day of the week (Settings > General)
+    const rules = useGameRulesStore();
+    void rules.load();
     const recap = computed(() =>
-      weeklyRecap(entries.value, heroes.value, new Date(), { span: span.value, levelUps: levelUps.value })
+      weeklyRecap(entries.value, heroes.value, new Date(), {
+        span: span.value,
+        levelUps: levelUps.value,
+        weekStartsOn: rules.weekStartsOn,
+      })
     );
     const shownHeroes = computed(() =>
       recap.value.heroes

@@ -4,6 +4,7 @@ import { rpgToastOptions } from "@/hooks/useToast";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { onQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { rewardGpPayload } from "@/lib/services/gp/autoSave";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { dailyStreak } from "./dailyStreak";
@@ -43,7 +44,7 @@ export const settleStreakChests = async (heroId: string, now: Date = new Date())
     const hasXp = total.xp > 0;
     if (hasXp) userStore.updateUserXP({ userId: heroId, amount: total.xp, commit: true });
     const hasGp = total.gp > 0;
-    if (hasGp) void userStore.updateUserGP({ userId: heroId, wallet: total.gp, kind: "earn", note: "Streak chest" });
+    if (hasGp) void userStore.updateUserGP(rewardGpPayload(heroId, total.gp, "Streak chest"));
     return owed;
   } finally {
     settling.delete(heroId);
