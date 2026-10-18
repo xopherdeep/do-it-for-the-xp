@@ -290,9 +290,10 @@ const potionCards = computed<Map<string, PotionCard>>(() => {
 const potionOf = (entry: InventoryItemWithRaw): PotionCard | null => potionCards.value.get(entry.id) ?? null;
 
 const drinkEntry = (entry: InventoryItemWithRaw, card: PotionCard) => {
-  if (card.reason) {
+  const isRefused = Boolean(card.reason);
+  if (isRefused) {
     play$fx("no");
-    showToast(card.reason);
+    showToast(card.reason ?? "");
     return;
   }
   const outcome = drinkPotion(targetUser.value.id, entry.id);

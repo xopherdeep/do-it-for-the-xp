@@ -116,8 +116,10 @@ export const reshelveItem = (
     const items = shop.items ?? [];
     const isOnShelf = items.some((slot) => slot.itemId === itemId);
     const isChosen = chosen.has(shop.id);
-    if (isChosen && !isOnShelf) return [{ ...shop, items: [...items, { itemId, type: ShopItemType.Accessory }] }];
-    if (!isChosen && isOnShelf) return [{ ...shop, items: items.filter((slot) => slot.itemId !== itemId) }];
+    const isAdded = isChosen && !isOnShelf;
+    const isTakenOff = !isChosen && isOnShelf;
+    if (isAdded) return [{ ...shop, items: [...items, { itemId, type: ShopItemType.Accessory }] }];
+    if (isTakenOff) return [{ ...shop, items: items.filter((slot) => slot.itemId !== itemId) }];
     return [];
   });
 };

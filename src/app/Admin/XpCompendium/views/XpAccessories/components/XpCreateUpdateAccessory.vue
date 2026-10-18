@@ -453,8 +453,12 @@ const loadShelves = async () => {
     const shops = await shopsDb.getShops();
     shelfShops.value = shops.sort((a, b) => shelfRank(a) - shelfRank(b) || a.name.localeCompare(b.name));
     const savedId = original.value?.id;
+    if (savedId) {
+      chosenShops.value = shelvesHolding(shops, String(savedId));
+      return;
+    }
     const hasNewItemShelf = shops.some((shop) => shop.id === NEW_ITEM_SHELF);
-    chosenShops.value = savedId ? shelvesHolding(shops, String(savedId)) : hasNewItemShelf ? [NEW_ITEM_SHELF] : [];
+    chosenShops.value = hasNewItemShelf ? [NEW_ITEM_SHELF] : [];
   } catch (error) {
     debug.warn("[ItemWizard] the shops could not be read", error);
   }
