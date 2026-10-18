@@ -37,6 +37,16 @@
           @dismiss="dismissPost"
           @edit="openEdit"
         />
+        <town-hall-packs
+          v-if="isOpened('packs')"
+          v-show="selectedTab === 'packs'"
+          ref="packsTab"
+          :waiting="waiting"
+          :share-pack="sharePack"
+          @trouble="onTrouble('packs')"
+          @dismiss="dismissPost"
+          @edit="openEdit"
+        />
         <town-hall-events v-if="isOpened('events')" v-show="selectedTab === 'events'" ref="eventsTab" :groups="groupedEvents" />
         <town-hall-updates
           v-if="isOpened('updates')"

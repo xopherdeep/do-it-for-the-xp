@@ -22,7 +22,7 @@ import {
   type SendResult,
 } from "@/lib/services/townhall/townHallOutbox";
 import { bugEnvironment, draftProblem, requestFor, type PostDraft, type PostRequest } from "@/lib/services/townhall/townHallPosts";
-import { appVersion, hostNonce, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { appVersion, hostNonce, SITE_BOARDS, townHallSiteUrl, type SiteBoardSlug } from "@/lib/services/townhall/townHallSite";
 import type { TownHallLink, TownHallPost, TownHallProfile } from "@/lib/services/townhall/townHallTypes";
 
 /** What coming back from WordPress's "authorize this app" page came to: nothing there, turned down, or a checked link. */
@@ -54,7 +54,7 @@ export interface FlushResult {
   forbidden: boolean;
 }
 
-type BoardIds = Partial<Record<TownHallBoardSlug, number>>;
+type BoardIds = Partial<Record<SiteBoardSlug, number>>;
 
 /** What one flush keeps track of while it runs. */
 interface FlushRun {
@@ -374,7 +374,7 @@ export const useTownHallStore = defineStore("townHall", () => {
   /** Read the site's board ids into the run. False when they cannot be read: the flush stops and the posts wait. */
   async function loadBoardIds(run: FlushRun, withAuth: TownHallAuth): Promise<boolean> {
     try {
-      const boards = await fetchBoards({ auth: withAuth });
+      const boards = await fetchBoards({ auth: withAuth }, SITE_BOARDS);
       run.boardIds = Object.fromEntries(boards.map((board) => [board.slug, board.id]));
       return true;
     } catch (e) {

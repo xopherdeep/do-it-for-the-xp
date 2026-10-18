@@ -242,6 +242,26 @@ export function useTownHallPosting(deps: PostingDeps) {
     await deliver(await flushed);
   };
 
+  /**
+   * A Game Master shares a pack on the Pack Exchange: kept like any post of theirs (no approval to wait for), then sent,
+   * and the clerk says where it goes. Returns what stopped it being kept, or null.
+   */
+  const sharePack = async (draft: PostDraft): Promise<string | null> => {
+    let kept: { problem: string | null; post?: TownHallPost };
+    try {
+      kept = await store.submit(draft, { id: deps.userId(), name: deps.heroName() }, deps.isGameMaster(), deps.route());
+    } catch (error) {
+      debug.error("Town Hall could not keep the pack:", error);
+      return SAVE_TROUBLE;
+    }
+    const post = kept.post;
+    if (kept.problem || !post) return kept.problem ?? SAVE_TROUBLE;
+    const flushed = flushNow();
+    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster())));
+    await deliver(await flushed);
+    return null;
+  };
+
   /** Clear a post from the list; a failure is logged and the post stays */
   const dismissPost = async (id: string): Promise<void> => {
     try {
@@ -264,6 +284,7 @@ export function useTownHallPosting(deps: PostingDeps) {
     closeCompose,
     openClerkMenu,
     sendDraft,
+    sharePack,
     dismissPost,
     sendQueue,
   };

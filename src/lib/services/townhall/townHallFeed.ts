@@ -1,5 +1,5 @@
 import { townHallFetch, type TownHallRequest } from "./townHallClient";
-import { PATCH_NOTES_SLUG, TOWN_HALL_BOARDS, type TownHallBoardSlug } from "./townHallSite";
+import { PATCH_NOTES_SLUG, TOWN_HALL_BOARDS, type SiteBoardSlug, type TownHallBoardSlug } from "./townHallSite";
 
 /** What a read needs from the caller: who asks, and (for tests and other sites) how and where. */
 export type TownHallReadRequest = Pick<TownHallRequest, "auth" | "fetchImpl" | "root">;
@@ -23,9 +23,9 @@ export interface CommentItem {
   content: string;
 }
 
-export interface BoardInfo {
+export interface BoardInfo<S extends SiteBoardSlug = TownHallBoardSlug> {
   id: number;
-  slug: TownHallBoardSlug;
+  slug: S;
   name: string;
   description: string;
   count: number;
@@ -149,11 +149,14 @@ export async function fetchComments(postId: number, req: TownHallReadRequest = {
   }));
 }
 
-/** The Town Hall's boards, in the Town Hall's order, whatever else the site keeps. */
-export async function fetchBoards(req: TownHallReadRequest = {}): Promise<BoardInfo[]> {
+/** The Town Hall's boards (or the `slugs` asked for), in that order, whatever else the site keeps. */
+export async function fetchBoards<S extends SiteBoardSlug = TownHallBoardSlug>(
+  req: TownHallReadRequest = {},
+  slugs: readonly S[] = TOWN_HALL_BOARDS as unknown as readonly S[],
+): Promise<BoardInfo<S>[]> {
   const { data } = await townHallFetch<WpBoard[]>("wp/v2/cafeteria_board", { ...req, query: { per_page: 100 } });
   const terms = data ?? [];
-  return TOWN_HALL_BOARDS.flatMap((slug) => {
+  return slugs.flatMap((slug) => {
     const term = terms.find((candidate) => candidate.slug === slug);
     return term ? [{ id: term.id, slug, name: term.name ?? "", description: term.description ?? "", count: term.count ?? 0 }] : [];
   });

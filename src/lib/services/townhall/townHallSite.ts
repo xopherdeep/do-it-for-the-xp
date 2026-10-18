@@ -20,6 +20,13 @@ export const SIGNUP_URL = "https://www.forthexp.com/wp-signup.php";
 export const TOWN_HALL_BOARDS = ["feature-requests", "ideas-suggestions", "comments-feedback", "suggestion-box"] as const;
 export type TownHallBoardSlug = (typeof TOWN_HALL_BOARDS)[number];
 
+/** The board families share their packs on. It has its own tab (Packs), so it is not one of the community boards. */
+export const PACK_EXCHANGE_BOARD = "pack-exchange";
+
+/** Every board the app posts to: the community boards and the Pack Exchange. */
+export const SITE_BOARDS = [...TOWN_HALL_BOARDS, PACK_EXCHANGE_BOARD] as const;
+export type SiteBoardSlug = (typeof SITE_BOARDS)[number];
+
 /** The category slug of the posts the Patch Notes tab reads. */
 export const PATCH_NOTES_SLUG = "patch-notes";
 

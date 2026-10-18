@@ -1,4 +1,5 @@
-import type { TownHallBoardSlug } from "./townHallSite";
+import { fitsTownHall, packBlock } from "@/lib/services/core/packs/packShare";
+import type { SiteBoardSlug } from "./townHallSite";
 import type { TownHallPost, TownHallPostKind } from "./townHallTypes";
 
 /** What a hero may write for the Town Hall, and how a post becomes a request to the site. All pure. */
@@ -13,8 +14,10 @@ export interface PostDraft {
   kind: TownHallPostKind;
   title?: string;
   body: string;
-  board?: TownHallBoardSlug; // topic
+  board?: SiteBoardSlug; // topic
   postId?: number; // comment
+  /** A pack shared on the Pack Exchange, as compact JSON */
+  pack?: string;
 }
 
 /** The length of a text in characters (code points). */
@@ -39,6 +42,8 @@ export function draftProblem(draft: PostDraft): string | null {
   const isTitleTooLong = charCount(title) > TITLE_MAX;
   if (isTitleTooLong) return "Keep the title under 100 characters.";
   if (!hasBody) return "Write something first.";
+  const isPackTooBig = draft.pack !== undefined && !fitsTownHall(draft.pack);
+  if (isPackTooBig) return "This pack is too big for the Town Hall. Save it as a file and share that instead.";
   const isBodyTooLong = charCount(draft.body) > bodyLimit;
   if (isBodyTooLong) return bodyLimitMessage;
   return null;
@@ -99,7 +104,7 @@ export interface PostRequest {
 }
 
 /** The WordPress REST request that sends a post. Throws when the post lacks what its kind needs. */
-export function requestFor(post: TownHallPost, boardIds: Partial<Record<TownHallBoardSlug, number>>): PostRequest {
+export function requestFor(post: TownHallPost, boardIds: Partial<Record<SiteBoardSlug, number>>): PostRequest {
   const isComment = post.kind === "comment";
   if (isComment) {
     const hasNoParent = post.postId === undefined;
@@ -123,11 +128,16 @@ export function requestFor(post: TownHallPost, boardIds: Partial<Record<TownHall
       },
     };
   }
-  const boardId = post.board === undefined ? undefined : boardIds[post.board as TownHallBoardSlug];
+  const boardId = post.board === undefined ? undefined : boardIds[post.board as SiteBoardSlug];
   const hasNoBoardId = boardId === undefined;
   if (hasNoBoardId) throw new Error(`The board "${post.board ?? ""}" has no id on the site.`);
   return {
     path: "wp/v2/cafeteria_topic",
-    body: { title: post.title ?? "", content: post.body + signature(post.heroName), status: "pending", cafeteria_board: [boardId] },
+    body: {
+      title: post.title ?? "",
+      content: post.body + signature(post.heroName) + (post.pack === undefined ? "" : packBlock(post.pack)),
+      status: "pending",
+      cafeteria_board: [boardId],
+    },
   };
 }

@@ -17,6 +17,7 @@ import { achievementCategoryStorage, achievementStorage } from "@/lib/databases/
 import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { chatStorage } from "@/lib/databases/ChatDb";
 import { dosDontsStorage } from "@/lib/databases/DosDontsDb";
+import { packLibraryStorage } from "@/lib/databases/PackLibraryDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { purchaseLogStorage } from "@/lib/databases/PurchaseLogDb";
 import { questLogStorage } from "@/lib/databases/QuestLogDb";
@@ -36,6 +37,7 @@ jest.mock("@/lib/databases/AchievementDb", () => ({
 jest.mock("@/lib/databases/BestiaryDb", () => ({ __esModule: true, beastStorage: { sentinel: "beasts" } }));
 jest.mock("@/lib/databases/ChatDb", () => ({ __esModule: true, chatStorage: { sentinel: "chat" } }));
 jest.mock("@/lib/databases/DosDontsDb", () => ({ __esModule: true, dosDontsStorage: { sentinel: "dosDonts" } }));
+jest.mock("@/lib/databases/PackLibraryDb", () => ({ __esModule: true, packLibraryStorage: { sentinel: "packs" } }));
 jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileStorage: { sentinel: "profiles" } }));
 jest.mock("@/lib/databases/PurchaseLogDb", () => ({ __esModule: true, purchaseLogStorage: { sentinel: "purchaseLog" } }));
 jest.mock("@/lib/databases/QuestLogDb", () => ({ __esModule: true, questLogStorage: { sentinel: "questLog" } }));
@@ -166,6 +168,7 @@ describe("BACKUP_STORES registry", () => {
       "__purchaseLog",
       "__chat",
       "__dosDonts",
+      "__packs",
     ]);
   });
 
@@ -184,6 +187,7 @@ describe("BACKUP_STORES registry", () => {
     expect(storageOf("__purchaseLog")).toBe(purchaseLogStorage);
     expect(storageOf("__chat")).toBe(chatStorage);
     expect(storageOf("__dosDonts")).toBe(dosDontsStorage);
+    expect(storageOf("__packs")).toBe(packLibraryStorage);
   });
 
   it("never reuses a name or a storage, and every store has a label", () => {

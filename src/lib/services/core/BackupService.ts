@@ -6,6 +6,7 @@ import { achievementCategoryStorage, achievementStorage } from "@/lib/databases/
 import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { chatStorage } from "@/lib/databases/ChatDb";
 import { dosDontsStorage } from "@/lib/databases/DosDontsDb";
+import { packLibraryStorage } from "@/lib/databases/PackLibraryDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { purchaseLogStorage } from "@/lib/databases/PurchaseLogDb";
 import { questLogStorage } from "@/lib/databases/QuestLogDb";
@@ -97,6 +98,7 @@ export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__purchaseLog", label: "Purchase log", storage: purchaseLogStorage },
   { name: "__chat", label: "Chat", storage: chatStorage },
   { name: "__dosDonts", label: "Dos and Don'ts", storage: dosDontsStorage },
+  { name: "__packs", label: "Added packs", storage: packLibraryStorage },
 ];
 
 /** The file is not a backup this app can read. Thrown before anything is touched. */
