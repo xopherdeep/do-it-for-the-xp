@@ -260,13 +260,6 @@
       </ion-fab-button>
     </ion-fab>
 
-    <!-- Right FAB: Backup Options -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden icon-colors">
-      <ion-fab-button color="light" @click="openBackupOptionsModal">
-        <i class="fad fa-save fa-lg"></i>
-      </ion-fab-button>
-    </ion-fab>
-
     <!-- Toast for restore success -->
     <ion-toast :is-open="showRestoreToast" :message="restoreMessage" :duration="3000"
       :color="restoreSuccess ? 'success' : 'warning'" position="top" @didDismiss="showRestoreToast = false"></ion-toast>
@@ -280,8 +273,6 @@ import {
   useIonRouter,
   onIonViewWillEnter,
   onIonViewDidLeave,
-  alertController,
-  actionSheetController,
 } from "@ionic/vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useAudioStore } from "@/lib/store/stores/audio";
@@ -291,9 +282,6 @@ import {
   peopleCircleOutline,
   fingerPrintOutline,
   fingerPrintSharp,
-  cloudDownloadOutline,
-  cloudUploadOutline,
-  saveOutline,
   gridOutline,
   listOutline,
 } from "ionicons/icons";
@@ -399,157 +387,6 @@ export default defineComponent({
       } finally {
         event.target.complete();
       }
-    };
-
-    // Backup and restore functions
-    const exportProfiles = async () => {
-      try {
-        const fileName = await storage.exportProfiles();
-        const toast = await toastController.create({
-          message: `Profiles exported to ${fileName}`,
-          duration: 3000,
-          color: "success",
-          position: "top",
-        });
-        await toast.present();
-      } catch (error) {
-        const toast = await toastController.create({
-          message: `Failed to export profiles: ${errorText(error)}`,
-          duration: 3000,
-          color: "danger",
-          position: "top",
-        });
-        await toast.present();
-      }
-    };
-
-    const importProfiles = async () => {
-      // Create a file input element
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = "application/json";
-
-      fileInput.addEventListener("change", async (event: any) => {
-        const file = event.target.files[0];
-        if (file) {
-          try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              try {
-                const content = e.target?.result as string;
-                const success = await storage.importProfiles(content);
-
-                if (success) {
-                  await userStore.loadUsers();
-                  const toast = await toastController.create({
-                    message: "Profiles imported successfully",
-                    duration: 3000,
-                    color: "success",
-                    position: "top",
-                  });
-                  await toast.present();
-                }
-              } catch (err) {
-                const toast = await toastController.create({
-                  message: `Failed to import profiles: ${errorText(err)}`,
-                  duration: 3000,
-                  color: "danger",
-                  position: "top",
-                });
-                await toast.present();
-              }
-            };
-            reader.readAsText(file);
-          } catch (error) {
-            const toast = await toastController.create({
-              message: `Failed to read file: ${errorText(error)}`,
-              duration: 3000,
-              color: "danger",
-              position: "top",
-            });
-            await toast.present();
-          }
-        }
-      });
-
-      fileInput.click();
-    };
-
-    // Options modal
-    const openBackupOptionsModal = async () => {
-      const actionSheet = await actionSheetController.create({
-        header: "Profile Backup Options",
-        mode: "ios",
-        buttons: [
-          {
-            text: "Export Profiles",
-            icon: saveOutline,
-            handler: () => {
-              exportProfiles();
-            },
-          },
-          {
-            text: "Import Profiles",
-            icon: cloudUploadOutline,
-            handler: () => {
-              importProfiles();
-            },
-          },
-          {
-            text: "Restore From Backup",
-            icon: cloudDownloadOutline,
-            handler: async () => {
-              const alert = await alertController.create({
-                header: "Restore Profiles",
-                message:
-                  "This will replace all current profiles with those from your last backup. Continue?",
-                buttons: [
-                  {
-                    text: "Cancel",
-                    role: "cancel",
-                  },
-                  {
-                    text: "Restore",
-                    handler: async () => {
-                      try {
-                        isRestoringProfiles.value = true;
-                        const restored = await storage.restoreProfiles();
-
-                        if (restored) {
-                          await userStore.loadUsers();
-                          restoreSuccess.value = true;
-                          restoreMessage.value =
-                            "Successfully restored your profiles!";
-                        } else {
-                          restoreSuccess.value = false;
-                          restoreMessage.value =
-                            "No backup found to restore.";
-                        }
-
-                        showRestoreToast.value = true;
-                      } catch (error) {
-                        restoreSuccess.value = false;
-                        restoreMessage.value = `Restore failed: ${errorText(error)}`;
-                        showRestoreToast.value = true;
-                      } finally {
-                        isRestoringProfiles.value = false;
-                      }
-                    },
-                  },
-                ],
-              });
-
-              await alert.present();
-            },
-          },
-          {
-            text: "Cancel",
-            role: "cancel",
-          },
-        ],
-      });
-
-      await actionSheet.present();
     };
 
     // Navigation functions
@@ -679,9 +516,7 @@ export default defineComponent({
       const hasNoHeroes = !(data?.heroes ?? []).length;
       if (hasNoHeroes) return;
       await loadProfiles();
-      const message = data?.gameMaster
-        ? "Your heroes are ready! Pick one to start tonight's quests. Your own profile opens with your PIN."
-        : "Your heroes are ready! Pick one to start tonight's quests.";
+      const message = "Your heroes are ready! Pick one to start tonight's quests. Your own profile opens with your PIN.";
       const toast = await toastController.create(rpgToastOptions(message, 4000));
       await toast.present();
     };
@@ -737,12 +572,9 @@ export default defineComponent({
       handleRefresh,
       fingerPrintOutline,
       fingerPrintSharp,
-      cloudDownloadOutline,
-      saveOutline,
       restoreMessage,
       restoreSuccess,
       showRestoreToast,
-      openBackupOptionsModal,
       isRetroView,
       gridOutline,
       listOutline,

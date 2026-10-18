@@ -7,6 +7,7 @@ import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { chatStorage } from "@/lib/databases/ChatDb";
 import { dosDontsStorage } from "@/lib/databases/DosDontsDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
+import { sealProfileSecrets } from "@/lib/services/profile/pinSeal";
 import { purchaseLogStorage } from "@/lib/databases/PurchaseLogDb";
 import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
@@ -74,7 +75,16 @@ export interface BackupStoreDef {
   storage: BackupStorage;
   /** Runs once, after the whole restore succeeded, with this store's restored records (for data mirrored elsewhere) */
   afterRestore?: (entries: readonly BackupEntry[]) => Promise<void>;
+  /** Applied to every record going into a backup file and coming back out of one (profiles: PINs sealed) */
+  cleanRecord?: (value: any) => any;
 }
+
+/** A store's records with its cleanRecord applied */
+const cleanEntries = (store: BackupStoreDef, entries: readonly BackupEntry[]): BackupEntry[] => {
+  const { cleanRecord } = store;
+  if (!cleanRecord) return [...entries];
+  return entries.map((entry) => ({ ...entry, value: cleanRecord(entry.value) }));
+};
 
 /** ProfileDb also mirrors every profile into Capacitor Preferences (it survives a reinstall); keep that copy in step. */
 const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> => {
@@ -96,7 +106,7 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  * held claims (`__xp_claim_photos`, big and private).
  */
 export const BACKUP_STORES: readonly BackupStoreDef[] = [
-  { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles },
+  { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles, cleanRecord: sealProfileSecrets },
   { name: "__achievementCategories", label: "Quest categories", storage: achievementCategoryStorage },
   { name: "__beasts", label: "Bestiary", storage: beastStorage },
   { name: "__achievements", label: "Quests", storage: achievementStorage },
@@ -279,7 +289,7 @@ export class BackupService {
     for (const store of this.stores) {
       try {
         await store.storage.create();
-        stores[store.name] = await readEntries(store.storage);
+        stores[store.name] = cleanEntries(store, await readEntries(store.storage));
       } catch (error) {
         throw new BackupStorageError(
           `Could not read ${store.label} (${store.name}): ${reasonOf(error)}. No backup was made.`,
@@ -386,7 +396,17 @@ export class BackupService {
     if (!this.canRestore()) throw new BackupPermissionError();
 
     // 1. Validate everything up front: a malformed file must not cost anyone a single record
-    const backup = this.parseBackup(input);
+    const parsed = this.parseBackup(input);
+    // An old file may still carry PINs as typed: they go back in sealed
+    const backup: BackupFile = {
+      ...parsed,
+      stores: Object.fromEntries(
+        Object.entries(parsed.stores).map(([name, entries]) => {
+          const store = this.stores.find((def) => def.name === name);
+          return [name, store ? cleanEntries(store, entries) : entries];
+        })
+      ),
+    };
     const summary = this.summarizeBackup(backup);
     const plan = this.stores.filter((store) => hasOwn(backup.stores, store.name));
 

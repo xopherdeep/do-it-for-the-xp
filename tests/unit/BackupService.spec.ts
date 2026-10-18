@@ -230,6 +230,28 @@ describe("BACKUP_STORES registry", () => {
   });
 });
 
+describe("PINs in backup files", () => {
+  const sealOnly = (value: Seed) => ({ ...value, passcode: `sealed:${value.passcode}` });
+
+  it("seals profile PINs on the registry line, so a file never carries them as typed", () => {
+    const profiles = BACKUP_STORES.find((store) => store.name === "__profiles");
+    const cleaned = profiles?.cleanRecord?.(hero("p1", { passcode: "1234" }));
+    expect(cleaned.passcode).toMatch(/^pin\$1\$/);
+    expect(JSON.stringify(cleaned)).not.toContain("1234");
+  });
+
+  it("applies a store's cleanRecord to every record it backs up and restores", async () => {
+    const { fakes, defs, reloadUsers } = makeWorld({ __profiles: { p1: hero("p1", { passcode: "1234" }) } });
+    const service = new BackupService([{ ...defs[0], cleanRecord: sealOnly }, defs[1], defs[2]], reloadUsers, () => true);
+
+    const backup = await service.createBackup();
+    expect(backup.stores.__profiles[0].value).toMatchObject({ passcode: "sealed:1234" });
+
+    await service.restoreBackup(backupOf({ __profiles: [["p2", hero("p2", { passcode: "5678" })]] }));
+    expect(fakes.__profiles.contents()).toEqual({ p2: hero("p2", { passcode: "sealed:5678" }) });
+  });
+});
+
 describe("backupFileName", () => {
   it("names the file for the local calendar date", () => {
     expect(backupFileName(new Date(2026, 9, 9, 23, 59))).toBe("do-it-for-the-xp-backup-2026-10-09.json");

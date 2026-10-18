@@ -6,6 +6,7 @@ import StorageService from '@/lib/services/core/StorageService';
 import { Entry, SpecialStats } from '@/lib/utils/User/stats';
 import debug from '@/lib/utils/debug';
 import { emitHeroRemoved } from '@/lib/services/multiplayer/gameSignals';
+import { hasUnsealedSecrets, sealProfileSecrets } from '@/lib/services/profile/pinSeal';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {
@@ -46,7 +47,10 @@ export interface NewProfileForm {
   name: {
     full: string;
   }
+  /** The PIN, sealed (services/profile/pinSeal.ts). A form may hand over the 4 typed digits; ProfileDb seals them on save. */
   passcode?: string
+  /** The Game Master's forgotten-PIN code, sealed (services/profile/pinRecovery.ts) */
+  pinRecovery?: string
   avatar: string
   favoriteFood: string
   favoriteThing: string
@@ -75,6 +79,26 @@ export interface NewProfileForm {
 }
 
 export class ProfileDb extends DbStorageApi {
+  /** Every profile write goes through here, so a PIN is never stored as typed */
+  public async set(key: string, value: any) {
+    await super.set(key, sealProfileSecrets(value))
+  }
+
+  /** Profiles saved before PINs were sealed (or restored from an old backup) are sealed as they are read */
+  public async getAll() {
+    const profiles = await super.getAll()
+    const unsealed = profiles.filter((profile) => hasUnsealedSecrets(profile))
+    const hasUnsealed = unsealed.length > 0
+    if (hasUnsealed) {
+      for (const profile of unsealed) {
+        const hasId = Boolean(profile.id)
+        if (hasId) await this.set(profile.id, profile)
+      }
+      await this.backupProfiles()
+    }
+    return profiles.map((profile) => sealProfileSecrets(profile))
+  }
+
   public newProfile(profile: NewProfileForm) {
     return new User(profile)
   }
@@ -156,39 +180,6 @@ export class ProfileDb extends DbStorageApi {
       return true
     } catch (error) {
       debug.error('Failed to restore profiles:', error)
-      return false
-    }
-  }
-  
-  /**
-   * Export profiles as downloadable JSON file
-   */
-  public async exportProfiles(): Promise<string> {
-    const profiles = await this.getAll()
-    return StorageService.exportProfilesToFile(profiles)
-  }
-  
-  /**
-   * Import profiles from JSON file content
-   */
-  public async importProfiles(fileContent: string): Promise<boolean> {
-    try {
-      const profiles = await StorageService.importProfilesFromJson(fileContent)
-      
-      // Add each profile
-      for (const profile of profiles) {
-        const id = profile.id
-        if (id) {
-          await this.set(id, profile)
-        }
-      }
-      
-      // Backup after import
-      await this.backupProfiles()
-      
-      return true
-    } catch (error) {
-      debug.error('Failed to import profiles:', error)
       return false
     }
   }

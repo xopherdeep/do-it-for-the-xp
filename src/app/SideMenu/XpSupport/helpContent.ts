@@ -34,6 +34,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     steps: [
       "Tap Press Start, then Start New Game on Choose A Profile.",
       "The first profile on a device is a Game Master. Game Masters need a 4-digit passcode.",
+      "Forgot your PIN? Tap Forgot PIN on the PIN pad and type the recovery code you got on your first unlock. Too many wrong PINs make the pad wait a while.",
       "Add your heroes in Settings, Family. A hero's passcode is optional.",
       "Load a pack in Settings, Packs, or make your own quests in the Compendium. A new game has no quests until you do one of the two.",
       "The first time a hero opens their portal, a guide walks them through the XP bar and the bottom buttons. Replay it from Settings, General, Show the portal tour again.",
@@ -189,7 +190,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     audience: "Game Masters",
     intro: "Everything is kept on this device. There's no account to sign in to.",
     steps: [
-      "Settings, Backup downloads one file with everything, passcodes included. Keep it safe.",
+      "Settings, Backup downloads one file with everything. Passcodes are scrambled in it, but keep it safe.",
       "Restore from backup replaces what's on the device with the file. Only a Game Master can do it.",
       "Settings, Packs loads ready-made worlds. Removing a pack takes back only what it added.",
       "Settings, Account links the family's For the XP account (the Town Hall's) from the menu, shows your plan, and opens the site to change your email or password.",

@@ -134,7 +134,8 @@
         <ion-card-content>
           <p>
             Everything lives on this device. Back up before you clear the browser, switch phones or try a
-            pack, and keep the file somewhere safe: it holds every profile's passcode.
+            pack, and keep the file somewhere safe: it holds your whole family's game. Passcodes are saved scrambled, so the
+            file never shows them.
           </p>
         </ion-card-content>
       </ion-card>
@@ -251,7 +252,7 @@
               {
                 tone: "keep",
                 lines: [
-                  "Profiles and passcodes",
+                  "Profiles (passcodes scrambled)",
                   "Quests, beasts, powers, shops",
                   "Temples and their progress",
                   "Family rules and settings",
@@ -259,7 +260,7 @@
                 ],
               },
             ],
-            note: "It holds passcodes, so keep it somewhere safe.",
+            note: "It holds your whole family's game, so keep it somewhere safe.",
           }),
           buttons: [
             { text: "Cancel", role: "cancel" },

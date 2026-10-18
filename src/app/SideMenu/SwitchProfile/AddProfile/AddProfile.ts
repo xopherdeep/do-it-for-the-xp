@@ -8,6 +8,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
+import { isSealed } from "@/lib/services/profile/pinSeal";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
@@ -123,6 +124,9 @@ export const AddProfile = defineComponent({
     const userStore = useUserStore();
     const email = ref("");
     const passcode = ref("");
+    // The saved PIN, sealed (pinSeal.ts): it can't be shown, so the field starts empty and a blank field keeps it
+    const savedPin = ref("");
+    const pinToSave = computed(() => passcode.value || savedPin.value);
     // What the Game Master toggle is set to. Off unless someone turns it on, except for the first
     // profile on a device and the "Add Adult" preset. Read isGameMaster for what the form really holds.
     const isAdult = ref(false);
@@ -147,7 +151,13 @@ export const AddProfile = defineComponent({
       () => wasGameMaster.value && !canSetFlag.value && !legacyGameMaster.value
     );
     // Why the passcode cannot be saved yet, or null: a Game Master must have a 4-digit PIN
-    const passcodeError = computed(() => passcodeProblem(passcode.value, isGameMaster.value));
+    const passcodeError = computed(() => passcodeProblem(pinToSave.value, isGameMaster.value));
+    // Under the PIN field: a saved PIN can be kept or changed; otherwise what the PIN is for
+    const pinHint = computed(() => {
+      const isKeepingSavedPin = Boolean(savedPin.value) && !passcode.value;
+      if (isKeepingSavedPin) return "Your code is set. Type 4 new digits to change it.";
+      return isGameMaster.value ? "4 digits. You'll need it to open the Game Master tools." : "4 digits to keep your save file safe.";
+    });
     // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
     // holds it off when the person has no say). Applied once, before the first render.
     const isEditingProfile = () => Boolean(props.id || props.profile);
@@ -197,7 +207,9 @@ export const AddProfile = defineComponent({
     const setProfile = (profile) => {
       const name = profile.name;
       if (!name) return;
-      passcode.value = profile.passcode || '';
+      const storedPin = profile.passcode || '';
+      savedPin.value = isSealed(storedPin) ? storedPin : '';
+      passcode.value = savedPin.value ? '' : storedPin;
       email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
@@ -251,7 +263,7 @@ export const AddProfile = defineComponent({
       fullName: fullName.value,
       jobClass: jobClass.value,
       favoriteFood: favoriteFood.value,
-      passcode: passcode.value,
+      passcode: pinToSave.value,
       isGameMaster: isGameMaster.value,
     }));
     const currentStepIndex = computed(() => stepIndex(step.value));
@@ -353,7 +365,7 @@ export const AddProfile = defineComponent({
     const newProfile = computed(() => ({
       id: props?.id || props.profile?.id || "",
       email: email.value,
-      passcode: passcode.value,
+      passcode: pinToSave.value,
       name: { full: fullName.value },
       avatar: `${paddedIndex.value}-gamer`,
       look: look.value,
@@ -415,6 +427,8 @@ export const AddProfile = defineComponent({
       // profile,
       newProfile,
       passcode,
+      savedPin,
+      pinHint,
       step,
       stepsBack,
       showAdvanced,

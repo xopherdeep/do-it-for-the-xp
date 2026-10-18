@@ -3,6 +3,7 @@ import { toastController } from "@ionic/vue";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { IMPERSONATOR_KEY, useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { isSealed } from "@/lib/services/profile/pinSeal";
 
 /** Every Game Master page lives under this path (see src/router/Admin/game-master.routes.ts). */
 export const GM_PATH = "/game-master";
@@ -118,11 +119,12 @@ const PASSCODE_PATTERN = /^\d{4}$/;
 /**
  * What is wrong with the passcode on a profile form, or null when it is fine. A Game Master must
  * have one (the PIN pad on the profile chooser is what keeps a hero out of their account); a hero
- * may leave it blank, but nobody may save one the PIN pad could never unlock.
+ * may leave it blank, but nobody may save one the PIN pad could never unlock. A PIN already saved is
+ * sealed (pinSeal.ts) and counts as set.
  */
 export function passcodeProblem(passcode: unknown, forGameMaster: boolean): string | null {
   const text = typeof passcode === "string" ? passcode : "";
-  const isValidPasscode = PASSCODE_PATTERN.test(text);
+  const isValidPasscode = PASSCODE_PATTERN.test(text) || isSealed(text);
   if (isValidPasscode) return null;
   const isForGameMaster = Boolean(forGameMaster);
   if (isForGameMaster) return "Game Masters need a 4-digit passcode";

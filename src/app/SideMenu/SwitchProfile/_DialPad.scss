@@ -322,6 +322,41 @@
   }
 }
 
+// Too many wrong tries: the pad waits, and says how long
+.pin-lockout {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 2px solid var(--ion-color-danger);
+  background: rgba(107, 15, 26, 0.45);
+  color: #fff;
+  font-family: var(--dp-font);
+  font-size: 1.05rem;
+  text-align: center;
+
+  i {
+    margin-right: 6px;
+  }
+}
+
+// Forgot PIN: a quiet link under the pad, only on a Game Master's profile
+.pin-forgot {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 6px 12px;
+  background: none;
+  border: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--dp-font);
+  font-size: 1rem;
+  text-decoration: underline;
+  cursor: pointer;
+
+  .dialpad--retro & {
+    color: rgba(231, 230, 179, 0.85);
+  }
+}
+
 // A chunky key: a face over a dark lip that sinks when pressed
 .key {
   position: relative;
