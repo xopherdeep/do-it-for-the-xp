@@ -49,6 +49,7 @@ import shopsDb, {
 } from "@/lib/databases/ShopsDb";
 import { hoursSummary, isShopOpen, opensAtLabel } from "@/lib/services/shops/shopHours";
 import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
+import { stockDefaultShops } from "@/lib/services/shops/shopStock";
 import {
   buyItem as purchaseItem,
   InsufficientFundsError,
@@ -519,6 +520,8 @@ export default defineComponent({
     const loadShelf = async () => {
       const thisLoad = ++latestLoad;
       try {
+        // A shop nobody has stocked yet opens with the default potions, whatever pack the family loaded
+        await stockDefaultShops().catch((error) => debug.warn("Failed to stock the default potions:", error));
         const requested = props.merchant ? await shopsDb.getShopById(props.merchant) : null;
         const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
         const accessories = await accessoriesDb.getAccessories();

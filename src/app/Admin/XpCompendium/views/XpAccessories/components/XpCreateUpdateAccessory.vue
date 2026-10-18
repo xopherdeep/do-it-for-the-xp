@@ -224,6 +224,30 @@
               @click="goToStep(row.step)"
             />
           </xp-app-section>
+
+          <!-- Which shelves sell it: a new item starts on the Hometown Market, an edit shows where it is now -->
+          <xp-app-section :label="shelfLabel" data-test="shelves">
+            <xp-app-row
+              v-for="shop in shelfShops"
+              :key="shop.id"
+              :title="shop.name"
+              :subtitle="shopWorldName(shop)"
+              :icon="shop.icon || 'store'"
+              :chevron="false"
+              :active="chosenShops.includes(shop.id)"
+              role="switch"
+              :aria-checked="chosenShops.includes(shop.id)"
+              :data-test="`shelf-${shop.id}`"
+              @click="toggleShelf(shop.id)"
+            >
+              <template #trailing>
+                <i
+                  :class="['fad', chosenShops.includes(shop.id) ? 'fa-check-square' : 'fa-square', 'iw-shelf-check']"
+                  aria-hidden="true"
+                ></i>
+              </template>
+            </xp-app-row>
+          </xp-app-section>
         </section>
       </template>
 
@@ -306,6 +330,11 @@ import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
 import { appIconClass, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { useBack } from "@/hooks/useBack";
 import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
+import shopsDb from "@/lib/databases/ShopsDb";
+import type { ShopInterface } from "@/lib/databases/ShopsDb";
+import { getAllShops } from "@/lib/engine/core/shopRegistry";
+import { WORLD_METADATA } from "@/lib/engine/core/worldRegistry";
+import { reshelveItem, shelvesHolding, stockDefaultShops } from "@/lib/services/shops/shopStock";
 import type { Accessory, AccessoryType, Rarity } from "@/lib/databases/AccessoriesDb";
 import { useUserStore } from "@/lib/store/stores/user";
 import { firstIndex, lastIndex } from "@/lib/services/wizard/wizardSteps";
@@ -406,9 +435,50 @@ const openSaved = async (id: string) => {
   }
 };
 
+// ---- The shelves: every shop, in the registry's order (Hometown first), then the Game Master's own by name --------
+
+const REGISTRY_ORDER = getAllShops().map((shop) => shop.id);
+const NEW_ITEM_SHELF = "hometown-market";
+const shelfShops = ref<ShopInterface[]>([]);
+const chosenShops = ref<string[]>([]);
+
+const shelfRank = (shop: ShopInterface): number => {
+  const rank = REGISTRY_ORDER.indexOf(shop.id);
+  return rank < 0 ? REGISTRY_ORDER.length : rank;
+};
+
+const loadShelves = async () => {
+  try {
+    await stockDefaultShops();
+    const shops = await shopsDb.getShops();
+    shelfShops.value = shops.sort((a, b) => shelfRank(a) - shelfRank(b) || a.name.localeCompare(b.name));
+    const savedId = original.value?.id;
+    const hasNewItemShelf = shops.some((shop) => shop.id === NEW_ITEM_SHELF);
+    chosenShops.value = savedId ? shelvesHolding(shops, String(savedId)) : hasNewItemShelf ? [NEW_ITEM_SHELF] : [];
+  } catch (error) {
+    debug.warn("[ItemWizard] the shops could not be read", error);
+  }
+};
+
+// The traveling merchant has no world of its own
+const shopWorldName = (shop: ShopInterface): string =>
+  shop.world === "traveling" ? "On the road" : WORLD_METADATA[shop.world]?.name ?? "";
+
+const shelfLabel = computed(() => {
+  const count = chosenShops.value.length;
+  if (!count) return "Sold in no shop yet";
+  return count === 1 ? "Sold in 1 shop" : `Sold in ${count} shops`;
+});
+
+const toggleShelf = (shopId: string) => {
+  const isChosen = chosenShops.value.includes(shopId);
+  chosenShops.value = isChosen ? chosenShops.value.filter((id) => id !== shopId) : [...chosenShops.value, shopId];
+};
+
 onMounted(async () => {
   const savedId = props.id;
   if (savedId) await openSaved(savedId);
+  await loadShelves();
   if (!original.value) position.value = firstIndex(steps, draft.value);
   isOpen.value = true;
 });
@@ -508,9 +578,14 @@ const stockIt = async () => {
   if (saving.value) return;
   saving.value = true;
   try {
-    await accessoryDb.setAccessory(itemToRecord(draft.value, original.value));
+    const itemId = await accessoryDb.setAccessory(itemToRecord(draft.value, original.value));
+    for (const shop of reshelveItem(shelfShops.value, itemId, chosenShops.value)) await shopsDb.setShop(shop);
     play$fx("yes");
-    void say(isEdit.value ? "Item updated" : "Item stocked", `${draft.value.name.trim()} is saved. Put it on a shop's shelf so heroes can buy it.`);
+    const name = draft.value.name.trim();
+    const where = chosenShops.value.length
+      ? `${name} is on sale in ${shelfLabel.value.replace(/^Sold in /, "")}.`
+      : `${name} is saved. Pick a shop for it so heroes can buy it.`;
+    void say(isEdit.value ? "Item updated" : "Item stocked", where);
     goBack();
   } catch (error) {
     debug.warn("[ItemWizard] the item could not be saved", error);

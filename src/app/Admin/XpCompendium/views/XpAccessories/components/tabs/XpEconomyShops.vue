@@ -77,6 +77,7 @@ import { useRouter } from "vue-router";
 import { IonPage, IonContent, IonGrid, IonRow, IonCol, IonCard, IonImg, onIonViewWillEnter } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 import shopsDb, { ShopInterface, clerkDefaultFor, customClerkName } from "@/lib/databases/ShopsDb";
+import { stockDefaultShops } from "@/lib/services/shops/shopStock";
 import { hoursSummary, isShopOpen } from "@/lib/services/shops/shopHours";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { shopWorldBackground } from "../../hooks/useShopData";
@@ -102,7 +103,7 @@ export default defineComponent({
     // The first visit shows the spinner; coming back from a shop's tabs quietly refreshes what they changed.
     const loadShops = async () => {
         try {
-            await shopsDb.seedDefaults();
+            await stockDefaultShops();
             shops.value = await shopsDb.getShops();
             now.value = new Date();
         } catch {
