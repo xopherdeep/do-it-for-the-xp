@@ -191,10 +191,10 @@ onBeforeUnmount(() => window.clearTimeout(waitTimer));
 </template>
 
 <style lang="scss" scoped>
-// Under the HUD, above the page: a quest marker that names the hero's one next step
+// Just above the bottom nav (the top already holds the purse and the HUD): a quest marker that names the next step
 .xp-guide {
   position: fixed;
-  top: calc(var(--ion-safe-area-top, 0px) + var(--xp-guide-top, 104px));
+  bottom: calc(var(--xp-dock-height, 56px) + 10px);
   left: 0;
   right: 0;
   z-index: 1400;
@@ -282,10 +282,15 @@ onBeforeUnmount(() => window.clearTimeout(waitTimer));
   font-size: 13px;
 }
 
+// A running power timer floats in the same spot: the chip stands on top of it
+:global(.xp-power-timers.is-floating ~ .xp-guide) {
+  bottom: calc(var(--xp-dock-height, 56px) + 56px);
+}
+
 @keyframes guide-chip-in {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.92);
+    transform: translateY(8px) scale(0.92);
   }
   to {
     opacity: 1;
