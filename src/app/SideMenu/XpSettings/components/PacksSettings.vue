@@ -22,7 +22,7 @@
             v-for="pack in builtIns"
             :key="pack.id"
             :pack="pack"
-            :status="statusOf(pack)"
+            :status="statuses[pack.id]"
             :busy="isBusy"
             @load="confirmLoad"
             @remove="confirmRemove"
@@ -56,7 +56,7 @@
             v-for="pack in added"
             :key="pack.id"
             :pack="pack"
-            :status="statusOf(pack)"
+            :status="statuses[pack.id]"
             :busy="isBusy"
             @load="confirmLoad"
             @remove="confirmRemove"
@@ -128,18 +128,31 @@ import {
 } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import XpPackCard from "@/components/molecules/PackCard/XpPackCard.vue";
-import { allowedToManagePacks, usePackLibrary } from "@/hooks/usePackLibrary";
+import {
+  allowedToManagePacks,
+  confirmLoadPack,
+  confirmRemovePack,
+  exportPackFile,
+  importPackFile,
+  usePackLibrary,
+} from "@/hooks/usePackLibrary";
+import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { BUILT_IN_PACKS } from "@/lib/services/core/packs/catalog";
 import HomeChoresModal from "./HomeChoresModal.vue";
 import MovingHouseModal from "./MovingHouseModal.vue";
 
 const builtIns = BUILT_IN_PACKS;
-const { added, isBusy, statusOf, refresh, confirmLoad, confirmRemove, importFromFile, exportToFile } = usePackLibrary();
+const shelf = usePackLibrary();
+const { added, isBusy, statuses, refreshPacks } = shelf;
+const confirmLoad = (pack: XpPack) => confirmLoadPack(shelf, pack);
+const confirmRemove = (pack: XpPack) => confirmRemovePack(shelf, pack);
+const importFromFile = () => importPackFile(shelf);
+const exportToFile = () => exportPackFile(shelf);
 const showMoving = ref(false);
 const showHome = ref(false);
 
-onMounted(refresh);
-onIonViewWillEnter(refresh);
+onMounted(refreshPacks);
+onIonViewWillEnter(refreshPacks);
 
 /** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog */
 const openBuilder = async (which: "moving" | "home") => {
@@ -154,7 +167,7 @@ const openBuilder = async (which: "moving" | "home") => {
 const closeBuilder = () => {
   showMoving.value = false;
   showHome.value = false;
-  refresh();
+  refreshPacks();
 };
 </script>
 

@@ -243,7 +243,7 @@ export default defineComponent({
       closeCompose: clerk.posting.closeCompose,
       openClerkMenu: clerk.posting.openClerkMenu,
       sendDraft: clerk.posting.sendDraft,
-      sharePack: clerk.posting.sharePack,
+      postPack: clerk.posting.postPack,
       dismissPost: clerk.posting.dismissPost,
       openFamilyChat,
       newsTab,

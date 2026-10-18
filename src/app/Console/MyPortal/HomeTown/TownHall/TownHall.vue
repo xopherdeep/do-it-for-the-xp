@@ -42,7 +42,7 @@
           v-show="selectedTab === 'packs'"
           ref="packsTab"
           :waiting="waiting"
-          :share-pack="sharePack"
+          :post-pack="postPack"
           @trouble="onTrouble('packs')"
           @dismiss="dismissPost"
           @edit="openEdit"

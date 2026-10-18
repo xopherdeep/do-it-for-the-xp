@@ -40,7 +40,7 @@
         <xp-pack-card
           v-if="item.pack"
           :pack="item.pack"
-          :status="statusOf(item.pack)"
+          :status="statuses[item.pack.id] ?? NOT_LOADED"
           :busy="isBusy"
           :removable="false"
           load-label="Get pack"
@@ -71,10 +71,11 @@ import { computed, onMounted, ref } from "vue";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, alertController } from "@ionic/vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpPackCard from "@/components/molecules/PackCard/XpPackCard.vue";
-import { usePackLibrary } from "@/hooks/usePackLibrary";
+import { buildOwnPackFor, confirmLoadPack, showPackFailed, usePackLibrary } from "@/hooks/usePackLibrary";
 import { packShareText, readPackBlock } from "@/lib/services/core/packs/packShare";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { packSummary } from "@/lib/services/core/packs/packService";
+import type { PackStatus } from "@/lib/services/core/packs/packService";
 import { fetchBoards, fetchTopics, type BoardInfo, type TopicItem } from "@/lib/services/townhall/townHallFeed";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
 import { PACK_EXCHANGE_BOARD } from "@/lib/services/townhall/townHallSite";
@@ -92,8 +93,8 @@ import { useTownHallLoad } from "./useTownHallLoad";
  */
 interface PacksProps {
   waiting: TownHallPost[];
-  /** The posting desk's sharePack: what stopped the post being kept, or null */
-  sharePack: (draft: PostDraft) => Promise<string | null>;
+  /** The posting desk's postPack: what stopped the post being kept, or null */
+  postPack: (draft: PostDraft) => Promise<string | null>;
 }
 interface PacksEmits {
   (event: "trouble"): void;
@@ -110,7 +111,11 @@ interface SharedPack {
 const props = defineProps<PacksProps>();
 const emit = defineEmits<PacksEmits>();
 
-const { isBusy, statusOf, refresh, confirmLoad, askOwnPack, showFailed } = usePackLibrary();
+const shelf = usePackLibrary();
+const { isBusy, statuses, refreshPacks } = shelf;
+const confirmLoad = (pack: XpPack) => confirmLoadPack(shelf, pack);
+/** A shared pack this family never added */
+const NOT_LOADED: PackStatus = { state: "none", present: 0, total: 0 };
 const board = ref<BoardInfo<typeof PACK_EXCHANGE_BOARD> | null>(null);
 const shared = ref<SharedPack[]>([]);
 const page = ref(1);
@@ -146,7 +151,7 @@ const reload = () =>
   run(async () => {
     const [found] = await fetchBoards({}, [PACK_EXCHANGE_BOARD] as const);
     board.value = found ?? null;
-    await Promise.all([loadPage(1), refresh()]);
+    await Promise.all([loadPage(1), refreshPacks()]);
   });
 const loadMore = () => run(() => loadPage(page.value + 1));
 
@@ -175,18 +180,18 @@ const confirmShare = async (pack: XpPack): Promise<boolean> =>
 const share = async () => {
   sharing.value = true;
   try {
-    const pack = await askOwnPack("Share your family's pack", "Next");
+    const pack = await buildOwnPackFor(shelf, "Share your family's pack", "Next");
     if (!pack) return;
     const isConfirmed = await confirmShare(pack);
     if (!isConfirmed) return;
-    const problem = await props.sharePack({
+    const problem = await props.postPack({
       kind: "topic",
       board: PACK_EXCHANGE_BOARD,
       title: pack.name,
       body: pack.description,
       pack: packShareText(pack),
     });
-    if (problem) await showFailed("The pack wasn't shared", new Error(problem));
+    if (problem) await showPackFailed("The pack wasn't shared", new Error(problem));
   } finally {
     sharing.value = false;
   }

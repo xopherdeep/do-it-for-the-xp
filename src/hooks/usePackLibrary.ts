@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import type { Ref } from "vue";
 import { alertController, loadingController, toastController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { getPackLibraryDb } from "@/lib/databases/PackLibraryDb";
@@ -20,7 +21,7 @@ const KEEPS = ["Everything you made yourself", "Profiles, temples, logs and chat
 
 const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
-const showFailed = async (header: string, error: unknown) => {
+export const showPackFailed = async (header: string, error: unknown) => {
   const alert = await alertController.create({ header, cssClass: RPG_ALERT, message: errorMessage(error), buttons: ["OK"] });
   await alert.present();
 };
@@ -52,20 +53,29 @@ export const allowedToManagePacks = async (): Promise<boolean> => {
   return false;
 };
 
+/** What the dialogs below need from the page: the packs it added, and a flag to hold the buttons while one works */
+export interface PackShelf {
+  added: Ref<XpPack[]>;
+  isBusy: Ref<boolean>;
+}
+
 /**
- * Every pack the family can load (the built-ins and the ones it added from a file or the Town Hall), what is loaded,
- * and the Game Master's dialogs for loading, removing, importing and exporting them. Settings > Packs and the Town
- * Hall's Packs tab share it, so a pack loads the same way wherever it came from.
+ * Every pack the family can load (the built-ins and the ones it added from a file or the Town Hall) and how loaded
+ * each one is. Settings > Packs and the Town Hall's Packs tab share it, and the dialogs below act on it, so a pack
+ * loads the same way wherever it came from.
  */
 export function usePackLibrary() {
   const added = ref<XpPack[]>([]);
   const snapshot = ref<PackSnapshot>(emptySnapshot());
   const isBusy = ref(false);
-  const packs = computed<XpPack[]>(() => [...BUILT_IN_PACKS, ...added.value]);
 
-  const statusOf = (pack: XpPack): PackStatus => packStatus(pack, packs.value, snapshot.value);
+  /** Each pack's load state, by pack id */
+  const statuses = computed<Record<string, PackStatus>>(() => {
+    const packs = [...BUILT_IN_PACKS, ...added.value];
+    return Object.fromEntries(packs.map((pack) => [pack.id, packStatus(pack, packs, snapshot.value)]));
+  });
 
-  const refresh = async () => {
+  const refreshPacks = async () => {
     try {
       const [stored, read] = await Promise.all([getPackLibraryDb().getAdded(), readSnapshot()]);
       added.value = stored;
@@ -75,229 +85,217 @@ export function usePackLibrary() {
     }
   };
 
-  const withLoading = async <T>(message: string, task: () => Promise<T>): Promise<T> => {
-    isBusy.value = true;
-    let loading: Awaited<ReturnType<typeof loadingController.create>> | undefined;
-    try {
-      loading = await loadingController.create({ message });
-      await loading.present();
-      return await task();
-    } finally {
-      isBusy.value = false;
-      await loading?.dismiss();
-    }
-  };
+  return { added, isBusy, statuses, refreshPacks };
+}
 
-  const isBuiltIn = (pack: XpPack) => BUILT_IN_PACKS.some((builtIn) => builtIn.id === pack.id);
+const allPacks = (shelf: PackShelf): XpPack[] => [...BUILT_IN_PACKS, ...shelf.added.value];
 
-  const runLoad = async (pack: XpPack) => {
-    try {
-      const result = await withLoading("Adding the pack...", async () => {
-        const loaded = await loadPack(pack);
-        // A pack from a file or the Town Hall is kept, so it is listed (and can be removed) like a built-in
-        if (!isBuiltIn(pack)) await getPackLibraryDb().saveAdded(withAdded(added.value, pack));
-        return loaded;
-      });
-      await showDone(`${pack.name} pack loaded`, `Added ${result.total} entries from the ${pack.name} pack.`);
-    } catch (error) {
-      await showFailed("Loading the pack failed", error);
-    }
-  };
+const isBuiltIn = (pack: XpPack) => BUILT_IN_PACKS.some((builtIn) => builtIn.id === pack.id);
 
-  /** The same confirm for every pack. One from outside the app says who made it and that it replaces an older copy. */
-  const confirmLoad = async (pack: XpPack) => {
-    const isPermitted = await allowedToManagePacks();
-    if (!isPermitted) return;
-    const problem = addProblem(pack, isBuiltIn(pack) ? [] : BUILT_IN_PACKS);
-    if (problem) {
-      play$fx("no");
-      await showFailed("This pack can't be added", new Error(problem));
-      return;
-    }
-    play$fx("select");
-    const again = statusOf(pack).state !== "none";
-    const replacesOlder = !isBuiltIn(pack) && isAdded(added.value, pack.id) && !again;
-    const alert = await alertController.create({
-      header: `Load the ${pack.name} pack?`,
-      ...(pack.author ? { subHeader: `Made by ${pack.author}` } : {}),
-      cssClass: RPG_ALERT,
-      message: dialogMessage({
-        lead: pack.description,
-        groups: [
-          { title: "Adds", tone: "add", lines: [packSummary(pack) || "Nothing yet"] },
-          { title: "Keeps", tone: "keep", lines: KEEPS },
-        ],
-        note: again || replacesOlder ? "Pack entries you edited go back to the pack's version." : undefined,
-      }),
-      buttons: [
-        { text: "Cancel", role: "cancel" },
-        { text: again ? "Load again" : "Load pack", handler: () => { runLoad(pack); } },
-      ],
+const withLoading = async <T>(shelf: PackShelf, message: string, task: () => Promise<T>): Promise<T> => {
+  shelf.isBusy.value = true;
+  let loading: Awaited<ReturnType<typeof loadingController.create>> | undefined;
+  try {
+    loading = await loadingController.create({ message });
+    await loading.present();
+    return await task();
+  } finally {
+    shelf.isBusy.value = false;
+    await loading?.dismiss();
+  }
+};
+
+const runLoad = async (shelf: PackShelf, pack: XpPack) => {
+  try {
+    const result = await withLoading(shelf, "Adding the pack...", async () => {
+      const loaded = await loadPack(pack);
+      // A pack from a file or the Town Hall is kept, so it is listed (and can be removed) like a built-in
+      if (!isBuiltIn(pack)) await getPackLibraryDb().saveAdded(withAdded(shelf.added.value, pack));
+      return loaded;
     });
-    await alert.present();
-  };
+    await showDone(`${pack.name} pack loaded`, `Added ${result.total} entries from the ${pack.name} pack.`);
+  } catch (error) {
+    await showPackFailed("Loading the pack failed", error);
+  }
+};
 
-  const runRemove = async (pack: XpPack) => {
-    try {
-      const removed = await withLoading("Removing the pack...", async () => {
-        const count = await removePack(pack, packs.value);
-        if (!isBuiltIn(pack)) await getPackLibraryDb().saveAdded(withoutAdded(added.value, pack.id));
-        return count;
-      });
-      await showDone(`${pack.name} pack removed`, `Took out ${removed} entries from the ${pack.name} pack.`);
-    } catch (error) {
-      await refresh();
-      await showFailed("Removing the pack failed", error);
-    }
-  };
+/** The same confirm for every pack. One from outside the app says who made it and that it replaces an older copy. */
+export const confirmLoadPack = async (shelf: PackShelf, pack: XpPack) => {
+  const isPermitted = await allowedToManagePacks();
+  if (!isPermitted) return;
+  const problem = addProblem(pack, isBuiltIn(pack) ? [] : BUILT_IN_PACKS);
+  if (problem) {
+    play$fx("no");
+    await showPackFailed("This pack can't be added", new Error(problem));
+    return;
+  }
+  play$fx("select");
+  const packs = allPacks(shelf);
+  const again = packStatus(pack, packs, await readSnapshot()).state !== "none";
+  const replacesOlder = !isBuiltIn(pack) && isAdded(shelf.added.value, pack.id) && !again;
+  const alert = await alertController.create({
+    header: `Load the ${pack.name} pack?`,
+    ...(pack.author ? { subHeader: `Made by ${pack.author}` } : {}),
+    cssClass: RPG_ALERT,
+    message: dialogMessage({
+      lead: pack.description,
+      groups: [
+        { title: "Adds", tone: "add", lines: [packSummary(pack) || "Nothing yet"] },
+        { title: "Keeps", tone: "keep", lines: KEEPS },
+      ],
+      note: again || replacesOlder ? "Pack entries you edited go back to the pack's version." : undefined,
+    }),
+    buttons: [
+      { text: "Cancel", role: "cancel" },
+      { text: again ? "Load again" : "Load pack", handler: () => { runLoad(shelf, pack); } },
+    ],
+  });
+  await alert.present();
+};
 
-  const confirmRemove = async (pack: XpPack) => {
-    const isPermitted = await allowedToManagePacks();
-    if (!isPermitted) return;
-    play$fx("select");
-    const plan = planRemoval(pack, packs.value, snapshot.value);
-    const alert = await alertController.create({
-      header: `Remove the ${pack.name} pack?`,
-      cssClass: [RPG_ALERT, "rpg-alert--danger"],
-      message: dialogMessage({
-        lead: `Takes ${plan.total} of this pack's entries back out.`,
-        groups: [
+const runRemove = async (shelf: PackShelf, pack: XpPack) => {
+  try {
+    const removed = await withLoading(shelf, "Removing the pack...", async () => {
+      const count = await removePack(pack, allPacks(shelf));
+      if (!isBuiltIn(pack)) await getPackLibraryDb().saveAdded(withoutAdded(shelf.added.value, pack.id));
+      return count;
+    });
+    await showDone(`${pack.name} pack removed`, `Took out ${removed} entries from the ${pack.name} pack.`);
+  } catch (error) {
+    await showPackFailed("Removing the pack failed", error);
+  }
+};
+
+export const confirmRemovePack = async (shelf: PackShelf, pack: XpPack) => {
+  const isPermitted = await allowedToManagePacks();
+  if (!isPermitted) return;
+  play$fx("select");
+  const plan = planRemoval(pack, allPacks(shelf), await readSnapshot());
+  const alert = await alertController.create({
+    header: `Remove the ${pack.name} pack?`,
+    cssClass: [RPG_ALERT, "rpg-alert--danger"],
+    message: dialogMessage({
+      lead: `Takes ${plan.total} of this pack's entries back out.`,
+      groups: [
+        {
+          title: "Keeps",
+          tone: "keep",
+          lines: ["Everything you made yourself", "Anything another loaded pack uses", "Beasts and categories your quests use"],
+        },
+      ],
+      note: isBuiltIn(pack)
+        ? "Pack entries you edited go too. This can't be undone."
+        : "Pack entries you edited go too, and the pack leaves this list. Load its file again to get it back.",
+    }),
+    buttons: [
+      { text: "Cancel", role: "cancel" },
+      { text: "Remove pack", role: "destructive", handler: () => { runRemove(shelf, pack); } },
+    ],
+  });
+  await alert.present();
+};
+
+/** Pick a pack file first: a file that is not a pack is turned away before anyone is asked to confirm */
+export const importPackFile = async (shelf: PackShelf) => {
+  const isPermitted = await allowedToManagePacks();
+  if (!isPermitted) return;
+  play$fx("select");
+  const file = await pickTextFile();
+  if (!file) return;
+  let pack: XpPack;
+  try {
+    pack = parsePack(await readFileAsText(file));
+  } catch (error) {
+    play$fx("no");
+    await showPackFailed("That file isn't a pack", new Error(`${errorMessage(error)} Nothing was changed.`));
+    return;
+  }
+  await confirmLoadPack(shelf, pack);
+};
+
+/** What the Game Master calls the family's pack: asked each time, filled with what they wrote last time */
+const askDetails = async (header: string, action: string): Promise<PackDetails | null> => {
+  const last = await getPackLibraryDb().getOwnDetails();
+  return new Promise((resolve) => {
+    alertController
+      .create({
+        header,
+        cssClass: RPG_ALERT,
+        message: dialogMessage({ lead: "Your own quests, Powers, rewards and house rules, with the beasts your quests use." }),
+        inputs: [
+          { name: "name", placeholder: "Pack name, like The Smiths' Chores", value: last?.name ?? "", attributes: { maxlength: 60 } },
           {
-            title: "Keeps",
-            tone: "keep",
-            lines: ["Everything you made yourself", "Anything another loaded pack uses", "Beasts and categories your quests use"],
+            name: "description",
+            type: "textarea",
+            placeholder: "One or two lines about it",
+            value: last?.description ?? "",
+            attributes: { maxlength: 200 },
           },
         ],
-        note: isBuiltIn(pack)
-          ? "Pack entries you edited go too. This can't be undone."
-          : "Pack entries you edited go too, and the pack leaves this list. Load its file again to get it back.",
-      }),
-      buttons: [
-        { text: "Cancel", role: "cancel" },
-        { text: "Remove pack", role: "destructive", handler: () => { runRemove(pack); } },
-      ],
-    });
-    await alert.present();
-  };
-
-  /** Pick a pack file first: a file that is not a pack is turned away before anyone is asked to confirm */
-  const importFromFile = async () => {
-    const isPermitted = await allowedToManagePacks();
-    if (!isPermitted) return;
-    play$fx("select");
-    const file = await pickTextFile();
-    if (!file) return;
-    let pack: XpPack;
-    try {
-      pack = parsePack(await readFileAsText(file));
-    } catch (error) {
-      play$fx("no");
-      await showFailed("That file isn't a pack", new Error(`${errorMessage(error)} Nothing was changed.`));
-      return;
-    }
-    await confirmLoad(pack);
-  };
-
-  /** What the Game Master calls the family's pack: asked each time, filled with what they wrote last time */
-  const askDetails = async (header: string, action: string): Promise<PackDetails | null> => {
-    const last = await getPackLibraryDb().getOwnDetails();
-    return new Promise((resolve) => {
-      alertController
-        .create({
-          header,
-          cssClass: RPG_ALERT,
-          message: dialogMessage({ lead: "Your own quests, Powers, rewards and house rules, with the beasts your quests use." }),
-          inputs: [
-            { name: "name", placeholder: "Pack name, like The Smiths' Chores", value: last?.name ?? "", attributes: { maxlength: 60 } },
-            {
-              name: "description",
-              type: "textarea",
-              placeholder: "One or two lines about it",
-              value: last?.description ?? "",
-              attributes: { maxlength: 200 },
+        buttons: [
+          { text: "Cancel", role: "cancel", handler: () => resolve(null) },
+          {
+            text: action,
+            handler: (data: { name?: string; description?: string }) => {
+              const name = (data.name ?? "").trim();
+              if (!name) {
+                play$fx("no");
+                return false;
+              }
+              // The same name keeps the same id, so the pack replaces itself wherever it was loaded
+              const id = last && last.name.trim() === name ? last.id : undefined;
+              resolve({ name, description: (data.description ?? "").trim(), ...(id ? { id } : {}) });
+              return true;
             },
-          ],
-          buttons: [
-            { text: "Cancel", role: "cancel", handler: () => resolve(null) },
-            {
-              text: action,
-              handler: (data: { name?: string; description?: string }) => {
-                const name = (data.name ?? "").trim();
-                if (!name) {
-                  play$fx("no");
-                  return false;
-                }
-                // The same name keeps the same id, so the pack replaces itself wherever it was loaded
-                const id = last && last.name.trim() === name ? last.id : undefined;
-                resolve({ name, description: (data.description ?? "").trim(), ...(id ? { id } : {}) });
-                return true;
-              },
-            },
-          ],
-        })
-        .then(async (alert) => {
-          // Closed some other way (the backdrop, the back button): nothing was asked for
-          void alert.onDidDismiss().then(() => resolve(null));
-          await alert.present();
-        });
-    });
-  };
+          },
+        ],
+      })
+      .then(async (alert) => {
+        // Closed some other way (the backdrop, the back button): nothing was asked for
+        void alert.onDidDismiss().then(() => resolve(null));
+        await alert.present();
+      });
+  });
+};
 
-  /**
-   * The family's own content as a pack, named by the Game Master; null when they cancel or there is nothing of their
-   * own yet (they are told so). The name and id are remembered for next time.
-   */
-  const askOwnPack = async (header: string, action: string): Promise<XpPack | null> => {
-    const isPermitted = await allowedToManagePacks();
-    if (!isPermitted) return null;
-    play$fx("select");
-    const details = await askDetails(header, action);
-    if (!details) return null;
-    const pack = buildOwnPack(await readSnapshot(), packs.value, details, newPackId(details.name, packTag()));
-    if (!hasOwnContent(pack.content)) {
-      play$fx("no");
-      await showFailed(
-        "Nothing of your own yet",
-        new Error("Make a quest, Power, reward or house rule in the Compendium first. What came in a pack isn't counted as your own.")
-      );
-      return null;
-    }
-    await getPackLibraryDb().saveOwnDetails({ name: pack.name, description: details.description, id: pack.id });
-    return pack;
-  };
+/**
+ * The family's own content as a pack, named by the Game Master; null when they cancel or there is nothing of their
+ * own yet (they are told so). The name and id are remembered for next time.
+ */
+export const buildOwnPackFor = async (shelf: PackShelf, header: string, action: string): Promise<XpPack | null> => {
+  const isPermitted = await allowedToManagePacks();
+  if (!isPermitted) return null;
+  play$fx("select");
+  const details = await askDetails(header, action);
+  if (!details) return null;
+  const pack = buildOwnPack(await readSnapshot(), allPacks(shelf), details, newPackId(details.name, packTag()));
+  if (!hasOwnContent(pack.content)) {
+    play$fx("no");
+    await showPackFailed(
+      "Nothing of your own yet",
+      new Error("Make a quest, Power, reward or house rule in the Compendium first. What came in a pack isn't counted as your own.")
+    );
+    return null;
+  }
+  await getPackLibraryDb().saveOwnDetails({ name: pack.name, description: details.description, id: pack.id });
+  return pack;
+};
 
-  /** Settings > Packs: save the family's pack as a file to send to anyone or keep */
-  const exportToFile = async () => {
-    const pack = await askOwnPack("Save your own pack", "Save file");
-    if (!pack) return;
-    const fileName = packFileName(pack);
-    downloadTextFile(fileName, packToJson(pack));
-    const alert = await alertController.create({
-      header: "Pack saved",
-      cssClass: RPG_ALERT,
-      message: dialogMessage({
-        lead: `${fileName} is in your downloads.`,
-        groups: [{ title: "Holds", tone: "info", lines: [packSummary(pack)] }],
-        note: "Another family loads it with Import a pack file. No heroes, logs or passcodes are in it.",
-      }),
-      buttons: ["OK"],
-    });
-    await alert.present();
-  };
-
-  return {
-    packs,
-    added,
-    snapshot,
-    isBusy,
-    statusOf,
-    refresh,
-    withLoading,
-    confirmLoad,
-    confirmRemove,
-    importFromFile,
-    askOwnPack,
-    exportToFile,
-    showFailed,
-  };
-}
+/** Settings > Packs: save the family's pack as a file to send to anyone or keep */
+export const exportPackFile = async (shelf: PackShelf) => {
+  const pack = await buildOwnPackFor(shelf, "Save your own pack", "Save file");
+  if (!pack) return;
+  const fileName = packFileName(pack);
+  downloadTextFile(fileName, packToJson(pack));
+  const alert = await alertController.create({
+    header: "Pack saved",
+    cssClass: RPG_ALERT,
+    message: dialogMessage({
+      lead: `${fileName} is in your downloads.`,
+      groups: [{ title: "Holds", tone: "info", lines: [packSummary(pack)] }],
+      note: "Another family loads it with Import a pack file. No heroes, logs or passcodes are in it.",
+    }),
+    buttons: ["OK"],
+  });
+  await alert.present();
+};

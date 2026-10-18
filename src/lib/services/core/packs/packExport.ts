@@ -97,6 +97,9 @@ const knownIds = (packs: readonly XpPack[]): Record<PackList, Set<string>> => {
 
 const isOwn = (known: Set<string>) => (record: { id?: unknown }) => record.id !== undefined && !known.has(String(record.id));
 
+/** A list for the pack's content, or nothing when it is empty */
+const listIn = <K extends keyof PackContent>(key: K, list: unknown[]): Partial<PackContent> => (list.length ? { [key]: list } : {});
+
 /** The family's own content, ready to go in a pack. Empty lists are left out. */
 export const ownContent = (snapshot: PackSnapshot, knownPacks: readonly XpPack[]): PackContent => {
   const known = knownIds(knownPacks);
@@ -130,15 +133,15 @@ export const ownContent = (snapshot: PackSnapshot, knownPacks: readonly XpPack[]
     if (hasOwnRewards) shopStock[shop.id] = Array.from(new Set(shelved));
   }
 
-  const content: PackContent = {};
-  if (categories.length) content.categories = categories;
-  if (beasts?.length) content.beasts = beasts;
-  if (quests.length) content.quests = quests;
-  if (abilities.length) content.abilities = abilities;
-  if (rewards.length) content.rewards = rewards;
-  if (dosDonts?.length) content.dosDonts = dosDonts;
-  if (Object.keys(shopStock).length) content.shopStock = shopStock;
-  return content;
+  return {
+    ...listIn("categories", categories),
+    ...listIn("beasts", beasts ?? []),
+    ...listIn("quests", quests),
+    ...listIn("abilities", abilities),
+    ...listIn("rewards", rewards),
+    ...listIn("dosDonts", dosDonts ?? []),
+    ...(Object.keys(shopStock).length ? { shopStock } : {}),
+  };
 };
 
 /** Whether there is anything of the family's own to share: quests, Powers, rewards or house rules (beasts only come with quests) */
