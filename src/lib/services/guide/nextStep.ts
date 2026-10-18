@@ -152,9 +152,14 @@ const capital = (text: string): string => text.charAt(0).toUpperCase() + text.sl
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-const toTemple = (temple: GuideTemple): GuideGo => ({ kind: "route", name: "temple", params: { temple: temple.templeId } });
 
+/**
+ * Go never drops the hero inside a temple (owner, 2026-10-18): it leads to the region the temple stands in, and the hero
+ * walks through the door themselves. A flight goes to the world map, where the hero picks the region and flies.
+ */
 const toRegion = (temple: GuideTemple): GuideGo => ({ kind: "route", name: temple.route });
+
+const WORLD_MAP: GuideGo = { kind: "route", name: "world-map" };
 
 const BEAST_LOG: GuideGo = { kind: "route", name: "my-tasks" };
 
@@ -288,10 +293,10 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
       title: `Fly to ${temple.place}`,
       lines: [
         `${temple.pegasusName} is trapped in ${temple.place} on ${temple.region}.`,
-        "Fly there with your Pegasus and step inside.",
+        "Open the world map, fly there with your Pegasus and step inside.",
       ],
-      goLabel: `To ${temple.region}`,
-      go: toRegion(temple),
+      goLabel: "World map",
+      go: WORLD_MAP,
     };
   }
 
@@ -307,8 +312,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
         "Temples are mazes full of beasts, locked doors and treasure.",
         "Beat what waits in the room, then pick a door and keep exploring.",
       ],
-      goLabel: "Into the temple",
-      go: toTemple(temple),
+      goLabel: `To ${temple.region}`,
+      go: toRegion(temple),
     };
   }
 
@@ -321,8 +326,8 @@ export const nextGuideStep = (progress: GuideProgress): GuideStep => {
       `${temple.pegasusName} waits behind the boss of ${temple.place}.`,
       "Find the boss, win, and open the Pegasus chest to set it free!",
     ],
-    goLabel: "Into the temple",
-    go: toTemple(temple),
+    goLabel: `To ${temple.region}`,
+    go: toRegion(temple),
   };
 };
 
