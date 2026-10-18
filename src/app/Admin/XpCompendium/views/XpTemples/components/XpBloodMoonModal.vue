@@ -169,6 +169,7 @@
         <ion-datetime
           v-model="pickDate"
           presentation="date-time"
+          :first-day-of-week="weekStart"
           :min="minPick"
           :show-default-buttons="true"
         >
@@ -203,7 +204,10 @@ import { TempleSystem, TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/Tem
 import { bloodMoonLine, isBloodMoonDue } from "@/lib/engine/core/dungeons/templeReset";
 import { describeNextMoon, nextWeekly } from "@/lib/engine/core/dungeons/bloodMoonSchedule";
 import { play$fx } from "@/assets/fx";
+import { useWeekStart } from "@/hooks/useWeekStart";
 import debug from "@/lib/utils/debug";
+
+const weekStart = useWeekStart();
 
 interface TempleChoice {
   id: string;

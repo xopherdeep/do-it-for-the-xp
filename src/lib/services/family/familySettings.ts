@@ -5,8 +5,9 @@ import { DEFAULT_LATE_CHORES, normalizeLateChores, type LateChoreSettings } from
 /**
  * What the Game Master lets the family do (docs/Items-And-Classes-Contract.md, B), and the family-wide game rules
  * (`streaks`, Settings > Chores). Items no longer bend the quest board, so of the item rules only `trustedHour` is
- * live: the Trusted Hour Power refuses to cast unless it is on. The bedtime locks nothing (`isBedtimeNow` has no caller) and `dayOffBroadcast` is hidden in the settings screen
- * (Gale's Wind used to read it); their stored values stay.
+ * live: the Trusted Hour Power refuses to cast unless it is on. The bedtime (Settings > Family) puts a hero's screens to
+ * sleep between its two clocks (XpLightsOut). `dayOffBroadcast` is hidden in the settings screen (Gale's Wind used to read
+ * it); its stored value stays.
  */
 export interface FamilySettings {
   /** The Trusted Hour Power may open a trusted hour: claims skip the approval queue */
@@ -20,6 +21,12 @@ export interface FamilySettings {
   cashOut: CashOutSettings;
   /** Late chores (Settings > Chores): lock, reduced pay and penalty, all off until the Game Master turns them on */
   lateChores: LateChoreSettings;
+  /** Auto-save (Settings > Chores): the percent of every GP reward that goes straight into savings, 0 for none */
+  autoSavePercent: number;
+  /** Settings > Rewards: game items bought in a shop wait in Approvals too, and go into the bag on handover */
+  approveAllPurchases: boolean;
+  /** The first day of the week for calendars and the weekly recap: 1 Monday, 0 Sunday */
+  weekStartsOn: number;
 }
 
 export interface CashOutSettings {
@@ -44,6 +51,14 @@ export const clampCashOutRate = (value: unknown): number | null => {
   return Math.min(MAX_CASH_OUT_RATE, Math.max(1, rate));
 };
 
+/** The shares of a reward the Game Master can send to savings, in percent */
+export const AUTO_SAVE_PERCENTS: readonly number[] = [0, 10, 25, 50];
+
+const autoSavePercentOf = (value: unknown): number => {
+  const percent = Number(value);
+  return AUTO_SAVE_PERCENTS.includes(percent) ? percent : 0;
+};
+
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   trustedHour: false,
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
@@ -51,6 +66,9 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   streaks: true,
   cashOut: { enabled: true, gpPerDollar: 10, heroIds: [] },
   lateChores: { ...DEFAULT_LATE_CHORES },
+  autoSavePercent: 0,
+  approveAllPurchases: false,
+  weekStartsOn: 1,
 };
 
 const clock = (value: unknown, fallback: string): string =>
@@ -76,6 +94,9 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
   streaks: stored?.streaks !== false,
   cashOut: normalizeCashOut(stored?.cashOut),
   lateChores: normalizeLateChores(stored?.lateChores),
+  autoSavePercent: autoSavePercentOf(stored?.autoSavePercent),
+  approveAllPurchases: stored?.approveAllPurchases === true,
+  weekStartsOn: Number(stored?.weekStartsOn) === 0 ? 0 : 1,
 });
 
 export const loadFamilySettings = async (): Promise<FamilySettings> => {
@@ -89,6 +110,21 @@ export const loadFamilySettings = async (): Promise<FamilySettings> => {
 export const saveFamilySettings = async (settings: FamilySettings): Promise<void> => {
   await getFamilySettingsDb().saveSettings(normalize(settings));
 };
+
+/** "21:00" as the family reads it on the clock face: "9:00 PM" */
+export const clockLabel = (hhmm: string): string => {
+  const hours = Number(hhmm.slice(0, 2));
+  const minutes = hhmm.slice(3, 5);
+  const suffix = hours < 12 ? "AM" : "PM";
+  const hour = hours % 12 === 0 ? 12 : hours % 12;
+  return `${hour}:${minutes} ${suffix}`;
+};
+
+/** Every half hour of the day, "00:00" to "23:30": the times the bedtime can start and end on */
+export const BEDTIME_CLOCKS: readonly string[] = Array.from({ length: 48 }, (_, index) => {
+  const hours = String(Math.floor(index / 2)).padStart(2, "0");
+  return `${hours}:${index % 2 ? "30" : "00"}`;
+});
 
 const minutesOf = (hhmm: string): number => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 

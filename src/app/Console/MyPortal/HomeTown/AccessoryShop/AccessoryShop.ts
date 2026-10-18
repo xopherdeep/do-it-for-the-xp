@@ -54,7 +54,6 @@ import {
   buyItem as purchaseItem,
   InsufficientFundsError,
   PurchaseError,
-  isConsumableItem,
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
@@ -398,8 +397,10 @@ export default defineComponent({
       const isTurnedAway = this.turnedAwayWhileClosed();
       if (isTurnedAway) return;
       this.isBuying = true;
+      let isPacked = false;
       try {
-        await purchaseItem(this.heroId, item);
+        const entry = await purchaseItem(this.heroId, item);
+        isPacked = entry.status === "fulfilled";
       } catch (error) {
         this.isBuying = false;
         const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
@@ -417,9 +418,9 @@ export default defineComponent({
       } finally {
         this.isBuying = false;
       }
-      // Consumables are packed in the bag immediately; real-life goods await Game Master handover
-      const isConsumable = isConsumableItem(item);
-      const receiptPrompt = isConsumable
+      // Consumables are packed in the bag immediately; real-life goods, and game items when the family approves every
+      // purchase, await Game Master handover
+      const receiptPrompt = isPacked
         ? consumablePurchaseReceipt(this.voice, item.name, this.words)
         : purchaseReceipt(this.voice, item.name, this.words);
       await this.reveal.showPrompt(receiptPrompt);

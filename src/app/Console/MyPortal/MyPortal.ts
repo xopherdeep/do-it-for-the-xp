@@ -24,6 +24,7 @@ import XpPowerTimerBar from "@/components/organisms/PowerTimers/XpPowerTimerBar.
 import XpFirstRunTour from "@/components/organisms/FirstRunTour/XpFirstRunTour.vue";
 import XpGuide from "@/components/organisms/Guide/XpGuide.vue";
 import { hasSeenTour } from "@/lib/services/tutorial/firstRunTour";
+import { guidesOn as isGuidesOn } from "@/lib/services/core/profilePrefs";
 import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
 
 // Define interface for equipment items
@@ -247,6 +248,8 @@ export default defineComponent({
     // The Guide speaks once the tour is over (or straight away for a hero who saw it before); the avatar menu reopens it
     const guide = ref<InstanceType<typeof XpGuide> | null>(null);
     const guideReady = ref(hasSeenTour(String(userId || "")));
+    // Settings > General can quiet the Guide and the tour for this profile; the Journal still opens it on request
+    const guidesOn = isGuidesOn(String(userId || ""));
     const openGuide = () => {
       guideReady.value = true;
       guide.value?.open();
@@ -270,6 +273,7 @@ export default defineComponent({
       openParty,
       guide,
       guideReady,
+      guidesOn,
       openGuide,
       isPegasusModalOpen,
       openPegasusModal,
