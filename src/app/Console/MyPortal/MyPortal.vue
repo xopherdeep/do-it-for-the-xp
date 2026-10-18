@@ -60,8 +60,10 @@
       <xp-world-map-modal :is-open="isPegasusModalOpen" @close="closePegasusModal" />
 
       <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
-      <xp-first-run-tour v-if="guidesOn && user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"
-        @done="guideReady = true" />
+      <template v-if="guidesOn">
+        <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"
+          @done="guideReady = true" />
+      </template>
     </template>
   </xp-portal-page>
 </template>

@@ -65,7 +65,8 @@ export const landingPathFor = (profile: { id: string | number; isAdult?: unknown
   const isGameMaster = profile.isAdult === true;
   const isAllowed = landingOptionsFor(isGameMaster).some((option) => option.value === choice);
   const landing = isAllowed ? choice : DEFAULT_LANDING;
-  if (landing === "game-master") return "/game-master/dashboard";
+  const isConsole = landing === "game-master";
+  if (isConsole) return "/game-master/dashboard";
   return `/my-portal/${id}/${landing}`;
 };
 

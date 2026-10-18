@@ -533,7 +533,8 @@
                     // A held game item that has no room in the bag stays waiting, and says why
                     const isBagFull = error instanceof PurchaseError && error.code === "bag-full";
                     if (isBagFull) return { message: `${hero}'s bag is full. It waits here until they store something at home.`, color: "warning" };
-                    if (error instanceof PurchaseError) return { message: error.message, color: "warning" };
+                    const isPurchaseRefusal = error instanceof PurchaseError;
+                    if (isPurchaseRefusal) return { message: error.message, color: "warning" };
                     throw error;
                   }
                   const isFulfilled = fulfilled?.status === "fulfilled";
