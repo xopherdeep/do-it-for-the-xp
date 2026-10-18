@@ -117,7 +117,9 @@ export const useUserStore = defineStore('user', () => {
     setVoice,
     setSkin,
     setThemeChoice,
-    setAutoRead
+    setAutoRead,
+    setAvatar,
+    setFavoriteFood
   } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP });
 
   async function loadUsers() {
@@ -519,6 +521,8 @@ export const useUserStore = defineStore('user', () => {
     setSkin,
     setThemeChoice,
     setAutoRead,
+    setAvatar,
+    setFavoriteFood,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

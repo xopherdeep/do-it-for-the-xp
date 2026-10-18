@@ -50,6 +50,7 @@ import { AbilitiesDb, abilitiesStorage } from '@/lib/databases/AbilitiesDb';
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues, preventIOSZoom } from '@/lib/utils/a11yUtils';
 import { startInstallWatch } from '@/lib/services/pwa/installApp';
+import { requestPersistentStorage } from '@/lib/services/core/persistentStorage';
 
 // Pinia
 import { createPinia } from 'pinia';
@@ -172,6 +173,9 @@ function readyRouterMountApp() {
 
   // XP Pro: load the cached license and recheck it when the offline rules say so (never blocks the app)
   useProStore().init().catch(() => undefined);
+
+  // Keep the browser from evicting the family's only copy of their data
+  void requestPersistentStorage();
 
   // Streak chests: paid whenever a quest pays and a run reaches 3, 7, 14, 30 days
   listenForStreakChests();
