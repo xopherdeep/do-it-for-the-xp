@@ -37,6 +37,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "Add your heroes in Settings, Family. A hero's passcode is optional.",
       "Load a pack in Settings, Packs, or make your own quests in the Compendium. A new game has no quests until you do one of the two.",
       "The first time a hero opens their portal, a guide walks them through the XP bar and the bottom buttons. Replay it from Settings, General, Show the portal tour again.",
+      "Settings, General also picks the screen each profile lands on after signing in, and Helper dialogs keeps the Guide and the tour quiet until you open the Journal.",
     ],
   },
   {
@@ -138,7 +139,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     intro: "Open the Dashboard and tap Approvals to see what's waiting.",
     steps: [
       "Achievements: swipe a quest to Approve and pay its reward, or Reject to put it back on the board.",
-      "Accessories: Fulfil a Real Life reward once you've handed it over, or Refund the gold.",
+      "Accessories: Fulfil a Real Life reward once you've handed it over, or Refund the gold. With Approve every purchase on (Settings, Rewards), potions and other game items wait here too and go into the hero's bag when you fulfil them.",
       "Town Hall: heroes' posts wait here before they go up.",
       "The Dashboard's Add Bonus and Take away Points handle anything a quest doesn't cover.",
     ],
@@ -234,6 +235,22 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "A hero who finishes at least one quest a day builds a streak. Days 3, 7, 14 and 30 (then every 30) open a chest of XP and GP, paid once the quests are approved. Every 7th day earns a Streak Shield (two at most) that covers one missed day. A missed day with no shield starts the streak over. Switch streaks off in Settings, Chores.",
       },
       {
+        question: "Can the portal close at bedtime?",
+        answer: "Yes. In Settings, Family, turn on Lights out and pick when it starts and ends. Between those times a hero's portal goes to sleep until morning. Game Masters are never locked out, a fight already running is finished first, and Choose a profile on the sleeping screen lets a Game Master sign in.",
+      },
+      {
+        question: "Can some of the gold go straight to savings?",
+        answer: "Yes. Settings, Chores, Auto-save GP sends 10%, 25% or 50% of every reward (quests, won fights, streak chests and temple treasure) to the hero's savings at the Gold Bank. Gifts and your own bonuses still go to the wallet.",
+      },
+      {
+        question: "Can I check potion purchases too?",
+        answer: "Yes. Turn on Approve every purchase in Settings, Rewards. Game items bought in a shop then wait in Approvals with the Real Life rewards, and go into the hero's bag when you fulfil them. A full bag keeps the item waiting until the hero makes room.",
+      },
+      {
+        question: "Can the week start on Sunday?",
+        answer: "Yes. Settings, General, Week starts on moves the first day of the week for date pickers, a quest's day row and the weekly recap, for the whole family.",
+      },
+      {
         question: "Can I give or take points by hand?",
         answer: "Yes. On the Dashboard, the police box button opens Add Bonus to award XP, GP or AP, and Take away Points to remove GP.",
       },
@@ -253,6 +270,10 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         question: "How do I earn XP?",
         answer: "Finish quests. Claim pays the quest's reward, and beating its beast in a Hunt pays 25% more XP.",
+      },
+      {
+        question: "Why is my portal asleep?",
+        answer: "It's bedtime. Your Game Master set lights out in Settings, Family, and the sleeping screen says when the portal opens again. Your quests will wait for you.",
       },
       {
         question: "Can I buy real things with my gold?",

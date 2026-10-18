@@ -14,7 +14,7 @@
       <xp-power-timer-bar v-if="user?.id && !battleState('active')" :hero-id="user.id" floating />
       <!-- THE GUIDE: after the tour, the goal of the game; the Journal in the avatar menu says the current goal -->
       <xp-guide v-if="user?.id && user.stats && !battleState('active')" ref="guide" :hero-id="String(user.id)"
-        :ready="guideReady" />
+        :ready="guideReady && guidesOn" />
     </template>
 
     <!-- FABs: Retired 2026-10-10 now that 3D voxel models match navigation menus 1:1 across all plazas.
@@ -60,7 +60,7 @@
       <xp-world-map-modal :is-open="isPegasusModalOpen" @close="closePegasusModal" />
 
       <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
-      <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"
+      <xp-first-run-tour v-if="guidesOn && user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"
         @done="guideReady = true" />
     </template>
   </xp-portal-page>

@@ -97,7 +97,25 @@
         </ion-card-content>
       </ion-card>
 
-      <xp-coming-soon-card :items="items" />
+      <ion-card class="max-w-2xl" data-cy="purchase-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Shop purchases</ion-label>
+          </ion-item-divider>
+          <ion-item lines="none">
+            <ion-label class="ion-text-wrap">
+              <h2>Approve every purchase</h2>
+              <p>Potions and other game items wait in Approvals too, and go into the hero's bag when you hand them over. Off, they go straight into the bag.</p>
+            </ion-label>
+            <ion-toggle
+              data-cy="approve-all-purchases"
+              :checked="rules.approveAllPurchases"
+              :disabled="!canManage"
+              @ionChange="rules.setApproveAllPurchases($event.detail.checked)"
+            ></ion-toggle>
+          </ion-item>
+        </ion-list>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
@@ -123,8 +141,7 @@ import {
   IonToggle,
   IonToolbar,
 } from "@ionic/vue";
-import XpComingSoonCard from "./XpComingSoonCard.vue";
-import { REWARD_COMING_SOON } from "./comingSoon";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import { heroName } from "@/lib/services/gp/gpGifts";
@@ -134,15 +151,15 @@ import {
   MAX_CASH_OUT_RATE,
   clampCashOutRate,
   loadFamilySettings,
-  saveFamilySettings,
   type CashOutSettings,
   type FamilySettings,
 } from "@/lib/services/family/familySettings";
 
-const items = REWARD_COMING_SOON;
 const rates = CASH_OUT_RATES;
 
 const userStore = useUserStore();
+const rules = useGameRulesStore();
+void rules.load();
 const canManage = computed(() => canManageFamily(userStore));
 const heroes = computed(() => Object.values(userStore.users as Record<string, any>).filter((profile) => profile && !profile.isAdult));
 
@@ -154,7 +171,7 @@ const cashOut = computed(() => family.value.cashOut);
 const setCashOut = (change: Partial<CashOutSettings>) => {
   if (!canManage.value) return;
   family.value = { ...family.value, cashOut: { ...family.value.cashOut, ...change } };
-  void saveFamilySettings(family.value);
+  void rules.save({ cashOut: family.value.cashOut });
 };
 
 // Custom: the rate is not one of the presets (or the Game Master just chose Custom and has not typed one yet)

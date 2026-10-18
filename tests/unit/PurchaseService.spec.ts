@@ -1,4 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore } from "@/lib/store/stores/user";
 import {
   buyItem,
@@ -49,6 +50,7 @@ const mockLog = {
       status: input.status ?? "pending",
       createdAt: input.createdAt || new Date().toISOString(),
       note: input.note,
+      ...(input.packed ? { packed: input.packed } : {}),
     };
     this.entries.set(entry.id, entry);
     return entry;
@@ -261,6 +263,48 @@ describe("PurchaseService", () => {
       expect(error.message).toBe("storage is full");
       expect(wallet()).toBe(100);
       expect(mockLog.entries.size).toBe(0);
+    });
+  });
+
+  describe("with Approve every purchase on", () => {
+    const potion = { id: "item-health-potion", name: "Health Potion", price: 50 };
+    const bag = () => (store.users["hero-1"].inventory ?? []) as Array<{ name: string; qty: number }>;
+
+    beforeEach(async () => {
+      const rules = useGameRulesStore();
+      await rules.load();
+      rules.approveAllPurchases = true;
+    });
+
+    it("charges for a game item but holds it for the Game Master instead of packing it", async () => {
+      const entry = await buyItem("hero-1", potion);
+
+      expect(entry).toMatchObject({ status: "pending", packed: { name: "Health Potion", type: "consumable" } });
+      expect(wallet()).toBe(50);
+      expect(bag().some((item) => item.name === "Health Potion")).toBe(false);
+    });
+
+    it("packs the held item into the bag when the Game Master fulfils it", async () => {
+      const entry = await buyItem("hero-1", potion);
+      const fulfilled = await fulfillPurchase(entry.id, "gm-1");
+
+      expect(fulfilled?.status).toBe("fulfilled");
+      expect(bag().some((item) => item.name === "Health Potion")).toBe(true);
+    });
+
+    it("gives the GP back on a refund and packs nothing", async () => {
+      const entry = await buyItem("hero-1", potion);
+      await refundPurchase(entry.id, "gm-1");
+
+      expect(wallet()).toBe(100);
+      expect(bag().some((item) => item.name === "Health Potion")).toBe(false);
+    });
+
+    it("still logs a Real Life reward as pending with nothing to pack", async () => {
+      const entry = await buyItem("hero-1", { id: "movie", name: "Movie night", price: 30 });
+
+      expect(entry.status).toBe("pending");
+      expect(entry.packed).toBeUndefined();
     });
   });
 

@@ -274,6 +274,7 @@
 </template>
 
 <script lang="ts">
+import { landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
 import {
   toastController,
   useIonRouter,
@@ -570,11 +571,8 @@ export default defineComponent({
         // Login the user first and wait for it to complete
         await userStore.loginUser(profile);
 
-        // Then navigate to their home page
-        await ionRouter.navigate(
-          `/my-portal/${profile.id}/my-home`,
-          "root"
-        );
+        // Then go to the screen they chose to land on (Settings > General), My Home unless they picked another
+        await ionRouter.navigate(landingPathFor(profile, landingChoiceOf(String(profile.id))), "root");
       } catch (error) {
         debug.error("Login/Navigation error:", error);
         const toast = await toastController.create({

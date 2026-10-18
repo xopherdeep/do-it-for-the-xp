@@ -51,6 +51,7 @@ import { isActive as sceneTransitionActive } from "@/components/organisms/SceneT
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import XpRewardsOverlay from "@/components/organisms/RewardsOverlay/XpRewardsOverlay.vue";
+import XpLightsOut from "@/components/organisms/LightsOut/XpLightsOut.vue";
 import debug from "@/lib/utils/debug";
 import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
@@ -101,6 +102,7 @@ export default defineComponent({
     XpStudioSplash,
     XpGlobalDialog,
     XpRewardsOverlay,
+    XpLightsOut,
     XpSceneTransition,
   },
   data() {

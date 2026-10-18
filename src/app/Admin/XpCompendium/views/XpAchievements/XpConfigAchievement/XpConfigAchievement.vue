@@ -196,6 +196,7 @@
         id="starts-on"
         v-model="achievement.startsOn"
         presentation="date"
+        :first-day-of-week="weekStart"
         :show-default-buttons="true"
       >
         <div
@@ -220,6 +221,7 @@
         id="ends-on"
         v-model="achievement.endsOn"
         presentation="date"
+        :first-day-of-week="weekStart"
         :min="minEndDate"
       >
         <div

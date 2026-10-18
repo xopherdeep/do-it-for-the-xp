@@ -72,7 +72,7 @@
                   Bought by {{ heroName(entry.userId) }}
                   <ion-note>{{ formatDate(entry.createdAt) }}</ion-note>
                 </p>
-                <p class="rewards">Paid {{ entry.price }} GP · waiting to be delivered</p>
+                <p class="rewards">Paid {{ entry.price }} GP · {{ entry.packed ? "game item, goes in their bag when you fulfil it" : "waiting to be delivered" }}</p>
               </ion-label>
               <ion-badge color="warning" slot="end">
                 <xp-gp :gp="entry.price" />
@@ -163,6 +163,7 @@
   import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
   import {
     fulfillPurchase,
+    PurchaseError,
     refundPurchase,
   } from "@/lib/services/shop/PurchaseService";
 
@@ -512,8 +513,10 @@
       const fulfilItem = async (entry: PurchaseLogEntry) => {
         const hero = heroName(entry.userId);
         const alert = await alertController.create({
-          header: "Deliver Accessory",
-          message: `Has ${hero} received "${entry.itemName}"? It will be marked delivered.`,
+          header: entry.packed ? "Hand Over Item" : "Deliver Accessory",
+          message: entry.packed
+            ? `Give ${hero} "${entry.itemName}"? It goes into their bag.`
+            : `Has ${hero} received "${entry.itemName}"? It will be marked delivered.`,
           buttons: [
             {
               text: "Cancel",
@@ -523,10 +526,16 @@
               text: "Fulfil",
               handler: () => {
                 void runReview(entry, async () => {
-                  const fulfilled = await fulfillPurchase(
-                    entry.id,
-                    userStore.currentUser.id ?? undefined
-                  );
+                  let fulfilled: PurchaseLogEntry | null;
+                  try {
+                    fulfilled = await fulfillPurchase(entry.id, userStore.currentUser.id ?? undefined);
+                  } catch (error) {
+                    // A held game item that has no room in the bag stays waiting, and says why
+                    const isBagFull = error instanceof PurchaseError && error.code === "bag-full";
+                    if (isBagFull) return { message: `${hero}'s bag is full. It waits here until they store something at home.`, color: "warning" };
+                    if (error instanceof PurchaseError) return { message: error.message, color: "warning" };
+                    throw error;
+                  }
                   const isFulfilled = fulfilled?.status === "fulfilled";
                   if (!isFulfilled) {
                     return {

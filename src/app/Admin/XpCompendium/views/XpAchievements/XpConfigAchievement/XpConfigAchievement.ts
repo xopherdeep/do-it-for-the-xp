@@ -41,6 +41,7 @@ import {
   stepIndexOf,
 } from "../questConfigWizard";
 import type { QuestKind, QuestStepId } from "../questConfigWizard";
+import { useWeekStart } from "@/hooks/useWeekStart";
 
 /**
  * The Game Master's quest config as a wizard (docs: compendium-wizards-design, W4): What's the chore? -> Who does it?
@@ -286,6 +287,8 @@ export default defineComponent({
     });
 
     return {
+      // The date pickers start on the family's first day of the week
+      weekStart: useWeekStart(),
       // Form State
       achievement,
       categories,

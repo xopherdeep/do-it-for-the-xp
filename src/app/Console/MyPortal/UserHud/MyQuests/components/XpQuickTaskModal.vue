@@ -93,7 +93,7 @@
               class="quick-task-calendar"
               presentation="date"
               :min="todayIso"
-              :first-day-of-week="1"
+              :first-day-of-week="weekStart"
             />
 
             <div class="quick-task-row">
@@ -222,6 +222,7 @@ import { play$fx } from "@/assets/fx";
 import { useUserStore } from "@/lib/store/stores/user";
 import { resolveGmAccess } from "@/router/_Guards/gm.guard";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import { useWeekStart } from "@/hooks/useWeekStart";
 
 /**
  * "Add task": a one-off quest for one family member, posted through AchievementDb like any quest the
@@ -247,6 +248,8 @@ const todayIso = format(new Date(), "yyyy-MM-dd");
 const pickedDay = ref(todayIso);
 const dueByTime = ref("");
 const userStore = useUserStore();
+// The calendar starts on the family's first day of the week
+const weekStart = useWeekStart();
 // A Game Master chooses whether the task needs a Game Master's OK; a hero's own task always does
 const isGm = computed(() => {
   const access = resolveGmAccess(userStore);
