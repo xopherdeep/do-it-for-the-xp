@@ -209,6 +209,21 @@ describe("TempleChoiceReveal", () => {
       expect(reveal.get("img").attributes("alt")).toBe("Slime");
     });
 
+    it("shows a beaten beast knocked out: a KO tag and no wheel of light behind it", () => {
+      const reveal = show({ ...sheet, art: { ...art, defeated: true } });
+      expect(reveal.classes()).toContain("is-defeated");
+      expect(reveal.find('[data-cy="choice-art-defeated"]').text()).toBe("KO");
+      expect(reveal.find(".choice-reveal__rays").exists()).toBe(false);
+      expect(reveal.find(".choice-reveal__flash").exists()).toBe(false);
+    });
+
+    it("keeps a beast still to be fought in its light", () => {
+      const reveal = show({ ...sheet, art });
+      expect(reveal.classes()).not.toContain("is-defeated");
+      expect(reveal.find('[data-cy="choice-art-defeated"]').exists()).toBe(false);
+      expect(reveal.find(".choice-reveal__rays").exists()).toBe(true);
+    });
+
     it("keeps the actions working under the picture", async () => {
       const reveal = show({ ...sheet, art });
       await row(reveal, "0").trigger("click");

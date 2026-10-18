@@ -5,7 +5,7 @@
       ref="root"
       class="choice-reveal"
       tabindex="-1"
-      :class="[`kind-${kind}`, { 'has-sprite': sprite, 'has-art': showArt }]"
+      :class="[`kind-${kind}`, { 'has-sprite': sprite, 'has-art': showArt, 'is-defeated': isDefeated }]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="choice-reveal-title"
@@ -17,8 +17,9 @@
 
       <!-- The sprite (tablet, coins) or art (beast portrait) in its light above the sheet, like the chests and door -->
       <div v-if="hasStage" class="choice-reveal__stage" aria-hidden="true">
-        <div class="choice-reveal__rays"></div>
-        <div class="choice-reveal__flash"></div>
+        <!-- A beaten beast gets no wheel of light: it lies there grey, knocked out -->
+        <div v-if="!isDefeated" class="choice-reveal__rays"></div>
+        <div v-if="!isDefeated" class="choice-reveal__flash"></div>
         <svg
           v-if="sprite"
           class="choice-sprite"
@@ -35,6 +36,7 @@
           data-cy="choice-art"
         >
           <img class="choice-reveal__art-img" :src="art.src" :alt="art.alt" draggable="false" @error="artFailed = true" />
+          <span v-if="isDefeated" class="choice-reveal__ko" data-cy="choice-art-defeated">KO</span>
         </figure>
       </div>
 
@@ -120,6 +122,8 @@ interface RevealArt {
   src: string;
   alt: string;
   frame?: "beast" | "room";
+  /** The beast is beaten: grey and tipped over, with no light behind it */
+  defeated?: boolean;
 }
 
 /**
@@ -167,6 +171,7 @@ const isSheet = computed(() => props.kind === "sheet" || props.kind === "exit");
 // A picture that will not load is dropped, never left as a broken-image icon
 const artFailed = ref(false);
 const showArt = computed(() => Boolean(props.art?.src) && !artFailed.value);
+const isDefeated = computed(() => showArt.value && Boolean(props.art?.defeated));
 watch(
   () => props.art?.src,
   () => {

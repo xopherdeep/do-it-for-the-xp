@@ -234,15 +234,22 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
       // and when it is due, or why there is no fight. A classic room, a dormant one and a run with no board yet fall through.
       const questWords = questRoomWordsFor(room, ctx);
       if (questWords) {
-        const { header, subHeader, body, beastId, fight, search } = questWords;
+        const { status, header, subHeader, body, beastId, fight, search } = questWords;
         const actions: RoomAction[] = [];
         if (fight) actions.push(act('Fight', () => ({ intent: 'fight' })));
         if (search) actions.push(...searchTheRoom());
-        return { ...sheet(header, actions, subHeader), body, beastId, ...(beastId ? { questBeast: true } : {}) };
+        const beastDefeated = status === 'cleared' || status === 'pending';
+        return {
+          ...sheet(header, actions, subHeader),
+          body,
+          beastId,
+          ...(beastId ? { questBeast: true } : {}),
+          ...(beastDefeated ? { beastDefeated } : {}),
+        };
       }
 
       if (system.isRoomCleared(ctx.templeId, ctx.level, ctx.position)) {
-        return sheet('Nothing left here but the smell.', searchTheRoom());
+        return { ...sheet('Nothing left here but the smell.', searchTheRoom()), beastDefeated: true };
       }
       const beasts = room.content?.beasts;
       const beastId = Array.isArray(beasts) && beasts.length > 0 ? String(beasts[0]) : undefined;

@@ -780,6 +780,13 @@ describe("the beast an encounter shows", () => {
     expect(sheet.header).toBe("Nothing left here but the smell.");
     expect(sheet.beastId).toBeUndefined();
     expect(labels(sheet)).toEqual(["Search the room"]);
+    // the picture the screen falls back to is the beast knocked out, not standing ready to fight
+    expect(sheet.beastDefeated).toBe(true);
+  });
+
+  it("keeps a beast that is still to be fought standing", () => {
+    const { ctx, room } = withRoom({ type: "monster", content: { beasts: ["beast-socktopus"] } });
+    expect(roomActions(room, ctx).beastDefeated).toBeUndefined();
   });
 
   it("names no beast for rooms that are not encounters", () => {

@@ -146,15 +146,16 @@ describe("the sheet and the run's cleared rooms agree", () => {
         cleared: temples.isRoomCleared(id, "1F", [0, col]),
         fight: sheet.actions.some((action) => action.label === "Fight"),
         header: sheet.header,
+        defeated: Boolean(sheet.beastDefeated),
       };
     });
 
     expect(seen).toEqual([
-      { name: "lurking", cleared: false, fight: true, header: "A Monster approaches!" },
-      { name: "done", cleared: true, fight: false, header: "Nothing left here but the smell." },
-      { name: "claimed", cleared: true, fight: false, header: "Tied up. The Game Master is checking." },
-      { name: "mias", cleared: true, fight: false, header: "Mia's Dish Goblin sleeps here." },
-      { name: "gone", cleared: true, fight: false, header: "An empty lair." },
+      { name: "lurking", cleared: false, fight: true, header: "A Monster approaches!", defeated: false },
+      { name: "done", cleared: true, fight: false, header: "Nothing left here but the smell.", defeated: true },
+      { name: "claimed", cleared: true, fight: false, header: "Tied up. The Game Master is checking.", defeated: true },
+      { name: "mias", cleared: true, fight: false, header: "Mia's Dish Goblin sleeps here.", defeated: false },
+      { name: "gone", cleared: true, fight: false, header: "An empty lair.", defeated: false },
     ]);
     // the doors never disagree with the sheet: every room without a fight is one the run counts as cleared
     expect(seen.every((room) => room.cleared === !room.fight)).toBe(true);

@@ -293,7 +293,9 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const monsterSubtitle = sheet.subHeader ?? beast?.name ?? (isCombatRoom && activeMonster.value ? activeMonster.value.name : undefined);
     // The beast's name leads the title ("A Mustwisp approaches!"), so it is not repeated under it
     const encounter = nameTheEncounter(sheet.header, sheet.subHeader === undefined ? monsterSubtitle : undefined);
-    const monsterArt = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
+    const portrait = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' as const } : undefined);
+    // A beaten beast is shown knocked out, not standing in its light as if the fight were still to come
+    const monsterArt = portrait && sheet.beastDefeated ? { ...portrait, defeated: true } : portrait;
 
     const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
     const beastSubtitle = encounter.named ? undefined : monsterSubtitle;

@@ -281,6 +281,32 @@ $cv-sprite-scale: 3;
   opacity: 0;
 }
 
+// A beaten beast: no light, grey and dim, tipped onto its side with a KO tag, like a foe that has gone down in battle
+.is-defeated {
+  .choice-reveal__art-img {
+    filter: grayscale(1) brightness(0.55) contrast(1.1) drop-shadow(0 6px 0 rgba(0, 0, 0, 0.45));
+    transform: rotate(-14deg) translateY(10px) scaleY(0.92);
+    opacity: 0.85;
+  }
+
+  .choice-reveal__ko {
+    position: absolute;
+    top: 14px;
+    right: 6px;
+    z-index: 3;
+    padding: 2px 6px 1px;
+    font-family: "StatusPlz", monospace;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 1px;
+    color: #fff4d6;
+    background: #8a1c1c;
+    border: 2px solid #1c0a04;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transform: rotate(8deg);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Keyframes
 // ---------------------------------------------------------------------------------------------------------------
