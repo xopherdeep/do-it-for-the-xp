@@ -212,18 +212,19 @@ describe("questWatch.pickQuestAlerts", () => {
 });
 
 describe("deviceReminders", () => {
-  it("fires a stable id per quest and the lead time before the deadline", () => {
-    expect(reminderIdOf("q1")).toBe(reminderIdOf("q1"));
-    expect(reminderIdOf("q1")).not.toBe(reminderIdOf("q2"));
+  it("fires a stable id per hero and quest and the lead time before the deadline", () => {
+    expect(reminderIdOf(HERO, "q1")).toBe(reminderIdOf(HERO, "q1"));
+    expect(reminderIdOf(HERO, "q1")).not.toBe(reminderIdOf(HERO, "q2"));
+    expect(reminderIdOf(HERO, "q1")).not.toBe(reminderIdOf("hero-2", "q1"));
     expect(reminderTimeOf(new Date(NOON.getTime() + 3600e3), NOON)).toEqual(new Date(NOON.getTime() + 3600e3 - REMINDER_LEAD_MS));
     expect(reminderTimeOf(new Date(NOON.getTime() + 10 * 60e3), NOON)).toBeNull();
   });
 
   it("schedules nothing on the web and says why", async () => {
     const reminders = [{ questId: "q1", title: "Dishes", body: "Due by 2:00pm.", deadline: new Date(NOON.getTime() + 2 * 3600e3) }];
-    expect(await scheduleDueReminders(reminders, NOON)).toEqual({ scheduled: 0, reason: "web" });
-    expect(await scheduleDueReminders([], NOON)).toEqual({ scheduled: 0, reason: "nothing-due" });
-    expect(await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => null })).toEqual({
+    expect(await scheduleDueReminders(HERO, reminders, NOON)).toEqual({ scheduled: 0, reason: "web" });
+    expect(await scheduleDueReminders(HERO, [], NOON)).toEqual({ scheduled: 0, reason: "nothing-due" });
+    expect(await scheduleDueReminders(HERO, reminders, NOON, { isNative: async () => true, plugin: async () => null })).toEqual({
       scheduled: 0,
       reason: "plugin-missing",
     });
@@ -236,14 +237,14 @@ describe("deviceReminders", () => {
       schedule: jest.fn().mockResolvedValue(undefined),
     };
     const reminders = [{ questId: "q1", title: "Dishes", body: "Due by 2:00pm.", deadline: new Date(NOON.getTime() + 2 * 3600e3) }];
-    expect(await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => plugin })).toEqual({ scheduled: 1 });
+    expect(await scheduleDueReminders(HERO, reminders, NOON, { isNative: async () => true, plugin: async () => plugin })).toEqual({ scheduled: 1 });
     expect(plugin.schedule).toHaveBeenCalledWith({
       notifications: [
-        expect.objectContaining({ id: reminderIdOf("q1"), title: "Dishes", schedule: { at: new Date(NOON.getTime() + 1.5 * 3600e3), allowWhileIdle: true } }),
+        expect.objectContaining({ id: reminderIdOf(HERO, "q1"), title: "Dishes", schedule: { at: new Date(NOON.getTime() + 1.5 * 3600e3), allowWhileIdle: true } }),
       ],
     });
     plugin.requestPermissions.mockResolvedValue({ display: "denied" });
-    expect(await scheduleDueReminders(reminders, NOON, { isNative: async () => true, plugin: async () => plugin })).toEqual({ scheduled: 0, reason: "denied" });
+    expect(await scheduleDueReminders(HERO, reminders, NOON, { isNative: async () => true, plugin: async () => plugin })).toEqual({ scheduled: 0, reason: "denied" });
   });
 });
 
