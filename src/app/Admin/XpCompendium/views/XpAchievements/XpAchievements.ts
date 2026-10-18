@@ -36,6 +36,8 @@ import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 
 import XpAchievementItem from "./XpConfigAchievement/components/XpAchievementItem.vue";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import { confirmDelete } from "@/hooks/useConfirmDelete";
+import { deleteQuest, usageOfQuest } from "@/lib/services/compendium/deleteContent";
 
 export default defineComponent({
   name: "xp-achievements",
@@ -259,29 +261,16 @@ export default defineComponent({
       const { achievementDb, loadAchievements } = this as any;
       achievementDb.cloneTask(task).then(loadAchievements);
     },
-    deleteTask(task: Achievement) {
-      const { achievementDb, loadAchievements } = this as any;
-      achievementDb.deleteTask(task).then(loadAchievements);
-    },
     async clickDeleteAchievement(task: Achievement) {
-      const alert = await alertController.create({
-        header: `Delete ${task.achievementName || "this quest"}?`,
-        message: "This can't be undone.",
-        mode: "ios",
-        buttons: [
-          {
-            text: "Cancel",
-            role: "cancel",
-          },
-          {
-            text: "Delete",
-            role: "destructive",
-            handler: () => this.deleteTask(task),
-          },
-        ],
+      const isDeleted = await confirmDelete({
+        kind: "quest",
+        name: task.achievementName,
+        usage: () => usageOfQuest(task.id),
+        detaching: "Deleting it takes the quest off them first; a temple room left with no quest gets a random beast.",
+        note: "A claim a hero already made stays in Approvals, so it can still be paid.",
+        run: () => deleteQuest(task),
       });
-
-      await alert.present();
+      if (isDeleted) await (this as any).loadAchievements();
     },
     filterAchievement(achievement: Achievement) {
       const { searchText } = this as any;

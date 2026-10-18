@@ -104,7 +104,7 @@ export class AccessoriesDb extends DbStorageApi {
   }
 
   public async deleteAccessory(accessory: Accessory) {
-    this.remove(accessory.id)
+    await this.remove(accessory.id)
     return await this.getAccessories()
   }
 

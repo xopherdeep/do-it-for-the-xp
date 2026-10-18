@@ -11,8 +11,11 @@
       verb="Save"
       verb-icon="save"
       :busy="saving"
+      :deletable="isSaved"
+      delete-label="Delete Power"
       @close="goBack"
       @submit="saveAbility"
+      @delete="clickDelete"
     >
       <!-- 1. WHAT IS IT: the icon, the kind and the description; the name sits at the bottom, above Back / Next -->
       <template #what>
@@ -283,6 +286,8 @@
   import { lastIndex } from "@/lib/services/wizard/wizardSteps";
   import { MAX_TIMER_MINUTES } from "@/lib/services/abilities/PowerTimers";
   import debug from "@/lib/utils/debug";
+  import { confirmDelete } from "@/hooks/useConfirmDelete";
+  import { deletePower, usageOfPower } from "@/lib/services/compendium/deleteContent";
   import XpPowerChoices from "./XpPowerChoices.vue";
   import XpPowerCounter from "./XpPowerCounter.vue";
   import {
@@ -334,6 +339,8 @@
       // A new Power is ready at once; an edit waits for its record and then opens on the summary
       const loaded = ref(!id.value);
       const saving = ref(false);
+      // An edit of a Power that is really stored: only that can be deleted
+      const isSaved = ref(false);
       const showIconPicker = ref(false);
 
       const isRealLife = computed(() => ability.value.type === AbilityType.RealLife);
@@ -471,11 +478,25 @@
         }
       };
 
+      // Delete: off shop shelves and out of other Powers' prerequisites first, then gone; back to the list
+      const clickDelete = async () => {
+        const isDeleted = await confirmDelete({
+          kind: "Power",
+          name: ability.value.name,
+          usage: () => usageOfPower(String(id.value)),
+          detaching: "Deleting it takes the Power off them first.",
+          run: () => deletePower({ id: String(id.value) }),
+        });
+        if (isDeleted) goBack();
+      };
+
       // An edit opens on the summary with the dots tappable back; a Power that has no name (an id that is not there) starts over
       onMounted(async () => {
         if (!id.value) return;
         try {
-          ability.value = loadedPower(await abilitiesDb.getAbilityById(id.value));
+          const stored = await abilitiesDb.getAbilityById(id.value);
+          isSaved.value = stored?.id === id.value;
+          ability.value = loadedPower(stored);
           position.value = ability.value.name.trim() ? lastIndex(steps, ability.value) : 0;
         } catch (error) {
           debug.error("Error loading ability:", error);
@@ -491,6 +512,8 @@
         position,
         loaded,
         saving,
+        isSaved,
+        clickDelete,
         showIconPicker,
         isRealLife,
         isInGame,

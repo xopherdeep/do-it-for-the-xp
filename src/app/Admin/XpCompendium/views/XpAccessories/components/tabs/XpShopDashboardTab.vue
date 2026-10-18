@@ -33,14 +33,32 @@
             </div>
           </div>
         </div>
+
+        <!-- Only the Game Master's own shops go: a built-in one stands at its place on the map -->
+        <ion-button
+          v-if="!isBuiltIn"
+          expand="block"
+          fill="outline"
+          color="danger"
+          class="delete-button"
+          data-test="delete-shop"
+          @click="clickDelete"
+        >
+          <i class="fad fa-trash-alt mr-2" aria-hidden="true"></i>
+          Delete Shop
+        </ion-button>
+        <p v-else class="built-in-note">Built-in shops stand at a place on the map, so they can't be deleted.</p>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent, inject, Ref } from "vue";
+  import { computed, defineComponent, inject, Ref } from "vue";
+  import { useRouter } from "vue-router";
   import Ionic from "@/lib/mixins/ionic";
+  import { confirmDelete } from "@/hooks/useConfirmDelete";
+  import { deleteShop, isBuiltInShop, usageOfShop } from "@/lib/services/compendium/deleteContent";
   import { ShopInterface } from "@/lib/databases/ShopsDb";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
@@ -53,10 +71,28 @@
     setup() {
       const shop = inject<Ref<ShopInterface | null>>("shop");
       const isLoading = inject<Ref<boolean>>("isLoading");
+      const router = useRouter();
+      const isBuiltIn = computed(() => isBuiltInShop(shop?.value?.id ?? ""));
+
+      // Delete: out of temple shop rooms first, then gone; back to the shop list
+      const clickDelete = async () => {
+        const current = shop?.value;
+        if (!current) return;
+        const isDeleted = await confirmDelete({
+          kind: "shop",
+          name: current.name,
+          usage: () => usageOfShop(current.id),
+          detaching: "Deleting it clears the shop from those rooms first.",
+          run: () => deleteShop(current.id),
+        });
+        if (isDeleted) router.replace({ name: "xp-economy-shops" });
+      };
 
       return {
         shop,
         isLoading,
+        isBuiltIn,
+        clickDelete,
       };
     },
   });
@@ -153,6 +189,20 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
+  }
+
+  .delete-button {
+    max-width: 320px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .built-in-note {
+    font-family: "Apple Kid", sans-serif;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    margin: 0;
   }
 
   .text-primary {

@@ -11,8 +11,11 @@
       verb="Stock it"
       verb-icon="store"
       :busy="saving"
+      :deletable="isEdit"
+      delete-label="Delete item"
       @close="goBack"
       @submit="stockIt"
+      @delete="clickDelete"
     >
       <!-- 1. WHAT IS IT: the kind, a few words, the look. The name is typed at the bottom, in thumb reach -->
       <template #what>
@@ -339,6 +342,8 @@ import type { Accessory, AccessoryType, Rarity } from "@/lib/databases/Accessori
 import { useUserStore } from "@/lib/store/stores/user";
 import { firstIndex, lastIndex } from "@/lib/services/wizard/wizardSteps";
 import debug from "@/lib/utils/debug";
+import { confirmDelete } from "@/hooks/useConfirmDelete";
+import { deleteItem, usageOfItem } from "@/lib/services/compendium/deleteContent";
 import {
   GEAR_STATS,
   PRICE_CHOICES,
@@ -477,6 +482,21 @@ const shelfLabel = computed(() => {
 const toggleShelf = (shopId: string) => {
   const isChosen = chosenShops.value.includes(shopId);
   chosenShops.value = isChosen ? chosenShops.value.filter((id) => id !== shopId) : [...chosenShops.value, shopId];
+};
+
+// Delete: off every shop shelf first, then gone. Heroes keep the copies they already bought.
+const clickDelete = async () => {
+  const record = original.value;
+  if (!record) return;
+  const isDeleted = await confirmDelete({
+    kind: "item",
+    name: record.name,
+    usage: () => usageOfItem(String(record.id)),
+    detaching: "Deleting it takes the item off their shelves first.",
+    note: "Heroes keep any they already bought.",
+    run: () => deleteItem(record),
+  });
+  if (isDeleted) goBack();
 };
 
 onMounted(async () => {

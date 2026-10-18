@@ -97,6 +97,20 @@
           <i class="fad fa-dungeon mr-2"></i>
           Enter Temple
         </ion-button>
+
+        <!-- Only the Game Master's own temples go: the nine shipped ones come back on the next visit -->
+        <ion-button
+          v-if="isDeletable"
+          expand="block"
+          fill="outline"
+          color="danger"
+          class="delete-button"
+          data-test="delete-temple"
+          @click="clickDelete"
+        >
+          <i class="fad fa-trash-alt mr-2" aria-hidden="true"></i>
+          Delete Temple
+        </ion-button>
       </div>
     </ion-content>
   </ion-page>
@@ -112,6 +126,8 @@ import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
 import { TEMPLE_METADATA, metadataFor, metadataForAsync, type TempleMetadata } from "@/lib/engine/temples/templeRegistry";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, ref, watch } from "vue";
+import { confirmDelete } from "@/hooks/useConfirmDelete";
+import { deleteTemple, heroesInTemple, isBuiltInTemple } from "@/lib/services/compendium/deleteContent";
 
 export default defineComponent({
   name: "XpTempleDashboard",
@@ -204,6 +220,24 @@ export default defineComponent({
       goToTab('layout');
     };
 
+    // A temple the Game Master made (or generated) and saved; a just-minted id has nothing stored to delete yet
+    const isDeletable = computed(() => !isBuiltInTemple(props.templeId) && !!templeData.value?.dungeonLayout);
+
+    // Delete: every hero's run in it goes too (blood moons included); back to the temple list
+    const clickDelete = async () => {
+      const isDeleted = await confirmDelete({
+        kind: 'temple',
+        name: templeName.value,
+        usage: async () => {
+          const heroes = await heroesInTemple(props.templeId);
+          return heroes ? `${heroes} ${heroes === 1 ? 'hero has a run' : 'heroes have runs'} saved in it` : '';
+        },
+        detaching: 'Their progress there is deleted with it.',
+        run: () => deleteTemple(props.templeId),
+      });
+      if (isDeleted) router.replace({ name: 'xp-compendium-temples' });
+    };
+
     return {
       isLoading,
       templeName,
@@ -216,7 +250,9 @@ export default defineComponent({
       previewMaze,
       isRoom,
       goToLayout,
-      goToTab
+      goToTab,
+      isDeletable,
+      clickDelete
     };
   }
 });
@@ -247,6 +283,10 @@ export default defineComponent({
       color: rgba(255, 255, 255, 0.7);
       margin: 0;
     }
+  }
+
+  .delete-button {
+    margin-top: -12px;
   }
 
   .content-wrapper {

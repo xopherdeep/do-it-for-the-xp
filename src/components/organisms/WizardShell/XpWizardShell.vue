@@ -5,6 +5,18 @@
       <ion-toolbar>
         <xp-app-header :title="headerTitle" :icon="icon" :meta="`${progress.n} / ${progress.total}`">
           <template #end>
+            <!-- An edit of a saved record can be deleted from its own header -->
+            <button
+              v-if="deletable"
+              type="button"
+              class="xp-wiz-delete"
+              :aria-label="deleteLabel"
+              :title="deleteLabel"
+              data-test="wizard-delete"
+              @click="emit('delete')"
+            >
+              <i class="fad fa-trash-alt" aria-hidden="true"></i>
+            </button>
             <xp-close-button size="lg" color="light" aria-label="Close" data-test="wizard-close" @click="emit('close')" />
           </template>
         </xp-app-header>
@@ -117,6 +129,10 @@ interface WizardShellProps {
   busy?: boolean;
   /** False where the dots are a progress mark only (the Quest Wizard asks its questions in order) */
   jumpable?: boolean;
+  /** Show a Delete button beside Close (an edit of a saved record); it emits `delete` and the form asks to confirm */
+  deletable?: boolean;
+  /** The Delete button's label for screen readers: "Delete Power" */
+  deleteLabel?: string;
 }
 
 /**
@@ -132,14 +148,18 @@ interface WizardShellProps {
  */
 const props = withDefaults(
   defineProps<WizardShellProps>(),
-  { index: undefined, title: undefined, icon: "scroll", accent: undefined, verb: "Save", verbIcon: "check", busy: false, jumpable: true }
+  { index: undefined, title: undefined, icon: "scroll", accent: undefined, verb: "Save", verbIcon: "check", busy: false, jumpable: true, deletable: false, deleteLabel: "Delete" }
 );
 
-const emit = defineEmits<{
+/** Close (Back on the first step), the verb, Delete, and the step moving */
+interface WizardShellEmits {
   close: [];
   submit: [];
+  delete: [];
   "update:index": [index: number];
-}>();
+}
+
+const emit = defineEmits<WizardShellEmits>();
 
 // The place: the form's when it binds `index`, the shell's own otherwise
 const own = ref(props.index ?? 0);
@@ -216,6 +236,25 @@ const onDot = (target: number) => {
 // No box of its own: the holder (an ion-modal or an ion-page) lays out the header, body and footer, as it did before the shell
 .xp-wizard {
   display: contents;
+}
+
+// Delete sits left of Close in the header's own ink, so it reads on every app colour; it never spins like Close does
+.xp-wiz-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 2rem;
+  color: var(--xp-app-on-accent);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 // ---- Progress dots and the guide -----------------------------------------------------------------------------------
