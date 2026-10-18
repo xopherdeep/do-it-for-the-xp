@@ -82,7 +82,7 @@ const onDrop = (event: DragEvent, hand: Hand) => {
   try {
     emit("drop", JSON.parse(raw) as EquipmentItem, hand);
   } catch {
-    // not one of our tiles
+    // chemx-allow: best-effort a drop from outside the bag carries no item JSON, so there is nothing to equip
   }
 };
 </script>

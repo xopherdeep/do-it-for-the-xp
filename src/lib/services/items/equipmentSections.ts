@@ -77,7 +77,8 @@ export const whereItWorks = (name: string): UseChip[] => {
   if (worksInTemple) chips.push({ id: 'temple', label: 'Temple', icon: 'dungeon', line: rule?.templeLine });
   const worksInBattle = Boolean(rule?.fight || rule?.fightLine || rule?.container);
   if (worksInBattle) chips.push({ id: 'battle', label: 'Battle', icon: 'swords', line: rule?.fightLine });
-  if (chips.length === 0) chips.push({ id: 'anywhere', label: 'Anywhere', icon: 'globe-americas' });
+  const hasNoTempleOrFightUse = chips.length === 0;
+  if (hasNoTempleOrFightUse) chips.push({ id: 'anywhere', label: 'Anywhere', icon: 'globe-americas' });
   return chips;
 };
 

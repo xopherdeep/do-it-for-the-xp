@@ -1,0 +1,58 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
+.xp-equipment-modal {
+  // Equip mode: the hands ride on top of the scrolling bag, the item card sits under it
+  .equipment-stage-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(30, 8, 36, 0.94);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  ion-content.is-equip-mode ion-grid {
+    padding-bottom: 16px;
+  }
+
+  .equipment-detail-footer {
+    background: rgba(20, 6, 24, 0.97);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.4);
+
+    &.is-retro {
+      background: $eb-color-dark-purple;
+      border-top: none;
+      box-shadow: 0 -3px 0 $eb-color-pale-yellow, 0 -6px 0 $eb-color-slate;
+    }
+  }
+
+  ion-header ion-toolbar {
+    --background: #230828;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  ion-content {
+    --background: transparent;
+    overflow: visible;
+
+    ion-grid {
+      padding: 2.5%;
+      padding-bottom: 120px; // Space for the dock
+    }
+  }
+
+  .equipment-dock {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+    padding: 0.25rem 1rem;
+    z-index: 100;
+  }
+}
