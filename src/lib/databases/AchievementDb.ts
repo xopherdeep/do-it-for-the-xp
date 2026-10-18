@@ -131,7 +131,7 @@ export class AchievementDb extends DbStorageApi {
   }
 
   public async deleteTask(task: Achievement) {
-    this.remove(task.id);
+    await this.remove(task.id);
     return await this.getTasks();
   }
 

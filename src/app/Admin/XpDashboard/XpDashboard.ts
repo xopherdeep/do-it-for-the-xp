@@ -34,6 +34,7 @@ import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
 
 import { defineComponent, ref, onMounted } from "vue";
 import { onIonViewWillEnter } from "@ionic/vue";
+import { mintTempleId } from "@/app/Admin/XpCompendium/views/XpTemples/templeWizard";
 export default defineComponent({
   name: "xp-dashboard",
   mixins: [ionic],
@@ -249,7 +250,7 @@ export default defineComponent({
             cssClass: "action-quest",
             icon: leafOutline,
             handler: () => {
-              this.navigateTo({ name: "xp-achievement-config" });
+              this.navigateTo({ name: "xp-achievement-config-dashboard", params: { id: "new" } });
             },
           },
           {
@@ -259,9 +260,10 @@ export default defineComponent({
             handler: async () => {
               const hasPro = await useProStore().requirePro("templeCreator");
               if (!hasPro) return;
+              // A fresh id per temple: every save writes under the id of its route, so a shared "new" overwrote the last one
               this.navigateTo({
                 name: "xp-temple-settings",
-                params: { templeId: "new" },
+                params: { templeId: mintTempleId() },
               });
             },
           },

@@ -56,7 +56,7 @@ export class AbilitiesDb extends DbStorageApi {
   }
 
   public async deleteAbility(ability: Ability) {
-    this.remove(ability.id);
+    await this.remove(ability.id);
     return await this.getAbilities();
   }
 

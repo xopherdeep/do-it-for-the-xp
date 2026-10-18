@@ -13,12 +13,13 @@ import {
 } from "ionicons/icons";
 import { v4 as uuidv4 } from "uuid";
 import {
-  alertController,
   actionSheetController,
   toastController,
   onIonViewWillEnter,
 } from "@ionic/vue";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
+import { confirmDelete } from "@/hooks/useConfirmDelete";
+import { deletePower, usageOfPower } from "@/lib/services/compendium/deleteContent";
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import XpAbilityManager from "@/components/molecules/Ability/XpAbilityManager.vue";
 import XpIconPicker from "@/components/atoms/Icon/XpIconPicker.vue";
@@ -361,61 +362,20 @@ export default defineComponent({
       closeAbilityModal();
     };
 
-    const confirmDeleteAbility = async () => {
-      const alert = await alertController.create({
-        header: "Confirm Delete",
-        message: `Are you sure you want to delete the ability "${editingAbility.value.name}"?`,
-        buttons: [
-          {
-            text: "Cancel",
-            role: "cancel",
-          },
-          {
-            text: "Delete",
-            role: "destructive",
-            handler: () => deleteAbility(),
-          },
-        ],
-      });
-      alert.present();
-    };
-
-    const deleteAbility = () => {
-      const editingId = editingAbility.value.id;
-      if (editingId) {
-        // Delete from DB
-        abilitiesDb.deleteAbility(editingAbility.value);
-
-        // Remove from local array
-        abilities.value = abilities.value.filter(
-          (a) => a.id !== editingAbility.value.id
-        );
-
-        // Also remove this ability from prerequisites of other abilities
-        abilities.value.forEach((ability) => {
-          const requiresDeletedAbility =
-            ability.prerequisites &&
-            ability.prerequisites.includes(editingAbility.value.id);
-          if (requiresDeletedAbility) {
-            ability.prerequisites = ability.prerequisites.filter(
-              (p) => p !== editingAbility.value.id
-            );
-            abilitiesDb.setAbility(ability);
-          }
-        });
-
-        closeAbilityModal();
-      }
-    };
-
-    const addPreset = (preset: Ability) => {
+    const addPreset = async (preset: Ability) => {
       // Check if preset already exists
       const existingPreset = abilities.value.find((a) => a.id === preset.id);
 
       if (existingPreset) {
-        // Remove preset if it exists
-        abilitiesDb.deleteAbility(existingPreset);
-        abilities.value = abilities.value.filter((a) => a.id !== preset.id);
+        // Unticking an added preset deletes that Power, the same way its own Delete does (shelves and prerequisites too)
+        const isDeleted = await confirmDelete({
+          kind: "Power",
+          name: existingPreset.name,
+          usage: () => usageOfPower(existingPreset.id),
+          detaching: "Deleting it takes the Power off them first.",
+          run: () => deletePower(existingPreset),
+        });
+        if (isDeleted) abilities.value = abilities.value.filter((a) => a.id !== preset.id);
       } else {
         // Add preset
         const presetToAdd = { ...preset };
@@ -719,8 +679,6 @@ export default defineComponent({
       updateScalingAttribute,
       updateScalingRate,
       saveAbility,
-      confirmDeleteAbility,
-      deleteAbility,
       addPreset,
       isPresetAdded,
       getAbilityIcon,

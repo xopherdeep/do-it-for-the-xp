@@ -112,7 +112,7 @@
     templeStorage,
   } from "@/lib/databases/TempleDb";
   import debug from "@/lib/utils/debug";
-  import { actionSheetController, toastController } from "@ionic/vue";
+  import { actionSheetController, onIonViewWillEnter, toastController } from "@ionic/vue";
 
   import { createOutline, cloudDownloadOutline, diceOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -250,6 +250,11 @@
       // Load temple data when component is mounted
       onMounted(() => {
         loadTempleData();
+      });
+
+      // Back from a temple's pages: a temple made or deleted there shows (or goes) without a reload
+      onIonViewWillEnter(() => {
+        if (!isLoading.value) void loadCustomTemples();
       });
 
       // Internal helper for background images
