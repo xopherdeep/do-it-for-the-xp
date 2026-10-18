@@ -32,7 +32,7 @@ export const family = {
     adventure: "This phone was unlinked. Ask your Game Master to link it again.",
   },
   "family.questsElsewhere": {
-    adventure: "Your quests are on the family device. They show up here once it sends them.",
+    adventure: "Your quests are on the family device.",
   },
   "family.phoneQuests": {
     adventure: "Quests",
