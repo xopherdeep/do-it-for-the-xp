@@ -44,7 +44,9 @@ describe("lookEditor helpers", () => {
 
   it("withHands adds the hands and withoutHands takes them off again", () => {
     const held = withHands(DEFAULT_LOOK, { leftHand: [{ faIcon: "fa-shield" }] });
-    expect(held.leftHand).toBe("fa-shield");
+    // mirrored: the Left hand item is held on the screen's left, the character's right hand
+    expect(held.rightHand).toBe("fa-shield");
+    expect(held.leftHand).toBeUndefined();
     expect(withoutHands(held)).toEqual(DEFAULT_LOOK);
     expect("leftHand" in withoutHands(held)).toBe(false);
   });

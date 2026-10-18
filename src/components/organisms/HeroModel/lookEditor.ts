@@ -144,11 +144,14 @@ export const handIcon = (slot: unknown): string | undefined => {
 /**
  * The look as it is drawn: the hands mirror the equipped items at render time. They are not part of what is
  * saved, so the stored look never carries them (see `withoutHands`).
+ *
+ * The hero faces the player like a reflection, so the Left hand item (the bottom nav's left button) is held in the
+ * hand on the left of the screen: the character's own right.
  */
 export const withHands = (look: HeroLook, equipment?: HandSlots | null): HeroLook => ({
   ...look,
-  leftHand: handIcon(equipment?.leftHand),
-  rightHand: handIcon(equipment?.rightHand),
+  leftHand: handIcon(equipment?.rightHand),
+  rightHand: handIcon(equipment?.leftHand),
 });
 
 /** The look as it is stored: without the hand icons */

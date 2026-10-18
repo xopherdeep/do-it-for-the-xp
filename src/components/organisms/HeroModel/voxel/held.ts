@@ -1,5 +1,6 @@
 import { box, lighten, PALETTE, shade } from "./shape";
 import type { Box } from "./shape";
+import * as gear from "./gear";
 
 /**
  * Something carried in a fist. Boxes are in HAND space: the origin is the centre of the hand, +Z points along
@@ -13,7 +14,39 @@ export interface Held {
   raise: number;
 }
 
-export type HeldKind = "sword" | "shield" | "wand" | "book" | "axe" | "hammer" | "bow" | "potion" | "torch";
+/** The equipment screen's items, one model each (voxel/gear.ts) */
+export type GearKind = Exclude<keyof typeof gear, "default">;
+
+export type HeldKind = "sword" | "shield" | "wand" | "book" | "axe" | "hammer" | "bow" | "potion" | "torch" | GearKind;
+
+/**
+ * The Equipment screen's own items by their icon (EquipmentItems.ts), so each is held as itself and not as the
+ * nearest generic shape: the Lantern is a lantern, the Book Of Spells is blue with a star.
+ */
+export const GEAR_BY_ICON: Record<string, GearKind> = {
+  boot: "wingedBoots",
+  whistle: "whistle",
+  "staff quest": "crook",
+  "book-spells": "spellbook",
+  backpack: "backpack",
+  wallet: "wallet",
+  "bow-arrow": "silverBow",
+  "expand-alt": "hookshot",
+  bomb: "bomb",
+  "hammer-war": "warhammer",
+  flashlight: "lantern",
+  flame: "sunSceptre",
+  bolt: "lightning",
+  "wave-sine": "quakeMedallion",
+  "flux-capacitor": "pocketWatch",
+  "moon-stars": "moonStaff",
+  wind: "fan",
+  "hat-wizard": "wizardHat",
+  "wand-magic fire": "fireWand",
+  "wand-magic ice": "iceWand",
+  "flask-potion": "bottle",
+  "portal-enter": "portalMirror",
+};
 
 const STEEL = PALETTE.steel;
 const STEEL_D = shade(PALETTE.steel, 0.72);
@@ -37,6 +70,8 @@ const KINDS: Array<[RegExp, HeldKind]> = [
 export const heldKind = (icon?: string | null): HeldKind | null => {
   const name = (icon ?? "").toLowerCase().trim();
   if (!name) return null;
+  const gearKind = GEAR_BY_ICON[name.replace(/^fa-/, "")];
+  if (gearKind) return gearKind;
   for (const [pattern, kind] of KINDS) {
     const isMatch = pattern.test(name);
     if (isMatch) return kind;
@@ -128,7 +163,13 @@ const torch = (): Box[] => [
   box(-0.4, -0.4, 5.6, 0.4, 0.4, 6.4, "#f7d34a"),
 ];
 
-const BUILDERS: Record<HeldKind, () => Box[]> = { sword, shield, wand, book, hammer, axe, bow, potion, torch };
+/** The gear is drawn face up (+Y); a lifted arm turns -Y to the camera, so the face is flipped over to it */
+const faceCamera = (boxes: Box[]): Box[] => boxes.map((b) => ({ ...b, y: -(b.y + b.h) }));
+const GEAR_BUILDERS = Object.fromEntries(
+  Object.entries(gear).map(([kind, build]) => [kind, () => faceCamera(build())])
+) as Record<GearKind, () => Box[]>;
+
+const BUILDERS: Record<HeldKind, () => Box[]> = { sword, shield, wand, book, hammer, axe, bow, potion, torch, ...GEAR_BUILDERS };
 
 /** How far the arm lifts to carry each kind (a shield stays near the body, blades point up) */
 const RAISE: Record<HeldKind, number> = {
@@ -141,6 +182,28 @@ const RAISE: Record<HeldKind, number> = {
   bow: 0.7,
   potion: 0.8,
   torch: 1.05,
+  wingedBoots: 1.3,
+  whistle: 1.2,
+  crook: 0.85,
+  spellbook: 1.15,
+  backpack: 1.2,
+  wallet: 1.2,
+  silverBow: 0.7,
+  hookshot: 1.0,
+  bomb: 1.3,
+  warhammer: 0.95,
+  lantern: 1.35,
+  sunSceptre: 0.95,
+  lightning: 0.9,
+  quakeMedallion: 1.2,
+  pocketWatch: 1.2,
+  moonStaff: 0.85,
+  fan: 0.95,
+  wizardHat: 1.35,
+  fireWand: 0.95,
+  iceWand: 0.95,
+  bottle: 1.3,
+  portalMirror: 1.15,
 };
 
 /** A small shape for the icon name in the hand, or null when the hand is empty */
