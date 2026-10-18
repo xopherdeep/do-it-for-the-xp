@@ -274,6 +274,23 @@ describe("the bag, cooldowns, the hands, the look, the class", () => {
     expect(store.setJobClass("ghost", "Mage")).toBe(false);
   });
 
+  it("saves the avatar and favorite food so they survive a reload", async () => {
+    const store = freshStore({ ava: { avatar: "001-gamer", favoriteFood: "None" } });
+    store.loginUser(store.users.ava);
+    mockSetProfile.mockClear();
+    expect(store.setAvatar("ava", "007-gamer")).toBe(true);
+    expect(store.setFavoriteFood("ava", "Bacon")).toBe(true);
+    expect(store.users.ava.avatar).toBe("007-gamer");
+    expect((store.currentUser as { favoriteFood?: string }).favoriteFood).toBe("Bacon");
+    // persistUser batches a hero's saves into one write after the current task
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockSetProfile).toHaveBeenCalledTimes(1);
+    expect(mockSetProfile).toHaveBeenLastCalledWith(expect.objectContaining({ id: "ava", avatar: "007-gamer", favoriteFood: "Bacon" }));
+    expect(store.setAvatar("ghost", "007-gamer")).toBe(false);
+    expect(store.setFavoriteFood("ava", "")).toBe(false);
+    expect(store.users.ava.favoriteFood).toBe("Bacon");
+  });
+
   it("mirrors a profile change onto the signed-in hero only", () => {
     const store = freshStore({ ava: {}, ben: {} });
     store.loginUser(store.users.ava);
@@ -434,9 +451,11 @@ describe("signing in, masquerading, loading", () => {
         "persistUser",
         "recordAPGain",
         "setAutoRead",
+        "setAvatar",
         "setBedRestAt",
         "setBenchRestAt",
         "setEquipment",
+        "setFavoriteFood",
         "setGuide",
         "setItemCooldown",
         "setJobClass",

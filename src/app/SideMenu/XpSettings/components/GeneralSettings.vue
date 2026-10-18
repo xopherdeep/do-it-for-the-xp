@@ -188,7 +188,8 @@
                   "Profiles and passcodes",
                   "Quests, beasts, powers, shops",
                   "Temples and their progress",
-                  "Logs, chat, Dos and Don'ts",
+                  "Family rules and settings",
+                  "Logs, penalties, chat, Dos and Don'ts",
                 ],
               },
             ],
@@ -197,7 +198,7 @@
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
-              text: "Download backup",
+              text: "Save backup",
               handler: () => {
                 this.runBackup();
               },
@@ -209,13 +210,14 @@
 
       async runBackup() {
         try {
-          const { fileName, summary } = await this.withLoading(
+          const { fileName, savedTo, summary } = await this.withLoading(
             "Packing your backup...",
             () => backupService.exportAll()
           );
+          // Only a file that really landed somewhere counts: exportAll throws when it did not
           recordBackup();
           this.lastBackup = lastBackupAt();
-          await this.showToast(`Backup saved as ${fileName} (${summary.total} entries)`, 5000);
+          await this.showToast(`Backup ${fileName} saved ${savedTo} (${summary.total} entries)`, 5000);
         } catch (error) {
           await this.showToast(`Backup failed: ${errorMessage(error)}`, 6000);
         }
