@@ -105,7 +105,8 @@ export const createFamilySender = <S extends KeepsOutbox>(ctx: SenderContext<S>)
       return { ...current, outbox: backoff(outbox, unanswered, Date.now()) };
     });
     const hasRejections = result.rejected.length > 0;
-    if (hasRejections && ctx.rejected) await ctx.rejected(result.rejected.map((rejection) => rejection.id));
+    const wantsRejections = hasRejections && Boolean(ctx.rejected);
+    if (wantsRejections) await ctx.rejected?.(result.rejected.map((rejection) => rejection.id));
   };
 
   /** The send failed: the batch waits (as long as a 429 asked); a move or a refusal stops sending */

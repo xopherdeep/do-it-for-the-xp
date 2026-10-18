@@ -106,7 +106,8 @@ export const createHeroPhoneSync = (ctx: PhoneSyncContext): HeroPhoneSync => {
   const runDownload = async (): Promise<void> => {
     const device = ctx.device();
     const auth = heroAuth();
-    if (!device || !auth) return;
+    const isLinked = device !== null && auth !== null;
+    if (!isLinked) return;
     await load();
     for (let page = 0; page < MAX_PAGES; page++) {
       const since = state.value.lastSeq;
@@ -137,7 +138,8 @@ export const createHeroPhoneSync = (ctx: PhoneSyncContext): HeroPhoneSync => {
       problem.value = null;
     } catch (error) {
       const found = familyProblem(error);
-      if (found === "server") debug.warn("hero phone: the sync failed", error);
+      const isUnexplained = found === "server";
+      if (isUnexplained) debug.warn("hero phone: the sync failed", error);
       await noteProblem(found);
     }
   };

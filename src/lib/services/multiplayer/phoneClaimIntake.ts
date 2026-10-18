@@ -46,7 +46,8 @@ const answer = (claimId: string, questId: string, status: ClaimSettled["status"]
 
 /** The answer for a claim already in the log (the app closed between logging it and telling the phone) */
 const answerOfEntry = (claimId: string, entry: QuestLogEntry): ClaimSettled => {
-  const status = entry.status === "pending" ? "pending" : entry.status === "approved" ? "approved" : "rejected";
+  // A log entry's status is already one of the answers a phone reads
+  const status: ClaimSettled["status"] = entry.status;
   const paid = status === "approved" ? paidQuestRewards(entry.userId, entry.rewards) : undefined;
   return answer(claimId, String(entry.questId), status, entry.note ?? "", paid);
 };

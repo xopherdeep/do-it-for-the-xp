@@ -87,7 +87,8 @@ const claim = async (quest: SheetQuest): Promise<void> => {
     await family.claimOnPhone(quest);
     sound("select");
     const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
-    const key = isOffline ? "family.phoneClaimOffline" : quest.needsApproval ? "family.phoneClaimed" : "family.phoneClaimedPaid";
+    const onlineKey = quest.needsApproval ? "family.phoneClaimed" : "family.phoneClaimedPaid";
+    const key = isOffline ? "family.phoneClaimOffline" : onlineKey;
     await say(t(key, { quest: quest.name }));
   } catch (error) {
     debug.warn("hero phone: the claim could not be kept", error);

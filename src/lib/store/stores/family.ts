@@ -24,7 +24,7 @@ import {
   saveHero,
 } from "@/lib/services/multiplayer/familyServer";
 import type { BindAnswer, FamilyProblem, HeroPhone, LinkCode, ReceivedEvent, ServerHero } from "@/lib/services/multiplayer/familyServer";
-import { onHeroRemoved, onQuestClaimed, onQuestPaid, onQuestReviewed, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { onHeroRemoved, onQuestClaimed, onQuestPaid, onQuestReviewed, type QuestPaid, type QuestReviewed } from "@/lib/services/multiplayer/gameSignals";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { sheetEvent, sheetKey } from "@/lib/services/multiplayer/heroSheet";
 import { buildHeroSheet, isPhoneClaim, takePhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
@@ -325,7 +325,7 @@ export const useFamilyStore = defineStore("family", () => {
   }
 
   /** A Game Master settled a claim that came from the hero's phone: the phone hears the verdict */
-  async function queueVerdictForPhone(review: { heroId: string; questId: string; approved: boolean; note: string; phoneClaimId?: string; paid?: { xp: number; gp: number; ap: number } }): Promise<void> {
+  async function queueVerdictForPhone(review: QuestReviewed): Promise<void> {
     const claimId = review.phoneClaimId;
     const mayQueue = canQueue() && Boolean(claimId);
     if (!mayQueue) return;
@@ -589,7 +589,8 @@ export const useFamilyStore = defineStore("family", () => {
     device: () => (device.value && !device.value.unlinked ? device.value : null),
     revoked: async () => {
       const current = device.value;
-      if (!current || current.unlinked) return;
+      const isStillLinked = current !== null && !current.unlinked;
+      if (!isStillLinked) return;
       const marked = { ...current, unlinked: true };
       device.value = marked;
       await getHeroDeviceDb().saveDevice(marked);
