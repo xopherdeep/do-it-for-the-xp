@@ -581,7 +581,7 @@ describe("Visual baseline: overlays on the hero's portal", () => {
     openHome();
     tap(".xp-bottom-nav__area");
     cy.get("ion-modal.xp-equipment-modal .grid-item", { timeout: 20000 }).first().click({ force: true });
-    cy.get("ion-modal.item-info-modal", { timeout: 20000 }).should("exist");
+    cy.get("ion-modal.xp-equipment-modal [data-cy=equipment-detail] .detail-name", { timeout: 20000 }).should("be.visible");
     shot("43-equipment-item", 1500);
   });
 

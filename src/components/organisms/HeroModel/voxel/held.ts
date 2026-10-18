@@ -192,7 +192,7 @@ const RAISE: Record<HeldKind, number> = {
   hookshot: 1.0,
   bomb: 1.3,
   warhammer: 0.95,
-  lantern: 1.35,
+  lantern: 0.95,
   sunSceptre: 0.95,
   lightning: 0.9,
   quakeMedallion: 1.2,

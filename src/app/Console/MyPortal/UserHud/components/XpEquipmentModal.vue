@@ -22,7 +22,21 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="icon-colors bg-slide bg-slide-equipment">
+    <ion-content class="icon-colors bg-slide bg-slide-equipment" :class="{ 'is-equip-mode': !isBattle }">
+      <!-- Equip mode: the hands and the hero holding them stay on top while the bag scrolls under them -->
+      <equipment-stage
+        v-if="!isBattle"
+        class="equipment-stage-bar"
+        :left-item="leftHandSlots[0]"
+        :right-item="rightHandSlots[0]"
+        :look="user?.look"
+        :job-class="user?.jobClass"
+        :selected="selectedItem?.faIcon ?? null"
+        :retro="isRetro"
+        @select-hand="selectHand"
+        @change-class="openClassSelector"
+        @drop="onStageDrop"
+      />
       <ion-grid>
         <ion-row>
           <ion-col size="12" class="ion-flex ion-flex-column">
@@ -32,6 +46,9 @@
               :locked-items="lockedItemsArray"
               :lock-hint="lockHint"
               :no-drag="isBattle"
+              :selected="isBattle ? null : selectedItem?.faIcon ?? null"
+              :hand-of="handOf"
+              :retro="isRetro"
               @display-info="openItemInfo"
               @equip-item="equipItem"
             />
@@ -40,7 +57,20 @@
       </ion-grid>
     </ion-content>
 
-    <div class="equipment-dock icon-colors">
+    <!-- Equip mode: the card under the cursor, with a button per hand -->
+    <ion-footer v-if="!isBattle" class="equipment-detail-footer icon-colors" :class="{ 'is-retro': isRetro }">
+      <equipment-detail
+        :item="infoItem"
+        :held-in="selectedHand"
+        :locked="isSelectedLocked"
+        :lock-hint="selectedItem ? lockHint(selectedItem) : ''"
+        :retro="isRetro"
+        @equip="equipSelected"
+        @unequip="unequipSelected"
+      />
+    </ion-footer>
+
+    <div class="equipment-dock icon-colors" v-if="isBattle">
       <equipped-items-card
         :equipment="equipment"
         :left-hand-items="equipmentOnLeft"
@@ -53,9 +83,9 @@
       />
     </div>
 
-    <!-- Item Info Modal - only mount when needed -->
+    <!-- The fight's item card: what it does now and a Use button -->
     <item-info-modal
-      v-if="selectedItem"
+      v-if="selectedItem && isBattle"
       :is-open="itemInfoOpen"
       :item="infoItem"
       :is-equipped="isSelectedItemEquipped"
@@ -85,6 +115,9 @@
   import { useEquipmentItems, EquipmentItem } from "./equipment/EquipmentItems";
   import EquipmentGrid from "./equipment/EquipmentGrid.vue";
   import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
+  import EquipmentStage from "./equipment/EquipmentStage.vue";
+  import EquipmentDetail from "./equipment/EquipmentDetail.vue";
+  import { useGameStore } from "@/lib/store/stores/game";
   import ItemInfoModal from "./equipment/ItemInfoModal.vue";
   import XpClassCodex from "./ClassCodex/XpClassCodex.vue";
   import { toastController } from "@ionic/vue";
@@ -100,6 +133,8 @@
     components: {
       EquipmentGrid,
       EquippedItemsCard,
+      EquipmentStage,
+      EquipmentDetail,
       ItemInfoModal,
       XpClassCodex,
       XpCloseButton,
@@ -155,9 +190,12 @@
 
       const isBattle = computed(() => props.mode === "battle");
 
-      // Equip mode keeps the hands it edits; battle mode only shows what the hero already holds
+      const gameStore = useGameStore();
+      const isRetro = computed(() => gameStore.fabStyle === "retro");
+
+      // The hands follow what the hero holds: on opening, and again after every equip the page saves
       watch(
-        () => (isBattle.value ? (props.equipment as (EquipmentItem & { slotIndex?: number })[]) : null),
+        () => props.equipment as (EquipmentItem & { slotIndex?: number })[],
         (held) => {
           if (!held) return;
           const hands: Record<string, (EquipmentItem | null)[]> = { left: [null, null], right: [null, null] };
@@ -208,6 +246,17 @@
       const isLocked = (item: EquipmentItem) => lockedItemsArray.value.includes(item.faIcon);
       const lockHint = (item: EquipmentItem) => unlockHintOf(item.name);
 
+      /** The hand holding an item, for the tile's L / R badge and the card's Take off */
+      const handOf = (faIcon: string): "left" | "right" | null => {
+        if (leftHandSlots.value[0]?.faIcon === faIcon) return "left";
+        if (rightHandSlots.value[0]?.faIcon === faIcon) return "right";
+        return null;
+      };
+      const selectedHand = computed(() => (selectedItem.value ? handOf(selectedItem.value.faIcon) : null));
+      const isSelectedLocked = computed(() => Boolean(selectedItem.value && isLocked(selectedItem.value)));
+      const catalogueEntry = (item: EquipmentItem) =>
+        specialItems.value.find((entry) => entry.faIcon === item.faIcon) ?? item;
+
       // A locked item says how it is earned instead of opening or equipping
       const refuseLocked = async (item: EquipmentItem) => {
         play$fx("no");
@@ -229,12 +278,51 @@
             emit("use-item", item);
             return;
           }
-        } else if (isLocked(item)) {
-          void refuseLocked(item);
+        } else {
+          // Equip mode has no popup: the cursor moves to the tile and the card below shows it. A second tap on
+          // the same tile equips it to a free hand; a locked tile shows as ??? with how it is earned
+          const isSecondTap = selectedItem.value?.faIcon === item.faIcon;
+          selectedItem.value = item;
+          if (isLocked(item)) {
+            play$fx("no");
+            return;
+          }
+          const shouldQuickEquip = isSecondTap && !equippedItems.value.has(item.faIcon);
+          if (shouldQuickEquip) {
+            void handleEquipRequest(item);
+            return;
+          }
+          play$fx("cursor");
           return;
         }
         selectedItem.value = item;
         itemInfoOpen.value = true;
+      };
+
+      /** A hand tapped on the stage: the cursor goes to what it holds */
+      const selectHand = (hand: "left" | "right") => {
+        const held = (hand === "left" ? leftHandSlots : rightHandSlots).value[0];
+        if (!held) {
+          play$fx("no");
+          return;
+        }
+        selectedItem.value = catalogueEntry(held);
+        play$fx("cursor");
+      };
+
+      const equipInto = async (item: EquipmentItem, hand: "left" | "right") => {
+        if (isLocked(item)) {
+          await refuseLocked(item);
+          return;
+        }
+        await performEquip(catalogueEntry(item), hand, 0);
+      };
+      const equipSelected = (hand: "left" | "right") => selectedItem.value && equipInto(selectedItem.value, hand);
+      const unequipSelected = (hand: "left" | "right") => performUnequip(hand, 0);
+      // A tile dragged onto a hand (a mouse; a phone taps the card's buttons)
+      const onStageDrop = (item: EquipmentItem, hand: "left" | "right") => {
+        selectedItem.value = catalogueEntry(item);
+        return equipInto(item, hand);
       };
 
       const closeItemInfo = () => {
@@ -247,7 +335,15 @@
       watch(
         () => props.isOpen,
         (open) => {
-          if (open) return;
+          if (open) {
+            // Equip mode opens with the cursor on the left hand's item, else the first item
+            const shouldPlaceCursor = !isBattle.value && !selectedItem.value;
+            if (shouldPlaceCursor) {
+              const first = leftHandSlots.value[0] ?? rightHandSlots.value[0] ?? specialItems.value[0];
+              selectedItem.value = first ? catalogueEntry(first) : null;
+            }
+            return;
+          }
           itemInfoOpen.value = false;
           classSelectorOpen.value = false;
         }
@@ -367,18 +463,8 @@
         equippedItems.value.add(item.faIcon);
         emit("equip-item", targetSlots.value[index], hand, index);
 
-        const message = replacedItemName
-          ? `${replacedItemName} replaced with ${item.name}`
-          : `${item.name} equipped to ${hand} hand`;
-        const color = replacedItemName ? "warning" : "success";
-        const toast = await toastController.create({
-          message,
-          duration: 2000,
-          position: "bottom",
-          color,
-          cssClass: "rpg-toast",
-        });
-        await toast.present();
+        // The stage shows the change: the hand fills and the hero takes it up
+        play$fx(replacedItemName ? "select" : "equip");
       };
 
       const performUnequip = async (
@@ -394,16 +480,7 @@
           equippedItems.value.delete(itemToUnequip.faIcon);
           emit("equip-item", null, hand, index);
 
-          if (showToast) {
-            const toast = await toastController.create({
-              message: `${itemToUnequip.name} unequipped`,
-              duration: 2000,
-              position: "bottom",
-              color: "medium",
-              cssClass: "rpg-toast",
-            });
-            await toast.present();
-          }
+          if (showToast) play$fx("cursor");
         }
       };
 
@@ -445,6 +522,14 @@
         leftHandSlots,
         rightHandSlots,
         isBattle,
+        isRetro,
+        handOf,
+        selectedHand,
+        isSelectedLocked,
+        selectHand,
+        equipSelected,
+        unequipSelected,
+        onStageDrop,
         selectedBattleCard,
         openItemInfo,
         closeItemInfo,
@@ -465,7 +550,35 @@
 </script>
 
 <style lang="scss" scoped>
+  @use "@/styles/themes/earthbound.scss" as *;
+
   .xp-equipment-modal {
+    // Equip mode: the hands ride on top of the scrolling bag, the item card sits under it
+    .equipment-stage-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(30, 8, 36, 0.94);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    ion-content.is-equip-mode ion-grid {
+      padding-bottom: 16px;
+    }
+
+    .equipment-detail-footer {
+      background: rgba(20, 6, 24, 0.97);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.4);
+
+      &.is-retro {
+        background: $eb-color-dark-purple;
+        border-top: none;
+        box-shadow: 0 -3px 0 $eb-color-pale-yellow, 0 -6px 0 $eb-color-slate;
+      }
+    }
+
     ion-header ion-toolbar {
       --background: #230828;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);

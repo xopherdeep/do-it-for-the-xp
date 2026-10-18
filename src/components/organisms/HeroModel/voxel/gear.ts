@@ -152,49 +152,48 @@ export const hookshot = (): Box[] => {
   ];
 };
 
-/** Bombs: a round navy bomb with a grey cap, a fuse and its spark */
+/** Bombs: a round blue bomb with a grey cap, a fuse and its spark */
 export const bomb = (): Box[] => {
-  const NAVY = "#25305a";
+  const NAVY = "#3563c8";
   return [
-    box(-1.0, -1.6, 0.9, 1.0, 1.6, 3.9, NAVY),
-    box(-1.6, -1.0, 0.9, 1.6, 1.0, 3.9, NAVY),
-    box(-1.2, -1.2, 0.5, 1.2, 1.2, 4.3, NAVY),
-    box(-1.4, -1.4, 1.3, 1.4, 1.4, 3.5, NAVY),
-    box(-0.8, 1.5, 2.9, -0.2, 1.7, 3.5, lighten(NAVY, 0.5)),
-    box(-0.55, -0.55, 4.3, 0.55, 0.55, 4.7, STEEL),
-    box(-0.15, -0.15, 4.7, 0.15, 0.15, 5.5, "#c8b07a"),
-    box(-0.35, -0.35, 5.5, 0.35, 0.35, 6.0, "#f7a530"),
-    box(-0.15, -0.15, 6.0, 0.15, 0.15, 6.3, "#fff07a"),
+    box(-1.0, -1.6, 1.0, 1.0, 1.6, 3.4, NAVY),
+    box(-1.6, -1.0, 1.0, 1.6, 1.0, 3.4, NAVY),
+    box(-1.1, -1.1, 0.6, 1.1, 1.1, 3.8, NAVY),
+    box(-1.4, -1.4, 1.3, 1.4, 1.4, 3.1, NAVY),
+    box(-0.8, 1.45, 2.4, -0.2, 1.65, 3.0, lighten(NAVY, 0.6)),
+    box(-0.55, -0.55, 3.8, 0.55, 0.55, 4.2, STEEL),
+    box(-0.15, -0.15, 4.2, 0.15, 0.15, 5.0, WHITE),
+    box(-0.35, -0.35, 5.0, 0.35, 0.35, 5.5, "#f7a530"),
+    box(-0.15, -0.15, 5.5, 0.15, 0.15, 5.8, "#fff07a"),
   ];
 };
 
-/** Thor's Hammer: a short wrapped handle and a heavy steel head with a gold band */
-export const warhammer = (): Box[] => [
-  box(-0.4, -0.4, -0.9, 0.4, 0.4, 4.4, WOOD),
-  box(-0.45, -0.45, -0.4, 0.45, 0.45, 0.2, "#5a3a22"),
-  box(-0.45, -0.45, 0.6, 0.45, 0.45, 1.2, "#5a3a22"),
-  box(-0.3, -0.3, -1.5, 0.3, 0.3, -0.9, GOLD),
-  box(-2.0, -1.2, 4.4, 2.0, 1.2, 6.6, STEEL),
-  box(-2.1, -1.3, 4.4, 2.1, 1.3, 4.7, STEEL_D),
-  box(-2.1, -1.3, 6.3, 2.1, 1.3, 6.6, STEEL_D),
-  box(-0.4, -1.3, 4.3, 0.4, 1.3, 6.7, GOLD),
-];
-
-/** Lantern: a gold lamp with a glowing core, carried by its ring */
-export const lantern = (): Box[] => {
-  const GLOW = "#ffe27a";
+/** Thor's Hammer: like its icon, a steel handle and a heavy orange head with darker caps */
+export const warhammer = (): Box[] => {
+  const HEAD = "#e07a2a";
   return [
-    box(-0.25, -0.25, 0.4, 0.25, 0.25, 1.0, GOLD_D),
-    box(-0.8, -0.8, 1.0, 0.8, 0.8, 1.4, GOLD),
-    box(-1.0, -1.0, 1.4, 1.0, 1.0, 1.7, GOLD_D),
-    box(-0.8, -0.8, 1.7, 0.8, 0.8, 3.7, GLOW),
-    box(-0.4, -0.4, 2.2, 0.4, 0.4, 3.2, lighten(GLOW, 0.6)),
-    box(-1.0, -1.0, 1.7, -0.75, -0.75, 3.7, GOLD),
-    box(0.75, -1.0, 1.7, 1.0, -0.75, 3.7, GOLD),
-    box(-1.0, 0.75, 1.7, -0.75, 1.0, 3.7, GOLD),
-    box(0.75, 0.75, 1.7, 1.0, 1.0, 3.7, GOLD),
-    box(-1.1, -1.1, 3.7, 1.1, 1.1, 4.1, GOLD_D),
-    box(-0.6, -0.6, 4.1, 0.6, 0.6, 4.4, GOLD),
+    box(-0.35, -0.35, -0.9, 0.35, 0.35, 4.4, STEEL),
+    box(-0.45, -0.45, -0.4, 0.45, 0.45, 0.2, STEEL_D),
+    box(-0.45, -0.45, 0.6, 0.45, 0.45, 1.2, STEEL_D),
+    box(-0.3, -0.3, -1.5, 0.3, 0.3, -0.9, GOLD),
+    box(-2.0, -1.2, 4.4, 2.0, 1.2, 6.6, HEAD),
+    box(-2.1, -1.3, 4.4, -1.6, 1.3, 6.6, shade(HEAD, 0.75)),
+    box(1.6, -1.3, 4.4, 2.1, 1.3, 6.6, shade(HEAD, 0.75)),
+    box(-0.8, 1.2, 5.1, 0.8, 1.3, 5.9, lighten(HEAD, 0.3)),
+  ];
+};
+
+/** Lantern: drawn like its icon, a red hand lamp with a wide head and a glowing yellow lens */
+export const lantern = (): Box[] => {
+  const RED = "#d83a2e";
+  return [
+    box(-0.55, -0.55, -0.8, 0.55, 0.55, 3.0, RED),
+    box(-0.6, -0.6, -1.0, 0.6, 0.6, -0.6, shade(RED, 0.7)),
+    box(-0.25, 0.55, 1.0, 0.25, 0.7, 1.8, "#f7c230"),
+    box(-0.9, -0.9, 3.0, 0.9, 0.9, 4.2, RED),
+    box(-0.95, -0.95, 3.0, 0.95, 0.95, 3.3, shade(RED, 0.75)),
+    box(-0.7, -0.7, 4.2, 0.7, 0.7, 4.45, "#ffd84a"),
+    box(-0.35, -0.35, 4.45, 0.35, 0.35, 4.6, "#fff4b0"),
   ];
 };
 
@@ -261,7 +260,7 @@ export const pocketWatch = (): Box[] => [
 
 /** Night's Light: a dark staff crowned with a silver crescent moon and a star */
 export const moonStaff = (): Box[] => {
-  const MOON = "#e6ecf5";
+  const MOON = "#9fd0f5";
   return [
     ...grip(-0.9, 4.0, "#3a3a6a", 0.35),
     box(-0.5, -0.5, 4.0, 0.5, 0.5, 4.4, GOLD),
@@ -276,9 +275,9 @@ export const moonStaff = (): Box[] => {
   ];
 };
 
-/** Gale's Wind: a green folding fan, wider at the top, with a lighter rib every other row */
+/** Gale's Wind: a folding fan in the wind icon's grey and sky blue, wider at the top */
 export const fan = (): Box[] => {
-  const MINT = "#4fb88e";
+  const MINT = "#7a8aa8";
   const rows: Array<[number, number, number]> = [
     [1.0, 1.7, 0.6],
     [1.7, 2.5, 1.2],
@@ -288,20 +287,20 @@ export const fan = (): Box[] => {
   ];
   return [
     ...grip(-0.8, 1.0, WOOD, 0.3),
-    ...rows.map(([z0, z1, half], i) => box(-half, -0.15, z0, half, 0.15, z1, i % 2 ? lighten(MINT, 0.25) : MINT)),
+    ...rows.map(([z0, z1, half], i) => box(-half, -0.15, z0, half, 0.15, z1, i % 2 ? "#9fd0f5" : MINT)),
     box(-0.1, 0.15, 1.0, 0.1, 0.25, 4.6, shade(MINT, 0.6)),
     box(-1.7, 0.15, 2.8, -1.3, 0.25, 4.6, shade(MINT, 0.6)),
     box(1.3, 0.15, 2.8, 1.7, 0.25, 4.6, shade(MINT, 0.6)),
   ];
 };
 
-/** X's Invisibility: a purple wizard's hat held out by its brim, tip bent over, a gold band and star */
+/** X's Invisibility: the icon's blue-violet wizard's hat, a pale blue brim and band, tip bent over, a star */
 export const wizardHat = (): Box[] => {
-  const PURPLE = "#6b3fa0";
+  const PURPLE = "#4f56d0";
   return [
-    box(-2.0, -2.0, 0.7, 2.0, 2.0, 1.0, shade(PURPLE, 0.8)),
+    box(-2.0, -2.0, 0.7, 2.0, 2.0, 1.0, "#8fd8f0"),
     box(-1.3, -1.3, 1.0, 1.3, 1.3, 2.1, PURPLE),
-    box(-1.35, -1.35, 1.0, 1.35, 1.35, 1.4, GOLD),
+    box(-1.35, -1.35, 1.0, 1.35, 1.35, 1.4, "#8fd8f0"),
     box(-0.9, -0.9, 2.1, 0.9, 0.9, 3.1, PURPLE),
     box(-0.55, -0.55, 3.1, 0.55, 0.55, 4.0, PURPLE),
     box(-0.3, -0.3, 4.0, 0.9, 0.3, 4.5, lighten(PURPLE, 0.15)),
@@ -310,9 +309,9 @@ export const wizardHat = (): Box[] => {
   ];
 };
 
-/** Fire Wand: a dark rod whose tip burns red to yellow */
+/** Fire Wand: the icon's red rod, its tip burning orange to yellow */
 export const fireWand = (): Box[] => [
-  ...grip(-0.8, 4.0, "#5a2a1e", 0.35),
+  ...grip(-0.8, 4.0, "#c0302a", 0.35),
   box(-0.45, -0.45, 3.4, 0.45, 0.45, 3.8, GOLD),
   box(-0.75, -0.75, 4.0, 0.75, 0.75, 5.0, "#d8402a"),
   box(-0.5, -0.5, 5.0, 0.5, 0.5, 5.8, "#f7a530"),
@@ -320,11 +319,11 @@ export const fireWand = (): Box[] => [
   box(-1.0, -0.3, 4.4, 1.0, 0.3, 4.8, "#e3732c"),
 ];
 
-/** Ice Wand: a pale rod with a long ice crystal at the tip */
+/** Ice Wand: the icon's blue rod with a long ice crystal at the tip */
 export const iceWand = (): Box[] => {
   const ICE = "#8fd8f0";
   return [
-    ...grip(-0.8, 4.0, "#7a90a8", 0.35),
+    ...grip(-0.8, 4.0, "#3a6fd8", 0.35),
     box(-0.45, -0.45, 3.4, 0.45, 0.45, 3.8, STEEL),
     box(-0.5, -0.5, 4.0, 0.5, 0.5, 6.4, ICE),
     box(-0.8, -0.3, 4.4, 0.8, 0.3, 5.8, ICE),
@@ -334,15 +333,17 @@ export const iceWand = (): Box[] => {
   ];
 };
 
-/** Bottles: an empty glass bottle, pale blue, with a cork and a shine */
+/** Bottles: a glass flask like its icon, blue potion in the bottom, a cork and a shine */
 export const bottle = (): Box[] => {
-  const GLASS = "#9ed4e6";
+  const GLASS = "#dbeef5";
+  const POTION = "#3a72d8";
   return [
-    box(-1.0, -1.0, 0.8, 1.0, 1.0, 3.0, GLASS),
-    box(-0.9, -0.9, 0.75, 0.9, 0.9, 1.0, shade(GLASS, 0.8)),
-    box(-0.5, -0.5, 3.0, 0.5, 0.5, 3.9, lighten(GLASS, 0.2)),
-    box(-0.6, -0.6, 3.9, 0.6, 0.6, 4.5, WOOD_L),
-    box(-0.15, 1.0, 1.4, 0.2, 1.08, 2.6, WHITE),
+    box(-1.1, -1.1, 0.8, 1.1, 1.1, 2.0, POTION),
+    box(-1.1, -1.1, 2.0, 1.1, 1.1, 2.8, GLASS),
+    box(-1.0, -1.0, 0.75, 1.0, 1.0, 0.95, shade(POTION, 0.75)),
+    box(-0.5, -0.5, 2.8, 0.5, 0.5, 3.8, GLASS),
+    box(-0.6, -0.6, 3.8, 0.6, 0.6, 4.4, WOOD_L),
+    box(-0.2, 1.1, 1.2, 0.2, 1.18, 2.5, WHITE),
   ];
 };
 
