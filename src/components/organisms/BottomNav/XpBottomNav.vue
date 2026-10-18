@@ -29,20 +29,23 @@
         <span class="xp-bottom-nav__label">Left</span>
       </button>
 
-      <!-- Profile -->
-      <button
-        type="button"
-        class="xp-bottom-nav__slot xp-bottom-nav__button"
-        :class="{ 'is-active': active === 'profile' }"
-        data-tour="profile"
-        aria-label="Hero Profile"
-        @click="$emit('open-profile')"
-      >
-        <div class="xp-bottom-nav__icon-wrap">
-          <i class="fad fa-seedling"></i>
-        </div>
-        <span class="xp-bottom-nav__label">{{ profileLabel }}</span>
-      </button>
+      <!-- Profile, with the daily streak flame as a badge on its corner (its own button: a tap opens the streak box) -->
+      <div class="xp-bottom-nav__profile">
+        <button
+          type="button"
+          class="xp-bottom-nav__slot xp-bottom-nav__button"
+          :class="{ 'is-active': active === 'profile' }"
+          data-tour="profile"
+          aria-label="Hero Profile"
+          @click="$emit('open-profile')"
+        >
+          <div class="xp-bottom-nav__icon-wrap">
+            <i class="fad fa-seedling"></i>
+          </div>
+          <span class="xp-bottom-nav__label">{{ profileLabel }}</span>
+        </button>
+        <span class="xp-bottom-nav__streak"><xp-streak-chip variant="badge" /></span>
+      </div>
 
       <!-- Area: where the hero is; tapping opens the equipment -->
       <button
@@ -106,6 +109,7 @@
 <script setup lang="ts">
 import { handLabel } from "@/lib/services/temples/ItemUse";
 import { toFaClass } from "@/lib/utils/faIcon";
+import XpStreakChip from "@/app/Console/MyPortal/UserHud/components/XpStreakChip.vue";
 
 /** One item in a hand, as stored on the profile */
 export interface NavHandItem {
@@ -249,6 +253,22 @@ defineEmits<BottomNavEmits>();
         opacity: 1;
       }
     }
+  }
+
+  &__profile {
+    flex: 1;
+    position: relative;
+    display: flex;
+    min-width: 0;
+  }
+
+  // Sits on the top-right of the seedling, like an app badge
+  &__streak {
+    display: flex;
+    position: absolute;
+    top: -2px;
+    left: calc(50% + 4px);
+    z-index: 2;
   }
 
   &__area {

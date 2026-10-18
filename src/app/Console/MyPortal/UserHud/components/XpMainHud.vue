@@ -33,8 +33,6 @@
         </div>
         <!-- Owes the Hospital: grounded, and a tap goes to the Gold Bank (nothing shows for a free hero) -->
         <xp-grounded-chip class="center-bottom" :stats="stats" />
-        <!-- Days in a row with a quest done; a tap explains chests and shields (nothing shows without a streak) -->
-        <xp-streak-chip class="center-bottom" />
       </div>
 
       <!-- RIGHT WING: MP -->
@@ -70,11 +68,10 @@ import { defineComponent, computed } from "vue";
 import { POINT_ICONS } from "@/constants";
 import XpHudBar from "./XpHudBar.vue";
 import XpGroundedChip from "./XpGroundedChip.vue";
-import XpStreakChip from "./XpStreakChip.vue";
 
 export default defineComponent({
   name: "xp-main-hud",
-  components: { XpHudBar, XpGroundedChip, XpStreakChip },
+  components: { XpHudBar, XpGroundedChip },
   props: {
     stats: {
       type: Object,
