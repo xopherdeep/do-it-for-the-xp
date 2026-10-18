@@ -39,11 +39,12 @@ function startingStatus(kind: TownHallPostKind, isGameMaster: boolean): PostStat
 }
 
 /** The parts of a draft a post keeps, without the ones the draft leaves out. */
-function draftFields(draft: PostDraft): Pick<TownHallPost, "title" | "board" | "postId" | "body"> {
+function draftFields(draft: PostDraft): Pick<TownHallPost, "title" | "board" | "postId" | "body" | "pack"> {
   return {
     ...(draft.title !== undefined ? { title: draft.title } : {}),
     ...(draft.board !== undefined ? { board: draft.board } : {}),
     ...(draft.postId !== undefined ? { postId: draft.postId } : {}),
+    ...(draft.pack !== undefined ? { pack: draft.pack } : {}),
     body: draft.body,
   };
 }
@@ -173,7 +174,7 @@ export function waitingFor(posts: TownHallPost[], heroId: string): TownHallPost[
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** A failed post with new text starts again, with its error cleared. Any other post is left alone. */
+/** A failed post with new text starts again, with its error cleared (a shared pack stays with it). Any other post is left alone. */
 export function editPost(post: TownHallPost, draft: PostDraft, isGameMaster: boolean): TownHallPost {
   const canEdit = post.status === "failed";
   if (!canEdit) return post;
@@ -184,6 +185,7 @@ export function editPost(post: TownHallPost, draft: PostDraft, isGameMaster: boo
     heroName: post.heroName,
     createdAt: post.createdAt,
     status: startingStatus(post.kind, isGameMaster),
+    ...(post.pack !== undefined ? { pack: post.pack } : {}),
     ...draftFields(draft),
     ...(post.bug ? { bug: post.bug } : {}),
   };

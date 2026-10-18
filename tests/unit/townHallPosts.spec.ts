@@ -10,6 +10,8 @@ import {
   TITLE_MAX,
 } from "@/lib/services/townhall/townHallPosts";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
+import { PACK_SHARE_MAX_CHARS, readPackBlock } from "@/lib/services/core/packs/packShare";
+import { FAMILY_PACK } from "@/lib/services/core/packs/catalog";
 import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 
 const DRAGON = "🐉";
@@ -57,6 +59,11 @@ describe("charCount", () => {
 });
 
 describe("draftProblem", () => {
+  it("turns away a pack too big for the Town Hall", () => {
+    expect(draftProblem(topicDraft({ board: "pack-exchange", pack: "x".repeat(PACK_SHARE_MAX_CHARS + 1) }))).toMatch(/too big/);
+    expect(draftProblem(topicDraft({ board: "pack-exchange", pack: "x".repeat(PACK_SHARE_MAX_CHARS) }))).toBeNull();
+  });
+
   it("accepts a good topic, comment and bug", () => {
     expect(draftProblem(topicDraft())).toBeNull();
     expect(draftProblem({ kind: "comment", postId: 12, body: "Nice one!" })).toBeNull();
@@ -202,6 +209,15 @@ describe("requestFor", () => {
   it("uses the id of the topic's own board", () => {
     const request = requestFor(post({ board: "suggestion-box" }), { "feature-requests": 3, "suggestion-box": 9 });
     expect(request.body.cafeteria_board).toEqual([9]);
+  });
+
+  it("carries a shared pack after the signature, on the Pack Exchange board", () => {
+    const shared = post({ board: "pack-exchange", pack: JSON.stringify(FAMILY_PACK) });
+    const request = requestFor(shared, { "pack-exchange": 21 });
+    const content = String(request.body.content);
+    expect(request.body.cafeteria_board).toEqual([21]);
+    expect(content.startsWith("Please add more dragons." + SIGNED)).toBe(true);
+    expect(readPackBlock(content)).toEqual(FAMILY_PACK);
   });
 
   it("throws for a topic whose board has no id", () => {

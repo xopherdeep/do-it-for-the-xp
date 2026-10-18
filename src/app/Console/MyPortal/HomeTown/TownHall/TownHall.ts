@@ -25,6 +25,7 @@ import {
   megaphoneOutline,
   addOutline,
   chatbubblesOutline,
+  cubeOutline,
 } from "ionicons/icons";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
@@ -45,6 +46,7 @@ import TownHallNews from "./components/TownHallNews.vue";
 import TownHallBoard from "./components/TownHallBoard.vue";
 import TownHallCompose from "./components/TownHallCompose.vue";
 import TownHallEvents from "./components/TownHallEvents.vue";
+import TownHallPacks from "./components/TownHallPacks.vue";
 import TownHallUpdates from "./components/TownHallUpdates.vue";
 import type { TownEvent, TownHallTab, TownStats } from "./components/townHallShared";
 import { useTownHallClerk } from "./components/useTownHallClerk";
@@ -52,12 +54,13 @@ import { useTownHallClerk } from "./components/useTownHallClerk";
 /** How many days ahead the events board looks */
 const EVENT_HORIZON_DAYS = 7;
 
-type TabId = "news" | "board" | "events" | "updates";
+type TabId = "news" | "board" | "packs" | "events" | "updates";
 
 /** The Town Hall's tabs, in the order they sit along the bottom of the screen */
 const TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
   { id: "news", label: "News", icon: newspaperOutline },
   { id: "board", label: "Board", icon: clipboardOutline },
+  { id: "packs", label: "Packs", icon: cubeOutline },
   { id: "events", label: "Events", icon: calendarOutline },
   { id: "updates", label: "Updates", icon: megaphoneOutline },
 ];
@@ -85,6 +88,7 @@ export default defineComponent({
     TownHallBoard,
     TownHallCompose,
     TownHallEvents,
+    TownHallPacks,
     TownHallUpdates,
   },
   mixins: [Ionic],
@@ -201,9 +205,10 @@ export default defineComponent({
     // The courier is late: the clerk says so and offers to ask again. One answer at a time, whatever else is talking.
     const newsTab = ref<TownHallTab | null>(null);
     const boardTab = ref<TownHallTab | null>(null);
+    const packsTab = ref<TownHallTab | null>(null);
     const eventsTab = ref<TownHallTab | null>(null);
     const updatesTab = ref<TownHallTab | null>(null);
-    const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, events: eventsTab, updates: updatesTab };
+    const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, packs: packsTab, events: eventsTab, updates: updatesTab };
 
     const onTrouble = async (id: TabId) => {
       const isClerkBusy = Boolean(reveal.prompt.value);
@@ -238,10 +243,12 @@ export default defineComponent({
       closeCompose: clerk.posting.closeCompose,
       openClerkMenu: clerk.posting.openClerkMenu,
       sendDraft: clerk.posting.sendDraft,
+      postPack: clerk.posting.postPack,
       dismissPost: clerk.posting.dismissPost,
       openFamilyChat,
       newsTab,
       boardTab,
+      packsTab,
       eventsTab,
       updatesTab,
       prompt: reveal.prompt,

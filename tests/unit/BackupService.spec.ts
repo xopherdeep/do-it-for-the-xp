@@ -17,6 +17,7 @@ import { achievementCategoryStorage, achievementStorage } from "@/lib/databases/
 import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { chatStorage } from "@/lib/databases/ChatDb";
 import { dosDontsStorage } from "@/lib/databases/DosDontsDb";
+import { packLibraryStorage } from "@/lib/databases/PackLibraryDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { purchaseLogStorage } from "@/lib/databases/PurchaseLogDb";
 import { questLogStorage } from "@/lib/databases/QuestLogDb";
@@ -41,6 +42,7 @@ jest.mock("@/lib/databases/AchievementDb", () => ({
 jest.mock("@/lib/databases/BestiaryDb", () => ({ __esModule: true, beastStorage: { sentinel: "beasts" } }));
 jest.mock("@/lib/databases/ChatDb", () => ({ __esModule: true, chatStorage: { sentinel: "chat" } }));
 jest.mock("@/lib/databases/DosDontsDb", () => ({ __esModule: true, dosDontsStorage: { sentinel: "dosDonts" } }));
+jest.mock("@/lib/databases/PackLibraryDb", () => ({ __esModule: true, packLibraryStorage: { sentinel: "packs" } }));
 jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileStorage: { sentinel: "profiles" } }));
 jest.mock("@/lib/databases/PurchaseLogDb", () => ({ __esModule: true, purchaseLogStorage: { sentinel: "purchaseLog" } }));
 jest.mock("@/lib/databases/QuestLogDb", () => ({ __esModule: true, questLogStorage: { sentinel: "questLog" } }));
@@ -182,6 +184,7 @@ describe("BACKUP_STORES registry", () => {
       "__latePenalties",
       "__notifications",
       "__localSettings",
+      "__packs",
     ]);
   });
 
@@ -205,6 +208,7 @@ describe("BACKUP_STORES registry", () => {
     expect(storageOf("__latePenalties")).toBe(latePenaltyStorage);
     expect(storageOf("__notifications")).toBe(notificationsStorage);
     expect(storageOf("__localSettings")).toBe(localSettingsStorage);
+    expect(storageOf("__packs")).toBe(packLibraryStorage);
   });
 
   it("keeps device-only and private stores out of the file", () => {

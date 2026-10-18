@@ -31,6 +31,8 @@ export interface TownHallPost {
   title?: string;
   body: string;
   bug?: { route: string; environment: string };
+  /** A topic on the Pack Exchange: the pack as compact JSON (packShare.ts), sent after the body */
+  pack?: string;
   remoteId?: number; // the site's id once sent
   error?: string;
 }
