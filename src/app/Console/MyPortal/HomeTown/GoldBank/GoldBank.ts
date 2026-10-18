@@ -1,4 +1,6 @@
 import { defineComponent } from "vue";
+import { npcNews } from "@/lib/services/guide/guideProgress";
+import { linesWithNews } from "@/lib/services/guide/npcHints";
 import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/lib/mixins/ionic";
 
@@ -112,7 +114,8 @@ export default defineComponent({
       this.isTalking = true;
       try {
         this.play$fx("select");
-        let lines = this.dialogBlocks;
+        // The banker passes on what he has heard about the hero's quest (once per step)
+        let lines = linesWithNews(this.dialogBlocks, await npcNews(String(this.userId || this.userStore.currentUser.id || ""), "bank"));
         for (;;) {
           const pick = (await this.reveal.showPrompt(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
           const isStaying = pick === "stay";

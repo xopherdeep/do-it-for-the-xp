@@ -1,4 +1,6 @@
 import { computed, defineComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { npcNews } from "@/lib/services/guide/guideProgress";
+import { linesWithNews } from "@/lib/services/guide/npcHints";
 import ionic from "@/lib/mixins/ionic";
 
 import {
@@ -294,7 +296,9 @@ export default defineComponent({
       if (this.isTalking) return;
       this.isTalking = true;
       try {
-        const pick = await this.reveal.showPrompt(clerkPrompt(this.voice, this.clerkLines, this.isOpen));
+        // An open shop's clerk passes on the latest news about the hero's quest (once per step)
+        const news = this.isOpen ? await npcNews(this.heroId, "shop") : null;
+        const pick = await this.reveal.showPrompt(clerkPrompt(this.voice, linesWithNews(this.clerkLines, news), this.isOpen));
         const isAtmPicked = pick === "atm" && this.isOpen;
         if (isAtmPicked) this.openATM();
       } finally {
