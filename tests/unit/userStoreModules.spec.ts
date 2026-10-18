@@ -258,6 +258,8 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "setSkin",
       "setThemeChoice",
       "setAutoRead",
+      "setAvatar",
+      "setFavoriteFood",
     ]);
 
     expect(setters.unlockItem("ava", "Shield")).toBe(true);

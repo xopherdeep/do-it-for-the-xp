@@ -1,4 +1,4 @@
-import { computed, defineComponent, ref, Ref } from "vue";
+import { computed, defineComponent } from "vue";
 const requireImg = require.context("@/assets/icons/", false, /\.svg$/);
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
@@ -6,7 +6,6 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 import packageInfo from '@/../package.json';
 
 import InputSettings from "@/app/SideMenu/XpSettings/components/InputSettings.vue";
-import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
 import { modalController } from "@ionic/vue";
 
@@ -20,27 +19,11 @@ interface BackgroundPair {
   [key: number]: string[];
 }
 
-interface Oauth {
-  domain: string;
-  authorize: string;
-  token: string;
-  me: string;
-  client_id: string;
-  client_secret: string;
-  redirect_uri: string;
-  access: Record<string, any>;
-}
-
 interface ComponentData {
-  username: string | null;
-  password: string | null;
-  error: boolean | string;
   toggleBGDirection: boolean;
   currentBG: number | any;
   interval: ReturnType<typeof setInterval> | number;
   inactivityTimer: ReturnType<typeof setTimeout> | number;
-  authDomain: string;
-  oauth: Oauth;
   version: string;
 }
 
@@ -49,28 +32,13 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     InputSettings,
-    SuccessfulLoginModal,
   },
   data(): ComponentData {
     return {
-      username: null,
-      password: null,
-      error: false,
       toggleBGDirection: false,
       currentBG: 0,
       interval: 0,
       inactivityTimer: 0,
-      authDomain: "doit.forthexp.com",
-      oauth: {
-        domain: "doit.forthexp.com",
-        authorize: "/oauth/authorize",
-        token: "/oauth/token",
-        me: "/oauth/me",
-        client_id: "ou5F5T2fsFimg6rEzZx76jEHXY7cJfdeb6cQroz9",
-        client_secret: "NypjizBfVSyZTbjbgXUbyjR1FfmlrLtwsGeREfwk",
-        redirect_uri: "http://localhost:8100/log-in",
-        access: {},
-      },
       version: packageInfo.version,
     };
   },
@@ -107,7 +75,6 @@ export default defineComponent({
   },
 
   methods: {
-    loginUser(user: any) { return (this as any).userStore.loginUser(user) },
     changeBGM(payload: any) { return (this as any).audioStore.changeBGM(payload) },
 
     // Helper method to clear the inactivity timer
@@ -117,11 +84,6 @@ export default defineComponent({
         clearTimeout(this.inactivityTimer as ReturnType<typeof setTimeout>);
         this.inactivityTimer = 0;
       }
-    },
-
-    closeSuccessModal(): void {
-      (this as any).showSuccessModal = false;
-      this.router.push({ name: "xp-profile" });
     },
 
     pressStart(): void {
@@ -167,20 +129,6 @@ export default defineComponent({
       // setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
 
-    clickSignIn(): void {
-      const { domain, authorize, redirect_uri, client_id } = this.oauth;
-      const params = new URLSearchParams({
-        response_type: "code",
-        redirect_uri,
-        client_id,
-      }).toString();
-
-      this.$router.push("/switch-profile");
-      modalController.dismiss();
-
-      window.location.href = `https://${domain}${authorize}?${params}`;
-    },
-
     closeModal(): void {
       modalController.dismiss();
       (this as any).play$fx("closePage");
@@ -223,68 +171,6 @@ export default defineComponent({
         }
       };
     },
-
-    async getAccessToken(): Promise<any> {
-      const {
-        oauth: { domain, token, client_id, client_secret, redirect_uri },
-        code,
-      } = this as any;
-      const url = `https://${domain}${token}`;
-      const response = await fetch(url, {
-        method: "POST",
-        mode: "cors", // no-cors, *cors, same-origin
-        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-        // credentials: 'same-origin', // include, *same-origin, omit
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        // body: JSON.stringify({
-        //   grant_type: 'authorization_code',
-        //   code,
-        //   client_id,
-        //   client_secret,
-        //   redirect_uri
-        // })
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code,
-          client_id,
-          client_secret,
-          redirect_uri,
-        }),
-      }).catch((error) => (this.error = error));
-      return response.json().then(this.setAuthAccess);
-    },
-
-    setAuthAccess(data: any): void {
-      // alert();
-      // console.log(data);
-      this.oauth.access = data;
-      this.fetchUserData().then(this.setUserData);
-    },
-
-    async fetchUserData(): Promise<any> {
-      const {
-        oauth: {
-          domain,
-          me,
-          access: { access_token },
-        },
-      } = this;
-      debug.log("Using fetchUserData to retrieve user information");
-      const url = `https://${domain}${me}?access_token=${access_token}`;
-      const response = await fetch(url);
-      return response.json();
-    },
-
-    setUserData(data: any): void {
-      // Use data parameter to log user information 
-      debug.log("User data retrieved:", data ? `User ID: ${data.id}` : "No data available");
-
-      this.loginUser(data);
-      (this as any).showSuccessModal = true;
-      this.error = false;
-    },
   },
   setup() {
     const userStore = useUserStore();
@@ -292,19 +178,8 @@ export default defineComponent({
     const bgm = computed(() => audioStore.bgm);
     const router = useRouter();
     const route = useRoute();
-    const showSuccessModal: Ref<boolean> = ref(false);
-
-    const code = route.query.code as string | undefined;
-
-    // fake login
-    // if(code){
-    //   router.push('/switch-profile')
-
-    // }
 
     return {
-      showSuccessModal,
-      code,
       router,
       bgm,
       requireImg,

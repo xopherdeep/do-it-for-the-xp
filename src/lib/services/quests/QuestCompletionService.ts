@@ -9,6 +9,8 @@ import { announceClaim } from "@/lib/services/quests/approvalFlow";
 import { asksForPhoto, claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
+import { rewardGpPayload } from "@/lib/services/gp/autoSave";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
 /**
@@ -86,7 +88,7 @@ export const applyQuestRewards = (
   const paid = paidQuestRewards(userId, rewards);
   const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
   const hasGp = paid.gp > 0;
-  if (hasGp) void userStore.updateUserGP({ userId, wallet: paid.gp, kind: "earn", ...(label ? { note: label } : {}) });
+  if (hasGp) void userStore.updateUserGP(rewardGpPayload(userId, paid.gp, label));
   const hasAp = paid.ap > 0;
   if (hasAp) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
   return levelUp;
@@ -107,19 +109,31 @@ const announcePaid = (heroId: string, questId: string, xp: number, source: Quest
   emitQuestPaid({ heroId, questId: String(questId), xp, fight });
 };
 
+/** A claim made somewhere else: a hero phone's claim is logged at the time the hero made it, under the phone's claim id */
+export interface CompletionOptions {
+  /** When the hero finished it (defaults to now): lateness, the trusted hour and the log's day are read at this time */
+  at?: Date;
+  /** The hero phone's `quest.claimed` event id (source `phone`) */
+  phoneClaimId?: string;
+}
+
 export const completeQuest = async (
   quest: Achievement,
   userId: string,
-  source: QuestLogSource = "claim"
+  source: QuestLogSource = "claim",
+  options: CompletionOptions = {}
 ): Promise<CompletionResult> => {
+  const at = options.at ?? new Date();
+  // The auto-save share is read from the rules when the GP is paid
+  await useGameRulesStore().load();
   // A finish after the due time pays the family's late share (all of it unless the Game Master chose less); the log keeps
   // what was owed, so a held claim is approved at the same reduced rate
-  const late = await adjustForLateness(quest, userId, questRewards(quest), new Date());
+  const late = await adjustForLateness(quest, userId, questRewards(quest), at);
   const rewards = late.rewards;
   const lateNote = late.isReduced ? lateRewardLine(late.rule) : undefined;
   const users = useUserStore().users;
   // A photo chore is always reviewed, trusted hour or not (claimPhotos.ts)
-  const wantsApproval = claimNeedsApproval(quest, users[userId]?.questEffects, new Date());
+  const wantsApproval = claimNeedsApproval(quest, users[userId]?.questEffects, at);
   // A Game Master with no other Game Master to ask is approved on the spot, with a note saying so
   const isAutoApproved = wantsApproval && isSoleGameMaster(userId, users);
   const awaitingApproval = wantsApproval && !isAutoApproved;
@@ -138,6 +152,8 @@ export const completeQuest = async (
     ...(isAutoApproved ? { note: AUTO_APPROVED_NOTE } : {}),
     ...(huntBonusXp > 0 ? { huntBonusXp } : {}),
     ...(asksForPhoto(quest) ? { requiresPhoto: true } : {}),
+    ...(options.at ? { completedAt: at.toISOString() } : {}),
+    ...(options.phoneClaimId ? { phoneClaimId: options.phoneClaimId } : {}),
   });
   clearGrudges(quest, userId);
   announceClaim(entry, quest.difficulty, awaitingApproval);
@@ -206,6 +222,7 @@ const reviewEntry = async (
 
 export const approveCompletion = (entryId: string, reviewerId?: string): Promise<QuestLogEntry | null> =>
   reviewEntry(entryId, async (entry) => {
+    await useGameRulesStore().load();
     // The quest's rate, and the hunt bonus a won fight wrote on the hold: paid here, once (a second approval finds the
     // entry already approved and pays nothing)
     const owed = withHuntBonus(entry);

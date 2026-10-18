@@ -2,6 +2,7 @@ import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
 import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
 import type { Accessory } from "@/lib/databases/AccessoriesDb";
 import type { ShopItem } from "@/lib/databases/ShopsDb";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore } from "@/lib/store/stores/user";
 import { purchaseNotification } from "@/lib/services/notifications/Notifications";
 import { notify } from "@/lib/services/notifications/notify";
@@ -15,8 +16,11 @@ import { findPotionRule } from "@/lib/services/battle/BattlePotions";
  * Shelf:       stockShelf() works out what a hero can buy from a shop today, and for how much.
  * Buy flow:    buyItem() charges the hero's wallet right away. Real-life items write a `pending`
  *              PurchaseLog entry for Game Master delivery; in-game consumables are added directly
- *              to the hero's bag and logged as `fulfilled`.
- * GM review:   fulfillPurchase() marks it delivered; refundPurchase() gives the GP back.
+ *              to the hero's bag and logged as `fulfilled`, unless the family has "Approve every
+ *              purchase" on (Settings > Rewards): then they are held `pending` too, with the bag item
+ *              on the entry (`packed`).
+ * GM review:   fulfillPurchase() marks it delivered (a held game item goes into the bag then);
+ *              refundPurchase() gives the GP back.
  *              Only `pending` entries can be reviewed, so nothing is ever paid or refunded twice.
  */
 
@@ -139,6 +143,9 @@ const walletOf = (userId: string): number => {
 };
 
 const placeOrder = async (userId: string, item: PurchasableItem): Promise<PurchaseLogEntry> => {
+  // Read before any check, so the wallet check and the charge below still share one tick
+  const rules = useGameRulesStore();
+  await rules.load();
   const price = Number(item.price);
   const isMissingIdOrName = !item.name || item.id === undefined || item.id === null || item.id === "";
   if (isMissingIdOrName) {
@@ -163,7 +170,10 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
     qty: 1,
   };
 
-  const hasNoBagRoom = isConsumable && !canCarry(hero, consumableRawItem);
+  // A held game item is packed on handover, so the bag only has to have room then
+  const isHeld = isConsumable && rules.approveAllPurchases;
+  const packsNow = isConsumable && !isHeld;
+  const hasNoBagRoom = packsNow && !canCarry(hero, consumableRawItem);
   if (hasNoBagRoom) {
     throw new PurchaseError("bag-full", `Your bag is full. Store something at home first.`);
   }
@@ -177,7 +187,7 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
   if (isPaid) await userStore.updateUserGP({ userId, wallet: -price, kind: "spend", note: `Bought ${item.name}` });
 
   try {
-    if (isConsumable) {
+    if (packsNow) {
       userStore.addInventoryItem(userId, consumableRawItem);
     }
     return await getPurchaseLogDb().logPurchase({
@@ -185,7 +195,8 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
       itemId: String(item.id),
       itemName: item.name,
       price,
-      status: isConsumable ? "fulfilled" : "pending",
+      status: packsNow ? "fulfilled" : "pending",
+      ...(isHeld ? { packed: consumableRawItem } : {}),
     });
   } catch (error) {
     // Nothing was recorded, so the Game Master would never learn what to deliver: give the GP back.
@@ -235,9 +246,21 @@ const reviewEntry = async (
   }
 };
 
-/** The Game Master handed the item over. Returns the entry as it now stands (null if it doesn't exist). */
+/**
+ * The Game Master handed the item over. Returns the entry as it now stands (null if it doesn't exist). A held game
+ * item goes into the hero's bag; with no room there it rejects with PurchaseError ("bag-full") and stays pending.
+ */
 export const fulfillPurchase = (entryId: string, reviewerId?: string): Promise<PurchaseLogEntry | null> =>
   reviewEntry(entryId, async (entry) => {
+    const packed = entry.packed;
+    if (packed) {
+      const userStore = useUserStore();
+      const hero = userStore.users[entry.userId];
+      if (!hero) throw new PurchaseError("unknown-hero", "That hero no longer exists, so there is no bag to pack. Refund or clear it.");
+      const isBagFull = !canCarry(hero, { ...packed });
+      if (isBagFull) throw new PurchaseError("bag-full", `The hero's bag is full. They need to store something at home first.`);
+      userStore.addInventoryItem(entry.userId, { ...packed });
+    }
     const fulfilled = await getPurchaseLogDb().updateEntry(entry.id, {
       status: "fulfilled",
       reviewedAt: new Date().toISOString(),

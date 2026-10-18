@@ -6,9 +6,9 @@
  * It only runs on a device with no profiles at all: that first run is the one moment nobody can be signed in as a
  * Game Master yet, so the usual Game Master check is replaced by "there is nobody here to protect".
  *
- * The parent can come in as the Game Master in the same step (a name and the 4-digit PIN every Game Master needs).
- * Skipped, nobody is Game Master until a parent adds their own profile, and the device behaves like any install with
- * no Game Master (gm.guard.ts, "no-game-master").
+ * The parent comes in as the Game Master in the same step (a name and the 4-digit PIN every Game Master needs). It
+ * can't be skipped: a device with heroes and no Game Master lets any hero into the Game Master area (gm.guard.ts,
+ * "no-game-master"), where they could approve their own claims.
  */
 import { BACKUP_STORES, BACKUP_VERSION, BackupService } from "@/lib/services/core/BackupService";
 import type { BackupEntry, BackupFile, RestoreResult } from "@/lib/services/core/BackupService";
@@ -18,6 +18,7 @@ import User from "@/lib/utils/User/user";
 import Stats from "@/lib/utils/User/stats";
 import { useUserStore } from "@/lib/store/stores/user";
 import { passcodeProblem } from "@/router/_Guards/gm.guard";
+import { sealSecret } from "@/lib/services/profile/pinSeal";
 import { v4 as uuidv4 } from "uuid";
 import { QUICK_START_PACK } from "./catalog/quickStart";
 import { packToBackup } from "./packService";
@@ -68,7 +69,7 @@ export const quickStartHero = (name: string, index: number, id: string = uuidv4(
   return JSON.parse(JSON.stringify(hero));
 };
 
-/** The parent, if they join: a name and a PIN. Both blank means they skip it for now */
+/** The parent: a name and a PIN */
 export interface QuickStartGameMaster {
   name: string;
   passcode: string;
@@ -76,24 +77,19 @@ export interface QuickStartGameMaster {
 
 const gameMasterName = (gameMaster?: QuickStartGameMaster): string => heroNames([gameMaster?.name ?? ""])[0] ?? "";
 
-/** Whether the parent left the Game Master step blank (they can add themselves from Settings > Family later) */
-export const isGameMasterSkipped = (gameMaster?: QuickStartGameMaster): boolean =>
-  !gameMasterName(gameMaster) && !String(gameMaster?.passcode ?? "");
-
-/** Why the Game Master step cannot be saved, or null: skipped, or a name with a 4-digit PIN */
+/** Why the Game Master step cannot be saved, or null when it has a name and a 4-digit PIN */
 export const gameMasterProblem = (gameMaster?: QuickStartGameMaster): string | null => {
-  if (isGameMasterSkipped(gameMaster)) return null;
   const hasNoName = !gameMasterName(gameMaster);
-  if (hasNoName) return "Add your name to go with your PIN";
+  if (hasNoName) return "Add your name as the Game Master";
   return passcodeProblem(gameMaster?.passcode ?? "", true);
 };
 
-/** The parent's profile: a Game Master with their PIN, who plays no quests of their own */
+/** The parent's profile: a Game Master with their PIN (sealed), who plays no quests of their own */
 export const quickStartGameMaster = (gameMaster: QuickStartGameMaster, id: string = uuidv4()): StoredProfile => {
   const parent = new User({
     id,
     name: { full: gameMasterName(gameMaster) },
-    passcode: gameMaster.passcode,
+    passcode: sealSecret(gameMaster.passcode),
     avatar: "010-gamer",
     favoriteFood: "",
     favoriteThing: "",
@@ -111,8 +107,8 @@ export const assignQuests = (quests: readonly Achievement[], heroIds: readonly s
 export interface QuickStartPlan {
   backup: BackupFile;
   heroes: StoredProfile[];
-  /** The parent's Game Master profile, or null when they skipped that step */
-  gameMaster: StoredProfile | null;
+  /** The parent's Game Master profile */
+  gameMaster: StoredProfile;
 }
 
 /** The backup that seeds the heroes and the pack; pure, so the shape is tested without storage */
@@ -128,8 +124,7 @@ export const quickStartPlan = (
   if (hasNoHeroes) throw new QuickStartError("Name at least one hero to start.");
   const problem = gameMasterProblem(gameMasterForm);
   if (problem) throw new QuickStartError(problem);
-  const isJoiningAsGameMaster = Boolean(gameMasterForm) && !isGameMasterSkipped(gameMasterForm);
-  const gameMaster = isJoiningAsGameMaster ? quickStartGameMaster(gameMasterForm as QuickStartGameMaster, newId()) : null;
+  const gameMaster = quickStartGameMaster(gameMasterForm as QuickStartGameMaster, newId());
   const heroes = kept.map((name, index) => quickStartHero(name, index, newId()));
   const heroIds = heroes.map((hero) => String(hero.id));
   const pack = {
@@ -137,7 +132,7 @@ export const quickStartPlan = (
     content: { ...QUICK_START_PACK.content, quests: assignQuests(QUICK_START_PACK.content.quests ?? [], heroIds) },
   };
   const backup = packToBackup(pack, shopsNow, now);
-  const profiles: BackupEntry[] = [...(gameMaster ? [gameMaster] : []), ...heroes].map((profile) => ({
+  const profiles: BackupEntry[] = [gameMaster, ...heroes].map((profile) => ({
     key: String(profile.id),
     value: profile,
   }));
@@ -179,7 +174,7 @@ const readAll = async (storage: PackStorage): Promise<Map<string, unknown>> => {
   return records;
 };
 
-/** Seeds the heroes, the parent's Game Master profile if given, and the Quick start pack. Refused once any profile exists, so it can never touch a family's game */
+/** Seeds the heroes, the parent's Game Master profile and the Quick start pack. Refused once any profile exists, so it can never touch a family's game */
 export const runQuickStart = async (
   names: readonly string[],
   gameMaster?: QuickStartGameMaster,

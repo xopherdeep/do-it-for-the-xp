@@ -6,19 +6,28 @@ import { achievementCategoryStorage, achievementStorage } from "@/lib/databases/
 import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { chatStorage } from "@/lib/databases/ChatDb";
 import { dosDontsStorage } from "@/lib/databases/DosDontsDb";
+import { packLibraryStorage } from "@/lib/databases/PackLibraryDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
+import { sealProfileSecrets } from "@/lib/services/profile/pinSeal";
 import { purchaseLogStorage } from "@/lib/databases/PurchaseLogDb";
 import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
 import { templeStorage } from "@/lib/databases/TempleDb";
 import { templeProgressStorage } from "@/lib/databases/TempleProgressDb";
+import { castLogStorage } from "@/lib/databases/CastLogDb";
+import { familySettingsStorage } from "@/lib/databases/FamilySettingsDb";
+import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
+import { notificationsStorage } from "@/lib/databases/NotificationsDb";
+import { saveBackupFile, type SavedBackupFile } from "@/lib/services/core/backupFile";
+import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
 import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 
 /**
- * One backup file for everything the app keeps in Ionic Storage (Settings > General).
+ * One backup file for everything the app keeps in Ionic Storage, plus the family settings it keeps in localStorage
+ * (Settings > General).
  *
  * File format, version 1:
  *   {
@@ -67,7 +76,16 @@ export interface BackupStoreDef {
   storage: BackupStorage;
   /** Runs once, after the whole restore succeeded, with this store's restored records (for data mirrored elsewhere) */
   afterRestore?: (entries: readonly BackupEntry[]) => Promise<void>;
+  /** Applied to every record going into a backup file and coming back out of one (profiles: PINs sealed) */
+  cleanRecord?: (value: any) => any;
 }
+
+/** A store's records with its cleanRecord applied */
+const cleanEntries = (store: BackupStoreDef, entries: readonly BackupEntry[]): BackupEntry[] => {
+  const { cleanRecord } = store;
+  if (!cleanRecord) return [...entries];
+  return entries.map((entry) => ({ ...entry, value: cleanRecord(entry.value) }));
+};
 
 /** ProfileDb also mirrors every profile into Capacitor Preferences (it survives a reinstall); keep that copy in step. */
 const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> => {
@@ -82,9 +100,14 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  * categories and beasts before the quests that reference them; accessories and abilities before
  * the shops that sell them; temples before the progress through them; quests, shops and profiles
  * before the logs that record them).
+ *
+ * Left out on purpose, because they belong to this device or must never travel in a file: the family server queue
+ * (`__xp_family_events`, a restore would resend old events), a kid phone's hero key (`__xp_hero_device`), the Town
+ * Hall sign-in and unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`) and photo proof for
+ * held claims (`__xp_claim_photos`, big and private).
  */
 export const BACKUP_STORES: readonly BackupStoreDef[] = [
-  { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles },
+  { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles, cleanRecord: sealProfileSecrets },
   { name: "__achievementCategories", label: "Quest categories", storage: achievementCategoryStorage },
   { name: "__beasts", label: "Bestiary", storage: beastStorage },
   { name: "__achievements", label: "Quests", storage: achievementStorage },
@@ -97,6 +120,13 @@ export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__purchaseLog", label: "Purchase log", storage: purchaseLogStorage },
   { name: "__chat", label: "Chat", storage: chatStorage },
   { name: "__dosDonts", label: "Dos and Don'ts", storage: dosDontsStorage },
+  { name: "__family_settings", label: "Family rules", storage: familySettingsStorage },
+  { name: "__castLog", label: "Power casts", storage: castLogStorage },
+  // Without it a restored device charges every late penalty again
+  { name: "__latePenalties", label: "Late penalties", storage: latePenaltyStorage },
+  { name: "__notifications", label: "Notifications", storage: notificationsStorage },
+  { name: "__localSettings", label: "Settings", storage: localSettingsStorage },
+  { name: "__packs", label: "Added packs", storage: packLibraryStorage },
 ];
 
 /** The file is not a backup this app can read. Thrown before anything is touched. */
@@ -164,13 +194,14 @@ export interface RestoreResult extends BackupSummary {
   usersReloaded: boolean;
 }
 
-export interface ExportResult {
-  fileName: string;
+export interface ExportResult extends SavedBackupFile {
   summary: BackupSummary;
 }
 
+/** Puts the backup text somewhere the family can get it back from; throws when it could not (see backupFile.ts) */
+export type BackupFileSaver = (fileName: string, json: string) => Promise<SavedBackupFile>;
+
 const WRITE_BATCH_SIZE = 100;
-const OBJECT_URL_LIFETIME_MS = 10_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -247,7 +278,8 @@ export class BackupService {
   constructor(
     private readonly stores: readonly BackupStoreDef[] = BACKUP_STORES,
     private readonly reloadUsers: () => Promise<void> = reloadUserStore,
-    private readonly canRestore: () => boolean = mayRestore
+    private readonly canRestore: () => boolean = mayRestore,
+    private readonly saveFile: BackupFileSaver = saveBackupFile
   ) {}
 
   /**
@@ -259,7 +291,7 @@ export class BackupService {
     for (const store of this.stores) {
       try {
         await store.storage.create();
-        stores[store.name] = await readEntries(store.storage);
+        stores[store.name] = cleanEntries(store, await readEntries(store.storage));
       } catch (error) {
         throw new BackupStorageError(
           `Could not read ${store.label} (${store.name}): ${reasonOf(error)}. No backup was made.`,
@@ -271,33 +303,21 @@ export class BackupService {
     return { version: BACKUP_VERSION, exportedAt: now.toISOString(), stores };
   }
 
-  /** Hands the backup to the browser as a file download and returns the file name. */
-  downloadBackup(backup: BackupFile): string {
+  /** The file name a backup gets: the day it was made */
+  fileNameOf(backup: BackupFile): string {
     const madeAt = new Date(backup.exportedAt);
-    const fileName = backupFileName(Number.isNaN(madeAt.getTime()) ? new Date() : madeAt);
-    const json = JSON.stringify(backup, null, 2);
-    // A Blob URL has no size limit; a data: URL stops working in some browsers at about 2 MB
-    const useBlob = typeof Blob !== "undefined" && typeof URL !== "undefined" && typeof URL.createObjectURL === "function";
-    const href = useBlob
-      ? URL.createObjectURL(new Blob([json], { type: "application/json" }))
-      : `data:application/json;charset=utf-8,${encodeURIComponent(json)}`;
-
-    const link = document.createElement("a");
-    link.href = href;
-    link.download = fileName;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    if (useBlob) setTimeout(() => URL.revokeObjectURL(href), OBJECT_URL_LIFETIME_MS);
-    return fileName;
+    return backupFileName(Number.isNaN(madeAt.getTime()) ? new Date() : madeAt);
   }
 
-  /** The Settings > General "Back up everything" action: read every store, then download one file. */
+  /**
+   * The Settings > General "Back up everything" action: read every store, then save one file (a download in the
+   * browser, Documents or the share sheet in the phone app). Throws when the file was not saved, so nothing reports
+   * a backup that does not exist.
+   */
   async exportAll(): Promise<ExportResult> {
     const backup = await this.createBackup();
-    const fileName = this.downloadBackup(backup);
-    return { fileName, summary: this.summarizeBackup(backup) };
+    const saved = await this.saveFile(this.fileNameOf(backup), JSON.stringify(backup, null, 2));
+    return { ...saved, summary: this.summarizeBackup(backup) };
   }
 
   /**
@@ -378,7 +398,17 @@ export class BackupService {
     if (!this.canRestore()) throw new BackupPermissionError();
 
     // 1. Validate everything up front: a malformed file must not cost anyone a single record
-    const backup = this.parseBackup(input);
+    const parsed = this.parseBackup(input);
+    // An old file may still carry PINs as typed: they go back in sealed
+    const backup: BackupFile = {
+      ...parsed,
+      stores: Object.fromEntries(
+        Object.entries(parsed.stores).map(([name, entries]) => {
+          const store = this.stores.find((def) => def.name === name);
+          return [name, store ? cleanEntries(store, entries) : entries];
+        })
+      ),
+    };
     const summary = this.summarizeBackup(backup);
     const plan = this.stores.filter((store) => hasOwn(backup.stores, store.name));
 

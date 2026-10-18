@@ -28,10 +28,20 @@ export interface PurchaseLogEntry {
   reviewedAt?: string;
   reviewedBy?: string;
   note?: string;
+  /** A game item held for the Game Master (Settings > Rewards): it goes into the hero's bag when they hand it over */
+  packed?: PackedItem;
+}
+
+/** The bag item a held game-item purchase becomes on handover */
+export interface PackedItem {
+  name: string;
+  type: string;
+  faIcon: string;
+  qty: number;
 }
 
 export type NewPurchaseLogEntry = Pick<PurchaseLogEntry, "userId" | "itemId" | "itemName" | "price"> &
-  Partial<Pick<PurchaseLogEntry, "status" | "note" | "createdAt">>;
+  Partial<Pick<PurchaseLogEntry, "status" | "note" | "createdAt" | "packed">>;
 
 export class PurchaseLogDb extends DbStorageApi {
   public async logPurchase(input: NewPurchaseLogEntry): Promise<PurchaseLogEntry> {
@@ -44,6 +54,7 @@ export class PurchaseLogDb extends DbStorageApi {
       status: input.status ?? "pending",
       createdAt: input.createdAt || new Date().toISOString(),
       note: input.note,
+      ...(input.packed ? { packed: input.packed } : {}),
     };
     await this.set(entry.id, entry);
     return entry;

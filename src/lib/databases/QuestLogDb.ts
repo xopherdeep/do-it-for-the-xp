@@ -12,7 +12,8 @@ export const questLogStorage = new Storage({
 });
 
 export type QuestLogStatus = "pending" | "approved" | "rejected";
-export type QuestLogSource = "claim" | "battle" | "gm" | "party";
+/** `phone`: the hero claimed it on their own linked phone, and the family device took the claim (phoneClaimIntake.ts) */
+export type QuestLogSource = "claim" | "battle" | "gm" | "party" | "phone";
 
 export interface QuestRewards {
   xp: number;
@@ -41,13 +42,15 @@ export interface QuestLogEntry {
   huntBonusXp?: number;
   /** The chore asked for a photo when this was claimed; the picture itself lives in ClaimPhotoDb, on this device only */
   requiresPhoto?: boolean;
+  /** The id of the hero phone's `quest.claimed` event this entry was made from (source `phone`), so it is taken once */
+  phoneClaimId?: string;
   reviewedAt?: string;
   reviewedBy?: string;
   note?: string;
 }
 
 export type NewQuestLogEntry = Pick<QuestLogEntry, "questId" | "questName" | "userId" | "status" | "source" | "rewards"> &
-  Partial<Pick<QuestLogEntry, "rewardsApplied" | "note" | "completedAt" | "huntBonusXp" | "requiresPhoto">>;
+  Partial<Pick<QuestLogEntry, "rewardsApplied" | "note" | "completedAt" | "huntBonusXp" | "requiresPhoto" | "phoneClaimId">>;
 
 /** Local calendar day key, e.g. 2026-10-08 (not UTC, so late-night chores count for the right day). */
 export const toDayKey = (date: Date = new Date()): string => {
@@ -74,6 +77,7 @@ export class QuestLogDb extends DbStorageApi {
       note: input.note,
       ...(input.huntBonusXp && input.huntBonusXp > 0 ? { huntBonusXp: input.huntBonusXp } : {}),
       ...(input.requiresPhoto ? { requiresPhoto: true } : {}),
+      ...(input.phoneClaimId ? { phoneClaimId: input.phoneClaimId } : {}),
     };
     await this.set(entry.id, entry);
     return entry;

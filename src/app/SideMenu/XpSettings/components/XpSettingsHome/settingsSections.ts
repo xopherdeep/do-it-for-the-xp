@@ -28,7 +28,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: "family",
         title: "Family",
-        description: "Add Game Masters and heroes, link phones, set item rules.",
+        description: "Add Game Masters and heroes, link phones, set item rules and bedtime.",
         icon: require("@/assets/icons/team.png"),
         route: "/xp-settings/family",
       },
@@ -49,14 +49,14 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: "chore",
         title: "Chores",
-        description: "Daily streaks, and what happens when a chore is late.",
+        description: "Daily streaks, late chores, and auto-saving GP.",
         icon: require("@/assets/icons/achievements.svg"),
         route: "/xp-settings/chore",
       },
       {
         id: "reward",
         title: "Rewards",
-        description: "Cash out GP: the rate and who can.",
+        description: "Cash out GP, and which purchases wait for you.",
         icon: require("@/assets/icons/gp.svg"),
         route: "/xp-settings/reward",
       },
@@ -97,7 +97,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: "general",
         title: "General",
-        description: "Back up everything to a file, or restore from one.",
+        description: "Backups, guides, the landing page and the first day of the week.",
         icon: require("@/assets/icons/settings.png"),
         route: "/xp-settings/general",
       },

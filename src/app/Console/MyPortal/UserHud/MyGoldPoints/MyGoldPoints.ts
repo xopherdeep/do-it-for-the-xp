@@ -11,7 +11,8 @@ import { copyFor } from "@/lib/services/copy/copy";
 import { getPurchaseLogDb, type PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
 import { DEFAULT_FAMILY_SETTINGS, loadFamilySettings, type CashOutSettings } from "@/lib/services/family/familySettings";
 import { GOLD_APP, amountAsk, debtMenuPrompt, noticePrompt, savingsMenuPrompt } from "@/lib/services/gp/bankPrompts";
-import { type BankAction, bankMove, bankReceipt, bankRefusal, gold } from "@/lib/services/gp/bankTeller";
+import { type BankAction, gold } from "@/lib/services/gp/bankTeller";
+import { runBankErrand } from "@/lib/services/gp/bankErrand";
 import { cashOutQuote, cashValue, dollars, isPendingCashOut, requestCashOut } from "@/lib/services/gp/cashOut";
 import { askForGp, declineRequest, heroName, payRequest, requestsOf, sendGp } from "@/lib/services/gp/gpGifts";
 import {
@@ -25,10 +26,9 @@ import {
   type GpLedgerEntry,
   type LedgerRange,
 } from "@/lib/services/gp/gpLedger";
-import { WALLET_TIERS, creditLineOf, hospitalBillOf, loanRoom, normalizePurse, type BankMove } from "@/lib/services/gp/wallet";
+import { WALLET_TIERS, creditLineOf, loanRoom, normalizePurse } from "@/lib/services/gp/wallet";
 import { walletShopFor } from "@/lib/services/gp/walletShops";
 import { cashOutPrompt, cashOutRefusal, giftAmountPrompt, pickHeroPrompt, sendMenuPrompt, walletNotice } from "@/lib/services/gp/walletPrompts";
-import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import { whenCopy } from "@/lib/services/notifications/Notifications";
 
 type WalletTab = "activity" | "wallet" | "wallets";
@@ -80,26 +80,23 @@ export default defineComponent({
       const { id, amount } = await this.reveal.showAmountPrompt(ask.prompt);
       const isCancelled = id !== "ok" || !amount;
       if (isCancelled) return;
-      await this.applyMove(action, bankMove(action, this.user.stats.gp, amount));
+      await this.applyMove(action, amount);
     },
 
     /** Every bank move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
-    async applyMove(action: BankAction, move: BankMove) {
-      const before = this.user.stats.gp;
-      const refusal = bankRefusal(action, before, move, this.words);
-      if (refusal) {
+    async applyMove(action: BankAction, amount: number) {
+      const errand = runBankErrand(this.user.id, action, amount, this.words);
+      const line = errand?.line ?? "";
+      const isRefused = errand?.ok === false;
+      const isMoved = errand?.ok === true;
+      if (isRefused) {
         this.play$fx("no");
-        await this.reveal.showPrompt(noticePrompt(refusal, undefined, GOLD_APP));
-        return;
+        await this.reveal.showPrompt(noticePrompt(line, undefined, GOLD_APP));
       }
-      this.play$fx("countCoins");
-      // The bill reaching 0 lifts the grounding at once; the family hears of it after the purse is saved
-      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
-      const heroId = this.user.id;
-      const receipt = bankReceipt(action, before, move, this.words);
-      this.userStore.setWallet(heroId, move.gp, { kind: action });
-      if (clearsBill) announceBillPaid(heroId);
-      await this.reveal.showPrompt(noticePrompt(receipt, "coins", GOLD_APP));
+      if (isMoved) {
+        this.play$fx("countCoins");
+        await this.reveal.showPrompt(noticePrompt(line, "coins", GOLD_APP));
+      }
     },
 
     /** A move that can't happen: the no sound and the app's reason */

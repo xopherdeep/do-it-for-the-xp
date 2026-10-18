@@ -10,6 +10,8 @@ jest.mock("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/hoo
   AchievementFormInjectionKey: Symbol.for("mock-achievement-form"),
 }));
 jest.mock("@/assets/fx", () => ({ __esModule: true, default: {}, play$fx: jest.fn() }));
+// The day row starts on the family's first day of the week: Monday, as a new family's settings say
+jest.mock("@/hooks/useWeekStart", () => ({ __esModule: true, useWeekStart: () => ({ value: 1 }) }));
 
 jest.mock("@ionic/vue", () => {
   const stub = (name: string) => ({ name, template: "<div class='ion-stub'><slot /></div>" });

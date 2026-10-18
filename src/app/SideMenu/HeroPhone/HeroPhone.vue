@@ -42,12 +42,15 @@
                 </ion-card-subtitle>
               </ion-card-header>
 
-              <ion-card-content class="ion-text-center">
+              <ion-card-content v-if="!hasSheet" class="ion-text-center">
                 <ion-text class="quests-elsewhere" data-cy="quests-elsewhere">
                   {{ questsElsewhereText }}
                 </ion-text>
               </ion-card-content>
             </ion-card>
+
+            <!-- Two-phone play: the hero's numbers and quests from the family device, and their claims -->
+            <hero-phone-board v-if="!isUnlinked && hasSheet" />
           </ion-col>
         </ion-row>
       </ion-grid>

@@ -104,6 +104,11 @@
           </button>
         </div>
 
+        <p v-if="isLocked" class="pin-lockout" role="alert">
+          <i class="fad fa-hourglass-half" aria-hidden="true"></i>
+          Too many wrong tries. Try again in {{ waitText }}.
+        </p>
+
         <div class="action-row">
           <button
             type="button"
@@ -117,14 +122,18 @@
           <button
             type="button"
             class="key ion-activatable key--unlock"
-            :class="{ 'key--ready': isPasscodeValid }"
-            :disabled="!isPasscodeValid"
+            :class="{ 'key--ready': isPasscodeValid && !isLocked }"
+            :disabled="!isPasscodeValid || isLocked"
             @click="clickUnlock"
           >
             <i class="fad" :class="lockIcon" />
             <span class="unlock-text">Unlock</span>
           </button>
         </div>
+
+        <button v-if="isGameMasterProfile" type="button" class="pin-forgot" data-cy="forgot-pin" @click="clickForgotPin">
+          Forgot PIN?
+        </button>
       </div>
     </div>
   </ion-content>
@@ -147,6 +156,11 @@
   import { play$fx } from "@/assets/fx";
   import { useTimers } from "@/hooks/useTimers";
   import { useGameStore } from "@/lib/store/stores/game";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import { pinMatches } from "@/lib/services/profile/pinSeal";
+  import { hasRecoveryCode, recoveryCodeMatches } from "@/lib/services/profile/pinRecovery";
+  import { NO_LOCKOUT, formatWait, msLeft, readLockout, recordWrongTry, saveLockout } from "@/lib/services/profile/pinLockout";
+  import { askNewPin, askRecoveryCode, saveProfileSecrets, showRecoveryCode } from "./pinRecoveryPrompts";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -172,6 +186,23 @@
       const hasError = ref(false);
       const timers = useTimers();
       const gameStore = useGameStore();
+      const userStore = useUserStore();
+
+      // Wrong tries are counted per profile and survive closing the pad (pinLockout.ts)
+      const lockoutId = String(props.profile?.id ?? "unknown");
+      const lockout = ref(readLockout(lockoutId));
+      const now = ref(Date.now());
+      timers.startInterval(1000, () => (now.value = Date.now()));
+      const waitLeft = computed(() => msLeft(lockout.value, now.value));
+      const isLocked = computed(() => waitLeft.value > 0);
+      const waitText = computed(() => formatWait(waitLeft.value));
+      const isGameMasterProfile = computed(() => props.profile?.isAdult === true);
+
+      const countWrongTry = () => {
+        lockout.value = recordWrongTry(lockout.value, Date.now());
+        now.value = Date.now();
+        saveLockout(lockoutId, lockout.value);
+      };
 
       // The Retro / Modern toggle of the profile modal picks the keypad's skin
       const skin = computed(() => (gameStore.fabStyle === "retro" ? "retro" : "modern"));
@@ -241,17 +272,27 @@
           )}`
         );
 
-        const isPasscodeMatch = inputCode.value === props.profile.passcode;
+        if (isLocked.value) {
+          play$fx("no");
+          return;
+        }
+        const isPasscodeMatch = pinMatches(props.profile, inputCode.value);
         if (!isPasscodeMatch) {
           play$fx("no");
+          countWrongTry();
           hasError.value = true;
           timers.startTimeout(500, () => {
             hasError.value = false;
             inputCode.value = "";
           });
-          alertIncorrectPasscode();
+          if (!isLocked.value) alertIncorrectPasscode();
         } else {
           play$fx("yes");
+          lockout.value = NO_LOCKOUT;
+          saveLockout(lockoutId, NO_LOCKOUT);
+          // A Game Master's first unlock hands them the code that rescues a forgotten PIN
+          const needsRecoveryCode = isGameMasterProfile.value && !hasRecoveryCode(props.profile);
+          if (needsRecoveryCode) await mintFirstRecoveryCode();
           const canToast = typeof toastController?.create === "function";
           if (canToast) {
             const toast = await toastController.create({
@@ -269,6 +310,71 @@
             }
           });
         }
+      };
+
+      const mintFirstRecoveryCode = async () => {
+        try {
+          const code = await saveProfileSecrets(props.profile, { newRecoveryCode: true });
+          if (code) await showRecoveryCode(code);
+        } catch (error) {
+          debug.error("Could not save a recovery code", error);
+        }
+      };
+
+      // Forgot PIN: the recovery code (it counts as a try, like a PIN) leads to a new PIN and a fresh code
+      const clickForgotPin = async () => {
+        play$fx("select");
+        const isCodeAccepted = await askAndCheckRecoveryCode();
+        if (isCodeAccepted) await chooseNewPin();
+      };
+
+      // True once the right recovery code was typed; a wrong one counts as a wrong try
+      const askAndCheckRecoveryCode = async (): Promise<boolean> => {
+        if (isLocked.value) {
+          play$fx("no");
+          return false;
+        }
+        const hasOtherGameMaster = Object.values(userStore.users).some(
+          (user: any) => user?.isAdult === true && user?.id !== props.profile?.id
+        );
+        const typed = await askRecoveryCode(hasOtherGameMaster);
+        const isCodeMatch = typed !== null && recoveryCodeMatches(props.profile, typed);
+        const isWrongCode = typed !== null && !isCodeMatch;
+        if (isWrongCode) {
+          play$fx("no");
+          countWrongTry();
+          await alertWrongRecoveryCode();
+        }
+        return isCodeMatch;
+      };
+
+      const chooseNewPin = async () => {
+        const pin = await askNewPin();
+        const isPinCancelled = pin === null;
+        if (isPinCancelled) return;
+        try {
+          const code = await saveProfileSecrets(props.profile, { pin, newRecoveryCode: true });
+          lockout.value = NO_LOCKOUT;
+          saveLockout(lockoutId, NO_LOCKOUT);
+          play$fx("yes");
+          if (code) await showRecoveryCode(code, true);
+          await modalController.dismiss(userStore.users[props.profile.id] ?? props.profile);
+        } catch (error) {
+          debug.error("Could not save the new PIN", error);
+          play$fx("no");
+        }
+      };
+
+      const alertWrongRecoveryCode = async () => {
+        const alert = await alertController.create({
+          mode: "ios",
+          header: "Code not recognised",
+          message: isLocked.value
+            ? `Too many wrong tries. Try again in ${waitText.value}.`
+            : "That isn't this profile's recovery code. Check the letters and try again.",
+          buttons: [{ text: "OK", role: "confirm" }],
+        });
+        await alert.present();
       };
 
       const toggleShowPass = () => {
@@ -300,7 +406,10 @@
           const alert = await alertController.create({
             mode: "ios",
             header: "Passcode Incorrect",
-            message: "The passcode you entered was not valid. Please try again.",
+            message:
+              lockout.value.fails >= 3
+                ? "The passcode you entered was not valid. A few more wrong tries and the pad will make you wait."
+                : "The passcode you entered was not valid. Please try again.",
             buttons: [
               {
                 text: "OK",
@@ -325,8 +434,12 @@
         hideIcon,
         passwordProxy,
         isPasscodeValid,
+        isLocked,
+        waitText,
+        isGameMasterProfile,
         dismiss,
         clickUnlock,
+        clickForgotPin,
         toggleShowPass,
         appendToCode,
         removeLastDigit,

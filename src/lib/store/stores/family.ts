@@ -9,7 +9,7 @@ import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
 import { normalizeCode, phoneLabel } from "@/lib/services/multiplayer/deviceLink";
 import { markPaid, newestSeq, rewardsToPay, trimPaid } from "@/lib/services/multiplayer/eventInbox";
 import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
-import { questClaimedEvent, questDoneEvent, questReviewedEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
+import { claimSettledEvent, questClaimedEvent, questDoneEvent, questReviewedEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import {
   bindFamily,
   claimDevice,
@@ -23,9 +23,11 @@ import {
   removePhone as serverRemovePhone,
   saveHero,
 } from "@/lib/services/multiplayer/familyServer";
-import type { BindAnswer, FamilyProblem, HeroPhone, LinkCode, ServerHero } from "@/lib/services/multiplayer/familyServer";
-import { onHeroRemoved, onQuestClaimed, onQuestPaid, onQuestReviewed, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import type { BindAnswer, FamilyProblem, HeroPhone, LinkCode, ReceivedEvent, ServerHero } from "@/lib/services/multiplayer/familyServer";
+import { onHeroRemoved, onQuestClaimed, onQuestPaid, onQuestReviewed, type QuestPaid, type QuestReviewed } from "@/lib/services/multiplayer/gameSignals";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
+import { sheetEvent, sheetKey } from "@/lib/services/multiplayer/heroSheet";
+import { buildHeroSheet, isPhoneClaim, takePhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
@@ -36,6 +38,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { createCardQueue } from "./family/familyCards";
 import { createFamilySender } from "./family/familySender";
+import { createHeroPhoneSync } from "./family/heroPhoneSync";
 
 /** Where each answer of the site leaves this device: `created` and `home` both mean this device is the family's home */
 const HOME_OF_ANSWER: Record<BindAnswer, HomeStatus> = {
@@ -60,8 +63,12 @@ interface RegistrableHero {
 const SEND_DELAY_MS = 5_000;
 /** A profile change queues its card this long after the last change */
 const CARDS_DELAY_MS = 2_000;
-/** Download runs every 5 minutes while the store is open */
-const DOWNLOAD_INTERVAL_MS = 300_000;
+/** Download runs every 2 minutes while the store is open, so a claim from a hero's phone reaches the Game Master soon */
+const DOWNLOAD_INTERVAL_MS = 120_000;
+/** A linked hero phone syncs every minute while it is open */
+const PHONE_SYNC_INTERVAL_MS = 60_000;
+/** Taken hero-phone claims are remembered this long (the server keeps events no longer) */
+const TAKEN_CLAIMS_MS = 90 * 24 * 60 * 60 * 1000;
 
 /** The quest's difficulty for quest.done; 0 when the quest is gone or has none */
 const difficultyOf = async (questId: string): Promise<number> => {
@@ -90,6 +97,10 @@ const difficultyOf = async (questId: string): Promise<number> => {
  * `flush()` sends the queue, one request at a time, 50 events per request; it runs after the start, 5 s after
  * something is queued, when the browser comes back online and when the app comes back to the front. Nothing is queued
  * or sent unless the flag is on and this device is home.
+ *
+ * Two-phone play (FAMILY_EVENTS.md): while home, a download also takes the claims heroes made on their phones (logged
+ * here, answered with `claim.settled`), and each hero with a phone gets a `hero.sheet` when it changes. On a linked hero
+ * phone the store runs the phone's side instead (`family/heroPhoneSync.ts`): `claimOnPhone`, `syncPhone`, `phoneState`.
  */
 export const useFamilyStore = defineStore("family", () => {
   const townHall = useTownHallStore();
@@ -243,6 +254,87 @@ export const useFamilyStore = defineStore("family", () => {
     await queueEvents([build(deviceId)]);
   }
 
+  // --- Two-phone play: claims from hero phones, and the sheets those phones show (FAMILY_EVENTS.md) ---
+
+  /**
+   * Takes the claims heroes made on their phones, each once: logged here like a claim on this device (held or paid),
+   * answered with `claim.settled` in the same save that remembers it was taken. A claim this device already took (its
+   * id in takenClaims, or an entry in the log with its id) is not logged again.
+   */
+  async function takePhoneClaims(events: ReceivedEvent[]): Promise<void> {
+    const { deviceId } = await ensureIdentity();
+    const taken = new Set((await loaded()).takenClaims.map((claim) => claim.id));
+    const claims = events.filter((e) => isPhoneClaim(e, deviceId) && !taken.has(e.id));
+    for (const claim of claims) {
+      const settled = await takePhoneClaim(claim);
+      const at = new Date().toISOString();
+      await queueEvents([claimSettledEvent(claim.heroId, deviceId, settled)], (current) => ({
+        takenClaims: [...current.takenClaims.filter((t) => Date.now() - Date.parse(t.at) < TAKEN_CLAIMS_MS), { id: claim.id, at }],
+      }));
+    }
+    const hasTaken = claims.length > 0;
+    if (hasTaken) queueSheetsSoon();
+  }
+
+  /** The heroes with a linked phone, as the last phone list read says */
+  const heroesWithPhones = (): Set<string> => new Set(phones.value.map((phone) => phone.heroId));
+
+  let sheetPasses: Promise<void> = Promise.resolve();
+
+  /** Queues the sheet of each hero with a phone whose numbers or open quests changed since the last one sent */
+  async function runSheetPass(): Promise<void> {
+    const mayQueue = canQueue();
+    if (!mayQueue) return;
+    const withPhones = heroesWithPhones();
+    const hasPhones = withPhones.size > 0;
+    if (!hasPhones) return;
+    const { deviceId } = await ensureIdentity();
+    const kept = await loaded();
+    const events: FamilyEvent[] = [];
+    const sent: Record<string, string> = {};
+    for (const heroId of withPhones) {
+      const isKnown = cards.isKnown(heroId, kept.lastCards) && Boolean(useUserStore().users[heroId]);
+      if (!isKnown) continue;
+      const { stats, quests } = await buildHeroSheet(heroId);
+      const key = sheetKey(stats, quests);
+      const isUnchanged = kept.lastSheets[heroId] === key;
+      if (isUnchanged) continue;
+      events.push(sheetEvent(heroId, deviceId, stats, quests));
+      sent[heroId] = key;
+    }
+    await queueEvents(events, (current) => ({ lastSheets: { ...current.lastSheets, ...sent } }));
+  }
+
+  /** One sheet pass at a time, in order */
+  function queueSheets(): Promise<void> {
+    const pass = sheetPasses.then(runSheetPass);
+    sheetPasses = pass.catch(() => undefined);
+    return pass;
+  }
+
+  let sheetsTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** A profile, a claim or a verdict changed: the sheets are compared (and queued when changed) 2 s later */
+  function queueSheetsSoon(): void {
+    if (disposed) return;
+    clearTimeout(sheetsTimer);
+    sheetsTimer = setTimeout(() => {
+      sheetsTimer = undefined;
+      queueSheets().catch((error) => debug.warn("family: could not queue the sheets", error));
+    }, CARDS_DELAY_MS);
+  }
+
+  /** A Game Master settled a claim that came from the hero's phone: the phone hears the verdict */
+  async function queueVerdictForPhone(review: QuestReviewed): Promise<void> {
+    const claimId = review.phoneClaimId;
+    const mayQueue = canQueue() && Boolean(claimId);
+    if (!mayQueue) return;
+    const { deviceId } = await ensureIdentity();
+    const paid = review.approved ? review.paid ?? { xp: 0, gp: 0, ap: 0 } : { xp: 0, gp: 0, ap: 0 };
+    const status = review.approved ? "approved" : "rejected";
+    await queueEvents([claimSettledEvent(review.heroId, deviceId, { claimId: claimId as string, questId: review.questId, status, note: review.note, ...paid })]);
+  }
+
   let downloading: Promise<void> | null = null;
 
   async function runDownload(): Promise<void> {
@@ -302,6 +394,8 @@ export const useFamilyStore = defineStore("family", () => {
           newlyPaidIds.push(reward.id);
         }
 
+        await takePhoneClaims(events);
+
         const nextSeq = newestSeq(events, currentSeq);
         const now = new Date();
         await update((current) => {
@@ -342,6 +436,7 @@ export const useFamilyStore = defineStore("family", () => {
   const flush = async (): Promise<void> => {
     await sender.flush();
     await download().catch((error) => debug.warn("family: download after flush failed", error));
+    await queueSheets().catch((error) => debug.warn("family: could not queue the sheets", error));
   };
 
   // --- Heroes ---
@@ -442,6 +537,8 @@ export const useFamilyStore = defineStore("family", () => {
       // Home, and the site took the heroes: the cards that changed (all of them, the first time) go in the queue
       const isHomeAndWell = home.value === "home" && problem.value === null;
       if (isHomeAndWell) await cards.queueCards();
+      // The heroes with a phone get a sheet; the list is read once a bind goes well
+      if (isHomeAndWell) await loadPhones();
     } catch (error) {
       await noteFailure(error);
     }
@@ -486,6 +583,19 @@ export const useFamilyStore = defineStore("family", () => {
   }
 
   // --- Kid mode and phone linking (MP14) ---
+
+  /** The hero phone's claims and sheet (two-phone play); used only while this device is a linked hero phone */
+  const phone = createHeroPhoneSync({
+    device: () => (device.value && !device.value.unlinked ? device.value : null),
+    revoked: async () => {
+      const current = device.value;
+      const isStillLinked = current !== null && !current.unlinked;
+      if (!isStillLinked) return;
+      const marked = { ...current, unlinked: true };
+      device.value = marked;
+      await getHeroDeviceDb().saveDevice(marked);
+    },
+  });
 
   /** Trades a link code for a hero key, keeps the device, and adopts the family */
   async function claim(code: string): Promise<"linked" | FamilyProblem> {
@@ -554,6 +664,7 @@ export const useFamilyStore = defineStore("family", () => {
   /** Clears the device record and leaves kid mode */
   async function forgetDevice(): Promise<void> {
     await getHeroDeviceDb().clearDevice();
+    await phone.clear();
     device.value = null;
   }
 
@@ -641,6 +752,10 @@ export const useFamilyStore = defineStore("family", () => {
     );
     stops.push(
       onQuestClaimed((claim) => {
+        queueSheetsSoon();
+        // A claim taken from the hero's phone: the phone already sent its own quest.claimed
+        const isFromPhone = Boolean(claim.phoneClaimId);
+        if (isFromPhone) return;
         queueApprovalEvent(claim.heroId, (deviceId) => questClaimedEvent(claim.heroId, deviceId, claim)).catch((error) =>
           debug.warn("family: could not queue a claim", error)
         );
@@ -651,9 +766,20 @@ export const useFamilyStore = defineStore("family", () => {
         queueApprovalEvent(review.heroId, (deviceId) => questReviewedEvent(review.heroId, deviceId, review)).catch((error) =>
           debug.warn("family: could not queue a review", error)
         );
+        queueVerdictForPhone(review).catch((error) => debug.warn("family: could not tell the phone the verdict", error));
+        queueSheetsSoon();
       })
     );
-    stops.push(watch(() => useUserStore().users, () => queueCardsSoon(), { deep: true }));
+    stops.push(
+      watch(
+        () => useUserStore().users,
+        () => {
+          queueCardsSoon();
+          queueSheetsSoon();
+        },
+        { deep: true }
+      )
+    );
     const hasWindow = typeof window !== "undefined";
     if (hasWindow) {
       window.addEventListener("online", sendEverythingNow);
@@ -665,8 +791,34 @@ export const useFamilyStore = defineStore("family", () => {
       stops.push(() => document.removeEventListener("visibilitychange", onVisibilityChange));
     }
     const interval = setInterval(() => {
-      download().catch((error) => debug.warn("family: periodic download failed", error));
+      download()
+        // Quests open and close with the clock, so the sheets are compared on every round too
+        .then(() => queueSheets())
+        .catch((error) => debug.warn("family: periodic download failed", error));
     }, DOWNLOAD_INTERVAL_MS);
+    stops.push(() => clearInterval(interval));
+  }
+
+  /** A hero phone syncs every minute, when it comes back online and when the app comes back to the front */
+  function listenAsPhone(): void {
+    const syncNow = (): void => {
+      phone.sync().catch((error) => debug.warn("family: the phone sync failed", error));
+    };
+    const onFront = (): void => {
+      const isInFront = document.visibilityState === "visible";
+      if (isInFront) syncNow();
+    };
+    const hasWindow = typeof window !== "undefined";
+    if (hasWindow) {
+      window.addEventListener("online", syncNow);
+      stops.push(() => window.removeEventListener("online", syncNow));
+    }
+    const hasDocument = typeof document !== "undefined";
+    if (hasDocument) {
+      document.addEventListener("visibilitychange", onFront);
+      stops.push(() => document.removeEventListener("visibilitychange", onFront));
+    }
+    const interval = setInterval(syncNow, PHONE_SYNC_INTERVAL_MS);
     stops.push(() => clearInterval(interval));
   }
 
@@ -684,6 +836,9 @@ export const useFamilyStore = defineStore("family", () => {
         const isKidDevice = stored !== null;
         if (isKidDevice) {
           await refreshCard().catch((error) => debug.warn("family: could not refresh card", error));
+          await phone.load();
+          listenAsPhone();
+          phone.sync().catch((error) => debug.warn("family: the first phone sync failed", error));
           return;
         }
         await townHall.init();
@@ -714,7 +869,9 @@ export const useFamilyStore = defineStore("family", () => {
     disposed = true;
     stops.splice(0).forEach((stop) => stop());
     sender.dispose();
+    phone.dispose();
     clearTimeout(cardsTimer);
+    clearTimeout(sheetsTimer);
   });
 
   return {
@@ -741,5 +898,11 @@ export const useFamilyStore = defineStore("family", () => {
     linkCode,
     loadPhones,
     removePhone,
+    queueSheets,
+    /** The hero phone's claims and sheet, for the Hero Phone screen */
+    phoneState: phone.state,
+    phoneProblem: phone.problem,
+    claimOnPhone: phone.claim,
+    syncPhone: phone.sync,
   };
 });

@@ -134,9 +134,64 @@ describe("XpInventoryModal & XpInventorySheet", () => {
 
       const potionRow = wrapper.find('.goods-row[data-kind="consumable"]');
       expect(potionRow.find(".xp-app-row__title").text()).toBe("Health Potion");
-      expect(potionRow.find(".xp-app-row__subtitle").text()).toBe("Potion");
+      expect(potionRow.find(".xp-app-row__subtitle").text()).toBe("Restores 50 HP");
       expect(potionRow.find(".goods-qty").text()).toBe("×3");
-      expect(potionRow.find(".goods-use-btn").exists()).toBe(false);
+
+      const keyRow = wrapper.find('.goods-row[data-kind="key"]');
+      expect(keyRow.find(".xp-app-row__subtitle").text()).toBe("Key");
+      expect(keyRow.find(".goods-use-btn").exists()).toBe(false);
+      expect(wrapper.find(".xp-app-row__chevron").exists()).toBe(false);
+    });
+
+    describe("drinking a potion outside a fight", () => {
+      const hurt = (hp: number, mp = 100) => {
+        (useUserStore().users["hero-1"] as any).stats = { hp: { now: hp, max: 100 }, mp: { now: mp, max: 100 } };
+      };
+      const potionRow = (wrapper: ReturnType<typeof mountSheet>) => wrapper.find('.goods-row[data-kind="consumable"]');
+
+      it("heals with the Use button, spends one from the bag and says what it did", async () => {
+        hurt(20);
+        const wrapper = mountSheet();
+
+        expect(potionRow(wrapper).find(".goods-use-btn").attributes("disabled")).toBeUndefined();
+        await potionRow(wrapper).find(".goods-use-btn").trigger("click");
+
+        const hero = useUserStore().users["hero-1"] as any;
+        expect(hero.stats.hp.now).toBe(70);
+        expect(hero.inventory.find((row: any) => row.name === "Health Potion").qty).toBe(2);
+        expect(potionRow(wrapper).find(".goods-qty").text()).toBe("×2");
+        expect(mockToastCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ cssClass: "rpg-toast", position: "middle", message: "You drink a Health Potion: +50 HP" })
+        );
+        expect(wrapper.emitted("select-item")).toBeUndefined();
+      });
+
+      it("restores MP with an Ether, also from a tap on the row", async () => {
+        hurt(100, 10);
+        useUserStore().users["hero-1"].inventory.push({ name: "Ether", kind: "consumable", qty: 1, faIcon: "sparkles" });
+        const wrapper = mountSheet();
+
+        const etherRow = wrapper.findAll('.goods-row[data-kind="consumable"]').find((row) => row.text().includes("Ether"))!;
+        expect(etherRow.find(".xp-app-row__subtitle").text()).toBe("Restores 50 MP");
+        await etherRow.trigger("click");
+
+        const hero = useUserStore().users["hero-1"] as any;
+        expect(hero.stats.mp.now).toBe(60);
+        expect(hero.inventory.some((row: any) => row.name === "Ether")).toBe(false);
+      });
+
+      it("refuses a potion that would do nothing and keeps it, with the reason on the row", async () => {
+        hurt(100);
+        const wrapper = mountSheet();
+
+        expect(potionRow(wrapper).find(".goods-reason").text()).toBe("Your HP is full.");
+        expect(potionRow(wrapper).find(".goods-use-btn").attributes("disabled")).toBeDefined();
+        await potionRow(wrapper).trigger("click");
+
+        const hero = useUserStore().users["hero-1"] as any;
+        expect(hero.inventory.find((row: any) => row.name === "Health Potion").qty).toBe(3);
+        expect(mockToastCreate).toHaveBeenCalledWith(expect.objectContaining({ message: "Your HP is full." }));
+      });
     });
 
     it("shows one list without section headers on a single-kind tab", async () => {

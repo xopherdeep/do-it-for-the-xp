@@ -172,7 +172,7 @@
                   </button>
                 </div>
                 <p class="field-hint" :class="{ 'field-hint--warn': passcode && passcodeError }">
-                  {{ (passcode && passcodeError) || (isGameMaster ? "4 digits. You'll need it to open the Game Master tools." : "4 digits to keep your save file safe.") }}
+                  {{ (passcode && passcodeError) || pinHint }}
                 </p>
               </div>
 
@@ -186,7 +186,7 @@
                   <li><button type="button" class="summary-row" data-test="edit-food" @click="goToStep('food')"><i :class="['fad', selectedFood?.icon || 'fa-utensils']"></i><span>Food</span><strong>{{ selectedFood?.value || "Pick one" }}</strong><i class="fad fa-chevron-right summary-row__go"></i></button></li>
                   <li v-if="favoriteThing"><button type="button" class="summary-row" data-test="edit-thing" @click="goToStep('name')"><i class="fad fa-star"></i><span>Loves</span><strong>{{ favoriteThing }}</strong><i class="fad fa-chevron-right summary-row__go"></i></button></li>
                   <li><button type="button" class="summary-row" data-test="edit-role" @click="goToStep('secret')"><i :class="['fad', isGameMaster ? 'fa-crown' : 'fa-shield-alt']"></i><span>Role</span><strong>{{ isGameMaster ? "Game Master" : "Hero" }}</strong><i class="fad fa-chevron-right summary-row__go"></i></button></li>
-                  <li><button type="button" class="summary-row" data-test="edit-code" @click="goToStep('secret')"><i class="fad fa-lock-alt"></i><span>Code</span><strong>{{ passcode ? "Set" : "None" }}</strong><i class="fad fa-chevron-right summary-row__go"></i></button></li>
+                  <li><button type="button" class="summary-row" data-test="edit-code" @click="goToStep('secret')"><i class="fad fa-lock-alt"></i><span>Code</span><strong>{{ passcode || savedPin ? "Set" : "None" }}</strong><i class="fad fa-chevron-right summary-row__go"></i></button></li>
                 </ul>
                 <button type="button" class="advanced-toggle" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
                   <i class="fad fa-gamepad"></i> Game options

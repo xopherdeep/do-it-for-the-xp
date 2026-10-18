@@ -13,7 +13,9 @@ export type FamilyEventKind =
   | "quest.claimed"
   | "quest.approved"
   | "quest.rejected"
-  | "reward.granted";
+  | "reward.granted"
+  | "hero.sheet"
+  | "claim.settled";
 
 export interface FamilyEvent {
   /** uuid v4, made on the device */
@@ -29,8 +31,8 @@ export interface FamilyEvent {
 export interface EventKindRule {
   /** Who may see it: `public` is the family's own devices in this base; `family` is the hero's own phones and the parent */
   scope: "public" | "family";
-  /** Who may write it: the home device, or the server only */
-  writer: "home" | "server";
+  /** Who may write it: the home device, the home device or the hero's own linked phone (its hero key), or the server only */
+  writer: "home" | "home-or-phone" | "server";
   fields: string[];
 }
 
@@ -38,10 +40,12 @@ export const EVENT_KINDS: Record<FamilyEventKind, EventKindRule> = {
   "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
   "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
   "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
-  "quest.claimed": { scope: "family", writer: "home", fields: ["questId", "difficulty", "requiresApproval"] },
+  "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval"] },
   "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
   "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
   "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
+  "hero.sheet": { scope: "family", writer: "home", fields: ["stats", "quests"] },
+  "claim.settled": { scope: "family", writer: "home", fields: ["claimId", "questId", "status", "note", "xp", "gp", "ap"] },
 };
 
 /** The look fields the server keeps (string values up to 32 characters) */
@@ -121,3 +125,28 @@ export const questReviewedEvent = (
   d: { questId: string; approved: boolean; note: string },
 ): FamilyEvent =>
   newEvent(d.approved ? "quest.approved" : "quest.rejected", heroId, deviceId, { questId: d.questId, note: d.note });
+
+/** What the family device did with a claim from the hero's phone: took it and holds it, paid it, or turned it away */
+export type ClaimSettledStatus = "pending" | "approved" | "rejected";
+
+export interface ClaimSettled {
+  /** The phone's `quest.claimed` event id */
+  claimId: string;
+  questId: string;
+  status: ClaimSettledStatus;
+  note: string;
+  xp: number;
+  gp: number;
+  ap: number;
+}
+
+export const claimSettledEvent = (heroId: string, deviceId: string, d: ClaimSettled): FamilyEvent =>
+  newEvent("claim.settled", heroId, deviceId, {
+    claimId: d.claimId,
+    questId: d.questId,
+    status: d.status,
+    note: d.note.slice(0, 140),
+    xp: d.xp,
+    gp: d.gp,
+    ap: d.ap,
+  });

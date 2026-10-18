@@ -13,6 +13,7 @@
     <xp-global-dialog />
     <xp-rewards-overlay />
     <xp-scene-transition />
+    <xp-lights-out />
   </ion-app>
 </template>
 

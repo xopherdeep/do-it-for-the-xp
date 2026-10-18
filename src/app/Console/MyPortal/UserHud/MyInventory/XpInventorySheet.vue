@@ -13,7 +13,7 @@
           class="goods-row"
           :title="entry.name"
           :subtitle="subtitleOf(entry)"
-          :chevron="mode !== 'battle' && !canStore(entry)"
+          :chevron="false"
           :disabled="isItemDisabled(entry)"
           :data-kind="entry.kind"
           :data-entry-id="entry.id"
@@ -30,10 +30,10 @@
           <template #trailing>
             <span class="goods-qty">&times;{{ entry.qty }}</span>
             <button
-              v-if="mode === 'battle'"
+              v-if="mode === 'battle' || potionOf(entry)"
               type="button"
               class="xp-app-btn goods-use-btn"
-              :disabled="isItemDisabled(entry)"
+              :disabled="isItemDisabled(entry) || Boolean(potionOf(entry)?.reason)"
               @click="handleEntryClick(entry)"
             >Use</button>
             <button
@@ -90,6 +90,7 @@ import {
 } from "@/lib/services/inventory/Inventory";
 import { storageTierOf } from "@/lib/services/inventory/Storage";
 import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
+import { drinkPotion, potionShelf, type PotionCard } from "@/lib/services/battle/BattlePotions";
 
 type Tab = "all" | InventoryKind;
 
@@ -276,17 +277,41 @@ const getMpCost = (entry: InventoryItemWithRaw): number => {
   return card?.mp || 0;
 };
 
+// ---- Potions outside a fight: drunk from the bag by the same rules as in one (BattlePotions) ----
+
+/** The potions in the bag by pack entry id, each with why it cannot be drunk right now; none in a fight (the card says) */
+const potionCards = computed<Map<string, PotionCard>>(() => {
+  const heroId = targetUser.value?.id;
+  const isOutsideFight = props.mode === "view" && Boolean(heroId);
+  if (!isOutsideFight) return new Map();
+  return new Map(potionShelf(heroId).map((card) => [card.id, card]));
+});
+
+const potionOf = (entry: InventoryItemWithRaw): PotionCard | null => potionCards.value.get(entry.id) ?? null;
+
+const drinkEntry = (entry: InventoryItemWithRaw, card: PotionCard) => {
+  const isRefused = Boolean(card.reason);
+  if (isRefused) {
+    play$fx("no");
+    showToast(card.reason ?? "");
+    return;
+  }
+  const outcome = drinkPotion(targetUser.value.id, entry.id);
+  play$fx(outcome.ok ? "restoreHP" : "no");
+  showToast(outcome.line);
+};
+
 /** The row's chips: the MP a cast costs, then why the item cannot be used right now (a red tag). */
 const chipsOf = (entry: InventoryItemWithRaw): AppChipSpec[] => {
   const mp = getMpCost(entry);
-  const reason = getDisabledReasonText(entry);
+  const reason = getDisabledReasonText(entry) || potionOf(entry)?.reason || "";
   const chips: AppChipSpec[] = mp ? [{ kind: "mp", value: mp }] : [];
   return reason ? [...chips, { kind: "tag", value: reason, class: "goods-reason" }] : chips;
 };
 
-/** One line under the name: what the item does in a fight, else its blurb, else what kind of thing it is. */
+/** One line under the name: what the item does (in a fight, or a potion anywhere), else its blurb, else what kind of thing it is. */
 const subtitleOf = (entry: InventoryItemWithRaw): string =>
-  getBattleEffectText(entry) || entry.description || KIND_LABELS[entry.kind].one;
+  getBattleEffectText(entry) || potionOf(entry)?.effect || entry.description || KIND_LABELS[entry.kind].one;
 
 const isItemDisabled = (entry: InventoryItemWithRaw): boolean => {
   const isInBattle = props.mode === "battle";
@@ -336,9 +361,14 @@ const handleEntryClick = (entry: InventoryItemWithRaw) => {
     if (isItemDisabled(entry)) return;
 
     emit("use-item", itemToPass);
-  } else {
-    emit("select-item", itemToPass);
+    return;
   }
+  const potion = potionOf(entry);
+  if (potion) {
+    drinkEntry(entry, potion);
+    return;
+  }
+  emit("select-item", itemToPass);
 };
 </script>
 

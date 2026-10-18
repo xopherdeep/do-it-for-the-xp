@@ -1,6 +1,7 @@
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { pickWeeklyRecapNotice } from "@/lib/services/insights/weeklyRecapNotice";
 import { recapHeroesOf, levelUpsOf } from "@/lib/services/insights/recapRoster";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -17,6 +18,8 @@ export const runWeeklyRecapWatch = async (heroId: string, now: Date = new Date()
     await notifications.load(id);
     const feed = notifications.forHero(id);
     const entries = await getQuestLogDb().getEntries();
+    const rules = useGameRulesStore();
+    await rules.load();
     const notice = pickWeeklyRecapNotice({
       entries,
       heroes: recapHeroesOf(useUserStore().users),
@@ -24,6 +27,7 @@ export const runWeeklyRecapWatch = async (heroId: string, now: Date = new Date()
       feed,
       now,
       levelUps: levelUpsOf(feed, id),
+      weekStartsOn: rules.weekStartsOn,
     });
     return notice ? Boolean(notifications.push(notice, now)) : false;
   } catch (error) {

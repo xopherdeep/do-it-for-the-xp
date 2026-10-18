@@ -2,6 +2,7 @@ import DbStorageApi from './DbStorageApi';
 import { Drivers, Storage } from "@ionic/storage";
 import { v4 as uuidv4 } from 'uuid'
 import { getAllShops, SHOP_METADATA } from '@/lib/engine/core/shopRegistry';
+import type { ShopMetadata } from '@/lib/engine/core/shopRegistry';
 import type { ShopHours } from '@/lib/services/shops/shopHours';
 
 export const shopStorage = new Storage({
@@ -31,6 +32,20 @@ export interface ShopInterface {
   greeting?: string; // What the clerk says to a hero walking in; absent = the portal's own line for this shop
   hours?: ShopHours | null; // Local opening and closing times; absent or null = always open
   items: ShopItem[];
+  defaultStocked?: boolean; // The shelf has had its turn at the default potions (services/shops/shopStock.ts)
+}
+
+// A registry shop as a record with an empty shelf
+export function registryShop(meta: ShopMetadata): ShopInterface {
+  return {
+    id: meta.id,
+    name: meta.name,
+    description: meta.description,
+    world: meta.world,
+    icon: `fad fa-${meta.icon}`,
+    clerkName: meta.clerkName,
+    items: [],
+  };
 }
 
 // Who minds each shop in the hero's portal, and what they say, until the Game Master gives the shop its own
@@ -147,16 +162,7 @@ export class ShopsDb extends DbStorageApi {
     const registryShops = getAllShops();
     
     for (const meta of registryShops) {
-      const shop: ShopInterface = {
-        id: meta.id,
-        name: meta.name,
-        description: meta.description,
-        world: meta.world,
-        icon: `fad fa-${meta.icon}`,
-        clerkName: meta.clerkName,
-        items: []
-      };
-      await this.setShop(shop);
+      await this.setShop(registryShop(meta));
     }
   }
 
@@ -173,16 +179,7 @@ export class ShopsDb extends DbStorageApi {
       const isNewShop = !existingIds.has(meta.id);
       if (isNewShop) {
         // New shop from registry - add it
-        const shop: ShopInterface = {
-          id: meta.id,
-          name: meta.name,
-          description: meta.description,
-          world: meta.world,
-          icon: `fad fa-${meta.icon}`,
-          clerkName: meta.clerkName,
-          items: []
-        };
-        await this.setShop(shop);
+        await this.setShop(registryShop(meta));
       } else {
         // Existing shop - update metadata but preserve items
         const existing = await this.getShopById(meta.id);

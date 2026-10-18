@@ -41,51 +41,6 @@ export class StorageService {
   }
 
   /**
-   * Creates a backup of all profiles as a downloadable JSON file
-   */
-  static async exportProfilesToFile(profiles: any[]): Promise<string> {
-    try {
-      const dataStr = JSON.stringify(profiles, null, 2);
-      const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-
-      // For web, create a downloadable link
-      const exportDate = new Date().toISOString().split('T')[0];
-      const fileName = `do-it-for-xp-profiles-${exportDate}.json`;
-
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', fileName);
-      linkElement.style.display = 'none';
-
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-
-      return fileName;
-    } catch (error) {
-      debug.error('Failed to export profiles:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Imports profiles from a JSON file
-   * @param fileContent JSON string containing profile data
-   */
-  static async importProfilesFromJson(fileContent: string): Promise<any[]> {
-    try {
-      const profiles = JSON.parse(fileContent);
-      if (!Array.isArray(profiles)) {
-        throw new Error('Invalid profile data format');
-      }
-      return profiles;
-    } catch (error) {
-      debug.error('Failed to import profiles:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Saves users data to persistent storage
    * @param users Object containing all user data
    */

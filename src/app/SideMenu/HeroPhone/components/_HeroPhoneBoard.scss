@@ -1,0 +1,117 @@
+.hero-phone-board {
+  margin-top: 16px;
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 10px 8px;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.85rem;
+    text-align: center;
+
+    .stat i {
+      margin-right: 2px;
+    }
+  }
+
+  .board-section {
+    margin-top: 18px;
+  }
+
+  .section-title {
+    font-family: "StatusPlz", monospace;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .board-line {
+    font-style: italic;
+    color: var(--ion-color-step-500, #a0aec0);
+  }
+
+  .quest-list,
+  .claim-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .quest-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+
+    &.overdue .quest-name::after {
+      content: " !";
+      color: var(--ion-color-danger, #eb445a);
+    }
+  }
+
+  .quest-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .quest-name {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .quest-pay,
+  .claim-paid {
+    font-family: "StatusPlz", monospace;
+    font-size: 0.8rem;
+    color: var(--ion-color-warning, #ffc409);
+  }
+
+  .quest-photo,
+  .claim-note {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--ion-color-step-500, #a0aec0);
+  }
+
+  .claim-btn {
+    flex: none;
+  }
+
+  .claim-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 8px 4px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+
+    .claim-paid,
+    .claim-note {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .claim-status {
+    font-family: "StatusPlz", monospace;
+    font-size: 0.8rem;
+  }
+
+  .is-approved .claim-status {
+    color: var(--ion-color-success, #2dd36f);
+  }
+
+  .is-rejected .claim-status,
+  .is-refused .claim-status {
+    color: var(--ion-color-danger, #eb445a);
+  }
+
+  .is-pending .claim-status,
+  .is-waiting .claim-status,
+  .is-unsent .claim-status {
+    color: var(--ion-color-step-500, #a0aec0);
+  }
+}
