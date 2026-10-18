@@ -115,6 +115,8 @@ export interface RoomSheet {
   beastId?: string;
   /** `beastId` is a quest's beast: when the family's Bestiary does not hold it yet, the screen finds it in the library */
   questBeast?: boolean;
+  /** The room's beast is beaten (cleared, or tied up while the Game Master checks): its picture shows it knocked out */
+  beastDefeated?: boolean;
   /**
    * A chest: the screen opens the chest itself instead of this sheet (a shut chest to open, or an open empty one).
    * The sheet's action is the same thing for a caller with no chest to show: `openChest` / `emptyChest`.

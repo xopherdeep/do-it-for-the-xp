@@ -24,8 +24,8 @@ export interface ChoiceRevealState {
   body?: string;
   choices: RevealChoice[];
   cancelLabel?: string;
-  /** A picture above the title: an encounter's beast */
-  art?: { src: string; alt: string; frame?: 'beast' | 'room' };
+  /** A picture above the title: an encounter's beast (knocked out once it is `defeated`) */
+  art?: { src: string; alt: string; frame?: 'beast' | 'room'; defeated?: boolean };
   /** A pixel sprite above the title: riddle tablet, shop coins, or dungeon exit */
   sprite?: { runs: PixelRun[]; width: number; height: number };
   onChoose: (id: string) => void;
