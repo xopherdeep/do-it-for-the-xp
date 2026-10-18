@@ -1,45 +1,32 @@
-"""Procedural hometown ground, SNES style: 4px cells, 4-tone shading, dithering. The town is laid out around the
-default spots of src/app/Console/MyPortal/HomeTown/HomeTown.vue: every building gets a yard, the streets run from
-yard to yard, the plains road leaves through a gate at the top and the trees stay at the edges, out of the way.
+"""Hometown ground: a modern, high-res take on Earthbound's Onett. Crisp 2px pixels, flat colour ramps, one dark
+outline per shape, soft see-through shadows and a gentle sunlight wash; no dithering or speckle. The town is laid out
+around the default spots of src/app/Console/MyPortal/HomeTown/HomeTown.vue: every building gets a lot on a paved
+street grid, a park sits in the middle of town, the plains road leaves at the top and the trees frame the edges.
 
-Styles:  village  cobbled square with a fountain, LTTP Kakariko style
-         truce    dirt lanes, picket fences and gardens, Chrono Trigger Truce style
-         onett    paved streets with sidewalks and lawns, Earthbound Onett style
-
-Usage: python3 tools/art/hometown_ground.py [style] [--seed N] [--out path]
+Usage: python3 tools/art/hometown_ground.py [--out path]
 Writes src/assets/images/backgrounds/hometown-ground.png unless --out is given."""
-import argparse, math, os, random
-from PIL import Image
+import argparse, math, os
+from PIL import Image, ImageDraw
 
 ap = argparse.ArgumentParser()
-ap.add_argument("style", nargs="?", default="village", choices=["village", "truce", "onett"])
-ap.add_argument("--seed", type=int, default=5)
 ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "..", "..", "src", "assets", "images", "backgrounds", "hometown-ground.png"))
 args = ap.parse_args()
-STYLE = args.style
-random.seed(args.seed)
 
-PX = 4; CW, CH = 256, 384                       # 1024x1536
-# palettes (dark -> light)
-GR = [(40, 120, 60), (64, 168, 72), (84, 196, 80), (124, 214, 96), (172, 228, 110)]
-if STYLE == "onett":
-    GR = [(56, 128, 72), (88, 168, 88), (112, 196, 104), (148, 216, 128), (196, 236, 160)]
-SD = [(150, 100, 50), (196, 142, 74), (226, 178, 102), (240, 204, 128), (250, 226, 160)]
-ST = [(72, 70, 82), (118, 116, 128), (152, 150, 160), (184, 182, 190), (216, 214, 220)]     # stone
-TR = [(24, 72, 48), (40, 118, 64), (62, 156, 76), (96, 190, 88), (150, 222, 110)]
-WT = [(36, 84, 160), (56, 124, 206), (90, 164, 232), (140, 200, 244), (220, 240, 252)]
-BK = [(84, 46, 30), (134, 80, 48), (176, 116, 70)]
-WD = [(96, 54, 30), (150, 92, 50), (196, 136, 78), (232, 184, 120)]                         # wood
-SOIL = [(92, 56, 36), (122, 78, 48), (150, 100, 62)]
-FLOWERS = [(250, 235, 90), (245, 120, 140), (244, 244, 250), (255, 170, 60), (180, 140, 240)]
-OUT = (28, 64, 44)
+PX = 2; CW, CH = 512, 768                        # drawn on a 512x768 grid, scaled 2x to 1024x1536
 
-cells = [[None] * CW for _ in range(CH)]
-def put(x, y, c):
-    if 0 <= x < CW and 0 <= y < CH: cells[y][x] = c
-def get(x, y): return cells[y][x] if 0 <= x < CW and 0 <= y < CH else None
-def dither(x, y): return (x + y) % 2 == 0
-def h(*a): return (hash(a) & 0xffff) / 0xffff
+INK = (40, 46, 62)
+LAWN = [(98, 170, 98), (116, 190, 106), (124, 198, 112), (150, 214, 126)]   # shade, base, patch, tuft tip
+PARK = [(84, 156, 92), (104, 180, 102), (112, 188, 108)]
+ASPH, ASPH_EDGE, ASPH_LIGHT, LINE = (92, 98, 118), (72, 78, 96), (106, 112, 132), (244, 214, 100)
+WALK, WALK_GROUT, CURB = (228, 220, 204), (208, 200, 184), (160, 152, 146)
+LOT, LOT_GROUT = (238, 232, 218), (216, 208, 192)
+LEAF = [(34, 92, 70), (56, 132, 82), (82, 164, 92), (124, 198, 108), (182, 232, 140)]
+TRUNK = [(86, 56, 42), (128, 86, 58)]
+WATER = [(52, 112, 188), (78, 150, 220), (120, 186, 238), (210, 238, 250)]
+WOOD = [(110, 70, 46), (170, 118, 74), (206, 156, 100)]
+SOIL = [(112, 76, 56), (138, 96, 68)]
+FLOWERS = [(252, 226, 92), (242, 112, 146), (252, 252, 252), (176, 138, 238), (255, 168, 76)]
+SHADOW = (24, 40, 56, 70)
 
 # ---------- layout: spot centres from HomeTown.vue mapped onto the image ----------
 # The background is `cover`: on a 390x844 phone the image fills the height and shows the middle 69% of its width.
@@ -49,392 +36,208 @@ SPOTS = {name: spot(*p) for name, p in {
     "town-hall": (20, 24), "plains": (50, 20), "bank": (80, 24), "shop": (22, 48), "hospital": (78, 48),
     "hero-home": (24, 74), "old-house": (50, 72), "hotel": (76, 74)}.items()}
 MID = CW // 2
-ROWS = [SPOTS["town-hall"][1] + 30, SPOTS["shop"][1] + 30, SPOTS["hero-home"][1] + 30]   # streets along each row's doorsteps
-FOUNTAIN = (MID, 168)
-WALL_Y = 52                     # just under the HUD
-ROAD_Y = 352                    # the town road under the nav
+ROWS = [SPOTS["town-hall"][1] + 60, SPOTS["shop"][1] + 60, SPOTS["hero-home"][1] + 60]   # streets along each row's doorsteps
+ROAD_Y = 704                                     # the town road under the nav
+ROAD_W, WALK_W = 11, 9                           # half widths
+PARK_C = (MID, 310)
+DOORS = [("town-hall", 0), ("bank", 0), ("shop", 1), ("hospital", 1), ("hero-home", 2), ("hotel", 2)]   # the Old House stands on the main street
 
-# ---------- grass ----------
-MOTIFS = [
- ["........", "..d.....", ".d.d..l.", "........", ".....d..", "..l.d.d.", "........", "........"],
- ["........", ".....d..", "..l.d.d.", "........", "..d.....", ".d.d..l.", "...L....", "........"],
- ["........", "........", "...d....", "..d.d.l.", "........", "........", "........", "..L....."],
- ["........", "........", "........", "........", "........", "........", "........", "........"],
-]
-grass = [[GR[2] for _ in range(CW)] for _ in range(CH)]
-for ty in range(0, CH, 8):
-    for tx in range(0, CW, 8):
-        m = random.choice(MOTIFS if STYLE != "onett" else MOTIFS[2:])   # Onett lawns are mown
-        shade = random.random()
-        for r in range(8):
-            for c in range(8):
-                ch = m[r][c]; x, y = tx + c, ty + r
-                if ch == 'd': grass[y][x] = GR[1]
-                elif ch == 'l': grass[y][x] = GR[3]
-                elif ch == 'L': grass[y][x] = GR[4]
-                elif shade < .12 and dither(x, y): grass[y][x] = GR[3]
-                elif shade > .9 and dither(x, y): grass[y][x] = GR[1]
-for _ in range(14):
-    cx, cy, rx, ry = random.randint(0, CW), random.randint(0, 340), random.randint(14, 30), random.randint(8, 18)
-    for y in range(cy - ry, cy + ry):
-        for x in range(cx - rx, cx + rx):
-            if 0 <= x < CW and 0 <= y < CH and math.hypot((x - cx) / rx, (y - cy) / ry) < 1 and grass[y][x] == GR[2] and dither(x, y) and random.random() < .8:
-                grass[y][x] = GR[3]
+def rnd(i):                                      # deterministic 0..1 noise, so every run paints the same town
+    return (math.sin(i * 12.9898) * 43758.5453) % 1
 
-# ---------- ground materials ----------
-def dirt(x, y, edge, north):
-    if edge: return SD[3] if north else SD[1]
-    return random.choice([SD[1], SD[3], SD[4]]) if random.random() < .035 else SD[2]
-def cobble(x, y, edge, north):
-    if edge: return ST[0]
-    row = y // 3; off = (row % 2) * 2; col = (x + off) // 4
-    if y % 3 == 2 or (x + off) % 4 == 3: return ST[1]
-    tone = 2 + (h(row, col) > .55) + (h(col, row) > .9)
-    return ST[min(4, tone + 1)] if y % 3 == 0 and (x + off) % 4 == 0 else ST[min(4, tone)]
-def flagstone(x, y, edge, north):              # the fountain square: big square slabs
-    if edge: return ST[0]
-    if x % 8 == 7 or y % 8 == 7: return ST[1]
-    t = 2 + (h(x // 8, y // 8) > .6)
-    return ST[t + 1] if (x % 8 == 0 or y % 8 == 0) else ST[t]
-ASPH = [(78, 80, 96), (104, 106, 122), (120, 122, 138)]
-WALK = [(150, 140, 128), (196, 186, 168), (220, 212, 194), (236, 230, 214)]
-def asphalt(x, y, edge, north):
-    if edge: return WALK[0]
-    return ASPH[2] if h(x, y) > .93 else ASPH[1]
-def sidewalk(x, y, edge, north):
-    if edge: return WALK[0]
-    if x % 8 == 0 or y % 8 == 0: return WALK[1]
-    return WALK[3] if (x % 8 == 1 and y % 8 == 1) else WALK[2]
+img = Image.new("RGB", (CW, CH), LAWN[1]); d = ImageDraw.Draw(img)
 
-def paint_shape(inside, mat, outline=True, edge_w=1.0):
-    """inside(x, y) -> signed distance (<0 inside). Paints mat with a dark outline and dithered shadow."""
-    for y in range(CH):
-        for x in range(CW):
-            d = inside(x + .5, y + .5)
-            if d < -edge_w: put(x, y, mat(x, y, False, False))
-            elif d < 0:
-                north = inside(x + .5, y - .5) > d
-                put(x, y, mat(x, y, True, north))
-            elif outline and d < 1 and mat in (dirt,): put(x, y, OUT if random.random() < .8 else GR[1])
-            elif outline and d < 2.2 and dither(x, y) and get(x, y) is None: grass[y][x] = GR[1]
+# ---------- lawn: broad lighter patches and sparse grass tufts ----------
+for i in range(26):
+    cx, cy, rx, ry = rnd(i) * CW, rnd(i + 99) * CH, 30 + rnd(i + 7) * 50, 16 + rnd(i + 3) * 24
+    d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=LAWN[2])
+for i in range(260):
+    x, y = int(rnd(i + 500) * CW), int(rnd(i + 900) * CH)
+    d.point([(x, y), (x + 2, y), (x + 1, y - 1)], fill=LAWN[0]); d.point([(x + 1, y - 2)], fill=LAWN[3])
 
-def seg_dist(x, y, ax, ay, bx, by):
-    dx, dy = bx - ax, by - ay; L = dx * dx + dy * dy or 1
-    t = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L))
-    return math.hypot(x - ax - t * dx, y - ay - t * dy)
-def wobble(points, steps=16, amp=1.6):
-    out = []
-    for (x0, y0), (x1, y1) in zip(points, points[1:]):
-        for i in range(steps):
-            t = i / steps
-            out.append((x0 + (x1 - x0) * t + math.sin(t * 3.1 + y0 * .35) * amp * (x0 == x1),
-                        y0 + (y1 - y0) * t + math.cos(t * 2.7 + x0 * .3) * amp * (y0 == y1)))
-    out.append(points[-1]); return out
-def lanes(polys, w):
-    return lambda x, y: min(seg_dist(x, y, *a, *b) for p in polys for a, b in zip(p, p[1:])) - w
-def ellipse(cx, cy, rx, ry, jitter=0):
-    return lambda x, y: (math.hypot((x - cx) / rx, (y - cy) / ry) - 1) * min(rx, ry) + (random.uniform(-jitter, jitter) if jitter else 0)
-def rect(x0, y0, x1, y1):
-    return lambda x, y: max(x0 - x, x - x1, y0 - y, y - y1)
-def rrect(x0, y0, x1, y1, r):
-    cx, cy, hx, hy = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 - r, (y1 - y0) / 2 - r
-    def d(x, y):
-        qx, qy = abs(x - cx) - hx, abs(y - cy) - hy
-        return math.hypot(max(qx, 0), max(qy, 0)) + min(max(qx, qy), 0) - r
-    return d
-def union(*fs): return lambda x, y: min(f(x, y) for f in fs)
+def walk_tiles(x0, y0, x1, y1, fill=WALK, grout=WALK_GROUT, step=12):
+    d.rectangle([x0, y0, x1, y1], fill=fill)
+    for x in range((x0 // step + 1) * step, x1, step): d.line([x, y0, x, y1], fill=grout)
+    for y in range((y0 // step + 1) * step, y1, step): d.line([x0, y, x1, y], fill=grout)
+    d.line([x0, y1, x1, y1], fill=CURB); d.line([x0, y1 + 1, x1, y1 + 1], fill=LAWN[0])
 
-def blob(cx, cy, rx, ry, fn, lobes=0, depth=.12):
-    ph = random.random() * 6.28
-    for y in range(int(cy - ry - 4), int(cy + ry + 5)):
-        for x in range(int(cx - rx - 4), int(cx + rx + 5)):
-            ang = math.atan2(y - cy, x - cx); m = 1 + depth * math.cos(lobes * ang + ph) if lobes else 1
-            fn(x, y, math.hypot((x - cx) / (rx * m), (y - cy) / (ry * m)) + random.uniform(-.02, .02))
+# ---------- lots, sidewalks, streets ----------
+for n, row in DOORS:
+    x, y = SPOTS[n]
+    walk_tiles(x - 50, y - 14, x + 50, ROWS[row] - ROAD_W - WALK_W, LOT, LOT_GROUT, 16)
+    d.rectangle([x - 50, y - 14, x + 50, y - 14], fill=CURB)
+for r in ROWS:
+    walk_tiles(-2, r - ROAD_W - WALK_W, CW + 2, r + ROAD_W + WALK_W)
+walk_tiles(MID - ROAD_W - WALK_W, -2, MID + ROAD_W + WALK_W, ROAD_Y)
+def asphalt(x0, y0, x1, y1):
+    d.rectangle([x0, y0, x1, y1], fill=ASPH)
+for r in ROWS:
+    asphalt(-2, r - ROAD_W, CW + 2, r + ROAD_W)
+    d.line([0, r - ROAD_W, CW, r - ROAD_W], fill=ASPH_EDGE); d.line([0, r - ROAD_W + 1, CW, r - ROAD_W + 1], fill=ASPH_LIGHT)
+    d.line([0, r + ROAD_W, CW, r + ROAD_W], fill=ASPH_EDGE)
+asphalt(MID - ROAD_W, -2, MID + ROAD_W, ROAD_Y)
+for y0, y1 in zip([-2] + [r + ROAD_W for r in ROWS], [r - ROAD_W for r in ROWS] + [ROAD_Y]):
+    d.line([MID - ROAD_W, y0, MID - ROAD_W, y1], fill=ASPH_EDGE); d.line([MID + ROAD_W, y0, MID + ROAD_W, y1], fill=ASPH_EDGE)
+for r in ROWS:                                   # centre lines, kept clear of the junctions
+    for x in range(0, CW, 20):
+        if abs(x + 5 - MID) > ROAD_W + 14: d.rectangle([x, r - 1, x + 9, r], fill=LINE)
+for y in range(0, ROAD_Y, 20):
+    if all(abs(y + 5 - r) > ROAD_W + 14 for r in ROWS): d.rectangle([MID - 1, y, MID, y + 9], fill=LINE)
+for r in ROWS:                                   # zebra crossings on each side of every junction
+    for side in (-1, 1):
+        y0 = r + side * (ROAD_W + 3) - (6 if side < 0 else 0)
+        for k in range(-ROAD_W + 3, ROAD_W - 2, 5): d.rectangle([MID + k, y0, MID + k + 2, y0 + 5], fill=WALK)
+        x0 = MID + side * (ROAD_W + 3) - (6 if side < 0 else 0)
+        for k in range(-ROAD_W + 3, ROAD_W - 2, 5): d.rectangle([x0, r + k, x0 + 5, r + k + 2], fill=WALK)
+walk_tiles(-2, ROAD_Y - 10, CW + 2, ROAD_Y)      # the town road under the nav
+asphalt(0, ROAD_Y + 1, CW, CH)
+d.line([0, ROAD_Y + 1, CW, ROAD_Y + 1], fill=ASPH_EDGE); d.line([0, ROAD_Y + 2, CW, ROAD_Y + 2], fill=ASPH_LIGHT)
+for x in range(0, CW, 20): d.rectangle([x, ROAD_Y + 26, x + 9, ROAD_Y + 27], fill=LINE)
 
-# ---------- props ----------
-def tree(cx, cy, r, palette=TR):
-    def shadow(x, y, d):
-        if d < 1 and (dither(x, y) or d < .6) and get(x, y) is None: put(x, y, GR[0] if d < .6 else GR[1])
-    blob(cx + 2, cy + int(r * .95), r * .9, r * .36, shadow)
-    lobes = random.choice([5, 6, 7])
-    def f(x, y, d):
-        if d > 1.0: return
-        lx, ly = (x - cx) / r, (y - cy) / r
-        light = -(lx * .8 + ly) + random.uniform(-.1, .1)
-        if d > .92: put(x, y, OUT); return
-        if d > .78: band = 1 if light < .2 else 2
-        elif light > .75: band = 4
-        elif light > .35: band = 3 if not (dither(x, y) and light < .5) else 2
-        elif light > -.2: band = 2 if not (dither(x, y) and light < 0) else 1
-        else: band = 1
-        put(x, y, palette[band])
-    blob(cx, cy, r, r * .9, f, lobes=lobes, depth=.1)
-    for _ in range(lobes):
-        ax, ay, ar = cx + random.randint(-r // 2, r // 2), cy + random.randint(-r // 2, r // 2), random.randint(r // 3, r // 2)
-        for a in range(200, 340, 8):
-            px_, py_ = int(ax + ar * math.cos(math.radians(a))), int(ay + ar * math.sin(math.radians(a)) * .8)
-            if get(px_, py_) in (palette[2], palette[3]): put(px_, py_, palette[1])
-            if get(px_, py_ - 1) in (palette[1], palette[2]) and random.random() < .5: put(px_, py_ - 1, palette[3])
-    ty = cy + int(r * .9) - 2
-    for dy in range(0, 5):
-        for dx in range(-2, 3):
-            put(cx + dx, ty + dy, BK[0] if abs(dx) == 2 else BK[2] if dx == -1 else BK[1])
+# ---------- the park in the middle of town ----------
+px0, py0, px1, py1 = PARK_C[0] - 62, PARK_C[1] - 36, PARK_C[0] + 62, PARK_C[1] + 36
+d.rounded_rectangle([px0 - 6, py0 - 6, px1 + 6, py1 + 6], radius=18, fill=WALK, outline=CURB, width=2)
+d.rounded_rectangle([px0, py0, px1, py1], radius=14, fill=PARK[1], outline=PARK[0], width=2)
+for i in range(30):
+    x, y = px0 + 8 + int(rnd(i + 1300) * (px1 - px0 - 16)), py0 + 8 + int(rnd(i + 1400) * (py1 - py0 - 16))
+    d.point([(x, y), (x + 2, y), (x + 1, y - 1)], fill=PARK[0])
+cx, cy = PARK_C[0], PARK_C[1] + 4
+d.ellipse([cx - 34, cy - 18, cx + 34, cy + 20], fill=WALK, outline=CURB, width=2)
+d.ellipse([cx - 28, cy - 13, cx + 28, cy + 15], fill=WATER[0], outline=INK)
+d.ellipse([cx - 25, cy - 9, cx + 26, cy + 13], fill=WATER[1])
+d.arc([cx - 23, cy - 10, cx + 23, cy + 11], 200, 300, fill=WATER[3], width=2)
+for wx, wy, ww in [(-10, 2, 8), (8, 7, 6), (2, -4, 5)]:
+    d.line([cx + wx, cy + wy, cx + wx + ww, cy + wy], fill=WATER[2], width=2)
+for lx, ly in [(cx + 13, cy - 2), (cx - 16, cy + 6)]:   # lily pads
+    d.ellipse([lx - 4, ly - 2, lx + 4, ly + 3], fill=LEAF[2], outline=LEAF[0])
+d.point([(cx + 14, cy - 3), (cx + 15, cy - 3)], fill=FLOWERS[1])
 
-def bush(cx, cy, r, berries=False):
-    def f(x, y, d):
-        lx, ly = (x - cx) / r, (y - cy) / r; light = -(lx * .8 + ly)
-        if d > 1.0:
-            if d < 1.14 and y > cy and dither(x, y) and get(x, y) is None: put(x, y, GR[1])
-            return
-        if d > .86: put(x, y, OUT)
-        elif light > .5: put(x, y, TR[4] if random.random() < .5 else TR[3])
-        elif light > -.1: put(x, y, TR[3] if not dither(x, y) else TR[2])
-        else: put(x, y, TR[2] if not dither(x, y) else TR[1])
-    blob(cx, cy, r, r * .8, f, lobes=4, depth=.16)
-    if berries:
-        for _ in range(3):
-            put(cx + random.randint(-r // 2, r // 2), cy + random.randint(-r // 2, r // 3), (220, 60, 70))
+# ---------- props: each casts a soft shadow, drawn in one see-through pass before the props ----------
+props = []                                       # (sort y, shadow fn, draw fn)
+def prop(y, shadow, draw): props.append((y, shadow, draw))
+
+def tree(cx, cy, r):
+    blobs = [(0, -r * .35, r * .62), (-r * .45, -r * .05, r * .55), (r * .45, -r * .05, r * .55),
+             (-r * .2, r * .3, r * .5), (r * .25, r * .3, r * .5)]
+    def shadow(s):
+        s.ellipse([cx - r * .9 + 6, cy + r * .45, cx + r * .9 + 10, cy + r * 1.05], fill=SHADOW)
+    def draw():
+        d.rectangle([cx - 3, cy + r * .5, cx + 3, cy + r * .95], fill=TRUNK[1]); d.line([cx + 2, cy + r * .5, cx + 2, cy + r * .95], fill=TRUNK[0])
+        for bx, by, br in blobs: d.ellipse([cx + bx - br - 2, cy + by - br - 2, cx + bx + br + 2, cy + by + br + 2], fill=LEAF[0])
+        for bx, by, br in blobs: d.ellipse([cx + bx - br, cy + by - br, cx + bx + br, cy + by + br], fill=LEAF[1])
+        for bx, by, br in blobs: d.ellipse([cx + bx - br * .85 - 1, cy + by - br * .9 - 1, cx + bx + br * .55, cy + by + br * .4], fill=LEAF[2])
+        for bx, by, br in blobs[:3]: d.ellipse([cx + bx - br * .6, cy + by - br * .75, cx + bx + br * .05, cy + by - br * .15], fill=LEAF[3])
+        for bx, by, br in blobs[:1]: d.ellipse([cx + bx - br * .45, cy + by - br * .6, cx + bx - br * .2, cy + by - br * .35], fill=LEAF[4])
+    prop(cy + r, shadow, draw)
+
+def shrub(cx, cy, r):
+    def shadow(s): s.ellipse([cx - r + 3, cy, cx + r + 5, cy + r * .8], fill=SHADOW)
+    def draw():
+        d.ellipse([cx - r - 2, cy - r - 2, cx + r + 2, cy + r * .5 + 2], fill=LEAF[0])
+        d.ellipse([cx - r, cy - r, cx + r, cy + r * .5], fill=LEAF[1])
+        d.ellipse([cx - r * .9, cy - r * .9, cx + r * .4, cy + r * .1], fill=LEAF[2])
+        d.ellipse([cx - r * .55, cy - r * .7, cx - r * .05, cy - r * .3], fill=LEAF[3])
+    prop(cy, shadow, draw)
 
 def hedge(x0, x1, y):
-    """A clipped hedge row, 5 cells tall."""
-    for x in range(x0, x1 + 1):
-        for dy in range(6):
-            yy = y + dy
-            if x in (x0, x1) or dy in (0, 5): put(x, yy, OUT)
-            elif dy == 1: put(x, yy, TR[4] if dither(x, yy) else TR[3])
-            elif dy == 4: put(x, yy, TR[1])
-            else: put(x, yy, TR[3] if h(x, yy) > .3 else TR[2])
-        if dither(x, y + 6) and get(x, y + 6) is None: grass[y + 6][x] = GR[0] if y + 6 < CH else GR[1]
+    def shadow(s): s.rectangle([x0 + 4, y + 10, x1 + 6, y + 17], fill=SHADOW)
+    def draw():
+        d.rounded_rectangle([x0, y, x1, y + 13], radius=6, fill=LEAF[1], outline=LEAF[0], width=2)
+        d.rounded_rectangle([x0 + 2, y + 2, x1 - 2, y + 7], radius=4, fill=LEAF[2])
+        d.line([x0 + 6, y + 3, x1 - 6, y + 3], fill=LEAF[3], width=1)
+    prop(y + 13, shadow, draw)
 
-def flower_bed(x0, y0, x1, y1, colors=None):
-    colors = colors or random.sample(FLOWERS, 2)
-    for y in range(y0, y1 + 1):
-        for x in range(x0, x1 + 1):
-            if x in (x0, x1) or y in (y0, y1): put(x, y, WD[1] if y != y1 else WD[0]); continue
-            put(x, y, SOIL[1] if dither(x, y) else SOIL[2])
-    for y in range(y0 + 2, y1 - 1, 3):
-        for x in range(x0 + 2 + (y // 3) % 2, x1 - 1, 3):
-            c = colors[(x // 3 + y // 3) % len(colors)]
-            put(x, y, c); put(x, y + 1, TR[2]); put(x - 1, y + 1, TR[3]) if get(x - 1, y + 1) in (SOIL[1], SOIL[2]) else None
-
-def picket(x0, x1, y):
-    for x in range(x0, x1 + 1):
-        if (x - x0) % 3 == 0:
-            put(x, y - 3, WD[3]); put(x, y - 2, WD[3]); put(x, y - 1, WD[2]); put(x, y, WD[2]); put(x, y + 1, WD[1])
-        else:
-            put(x, y - 1, WD[3]); put(x, y + 1, WD[2])
-        if get(x, y + 2) is None and dither(x, y): grass[y + 2][x] = GR[1]
+def flower_bed(x0, y0, x1, y1, colors):
+    def shadow(s): s.rectangle([x0 + 3, y1 - 1, x1 + 4, y1 + 4], fill=SHADOW)
+    def draw():
+        d.rectangle([x0, y0, x1, y1], fill=WOOD[1], outline=WOOD[0])
+        d.line([x0 + 1, y0 + 1, x1 - 1, y0 + 1], fill=WOOD[2])
+        d.rectangle([x0 + 3, y0 + 3, x1 - 3, y1 - 3], fill=SOIL[1])
+        i = 0
+        for y in range(y0 + 8, y1 - 4, 8):
+            for x in range(x0 + 8 + (4 if (y // 8) % 2 else 0), x1 - 5, 8):
+                d.rectangle([x - 2, y, x + 2, y + 3], fill=LEAF[1]); d.point([(x - 2, y), (x + 2, y)], fill=LEAF[2])
+                c = colors[i % len(colors)]; i += 1
+                d.rectangle([x - 1, y - 3, x + 1, y - 1], fill=c); d.point([(x, y - 4), (x - 2, y - 2), (x + 2, y - 2)], fill=c)
+                d.point([(x, y - 2)], fill=FLOWERS[0] if c != FLOWERS[0] else FLOWERS[4])
+    prop(y1, shadow, draw)
 
 def lamp(x, y):
-    for dy in range(8): put(x, y - dy, ST[0] if dy else ST[0]); put(x + 1, y - dy, ST[1])
-    put(x - 1, y, ST[0]); put(x + 2, y, ST[0])
-    for dx in range(-1, 3):
-        put(x + dx, y - 10, OUT); put(x + dx, y - 8, OUT)
-    put(x, y - 9, (255, 236, 150)); put(x + 1, y - 9, (255, 214, 110)); put(x - 1, y - 9, OUT); put(x + 2, y - 9, OUT)
+    def shadow(s): s.ellipse([x - 3, y - 1, x + 10, y + 3], fill=SHADOW)
+    def draw():
+        d.rectangle([x - 2, y - 2, x + 2, y], fill=INK)
+        d.rectangle([x - 1, y - 20, x, y - 2], fill=INK); d.line([x + 1, y - 20, x + 1, y - 2], fill=(84, 92, 112))
+        d.rectangle([x - 4, y - 28, x + 4, y - 20], fill=(255, 240, 170), outline=INK)
+        d.rectangle([x - 2, y - 26, x - 1, y - 23], fill=(255, 255, 230))
+        d.rectangle([x - 5, y - 30, x + 5, y - 28], fill=INK)
+    prop(y, shadow, draw)
 
-def fountain(cx, cy, r):
-    def f(x, y, d):
-        if d > 1.0: return
-        if d > .88: put(x, y, ST[0])
-        elif d > .74: put(x, y, ST[4] if y < cy else ST[2])
-        elif d > .66: put(x, y, ST[1])
-        elif d > .6: put(x, y, WT[0])
-        else: put(x, y, WT[2] if not (dither(x, y) and random.random() < .3) else WT[3])
-    blob(cx, cy, r, r * .8, f)
-    for i in range(5):
-        a = random.random() * 6.28; rr = r * random.uniform(.3, .5)
-        wx, wy = int(cx + math.cos(a) * rr), int(cy + math.sin(a) * rr * .8)
-        for dx in range(3): put(wx + dx, wy, WT[4])
-    for y in range(cy - 4, cy + 3):     # the pillar and its spray
-        for x in range(cx - 2, cx + 3):
-            put(x, y, ST[0] if abs(x - cx) == 2 else ST[3] if x < cx else ST[2])
-    for x, y in [(cx, cy - 8), (cx - 1, cy - 7), (cx + 1, cy - 7), (cx, cy - 6), (cx - 3, cy - 6), (cx + 3, cy - 6), (cx - 4, cy - 4), (cx + 4, cy - 4), (cx, cy - 5)]:
-        put(x, y, WT[4] if (x + y) % 2 else (255, 255, 255))
+def bench(x, y):
+    def shadow(s): s.rectangle([x + 3, y + 8, x + 24, y + 12], fill=SHADOW)
+    def draw():
+        d.rectangle([x, y, x + 20, y + 3], fill=WOOD[1], outline=WOOD[0]); d.line([x + 1, y + 1, x + 19, y + 1], fill=WOOD[2])
+        d.rectangle([x, y + 5, x + 20, y + 8], fill=WOOD[1], outline=WOOD[0])
+        d.line([x + 2, y + 9, x + 2, y + 11], fill=INK); d.line([x + 18, y + 9, x + 18, y + 11], fill=INK)
+    prop(y + 8, shadow, draw)
 
-def gate(cx, y, half):
-    """Two stone gate posts where the plains road leaves town."""
-    for px in (cx - half - 4, cx + half + 1):
-        for dy in range(-12, 4):
-            for dx in range(4):
-                put(px + dx, y + dy, ST[0] if dx in (0, 3) or dy in (-12, 3) else ST[3] if dx == 1 else ST[2])
-        for dx in range(-1, 5): put(px + dx, y - 13, OUT); put(px + dx, y - 12, ST[4])
+def mailbox(x, y):
+    def shadow(s): s.ellipse([x - 2, y - 1, x + 9, y + 3], fill=SHADOW)
+    def draw():
+        d.rectangle([x, y - 10, x + 1, y], fill=INK)
+        d.rounded_rectangle([x - 4, y - 17, x + 5, y - 9], radius=3, fill=(214, 76, 80), outline=INK)
+        d.line([x - 2, y - 15, x + 2, y - 15], fill=(244, 140, 140))
+        d.rectangle([x + 5, y - 19, x + 6, y - 14], fill=(250, 210, 80))
+    prop(y, shadow, draw)
 
-def bottom_road(mat):
-    for y in range(ROAD_Y, CH):
-        for x in range(CW):
-            if y == ROAD_Y: put(x, y, OUT)
-            elif y == CH - 1: put(x, y, OUT)
-            elif y == ROAD_Y + 1: put(x, y, mat(x, y, True, True))
-            else: put(x, y, mat(x, y, False, False))
-    for sx in random.sample(range(4, CW - 4, 6), 14):
-        put(sx, ROAD_Y - 2, ST[3]); put(sx + 1, ROAD_Y - 2, ST[2]); put(sx, ROAD_Y - 1, ST[1]); put(sx + 1, ROAD_Y - 1, ST[1])
+def hydrant(x, y):
+    def shadow(s): s.ellipse([x - 3, y - 1, x + 7, y + 2], fill=SHADOW)
+    def draw():
+        d.rounded_rectangle([x - 3, y - 9, x + 3, y], radius=2, fill=(220, 72, 70), outline=INK)
+        d.rectangle([x - 5, y - 6, x + 5, y - 4], fill=(220, 72, 70), outline=INK)
+        d.point([(x - 1, y - 7)], fill=(250, 160, 150))
+    prop(y, shadow, draw)
 
-def free(cx, cy, r):
-    return all(get(x, y) is None for y in range(cy - r, cy + r + 1) for x in range(cx - r, cx + r + 1) if 0 <= x < CW and 0 <= y < CH)
-def edge_trees(n, xmin_vis=36, xmax_vis=220, rmin=16, rmax=24):
-    placed = tries = 0
-    while placed < n and tries < 6000:
-        tries += 1; r = random.randint(rmin, rmax)
-        cx = random.choice([random.randint(-6, xmin_vis - r // 2), random.randint(xmax_vis + r // 2, CW + 6)])
-        cy = random.randint(4, ROAD_Y - r - 6)
-        if free(cx, cy, r): tree(cx, cy, r); placed += 1
-def sprinkle_flowers(n, ymax=ROAD_Y - 6):
-    for _ in range(n):
-        col = random.choice(FLOWERS)
-        cx, cy = random.randint(2, CW - 3), random.randint(2, ymax)
-        if all(get(cx + dx, cy + dy) is None for dx in (-1, 0, 1, 2) for dy in (-1, 0, 1, 2)):
-            grass[cy][cx] = col; grass[cy][cx + 1] = col; grass[cy + 1][cx] = col
-            grass[cy + 1][cx + 1] = tuple(max(0, v - 40) for v in col); grass[cy + 2][cx] = GR[1]
+# the park's own dressing
+bench(px0 + 6, py1 - 14); bench(px1 - 26, py1 - 14)
+tree(px0 + 16, py0 + 16, 12); tree(px1 - 16, py0 + 16, 12)
+lamp(px0 - 1, py1 + 4); lamp(px1 + 1, py1 + 4)
+flower_bed(cx - 16, py0 + 3, cx + 16, py0 + 21, [FLOWERS[1], FLOWERS[2]])
 
-# ---------- the three towns ----------
-def yard_shape(name, rx=26, ry=18):
-    x, y = SPOTS[name]
-    return ellipse(x, y + 10, rx, ry)
+# yards and verges
+for n, row in DOORS:
+    x = SPOTS[n][0]; y = ROWS[row] - ROAD_W - WALK_W - 4
+    mailbox(x + 42, y); lamp(x - 44, y)
+for r in ROWS:
+    hydrant(MID + ROAD_W + 16, r + ROAD_W + WALK_W - 3)
+for r in ROWS[1:]:
+    hedge(72, 200, r + ROAD_W + WALK_W + 22); hedge(312, 440, r + ROAD_W + WALK_W + 22)
+for x in (96, 160, 352, 416):
+    shrub(x, ROWS[0] + ROAD_W + WALK_W + 22, 8)
+for x in (110, 402):
+    shrub(x, ROWS[1] + ROAD_W + WALK_W + 64, 7)
 
-DOORS = [("town-hall", 0), ("bank", 0), ("shop", 1), ("hospital", 1), ("hero-home", 2), ("hotel", 2), ("old-house", 2)]
-def forecourt(name, row, w=24, r=8):
-    x, y = SPOTS[name]
-    return rrect(x - w, y - 6, x + w, ROWS[row] + 2, r)
+# trees framing the edges, outside the phone's view of the buildings
+for x, y, r in [(16, 56, 26), (500, 66, 28), (30, 170, 24), (488, 186, 26), (12, 296, 28), (502, 318, 24),
+                (32, 428, 26), (484, 448, 28), (14, 560, 24), (500, 578, 26), (38, 652, 20), (478, 656, 22),
+                (148, 38, 20), (364, 36, 20), (206, 18, 14), (306, 16, 14)]:
+    tree(x, y, r)
 
-def town_wall(y, gap):
-    """A low crenellated stone wall across the top with an opening for the plains road."""
-    for x in range(CW):
-        if abs(x - MID) <= gap: continue
-        for dy in range(-6, 3):
-            yy = y + dy
-            if dy == -6: put(x, yy, OUT if x % 6 < 3 else None) if x % 6 < 3 else None
-            elif dy == -5 and x % 6 >= 3: continue
-            elif dy == -5: put(x, yy, ST[4])
-            elif dy in (-4, 2): put(x, yy, OUT if dy == 2 else ST[4])
-            else:
-                row = (yy - y) // 2; off = (row % 2) * 3
-                put(x, yy, ST[1] if (x + off) % 6 == 0 or yy % 2 == 0 else ST[3] if dy < -1 else ST[2])
-        if dither(x, y + 3) and get(x, y + 3) is None: grass[y + 3][x] = GR[0]
+shadows = Image.new("RGBA", (CW, CH), (0, 0, 0, 0)); sd = ImageDraw.Draw(shadows)
+for _, shadow, _ in props:
+    layer = Image.new("RGBA", (CW, CH), (0, 0, 0, 0)); shadow(ImageDraw.Draw(layer))
+    sd.bitmap((0, 0), layer.split()[3], fill=SHADOW)  # union, so overlapping shadows don't stack darker
+img = Image.alpha_composite(img.convert("RGBA"), shadows).convert("RGB"); d = ImageDraw.Draw(img)
+for _, _, draw in sorted(props, key=lambda p: p[0]): draw()
 
-if STYLE == "village":
-    # cobbled streets from forecourt to forecourt, a flagstone square with a fountain in the middle of town
-    streets = [[(MID, -4), (MID, ROAD_Y)]] + [[(SPOTS["town-hall"][0] - 16, r), (SPOTS["bank"][0] + 16, r)] for r in ROWS]
-    yards = union(*[forecourt(n, row) for n, row in DOORS if n != "old-house"])
-    paint_shape(union(lanes(streets, 6), yards), cobble)
-    paint_shape(rrect(MID - 30, FOUNTAIN[1] - 22, MID + 30, FOUNTAIN[1] + 22, 6), flagstone)
-    fountain(*FOUNTAIN, 15)
-    town_wall(WALL_Y, 9)
-    gate(MID, WALL_Y, 8)
-    bottom_road(cobble)
-    for x in (MID - 34, MID + 33):
-        lamp(x, FOUNTAIN[1] - 20); lamp(x, FOUNTAIN[1] + 26)
-    for r in ROWS:
-        lamp(MID - 12, r - 9); lamp(MID + 11, r - 9)
-    # gardens in the gaps either side of the square and between the rows
-    flower_bed(MID - 64, FOUNTAIN[1] - 2, MID - 42, FOUNTAIN[1] + 10)
-    flower_bed(MID + 42, FOUNTAIN[1] - 2, MID + 64, FOUNTAIN[1] + 10)
-    hedge(40, 100, ROWS[1] + 14); hedge(156, 216, ROWS[1] + 14)
-    flower_bed(MID - 18, 268, MID + 18, 290, [FLOWERS[1], FLOWERS[0]])
-    hedge(40, 100, ROWS[2] + 14); hedge(156, 216, ROWS[2] + 14)
-    for x in range(6, CW, 28):          # a row of trees along the outside of the wall
-        if abs(x - MID) > 24: tree(x, WALL_Y - 22, 12)
-    edge_trees(12)
-    for _ in range(14):
-        cx, cy = random.randint(36, 220), random.randint(40, 340)
-        if free(cx, cy, 9): bush(cx, cy, random.randint(5, 7), berries=random.random() < .3)
-    sprinkle_flowers(60)
+# ---------- a gentle sunlight wash: warm from the top left, cooler toward the bottom right ----------
+wash = Image.new("RGBA", (CW, CH)); wp = wash.load()
+for y in range(0, CH, 2):
+    for x in range(0, CW, 2):
+        t = (x / CW * .45 + y / CH * .55)
+        c = (255, 236, 180, int(26 * (1 - t) ** 2)) if t < 1 else (0, 0, 0, 0)
+        if t > .6: c = (40, 60, 110, int(30 * (t - .6) / .4))
+        wp[x, y] = wp[x + 1, y] = wp[x, y + 1] = wp[x + 1, y + 1] = c
+img = Image.alpha_composite(img.convert("RGBA"), wash).convert("RGB")
 
-elif STYLE == "truce":
-    # dirt lanes, fenced yards and vegetable gardens, a pond by the bank
-    streets = [wobble([(MID, -4), (MID, 60), (MID, 140), (MID, 230), (MID, ROAD_Y)])] \
-        + [wobble([(SPOTS["town-hall"][0] - 10, r), (MID, r), (SPOTS["bank"][0] + 10, r)]) for r in ROWS]
-    yards = union(*[ellipse(SPOTS[n][0], (SPOTS[n][1] + ROWS[row]) / 2 + 4, 24, 20, jitter=.4) for n, row in DOORS if n != "old-house"])
-    paint_shape(union(lanes(streets, 5.4), yards, ellipse(MID, FOUNTAIN[1], 18, 12, .4)), dirt)
-    bottom_road(dirt)
-    # a well in the little square
-    def well(cx, cy):
-        blob(cx, cy, 8, 6, lambda x, y, d: put(x, y, ST[0] if .8 < d <= 1 else ST[3] if .55 < d <= .8 and y < cy else ST[2] if .55 < d <= .8 else (20, 30, 60) if d <= .55 else None) if d <= 1 else None)
-        for dy in range(-10, 0): put(cx - 7, cy + dy, WD[1]); put(cx + 7, cy + dy, WD[1])
-        for dx in range(-9, 10): put(cx + dx, cy - 11, WD[0] if dx in (-9, 9) else WD[2]); put(cx + dx, cy - 12, WD[3])
-    well(*FOUNTAIN)
-    for n, row in DOORS:
-        if n == "old-house": continue
-        x = SPOTS[n][0]
-        picket(x - 34, x - 24, ROWS[row] - 10); picket(x + 24, x + 34, ROWS[row] - 10)
-    flower_bed(MID - 64, 156, MID - 36, 176, [FLOWERS[3], FLOWERS[0]])
-    flower_bed(MID + 36, 156, MID + 64, 176, [FLOWERS[1], FLOWERS[2]])
-    def veg_patch(x0, y0, x1, y1):
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                put(x, y, SOIL[0] if y % 4 == 0 else SOIL[1] if dither(x, y) else SOIL[2])
-        for y in range(y0 + 2, y1, 4):
-            for x in range(x0 + 2, x1 - 1, 4):
-                put(x, y, TR[3]); put(x + 1, y, TR[2]); put(x, y - 1, TR[4])
-                if random.random() < .35: put(x + 1, y - 1, (240, 120, 40))
-        picket(x0 - 1, x1 + 1, y0 - 2)
-    veg_patch(MID - 18, 250, MID + 18, 270)
-    for x0, x1 in ((40, 104), (152, 216)): picket(x0, x1, ROWS[2] + 22)
-    PCX, PCY = 212, 150
-    def pond(x, y, d):
-        if d < .62: put(x, y, WT[2] if not (dither(x, y) and random.random() < .25) else WT[3])
-        elif d < .84: put(x, y, WT[1] if dither(x, y) or random.random() < .5 else WT[2])
-        elif d < .93: put(x, y, WT[0])
-        elif d < 1.02: put(x, y, SD[1] if y > PCY else SD[3])
-        elif d < 1.12: put(x, y, OUT)
-        elif d < 1.3 and dither(x, y) and get(x, y) is None: grass[y][x] = GR[1]
-    blob(PCX, PCY, 18, 11, pond, lobes=3, depth=.08)
-    for lx, ly in [(PCX - 6, PCY + 3), (PCX + 5, PCY - 3)]:
-        for dx, dy in [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0)]: put(lx + dx, ly + dy, TR[3] if dy == 0 else TR[2])
-        put(lx + 1, ly - 1, (250, 150, 180))
-    edge_trees(14)
-    for _ in range(16):
-        cx, cy = random.randint(36, 220), random.randint(10, 340)
-        if free(cx, cy, 9): bush(cx, cy, random.randint(5, 8), berries=random.random() < .4)
-    sprinkle_flowers(90)
-
-else:  # onett
-    # asphalt streets with sidewalks on a grid, concrete lots under the buildings, street trees, a park in the middle
-    road_w, walk_w = 5, 4
-    streets = [[(MID, -4), (MID, ROAD_Y)]] + [[(-4, r), (CW + 4, r)] for r in ROWS]
-    lots = union(*[forecourt(n, row, 25, 4) for n, row in DOORS])
-    paint_shape(union(lanes(streets, road_w + walk_w), lots), sidewalk)
-    paint_shape(lanes(streets, road_w), asphalt, outline=False)
-    for r in ROWS:   # dashed centre lines
-        for x in range(0, CW):
-            if x % 10 < 5 and abs(x - MID) > road_w + 6: put(x, r, (236, 222, 120))
-    for y in range(0, ROAD_Y):
-        if y % 10 < 5 and all(abs(y - r) > road_w + 6 for r in ROWS): put(MID, y, (236, 222, 120))
-    for r in ROWS:   # zebra crossings either side of each junction
-        for k in range(-road_w + 1, road_w):
-            for y in (r - road_w - walk_w - 4, r + road_w + walk_w + 2):
-                if k % 2 == 0: put(MID + k, y, WALK[3]); put(MID + k, y + 1, WALK[3])
-    bottom_road(asphalt)
-    # the park: a pond, benches and a ring of trees in the middle block
-    PCX, PCY = MID, FOUNTAIN[1]
-    paint_shape(rrect(MID - 40, PCY - 24, MID + 40, PCY + 22, 10), lambda x, y, e, n: GR[0] if e else (GR[3] if dither(x, y) else GR[2]))
-    def pond(x, y, d):
-        if d < .62: put(x, y, WT[2] if not (dither(x, y) and random.random() < .25) else WT[3])
-        elif d < .84: put(x, y, WT[1] if dither(x, y) or random.random() < .5 else WT[2])
-        elif d < .93: put(x, y, WT[0])
-        elif d < 1.08: put(x, y, ST[3] if y < PCY else ST[1])
-        elif d < 1.16: put(x, y, ST[0])
-    blob(PCX, PCY + 2, 16, 10, pond, lobes=3, depth=.06)
-    for bx in (MID - 34, MID + 26):
-        for dx in range(8): put(bx + dx, PCY + 14, WD[3]); put(bx + dx, PCY + 15, WD[1]); put(bx + dx, PCY + 16, OUT if dx in (0, 7) else None) if dx in (0, 7) else None
-    for tx, ty in [(MID - 30, PCY - 14), (MID + 30, PCY - 14)]: tree(tx, ty, 8)
-    for x in range(40, 222, 26):          # street trees on the sidewalk verges
-        if abs(x - MID) > 18:
-            for r in ROWS[1:]: bush(x, r + road_w + walk_w + 7, 5)
-    for x in range(52, 222, 52):
-        if abs(x - MID) > 18:
-            for r in ROWS: lamp(x, r - road_w - walk_w - 1)
-    hedge(36, 100, ROWS[1] + 22); hedge(156, 220, ROWS[1] + 22)
-    flower_bed(MID - 20, 262, MID + 20, 280, [FLOWERS[0], FLOWERS[4]])
-    edge_trees(10)
-    sprinkle_flowers(40)
-
-# ---------- render ----------
-img = Image.new('RGB', (CW * PX, CH * PX)); px = img.load()
-for y in range(CH):
-    for x in range(CW):
-        c = cells[y][x] or grass[y][x]
-        for yy in range(PX):
-            for xx in range(PX):
-                px[x * PX + xx, y * PX + yy] = c
-img.save(args.out)
+img.resize((CW * PX, CH * PX), Image.NEAREST).save(args.out)
 print(args.out)
