@@ -77,6 +77,7 @@
   import Ionic from "@/lib/mixins/ionic";
   import debug from "@/lib/utils/debug";
   import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
+  import { stockDefaultShops } from "@/lib/services/shops/shopStock";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
@@ -96,7 +97,7 @@
       const loadShops = async () => {
         isLoading.value = true;
         try {
-          await shopsDb.seedDefaults();
+          await stockDefaultShops();
           shops.value = await shopsDb.getShops();
         } catch (error) {
           debug.error("Failed to load shops", error);

@@ -171,7 +171,7 @@ export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
   {
     id: "item-health-potion",
     name: "Health Potion",
-    description: "A refreshing red elixir that restores 50 HP in battle.",
+    description: "A refreshing red elixir that restores 50 HP.",
     basePrice: 50,
     rarity: Rarity.Common,
     icon: "flask-round-potion",
@@ -179,7 +179,7 @@ export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
   {
     id: "item-mana-potion",
     name: "Mana Potion",
-    description: "A shimmering blue potion that restores 30 MP in battle.",
+    description: "A shimmering blue potion that restores 30 MP.",
     basePrice: 75,
     rarity: Rarity.Common,
     icon: "flask-potion",
@@ -187,7 +187,7 @@ export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
   {
     id: "item-ether",
     name: "Ether",
-    description: "A concentrated magical essence that restores 50 MP in battle.",
+    description: "A concentrated magical essence that restores 50 MP.",
     basePrice: 100,
     rarity: Rarity.Uncommon,
     icon: "sparkles",
@@ -195,7 +195,7 @@ export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
   {
     id: "item-elixir",
     name: "Elixir",
-    description: "A legendary golden brew that fully restores HP and MP in battle.",
+    description: "A legendary golden brew that fully restores HP and MP.",
     basePrice: 200,
     rarity: Rarity.Rare,
     icon: "flask",
