@@ -238,7 +238,7 @@ const onDot = (target: number) => {
   display: contents;
 }
 
-// Delete sits left of Close, the same size, in the danger red; it never spins like Close does
+// Delete sits left of Close in the header's own ink, so it reads on every app colour; it never spins like Close does
 .xp-wiz-delete {
   display: flex;
   align-items: center;
@@ -249,7 +249,7 @@ const onDot = (target: number) => {
   border: none;
   cursor: pointer;
   font-size: 2rem;
-  color: var(--ion-color-danger);
+  color: var(--xp-app-on-accent);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 
   &:active {
