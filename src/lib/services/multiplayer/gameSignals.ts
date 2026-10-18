@@ -22,6 +22,8 @@ export interface QuestClaimed {
   difficulty: number;
   /** True when the claim is held for a Game Master's word */
   requiresApproval: boolean;
+  /** Set when the family device took the claim from the hero's phone: the phone already sent its own `quest.claimed` */
+  phoneClaimId?: string;
 }
 
 /** A Game Master settled a held claim */
@@ -31,6 +33,10 @@ export interface QuestReviewed {
   approved: boolean;
   /** The short note a rejection carried; empty for an approval or a bare rejection */
   note: string;
+  /** Set when the claim came from the hero's phone, which waits to hear the verdict */
+  phoneClaimId?: string;
+  /** What the hero was paid (an approval); zeros for a rejection */
+  paid?: { xp: number; gp: number; ap: number };
 }
 
 type Listener<T> = (payload: T) => void;

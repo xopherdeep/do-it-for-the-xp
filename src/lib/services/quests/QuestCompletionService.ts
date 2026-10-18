@@ -107,19 +107,29 @@ const announcePaid = (heroId: string, questId: string, xp: number, source: Quest
   emitQuestPaid({ heroId, questId: String(questId), xp, fight });
 };
 
+/** A claim made somewhere else: a hero phone's claim is logged at the time the hero made it, under the phone's claim id */
+export interface CompletionOptions {
+  /** When the hero finished it (defaults to now): lateness, the trusted hour and the log's day are read at this time */
+  at?: Date;
+  /** The hero phone's `quest.claimed` event id (source `phone`) */
+  phoneClaimId?: string;
+}
+
 export const completeQuest = async (
   quest: Achievement,
   userId: string,
-  source: QuestLogSource = "claim"
+  source: QuestLogSource = "claim",
+  options: CompletionOptions = {}
 ): Promise<CompletionResult> => {
+  const at = options.at ?? new Date();
   // A finish after the due time pays the family's late share (all of it unless the Game Master chose less); the log keeps
   // what was owed, so a held claim is approved at the same reduced rate
-  const late = await adjustForLateness(quest, userId, questRewards(quest), new Date());
+  const late = await adjustForLateness(quest, userId, questRewards(quest), at);
   const rewards = late.rewards;
   const lateNote = late.isReduced ? lateRewardLine(late.rule) : undefined;
   const users = useUserStore().users;
   // A photo chore is always reviewed, trusted hour or not (claimPhotos.ts)
-  const wantsApproval = claimNeedsApproval(quest, users[userId]?.questEffects, new Date());
+  const wantsApproval = claimNeedsApproval(quest, users[userId]?.questEffects, at);
   // A Game Master with no other Game Master to ask is approved on the spot, with a note saying so
   const isAutoApproved = wantsApproval && isSoleGameMaster(userId, users);
   const awaitingApproval = wantsApproval && !isAutoApproved;
@@ -138,6 +148,8 @@ export const completeQuest = async (
     ...(isAutoApproved ? { note: AUTO_APPROVED_NOTE } : {}),
     ...(huntBonusXp > 0 ? { huntBonusXp } : {}),
     ...(asksForPhoto(quest) ? { requiresPhoto: true } : {}),
+    ...(options.at ? { completedAt: at.toISOString() } : {}),
+    ...(options.phoneClaimId ? { phoneClaimId: options.phoneClaimId } : {}),
   });
   clearGrudges(quest, userId);
   announceClaim(entry, quest.difficulty, awaitingApproval);

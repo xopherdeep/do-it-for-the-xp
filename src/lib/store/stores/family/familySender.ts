@@ -1,4 +1,3 @@
-import type { FamilyEventsState } from "@/lib/databases/FamilyEventsDb";
 import { backoff, markSending, nextBatch, settle, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 import type { FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import { familyProblem, retryAfterMs, sendEvents, type FamilyProblem, type SendResult } from "@/lib/services/multiplayer/familyServer";
@@ -14,19 +13,26 @@ import debug from "@/lib/utils/debug";
  * Bound to the store the way the user store binds its persister (`stores/user/persistence.ts`): the store hands over
  * how to read and save what this device keeps, and what a move or a refusal means.
  */
-export interface SenderContext {
-  /** Whether events may go: the flag is on and this device is the family's home */
+/** What a sender needs of what the device keeps: the send queue (the family device's FamilyEventsDb, or a hero phone's) */
+export interface KeepsOutbox {
+  outbox: QueuedEvent[];
+}
+
+export interface SenderContext<S extends KeepsOutbox = KeepsOutbox> {
+  /** Whether events may go: the flag is on and this device is the family's home (or a linked hero phone) */
   maySend(): boolean;
-  /** The parent's sign-in while the family is linked */
+  /** The parent's sign-in while the family is linked, or the hero phone's key */
   auth(): TownHallAuth | null;
   /** What the device keeps, loaded */
-  kept(): Promise<FamilyEventsState>;
+  kept(): Promise<S>;
   /** Saves a change to what the device keeps, one save at a time */
-  update(change: (current: FamilyEventsState) => FamilyEventsState): Promise<void>;
+  update(change: (current: S) => S): Promise<void>;
   /** The site said the family's home is another device now */
   moved(): Promise<void>;
-  /** A failure that waits for the Game Master: a refused link, a family the site does not know, or one that is taken */
+  /** A failure that waits for the Game Master: a refused link or phone key, a family the site does not know, or one that is taken */
   refused(found: FamilyProblem): Promise<void>;
+  /** The site refused these events for good (they leave the queue); a hero phone marks its claims refused */
+  rejected?(ids: string[]): Promise<void>;
 }
 
 export interface FamilySender {
@@ -41,7 +47,7 @@ export interface FamilySender {
 }
 
 /** The failures kept as the problem: sending waits for the Game Master to link again or register the family */
-const REFUSALS: FamilyProblem[] = ["unlinked", "not-member", "taken"];
+const REFUSALS: FamilyProblem[] = ["unlinked", "not-member", "taken", "key-revoked"];
 
 /** What the site is sent: the event, without the queue's own fields */
 const wireEventOf = ({ id, heroId, deviceId, kind, at, data }: QueuedEvent): FamilyEvent => ({ id, heroId, deviceId, kind, at, data });
@@ -53,7 +59,7 @@ const nextTryOf = (outbox: QueuedEvent[], now: number): number | null => {
   return isEmpty ? null : Math.min(...times);
 };
 
-export const createFamilySender = (ctx: SenderContext): FamilySender => {
+export const createFamilySender = <S extends KeepsOutbox>(ctx: SenderContext<S>): FamilySender => {
   let sending: Promise<void> | null = null;
   /** A 429 asked for a pause until this time (ms since the epoch) */
   let heldUntil = 0;
@@ -98,6 +104,8 @@ export const createFamilySender = (ctx: SenderContext): FamilySender => {
       const unanswered = ids.filter((id) => outbox.some((e) => e.id === id));
       return { ...current, outbox: backoff(outbox, unanswered, Date.now()) };
     });
+    const hasRejections = result.rejected.length > 0;
+    if (hasRejections && ctx.rejected) await ctx.rejected(result.rejected.map((rejection) => rejection.id));
   };
 
   /** The send failed: the batch waits (as long as a 429 asked); a move or a refusal stops sending */

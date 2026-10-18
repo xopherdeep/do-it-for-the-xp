@@ -152,7 +152,7 @@ const listPhones = server.listPhones as jest.Mock;
 const serverRemovePhone = server.removePhone as jest.Mock;
 const { adoptFamily } = require("@/lib/services/pro/familyIdentity") as { adoptFamily: jest.Mock };
 
-const emptyState = (): FamilyEventsState => ({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown" });
+const emptyState = (): FamilyEventsState => ({ outbox: [], lastSeq: 0, paidRewards: [], lastCards: {}, ageGroupPicks: {}, home: "unknown", takenClaims: [], lastSheets: {} });
 /** Lets every promise the mocks settle run to the end */
 const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 const failWith = (status: number, siteCode?: string) => new TownHallError(status === 401 ? "unauthorized" : status === 403 ? "forbidden" : "server", "no", status, siteCode);
@@ -1208,7 +1208,7 @@ describe("family store", () => {
       expect(fetchEvents).toHaveBeenCalled();
     });
 
-    it("triggers download periodically every 5 minutes", async () => {
+    it("triggers download periodically every 2 minutes", async () => {
       jest.useFakeTimers();
       const store = useFamilyStore();
       const run = store.init();
@@ -1216,7 +1216,7 @@ describe("family store", () => {
       await run;
       await tick(0);
       fetchEvents.mockClear();
-      await tick(299_999);
+      await tick(119_999);
       expect(fetchEvents).not.toHaveBeenCalled();
       await tick(1);
       expect(fetchEvents).toHaveBeenCalled();

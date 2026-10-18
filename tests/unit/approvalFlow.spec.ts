@@ -126,7 +126,7 @@ describe("approving", () => {
     expect(walletOf("kid")).toBe(40);
     expect(inbox("kid")[0]).toMatchObject({ kind: "approved", refId: entry.id });
     expect(inbox("dad")[0].readAt).toBeTruthy();
-    expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: true, note: "" }]);
+    expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: true, note: "", paid: { xp: 30, gp: 40, ap: 2 } }]);
   });
 
   it("settles a claim once: a second approval pays nothing", async () => {
