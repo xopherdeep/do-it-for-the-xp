@@ -45,7 +45,7 @@ $cream: #f7e8a8;
 
 .qs-window-title {
   font-family: "Twoson", "Apple Kid", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -53,7 +53,7 @@ $cream: #f7e8a8;
 
 .qs-window-sub {
   font-family: "StatusPlz", monospace;
-  font-size: 0.8rem;
+  font-size: 1rem;
   letter-spacing: 1.5px;
   color: $mint;
   text-transform: uppercase;
@@ -61,8 +61,8 @@ $cream: #f7e8a8;
 
 .qs-blurb {
   margin: 12px 14px 4px;
-  font-size: 1.1rem;
-  line-height: 1.35;
+  font-size: 1.65rem;
+  line-height: 1.3;
   color: #fff;
 }
 
@@ -76,9 +76,9 @@ $cream: #f7e8a8;
 }
 
 .qs-heading {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-family: "StatusPlz", monospace;
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: $mint;
@@ -92,8 +92,8 @@ $cream: #f7e8a8;
 }
 
 .qs-cursor {
-  width: 12px;
-  font-size: 1.1rem;
+  width: 16px;
+  font-size: 1.4rem;
   color: $cream;
 }
 
@@ -107,14 +107,14 @@ $cream: #f7e8a8;
   border: 2px solid $mint;
   border-radius: 4px;
   font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
-  min-height: 44px;
+  font-size: 1.6rem;
+  min-height: 52px;
 }
 
 .qs-remove {
   --color: rgba(247, 232, 168, 0.7);
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
 }
 
 .qs-add {
@@ -127,7 +127,7 @@ $cream: #f7e8a8;
   border: none;
   color: $mint;
   font-family: "StatusPlz", monospace;
-  font-size: 0.9rem;
+  font-size: 1.15rem;
   cursor: pointer;
 }
 
@@ -140,12 +140,12 @@ $cream: #f7e8a8;
     display: grid;
     grid-template-columns: 1fr auto;
     column-gap: 10px;
-    padding: 4px 0;
+    padding: 6px 0;
   }
 }
 
 .qs-item-name {
-  font-size: 1.2rem;
+  font-size: 1.75rem;
   color: #fff;
 
   i {
@@ -157,7 +157,7 @@ $cream: #f7e8a8;
   grid-column: 1;
   grid-row: 2;
   font-family: "StatusPlz", monospace;
-  font-size: 0.8rem;
+  font-size: 1.05rem;
   color: rgba(255, 255, 255, 0.6);
 }
 
@@ -165,12 +165,12 @@ $cream: #f7e8a8;
   grid-column: 2;
   grid-row: 1;
   font-family: "Twoson", "Apple Kid", monospace;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   font-weight: 700;
   white-space: nowrap;
 
   i {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: #f59e0b;
   }
 }
@@ -182,7 +182,8 @@ $cream: #f7e8a8;
 .qs-start {
   --background: #{$mint};
   --color: #{$ink};
-  height: 52px;
+  height: 56px;
+  font-size: 1.3rem;
   font-family: "Twoson", "Apple Kid", sans-serif;
   font-weight: 700;
   letter-spacing: 1px;
@@ -191,19 +192,19 @@ $cream: #f7e8a8;
 
 .qs-note {
   margin: 0 0 10px;
-  font-size: 1rem;
+  font-size: 1.5rem;
   line-height: 1.3;
   color: rgba(255, 255, 255, 0.8);
 }
 
 .qs-pin-input {
-  flex: 0 0 84px;
+  flex: 0 0 104px;
   letter-spacing: 4px;
 }
 
 .qs-error {
   margin: 4px 0 0 20px;
   font-family: "StatusPlz", monospace;
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   color: #ff9a8a;
 }

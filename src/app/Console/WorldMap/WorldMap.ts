@@ -8,14 +8,14 @@ import { triggerSpotsReset } from "@/components/organisms/DraggableSpot/useDragg
 
 export const DEFAULT_STAGE_NODES = [
   { stageId: "world-islands", defaultX: 18, defaultY: 15 },
-  { stageId: "world-mountains", defaultX: 50, defaultY: 15 },
   { stageId: "world-clouds", defaultX: 82, defaultY: 15 },
-  { stageId: "world-forest", defaultX: 18, defaultY: 34 },
-  { stageId: "world-plains", defaultX: 50, defaultY: 34 },
-  { stageId: "world-ice", defaultX: 82, defaultY: 34 },
-  { stageId: "world-swamps", defaultX: 18, defaultY: 53 },
-  { stageId: "world-sands", defaultX: 50, defaultY: 53 },
-  { stageId: "the-moon", defaultX: 82, defaultY: 53 },
+  { stageId: "world-mountains", defaultX: 50, defaultY: 37 },
+  { stageId: "world-sands", defaultX: 82, defaultY: 33 },
+  { stageId: "world-forest", defaultX: 18, defaultY: 38 },
+  { stageId: "world-ice", defaultX: 82, defaultY: 52 },
+  { stageId: "world-swamps", defaultX: 17, defaultY: 67 },
+  { stageId: "world-plains", defaultX: 50, defaultY: 62 },
+  { stageId: "the-moon", defaultX: 82, defaultY: 70 },
 ];
 
 const STAGE_ROUTES: Record<string, string> = {
