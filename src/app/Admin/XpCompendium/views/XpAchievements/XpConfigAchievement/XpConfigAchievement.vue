@@ -45,7 +45,7 @@
 
       <!-- The step's field sits at the bottom, above Back / Next, in thumb reach -->
       <template #above-nav="{ step }">
-        <!-- Autosave state; a draft is saved but hidden from heroes until the quest is complete -->
+        <!-- Autosave state; a draft is saved but hidden from heroes until Ready is tapped -->
         <button
           v-if="saveChip"
           type="button"
@@ -149,6 +149,9 @@
     <ion-content v-else>
       <xp-loading />
     </ion-content>
+
+    <!-- New Quest with a draft still waiting: Resume, Discard or Not now, in the game's own prompt -->
+    <xp-reveal-prompt :prompt="draftPrompt" @respond="respondDraft" />
 
     <!-- A new quest is ready: the fanfare, then the quest list -->
     <xp-hero-fanfare

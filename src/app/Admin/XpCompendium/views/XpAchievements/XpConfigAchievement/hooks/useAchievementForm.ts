@@ -32,6 +32,7 @@ import { withoutUnsetMinutes } from "@/lib/services/quests/questFormRules";
 import { useQuestEffort, useQuestTier } from "./useQuestEffort";
 import { useBeastSuggestion } from "./useBeastSuggestion";
 import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
+import { isDraftOnSave, newQuestOpening } from "@/lib/services/quests/questDrafts";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -92,8 +93,12 @@ export function useAchievementForm() {
 
   const isLoading = ref(false);
   const saving = ref(false);
-  /** What the editor's save chip says: draft = saved but hidden from heroes until the quest is complete */
+  /** What the editor's save chip says: draft = saved but hidden from heroes until Ready is tapped */
   const saveState = ref<"idle" | "saving" | "saved" | "draft" | "error">("idle");
+  /** Heroes already see the quest: it was made Ready, or saved before drafts existed (questDrafts.isDraftOnSave) */
+  const isPublished = ref(false);
+  /** The quest `isPublished` was read for: coming back to it (from the bestiary pages) keeps what was read then */
+  const publishedReadFor = ref("");
   const isGeneratingSchedule = ref(false);
   const lastSavedState = ref("");
 
@@ -509,14 +514,25 @@ export function useAchievementForm() {
     } finally {
       isLoading.value = false;
     }
+    // A new quest, or one still a draft, stays a draft until Ready. Read once per quest: an edit that hid a live
+    // quest for a moment (a beast still to pick) must not keep it hidden once the parent comes back with the beast
+    const isNewlyRead = publishedReadFor.value !== id.value;
+    if (isNewlyRead) {
+      publishedReadFor.value = id.value;
+      isPublished.value = loaded.isSaved && !loaded.wasDraft;
+    }
     return loaded;
   };
+
+  /** What New Quest opens on: a fresh quest when no draft waits, else the draft to ask about (questDrafts.ts) */
+  const newQuestOpeningNow = async () => newQuestOpening(await achievementDb.getTasks());
 
   /** What goes to storage: no empty times of day, no unusable minutes */
   const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
 
-  // Debounced Autosave. An incomplete quest is saved as a draft, which heroes never see
-  // (QuestEngine.filterQuests); it goes live by itself the moment it is complete.
+  // Debounced Autosave. A quest that was never made Ready is saved as a draft, which heroes never see
+  // (questDrafts.ts, QuestEngine.getAllQuests), however complete it is: only Ready publishes it. A published quest
+  // stays live while it is complete and hides while an edit leaves it incomplete.
   const autosave = debounce(async () => {
     const isUnchanged = JSON.stringify(achievement.value) === lastSavedState.value;
     if (isUnchanged) return;
@@ -533,7 +549,7 @@ export function useAchievementForm() {
       achievement.value.achievementName = formatQuestName(
         achievement.value.achievementName
       );
-      achievement.value.draft = !isValidAdventure.value;
+      achievement.value.draft = isDraftOnSave({ isPublished: isPublished.value, isComplete: isValidAdventure.value });
       await applySuggestedBeast();
       await achievementDb.setTask(questForStorage());
       // Taken after the edits above, so they don't trigger another save
@@ -583,6 +599,7 @@ export function useAchievementForm() {
       achievement.value.draft = false;
       await applySuggestedBeast();
       await achievementDb.setTask(questForStorage());
+      isPublished.value = true;
       lastSavedState.value = JSON.stringify(achievement.value);
       saveState.value = "saved";
       return true;
@@ -730,6 +747,7 @@ export function useAchievementForm() {
 
     // Actions
     loadData,
+    newQuestOpeningNow,
     confirmReady,
     savePending,
     updatePoints,

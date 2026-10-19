@@ -217,7 +217,8 @@ describe("What's the chore?: the beast the library suggests", () => {
     const form = await newForm();
     form.setMinutes("14");
     const saved = await savedQuest(form);
-    expect(saved).toMatchObject({ beastId: "beast-dish-goblin", adventureType: "beast", estimatedMinutes: 14, draft: false });
+    // Complete, so it takes the beast; still a draft until Ready (issue #126)
+    expect(saved).toMatchObject({ beastId: "beast-dish-goblin", adventureType: "beast", estimatedMinutes: 14, draft: true });
     const beasts = await bestiaryDb.getAll();
     expect(beasts.map((b) => b.id)).toEqual(["beast-dish-goblin"]);
     expect(beasts[0]).toMatchObject({ name: "Dish Goblin", avatar: dishGoblin.avatar });
@@ -270,7 +271,7 @@ describe("What's the chore?: the beast the library suggests", () => {
     form.achievement.value.categoryId = "cat-1";
     form.achievement.value.assignee = ["hero-1"];
     const saved = await savedQuest(form);
-    expect(saved).toMatchObject({ beastId: "beast-socktopus", adventureType: "beast", draft: false });
+    expect(saved).toMatchObject({ beastId: "beast-socktopus", adventureType: "beast", draft: true });
   });
 });
 
@@ -336,6 +337,70 @@ describe("Ready?: the last step's verb", () => {
     const form = await newForm("Load the dishwasher", false);
     expect(await form.confirmReady()).toBe(false);
     expect(await achievementDb.getTaskById(form.achievement.value.id)).toBeNull();
+  });
+});
+
+describe("a draft until Ready (GitHub issue #126)", () => {
+  it("keeps a new quest a draft however complete it is, until Ready is tapped", async () => {
+    const form = await newForm();
+    expect(form.isValidAdventure.value).toBe(true);
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+    expect(form.saveState.value).toBe("draft");
+    expect(await form.confirmReady()).toBe(true);
+    expect(await achievementDb.getTaskById(form.achievement.value.id)).toMatchObject({ draft: false });
+  });
+
+  it("keeps a quest live once Ready, when it is changed and saved again", async () => {
+    const form = await newForm();
+    await form.confirmReady();
+    form.achievement.value.achievementName = "Load and unload the dishwasher";
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+    expect(form.saveState.value).toBe("saved");
+  });
+
+  it("keeps a published quest live while an edit leaves it complete", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-live", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: false });
+    const form = useAchievementForm();
+    await form.loadData("q-live");
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("treats a quest saved before drafts existed (no marker) as published", async () => {
+    const old = { ...AchievementDb.getDefault(), id: "q-old", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"] };
+    await achievementDb.setTask(old);
+    const form = useAchievementForm();
+    expect(await form.loadData("q-old")).toEqual({ isSaved: true, wasDraft: false });
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("hides a published quest while an edit leaves it incomplete, and shows it again once complete, even after a trip to the bestiary", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-live", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: false });
+    const form = useAchievementForm();
+    await form.loadData("q-live");
+    form.achievement.value.assignee = [];
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+    // Coming back to the same quest reads it again: it was live when it was opened, so it may go live again
+    await form.loadData("q-live");
+    form.achievement.value.assignee = ["hero-1"];
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("keeps a draft that was opened again a draft until Ready", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Feed The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: true });
+    const form = useAchievementForm();
+    await form.loadData("q-draft");
+    form.achievement.value.difficulty = 5;
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+  });
+
+  it("says what New Quest opens on: fresh with no draft, else the draft to ask about", async () => {
+    const form = useAchievementForm();
+    expect(await form.newQuestOpeningNow()).toEqual({ kind: "fresh" });
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Feed The Dog", draft: true });
+    const opening = await form.newQuestOpeningNow();
+    expect(opening).toMatchObject({ kind: "ask", waiting: 1, draft: { id: "q-draft" } });
   });
 });
 

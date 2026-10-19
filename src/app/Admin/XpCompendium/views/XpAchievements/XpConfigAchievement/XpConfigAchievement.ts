@@ -1,4 +1,4 @@
-import { defineComponent, provide, computed, ref } from "vue";
+import { defineComponent, provide, computed, ref, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -18,7 +18,12 @@ import debug from "@/lib/utils/debug";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
-import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { useAppSkin, XP_APP_ACCENTS } from "@/components/organisms/XpApp/useAppSkin";
+import type { Achievement } from "@/lib/databases/AchievementDb";
+import { deleteQuest } from "@/lib/services/compendium/deleteContent";
+import { draftAction, unfinishedDraftPrompt } from "@/lib/services/quests/questDrafts";
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 import XpInfoToggleModal from "./components/XpInfoToggleModal.vue";
@@ -48,9 +53,10 @@ import { useGameRulesStore } from "@/lib/store/stores/gameRules";
  * -> When? -> How hard? -> Ready? The header, dots, guide line, Back / Next and the verb are XpWizardShell; the rules
  * and the words of each step live in ../questConfigWizard.ts; the tabs of the old form are the step bodies.
  *
- * The 2 second autosave (useAchievementForm) is still how the quest is kept: an incomplete quest is saved as a draft
- * that heroes never see, and the last step's verb marks the quest Ready. A new quest opens on step one; a saved one on
- * the summary (or, for a draft, on the first step that still wants an answer), with the dots leading back.
+ * The 2 second autosave (useAchievementForm) is still how the quest is kept: a new quest is saved as a draft that
+ * heroes never see until the last step's verb marks it Ready (questDrafts.ts). A new quest opens on step one; a saved
+ * one on the summary (or, for a draft, on the first step that still wants an answer), with the dots leading back.
+ * New Quest with a draft still waiting asks first, in the game's own prompt: Resume it, Discard it, or Not now.
  */
 export default defineComponent({
   name: "xp-add-achievement",
@@ -64,6 +70,7 @@ export default defineComponent({
     XpLoading,
     XpHeroFanfare,
     XpWizardShell,
+    XpRevealPrompt,
     XpAddCategoryModal,
     XpInfoToggleModal,
     QuestTypeTab,
@@ -112,6 +119,7 @@ export default defineComponent({
 
       // Actions
       loadData,
+      newQuestOpeningNow,
       confirmReady: markReady,
       savePending: flushSave,
       selectCategory: pickCategory,
@@ -166,19 +174,78 @@ export default defineComponent({
       isOpen.value = true;
     };
 
+    /** Open a quest and give the page its address: load it first, so the state is ready */
+    const openAt = (questId: string) => {
+      void open(questId);
+      router.replace({
+        name: "xp-achievement-config-dashboard",
+        params: { id: questId },
+      });
+    };
+
+    // ---- New Quest: a draft still waiting is resumed or discarded first; only with none is a new id minted ----------
+    const { prompt: draftPrompt, showPrompt: askAboutDraft, submitAnswer: respondDraft } = useRevealPrompt();
+    // The prompt settles as Not now when the page goes away mid-question: then nothing more happens here
+    let isGone = false;
+    onBeforeUnmount(() => {
+      isGone = true;
+    });
+
+    const readOpening = async () => {
+      try {
+        return await newQuestOpeningNow();
+      } catch (error) {
+        debug.warn("[QuestWizard] the drafts could not be read", error);
+        return { kind: "fresh" as const };
+      }
+    };
+
+    const discardDraft = async (draft: Achievement): Promise<boolean> => {
+      try {
+        // Delete with cleanup: nothing is left pointing at the draft
+        await deleteQuest(draft);
+        return true;
+      } catch (error) {
+        debug.warn("[QuestWizard] the draft could not be discarded", error);
+        play$fx("no");
+        void say("It could not be discarded", "The draft is still in the Compendium.");
+        return false;
+      }
+    };
+
+    const settleNewQuest = async (): Promise<void> => {
+      const opening = await readOpening();
+      const isFresh = opening.kind === "fresh";
+      if (isFresh) return openAt(uuidv4());
+      const answer = await askAboutDraft(unfinishedDraftPrompt(opening.draft, opening.waiting, { accent: XP_APP_ACCENTS.quests }));
+      if (isGone) return;
+      const action = draftAction(answer);
+      if (action === "resume") return openAt(String(opening.draft.id));
+      const isDiscarded = action === "discard" && (await discardDraft(opening.draft));
+      // The next draft is asked about in turn; a new id only once none is left
+      if (isDiscarded) return settleNewQuest();
+      goBack();
+    };
+
+    // One question at a time: a second ask would settle the first as Not now and leave the page
+    let isStarting = false;
+    const startNewQuest = async (): Promise<void> => {
+      if (isStarting) return;
+      isStarting = true;
+      try {
+        await settleNewQuest();
+      } finally {
+        isStarting = false;
+      }
+    };
+
     // Lifecycle
     onIonViewWillEnter(() => {
       const idToLoad = props.id;
 
       const isNewQuest = !idToLoad || idToLoad === "new";
       if (isNewQuest) {
-        const newId = uuidv4();
-        // Load with the new id first, so the state is ready, then give the page its own address
-        void open(newId);
-        router.replace({
-          name: "xp-achievement-config-dashboard",
-          params: { id: newId },
-        });
+        void startNewQuest();
         return;
       }
 
@@ -204,7 +271,7 @@ export default defineComponent({
       if (isKnownStep) position.value = target;
     };
 
-    // ---- The Save chip: autosave's state in words; a draft is saved but hidden from heroes -----------------------------
+    // ---- The Save chip: autosave's state in words; a draft is saved but hidden from heroes until Ready ----------------
     const SAVE_CHIPS: Record<string, { icon: string; label: string }> = {
       saving: { icon: "fa-spinner-third fa-spin", label: "Saving" },
       saved: { icon: "fa-check-circle", label: "Saved" },
@@ -222,8 +289,8 @@ export default defineComponent({
         await say(
           "Draft quest",
           missing.length
-            ? `Heroes can't see this quest yet. It goes live by itself once it has: ${missing.join(", ")}.`
-            : "Heroes can't see this quest yet. It goes live with the next save."
+            ? `Heroes can't see this quest yet. It still needs: ${missing.join(", ")}. Then tap Ready on the last step.`
+            : "Heroes can't see this quest yet. Tap Ready on the last step and they will."
         );
         return;
       }
@@ -297,6 +364,10 @@ export default defineComponent({
       saveState,
       beastAvatarUrl,
       minEndDate,
+
+      // New Quest's question about a draft still waiting
+      draftPrompt,
+      respondDraft,
 
       // The wizard
       steps,

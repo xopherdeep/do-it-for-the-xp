@@ -3,6 +3,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import type { SentBack } from "./sentBack";
+import { hideDrafts, isDraft, type DraftLike } from "./questDrafts";
 import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
@@ -12,6 +13,9 @@ import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/e
  * the assignee's nick, the due time, a status and the rewards, sorted the way a to-do list reads:
  * overdue -> due soon (open, earliest deadline first) -> later (not due yet) -> pending -> done.
  * A shared quest another assignee cleared reads "Done by Mia".
+ *
+ * A draft (a quest the Game Master has not made Ready, questDrafts.ts) is never a row: `questListFor` leaves it out,
+ * and `listedQuests` keeps it only for the Game Master's Compendium.
  *
  * `newQuickTask` is the "Add task" shape: a one-off Achievement record assigned to one family member,
  * saved through AchievementDb like any quest the Game Master authors, so the Compendium shows it too.
@@ -204,6 +208,8 @@ export const questListFor = (
   const rows: QuestListRow[] = [];
   for (const item of board) {
     const { quest } = item;
+    // Heroes never see a draft, whatever handed the board over
+    if (isDraft(quest)) continue;
     const due = dueFor(quest, effects, date);
     const status = statusOf(item, due, date);
     if (!status) continue;
@@ -224,6 +230,18 @@ export const questListFor = (
     });
   }
   return rows.sort(compareRows);
+};
+
+/** Who reads a list of quests: the Game Master in the Compendium, or a hero */
+export type QuestViewer = "gameMaster" | "hero";
+
+/**
+ * The quest records a viewer may list: every one for the Game Master's Compendium (a draft wears its DRAFT label
+ * there), all but the drafts for a hero. The list given is not changed.
+ */
+export const listedQuests = <Q extends DraftLike>(quests: readonly Q[], viewer: QuestViewer): Q[] => {
+  const isGameMaster = viewer === "gameMaster";
+  return isGameMaster ? [...quests] : hideDrafts(quests);
 };
 
 /** Rows grouped for a quick glance; `openCount` is what still needs doing (overdue and open). */

@@ -131,6 +131,7 @@ const stubs = {
   XpInfoToggleModal: { template: "<div class='info-stub'></div>" },
   XpSpeakButton: { props: ["text"], template: "<button class='speak-stub' :data-text='text'></button>" },
   XpCloseButton: { template: "<button class='close-stub' data-test='wizard-close'></button>" },
+  XpRevealPrompt: { props: ["prompt"], template: "<div class='prompt-stub'></div>" },
 };
 
 const achievementDb = new AchievementDb(achievementStorage);
@@ -321,6 +322,86 @@ describe("a saved quest", () => {
     await tap(wrapper, "submit");
     expect(wrapper.get(".fanfare-stub").attributes("data-open")).toBe("true");
     expect((await achievementDb.getTaskById("q1"))?.draft).toBe(false);
+  });
+});
+
+describe("New Quest with a draft still waiting (GitHub issue #126)", () => {
+  const promptOf = (wrapper: Page) => wrapper.vm.draftPrompt?.options;
+  const answer = async (wrapper: Page, id: string) => {
+    wrapper.vm.respondDraft({ id, amount: null });
+    await flushPromises();
+    await nextTick();
+  };
+
+  it("leaves a quest closed partway through a draft, and asks about it next time instead of minting another", async () => {
+    const first = await mountPage("new");
+    await type(first, "name", "Feed the dog");
+    first.vm.achievement.categoryId = "cat-1";
+    first.vm.achievement.assignee = ["hero-1"];
+    await nextTick();
+    await tap(first, "back");
+    const saved = await achievementDb.getTaskById(first.vm.achievement.id);
+    expect(saved?.draft).toBe(true);
+
+    mockReplace.mockClear();
+    const again = await mountPage("new");
+    expect(promptOf(again)?.lines.join(" ")).toContain("Feed The Dog");
+    expect(promptOf(again)?.choices.map((choice: { id: string }) => choice.id)).toEqual(["resume", "discard", "back"]);
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(await achievementDb.getTasks()).toHaveLength(1);
+  });
+
+  it("opens a fresh quest when no draft waits, asking nothing", async () => {
+    await saveQuest();
+    const wrapper = await mountPage("new");
+    expect(wrapper.vm.draftPrompt).toBeNull();
+    expect(title(wrapper)).toBe("What's the chore?");
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
+
+  it("Resume opens the draft where it left off, at its own address", async () => {
+    await saveQuest({ draft: true });
+    const wrapper = await mountPage("new");
+    await answer(wrapper, "resume");
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace.mock.calls[0][0].params.id).toBe("q1");
+    expect(title(wrapper)).toBe("Ready?");
+    expect(wrapper.vm.achievement.achievementName).toBe("Load the dishwasher");
+    await tap(wrapper, "submit");
+    expect(wrapper.get(".fanfare-stub").attributes("data-open")).toBe("true");
+    expect((await achievementDb.getTaskById("q1"))?.draft).toBe(false);
+  });
+
+  it("Discard deletes the draft, then starts a fresh quest on step one", async () => {
+    await saveQuest({ draft: true });
+    const wrapper = await mountPage("new");
+    await answer(wrapper, "discard");
+    expect(await achievementDb.getTaskById("q1")).toBeNull();
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(String(mockReplace.mock.calls[0][0].params.id)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(title(wrapper)).toBe("What's the chore?");
+  });
+
+  it("Discard asks about the next draft in turn, and mints a new id only once none is left", async () => {
+    await saveQuest({ id: "d1", draft: true });
+    await saveQuest({ id: "d2", achievementName: "Feed the cat", draft: true });
+    const wrapper = await mountPage("new");
+    expect(promptOf(wrapper)?.lines.join(" ")).toMatch(/1 more unfinished quest waits/);
+    await answer(wrapper, "discard");
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(promptOf(wrapper)?.lines.join(" ")).not.toMatch(/more unfinished/);
+    await answer(wrapper, "discard");
+    expect(await achievementDb.getTasks()).toEqual([]);
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
+
+  it("Not now (or Escape) leaves New Quest and changes nothing", async () => {
+    await saveQuest({ draft: true });
+    const wrapper = await mountPage("new");
+    await answer(wrapper, "back");
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(await achievementDb.getTaskById("q1")).toMatchObject({ draft: true });
   });
 });
 

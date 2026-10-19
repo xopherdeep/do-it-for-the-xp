@@ -38,6 +38,7 @@ import XpAchievementItem from "./XpConfigAchievement/components/XpAchievementIte
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 import { confirmDelete } from "@/hooks/useConfirmDelete";
 import { deleteQuest, usageOfQuest } from "@/lib/services/compendium/deleteContent";
+import { listedQuests } from "@/lib/services/quests/QuestList";
 
 export default defineComponent({
   name: "xp-achievements",
@@ -189,7 +190,8 @@ export default defineComponent({
         this.achievementDb.getTasks(),
         this.bestiaryDb.getAll(),
       ]);
-      this.setAchievements(achievements);
+      // The Game Master's list keeps the drafts: each wears its Draft badge
+      this.setAchievements(listedQuests(achievements, "gameMaster"));
       (this as any).beasts = beasts;
     },
 
