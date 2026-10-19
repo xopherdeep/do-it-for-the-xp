@@ -130,7 +130,8 @@ export default defineComponent({
       toggleBonus,
     } = form;
 
-    const steps = questConfigSteps();
+    // The Who guide follows the way the quest is shared, so the steps are made again when that changes
+    const steps = computed(() => questConfigSteps(achievement.value.type));
     const position = ref(0);
     const isOpen = ref(false);
     // The quest the wizard has opened for: coming back from the beast pages must not send it to another step
@@ -165,7 +166,7 @@ export default defineComponent({
         if (isNewlyOpened) {
           openedFor.value = questId;
           isDebut.value = !loaded.isSaved || loaded.wasDraft;
-          position.value = openingIndex(steps, achievement.value, loaded.isSaved);
+          position.value = openingIndex(steps.value, achievement.value, loaded.isSaved);
         }
       } catch (error) {
         // Open on a blank quest rather than on a blank page
@@ -266,7 +267,7 @@ export default defineComponent({
     const closeKeyboard = (event: Event) => (event.target as HTMLElement | null)?.blur?.();
 
     const goToStep = (id: QuestStepId) => {
-      const target = stepIndexOf(steps, id);
+      const target = stepIndexOf(steps.value, id);
       const isKnownStep = target >= 0;
       if (isKnownStep) position.value = target;
     };

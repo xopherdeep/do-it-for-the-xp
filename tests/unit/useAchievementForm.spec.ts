@@ -11,6 +11,8 @@ import AchievementDb, { AchievementCategoryDb, achievementCategoryStorage, achie
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { useAchievementForm } from "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/hooks/useAchievementForm";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { SEED_REWARDS } from "@/lib/services/core/packs/packSeeds";
+import { suggestedRewards } from "@/lib/services/quests/questWizard";
 
 jest.mock("@ionic/storage", () => {
   const rows = new Map<string, Map<string, unknown>>();
@@ -110,6 +112,47 @@ const savedQuest = async (form: Awaited<ReturnType<typeof newForm>>) => {
   await form.saveNow();
   return achievementDb.getTaskById(form.achievement.value.id);
 };
+
+describe("How hard?: the pay follows the same table as the packs and the Quest Wizard", () => {
+  const payOf = (form: Awaited<ReturnType<typeof newForm>>) => {
+    const { xp, gp, ap } = form.achievement.value;
+    return { xp, gp, ap };
+  };
+
+  it("pays a new Tiny quest less than a Small one, the table's 60 XP / 15 GP / 1 AP", async () => {
+    const form = await newForm();
+    expect(form.achievement.value.difficulty).toBe(1);
+    expect(payOf(form)).toEqual({ xp: 60, gp: 15, ap: 1 });
+  });
+
+  it("pays Small what the Quick Start quests of that size pay: 120 XP / 30 GP", async () => {
+    const form = await newForm();
+    form.fibonacciIndex.value = 1; // 2
+    await nextTick();
+    expect(form.achievement.value.difficulty).toBe(2);
+    expect(payOf(form)).toEqual({ xp: 120, gp: 30, ap: 2 });
+    expect(payOf(form)).toEqual(SEED_REWARDS[2]);
+  });
+
+  it("pays every step of the slider by the table, and each pays more than the one before", async () => {
+    const form = await newForm();
+    let before = { xp: 0, gp: 0, ap: 0 };
+    for (let index = 0; index < form.fibonacciArray.length; index++) {
+      form.fibonacciIndex.value = index;
+      await nextTick();
+      const pay = payOf(form);
+      expect(pay).toEqual(suggestedRewards(form.fibonacciArray[index]));
+      expect(pay.xp).toBeGreaterThan(before.xp);
+      expect(pay.gp).toBeGreaterThan(before.gp);
+      before = pay;
+    }
+  });
+
+  it("keeps the table's pay in the stored default a quest is filled in from", () => {
+    const { difficulty, xp, gp, ap } = AchievementDb.getDefault();
+    expect({ xp, gp, ap }).toEqual(suggestedRewards(difficulty));
+  });
+});
 
 describe("How hard?: tier chip and minutes", () => {
   it("names the tier of the difficulty", async () => {

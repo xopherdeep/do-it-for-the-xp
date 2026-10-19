@@ -16,9 +16,9 @@
       <!-- Row 1: Strategy & Timing. The small line under a tile says what its flavor word means. -->
       <div class="stats-row strategy">
         <div class="stat-cell">
-          <XpStatBlock :icon="activeAdventureType.icon" label="TYPE" :value="activeAdventureType.name" variant="type"
-            :is-set="activeAdventureType.name !== 'Select'" :clickable="true" value-class="text-xs text-center"
-            @click="$emit('navigate', 'quest-type')" />
+          <XpStatBlock :icon="typeIcon" label="TYPE" :value="typeName" variant="type"
+            :is-set="isTypeChosen" :clickable="true" value-class="text-xs text-center"
+            data-test="type-tile" @click="$emit('navigate', 'quest-type')" />
           <p v-if="typeHint" class="stat-hint">{{ typeHint }}</p>
         </div>
         <div class="stat-cell">
@@ -80,6 +80,7 @@ import XpStatBlock from '@/components/atoms/StatBlock/XpStatBlock.vue';
 import XpStatGrid from '@/components/molecules/StatGrid/XpStatGrid.vue';
 import { timesOfDayLine } from '../hooks/timesOfDayEditor';
 import { approvalHint, partyHint, priorityHint, questTypeHint } from '@/lib/services/quests/QuestLabels';
+import { QUEST_KINDS } from '../../questConfigWizard';
 
 interface Category {
   id: string;
@@ -148,7 +149,14 @@ const heroCountDisplay = computed(() => {
   return props.heroCount;
 });
 
-// Plain-language lines under the flavor words (TYPE "Merc", party count, HONOR, REQD)
+// The TYPE tile names the kind of chore the way step one does (Normal, Beast, Chain), not the lore name the kind and
+// the way it is shared make together ("Merc"), which says nothing about the kind
+const questKind = computed(() => QUEST_KINDS.find((kind) => kind.value === props.achievement.adventureType));
+const isTypeChosen = computed(() => Boolean(questKind.value));
+const typeName = computed(() => questKind.value?.label ?? 'Select');
+const typeIcon = computed(() => (questKind.value ? `fa-${questKind.value.icon}` : props.activeAdventureType.icon));
+
+// Plain-language lines under the flavor words (party count, HONOR, REQD)
 const typeHint = computed(() => questTypeHint(props.achievement.type, props.achievement.adventureType));
 const partyHintText = computed(() => partyHint(props.achievement.type, props.heroCount));
 const approvalText = computed(() => approvalHint(props.achievement.requiresApproval));

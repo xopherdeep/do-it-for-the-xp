@@ -61,10 +61,28 @@ describe("the steps", () => {
     expect(progressOf(steps, complete(), at("hard"))).toEqual({ n: 4, total: 5 });
   });
 
-  it("carry the coach's lines: sharing and the Open Bounty, the schedule, what the difficulty pays", () => {
-    expect(steps[at("who")].guide).toMatch(/Open Bounty/);
+  it("carry the coach's lines: sharing, the schedule, what the difficulty pays", () => {
+    expect(steps[at("who")].guide).toMatch(/shared/);
     expect(steps[at("when")].guide).toMatch(/due/);
     expect(steps[at("hard")].guide).toMatch(/XP, GP and AP/);
+  });
+
+  it("says on Who does it? what to do for the way the quest is shared, and speaks of the Open Bounty only when it is picked", () => {
+    const whoGuide = (type?: string) => questConfigSteps(type)[at("who")].guide;
+    expect(whoGuide("individual")).toBe("Pick the hero who takes it.");
+    expect(whoGuide("asNeeded")).toMatch(/Open Bounty/);
+    for (const type of ["individual", "collaborate", "rotate", "compete", undefined]) {
+      expect(whoGuide(type)).not.toMatch(/Open Bounty/);
+    }
+    for (const type of ["individual", "asNeeded", "collaborate", "rotate", "compete", undefined]) {
+      expect(whoGuide(type).length).toBeGreaterThan(10);
+      expect(whoGuide(type).length).toBeLessThan(100);
+    }
+  });
+
+  it("changes only the Who guide with the way the quest is shared", () => {
+    const others = (type?: string) => questConfigSteps(type).filter((step) => step.id !== "who").map((step) => step.guide);
+    expect(others("asNeeded")).toEqual(others("individual"));
   });
 });
 

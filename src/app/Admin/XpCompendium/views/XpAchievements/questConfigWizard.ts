@@ -10,6 +10,7 @@
  * and the chip's "still missing" list can never disagree.
  */
 import type { Achievement, AchievementCategoryInterface } from "@/lib/databases/AchievementDb";
+import { whoLine } from "@/lib/services/quests/questHeroes";
 import { firstIndex, isReady, lastIndex, skippedAt, stepVerdict } from "@/lib/services/wizard/wizardSteps";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
@@ -94,9 +95,10 @@ export const isQuestReady = (draft: QuestConfigDraft): boolean => RULES.every((r
 
 /**
  * The five screens, the guide line in the Game Master's voice (the Quest tabs' coach lines, one per screen). When and
- * the summary never block: the schedule has defaults from the start and Ready is only the look-over.
+ * the summary never block: the schedule has defaults from the start and Ready is only the look-over. The Who line
+ * describes the way the quest is shared (its `type`), so it never speaks of an Open Bounty while Solo is picked.
  */
-export const questConfigSteps = (): WizardStep<QuestConfigDraft>[] => [
+export const questConfigSteps = (type?: string): WizardStep<QuestConfigDraft>[] => [
   {
     id: "chore",
     title: "What's the chore?",
@@ -107,7 +109,7 @@ export const questConfigSteps = (): WizardStep<QuestConfigDraft>[] => [
   {
     id: "who",
     title: "Who does it?",
-    guide: "Choose how it is shared, then the heroes. An Open Bounty is open to everyone.",
+    guide: whoLine(type),
     icon: "users",
     isValid: stepProblem("who"),
   },

@@ -38,6 +38,12 @@
     font-family: var(--xp-app-font-title);
     font-size: 0.85rem;
   }
+
+  // The ends of the scale ("1" and "144") say nothing a parent can use: the readout above the slider names the step
+  [slot="start"],
+  [slot="end"] {
+    display: none;
+  }
 }
 
 // Autosave chip (Earthbound palette, written out: this sheet has no theme variables)

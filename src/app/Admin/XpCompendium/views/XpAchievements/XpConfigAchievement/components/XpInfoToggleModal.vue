@@ -66,7 +66,7 @@
         <ion-button 
           color="success" 
           @click="handleSave" 
-          class="save-btn"
+          class="save-btn ion-text-wrap"
         >
           <i class="fad fa-check-circle mr-2"></i>
           {{ confirmLabel }}
@@ -326,13 +326,24 @@ defineOptions({
   
   .cancel-btn {
     flex: 1;
+    min-width: 0;
     --border-radius: 12px;
     font-size: 0.85rem;
   }
   
+  // "SET AS HONOR SYSTEM" is wider than two thirds of the sheet at 390px: the label wraps inside the button
+  // (ion-text-wrap) instead of running past the sheet's right edge, and the button grows to hold two lines
   .save-btn {
     flex: 2;
+    min-width: 0;
+    height: auto;
+    min-height: 48px;
+    white-space: normal;
+    line-height: 1.5;
+    text-align: center;
     --border-radius: 12px;
+    --padding-top: 10px;
+    --padding-bottom: 10px;
     font-family: "Press Start 2P";
     font-size: 0.55rem;
     --box-shadow: 0 4px 16px rgba(var(--ion-color-success-rgb), 0.3);

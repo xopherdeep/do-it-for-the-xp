@@ -1,4 +1,5 @@
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { SEED_REWARDS } from "@/lib/services/core/packs/packSeeds";
 import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
 import {
   addStep,
@@ -22,6 +23,7 @@ import {
   sizesFor,
   stepGuide,
   STEP_ICON,
+  suggestedRewards,
   toggleDay,
   toggleHero,
   typeChore,
@@ -109,9 +111,31 @@ describe("sizes", () => {
     expect(KID_MAX_DIFFICULTY).toBe(5);
   });
 
-  it("pays the Compendium's rewards: 100 XP, 10 GP and 1 AP per point", () => {
-    expect(rewardsOf(3)).toEqual({ xp: 300, gp: 30, ap: 3 });
-    expect(rewardsOf(13)).toEqual({ xp: 1300, gp: 130, ap: 13 });
+  it("pays what the Quick Start quests pay for the same size: Small is 120 XP, 30 GP and 2 AP", () => {
+    expect(rewardsOf(1)).toEqual({ xp: 60, gp: 15, ap: 1 });
+    expect(rewardsOf(2)).toEqual({ xp: 120, gp: 30, ap: 2 });
+    expect(rewardsOf(3)).toEqual({ xp: 220, gp: 60, ap: 4 });
+    for (const size of [1, 2, 3] as const) expect(rewardsOf(size)).toEqual(SEED_REWARDS[size]);
+  });
+
+  it("goes on past the packs' sizes at the rate of the largest one, so Tiny pays less than Small and a bigger size never pays less", () => {
+    expect(rewardsOf(5)).toEqual({ xp: 370, gp: 100, ap: 7 });
+    expect(rewardsOf(8)).toEqual({ xp: 590, gp: 160, ap: 11 });
+    expect(rewardsOf(13)).toEqual({ xp: 950, gp: 260, ap: 17 });
+    const sizes = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+    for (let at = 1; at < sizes.length; at++) {
+      const smaller = suggestedRewards(sizes[at - 1]);
+      const bigger = suggestedRewards(sizes[at]);
+      expect(bigger.xp).toBeGreaterThan(smaller.xp);
+      expect(bigger.gp).toBeGreaterThan(smaller.gp);
+      expect(bigger.ap).toBeGreaterThan(smaller.ap);
+    }
+  });
+
+  it("treats a size that is no number, or less than Tiny, as Tiny", () => {
+    expect(suggestedRewards(Number.NaN)).toEqual(suggestedRewards(1));
+    expect(suggestedRewards(0)).toEqual(suggestedRewards(1));
+    expect(suggestedRewards(-4)).toEqual(suggestedRewards(1));
   });
 
   it("snaps a stray number to the nearest size the person may pick", () => {
@@ -276,9 +300,9 @@ describe("building the quest", () => {
       repeatOnDays: [],
       timesOfDay: ["evening"],
       difficulty: 3,
-      xp: 300,
-      gp: 30,
-      ap: 3,
+      xp: 220,
+      gp: 60,
+      ap: 4,
       type: "individual",
       draft: false,
       bonusAchievement: false,
@@ -352,7 +376,7 @@ describe("how a hero's quest is protected", () => {
 
   it("is never bigger than Big, whatever the draft says", () => {
     const { quest } = buildWizardQuest(picked("bed-basilisk", { difficulty: 13 }), kidCtx);
-    expect(quest).toMatchObject({ difficulty: 5, xp: 500, gp: 50, ap: 5 });
+    expect(quest).toMatchObject({ difficulty: 5, xp: 370, gp: 100, ap: 7 });
   });
 
   it("a chore that asks for a photo carries the flag and forces approval on for a Game Master too", () => {
@@ -375,7 +399,7 @@ describe("what a Game Master may do", () => {
   it("picks any heroes, any size and whether the quest needs approval", () => {
     const draft = toggleHero(picked("bed-basilisk", { difficulty: 13, heroIds: ["kid-1"] }, true), "kid-2");
     const { quest } = buildWizardQuest(draft, gmCtx);
-    expect(quest).toMatchObject({ assignee: ["kid-1", "kid-2"], difficulty: 13, xp: 1300, requiresApproval: false, createdBy: "gm-1" });
+    expect(quest).toMatchObject({ assignee: ["kid-1", "kid-2"], difficulty: 13, xp: 950, requiresApproval: false, createdBy: "gm-1" });
     expect(buildWizardQuest({ ...draft, requiresApproval: true }, gmCtx).quest.requiresApproval).toBe(true);
   });
 

@@ -4,9 +4,9 @@
  * no Vue, no router; the screen holds a draft, calls these to change it and builds the quest with `buildWizardQuest`.
  *
  * The quest is built the way the Compendium form saves one (useAchievementForm): a beast quest on a basic schedule,
- * the Fibonacci rewards (xp = d x 100, gp = d x 10, ap = d), the name in the form's title case, and the library
- * beast adopted into the family's bestiary the way the form does (beastToAdopt). Everything has a default: today,
- * anytime, Small, the hero themself. Only the name is required.
+ * the rewards of its size (`suggestedRewards`: the Quick Start pack's table, so Small pays 120 XP / 30 GP), the name
+ * in the form's title case, and the library beast adopted into the family's bestiary the way the form does
+ * (beastToAdopt). Everything has a default: today, anytime, Small, the hero themself. Only the name is required.
  *
  * A quest made by a hero who is not a Game Master is kept small and safe, and the rules live in the builder, not in
  * the screen: it is for that hero alone, at most Big (5), it needs the Game Master's approval, and it records who made it.
@@ -23,8 +23,9 @@ import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
-import { heroBandFor, rewardsFor } from "@/lib/services/core/packs/packCommon";
+import { heroBandFor } from "@/lib/services/core/packs/packCommon";
 import type { PackBand } from "@/lib/services/core/packs/packCommon";
+import { SEED_REWARDS } from "@/lib/services/core/packs/packSeeds";
 import { activeSuggestion, beastQuestPatch, beastToAdopt } from "@/lib/services/quests/questFormRules";
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
@@ -145,8 +146,39 @@ export function clampDifficulty(difficulty: number, isGm: boolean): number {
   return allowed.reduce((best, size) => (Math.abs(size - wanted) < Math.abs(best - wanted) ? size : best), allowed[0]);
 }
 
-/** The rewards a size pays, as chips: the Compendium's rule (rewardsFor in packCommon). */
-export const rewardsOf = (difficulty: number) => rewardsFor(difficulty);
+export interface SizeRewards {
+  xp: number;
+  gp: number;
+  ap: number;
+}
+
+/** The largest size the packs price (Medium, 3): the bigger sizes carry on at its rate per point of difficulty. */
+const LARGEST_PACK_SIZE = 3;
+
+/** Round to the nearest multiple, so a big reward reads as 370 XP and not 366.67. */
+const roundedTo = (value: number, multiple: number): number => Math.round(value / multiple) * multiple;
+
+/**
+ * What a size pays: one table for the wizard and the packs. Sizes 1, 2 and 3 are the Quick Start pack's own rewards
+ * (packSeeds.SEED_REWARDS: Tiny 60 XP / 15 GP, Small 120 / 30, Medium 220 / 60), so a quest made by hand pays the same
+ * as a quest of that size from a pack. Bigger sizes carry on at Medium's rate per point of difficulty, which keeps
+ * every size paying more than the one below it. A size that is no number, or under 1, pays as Tiny.
+ */
+export function suggestedRewards(difficulty: number): SizeRewards {
+  const wanted = Number(difficulty);
+  const size = Number.isFinite(wanted) ? Math.max(1, Math.round(wanted)) : 1;
+  const isInPackTable = size <= LARGEST_PACK_SIZE;
+  if (isInPackTable) return { ...SEED_REWARDS[size as keyof typeof SEED_REWARDS] };
+  const perPoint = SEED_REWARDS[LARGEST_PACK_SIZE];
+  return {
+    xp: roundedTo((perPoint.xp / LARGEST_PACK_SIZE) * size, 10),
+    gp: roundedTo((perPoint.gp / LARGEST_PACK_SIZE) * size, 5),
+    ap: Math.round((perPoint.ap / LARGEST_PACK_SIZE) * size),
+  };
+}
+
+/** The rewards a size pays, as chips (the same table the quest is built with). */
+export const rewardsOf = (difficulty: number): SizeRewards => suggestedRewards(difficulty);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Which chore: the library, sorted for the hero
@@ -451,7 +483,7 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     customPeriodNumber: 1,
     ...schedule,
     difficulty,
-    ...rewardsFor(difficulty),
+    ...suggestedRewards(difficulty),
     draft: false,
     createdBy: ctx.creatorId,
   };

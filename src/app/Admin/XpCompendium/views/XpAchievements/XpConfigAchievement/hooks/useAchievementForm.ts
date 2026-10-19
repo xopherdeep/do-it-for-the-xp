@@ -33,6 +33,7 @@ import { useQuestEffort, useQuestTier } from "./useQuestEffort";
 import { useBeastSuggestion } from "./useBeastSuggestion";
 import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
 import { isDraftOnSave, newQuestOpening } from "@/lib/services/quests/questDrafts";
+import { suggestedRewards } from "@/lib/services/quests/questWizard";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -353,9 +354,8 @@ export function useAchievementForm() {
     achievement.value = {
       ...achievement.value,
       difficulty: closestFib,
-      xp: closestFib * 100,
-      gp: closestFib * 10,
-      ap: closestFib * 1,
+      // The same table as the packs and the Quest Wizard: Small pays the Quick Start's 120 XP / 30 GP
+      ...suggestedRewards(closestFib),
     };
   };
 
