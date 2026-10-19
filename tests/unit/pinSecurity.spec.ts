@@ -1,6 +1,16 @@
 import { hasPin, hasUnsealedSecrets, isSealed, pinMatches, sealProfileSecrets, sealSecret, secretMatches, sha256 } from "@/lib/services/profile/pinSeal";
 import { FIRST_LOCK_MS, FREE_TRIES, MAX_LOCK_MS, NO_LOCKOUT, formatWait, lockMsAfter, msLeft, readLockout, recordWrongTry, saveLockout } from "@/lib/services/profile/pinLockout";
-import { hasRecoveryCode, mintRecoveryCode, normalizeRecoveryCode, recoveryCodeMatches, sealRecoveryCode } from "@/lib/services/profile/pinRecovery";
+import {
+  RECOVERY_DELIVERED,
+  canReissueRecoveryCode,
+  hasRecoveryCode,
+  issueRecoveryCode,
+  mintRecoveryCode,
+  needsRecoveryCodeShown,
+  normalizeRecoveryCode,
+  recoveryCodeMatches,
+  sealRecoveryCode,
+} from "@/lib/services/profile/pinRecovery";
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 const ascii = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
@@ -86,5 +96,85 @@ describe("recovery codes", () => {
     expect(recoveryCodeMatches(profile, "7KQ3-M9TX")).toBe(false);
     expect(recoveryCodeMatches({}, "7KQ3-M9TW")).toBe(false);
     expect(normalizeRecoveryCode(" ab-cd ")).toBe("ABCD");
+  });
+});
+
+describe("a recovery code counts as delivered only when the Game Master says they wrote it down", () => {
+  const dad = { id: "dad", isAdult: true, passcode: sealSecret("4321") };
+
+  it("asks a Game Master with no code for one, and never a hero", () => {
+    expect(needsRecoveryCodeShown(dad)).toBe(true);
+    expect(needsRecoveryCodeShown({ id: "mia", isAdult: false })).toBe(false);
+    expect(needsRecoveryCodeShown(undefined)).toBe(false);
+  });
+
+  it("a code saved but not yet confirmed is handed over again on every unlock", () => {
+    const issued = issueRecoveryCode("7KQ3-M9TW");
+    const closedMidDialog = { ...dad, ...issued.fields };
+    expect(issued.code).toBe("7KQ3-M9TW");
+    expect(closedMidDialog.pinRecoveryPending).toBe(true);
+    expect(needsRecoveryCodeShown(closedMidDialog)).toBe(true);
+    expect(needsRecoveryCodeShown(closedMidDialog)).toBe(true);
+  });
+
+  it("the replacement for an unconfirmed code works and the unconfirmed one stops", () => {
+    const first = issueRecoveryCode("7KQ3-M9TW");
+    const afterFirst = { ...dad, ...first.fields };
+    const second = issueRecoveryCode("ZZZ2-3456");
+    const afterSecond = { ...afterFirst, ...second.fields };
+    expect(recoveryCodeMatches(afterFirst, first.code)).toBe(true);
+    expect(recoveryCodeMatches(afterSecond, first.code)).toBe(false);
+    expect(recoveryCodeMatches(afterSecond, second.code)).toBe(true);
+    expect(needsRecoveryCodeShown(afterSecond)).toBe(true);
+  });
+
+  it("once confirmed the code is not shown again and still works", () => {
+    const issued = issueRecoveryCode();
+    const confirmed = { ...dad, ...issued.fields, ...RECOVERY_DELIVERED };
+    expect(needsRecoveryCodeShown(confirmed)).toBe(false);
+    expect(recoveryCodeMatches(confirmed, issued.code)).toBe(true);
+  });
+
+  it("a reissue gives a new code, the old one stops working, and the same confirm gate applies", () => {
+    const old = issueRecoveryCode("7KQ3-M9TW");
+    const delivered = { ...dad, ...old.fields, ...RECOVERY_DELIVERED };
+    const fresh = issueRecoveryCode("MNP2-4567");
+    const reissued = { ...delivered, ...fresh.fields };
+    expect(fresh.code).not.toBe(old.code);
+    expect(recoveryCodeMatches(reissued, old.code)).toBe(false);
+    expect(recoveryCodeMatches(reissued, fresh.code)).toBe(true);
+    expect(needsRecoveryCodeShown(reissued)).toBe(true);
+    expect(needsRecoveryCodeShown({ ...reissued, ...RECOVERY_DELIVERED })).toBe(false);
+  });
+
+  it("a code saved before the confirm mark existed counts as delivered", () => {
+    const legacy = { ...dad, pinRecovery: sealRecoveryCode("7KQ3-M9TW") };
+    expect(hasRecoveryCode(legacy)).toBe(true);
+    expect(needsRecoveryCodeShown(legacy)).toBe(false);
+  });
+
+  it("keeps the code sealed: only the hash is saved, never the code as shown", () => {
+    const issued = issueRecoveryCode("7KQ3-M9TW");
+    expect(isSealed(issued.fields.pinRecovery)).toBe(true);
+    expect(JSON.stringify(issued.fields)).not.toMatch(/7KQ3|M9TW/);
+    expect(hasUnsealedSecrets({ ...dad, ...issued.fields })).toBe(false);
+  });
+});
+
+describe("who may make a new recovery code", () => {
+  const users = { dad: { isAdult: true }, mia: { isAdult: false } };
+
+  it("a signed-in Game Master may", () => {
+    expect(canReissueRecoveryCode({ currentUser: { id: "dad" }, users })).toBe(true);
+  });
+
+  it("a hero, a stranger or nobody may not", () => {
+    expect(canReissueRecoveryCode({ currentUser: { id: "mia" }, users })).toBe(false);
+    expect(canReissueRecoveryCode({ currentUser: { id: "ghost" }, users })).toBe(false);
+    expect(canReissueRecoveryCode({ currentUser: { id: null }, users })).toBe(false);
+  });
+
+  it("a Game Master masquerading as a hero may not, because the code is theirs, not the hero's", () => {
+    expect(canReissueRecoveryCode({ currentUser: { id: "mia", isImpersonating: true }, users })).toBe(false);
   });
 });
