@@ -37,6 +37,7 @@ import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
 import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { readExits } from '@/lib/services/temples/RoomInteractions';
 import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
+import { wakeTempleOnEntry } from '@/lib/services/temples/wakeOnEntry';
 import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
 import { useTempleLayout } from './templeGrounds/useTempleLayout';
 import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
@@ -368,6 +369,23 @@ export default defineComponent({
         fx('no');
         say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
       });
+    });
+
+    // The first time a hero walks into a shipped temple, its sleeping monster beasts wake as their quests for them
+    // (wakeOnEntry). It waits for the temple's saved layout, and the run then reads the hero's board again so the rooms show them.
+    onMounted(() => {
+      void whenOpened
+        .then((isOpened) => {
+          const canWake = isOpened && Boolean(progressHeroId);
+          return canWake ? wakeTempleOnEntry(props.temple, String(progressHeroId)) : null;
+        })
+        .then(async (woke) => {
+          const hasNewQuests = Boolean(woke?.changed);
+          if (!hasNewQuests) return;
+          await templeSystem.whenProgressReady(props.temple);
+          await templeSystem.refreshQuestRooms(props.temple);
+        })
+        .catch((error: unknown) => debug.warn('[TempleGrounds] the temple could not wake its beasts', error));
     });
 
     // Tapping an equipped item: the select tick, then whatever the item does here
