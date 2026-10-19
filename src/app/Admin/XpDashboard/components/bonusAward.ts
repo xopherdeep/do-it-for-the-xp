@@ -50,7 +50,8 @@ export const canAward = (memberCount: number, amounts: AwardAmounts): boolean =>
 
 /** The Game Master's note as one trimmed line of at most MAX_NOTE_LENGTH characters */
 export const tidyNote = (raw: unknown): string => {
-  if (typeof raw !== "string") return "";
+  const isNotText = typeof raw !== "string";
+  if (isNotText) return "";
   return raw.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE_LENGTH).trimEnd();
 };
 

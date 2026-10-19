@@ -54,7 +54,8 @@ export function useBeastSuggestion({ achievement, beasts, bestiaryDb, isLive }: 
     // The strike clock follows the chore (a walk takes longer than a Tiny quest's 3 minutes) unless the parent typed minutes
     const minutes = minutesOnTaking(achievement.value, entry);
     Object.assign(achievement.value, beastQuestPatch(entry));
-    if (minutes !== null) achievement.value.estimatedMinutes = minutes;
+    const hasMinutes = minutes !== null;
+    if (hasMinutes) achievement.value.estimatedMinutes = minutes;
     pickedSuggestion.value = null;
   };
 

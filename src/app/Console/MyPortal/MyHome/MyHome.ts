@@ -4,16 +4,14 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useUserActions } from "@/hooks/useUserActions";
-import { useVoice } from "@/hooks/useVoice";
 import { play$fx } from "@/assets/fx";
 import ionic from "@/lib/mixins/ionic";
 import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
 import { quoteBedRest } from "@/lib/services/hometown/Lodging";
-import { bedRestConfirmPrompt } from "@/lib/services/hometown/bedRestPrompt";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
-import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { useBedRest } from "./useBedRest";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -79,8 +77,7 @@ export default defineComponent({
     const user = computed(() => userStore.getUserById(userId.value));
     const showSaveQuitModal = ref(false);
     // The bed asks in the game's own dialog, in the hero's voice
-    const reveal = useRevealPrompt();
-    const { voice: words } = useVoice();
+    const { prompt, submitAnswer, confirmBedRest } = useBedRest();
 
     const closeModal = () => modalController.dismiss()
     const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
@@ -122,8 +119,7 @@ export default defineComponent({
         return;
       }
 
-      const pick = await reveal.showPrompt(bedRestConfirmPrompt(words.value));
-      const isRestChosen = pick === "yes";
+      const isRestChosen = await confirmBedRest();
       if (!isRestChosen) return;
 
       const hasHpGain = quote.hpGain > 0;
@@ -148,8 +144,8 @@ export default defineComponent({
     return {
       userAvatar,
       restInBed,
-      reveal,
-      prompt: reveal.prompt,
+      prompt,
+      submitAnswer,
       closeModal,
       clickSave,
       user,

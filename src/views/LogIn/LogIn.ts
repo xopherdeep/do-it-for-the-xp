@@ -79,7 +79,8 @@ export default defineComponent({
 
     // Helper method to clear the inactivity timer
     clearInactivityTimer(): void {
-      if (this.inactivityTimer) {
+      const hasInactivityTimer = Boolean(this.inactivityTimer);
+      if (hasInactivityTimer) {
         debug.log('Clearing inactivity timer');
         clearTimeout(this.inactivityTimer as ReturnType<typeof setTimeout>);
         this.inactivityTimer = 0;

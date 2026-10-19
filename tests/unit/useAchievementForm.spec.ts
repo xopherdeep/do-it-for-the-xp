@@ -440,9 +440,9 @@ describe("a draft until Ready (GitHub issue #126)", () => {
 
   it("says what New Quest opens on: fresh with no draft, else the draft to ask about", async () => {
     const form = useAchievementForm();
-    expect(await form.newQuestOpeningNow()).toEqual({ kind: "fresh" });
+    expect(await form.loadNewQuestOpening()).toEqual({ kind: "fresh" });
     await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Feed The Dog", draft: true });
-    const opening = await form.newQuestOpeningNow();
+    const opening = await form.loadNewQuestOpening();
     expect(opening).toMatchObject({ kind: "ask", waiting: 1, draft: { id: "q-draft" } });
   });
 });

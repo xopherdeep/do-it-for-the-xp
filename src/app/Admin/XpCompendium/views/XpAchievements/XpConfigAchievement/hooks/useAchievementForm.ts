@@ -525,7 +525,7 @@ export function useAchievementForm() {
   };
 
   /** What New Quest opens on: a fresh quest when no draft waits, else the draft to ask about (questDrafts.ts) */
-  const newQuestOpeningNow = async () => newQuestOpening(await achievementDb.getTasks());
+  const loadNewQuestOpening = async () => newQuestOpening(await achievementDb.getTasks());
 
   /** What goes to storage: no empty times of day, no unusable minutes */
   const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
@@ -747,7 +747,7 @@ export function useAchievementForm() {
 
     // Actions
     loadData,
-    newQuestOpeningNow,
+    loadNewQuestOpening,
     confirmReady,
     savePending,
     updatePoints,

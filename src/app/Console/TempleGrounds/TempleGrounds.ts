@@ -1,4 +1,4 @@
-import { defineComponent, onMounted, computed, ref } from 'vue';
+import { defineComponent, computed, ref } from 'vue';
 import { onIonViewWillEnter } from '@ionic/vue';
 import ionic from '@/lib/mixins/ionic';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
@@ -33,13 +33,12 @@ import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeo
 import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
-import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
 import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { readExits } from '@/lib/services/temples/RoomInteractions';
 import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
-import { wakeTempleOnEntry } from '@/lib/services/temples/wakeOnEntry';
 import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
 import { useTempleLayout } from './templeGrounds/useTempleLayout';
+import { useTempleEntry } from './templeGrounds/useTempleEntry';
 import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
@@ -360,33 +359,8 @@ export default defineComponent({
       isEquipmentOpen.value = true;
     };
 
-    // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
-    onMounted(() => {
-      // The run starts after the temple's saved layout was read, and the hero's save is read once it has
-      void whenOpened.then(() => templeSystem.whenProgressReady(props.temple)).then(() => {
-        const hasBloodMoonRisen = templeSystem.bloodMoonRose(props.temple);
-        if (!hasBloodMoonRisen) return;
-        fx('no');
-        say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
-      });
-    });
-
-    // The first time a hero walks into a shipped temple, its sleeping monster beasts wake as their quests for them
-    // (wakeOnEntry). It waits for the temple's saved layout, and the run then reads the hero's board again so the rooms show them.
-    onMounted(() => {
-      void whenOpened
-        .then((isOpened) => {
-          const canWake = isOpened && Boolean(progressHeroId);
-          return canWake ? wakeTempleOnEntry(props.temple, String(progressHeroId)) : null;
-        })
-        .then(async (woke) => {
-          const hasNewQuests = Boolean(woke?.changed);
-          if (!hasNewQuests) return;
-          await templeSystem.whenProgressReady(props.temple);
-          await templeSystem.refreshQuestRooms(props.temple);
-        })
-        .catch((error: unknown) => debug.warn('[TempleGrounds] the temple could not wake its beasts', error));
-    });
+    // What happens as the hero walks in: the blood moon notice, and the first visit's wake of the temple's beasts
+    useTempleEntry({ temple: props.temple, heroId: progressHeroId, whenOpened, templeSystem, templeShortName, say, fx });
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {

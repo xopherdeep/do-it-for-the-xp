@@ -40,7 +40,8 @@ export function choreMinutes(entry: LibraryEntry | null | undefined, difficulty?
   if (!entry) return null;
   if (isClassicBeast(entry)) return null;
   const minutes: number | undefined = CHORE_MINUTES[entry.slug];
-  if (minutes === undefined) return null;
+  const hasNoMinutes = minutes === undefined;
+  if (hasNoMinutes) return null;
   const isLongerThanItsSize = minutes > defaultMinutes(difficulty);
   return isLongerThanItsSize ? minutes : null;
 }

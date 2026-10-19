@@ -53,7 +53,8 @@ const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<st
   const kept: Record<string, string> = {};
   if (!isRecord(woken)) return kept;
   for (const [templeId, at] of Object.entries(woken)) {
-    if (typeof at === "string") kept[templeId] = at;
+    const isStoredTime = typeof at === "string";
+    if (isStoredTime) kept[templeId] = at;
   }
   return kept;
 };
@@ -300,7 +301,8 @@ export async function playedLayoutOf(templeId: string): Promise<PlayedLayout | n
     // The storage has to be created before it is read
     await templeStorage.create();
     const record = await templeDb.getTempleById(templeId);
-    if (record?.dungeonLayout) return record.dungeonLayout;
+    const storedLayout = record?.dungeonLayout;
+    if (storedLayout) return storedLayout;
   } catch (error) {
     debug.warn(`[wakeOnEntry] could not read ${templeId} from the TempleDb; reading the shipped layout`, error);
   }

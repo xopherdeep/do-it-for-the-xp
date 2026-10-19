@@ -27,7 +27,8 @@ const isThenable = (value: unknown): value is Promise<unknown> =>
  */
 export const guardMediaPlay = (proto: Playable, onRefused: (reason: unknown) => void): boolean => {
   const original = proto.play;
-  if (typeof original !== 'function') return false;
+  const isPlayMissing = typeof original !== 'function';
+  if (isPlayMissing) return false;
   if (isPlayGuarded(proto)) return false;
 
   const guarded: GuardedPlay = function guardedPlay(this: unknown, ...args: unknown[]) {

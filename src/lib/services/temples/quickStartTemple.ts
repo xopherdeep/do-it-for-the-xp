@@ -112,7 +112,8 @@ export function quickStartTemplePlan<L extends PlayedLayout>(
 ): QuickStartTemplePlan<L> {
   const wake = { templeId: QUICK_START_TEMPLE_ID, templates: [] as RoomQuestTemplate[], heroIds: [...heroIds], now };
   const hasRooms = Boolean(layout?.maze) && Boolean(layout?.rooms);
-  if (!layout || !hasRooms) return { layout: null, placed: [], unplaced: [...questIds], wake };
+  const hasNothingToPlace = !layout || !hasRooms;
+  if (hasNothingToPlace) return { layout: null, placed: [], unplaced: [...questIds], wake };
 
   const rooms: Record<string, Room> = { ...(layout.rooms ?? {}) };
   const held = new Set(Object.values(rooms).flatMap((room) => roomQuestIds(room)));

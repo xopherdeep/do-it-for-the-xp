@@ -139,8 +139,7 @@ export async function askReissueRecoveryCode(): Promise<boolean> {
   });
   await alert.present();
   const { role } = await alert.onDidDismiss();
-  const isConfirmed = role === "confirm";
-  return isConfirmed;
+  return role === "confirm";
 }
 
 /** Settings > Family: confirm, then make and show a new recovery code. False when the Game Master declined. */

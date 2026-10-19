@@ -73,7 +73,8 @@ export interface InterestDue {
 
 /** What the bank owes this hero this week, or null when interest is off or this week was already paid */
 export const interestDueFor = ({ rules, savings, paidWeek, now, weekStartsOn = 1 }: InterestDueInput): InterestDue | null => {
-  if (!rules.enabled) return null;
+  const isInterestOff = !rules.enabled;
+  if (isInterestOff) return null;
   const week = weekKeyOf(now, weekStartsOn);
   const isPaid = paidWeek === week;
   if (isPaid) return null;

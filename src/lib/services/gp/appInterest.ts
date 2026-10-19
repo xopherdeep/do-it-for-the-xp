@@ -36,7 +36,8 @@ export const payBankInterest = async (store: InterestStore, rules: InterestRules
   const paid: InterestPaid[] = [];
   for (const [userId, hero] of Object.entries(store.users)) {
     const purse = hero?.stats?.gp;
-    if (!purse || typeof purse !== "object") continue;
+    const hasNoPurse = !purse || typeof purse !== "object";
+    if (hasNoPurse) continue;
     const due = interestDueFor({
       rules: rules.savingsInterest,
       savings: purse.savings,

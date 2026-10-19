@@ -36,7 +36,7 @@
               :disabled="isBackupBusy"
               :style="canRestore ? undefined : { opacity: 0.5 }"
               lines="none"
-              @click="chooseRestoreFile"
+              @click="selectRestoreFile"
             >
               <ion-icon slot="start" color="rpg" :icon="cloudUploadOutline"></ion-icon>
               <ion-label>
@@ -232,7 +232,7 @@
 
       async runBackup() {
         try {
-          const { fileName, savedTo, summary } = await this.withLoading(
+          const { fileName, savedTo, summary } = await this.runWithLoading(
             "Packing your backup...",
             () => backupService.exportAll()
           );
@@ -247,7 +247,7 @@
     },
     setup() {
       // A backup or restore is running; the restore flow is shared with the empty File Select screen
-      const { isBackupBusy, withLoading, chooseRestoreFile } = useBackupRestore();
+      const { isBackupBusy, runWithLoading, selectRestoreFile } = useBackupRestore();
       const userStore = useUserStore();
       const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
       // When the last backup was made, and how to say so under "Back up everything"
@@ -296,8 +296,8 @@
         canManage,
         comingSoon: GENERAL_COMING_SOON,
         canRestore,
-        chooseRestoreFile,
-        withLoading,
+        selectRestoreFile,
+        runWithLoading,
         cloudDownloadOutline,
         cloudUploadOutline,
       };

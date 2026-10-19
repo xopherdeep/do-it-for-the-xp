@@ -173,6 +173,7 @@ const INTEREST_COPY: CopyCatalog = {
 
 /** The banker's line about weekly interest, or null while it is off (he never brags about a rate that is not paid). */
 export function interestGreeting(rules: SavingsInterestSettings | null | undefined, voice: Voice = "adventure"): string | null {
-  if (rules?.enabled !== true) return null;
+  const isInterestOff = rules?.enabled !== true;
+  if (isInterestOff) return null;
   return copyFrom(INTEREST_COPY, "bank.greet.interest", voice, { rate: rules.weeklyRatePercent });
 }

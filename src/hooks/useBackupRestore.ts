@@ -45,7 +45,7 @@ export function useBackupRestore() {
   };
 
   /** Shows a spinner while a backup or restore runs and keeps a second one from starting */
-  const withLoading = async <T>(message: string, task: () => Promise<T>): Promise<T> => {
+  const runWithLoading = async <T>(message: string, task: () => Promise<T>): Promise<T> => {
     isBackupBusy.value = true;
     let loading: Awaited<ReturnType<typeof loadingController.create>> | undefined;
     try {
@@ -92,7 +92,7 @@ export function useBackupRestore() {
 
   const runRestore = async (backup: BackupFile) => {
     try {
-      const result = await withLoading("Restoring your data...", () => backupService.restoreBackup(backup));
+      const result = await runWithLoading("Restoring your data...", () => backupService.restoreBackup(backup));
       await showRestoreDone(result);
     } catch (error) {
       await showAlert("Restore failed", errorMessage(error));
@@ -149,7 +149,7 @@ export function useBackupRestore() {
   };
 
   /** Opens the file picker. A hero on a device that has profiles is told to ask a Game Master instead. */
-  const chooseRestoreFile = () => {
+  const selectRestoreFile = () => {
     if (isBackupBusy.value) return;
     if (!canRestoreHere()) {
       void showToast(RESTORE_GM_ONLY_MESSAGE, 2500);
@@ -165,5 +165,5 @@ export function useBackupRestore() {
     input.click();
   };
 
-  return { isBackupBusy, withLoading, chooseRestoreFile };
+  return { isBackupBusy, runWithLoading, selectRestoreFile };
 }

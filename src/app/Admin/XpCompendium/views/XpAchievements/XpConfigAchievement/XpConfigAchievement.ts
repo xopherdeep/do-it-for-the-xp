@@ -1,6 +1,4 @@
-import { defineComponent, provide, computed, ref, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
-import { v4 as uuidv4 } from "uuid";
+import { defineComponent, provide, computed, ref } from "vue";
 import {
   IonPage,
   IonContent,
@@ -19,11 +17,7 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
-import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import { useAppSkin, XP_APP_ACCENTS } from "@/components/organisms/XpApp/useAppSkin";
-import type { Achievement } from "@/lib/databases/AchievementDb";
-import { deleteQuest } from "@/lib/services/compendium/deleteContent";
-import { draftAction, unfinishedDraftPrompt } from "@/lib/services/quests/questDrafts";
+import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 import XpInfoToggleModal from "./components/XpInfoToggleModal.vue";
@@ -36,6 +30,7 @@ import {
   useAchievementForm,
   AchievementFormInjectionKey,
 } from "./hooks/useAchievementForm";
+import { useNewQuestOpening } from "./hooks/useNewQuestOpening";
 import {
   ASSIGNMENT_CHOICES,
   QUEST_KINDS,
@@ -81,7 +76,6 @@ export default defineComponent({
   },
   props: ["id"],
   setup(props) {
-    const router = useRouter();
     const form = useAchievementForm();
 
     // Provide the entire form hook to the step bodies
@@ -119,7 +113,7 @@ export default defineComponent({
 
       // Actions
       loadData,
-      newQuestOpeningNow,
+      loadNewQuestOpening,
       confirmReady: markReady,
       savePending: flushSave,
       selectCategory: pickCategory,
@@ -175,70 +169,12 @@ export default defineComponent({
       isOpen.value = true;
     };
 
-    /** Open a quest and give the page its address: load it first, so the state is ready */
-    const openAt = (questId: string) => {
-      void open(questId);
-      router.replace({
-        name: "xp-achievement-config-dashboard",
-        params: { id: questId },
-      });
-    };
-
     // ---- New Quest: a draft still waiting is resumed or discarded first; only with none is a new id minted ----------
-    const { prompt: draftPrompt, showPrompt: askAboutDraft, submitAnswer: respondDraft } = useRevealPrompt();
-    // The prompt settles as Not now when the page goes away mid-question: then nothing more happens here
-    let isGone = false;
-    onBeforeUnmount(() => {
-      isGone = true;
-    });
-
-    const readOpening = async () => {
-      try {
-        return await newQuestOpeningNow();
-      } catch (error) {
-        debug.warn("[QuestWizard] the drafts could not be read", error);
-        return { kind: "fresh" as const };
-      }
-    };
-
-    const discardDraft = async (draft: Achievement): Promise<boolean> => {
-      try {
-        // Delete with cleanup: nothing is left pointing at the draft
-        await deleteQuest(draft);
-        return true;
-      } catch (error) {
-        debug.warn("[QuestWizard] the draft could not be discarded", error);
-        play$fx("no");
-        void say("It could not be discarded", "The draft is still in the Compendium.");
-        return false;
-      }
-    };
-
-    const settleNewQuest = async (): Promise<void> => {
-      const opening = await readOpening();
-      const isFresh = opening.kind === "fresh";
-      if (isFresh) return openAt(uuidv4());
-      const answer = await askAboutDraft(unfinishedDraftPrompt(opening.draft, opening.waiting, { accent: XP_APP_ACCENTS.quests }));
-      if (isGone) return;
-      const action = draftAction(answer);
-      if (action === "resume") return openAt(String(opening.draft.id));
-      const isDiscarded = action === "discard" && (await discardDraft(opening.draft));
-      // The next draft is asked about in turn; a new id only once none is left
-      if (isDiscarded) return settleNewQuest();
-      goBack();
-    };
-
-    // One question at a time: a second ask would settle the first as Not now and leave the page
-    let isStarting = false;
-    const startNewQuest = async (): Promise<void> => {
-      if (isStarting) return;
-      isStarting = true;
-      try {
-        await settleNewQuest();
-      } finally {
-        isStarting = false;
-      }
-    };
+    const {
+      newQuestPrompt: draftPrompt,
+      submitAnswer: respondDraft,
+      startNewQuest,
+    } = useNewQuestOpening({ loadOpening: loadNewQuestOpening, openQuest: open, say, goBack });
 
     // Lifecycle
     onIonViewWillEnter(() => {

@@ -98,19 +98,19 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("chooseRestoreFile: who may start it", () => {
+describe("selectRestoreFile: who may start it", () => {
   it("tells a hero to ask a Game Master and opens no file picker", () => {
     (canRestoreHere as jest.Mock).mockReturnValue(false);
     withUsers(3);
 
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
 
     expect(mockShowToast).toHaveBeenCalledWith(GM_ONLY, 2500);
     expect(pickedInput()).toBeNull();
   });
 
   it("opens a JSON file picker on an empty device, where there is no Game Master to ask", () => {
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
 
     expect(mockShowToast).not.toHaveBeenCalled();
     expect(pickedInput()?.type).toBe("file");
@@ -119,8 +119,8 @@ describe("chooseRestoreFile: who may start it", () => {
 
   it("opens no second picker while a backup or restore is running", async () => {
     const flow = useBackupRestore();
-    await flow.withLoading("Working...", async () => {
-      flow.chooseRestoreFile();
+    await flow.runWithLoading("Working...", async () => {
+      flow.selectRestoreFile();
     });
 
     expect(pickedInput()).toBeNull();
@@ -129,7 +129,7 @@ describe("chooseRestoreFile: who may start it", () => {
 
 describe("the flow on an empty device", () => {
   it("asks plainly before restoring, with a Restore button that is not marked destructive", async () => {
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
     choose();
 
     await waitFor(() => expect(alerts).toHaveLength(1));
@@ -144,7 +144,7 @@ describe("the flow on an empty device", () => {
   });
 
   it("restores when the person confirms, then offers the reload that shows the heroes", async () => {
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
     choose();
     await waitFor(() => expect(alerts).toHaveLength(1));
 
@@ -160,7 +160,7 @@ describe("the flow on an empty device", () => {
 describe("the flow on a device that has profiles", () => {
   it("still asks before replacing everything, as a danger prompt", async () => {
     withUsers(2);
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
     choose();
 
     await waitFor(() => expect(alerts).toHaveLength(1));
@@ -175,7 +175,7 @@ describe("a file that is not a backup", () => {
     (backupService.parseBackup as jest.Mock).mockImplementation(() => {
       throw new Error("not json");
     });
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
     choose("nope");
 
     await waitFor(() => expect(alerts).toHaveLength(1));
@@ -186,7 +186,7 @@ describe("a file that is not a backup", () => {
 
   it("shows why a restore failed", async () => {
     (backupService.restoreBackup as jest.Mock).mockRejectedValue(new Error("disk full"));
-    useBackupRestore().chooseRestoreFile();
+    useBackupRestore().selectRestoreFile();
     choose();
     await waitFor(() => expect(alerts).toHaveLength(1));
 

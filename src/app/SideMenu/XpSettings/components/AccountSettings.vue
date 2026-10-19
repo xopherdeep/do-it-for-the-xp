@@ -166,7 +166,8 @@ async function confirmUnlink(): Promise<void> {
 // The link loads once, as soon as a Game Master is on screen: at mount, or later when a reload signs them back in
 let hasLoadedAccount = false;
 async function loadAccount(): Promise<void> {
-  if (hasLoadedAccount || !isGameMaster.value) return;
+  const hasNothingToLoad = hasLoadedAccount || !isGameMaster.value;
+  if (hasNothingToLoad) return;
   hasLoadedAccount = true;
   try {
     await link.loadLink();

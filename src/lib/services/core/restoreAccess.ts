@@ -19,8 +19,7 @@ export function canRestoreBackup({ profileCount, gmAccess }: RestoreAccessInput)
   // Only an exact zero opens the door: a count that is missing or broken must never read as an empty device
   const isEmptyDevice = profileCount === 0;
   if (isEmptyDevice) return true;
-  const isGameMasterSide = gmAccess !== "denied";
-  return isGameMasterSide;
+  return gmAccess !== "denied";
 }
 
 /**

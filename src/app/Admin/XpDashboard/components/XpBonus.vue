@@ -239,7 +239,8 @@ export default defineComponent({
   },
   methods: {
     async clickAward() {
-      if (this.cannotAwardPoints) return;
+      const isLocked = this.cannotAwardPoints;
+      if (isLocked) return;
       const amounts = this.amounts;
       const { gp, xp, ap } = amounts;
 
