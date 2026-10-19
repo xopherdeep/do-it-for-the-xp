@@ -1,5 +1,29 @@
 export type Auth = { user: string; password: string };
 
+// A non-2xx reply from the site: its status and `code` travel with the message.
+export class WpError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(`${status} ${code}: ${message}`);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+// WordPress answers 404 rest_template_not_found when the theme owning the template is not the active one.
+export function isMissingTemplate(error: unknown): boolean {
+  const isSiteError = error instanceof WpError;
+  return isSiteError && error.status === 404 && error.code === "rest_template_not_found";
+}
+
+export function frontPageKept(settings: { show_on_front: string; page_on_front: number }, homeId: number): boolean {
+  const showsPage = settings.show_on_front === "page";
+  const pointsAtHome = settings.page_on_front === homeId;
+  return showsPage && pointsAtHome;
+}
+
 const LOCAL_HOSTS = ["mycompass", "localhost", "127.0.0.1"];
 
 export function pickAuth(site: string, env: Record<string, string>): Auth {

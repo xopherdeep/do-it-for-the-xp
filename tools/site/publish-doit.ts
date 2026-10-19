@@ -4,7 +4,9 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkMarkup, collectHrefs, findPlaceholders, renderMarkup } from "./markup.ts";
-import { linksToCheck, parseEnvFile, pickAuth, planFrontPage, SCREENSHOTS, statusQuery } from "./publishPlan.ts";
+import {
+  frontPageKept, isMissingTemplate, linksToCheck, parseEnvFile, pickAuth, planFrontPage, SCREENSHOTS, statusQuery, WpError,
+} from "./publishPlan.ts";
 import type { Auth } from "./publishPlan.ts";
 
 const SITE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -17,7 +19,10 @@ const APP_URL = "https://app.doit.forthexp.com";
 const HOME_SLUG = "home";
 const SITE_TITLE = "Do It For The XP";
 const SITE_DESCRIPTION = "A family chore app that plays like a SNES-era RPG.";
-const TEMPLATE_ROUTE = "/wp/v2/templates/xophz-magic-hat//front-page";
+const TEMPLATE_THEME = "xophz-magic-hat";
+const TEMPLATE_SLUG = "front-page";
+const TEMPLATE_TITLE = "Front Page";
+const TEMPLATE_ROUTE = `/wp/v2/templates/${TEMPLATE_THEME}//${TEMPLATE_SLUG}`;
 const LINK_TIMEOUT_MS = 15000;
 const USAGE = "Usage: node tools/site/publish-doit.ts --site <url> [--dry-run] [--rollback] [--env-file <path>]";
 
@@ -121,13 +126,31 @@ async function readReply<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const code = data?.code ?? "http_error";
     const message = data?.message ?? text.slice(0, 200);
-    throw new Error(`${res.status} ${code}: ${message}`);
+    throw new WpError(res.status, code, message);
   }
   const isNotJson = data === null;
   if (isNotJson) {
-    throw new Error(`${res.status} not_json: the site did not answer with JSON`);
+    throw new WpError(res.status, "not_json", "the site did not answer with JSON");
   }
   return data as T;
+}
+
+function reasonOf(error: unknown): string {
+  const cause = error instanceof Error ? error.cause : undefined;
+  const hasCause = cause instanceof Error;
+  if (hasCause) {
+    return cause.message;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+// Never follow a redirect: a 301/302 would turn a POST into a GET that answers 200 and reads as success.
+async function send(auth: SiteAuth, method: string, path: string, headers: Record<string, string>, body?: BodyInit): Promise<Response> {
+  try {
+    return await fetch(`${auth.site}/wp-json${path}`, { method, headers, body, redirect: "error" });
+  } catch (error) {
+    throw new Error(`${method} ${path} failed: ${reasonOf(error)}`);
+  }
 }
 
 async function rest<T = unknown>(auth: SiteAuth, method: string, path: string, body?: unknown): Promise<T> {
@@ -136,17 +159,13 @@ async function rest<T = unknown>(auth: SiteAuth, method: string, path: string, b
   if (hasBody) {
     headers["Content-Type"] = "application/json";
   }
-  const res = await fetch(`${auth.site}/wp-json${path}`, {
-    method,
-    headers,
-    body: hasBody ? JSON.stringify(body) : undefined,
-  });
+  const res = await send(auth, method, path, headers, hasBody ? JSON.stringify(body) : undefined);
   return readReply<T>(res);
 }
 
 async function restForm<T = unknown>(auth: SiteAuth, path: string, form: FormData): Promise<T> {
   const headers = { Authorization: basicHeader(auth), Accept: "application/json" };
-  const res = await fetch(`${auth.site}/wp-json${path}`, { method: "POST", headers, body: form });
+  const res = await send(auth, "POST", path, headers, form);
   return readReply<T>(res);
 }
 
@@ -234,19 +253,35 @@ async function upsertPage(auth: SiteAuth, slug: string, title: string, html: str
   return { id: created.id, action: "created" };
 }
 
-async function upsertTemplate(auth: SiteAuth): Promise<{ id: string }> {
+// The id route creates an override only for the active theme; while Magic Hat is not active the id answers 404
+// rest_template_not_found, and the first write goes once to the collection route (later writes find the post).
+async function upsertTemplate(auth: SiteAuth): Promise<{ id: string; route: "id" | "collection" }> {
   const content = readFileSync(TEMPLATE_FILE, "utf8");
-  const written = await rest<{ id: string }>(auth, "POST", TEMPLATE_ROUTE, { content, title: "Front Page", status: "publish" });
-  return { id: written.id };
+  try {
+    const written = await rest<{ id: string }>(auth, "POST", TEMPLATE_ROUTE, { content, title: TEMPLATE_TITLE, status: "publish" });
+    return { id: written.id, route: "id" };
+  } catch (error) {
+    const themeNotActive = isMissingTemplate(error);
+    if (!themeNotActive) {
+      throw error;
+    }
+  }
+  const fields = { slug: TEMPLATE_SLUG, theme: TEMPLATE_THEME, content, title: TEMPLATE_TITLE, status: "publish" };
+  const created = await rest<{ id: string }>(auth, "POST", "/wp/v2/templates", fields);
+  return { id: created.id, route: "collection" };
 }
 
 async function writeSettings(auth: SiteAuth, homeId: number): Promise<void> {
-  await rest(auth, "POST", "/wp/v2/settings", {
+  const kept = await rest<Settings>(auth, "POST", "/wp/v2/settings", {
     show_on_front: "page",
     page_on_front: homeId,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   });
+  const wasKept = frontPageKept(kept, homeId);
+  if (!wasKept) {
+    throw new Error(`The site did not keep the front page (show_on_front=${kept.show_on_front}, page_on_front=${kept.page_on_front}, wanted page ${homeId})`);
+  }
 }
 
 async function draftPrevious(auth: SiteAuth, previousId: number, homeId: number): Promise<number | null> {
@@ -316,7 +351,7 @@ function printPlan(site: string, steps: MediaStep[], html: string, settings: Set
     row("media", `${step.name}: ${step.action}`);
   }
   row("page", `would create or update "${HOME_SLUG}" (publish, comments closed), ${html.length} characters of markup`);
-  row("template", "would write xophz-magic-hat//front-page");
+  row("template", `would write ${TEMPLATE_THEME}//${TEMPLATE_SLUG} (through the collection route when the theme is not active yet)`);
   row("settings", `would set show_on_front=page, page_on_front=<home id>, title, description (now ${settings.show_on_front} / ${settings.page_on_front})`);
   const hasPrevious = settings.page_on_front > 0;
   if (hasPrevious) {
@@ -326,11 +361,11 @@ function printPlan(site: string, steps: MediaStep[], html: string, settings: Set
   say("Dry run: nothing was written.");
 }
 
-function printSummary(report: Report, steps: MediaStep[], page: string, drafted: number | null): void {
+function printSummary(report: Report, steps: MediaStep[], page: string, templateRoute: string, drafted: number | null): void {
   const counts = (action: string) => steps.filter((step) => step.action === action).length;
   row("media", `${counts("uploaded")} uploaded, ${counts("reused")} reused`);
   row("page", `${page} (id ${report.page.id}) ${report.page.url}`);
-  row("template", `written (${report.template.id})`);
+  row("template", `written through the ${templateRoute} route (${report.template.id})`);
   row("settings", `front page is now page ${report.page.id} (was ${report.previousShowOnFront} / ${report.previousFrontPage ?? 0})`);
   row("previous", drafted === null ? "left as it was" : `page ${drafted} set to draft`);
   const broken = report.links.filter((link) => link.status !== 200);
@@ -354,21 +389,23 @@ async function publish(auth: SiteAuth, dryRun: boolean): Promise<void> {
   }
   const page = await upsertPage(auth, HOME_SLUG, SITE_TITLE, html);
   const template = await upsertTemplate(auth);
-  await writeSettings(auth, page.id);
+  const remembered = rememberPrevious(settings, page.id, readReport(), auth.site);
   const report: Report = {
     site: auth.site,
     at: new Date().toISOString(),
-    ...rememberPrevious(settings, page.id, readReport(), auth.site),
+    ...remembered,
     page: { id: page.id, url: `${auth.site}/` },
-    template,
+    template: { id: template.id },
     media: Object.fromEntries(steps.map((step) => [step.name, { id: step.id, url: step.url }])),
     links: [],
   };
+  // Saved before the settings change: a lost or garbled reply to that POST must not lose the way back.
   saveReport(report);
-  const drafted = await draftPrevious(auth, settings.page_on_front, page.id);
+  await writeSettings(auth, page.id);
+  const drafted = await draftPrevious(auth, remembered.previousFrontPage ?? 0, page.id);
   report.links = await checkLinks(html, auth.site, report.page.url);
   saveReport(report);
-  printSummary(report, steps, page.action, drafted);
+  printSummary(report, steps, page.action, template.route, drafted);
   const anyLinkBroken = report.links.some((link) => link.status !== 200);
   if (anyLinkBroken) {
     process.exitCode = 1;

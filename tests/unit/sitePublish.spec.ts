@@ -1,4 +1,6 @@
-import { pickAuth, parseEnvFile, statusQuery, planFrontPage, linksToCheck, SCREENSHOTS } from "../../tools/site/publishPlan";
+import {
+  pickAuth, parseEnvFile, statusQuery, planFrontPage, linksToCheck, SCREENSHOTS, WpError, isMissingTemplate, frontPageKept,
+} from "../../tools/site/publishPlan";
 
 describe("parseEnvFile", () => {
   it("reads keys, ignores comments, keeps spaces, strips quotes", () => {
@@ -32,4 +34,24 @@ it("statusQuery includes trash", () => { expect(statusQuery()).toBe("publish,dra
 it("SCREENSHOTS lists the eight agreed names with files and alt text", () => {
   expect(SCREENSHOTS.map((s) => s.name)).toEqual(["hometown", "battle", "victory", "temple-map", "beast-log", "boss", "small-key", "my-home"]);
   expect(SCREENSHOTS.every((s) => s.file === `.github/readme/${s.name}.jpg` && s.alt.length > 0)).toBe(true);
+});
+
+describe("isMissingTemplate", () => {
+  it("is true only for a 404 rest_template_not_found from the site", () => {
+    expect(isMissingTemplate(new WpError(404, "rest_template_not_found", "Template not found."))).toBe(true);
+    expect(isMissingTemplate(new WpError(404, "rest_no_route", "No route."))).toBe(false);
+    expect(isMissingTemplate(new WpError(403, "rest_template_not_found", "Nope."))).toBe(false);
+    expect(isMissingTemplate(new Error("404 rest_template_not_found: Template not found."))).toBe(false);
+  });
+  it("keeps the site's message and carries the status and code", () => {
+    const error = new WpError(404, "rest_template_not_found", "Template not found.");
+    expect([error.message, error.status, error.code]).toEqual(["404 rest_template_not_found: Template not found.", 404, "rest_template_not_found"]);
+  });
+});
+describe("frontPageKept", () => {
+  it("needs show_on_front page and the home id back from the site", () => {
+    expect(frontPageKept({ show_on_front: "page", page_on_front: 5 }, 5)).toBe(true);
+    expect(frontPageKept({ show_on_front: "posts", page_on_front: 5 }, 5)).toBe(false);
+    expect(frontPageKept({ show_on_front: "page", page_on_front: 6 }, 5)).toBe(false);
+  });
 });
