@@ -1,12 +1,15 @@
 import { defineComponent, h, reactive } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import QRCode from "qrcode";
-import { modalController } from "@ionic/vue";
+import { modalController, toastController } from "@ionic/vue";
 import XpHeroPhonesModal from "@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue";
+import { TownHallError } from "@/lib/services/townhall/townHallClient";
+import { FAMILY_ROAD_CLOSED_LINE } from "@/lib/services/townhall/townHallPrompts";
 
 jest.mock("@ionic/vue", () => ({
   ...jest.requireActual("@ionic/vue"),
   modalController: { dismiss: jest.fn() },
+  toastController: { create: jest.fn() },
 }));
 
 jest.mock("qrcode", () => ({
@@ -101,6 +104,52 @@ describe("XpHeroPhonesModal", () => {
       await cy(wrapper, "link-phone").trigger("click");
       await flushPromises();
       expect(cy(wrapper, "link-code-error").text()).toContain("Network failure");
+    });
+
+    describe("when the family server cannot be reached", () => {
+      const tryToLink = async () => {
+        const wrapper = await open();
+        await cy(wrapper, "link-phone").trigger("click");
+        await flushPromises();
+        return wrapper;
+      };
+
+      it.each([
+        ["no signal", new TownHallError("offline")],
+        ["the routes are not built yet (404)", new TownHallError("server", "No route was found matching the URL", 404, "rest_no_route")],
+        ["the site has an error page (500)", new TownHallError("server", "Boom", 500)],
+      ])("says the family's road to the city is not open yet: %s", async (_name, failure) => {
+        mockFamily.linkCode.mockRejectedValue(failure);
+        const wrapper = await tryToLink();
+        expect(cy(wrapper, "link-code-error").text()).toBe(FAMILY_ROAD_CLOSED_LINE);
+        expect(cy(wrapper, "link-code-error").text()).toContain("road to the city isn't open yet");
+        expect(cy(wrapper, "link-code-error").text()).toContain("nothing will reach a second phone");
+      });
+
+      it("shows no code, no picture and no success toast, and the button stays for another try", async () => {
+        mockFamily.linkCode.mockRejectedValue(new TownHallError("offline"));
+        const wrapper = await tryToLink();
+        expect(cy(wrapper, "link-code").exists()).toBe(false);
+        expect(cy(wrapper, "qr-image").exists()).toBe(false);
+        expect(cy(wrapper, "countdown").exists()).toBe(false);
+        expect(QRCode.toDataURL).not.toHaveBeenCalled();
+        expect(toastController.create).not.toHaveBeenCalled();
+        expect(cy(wrapper, "link-phone").exists()).toBe(true);
+
+        const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+        mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+        await cy(wrapper, "link-phone").trigger("click");
+        await flushPromises();
+        expect(cy(wrapper, "link-code").text()).toBe("ABCD-EFGH");
+        expect(cy(wrapper, "link-code-error").exists()).toBe(false);
+      });
+
+      it("keeps the site's own words when it answered with a reason", async () => {
+        mockFamily.linkCode.mockRejectedValue(new TownHallError("forbidden", "This family is registered to another account.", 403, "xp_family_taken"));
+        const wrapper = await tryToLink();
+        expect(cy(wrapper, "link-code-error").text()).toBe("This family is registered to another account.");
+        expect(cy(wrapper, "link-code-error").text()).not.toContain("road to the city");
+      });
     });
 
     it("Link a phone shows the formatted code and an <img> from toDataURL with the hash-mode link", async () => {

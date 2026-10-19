@@ -1,6 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import LinkPhone from "@/app/SideMenu/HeroPhone/LinkPhone.vue";
 import { BarcodeFormat, BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
+import { HERO_PHONE_ROAD_CLOSED_LINE } from "@/lib/services/townhall/townHallPrompts";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -157,6 +158,68 @@ describe("LinkPhone", () => {
       expect(banner.text()).toContain(
         "That code didn't work. Ask your Game Master for a new one."
       );
+    });
+  });
+
+  describe("when the family server cannot be reached", () => {
+    const CODE_INVALID_LINE = "That code didn't work. Ask your Game Master for a new one.";
+
+    it.each(["offline", "server"])("claim says '%s': the road to the city is not open yet, try again later, no wrong-code wording", async (outcome) => {
+      mockFamily.claim.mockResolvedValue(outcome);
+      const wrapper = await open();
+
+      await cy(wrapper, "link-code-input").setValue("ABCD EFGH");
+      await cy(wrapper, "link-button").trigger("click");
+      await flushPromises();
+
+      expect(mockFamily.claim).toHaveBeenCalledWith("ABCDEFGH");
+      expect(mockReplace).not.toHaveBeenCalled();
+      const banner = cy(wrapper, "family-banner");
+      expect(banner.exists()).toBe(true);
+      expect(banner.text()).toBe(HERO_PHONE_ROAD_CLOSED_LINE);
+      expect(banner.text()).toContain("road to the city isn't open yet");
+      expect(banner.text()).toContain("Try again later");
+      expect(banner.text()).not.toContain("code");
+      expect(banner.text()).not.toContain(CODE_INVALID_LINE);
+    });
+
+    it("a code from the link (?code=) that cannot reach the server says the same and stays", async () => {
+      mockFamily.claim.mockResolvedValue("server");
+      mockRoute.query = { code: "abcd-efgh" };
+      const wrapper = await open();
+
+      expect(mockFamily.claim).toHaveBeenCalledWith("ABCDEFGH");
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(cy(wrapper, "family-banner").text()).toBe(HERO_PHONE_ROAD_CLOSED_LINE);
+    });
+
+    it("the kid can try again and links once the road is open", async () => {
+      // The button stub fires its handler twice per tap, so the road opens by flag, not by call count
+      let isRoadOpen = false;
+      mockFamily.claim.mockImplementation(async () => (isRoadOpen ? "linked" : "server"));
+      const wrapper = await open();
+      await cy(wrapper, "link-code-input").setValue("ABCD EFGH");
+
+      await cy(wrapper, "link-button").trigger("click");
+      await flushPromises();
+      expect(mockReplace).not.toHaveBeenCalled();
+
+      isRoadOpen = true;
+      await cy(wrapper, "link-button").trigger("click");
+      await flushPromises();
+      expect(mockReplace).toHaveBeenCalledWith({ name: "hero-phone" });
+    });
+
+    it("code-invalid keeps its own line", async () => {
+      mockFamily.claim.mockResolvedValue("code-invalid");
+      const wrapper = await open();
+
+      await cy(wrapper, "link-code-input").setValue("ABCD EFGH");
+      await cy(wrapper, "link-button").trigger("click");
+      await flushPromises();
+
+      expect(cy(wrapper, "family-banner").text()).toBe(CODE_INVALID_LINE);
+      expect(cy(wrapper, "family-banner").text()).not.toContain("road to the city");
     });
   });
 

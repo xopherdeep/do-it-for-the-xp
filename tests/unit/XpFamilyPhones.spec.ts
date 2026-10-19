@@ -2,6 +2,7 @@ import { defineComponent, h, reactive } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import XpFamilyPhones from "@/app/SideMenu/XpSettings/components/XpFamilyPhones.vue";
 import { modalController } from "@ionic/vue";
+import { FAMILY_ROAD_CLOSED_LINE } from "@/lib/services/townhall/townHallPrompts";
 
 const mockPush = jest.fn();
 jest.mock("vue-router", () => ({ ...jest.requireActual("vue-router"), useRouter: () => ({ push: mockPush }) }));
@@ -257,6 +258,39 @@ describe("XpFamilyPhones", () => {
       await cy(wrapper, "prompt-no").trigger("click");
       await flushPromises();
       expect(mockFamily.makeHome).not.toHaveBeenCalled();
+    });
+
+    describe("when the family server cannot be reached", () => {
+      const COURIER_LINE = "The courier hasn't arrived. I'll keep trying.";
+
+      it.each(["offline", "server"])("problem '%s': the courier line, then that the family's road to the city is not open yet", async (problem) => {
+        mockFamily.problem = problem;
+        const wrapper = await open();
+        const banners = wrapper.findAll('[data-cy="family-banner"]');
+        expect(banners).toHaveLength(1);
+        expect(banners[0].find("ion-label").text()).toBe(`${COURIER_LINE} ${FAMILY_ROAD_CLOSED_LINE}`);
+        expect(banners[0].find("ion-label").text()).toContain("nothing will reach a second phone");
+        expect(cy(wrapper, "family-make-home").exists()).toBe(false);
+        expect(cy(wrapper, "family-register").exists()).toBe(false);
+      });
+
+      it("still lets the Game Master open Phones, where Link a phone says the same", async () => {
+        mockFamily.problem = "offline";
+        const wrapper = await open();
+        expect(cy(wrapper, "family-phones-open").exists()).toBe(true);
+      });
+
+      it("says nothing about the road when the site refused for a reason of its own", async () => {
+        mockFamily.problem = "taken";
+        const wrapper = await open();
+        expect(cy(wrapper, "family-banner").find("ion-label").text()).toBe("This family is registered to another account.");
+        expect(wrapper.text()).not.toContain("road to the city");
+      });
+
+      it("says nothing about the road when all is well", async () => {
+        const wrapper = await open();
+        expect(wrapper.text()).not.toContain("road to the city");
+      });
     });
 
     describe("other-family, taken, not-member banners with their respective clerk lines", () => {

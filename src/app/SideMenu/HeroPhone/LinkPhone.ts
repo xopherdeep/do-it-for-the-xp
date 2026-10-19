@@ -27,12 +27,13 @@ import { Capacitor } from "@capacitor/core";
 import { useCopy } from "@/hooks/useVoice";
 import { normalizeCode, readLink } from "@/lib/services/multiplayer/deviceLink";
 import type { FamilyProblem } from "@/lib/services/multiplayer/familyServer";
+import { HERO_PHONE_ROAD_CLOSED_LINE, isFamilyRoadClosedProblem } from "@/lib/services/townhall/townHallPrompts";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import debug from "@/lib/utils/debug";
 
+/** The clerk's line for each way a claim can fail. A server that cannot be reached has its own line: see `isFamilyRoadClosedProblem` */
 const PROBLEM_MAP: Readonly<Record<string, string>> = {
   "code-invalid": "family.codeInvalid",
-  offline: "family.offline",
   taken: "family.taken",
   "not-member": "family.notMember",
   unlinked: "family.unlinked",
@@ -107,6 +108,9 @@ export const LinkPhone = defineComponent({
           const resolvedNickname = cardNickname || fallbackNickname;
           bannerText.value = t("family.linked", { nickname: resolvedNickname });
           await router.replace({ name: "hero-phone" });
+        } else if (isFamilyRoadClosedProblem(result as FamilyProblem)) {
+          // The code was never judged: the family server did not answer, so no "wrong code" line
+          bannerText.value = HERO_PHONE_ROAD_CLOSED_LINE;
         } else {
           const mappedKey = PROBLEM_MAP[result as FamilyProblem];
           const defaultKey = "family.codeInvalid";
