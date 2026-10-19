@@ -68,6 +68,7 @@ import { useProStore } from "@/lib/store/stores/pro";
 import { allowedGameStyle } from "@/lib/utils/gameStyle";
 import { watchHeroReminderRemovals } from "@/lib/services/notifications/deviceReminders";
 import { startAppReminders } from "@/lib/services/notifications/appReminders";
+import { startAppInterest } from "@/lib/services/gp/appInterest";
 
 const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
   const isBelowMinimum = requestedTrack < 0;
@@ -330,6 +331,8 @@ export default defineComponent({
     // once the stores have loaded, at a sign in or profile switch, and when the app comes back to the front.
     // Other jobs that want those moments register with onAppWake (notifications/appWake.ts).
     startAppReminders(userStore, storesLoaded);
+    // The Gold Bank's weekly savings interest (off until a Game Master turns it on) is paid at the same moments
+    startAppInterest(userStore);
 
     // Multiplayer ships hidden: with the flag off nothing here runs and no request is made
     const isMultiplayerOn = multiplayerEnabled();

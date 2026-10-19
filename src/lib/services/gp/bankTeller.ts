@@ -2,8 +2,8 @@
  * What the Gold Bank teller says. The money rules live in wallet.ts; this turns their results into the toast copy
  * so the bank screen only has to show it. Pure, so the words can be tested without Ionic.
  */
-import { copyFor } from "../copy/copy";
-import type { Voice } from "../copy/voices";
+import { copyFor, copyFrom } from "../copy/copy";
+import type { CopyCatalog, Voice } from "../copy/voices";
 import type { NextStorageTier, StoragePurchase } from "../inventory/Storage";
 import {
   type BankMove,
@@ -16,6 +16,7 @@ import {
   payDownBills,
   withdrawFromSavings,
 } from "./wallet";
+import type { SavingsInterestSettings } from "./savingsInterest";
 
 export type BankAction = "withdraw" | "deposit" | "payDebt" | "borrow";
 
@@ -158,4 +159,20 @@ export function storageRefusal(sale: StoragePurchase | { ok: false; reason: "her
 export function storageReceipt(sale: Extract<StoragePurchase, { ok: true }>, voice: Voice = "adventure"): string {
   const line = copyFor(sale.tier === 1 ? "bank.storage.gotBox" : "bank.storage.grew", voice, { slots: sale.slots });
   return sale.fromSavings > 0 ? `${line} ${copyFor("bank.storage.fromSavings", voice, { n: sale.fromSavings })}` : line;
+}
+
+// --- Savings interest: the banker mentions it only while the Game Master has it on (services/gp/savingsInterest.ts) ---
+
+const INTEREST_COPY: CopyCatalog = {
+  "bank.greet.interest": {
+    simple: "Saved gold grows {rate}% every week!",
+    adventure: "Gold left in savings grows by {rate}% every week. Let it sit and watch it climb!",
+    classic: "Savings earn {rate}% interest each week.",
+  },
+};
+
+/** The banker's line about weekly interest, or null while it is off (he never brags about a rate that is not paid). */
+export function interestGreeting(rules: SavingsInterestSettings | null | undefined, voice: Voice = "adventure"): string | null {
+  if (rules?.enabled !== true) return null;
+  return copyFrom(INTEREST_COPY, "bank.greet.interest", voice, { rate: rules.weeklyRatePercent });
 }

@@ -1,5 +1,6 @@
 import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { dayKeyOf, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { DEFAULT_SAVINGS_INTEREST, normalizeSavingsInterest, type SavingsInterestSettings } from "@/lib/services/gp/savingsInterest";
 import { DEFAULT_LATE_CHORES, normalizeLateChores, type LateChoreSettings } from "@/lib/services/quests/lateRules";
 
 /**
@@ -17,8 +18,10 @@ export interface FamilySettings {
   dayOffBroadcast: boolean;
   /** Daily streaks (services/streaks): the HUD flame, Streak Shields and streak chests. On unless switched off. */
   streaks: boolean;
-  /** Cash out (Settings > Rewards): heroes trade GP for real money; every cash out waits in Approvals for a Game Master */
+  /** Cash out (Settings > Rewards): heroes trade GP for real money; every cash out waits in Approvals. Off until a Game Master turns it on. */
   cashOut: CashOutSettings;
+  /** Savings interest (Settings > Rewards): the Gold Bank pays a weekly percent on savings. Off until a Game Master turns it on. */
+  savingsInterest: SavingsInterestSettings;
   /** Late chores (Settings > Chores): lock, reduced pay and penalty, all off until the Game Master turns them on */
   lateChores: LateChoreSettings;
   /** Auto-save (Settings > Chores): the percent of every GP reward that goes straight into savings, 0 for none */
@@ -64,7 +67,8 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
   dayOffBroadcast: false,
   streaks: true,
-  cashOut: { enabled: true, gpPerDollar: 10, heroIds: [] },
+  cashOut: { enabled: false, gpPerDollar: 10, heroIds: [] },
+  savingsInterest: { ...DEFAULT_SAVINGS_INTEREST },
   lateChores: { ...DEFAULT_LATE_CHORES },
   autoSavePercent: 0,
   approveAllPurchases: false,
@@ -77,7 +81,7 @@ const clock = (value: unknown, fallback: string): string =>
 const normalizeCashOut = (stored: Partial<CashOutSettings> | null | undefined): CashOutSettings => {
   const rate = Number(stored?.gpPerDollar) > 0 ? clampCashOutRate(stored?.gpPerDollar) : null;
   return {
-    enabled: stored?.enabled !== false,
+    enabled: stored?.enabled === true,
     gpPerDollar: rate ?? DEFAULT_FAMILY_SETTINGS.cashOut.gpPerDollar,
     heroIds: Array.isArray(stored?.heroIds) ? stored!.heroIds.filter(Boolean).map(String) : [],
   };
@@ -93,6 +97,7 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
   dayOffBroadcast: stored?.dayOffBroadcast === true,
   streaks: stored?.streaks !== false,
   cashOut: normalizeCashOut(stored?.cashOut),
+  savingsInterest: normalizeSavingsInterest(stored?.savingsInterest),
   lateChores: normalizeLateChores(stored?.lateChores),
   autoSavePercent: autoSavePercentOf(stored?.autoSavePercent),
   approveAllPurchases: stored?.approveAllPurchases === true,

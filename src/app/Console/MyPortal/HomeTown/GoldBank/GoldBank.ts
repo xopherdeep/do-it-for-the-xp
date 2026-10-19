@@ -36,8 +36,10 @@ import {
   storageQuestion,
   storageReceipt,
   storageRefusal,
-  storageTopUpQuestion
+  storageTopUpQuestion,
+  interestGreeting
 } from "@/lib/services/gp/bankTeller";
+import { loadFamilySettings } from "@/lib/services/family/familySettings";
 import { BANKER, amountAsk, bankMenuPrompt, noticePrompt, type BankMenuId } from "@/lib/services/gp/bankPrompts";
 import { type GpEntryNote, withEntry } from "@/lib/services/gp/gpLedger";
 import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
@@ -67,6 +69,8 @@ export default defineComponent({
       shelves: ['affordable'],
       /** The banker is talking: the FAB does nothing until the conversation ends */
       isTalking: false,
+      /** The banker's line about weekly savings interest; null while the Game Master has interest off */
+      interestLine: null as string | null,
       showAtm: false
     };
   },
@@ -90,6 +94,8 @@ export default defineComponent({
         t("bank.greet.wallet", { limit: `₲${walletLimitOf(this.user?.stats?.gp)}`, hint: shopHintFor(this.user?.stats?.gp) }).trim(),
         // Room at home is sold here: the next storage on offer, or that there is no bigger one
         nextStorage ? t("bank.greet.storage", { offer: storageOffer(nextStorage) }) : storageMaxed(this.words),
+        // Interest is only mentioned while the Game Master has it on
+        ...(this.interestLine ? [this.interestLine] : []),
         t("bank.greet.atm")
       ];
     }
@@ -114,6 +120,8 @@ export default defineComponent({
       this.isTalking = true;
       try {
         this.play$fx("select");
+        const family = await loadFamilySettings().catch(() => null);
+        this.interestLine = interestGreeting(family?.savingsInterest, this.words);
         // The banker passes on what he has heard about the hero's quest (once per step)
         let lines = linesWithNews(this.dialogBlocks, await npcNews(String(this.userId || this.userStore.currentUser.id || ""), "bank"));
         for (;;) {

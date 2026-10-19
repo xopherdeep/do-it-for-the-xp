@@ -97,6 +97,47 @@
         </ion-card-content>
       </ion-card>
 
+      <ion-card class="max-w-2xl" data-cy="interest-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Savings interest</ion-label>
+          </ion-item-divider>
+          <ion-item>
+            <ion-label class="ion-text-wrap">
+              <h2>Pay interest on savings</h2>
+              <p>Once a week the Gold Bank adds a share of what each hero has saved, rounded down. Off, savings just sit there.</p>
+            </ion-label>
+            <ion-toggle
+              data-cy="interest-enabled"
+              :checked="interest.enabled"
+              :disabled="!canManage"
+              @ionChange="setInterest({ enabled: $event.detail.checked })"
+            ></ion-toggle>
+          </ion-item>
+          <ion-item lines="none" :disabled="!interest.enabled || !canManage">
+            <ion-label>
+              <h2>Weekly rate</h2>
+              <p>The share of the savings paid each week</p>
+            </ion-label>
+            <ion-select
+              slot="end"
+              class="reward-settings__rate"
+              data-cy="interest-rate"
+              interface="action-sheet"
+              aria-label="Weekly interest rate"
+              :value="interest.weeklyRatePercent"
+              @ionChange="setInterest({ weeklyRatePercent: Number($event.detail.value) })"
+            >
+              <ion-select-option
+                v-for="rate in interestRates"
+                :key="rate"
+                :value="rate"
+              >{{ rate }}% a week</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
+      </ion-card>
+
       <ion-card class="max-w-2xl" data-cy="purchase-settings">
         <ion-list>
           <ion-item-divider>
@@ -154,8 +195,10 @@ import {
   type CashOutSettings,
   type FamilySettings,
 } from "@/lib/services/family/familySettings";
+import { SAVINGS_INTEREST_RATES, normalizeSavingsInterest, type SavingsInterestSettings } from "@/lib/services/gp/savingsInterest";
 
 const rates = CASH_OUT_RATES;
+const interestRates = SAVINGS_INTEREST_RATES;
 
 const userStore = useUserStore();
 const rules = useGameRulesStore();
@@ -172,6 +215,18 @@ const setCashOut = (change: Partial<CashOutSettings>) => {
   if (!canManage.value) return;
   family.value = { ...family.value, cashOut: { ...family.value.cashOut, ...change } };
   void rules.save({ cashOut: family.value.cashOut });
+};
+
+const interest = computed(() => family.value.savingsInterest);
+
+/** Save a change to the savings interest rules; only a Game Master can */
+const setInterest = (change: Partial<SavingsInterestSettings>) => {
+  if (!canManage.value) return;
+  const next = normalizeSavingsInterest({ ...family.value.savingsInterest, ...change });
+  const isUnchanged = next.enabled === interest.value.enabled && next.weeklyRatePercent === interest.value.weeklyRatePercent;
+  if (isUnchanged) return;
+  family.value = { ...family.value, savingsInterest: next };
+  void rules.save({ savingsInterest: next });
 };
 
 // Custom: the rate is not one of the presets (or the Game Master just chose Custom and has not typed one yet)
