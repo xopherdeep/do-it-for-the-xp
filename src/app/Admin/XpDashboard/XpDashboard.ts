@@ -35,6 +35,7 @@ import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
 import { defineComponent, ref, onMounted } from "vue";
 import { onIonViewWillEnter } from "@ionic/vue";
 import { mintTempleId } from "@/app/Admin/XpCompendium/views/XpTemples/templeWizard";
+import { approvalsTotal, emptyTileStats, tileStatsOf, type TileStats } from "./dashboardTiles";
 export default defineComponent({
   name: "xp-dashboard",
   mixins: [ionic],
@@ -107,10 +108,10 @@ export default defineComponent({
       });
       await modal.present();
 
-      // Refresh stats after modal is dismissed
+      // The sheet hands back the award it made; a plain close hands back nothing
       const { data } = await modal.onDidDismiss();
       if (data) {
-        this.refreshData();
+        await this.loadStats();
       }
     },
     async openPenalty() {
@@ -123,10 +124,10 @@ export default defineComponent({
       });
       await modal.present();
 
-      // Refresh stats after modal is dismissed
+      // The sheet hands back the penalty it made; a plain close hands back nothing
       const { data } = await modal.onDidDismiss();
       if (data) {
-        this.refreshData();
+        await this.loadStats();
       }
     },
     async refreshData() {
@@ -138,20 +139,7 @@ export default defineComponent({
       const statsService = getEngineStatsService();
       const systemStats = await statsService.getSystemStats();
 
-      this.stats.achievements = systemStats.achievements;
-      this.stats.beasts = systemStats.beasts;
-      this.stats.users = systemStats.users;
-      this.stats.dos = systemStats.dos;
-      this.stats.donts = systemStats.donts;
-
-      // Get rewards data from XpRewardShelf
-      this.rewards = {
-        active: 10, // This would come from actual data
-        expired: 5, // This would come from actual data
-        redeemed: 0, // This would come from actual data
-        cashed: 0, // This would come from actual data
-        total: 15, // This would come from actual data
-      };
+      this.stats = tileStatsOf(systemStats);
 
       await this.loadPendingApprovals();
     },
@@ -315,24 +303,12 @@ export default defineComponent({
       return ""; // Return empty string or default avatar path
     };
 
-    const stats = ref({
-      achievements: 0,
-      users: 0,
-      beasts: 0,
-      dos: 0,
-      donts: 0,
-    });
+    // Counts of what the stores hold; 0 until they load and 0 for a family with none
+    const stats = ref<TileStats>(emptyTileStats());
 
     const approvals = ref({
       chores: 0,
       rewards: 0,
-      total: 0,
-    });
-    const rewards = ref({
-      active: 0,
-      expired: 0,
-      redeemed: 0,
-      cashed: 0,
       total: 0,
     });
 
@@ -355,7 +331,7 @@ export default defineComponent({
         countPending(() => getQuestLogDb().getPending(), "quest approvals"),
         countPending(() => getPurchaseLogDb().getPending(), "accessory purchases"),
       ]);
-      approvals.value = { chores, rewards, total: chores + rewards };
+      approvals.value = { chores, rewards, total: approvalsTotal(chores, rewards) };
     };
 
     const loadDashboardData = async () => {
@@ -365,11 +341,7 @@ export default defineComponent({
         const statsService = getEngineStatsService();
         const systemStats = await statsService.getSystemStats();
 
-        stats.value.achievements = systemStats.achievements;
-        stats.value.beasts = systemStats.beasts;
-        stats.value.dos = systemStats.dos;
-        stats.value.donts = systemStats.donts;
-        stats.value.users = systemStats.users;
+        stats.value = tileStatsOf(systemStats);
 
         await loadPendingApprovals();
 
@@ -394,7 +366,6 @@ export default defineComponent({
       stats,
       approvals,
       loadPendingApprovals,
-      rewards,
       achievementDb,
       bestiaryDb,
       dosDontsDb,

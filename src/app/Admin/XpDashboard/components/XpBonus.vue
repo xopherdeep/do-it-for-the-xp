@@ -4,14 +4,14 @@
       <ion-title v-if="isPenalty"> Take away Points </ion-title>
       <ion-title v-else> Add Bonus </ion-title>
       <ion-buttons slot="start">
-        <ion-back-button default-href="/xp-dashboard" @click="dismiss" />
+        <ion-back-button default-href="/xp-dashboard" @click="dismiss()" />
 
         <!-- <ion-button @click="dismiss">
           <i class="fad fa-arrow-left fa-3x"></i>
         </ion-button> -->
       </ion-buttons>
       <ion-buttons slot="end">
-        <ion-button v-if="isPenalty" @click="clickAward" :disabled="members.length === 0 || gPoints === 0">
+        <ion-button v-if="isPenalty" @click="clickAward" :disabled="cannotAwardPoints">
           <i class="fad fa-minus-circle fa-2x mr-2"></i>
           Subtract Points
         </ion-button>
@@ -103,12 +103,12 @@
                   <ion-list>
                     <ion-item lines="none">
                       <ion-label position="floating"> ₲P </ion-label>
-                      <ion-input v-if="isPenalty" v-model="gPoints" type="number" :max="0" />
-                      <ion-input v-else v-model="gPoints" type="number" :min="0" />
+                      <ion-input v-if="isPenalty" v-model.number="gPoints" type="number" :max="0" />
+                      <ion-input v-else v-model.number="gPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
                   <ion-segment v-model="gPoints" mode="ios">
-                    <ion-segment-button value="0"> Custom </ion-segment-button>
+                    <ion-segment-button :value="0"> Custom </ion-segment-button>
                     <ion-segment-button :value="getNumber(1)">
                       <xp-gp :gp="getNumber(1)" />
                     </ion-segment-button>
@@ -129,11 +129,11 @@
                   <ion-list>
                     <ion-item lines="none">
                       <ion-label position="floating"> XP </ion-label>
-                      <ion-input v-model="xpPoints" type="number" :min="0" />
+                      <ion-input v-model.number="xpPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
                   <ion-segment v-model="xpPoints" mode="ios">
-                    <ion-segment-button value="0"> Custom </ion-segment-button>
+                    <ion-segment-button :value="0"> Custom </ion-segment-button>
                     <ion-segment-button :value="1"> 1 XP </ion-segment-button>
                     <ion-segment-button :value="5"> 5 XP </ion-segment-button>
                     <ion-segment-button :value="10"> 10 XP </ion-segment-button>
@@ -146,11 +146,11 @@
                   <ion-list>
                     <ion-item lines="none">
                       <ion-label position="floating"> AP </ion-label>
-                      <ion-input v-model="apPoints" type="number" :min="0" />
+                      <ion-input v-model.number="apPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
                   <ion-segment v-model="apPoints" mode="ios">
-                    <ion-segment-button value="0"> Custom </ion-segment-button>
+                    <ion-segment-button :value="0"> Custom </ion-segment-button>
                     <ion-segment-button :value="1"> 1 AP </ion-segment-button>
                     <ion-segment-button :value="2"> 2 AP </ion-segment-button>
                     <ion-segment-button :value="5"> 5 AP </ion-segment-button>
@@ -169,7 +169,7 @@
 
             <ion-footer class="ion-padding">
               <ion-button expand="block" v-if="isPenalty" @click="clickAward"
-                :disabled="members.length === 0 || gPoints === 0">
+                :disabled="cannotAwardPoints">
                 <i class="fad fa-minus-circle mr-2"></i>
                 Subtract Points
               </ion-button>
@@ -192,9 +192,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/lib/mixins/ionic";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
-
-/** What the wallet history calls a Game Master's GP award */
-const gmGpNote = (gp: number): string => (gp > 0 ? "Game Master bonus" : "Game Master penalty");
+import { awardAmounts, awardResult, canAward, gmGpNote, type AwardAmounts, type AwardResult } from "./bonusAward";
 
 export default defineComponent({
   props: {
@@ -212,10 +210,13 @@ export default defineComponent({
     usersAz() {
       return (this as any).userStore.usersAz;
     },
+    /** What the three fields pay right now: text, an emptied box and a stray sign all read as numbers */
+    amounts(): AwardAmounts {
+      return awardAmounts(this.isPenalty, { gp: this.gPoints, xp: this.xpPoints, ap: this.apPoints });
+    },
+    /** Shut while nobody is picked or the amount is 0 (Custom starts at 0) */
     cannotAwardPoints(): boolean {
-      const hasNoRecipients = this.members.length === 0;
-      const hasNoPoints = this.gPoints === 0 && this.xpPoints === 0 && this.apPoints === 0;
-      return hasNoRecipients || hasNoPoints;
+      return !canAward(this.members.length, this.amounts);
     },
   },
   data() {
@@ -238,10 +239,9 @@ export default defineComponent({
   },
   methods: {
     async clickAward() {
-      const rawGp = Math.round(Number(this.gPoints) || 0);
-      const gp = this.isPenalty ? -Math.abs(rawGp) : rawGp;
-      const xp = this.isPenalty ? 0 : Math.round(Number(this.xpPoints) || 0);
-      const ap = this.isPenalty ? 0 : Math.round(Number(this.apPoints) || 0);
+      if (this.cannotAwardPoints) return;
+      const amounts = this.amounts;
+      const { gp, xp, ap } = amounts;
 
       const hasGp = gp !== 0;
       const hasXp = xp > 0;
@@ -249,14 +249,15 @@ export default defineComponent({
 
       // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
       for (const id of this.members as string[]) {
-        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp, note: gmGpNote(gp) });
+        // The wallet history shows the Game Master's note when one was written
+        if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp, note: gmGpNote(gp, this.notes) });
         if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
         if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
       }
 
       const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
       this.profileDb.showSuccessToast(message);
-      this.dismiss();
+      this.dismiss(awardResult(this.isPenalty, this.members as string[], amounts, this.notes));
     },
     onRadioChange() {
       // console.log("onRadioChange", val);
@@ -275,8 +276,9 @@ export default defineComponent({
         this.members.push(userId);
       }
     },
-    dismiss() {
-      modalController.dismiss();
+    /** Closing after an award hands the result back so the dashboard refreshes; the back arrow closes with nothing */
+    dismiss(result?: AwardResult) {
+      modalController.dismiss(result);
     },
   },
 });
