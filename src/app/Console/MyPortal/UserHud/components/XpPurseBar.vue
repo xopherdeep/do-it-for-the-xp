@@ -38,7 +38,7 @@
 <script lang="ts">
 import { computed, defineComponent } from "vue";
 import { POINT_ICONS } from "@/constants";
-import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
+import { levelProgress } from "@/lib/services/stats/levelProgress";
 import { walletLimitOf } from "@/lib/services/gp/wallet";
 import { useCountUp } from "@/hooks/useCountUp";
 
@@ -60,10 +60,12 @@ export default defineComponent({
     const gpProgress = computed(() => Math.max(0, Math.min(100, (wallet.value / Math.max(1, limit.value)) * 100)));
 
     const level = computed(() => Number(props.stats?.level) || 1);
-    // Counted from the rolling total: right after a level up it starts from an empty bar and fills to where it lands
-    const xpInLevel = computed(() => Math.max(0, xpCount.shown.value - getXpForLevel(level.value)));
-    const xpNeeded = computed(() => Math.max(1, getXpForLevel(level.value + 1) - getXpForLevel(level.value)));
-    const xpProgress = computed(() => Math.min(100, (xpInLevel.value / xpNeeded.value) * 100));
+    // Counted from the rolling total: right after a level up it starts from an empty bar and fills to where it lands.
+    // My Profile asks the same helper, so the hairline and the profile bar agree.
+    const progress = computed(() => levelProgress(level.value, xpCount.shown.value));
+    const xpInLevel = computed(() => progress.value.inLevel);
+    const xpNeeded = computed(() => progress.value.needed);
+    const xpProgress = computed(() => progress.value.fraction * 100);
 
     const format = (n: number) => n.toLocaleString();
     const signed = (n: number) => (n > 0 ? `+${format(n)}` : `\u2212${format(-n)}`);

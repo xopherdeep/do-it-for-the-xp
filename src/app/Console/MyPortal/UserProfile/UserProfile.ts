@@ -4,6 +4,7 @@ import { useHeroBuilder } from "@/hooks/useHeroBuilder";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, PILLARS } from "@/constants";
+import { levelProgress } from "@/lib/services/stats/levelProgress";
 import {
   IonButton,
   IonIcon,
@@ -238,16 +239,14 @@ export default defineComponent({
       return Object.keys(area.stats).reduce((total, stat) => total + Number(special[stat] ?? stats[stat] ?? 0), 0);
     };
 
-    // Experience Progress calculation
+    // Experience progress: the same through-this-level maths as the HUD hairline, so the two bars agree
     const xpProgress = computed(() => {
       const stats = user.value?.stats;
       const hasNoXp = !stats || !stats.xp;
       if (hasNoXp) return 0;
 
-      const now = stats.xp.now || stats.xp.current || 0;
-      const next = stats.xp.next_level || stats.xp.max || 100;
-
-      return Math.min(Math.max(now / next, 0), 1);
+      const totalXp = stats.xp.now || stats.xp.current || 0;
+      return levelProgress(stats.level, totalXp).fraction;
     });
 
     return {
