@@ -254,8 +254,12 @@
       const lastBackup = ref(lastBackupAt());
       const backupAge = computed(() => backupAgeLabel(lastBackup.value));
 
-      // This profile's own start-up choices, kept on this device
-      const profile = computed(() => userStore.currentUser);
+      // This profile's own start-up choices, kept on this device. The signed-in profile comes from `users`:
+      // `currentUser` is only the login copy, with no name and a possibly stale isAdult.
+      const profile = computed(() => {
+        const signedInId = userStore.currentUser?.id;
+        return signedInId ? userStore.users[String(signedInId)] : undefined;
+      });
       const profileName = computed(() => profile.value?.name?.nick || profile.value?.name?.full || "this profile");
       const landingOptions = computed(() => landingOptionsFor(profile.value?.isAdult === true));
       const landing = ref<LandingChoice>(landingChoiceOf(currentHeroId.value));
