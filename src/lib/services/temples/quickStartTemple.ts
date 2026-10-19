@@ -20,13 +20,16 @@ import type { Beast } from "@/lib/databases/BestiaryDb";
 import templeDb, { templeStorage, type TempleInterface } from "@/lib/databases/TempleDb";
 import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
 import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
+import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { buildTempleGraph, reachableFrom, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 import { QUICK_START_PACK } from "@/lib/services/core/packs/catalog/quickStart";
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { roomQuestIds } from "@/lib/services/temples/questRooms";
 import type { QuestRoomCell } from "@/lib/services/temples/templeQuestRows";
 import {
+  entranceFloorOf,
   familyWakeStores,
+  floorsOfLayout,
   rememberWake,
   shippedLayoutOf,
   type FamilyWakeStores,
@@ -205,7 +208,8 @@ export async function runQuickStartTemple(
   await deps.ensureTemples();
   const record = await deps.readRecord(QUICK_START_TEMPLE_ID);
   const stored = record?.dungeonLayout ?? null;
-  const plan = quickStartTemplePlan<PlayedLayout>(stored ?? shippedLayoutOf(QUICK_START_TEMPLE_ID), QUICK_START_QUEST_IDS, heroIds, now);
+  const played = stored ?? shippedLayoutOf(QUICK_START_TEMPLE_ID);
+  const plan = quickStartTemplePlan<PlayedLayout>(played, QUICK_START_QUEST_IDS, heroIds, now);
 
   const placedLayout = plan.layout;
   const canPlace = Boolean(record && stored && placedLayout);
@@ -222,10 +226,14 @@ export async function runQuickStartTemple(
     done.adopted = made.adopted;
   }
 
+  // The plan woke the monster rooms of every floor, so every floor is remembered as woken (walking in is then quiet)
+  const drawnFloors = floorsOfLayout(played);
+  const floors = drawnFloors.length > 0 ? drawnFloors : [entranceFloorOf(played)];
   for (const heroId of heroIds) {
     const hero = deps.hero(heroId);
     if (!hero) continue;
-    await deps.saveEffects(heroId, rememberWake(hero.questEffects, QUICK_START_TEMPLE_ID, now));
+    const remembered = floors.reduce<HeroQuestEffects>((effects, floor) => rememberWake(effects, QUICK_START_TEMPLE_ID, floor, now), hero.questEffects ?? {});
+    await deps.saveEffects(heroId, remembered);
     done.remembered.push(heroId);
   }
   return done;

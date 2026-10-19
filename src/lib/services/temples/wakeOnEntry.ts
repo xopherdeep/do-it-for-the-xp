@@ -4,6 +4,11 @@
  * way the Temple Quests tab wakes them (wakeTempleQuests.ts: planWake, a Solo Mission for the hero starting this
  * Monday, the library's beast adopted). Until then the Beast Log stays quiet.
  *
+ * Floor by floor (owner 2026-10-19): a temple can be a tall dungeon, so walking in wakes only the entrance floor's
+ * beasts, and every other floor wakes the first time the hero arrives on it (by stairs, a pit, a teleport, or a reload
+ * that resumes there); the screen then says how many stirred. A one-floor temple wakes every monster room on entry, as
+ * before. Each floor wakes once: a floor with no monster room wakes nothing and is still remembered.
+ *
  * - A room whose Game Master's pick is a live quest has nothing to wake (as the tab reads it).
  * - A beast whose quest is already the hero's (theirs, or an Open Bounty) is left as it is.
  * - A beast a temple already woke for other heroes (a `tq-` quest) takes this hero in: the hero is added to that
@@ -13,9 +18,12 @@
  *   given a second quest (planWake's "uses your quest").
  * - Miniboss and boss rooms never wake by themselves; a Game Master's profile never wakes anything.
  *
- * The wake is remembered per hero per temple on the hero's questEffects (`templesWokenAt`, written with
- * setQuestEffects, which every questEffects writer keeps), so walking in again wakes nothing new and a quest the Game
- * Master deleted is not made again. The plan is pure; `commitEntryWake` writes only through the writers it is handed.
+ * The wake is remembered per hero per temple floor on the hero's questEffects (`templesWokenAt`, written with
+ * setQuestEffects, which every questEffects writer keeps; the key is the temple and the floor, "wind-temple@2F"), so
+ * walking in again wakes nothing new and a quest the Game Master deleted is not made again. A wake remembered by the
+ * temple alone (made before floors) is the entrance floor's, and no other floor's. The plan is pure;
+ * `commitEntryWake` writes only through the writers it is handed. A hero's wakes take turns (they all write the one
+ * questEffects), so walking in and taking the stairs at once cannot make one forget the other.
  */
 import AchievementDb, { achievementStorage, type Achievement } from "@/lib/databases/AchievementDb";
 import BestiaryDb, { beastStorage, type Beast } from "@/lib/databases/BestiaryDb";
@@ -44,10 +52,13 @@ import debug from "@/lib/utils/debug";
 /** The questEffects field that remembers where a hero was woken (HeroQuestEffects.templesWokenAt). */
 export const WOKEN_TEMPLES_FIELD = "templesWokenAt";
 
+/** What the field holds one floor under: the temple and the floor, "wind-temple@2F". A temple id alone is an older wake. */
+export const wakeKey = (templeId: string, floor: string): string => `${templeId}@${floor}`;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-/** The temples a hero was woken in; a stored field that is not a record, or an entry that is not a time, reads as none (a profile is family data). */
+/** The wakes a hero has, by key (a temple and floor, or an older temple alone); a stored field that is not a record, or an entry that is not a time, reads as none (a profile is family data). */
 const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<string, string> => {
   const woken: unknown = isRecord(effects) ? effects.templesWokenAt : undefined;
   const kept: Record<string, string> = {};
@@ -59,15 +70,49 @@ const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<st
   return kept;
 };
 
-/** True when the temple already woke for the hero whose questEffects these are. */
-export const wasWokenFor = (effects: HeroQuestEffects | null | undefined, templeId: string): boolean =>
-  typeof wokenTemplesOf(effects)[templeId] === "string";
+/**
+ * True when the temple's floor already woke for the hero whose questEffects these are. A wake remembered by the temple
+ * alone (before floors) counts for the entrance floor only.
+ */
+export const wasWokenFor = (effects: HeroQuestEffects | null | undefined, templeId: string, floor: string, entranceFloor: string): boolean => {
+  const woken = wokenTemplesOf(effects);
+  const isFloorWoken = typeof woken[wakeKey(templeId, floor)] === "string";
+  const isOlderWake = floor === entranceFloor && typeof woken[templeId] === "string";
+  return isFloorWoken || isOlderWake;
+};
 
-/** The hero's questEffects with the temple remembered as woken at `now`; every other effect is kept, nothing is changed in place. */
-export const rememberWake = (effects: HeroQuestEffects | null | undefined, templeId: string, now: Date): HeroQuestEffects => ({
+/** The hero's questEffects with the temple's floor remembered as woken at `now`; every other effect is kept, nothing is changed in place. */
+export const rememberWake = (effects: HeroQuestEffects | null | undefined, templeId: string, floor: string, now: Date): HeroQuestEffects => ({
   ...(isRecord(effects) ? effects : {}),
-  templesWokenAt: { ...wokenTemplesOf(effects), [templeId]: now.toISOString() },
+  templesWokenAt: { ...wokenTemplesOf(effects), [wakeKey(templeId, floor)]: now.toISOString() },
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Floors
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** A layout as the temple record holds it: the planners read the maze and rooms, the record keeps its entrance. */
+export type PlayedLayout = QuestLayout & { entrance?: number[] };
+
+/** The floors a layout draws, in the order its maze holds them: a maze drawn as one grid is "1F", a layout with no maze has none. */
+export const floorsOfLayout = (layout: QuestLayout | null | undefined): string[] => {
+  const maze = layout?.maze;
+  if (!maze) return [];
+  return Array.isArray(maze) ? ["1F"] : Object.keys(maze);
+};
+
+/**
+ * The floor walking into the temple puts the hero on: the one an entrance of [floorIndex, row, col] counts to (an index
+ * into the maze's floors as it draws them, as the engine starts a hero), else the temple's first floor. "1F" for a
+ * layout that names none.
+ */
+export const entranceFloorOf = (layout: PlayedLayout | null | undefined): string => {
+  const floors = floorsOfLayout(layout);
+  const entrance = layout?.entrance ?? [];
+  const isOnAFloor = entrance.length === 3;
+  const named = isOnAFloor ? floors[entrance[0]] : undefined;
+  return named || floors[0] || "1F";
+};
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Who and where
@@ -89,20 +134,28 @@ export interface EntryHero extends HeroProfile {
   id: string;
 }
 
-export type EntryWakeSkipReason = "notShipped" | "noHero" | "gameMaster" | "alreadyWoken" | "noLayout";
+export type EntryWakeSkipReason = "notShipped" | "noHero" | "gameMaster" | "alreadyWoken" | "noLayout" | "noFloor";
 
-/** Why walking in wakes nothing, before anything is read; null when the wake goes ahead. */
+/**
+ * Why walking in wakes nothing, before anything is read; null when the wake goes ahead. Whether the floor already woke
+ * is told only once the floor and the temple's entrance floor are known (the entrance floor is in the layout, so a
+ * caller that has not read it yet leaves both out and gets who and where alone).
+ */
 export function entryWakeSkip(input: {
   templeId: string;
   isShipped: boolean;
   hero: EntryHero | null | undefined;
+  floor?: string;
+  entranceFloor?: string;
 }): EntryWakeSkipReason | null {
   if (!input.isShipped) return "notShipped";
   const hasNoHero = !input.hero?.id;
   if (hasNoHero) return "noHero";
   const isGameMaster = input.hero?.isAdult === true;
   if (isGameMaster) return "gameMaster";
-  const isAlreadyWoken = wasWokenFor(input.hero?.questEffects, input.templeId);
+  const { floor, entranceFloor } = input;
+  const isFloorKnown = floor !== undefined && entranceFloor !== undefined;
+  const isAlreadyWoken = isFloorKnown && wasWokenFor(input.hero?.questEffects, input.templeId, floor, entranceFloor);
   if (isAlreadyWoken) return "alreadyWoken";
   return null;
 }
@@ -115,7 +168,9 @@ export interface EntryWakeInput {
   templeId: string;
   isShipped: boolean;
   /** The layout the temple is played with: the family's record, else the copy shipped in code */
-  layout: QuestLayout | null | undefined;
+  layout: PlayedLayout | null | undefined;
+  /** The floor the hero is waking: the entrance floor on walking in, any other the first time they arrive on it */
+  floor: string;
   hero: EntryHero | null | undefined;
   /** Every quest record the family has, drafts too: a draft holds its id */
   quests: readonly Achievement[];
@@ -127,6 +182,8 @@ export interface EntryWakeInput {
 export interface EntryWakePlan {
   /** Why nothing happens (and nothing is remembered); null when the wake goes ahead */
   skip: EntryWakeSkipReason | null;
+  /** The floor the plan is for */
+  floor: string;
   /** The quests to make for the hero (planWake) */
   quests: Achievement[];
   /** Quests a temple woke for other heroes, each with this hero added to its assignees */
@@ -135,12 +192,13 @@ export interface EntryWakePlan {
   beasts: Beast[];
   /** The templates planWake left as they are, and why ("uses your quest", "already woken") */
   skipped: WakeSkip[];
-  /** The hero's questEffects with this temple remembered; null when the plan skips */
+  /** The hero's questEffects with this floor remembered; null when the plan skips */
   effects: HeroQuestEffects | null;
 }
 
-const nothingPlanned = (skip: EntryWakeSkipReason): EntryWakePlan => ({
+const nothingPlanned = (skip: EntryWakeSkipReason, floor: string): EntryWakePlan => ({
   skip,
+  floor,
   quests: [],
   joined: [],
   beasts: [],
@@ -160,16 +218,20 @@ const sharedWokenQuest = (live: readonly Achievement[], templeId: string, beastI
 };
 
 /**
- * What the hero's first walk into a temple wakes (see the top of this file). Every monster room's template is read
- * once per beast, in the maze's reading order: left alone when the room holds a live pick or the hero already has the
- * beast's quest, shared when a temple already woke it for someone else, else woken for the hero through planWake.
+ * What the hero's first arrival on a floor of a temple wakes (see the top of this file). Every monster room's template
+ * on that floor is read once per beast, in the maze's reading order: left alone when the room holds a live pick or the
+ * hero already has the beast's quest, shared when a temple already woke it for someone else, else woken for the hero
+ * through planWake. A floor the layout does not draw wakes nothing and is not remembered.
  */
 export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
-  const early = entryWakeSkip(input);
-  if (early) return nothingPlanned(early);
   const layout = input.layout;
+  const { floor } = input;
+  const early = entryWakeSkip({ ...input, floor, entranceFloor: entranceFloorOf(layout) });
+  if (early) return nothingPlanned(early, floor);
   const hasNoLayout = !layout?.maze || !layout?.rooms;
-  if (hasNoLayout) return nothingPlanned("noLayout");
+  if (hasNoLayout) return nothingPlanned("noLayout", floor);
+  const isFloorMissing = !floorsOfLayout(layout).includes(floor);
+  if (isFloorMissing) return nothingPlanned("noFloor", floor);
 
   const heroId = String(input.hero?.id);
   const live = input.quests.filter((quest) => !quest.draft);
@@ -177,7 +239,7 @@ export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
   const joined = new Map<string, Achievement>();
   const seen = new Set<string>();
 
-  for (const cell of monsterTemplateCells(layout)) {
+  for (const cell of monsterTemplateCells(layout).filter((onFloor) => onFloor.floor === floor)) {
     const isHeldByPick = headlineQuest(cell.room, live) !== undefined;
     if (isHeldByPick) continue;
     const template = cell.room.content?.quest as RoomQuestTemplate;
@@ -202,11 +264,12 @@ export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
     : null;
   return {
     skip: null,
+    floor,
     quests: wake?.quests ?? [],
     joined: [...joined.values()],
     beasts: wake?.beasts ?? [],
     skipped: wake?.skipped ?? [],
-    effects: rememberWake(input.hero?.questEffects, input.templeId, input.now),
+    effects: rememberWake(input.hero?.questEffects, input.templeId, floor, input.now),
   };
 }
 
@@ -223,19 +286,23 @@ export interface EntryWakeDone {
   woken: Achievement[];
   joined: Achievement[];
   adopted: Beast[];
+  /** The floor that was woken */
+  floor: string;
+  /** How many beasts stirred: the quests made plus the quests the hero joined */
+  stirred: number;
   /** The wake was remembered on the hero's questEffects */
   remembered: boolean;
-  /** A quest was made or joined: the run reads the hero's board again */
+  /** A quest was made or joined (`stirred` is above 0): the run reads the hero's board again */
   changed: boolean;
 }
 
 /**
  * Writes a plan: the beasts and the new quests (commitWake: beasts first), then the quests the hero joins, and last
- * the wake remembered. A plan that skipped writes nothing. A write that fails stops the rest and throws, and the wake
+ * the floor's wake remembered. A plan that skipped writes nothing. A write that fails stops the rest and throws, and the wake
  * is not remembered, so the next walk in tries again (a quest written meanwhile is then the hero's, or shared).
  */
 export async function commitEntryWake(plan: EntryWakePlan, heroId: string, writers: EntryWakeWriters): Promise<EntryWakeDone> {
-  const done: EntryWakeDone = { woken: [], joined: [], adopted: [], remembered: false, changed: false };
+  const done: EntryWakeDone = { woken: [], joined: [], adopted: [], floor: plan.floor, stirred: 0, remembered: false, changed: false };
   const effects = plan.effects;
   const isSkipped = Boolean(plan.skip) || !effects;
   if (isSkipped) return done;
@@ -249,7 +316,8 @@ export async function commitEntryWake(plan: EntryWakePlan, heroId: string, write
   }
   await writers.saveEffects(heroId, effects);
   done.remembered = true;
-  done.changed = done.woken.length + done.joined.length > 0;
+  done.stirred = done.woken.length + done.joined.length;
+  done.changed = done.stirred > 0;
   return done;
 }
 
@@ -284,9 +352,6 @@ export function familyWakeStores(): FamilyWakeStores {
   };
 }
 
-/** A layout as the temple record holds it: the planners read the maze and rooms, the record keeps its entrance. */
-export type PlayedLayout = QuestLayout & { entrance?: number[] };
-
 /** The layout shipped in code for a temple, or null for one that is not shipped. */
 export function shippedLayoutOf(templeId: string): PlayedLayout | null {
   const isShipped = isShippedTemple(templeId);
@@ -310,40 +375,75 @@ export async function playedLayoutOf(templeId: string): Promise<PlayedLayout | n
 }
 
 export interface EntryWakeDeps extends FamilyWakeStores {
-  readLayout: (templeId: string) => Promise<QuestLayout | null>;
+  readLayout: (templeId: string) => Promise<PlayedLayout | null>;
 }
 
 const entryWakeDeps = (): EntryWakeDeps => ({ ...familyWakeStores(), readLayout: playedLayoutOf });
 
-/** Walks in under way, by hero and temple: a second mount while one is writing shares it instead of planning twice. */
+/** Wakes under way, by hero, temple and floor: a second ask for the same floor while one is writing shares it instead of planning twice. */
 const underWay = new Map<string, Promise<EntryWakeDone | null>>();
 
-const runEntryWake = async (templeId: string, heroId: string, deps: EntryWakeDeps | undefined, now: Date): Promise<EntryWakeDone | null> => {
+/** Where each hero's last wake stands, by hero: the next wake starts when it settles (won or lost). */
+const turns = new Map<string, Promise<void>>();
+
+const runEntryWake = async (
+  templeId: string,
+  heroId: string,
+  deps: EntryWakeDeps | undefined,
+  now: Date,
+  floor: string | undefined
+): Promise<EntryWakeDone | null> => {
   const stores = deps ?? entryWakeDeps();
+  // The hero is read when the wake's turn comes: an earlier wake has remembered its floor on them by then
   const profile = stores.hero(heroId);
   const hero: EntryHero | undefined = profile ? { ...profile, id: heroId } : undefined;
   const early = entryWakeSkip({ templeId, isShipped: true, hero });
   if (early) return null;
 
-  const [layout, quests, beasts] = await Promise.all([stores.readLayout(templeId), stores.readQuests(), stores.readBeasts()]);
-  const plan = wakeOnEntryPlan({ templeId, isShipped: true, layout, hero, quests, beasts, now });
+  // The entrance floor is in the layout, so it is read before the board and the bestiary: a floor already woken reads no more
+  const layout = await stores.readLayout(templeId);
+  const entranceFloor = entranceFloorOf(layout);
+  const wakeFloor = floor ?? entranceFloor;
+  const isAlreadyWoken = entryWakeSkip({ templeId, isShipped: true, hero, floor: wakeFloor, entranceFloor }) === "alreadyWoken";
+  if (isAlreadyWoken) return null;
+
+  const [quests, beasts] = await Promise.all([stores.readQuests(), stores.readBeasts()]);
+  const plan = wakeOnEntryPlan({ templeId, isShipped: true, layout, floor: wakeFloor, hero, quests, beasts, now });
   return commitEntryWake(plan, heroId, { ...stores.writers, saveEffects: stores.saveEffects });
 };
 
 /**
- * The hero walked into a temple (TempleGrounds, once the temple's saved layout was read): wake it for them if this is
- * their first time in a shipped temple. Resolves to what was written, or null when nothing was even read (not a
- * shipped temple, not a hero of the family, a Game Master, already woken there). Throws when a write fails.
+ * The hero walked into a temple (TempleGrounds, once the temple's saved layout was read), or arrived on one of its
+ * floors: wake that floor for them if it has not woken before. `floor` is the floor arrived on; without it the
+ * temple's entrance floor wakes (walking in). Resolves to what was written, or null when nothing was planned (not a
+ * shipped temple, not a hero of the family, a Game Master, the floor already woken). Throws when a write fails.
+ * A hero's wakes take turns, in the order they were asked.
  */
-export function wakeTempleOnEntry(templeId: string, heroId: string, deps?: EntryWakeDeps, now: Date = new Date()): Promise<EntryWakeDone | null> {
+export function wakeTempleOnEntry(
+  templeId: string,
+  heroId: string,
+  deps?: EntryWakeDeps,
+  now: Date = new Date(),
+  floor?: string
+): Promise<EntryWakeDone | null> {
   const isShipped = isShippedTemple(templeId);
   if (!isShipped) return Promise.resolve(null);
-  const key = `${heroId}:${templeId}`;
+  const hero = String(heroId);
+  const key = `${hero}:${templeId}:${floor ?? ""}`;
   const running = underWay.get(key);
   if (running) return running;
-  const started = runEntryWake(templeId, String(heroId), deps, now).finally(() => {
+
+  const started = (turns.get(hero) ?? Promise.resolve()).then(() => runEntryWake(templeId, hero, deps, now, floor));
+  // The next wake waits for this one to settle, whether it wrote or threw
+  const settled = started.then(
+    () => undefined,
+    () => undefined
+  );
+  turns.set(hero, settled);
+  const finished = started.finally(() => {
     underWay.delete(key);
+    if (turns.get(hero) === settled) turns.delete(hero);
   });
-  underWay.set(key, started);
-  return started;
+  underWay.set(key, finished);
+  return finished;
 }

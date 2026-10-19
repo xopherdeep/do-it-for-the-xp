@@ -376,6 +376,9 @@
       :level-up="pegasusLevelUp"
       @done="finishTempleCleared"
     />
+
+    <!-- The beasts of a floor stirred as the hero arrived on it: the game's own prompt, never a native alert -->
+    <xp-reveal-prompt :prompt="floorWakePrompt" @respond="answerFloorWake" />
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />
