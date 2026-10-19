@@ -27,11 +27,12 @@ export const QUICK_START_PACK = definePack(
   },
   {
     categories: [{ id: "cat-quick-tonight", name: "Tonight's Quests" }],
-    // Difficulty 2 pays 30 GP each: two chores buy a small treat, all three the movie
+    // Difficulty 2 pays 30 GP each: two chores buy a small treat, all three the movie. A hero claims a quest and
+    // the Game Master approves it, as the Quick start screen says, so the pay waits for Approvals.
     quests: [
-      { id: "quick-dishes", name: "Banish the Dish Goblin", categoryId: "cat-quick-tonight", beastId: "beast-dish-goblin", schedule: "daily", difficulty: 2, timesOfDay: ["evening"] },
-      { id: "quick-room", name: "Corner the Clutter Chimera", categoryId: "cat-quick-tonight", beastId: "beast-clutter-chimera", schedule: "daily", difficulty: 2, timesOfDay: ["evening"] },
-      { id: "quick-homework", name: "Behead the Homework Hydra", categoryId: "cat-quick-tonight", beastId: "beast-homework-hydra", schedule: "daily", difficulty: 2, timesOfDay: ["evening"] },
+      { id: "quick-dishes", name: "Banish the Dish Goblin", categoryId: "cat-quick-tonight", beastId: "beast-dish-goblin", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
+      { id: "quick-room", name: "Corner the Clutter Chimera", categoryId: "cat-quick-tonight", beastId: "beast-clutter-chimera", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
+      { id: "quick-homework", name: "Behead the Homework Hydra", categoryId: "cat-quick-tonight", beastId: "beast-homework-hydra", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
     ],
     // Every price fits the 100 GP a new hero's wallet holds
     rewards: [
