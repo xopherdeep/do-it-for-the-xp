@@ -4,7 +4,7 @@
  */
 import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { TempleState } from "@/lib/engine/core/dungeons/TempleSystem";
-import { chestDungeonItem, grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
+import { grantedDungeonItems, grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 import { getItemIcon } from "./templeLookups";
 import { isRoom, type DungeonLayout } from "./mazeFloors";
 
@@ -61,10 +61,12 @@ export const buildComposition = (layout: DungeonLayout, getRunState: () => Templ
           monCounts['miniboss'] = (monCounts['miniboss'] || 0) + 1;
         }
 
-        // Only what play hands out counts (roomGrants): a Dungeon Item chest, or the master's Key room; a key written
-        // into a mini-boss room's chest is never given
-        const dungeonItem = grantsBossKey(roomDef) ? 'master-key' : chestDungeonItem(roomDef);
-        if (dungeonItem) {
+        // Only what play hands out counts (roomGrants): a Dungeon Item chest, a fight room's drop, or the master's Key
+        // room; a key written into a mini-boss room's chest is never given
+        const dungeonItems = grantedDungeonItems(roomDef);
+        const isMasterKeyRoom = grantsBossKey(roomDef) && !dungeonItems.includes('master-key');
+        if (isMasterKeyRoom) dungeonItems.unshift('master-key');
+        dungeonItems.forEach(dungeonItem => {
           // The key to the boss door is the Boss Key to a parent; its id stays `master-key` and the run state `hasMasterKey`
           const isBossKey = dungeonItem === 'master-key';
           const itemName = isBossKey ? 'Boss Key' : dungeonItem.charAt(0).toUpperCase() + dungeonItem.slice(1);
@@ -79,7 +81,7 @@ export const buildComposition = (layout: DungeonLayout, getRunState: () => Templ
               found
             });
           }
-        }
+        });
       });
     });
   });

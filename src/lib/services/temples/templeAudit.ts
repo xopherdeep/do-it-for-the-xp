@@ -16,7 +16,7 @@
  * Egg) is the Pegasus chest and the editor's "dungeon-map" is the map. Pure: no Vue, no storage.
  */
 import { asChestRoom } from '@/lib/services/temples/ChestLoot';
-import { chestDungeonItem, grantsBossKey } from '@/lib/services/temples/roomGrants';
+import { grantedDungeonItems, grantsBossKey } from '@/lib/services/temples/roomGrants';
 import { VOID } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { neighbourFloorOf } from '@/lib/engine/core/dungeons/floorOrder';
@@ -200,8 +200,9 @@ export const auditTemple = (temple: AuditableTemple | null | undefined, options:
   const bosses = countOf(rooms, (room) => typeOf(room) === 'boss');
   const bossKeys = countOf(rooms, grantsBossKey);
   const masters = countOf(rooms, isMasterRoom);
-  const maps = countOf(rooms, (room) => chestDungeonItem(room) === 'map');
-  const compasses = countOf(rooms, (room) => chestDungeonItem(room) === 'compass');
+  // A chest holds a map or a compass, and so can a fight room's drop (grantedDungeonItems reads both)
+  const maps = countOf(rooms, (room) => grantedDungeonItems(room).includes('map'));
+  const compasses = countOf(rooms, (room) => grantedDungeonItems(room).includes('compass'));
 
   // A temple without a gate ends where it began: the entrance is also the way out (how the generator builds them)
   let exitDetail = 'Missing';

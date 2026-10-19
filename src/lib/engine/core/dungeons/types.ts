@@ -23,6 +23,13 @@ export interface RoomQuestTemplate {
   estimatedMinutes?: number;
 }
 
+/**
+ * What a beaten fight room leaves behind (`RoomContent.drops`): the same four fields a chest holds, read the same way
+ * (a Dungeon Item chest holds `dungeon`, a loot chest its `items` and `gold`). Only a monster, mini-boss or boss room
+ * has drops (services/temples/fightDrops.ts); on any other room they are ignored.
+ */
+export type RoomDrops = Pick<RoomContent, 'chest' | 'dungeon' | 'items' | 'gold'>;
+
 export interface RoomContent {
   beasts?: string[];
   /** A quest room: the family quest the Game Master picked in the editor (5.2 step 1) */
@@ -42,6 +49,8 @@ export interface RoomContent {
   items?: string[];
   gold?: number;
   dungeon?: string;
+  /** A fight room (monster, mini-boss, boss): what the hero takes after winning, a key, the map or a Bomb included */
+  drops?: RoomDrops;
   chestId?: string;
   healthPoints?: number;
   // Rewards (required for combat rooms)

@@ -76,18 +76,31 @@ describe("the Wind Temple", () => {
     expect(missingNames(auditTemple(temple))).toEqual([]);
   });
 
-  describe("without a Bomb", () => {
-    const graph = buildTempleGraph(engineLayout(false));
-    const reach = reachableFrom(graph, graph.entrance!);
+  describe("with the cracked wall left as it is", () => {
+    const layout = engineLayout(false);
+    const graph = buildTempleGraph(layout);
+    const bombDoors = new Set(graph.doors.filter((door) => door.lock === "bomb").map((door) => door.id));
+    const reach = reachableFrom(graph, graph.entrance!, new Set(), bombDoors);
 
-    it("reaches the shop that sells one", () => {
+    it("reaches the shop that sells a Bomb before any wall is blown", () => {
       expect(kindAt(graph, 2, 0)).toBe("shop");
+      expect(graph.rooms.get("1F:2,0")!.bombs).toBe(true);
       expect(reach).toContain("1F:2,0");
     });
 
-    it("cannot reach the Boss Key: the cracked wall at (1,2) guards it", () => {
+    it("cannot reach the Boss Key without a Bomb: the cracked wall at (1,2) guards it", () => {
+      expect(bombDoors.size).toBeGreaterThan(0);
       expect(reach).not.toContain("1F:3,5");
-      expect(solveTemple(engineLayout(false)).solvable).toBe(false);
+    });
+
+    it("is cleared all the same: the Bomb from the shop opens the wall", () => {
+      expect(solveTemple(layout).solvable).toBe(true);
+    });
+
+    it("is not cleared when no Bomb is to be had: take the shop away and the wall holds", () => {
+      const rooms = Object.fromEntries(Object.entries(layout.rooms).map(([token, room]: [string, any]) => [token, room.type === "shop" ? { type: "empty" } : room]));
+
+      expect(solveTemple({ ...layout, rooms }).solvable).toBe(false);
     });
   });
 

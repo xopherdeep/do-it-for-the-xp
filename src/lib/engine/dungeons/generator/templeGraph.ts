@@ -3,14 +3,19 @@
  *
  * This is the shape the solver and the generator share (docs/Temple-Generation-Contract.md). It follows the
  * engine's rules of movement, not an idealised version of them:
- * - two orthogonally adjacent non-wall cells on a floor are joined by a door, unless a room draws a wall or a cracked wall
- *   (`room.barriers`, either end) on the side between them: that side is no door at all;
+ * - two orthogonally adjacent non-wall cells on a floor are joined by a door, unless a room draws a wall
+ *   (`room.barriers`, either end) on the side between them: that side is no door at all. A side drawn as a cracked wall
+ *   is a door that only a Bomb opens (`lock: "bomb"`): the solver opens it once the hero has reached a room that gives
+ *   out a Bomb (a shop, a Bomb chest, a fight room's Bomb drop, see roomGrants.isBombSource), never before;
  * - `room.locked[direction]` locks the door in that direction only (the engine checks the room the hero stands
  *   in), so a door is a directed edge and a key opens one direction;
  * - every door into a boss room is the boss door and needs the master key (the engine's `doorKind` reads the room it
  *   steps into, not `locked.master`, which the generator keeps as a note); walking out is not barred;
- * - a room hands out keys only as play does (roomGrants): loot rooms with a Dungeon Item chest, their "key" rows, and
- *   Key rooms; a key written into a mini-boss room's chest is never handed out;
+ * - a room hands out keys only as play does (roomGrants): loot rooms with a Dungeon Item chest, their "key" rows, Key
+ *   rooms, and what a monster, mini-boss or boss drops (`content.drops`); a key written into a mini-boss room's chest
+ *   is never handed out;
+ * - Bombs never open a locked door: a cracked wall into a boss room is still the boss door (the Bomb breaks the wall,
+ *   the master key opens the door), and a small lock still wants its key;
  * - stairs up lead to the next floor up in the climbing order (floorOrder: B1, 1F, 2F), stairs down to the next one
  *   down, landing on the requested coordinates, else the first matching stairs on that floor, else the same cell
  *   (R8 wants pairs at the same row and column);
@@ -26,7 +31,7 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
 import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
 import { barrierBetween, isBossRoom } from "@/lib/services/temples/authoredDoors";
-import { grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
+import { grantsBossKey, isBombSource, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
 
@@ -54,7 +59,8 @@ export interface RoomRef {
   col: number;
 }
 
-export type LockKind = "none" | "small" | "master";
+/** What opens a door: nothing, a small key, the master key (boss doors), or a Bomb (a cracked wall) */
+export type LockKind = "none" | "small" | "master" | "bomb";
 
 export type DoorKind = "door" | "stairs" | "teleport" | "pit";
 
@@ -82,6 +88,8 @@ export interface GraphRoom {
   smallKeys: number;
   /** The master key is in this room */
   masterKey: boolean;
+  /** A hero who reaches this room can take a Bomb: a shop, a Bomb chest, a fight room that drops one */
+  bombs: boolean;
   /** The Pegasus chest, the prize behind the boss */
   prize: boolean;
 }
@@ -151,6 +159,7 @@ const makeRoom = (ref: RoomRef, token: string, room: Room): GraphRoom => {
     // What play hands out (roomGrants), not what the layout says: a key in a mini-boss room never reaches the hero
     smallKeys: smallKeysGranted(room),
     masterKey: grantsBossKey(room),
+    bombs: isBombSource(room),
     prize: isPrize(room, kind),
   };
 };
@@ -209,9 +218,12 @@ const lockBetween = (from: GraphRoom, to: GraphRoom, direction: Direction): Lock
 };
 
 /**
- * Walking doors: each room to each standable neighbour, one directed door per way. A side drawn as a wall is no door,
- * and neither is a side drawn bombable: a temple must be finishable without Bombs, so a cracked wall is a wall here
- * (a shortcut or a secret in play, never a way the solver counts on). The engine's doorKind asks the same barrierBetween.
+ * Walking doors: each room to each standable neighbour, one directed door per way. A side drawn as a wall is no door.
+ * A side drawn bombable is a door that only a Bomb opens (`lock: "bomb"`), one way each: the solver opens it once the hero
+ * has reached a room that gives out a Bomb inside the temple (a shop, a Bomb chest, a Bomb drop), and never before, so a
+ * temple counts on a Bomb only when it hands one out. A Bomb never opens a locked door: a cracked wall into a boss room is
+ * still the boss door (`master`, the Bomb breaks the wall and the master key opens the door). The engine's doorKind asks
+ * the same barrierBetween.
  */
 const linkNeighbours = (graph: TempleGraph): void => {
   for (const from of graph.rooms.values()) {
@@ -219,9 +231,12 @@ const linkNeighbours = (graph: TempleGraph): void => {
       const [dr, dc] = STEP[direction];
       const to = graph.rooms.get(roomKey({ floor: from.ref.floor, row: from.ref.row + dr, col: from.ref.col + dc }));
       if (!to) continue;
-      const isBarred = Boolean(barrierBetween(from.room, to.room, direction));
-      if (isBarred) continue;
-      addDoor(graph, { from: from.key, to: to.key, kind: "door", lock: lockBetween(from, to, direction), direction });
+      const barrier = barrierBetween(from.room, to.room, direction);
+      const isWall = barrier === "wall";
+      if (isWall) continue;
+      const isCrackedWall = barrier === "bombable" && !isBossRoom(to.room);
+      const lock = isCrackedWall ? "bomb" : lockBetween(from, to, direction);
+      addDoor(graph, { from: from.key, to: to.key, kind: "door", lock, direction });
     }
   }
 };

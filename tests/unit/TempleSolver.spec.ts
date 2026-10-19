@@ -267,48 +267,129 @@ describe("TempleSolver", () => {
     expect(locked).toEqual(["1F:1,1>1F:1,2", "1F:3,0>1F:3,1"]);
   });
 
-  describe("walls and bombable sides are walls to the solver (a temple must be finishable without Bombs)", () => {
+  it("a key dropped by a monster opens the small lock", () => {
+    // A 1x5 floor: the entrance, a monster that drops a small key, the locked side east of it, the Boss Key's room, the boss, the Pegasus chest
+    const rooms: Record<string, Room> = {
+      [_]: { type: "wall" },
+      E001: { type: "entrance", visited: true },
+      M001: { type: "monster", content: { drops: { chest: "dungeon", dungeon: "small-key" } }, locked: { east: true } },
+      MK01: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } },
+      B001: { type: "boss", content: { lockOnEnter: true }, locked: { master: true } },
+      P001: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus", pegasus: true } },
+    };
+    const floor = (extra: Record<string, Room> = {}): TempleLayout => ({ entrance: [0, 0], maze: [["E001", "M001", "MK01", "B001", "P001"]], rooms: { ...rooms, ...extra } });
+
+    expect(solveTemple(floor()).solvable).toBe(true);
+    // The drop is the only key on the floor: take it away and the locked side holds the hero for good
+    expect(solveTemple(floor({ M001: { type: "monster", locked: { east: true } } })).solvable).toBe(false);
+    // A drop under a room that does not fight is not played
+    expect(solveTemple(floor({ M001: { type: "loot", content: { drops: { chest: "dungeon", dungeon: "small-key" } }, locked: { east: true } } })).solvable).toBe(false);
+  });
+
+  describe("walls are walls and cracked walls are Bomb doors (a Bomb found inside the temple opens them)", () => {
     const doorIds = (layout: TempleLayout): string[] => buildTempleGraph(layout).doors.map((door) => door.id);
+    const doorOf = (layout: TempleLayout, id: string) => buildTempleGraph(layout).doors.find((door) => door.id === id);
 
-    it("joins no two rooms across a wall side or a bombable side, either way", () => {
-      for (const barrier of ["wall", "bombable"] as const) {
-        const ids = doorIds(fixture({}, { R002: { type: "empty", barriers: { east: barrier } } }));
+    /** A chest with a Bomb in it, and a shop: the two ways to find a Bomb in a temple without a fight */
+    const BOMB_CHEST: Room = { type: "loot", content: { chest: "consumable", items: ["Bomb"] } };
+    const SHOP: Room = { type: "shop" };
 
-        expect(ids).not.toContain("1F:1,2>1F:1,3");
-        expect(ids).not.toContain("1F:1,3>1F:1,2"); // a wall is a wall from the other room too
-        expect(ids).toContain("1F:1,1>1F:1,2"); // the sides it does not bar stay doors
-      }
+    /**
+     * The fixture's floor with the locked side west of R002 drawn as a cracked wall instead: the only way to the mini-boss, the
+     * master key and the boss is through it. The cell above R001 (where the fixture keeps a small key) takes `above`.
+     */
+    const crackedFloor = (above: string, rooms: Record<string, Room> = {}): TempleLayout =>
+      fixture({ "0,1": above }, { R001: { type: "empty", barriers: { east: "bombable" } }, ...rooms });
+
+    it("joins no two rooms across a wall side, either way", () => {
+      const ids = doorIds(fixture({}, { R002: { type: "empty", barriers: { east: "wall" } } }));
+
+      expect(ids).not.toContain("1F:1,2>1F:1,3");
+      expect(ids).not.toContain("1F:1,3>1F:1,2"); // a wall is a wall from the other room too
+      expect(ids).toContain("1F:1,1>1F:1,2"); // the sides it does not bar stay doors
+    });
+
+    it("joins two rooms across a bombable side with a Bomb door, either way", () => {
+      const layout = fixture({}, { R002: { type: "empty", barriers: { east: "bombable" } } });
+
+      expect(doorOf(layout, "1F:1,2>1F:1,3")).toMatchObject({ kind: "door", lock: "bomb", direction: "east" });
+      expect(doorOf(layout, "1F:1,3>1F:1,2")).toMatchObject({ kind: "door", lock: "bomb", direction: "west" });
+      expect(doorOf(layout, "1F:1,1>1F:1,2")).toMatchObject({ lock: "small" }); // the sides it does not bar stay what they were
     });
 
     it("reads the barrier from the room beyond as well: the engine does, so a wall drawn on one end bars both", () => {
-      const ids = doorIds(fixture({}, { b001: { type: "miniboss", content: { lockOnEnter: true }, barriers: { west: "bombable" } } }));
+      const walled = doorIds(fixture({}, { b001: { type: "miniboss", content: { lockOnEnter: true }, barriers: { west: "wall" } } }));
+      expect(walled).not.toContain("1F:1,2>1F:1,3");
+      expect(walled).not.toContain("1F:1,3>1F:1,2");
 
-      expect(ids).not.toContain("1F:1,2>1F:1,3");
-      expect(ids).not.toContain("1F:1,3>1F:1,2");
+      const cracked = fixture({}, { b001: { type: "miniboss", content: { lockOnEnter: true }, barriers: { west: "bombable" } } });
+      expect(doorOf(cracked, "1F:1,2>1F:1,3")).toMatchObject({ lock: "bomb" });
+      expect(doorOf(cracked, "1F:1,3>1F:1,2")).toMatchObject({ lock: "bomb" });
     });
 
-    it("finds a temple whose only way on is a cracked wall unsolvable: no Bomb is counted on", () => {
-      for (const barrier of ["wall", "bombable"] as const) {
-        const result = solveTemple(fixture({}, { R002: { type: "empty", barriers: { east: barrier } } }));
+    it("a wall bars the hero for good, even with a Bomb in the temple", () => {
+      const result = solveTemple(fixture({ "0,1": "BC01" }, { BC01: BOMB_CHEST, R001: { type: "empty", barriers: { east: "wall" } } }));
 
-        expect(result.solvable).toBe(false);
-      }
+      expect(result.solvable).toBe(false);
+    });
+
+    it("a cracked wall opens once a Bomb chest is reached, never without one", () => {
+      const withBomb = solveTemple(crackedFloor("BC01", { BC01: BOMB_CHEST }));
+      expect(withBomb.reasons).toEqual([]);
+      expect(withBomb.solvable).toBe(true);
+
+      const without = solveTemple(crackedFloor("K001"));
+      expect(without.solvable).toBe(false);
+      expect(without.reasons).toEqual([expect.stringMatching(/^R2: the master key is out of reach/)]);
+    });
+
+    it("a shop sells the Bomb, so a shop before the cracked wall opens it", () => {
+      expect(solveTemple(crackedFloor("SH01", { SH01: SHOP })).solvable).toBe(true);
+      expect(buildTempleGraph(crackedFloor("SH01", { SH01: SHOP })).rooms.get("1F:0,1")!.bombs).toBe(true);
+      expect(buildTempleGraph(crackedFloor("K001")).rooms.get("1F:0,1")!.bombs).toBe(false);
+    });
+
+    it("a monster that drops a Bomb before the cracked wall opens it", () => {
+      const dropper: Room = { type: "monster", content: { drops: { chest: "consumable", items: ["Bomb"] } } };
+
+      expect(solveTemple(crackedFloor("MD01", { MD01: dropper })).solvable).toBe(true);
+    });
+
+    it("a Bomb behind the very wall it must open is no help", () => {
+      const result = solveTemple(fixture({ "2,2": "BC01" }, { BC01: BOMB_CHEST, R001: { type: "empty", barriers: { east: "bombable" } } }));
+
+      expect(result.solvable).toBe(false);
+    });
+
+    it("a Bomb never opens a locked door: the small lock still wants its key", () => {
+      // The fixture as it is: R001's east side is a small lock and its key is in the chest above it. Swap the key for a Bomb chest.
+      const result = solveTemple(fixture({ "0,1": "BC01" }, { BC01: BOMB_CHEST }));
+
+      expect(result.solvable).toBe(false);
+    });
+
+    it("a cracked wall into the boss room is still the Boss door: the Bomb breaks the wall, the Boss Key opens the door", () => {
+      const layout = fixture({ "0,1": "BC01" }, { BC01: BOMB_CHEST, R003: { type: "empty", barriers: { east: "bombable" } } });
+
+      expect(doorOf(layout, "1F:1,4>1F:1,5")).toMatchObject({ lock: "master" });
+      expect(doorOf(layout, "1F:1,5>1F:1,4")).toMatchObject({ lock: "bomb" }); // walking out is not barred by the Boss Lock
     });
 
     it("leaves a cracked wall between two rooms the hero reaches another way as a shortcut that changes nothing", () => {
       const rooms: Record<string, Room> = { X1: { type: "empty", barriers: { east: "bombable" } }, X2: { type: "empty" } };
       const layout = fixture({ "2,1": "X1", "2,2": "X2" }, rooms);
 
-      expect(doorIds(layout)).not.toContain("1F:2,1>1F:2,2");
+      expect(doorOf(layout, "1F:2,1>1F:2,2")).toMatchObject({ lock: "bomb" });
       const result = solveTemple(layout);
       expect(result.reasons).toEqual([]);
       expect(result.solvable).toBe(true);
     });
 
-    it("plays the editor's sides: a wall or a bombable side drawn in the creator is a barrier when registered", () => {
-      const drawn: Record<string, Room> = { R002: lockedFromSides({ type: "empty", sides: { north: "door", east: "bombable", south: "door", west: "door" } }) };
+    it("plays the editor's sides: a wall side drawn in the creator is a wall, a bombable side a Bomb door, when registered", () => {
+      const sides = (east: string) => lockedFromSides<Room>({ type: "empty", sides: { north: "door", east, south: "door", west: "door" } });
 
-      expect(doorIds(fixture({}, drawn))).not.toContain("1F:1,2>1F:1,3");
+      expect(doorIds(fixture({}, { R002: sides("wall") }))).not.toContain("1F:1,2>1F:1,3");
+      expect(doorOf(fixture({}, { R002: sides("bombable") }), "1F:1,2>1F:1,3")).toMatchObject({ lock: "bomb" });
     });
   });
 
