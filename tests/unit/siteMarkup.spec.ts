@@ -47,4 +47,21 @@ describe("checkMarkup", () => {
     ]));
     expect(problems).toHaveLength(1);
   });
+  it("strips trailing punctuation from numbers", () => {
+    const problems = checkMarkup('<p>We have 5000. Users love it</p>');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/5000/);
+    expect(problems[0]).not.toMatch(/5000\./);
+  });
+  it("handles 20000 numbers without keywords in under 500ms", () => {
+    let html = '';
+    for (let i = 1; i <= 20000; i++) {
+      html += `<p>${i} apples</p>`;
+    }
+    const start = performance.now();
+    const problems = checkMarkup(html);
+    const elapsed = performance.now() - start;
+    expect(problems).toEqual([]);
+    expect(elapsed).toBeLessThan(500);
+  });
 });

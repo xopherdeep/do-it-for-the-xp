@@ -52,18 +52,12 @@ export function checkMarkup(html: string): string[] {
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ');
 
-  // Find invented numbers: \d[\d,.]* followed within 3 words by users/achievements/tasks
-  const numberRegex = /\d[\d,.]*/g;
+  // Find invented numbers in single pass: number followed within 3 words by users/achievements/tasks
+  const numberRegex = /(\d+(?:[,.]\d+)*)(?=\W+(?:\w+\W+){0,2}(?:users|achievements|tasks)\b)/gi;
   const reportedNumbers = new Set<string>();
-  let numberMatch;
-  while ((numberMatch = numberRegex.exec(visibleText)) !== null) {
-    const number = numberMatch[0];
-    if (reportedNumbers.has(number)) continue;
-
-    const afterNumber = visibleText.substring(numberMatch.index + number.length);
-    const words = afterNumber.match(/\b\w+\b/g) || [];
-    const nextThreeWords = words.slice(0, 3).join(' ').toLowerCase();
-    if (/\b(users|achievements|tasks)\b/.test(nextThreeWords)) {
+  for (const match of visibleText.matchAll(numberRegex)) {
+    const number = match[1];
+    if (!reportedNumbers.has(number)) {
       problems.push(`invented number: "${number}"`);
       reportedNumbers.add(number);
     }
