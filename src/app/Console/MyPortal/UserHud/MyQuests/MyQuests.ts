@@ -2,7 +2,7 @@ import { defineComponent, onMounted, reactive, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import {
   actionSheetController,
-  alertController,
+  onIonViewWillEnter,
   toastController,
 } from "@ionic/vue";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
@@ -39,6 +39,7 @@ import debug from "@/lib/utils/debug";
 import { useTimers } from "@/hooks/useTimers";
 import { useCopy } from "@/hooks/useVoice";
 import { linkedQuestRow, sectionsByWindow, toLogRow } from "./questLogRows";
+import { reloadOnReturn } from "./reloadOnReturn";
 import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
 import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 import type { QuestLogRow } from "./questLogRows";
@@ -208,20 +209,6 @@ export default defineComponent({
     },
     isModalOpen(id: any) {
       return this.activeModal == id;
-    },
-    clickComplete() {
-      this.activeModal = 0;
-      this.presentAlertMultipleButtons();
-    },
-    async presentAlertMultipleButtons() {
-      const alert = await alertController.create({
-        cssClass: "my-custom-class",
-        header: "Points Rewarded",
-        subHeader: "Subtitle",
-        message: "This is an alert message.",
-        buttons: ["Collect Loot"],
-      });
-      return alert.present();
     },
     resetTextSound() {
       this.$fx.rpg[this.$fx.theme.rpg].text.pause();
@@ -470,6 +457,15 @@ export default defineComponent({
       return loadBoard();
     });
     watch(() => params.search, loadBoard);
+
+    // The page stays alive while the hero fights: coming back (a won battle's "Tap to continue") re-reads the board,
+    // the due counts and the tamed beasts. The first visit mounts and loads above, so it is skipped.
+    onIonViewWillEnter(
+      reloadOnReturn(() => {
+        void loadBoard();
+        void loadTamed();
+      }),
+    );
 
     return {
       gameStore,

@@ -29,3 +29,55 @@ describe("The family rules built from Coming soon", () => {
     expect(await loadFamilySettings()).toMatchObject({ autoSavePercent: 0, weekStartsOn: 1, approveAllPurchases: false });
   });
 });
+
+describe("Cash out starts off until the Game Master agrees to real money", () => {
+  it("is off on a fresh family and in the defaults", async () => {
+    mockStored = null;
+    expect(DEFAULT_FAMILY_SETTINGS.cashOut.enabled).toBe(false);
+    expect((await loadFamilySettings()).cashOut).toMatchObject({ enabled: false, gpPerDollar: 10, heroIds: [] });
+  });
+
+  it("stays off in an older save that never said", async () => {
+    mockStored = { streaks: true };
+    expect((await loadFamilySettings()).cashOut.enabled).toBe(false);
+    mockStored = { cashOut: { gpPerDollar: 20, heroIds: ["ava"] } };
+    expect((await loadFamilySettings()).cashOut).toMatchObject({ enabled: false, gpPerDollar: 20, heroIds: ["ava"] });
+  });
+
+  it("keeps a stored true, and a stored false", async () => {
+    mockStored = { cashOut: { enabled: true, gpPerDollar: 25 } };
+    expect((await loadFamilySettings()).cashOut).toMatchObject({ enabled: true, gpPerDollar: 25 });
+    mockStored = { cashOut: { enabled: false } };
+    expect((await loadFamilySettings()).cashOut.enabled).toBe(false);
+  });
+
+  it("reads anything that is not a real true as off", async () => {
+    mockStored = { cashOut: { enabled: "yes" } };
+    expect((await loadFamilySettings()).cashOut.enabled).toBe(false);
+  });
+});
+
+describe("Savings interest starts off and the Game Master picks the rate", () => {
+  it("is off at 2 percent a week on a fresh family and in the defaults", async () => {
+    mockStored = null;
+    expect(DEFAULT_FAMILY_SETTINGS.savingsInterest).toEqual({ enabled: false, weeklyRatePercent: 2 });
+    expect((await loadFamilySettings()).savingsInterest).toEqual({ enabled: false, weeklyRatePercent: 2 });
+  });
+
+  it("fills the rule into an older save that has none", async () => {
+    mockStored = { autoSavePercent: 10 };
+    expect((await loadFamilySettings()).savingsInterest).toEqual({ enabled: false, weeklyRatePercent: 2 });
+  });
+
+  it("keeps the choice the Game Master saved", async () => {
+    mockStored = { savingsInterest: { enabled: true, weeklyRatePercent: 5 } };
+    expect((await loadFamilySettings()).savingsInterest).toEqual({ enabled: true, weeklyRatePercent: 5 });
+  });
+
+  it("turns a broken rate back into the default and keeps the switch", async () => {
+    mockStored = { savingsInterest: { enabled: true, weeklyRatePercent: "lots" } };
+    expect((await loadFamilySettings()).savingsInterest).toEqual({ enabled: true, weeklyRatePercent: 2 });
+    mockStored = { savingsInterest: { enabled: true, weeklyRatePercent: 400 } };
+    expect((await loadFamilySettings()).savingsInterest.weeklyRatePercent).toBe(10);
+  });
+});

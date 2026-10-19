@@ -9,7 +9,6 @@
         <xp-app-header
           title="Workbench"
           icon="tools"
-          :meta="metaText"
         >
           <template #start>
             <xp-back-button></xp-back-button>
@@ -19,42 +18,13 @@
     </ion-header>
 
     <ion-content class="my-crafts__content">
-      <xp-loading v-if="isLoading" />
-      <template v-else>
-        <xp-app-section
-          v-if="listItems.length"
-          :label="sectionLabel"
-        >
-          <xp-app-row
-            v-for="item in listItems"
-            :key="item.id"
-            :title="itemTitle(item)"
-            :subtitle="itemSubtitle(item)"
-            :image="itemImage(item)"
-            icon="tools"
-            :chevron="false"
-          />
-        </xp-app-section>
-        <div
-          v-if="listItems.length && hasNextPage"
-          class="my-crafts__more"
-        >
-          <button
-            type="button"
-            class="xp-app-btn xp-app-btn--ghost"
-            @click="loadMore"
-          >
-            More
-          </button>
-        </div>
-        <xp-app-empty
-          v-if="!listItems.length"
-          icon="tools"
-          :text="emptyText"
-        />
-      </template>
+      <!-- Nothing to craft from yet: the game's Coming soon card says so in the workbench's words -->
+      <xp-coming-soon-card
+        title="On the bench"
+        :items="comingSoonItems"
+      />
 
-      <!-- The buildings' FAB (as in the Gold Bank): bottom center, above the search bar and the dock -->
+      <!-- The buildings' FAB (as in the Gold Bank): bottom center, above the dock -->
       <ion-fab
         vertical="bottom"
         horizontal="center"
@@ -79,25 +49,10 @@
     </ion-content>
 
     <ion-footer class="crafts-footer">
-      <div class="xp-app-bar">
-        <label class="xp-app-search">
-          <i class="fad fa-search"></i>
-          <input
-            type="search"
-            v-model="request.params.search"
-            placeholder="Search Workbench"
-            aria-label="Search Workbench"
-            autocomplete="off"
-            @input="onSearch"
-          />
-        </label>
-      </div>
-
       <xp-app-bottom-nav
         :tabs="workbenchTabs"
         v-model="activeTab"
         aria-label="Workbench Navigation"
-        @change="onTabChange"
       />
     </ion-footer>
   </ion-page>

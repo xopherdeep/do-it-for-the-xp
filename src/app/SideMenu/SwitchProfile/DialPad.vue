@@ -158,9 +158,9 @@
   import { useGameStore } from "@/lib/store/stores/game";
   import { useUserStore } from "@/lib/store/stores/user";
   import { pinMatches } from "@/lib/services/profile/pinSeal";
-  import { hasRecoveryCode, recoveryCodeMatches } from "@/lib/services/profile/pinRecovery";
+  import { hasRecoveryCode, needsRecoveryCodeShown, recoveryCodeMatches } from "@/lib/services/profile/pinRecovery";
   import { NO_LOCKOUT, formatWait, msLeft, readLockout, recordWrongTry, saveLockout } from "@/lib/services/profile/pinLockout";
-  import { askNewPin, askRecoveryCode, saveProfileSecrets, showRecoveryCode } from "./pinRecoveryPrompts";
+  import { askNewPin, askRecoveryCode, issueAndShowRecoveryCode, saveProfileSecrets, showAndConfirmRecoveryCode } from "./pinRecoveryPrompts";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -197,6 +197,9 @@
       const isLocked = computed(() => waitLeft.value > 0);
       const waitText = computed(() => formatWait(waitLeft.value));
       const isGameMasterProfile = computed(() => props.profile?.isAdult === true);
+
+      // The roster copy this pad was opened with can lag a recovery code saved since (Settings > Family), so the saved one wins
+      const latestProfile = () => userStore.users[props.profile?.id] ?? props.profile;
 
       const countWrongTry = () => {
         lockout.value = recordWrongTry(lockout.value, Date.now());
@@ -290,9 +293,9 @@
           play$fx("yes");
           lockout.value = NO_LOCKOUT;
           saveLockout(lockoutId, NO_LOCKOUT);
-          // A Game Master's first unlock hands them the code that rescues a forgotten PIN
-          const needsRecoveryCode = isGameMasterProfile.value && !hasRecoveryCode(props.profile);
-          if (needsRecoveryCode) await mintFirstRecoveryCode();
+          // A Game Master's unlock hands them the code that rescues a forgotten PIN until they have said they wrote it down
+          const needsRecoveryCode = needsRecoveryCodeShown(latestProfile());
+          if (needsRecoveryCode) await handOverRecoveryCode();
           const canToast = typeof toastController?.create === "function";
           if (canToast) {
             const toast = await toastController.create({
@@ -312,10 +315,10 @@
         }
       };
 
-      const mintFirstRecoveryCode = async () => {
+      const handOverRecoveryCode = async () => {
         try {
-          const code = await saveProfileSecrets(props.profile, { newRecoveryCode: true });
-          if (code) await showRecoveryCode(code);
+          const reason = hasRecoveryCode(latestProfile()) ? "again" : "first";
+          await issueAndShowRecoveryCode(props.profile, reason);
         } catch (error) {
           debug.error("Could not save a recovery code", error);
         }
@@ -338,7 +341,7 @@
           (user: any) => user?.isAdult === true && user?.id !== props.profile?.id
         );
         const typed = await askRecoveryCode(hasOtherGameMaster);
-        const isCodeMatch = typed !== null && recoveryCodeMatches(props.profile, typed);
+        const isCodeMatch = typed !== null && recoveryCodeMatches(latestProfile(), typed);
         const isWrongCode = typed !== null && !isCodeMatch;
         if (isWrongCode) {
           play$fx("no");
@@ -357,7 +360,7 @@
           lockout.value = NO_LOCKOUT;
           saveLockout(lockoutId, NO_LOCKOUT);
           play$fx("yes");
-          if (code) await showRecoveryCode(code, true);
+          if (code) await showAndConfirmRecoveryCode(props.profile, code, "used");
           await modalController.dismiss(userStore.users[props.profile.id] ?? props.profile);
         } catch (error) {
           debug.error("Could not save the new PIN", error);

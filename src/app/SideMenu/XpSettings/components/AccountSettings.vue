@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 // The old develop branch had a mock of this page (tools/reference/develop/AccountSettings.vue.txt); this one is wired to the Town Hall link.
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, alertController } from "@ionic/vue";
 import XpComingSoonCard from "./XpComingSoonCard.vue";
 import { ACCOUNT_COMING_SOON } from "./comingSoon";
@@ -84,7 +84,8 @@ const items = ACCOUNT_COMING_SOON;
 const townHall = useTownHallStore();
 const pro = useProStore();
 const userStore = useUserStore();
-const isGameMaster = canManageFamily();
+// A computed, not a one-time read: after a reload the profiles load a moment later, and the page must follow them
+const isGameMaster = computed(() => canManageFamily(userStore));
 
 // The email lives on the site; it is read for display and never stored. undefined = still loading, null = unavailable
 const email = ref<string | null | undefined>(undefined);
@@ -162,8 +163,12 @@ async function confirmUnlink(): Promise<void> {
   await alert.present();
 }
 
-onMounted(async () => {
-  if (!isGameMaster) return;
+// The link loads once, as soon as a Game Master is on screen: at mount, or later when a reload signs them back in
+let hasLoadedAccount = false;
+async function loadAccount(): Promise<void> {
+  const hasNothingToLoad = hasLoadedAccount || !isGameMaster.value;
+  if (hasNothingToLoad) return;
+  hasLoadedAccount = true;
   try {
     await link.loadLink();
     await link.completeReturn();
@@ -172,7 +177,10 @@ onMounted(async () => {
   } catch (error) {
     debug.error("[AccountSettings] the account could not be loaded", error);
   }
-});
+}
+
+onMounted(loadAccount);
+watch(isGameMaster, loadAccount);
 </script>
 
 <style lang="scss" scoped>

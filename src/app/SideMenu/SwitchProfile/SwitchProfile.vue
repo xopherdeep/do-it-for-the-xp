@@ -77,6 +77,32 @@
               </div>
             </div>
 
+            <!-- Restore a backup: bring a saved family file back onto this empty device -->
+            <div
+              class="eb-file-slot eb-restore-slot"
+              role="button"
+              tabindex="0"
+              data-cy="restore-backup-slot"
+              :aria-disabled="isBackupBusy"
+              @click="selectRestoreFile"
+              @keydown.enter="selectRestoreFile"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag"><i class="fad fa-history"></i></div>
+              <div class="eb-slot-avatar-frame eb-new-avatar">
+                <i class="fad fa-save"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-hero-name">Restore a backup</div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-desc">Load your family's saved file</span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <i class="fad fa-chevron-right eb-new-arrow"></i>
+              </div>
+            </div>
+
             <!-- Link Kid Phone Slot (when multiplayer enabled) -->
             <div
               v-if="isMultiplayerEnabled"
@@ -302,7 +328,7 @@ import debug from "@/lib/utils/debug";
 import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
-import { useFamilyStore } from "@/lib/store/stores/family";
+import { useFileSelectDoors } from "./useFileSelectDoors";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -326,14 +352,10 @@ export default defineComponent({
     const isLoading = ref(false); // For initial list loading
     const userStore = useUserStore();
     const audioStore = useAudioStore();
-    const familyStore = useFamilyStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
-
-    const isMultiplayerEnabled = computed(() => familyStore.enabled);
-    const openLinkPhone = () => {
-      ionRouter.push("/link");
-    };
+    // Restore a backup and Link a phone, the doors on this screen that are not a hero
+    const { isBackupBusy, selectRestoreFile, isMultiplayerEnabled, openLinkPhone } = useFileSelectDoors();
 
     // Restore notification state
     // Restore notification state
@@ -582,6 +604,8 @@ export default defineComponent({
       handleRetroAction,
       isMultiplayerEnabled,
       openLinkPhone,
+      isBackupBusy,
+      selectRestoreFile,
     };
   },
 });

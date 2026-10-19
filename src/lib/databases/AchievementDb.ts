@@ -114,9 +114,10 @@ export class AchievementDb extends DbStorageApi {
       customPeriodNumber: 1,
       repeatOnDays: [],
       difficulty: 1,
-      xp: 200,
-      gp: 20,
-      ap: 2,
+      // What difficulty 1 pays in the shared reward table (questWizard.suggestedRewards; useAchievementForm.spec keeps them equal)
+      xp: 60,
+      gp: 15,
+      ap: 1,
       adventureType: "simple",
     };
   }

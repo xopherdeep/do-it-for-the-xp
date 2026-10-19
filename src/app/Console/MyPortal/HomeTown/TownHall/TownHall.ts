@@ -29,7 +29,7 @@ import {
 } from "ionicons/icons";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
-import { courierLatePrompt } from "@/lib/services/hometown/hometownPrompts";
+import { courierLateOnTheRoadPrompt } from "@/lib/services/townhall/townHallPrompts";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -202,7 +202,8 @@ export default defineComponent({
       },
     });
 
-    // The courier is late: the clerk says so and offers to ask again. One answer at a time, whatever else is talking.
+    // The courier is late: the clerk says so, says the family's road to the city is not open yet, and offers to ask again.
+    // One answer at a time, whatever else is talking.
     const newsTab = ref<TownHallTab | null>(null);
     const boardTab = ref<TownHallTab | null>(null);
     const packsTab = ref<TownHallTab | null>(null);
@@ -213,7 +214,7 @@ export default defineComponent({
     const onTrouble = async (id: TabId) => {
       const isClerkBusy = Boolean(reveal.prompt.value);
       if (isClerkBusy) return;
-      const pick = await reveal.showPrompt(courierLatePrompt());
+      const pick = await reveal.showPrompt(courierLateOnTheRoadPrompt());
       const isRetrying = pick === "retry";
       if (isRetrying) await tabRefs[id].value?.reload();
     };

@@ -143,7 +143,7 @@
       </div> -->
     <XpDashboardGrid
       :cols="4"
-      class="w-[94%] mx-auto h-full flex flex-col justify-center"
+      class="dashboard-tiles w-[94%] mx-auto h-full flex flex-col justify-center"
     >
       <XpDashboardTile>
         <XpStatBox
@@ -208,7 +208,7 @@
       </XpDashboardTile>
       <XpDashboardTile>
         <XpStatBox
-          :value="rewards?.active || 80"
+          :value="stats.items || 0"
           label="Items"
           iconName="fa-hand-holding-box"
           :onClick="() => navigateTo({ name: 'xp-economy-dashboard-root' })"

@@ -218,11 +218,12 @@ export default defineComponent({
       const id = Array.isArray(raw) ? raw[0] : raw;
       return String(id || useUserStore().currentUser.id || "");
     },
-    // Reactive Pegasi list from store
+    // Reactive Pegasi list of the hero being viewed (the one on the route), not whoever is signed in
     pegasiList() {
       const userStore = useUserStore();
-      const userPegasi = userStore.currentUser.stats?.pegasi || [];
-      
+      const viewedHero = userStore.getUserById(this.heroId) ?? userStore.currentUser;
+      const userPegasi = viewedHero.stats?.pegasi || [];
+
       return this.pegasiLore.map((lore, index) => ({
         ...lore,
         obtained: !!userPegasi[index],

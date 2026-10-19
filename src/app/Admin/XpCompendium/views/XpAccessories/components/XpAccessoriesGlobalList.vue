@@ -115,7 +115,7 @@
 <script lang="ts">
   import { defineComponent, ref, computed } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { loadingController, actionSheetController } from "@ionic/vue";
+  import { actionSheetController } from "@ionic/vue";
   import { useItemSelectionStore } from "@/lib/store/stores/item-selection";
 
   import {
@@ -134,8 +134,8 @@
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   import { useRouter } from "vue-router";
-  import { useTimers } from "@/hooks/useTimers";
   import { useBack } from "@/hooks/useBack";
+  import { importPackFile, usePackLibrary } from "@/hooks/usePackLibrary";
 
   import AccessoriesDb, {
     Accessory,
@@ -159,24 +159,6 @@
         this.$router.push({
           name: "xp-settings-reward",
         });
-      },
-      async clickDiscover() {
-        // Use the directly imported loadingController
-        loadingController
-          .create({
-            message: "Discovering accessories...",
-            duration: 1500,
-          })
-          .then((loading) => {
-            loading.present();
-
-            // After loading finishes, navigate to discover page
-            this.timers.startTimeout(1600, () => {
-              this.$router.push({
-                name: "xp-discover-accessories",
-              });
-            });
-          });
       },
       async loadAccessories() {
         this.isLoading = true;
@@ -218,7 +200,7 @@
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
       const { stepBack: back } = useBack();
-      const timers = useTimers();
+      const packShelf = usePackLibrary();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);
       const filterType = ref("all");
@@ -314,8 +296,14 @@
         });
       };
 
+      // A pack carries rewards, the accessories the shops sell: Import opens the pack import flow Settings > Packs uses.
+      // The packs already added are read first, so the file's pack is saved beside them and not over them.
+      const importAccessories = async () => {
+        await packShelf.refreshPacks();
+        await importPackFile(packShelf);
+      };
+
       return {
-        timers,
         isSelectionMode,
         selectedIds,
         handleAccessoryClick,
@@ -360,22 +348,11 @@
                 },
               },
               {
-                text: "Discover Accessories",
-                icon: searchOutline,
-                cssClass: "action-discover",
-                handler: () => {
-                  router.push({
-                    name: "xp-discover-accessories",
-                  });
-                },
-              },
-              {
-                text: "Import Accessories",
+                text: "Import a pack",
                 icon: cloudDownloadOutline,
                 cssClass: "action-import",
                 handler: () => {
-                  // Import functionality would go here
-                  // This is a placeholder for future implementation
+                  void importAccessories();
                 },
               },
               {

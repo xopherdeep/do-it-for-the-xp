@@ -19,13 +19,19 @@ export const THEME_COMING_SOON: ComingSoonItem[] = [
   { title: "Color theme", description: "Fantasy and retro color sets" },
 ];
 
-/** Telling a Game Master's own phone about a hero's chore goes through the family server, which ships switched off (multiplayerFlag) */
+/**
+ * Telling a Game Master's own phone about a hero's chore goes through the family server. The multiplayer flag is on in
+ * production builds (.env.production), but the server is still being built on the site, so these stay planned
+ */
 export const ALERTS_COMING_SOON: ComingSoonItem[] = [
   { title: "Game Master reminders", description: "Remind Game Masters when a hero's chore is nearly due" },
   { title: "Done notices", description: "Tell Game Masters, or other heroes, when a chore is finished" },
 ];
 
-/** Parties across families go through the family server, which ships switched off (multiplayerFlag) */
+/**
+ * Parties across families go through the family server. The multiplayer flag is on in production builds
+ * (.env.production), but the server is still being built on the site, so these stay planned
+ */
 export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Parties with friends", description: "Form parties and guilds with other families" },
   { title: "Family circle posts", description: "See posts from families in your circle, and choose who can post or read" },

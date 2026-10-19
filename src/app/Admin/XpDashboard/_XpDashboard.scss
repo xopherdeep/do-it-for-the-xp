@@ -237,6 +237,22 @@
     }
   }
 
+  // The eight stat tiles run four across, which is wider than a phone: under 500px they stack two across.
+  // The grid sets its column count inline, so the phone rule needs !important to win.
+  .dashboard-tiles {
+    max-width: 100%;
+
+    @media (max-width: 500px) {
+      ion-row.use-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      ion-col {
+        min-width: 0;
+      }
+    }
+  }
+
   // TARDIS / Police Box Pulse
   .fa-police-box {
     animation: tardisPulse 3s infinite ease-in-out;

@@ -5,6 +5,7 @@ import {
   cardDueLabelFor,
   dueFor,
   dueLabelFor,
+  listedQuests,
   newQuickTask,
   questListCounts,
   questListFor,
@@ -205,6 +206,33 @@ describe("shared quests on the list", () => {
   it("keeps a shared claim that waits on the Game Master pending", () => {
     const [row] = questListFor("hero-1", NOON, [doneBy(onBoard(team(), "done", { pending: true }), ["hero-2"])], users);
     expect(row).toMatchObject({ status: "pending", statusLabel: "Pending the Game Master" });
+  });
+});
+
+describe("drafts (GitHub issue #126)", () => {
+  // Three Feed The Dog runs: one made Ready, two left mid-wizard (drafts), and a quest saved before drafts existed
+  const ready = makeQuest({ id: "ready", achievementName: "Feed The Dog", draft: false });
+  const leftAtStepFour = makeQuest({ id: "draft-1", achievementName: "Feed The Dog", draft: true });
+  const leftAgain = makeQuest({ id: "draft-2", achievementName: "Feed The Dog", categoryId: "", draft: true });
+  const old = makeQuest({ id: "old", achievementName: "Walk the dog" });
+
+  it("leaves every draft off the hero's Beast Log, and out of its counts", () => {
+    const board = [onBoard(ready), onBoard(leftAtStepFour), onBoard(leftAgain, "open", { overdue: true }), onBoard(old)];
+    const rows = questListFor("hero-1", NOON, board, users);
+    expect(rows.map((row) => row.id)).toEqual(["ready", "old"]);
+    expect(questListCounts(rows)).toEqual({ overdue: 0, open: 2, later: 0, pending: 0, done: 0 });
+  });
+
+  it("keeps a quest saved before the marker existed: nothing leaves a Beast Log", () => {
+    const rows = questListFor("hero-1", NOON, [onBoard(old)], users);
+    expect(rows.map((row) => row.id)).toEqual(["old"]);
+  });
+
+  it("lists every quest for the Game Master's Compendium, drafts too, and only the published ones for a hero", () => {
+    const records = [ready, leftAtStepFour, old, leftAgain];
+    expect(listedQuests(records, "gameMaster").map((quest) => quest.id)).toEqual(["ready", "draft-1", "old", "draft-2"]);
+    expect(listedQuests(records, "hero").map((quest) => quest.id)).toEqual(["ready", "old"]);
+    expect(records).toHaveLength(4);
   });
 });
 

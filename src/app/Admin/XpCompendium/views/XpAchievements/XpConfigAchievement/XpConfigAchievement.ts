@@ -1,6 +1,4 @@
 import { defineComponent, provide, computed, ref } from "vue";
-import { useRouter } from "vue-router";
-import { v4 as uuidv4 } from "uuid";
 import {
   IonPage,
   IonContent,
@@ -18,6 +16,7 @@ import debug from "@/lib/utils/debug";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
@@ -31,6 +30,7 @@ import {
   useAchievementForm,
   AchievementFormInjectionKey,
 } from "./hooks/useAchievementForm";
+import { useNewQuestOpening } from "./hooks/useNewQuestOpening";
 import {
   ASSIGNMENT_CHOICES,
   QUEST_KINDS,
@@ -48,9 +48,10 @@ import { useGameRulesStore } from "@/lib/store/stores/gameRules";
  * -> When? -> How hard? -> Ready? The header, dots, guide line, Back / Next and the verb are XpWizardShell; the rules
  * and the words of each step live in ../questConfigWizard.ts; the tabs of the old form are the step bodies.
  *
- * The 2 second autosave (useAchievementForm) is still how the quest is kept: an incomplete quest is saved as a draft
- * that heroes never see, and the last step's verb marks the quest Ready. A new quest opens on step one; a saved one on
- * the summary (or, for a draft, on the first step that still wants an answer), with the dots leading back.
+ * The 2 second autosave (useAchievementForm) is still how the quest is kept: a new quest is saved as a draft that
+ * heroes never see until the last step's verb marks it Ready (questDrafts.ts). A new quest opens on step one; a saved
+ * one on the summary (or, for a draft, on the first step that still wants an answer), with the dots leading back.
+ * New Quest with a draft still waiting asks first, in the game's own prompt: Resume it, Discard it, or Not now.
  */
 export default defineComponent({
   name: "xp-add-achievement",
@@ -64,6 +65,7 @@ export default defineComponent({
     XpLoading,
     XpHeroFanfare,
     XpWizardShell,
+    XpRevealPrompt,
     XpAddCategoryModal,
     XpInfoToggleModal,
     QuestTypeTab,
@@ -74,7 +76,6 @@ export default defineComponent({
   },
   props: ["id"],
   setup(props) {
-    const router = useRouter();
     const form = useAchievementForm();
 
     // Provide the entire form hook to the step bodies
@@ -112,6 +113,7 @@ export default defineComponent({
 
       // Actions
       loadData,
+      loadNewQuestOpening,
       confirmReady: markReady,
       savePending: flushSave,
       selectCategory: pickCategory,
@@ -122,7 +124,8 @@ export default defineComponent({
       toggleBonus,
     } = form;
 
-    const steps = questConfigSteps();
+    // The Who guide follows the way the quest is shared, so the steps are made again when that changes
+    const steps = computed(() => questConfigSteps(achievement.value.type));
     const position = ref(0);
     const isOpen = ref(false);
     // The quest the wizard has opened for: coming back from the beast pages must not send it to another step
@@ -157,7 +160,7 @@ export default defineComponent({
         if (isNewlyOpened) {
           openedFor.value = questId;
           isDebut.value = !loaded.isSaved || loaded.wasDraft;
-          position.value = openingIndex(steps, achievement.value, loaded.isSaved);
+          position.value = openingIndex(steps.value, achievement.value, loaded.isSaved);
         }
       } catch (error) {
         // Open on a blank quest rather than on a blank page
@@ -166,19 +169,20 @@ export default defineComponent({
       isOpen.value = true;
     };
 
+    // ---- New Quest: a draft still waiting is resumed or discarded first; only with none is a new id minted ----------
+    const {
+      newQuestPrompt: draftPrompt,
+      submitAnswer: respondDraft,
+      startNewQuest,
+    } = useNewQuestOpening({ loadOpening: loadNewQuestOpening, openQuest: open, say, goBack });
+
     // Lifecycle
     onIonViewWillEnter(() => {
       const idToLoad = props.id;
 
       const isNewQuest = !idToLoad || idToLoad === "new";
       if (isNewQuest) {
-        const newId = uuidv4();
-        // Load with the new id first, so the state is ready, then give the page its own address
-        void open(newId);
-        router.replace({
-          name: "xp-achievement-config-dashboard",
-          params: { id: newId },
-        });
+        void startNewQuest();
         return;
       }
 
@@ -199,12 +203,12 @@ export default defineComponent({
     const closeKeyboard = (event: Event) => (event.target as HTMLElement | null)?.blur?.();
 
     const goToStep = (id: QuestStepId) => {
-      const target = stepIndexOf(steps, id);
+      const target = stepIndexOf(steps.value, id);
       const isKnownStep = target >= 0;
       if (isKnownStep) position.value = target;
     };
 
-    // ---- The Save chip: autosave's state in words; a draft is saved but hidden from heroes -----------------------------
+    // ---- The Save chip: autosave's state in words; a draft is saved but hidden from heroes until Ready ----------------
     const SAVE_CHIPS: Record<string, { icon: string; label: string }> = {
       saving: { icon: "fa-spinner-third fa-spin", label: "Saving" },
       saved: { icon: "fa-check-circle", label: "Saved" },
@@ -222,8 +226,8 @@ export default defineComponent({
         await say(
           "Draft quest",
           missing.length
-            ? `Heroes can't see this quest yet. It goes live by itself once it has: ${missing.join(", ")}.`
-            : "Heroes can't see this quest yet. It goes live with the next save."
+            ? `Heroes can't see this quest yet. It still needs: ${missing.join(", ")}. Then tap Ready on the last step.`
+            : "Heroes can't see this quest yet. Tap Ready on the last step and they will."
         );
         return;
       }
@@ -297,6 +301,10 @@ export default defineComponent({
       saveState,
       beastAvatarUrl,
       minEndDate,
+
+      // New Quest's question about a draft still waiting
+      draftPrompt,
+      respondDraft,
 
       // The wizard
       steps,

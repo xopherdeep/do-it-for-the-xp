@@ -18,7 +18,8 @@ import { actionSheetController } from '@ionic/vue';
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
-import { FOOD_OPTIONS } from "@/constants/FOOD_OPTIONS";
+import XpComingSoonCard from "@/app/SideMenu/XpSettings/components/XpComingSoonCard.vue";
+import type { ComingSoonItem } from "@/app/SideMenu/XpSettings/components/comingSoon";
 
 const FOOD_TABS: AppNavTab[] = [
   { id: "all", label: "All", ionIcon: restaurantOutline },
@@ -29,107 +30,27 @@ const FOOD_TABS: AppNavTab[] = [
   { id: "ingredient", label: "Pantry", ionIcon: cartOutline },
 ];
 
-type FoodCategory = 'meal' | 'snack' | 'dessert' | 'ingredient';
-
-// Mock Data Interface
-interface FoodItem {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  category: FoodCategory;
-  // Optional: ingredients, recipe steps, cooking time etc.
-}
-
-interface FoodSection {
-  id: FoodCategory;
-  label: string;
-  foods: FoodItem[];
-}
-
-interface FoodGroup {
-  id: FoodCategory;
-  label: string;
-  tag: string;
-  icon: string;
-}
-
-// The kitchen lists its foods in these groups, in this order
-const FOOD_GROUPS: FoodGroup[] = [
-  { id: 'meal', label: 'Meals', tag: 'Meal', icon: 'utensils' },
-  { id: 'snack', label: 'Snacks', tag: 'Snack', icon: 'cookie' },
-  { id: 'dessert', label: 'Desserts', tag: 'Dessert', icon: 'ice-cream' },
-  { id: 'ingredient', label: 'Pantry', tag: 'Pantry', icon: 'carrot' },
+/** The kitchen has no pantry or recipes to show yet: the room says so in its own words (GitHub issue 140) */
+const KITCHEN_COMING_SOON: ComingSoonItem[] = [
+  { title: "Recipe book", description: "Learn dishes and cook them with your family" },
+  { title: "Pantry shelf", description: "Stock the ingredients you have at home" },
 ];
-
-// "Cookies" and "Cookie" are the same sprite: match the profile's food list on the singular name
-const singular = (name: string): string => name.trim().toLowerCase().replace(/s$/, '');
 
 export default defineComponent({
   props: ['userId'],
   name: 'my-foods',
   components: {
     XpAppBottomNav,
+    XpComingSoonCard,
   },
   mixins: [ionic],
   data() {
     return {
       selectedCategory: 'all', // Default category
-      searchTerm: '',
-      // Mock food data
-      mockFoods: [
-        { id: '1', name: 'Pizza', description: 'Cheesy and delicious', imageUrl: '/assets/mock/pizza.jpg', category: 'meal' },
-        { id: '2', name: 'Burger', description: 'Classic beef burger', imageUrl: '/assets/mock/burger.jpg', category: 'meal' },
-        { id: '3', name: 'Salad', description: 'Healthy green salad', imageUrl: '/assets/mock/salad.jpg', category: 'meal' },
-        { id: '4', name: 'Apple', description: 'A crisp red apple', imageUrl: '/assets/mock/apple.jpg', category: 'snack' },
-        { id: '5', name: 'Ice Cream', description: 'Sweet vanilla ice cream', imageUrl: '/assets/mock/icecream.jpg', category: 'dessert' },
-        { id: '6', name: 'Pasta', description: 'Italian pasta dish', imageUrl: '/assets/mock/pasta.jpg', category: 'meal' },
-        { id: '7', name: 'Cookies', description: 'Chocolate chip cookies', imageUrl: '/assets/mock/cookies.jpg', category: 'snack' },
-      ] as FoodItem[],
       userStore: useUserStore(), // Use Pinia store
     };
   },
   computed: {
-    // Get the user profile based on the userId prop using the getUserById getter
-    currentUserProfileData(): any { // Use 'any' or a more specific Profile type if available
-      // Ensure userId is treated as a string or number as expected by the getter
-      return this.userStore.getUserById(this.userId);
-    },
-
-    userFavoriteFood(): string | null {
-      // Access favoriteFood from the fetched profile data
-      return this.currentUserProfileData?.favoriteFood || null;
-    },
-
-    filteredFoods(): FoodItem[] {
-      let foods = this.mockFoods;
-
-      // Filter by Category
-      const isFavorites = this.selectedCategory === 'favorites';
-      const isOneCategory = this.selectedCategory !== 'all';
-      if (isFavorites) {
-        const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
-        if (favFood) {
-          foods = foods.filter(food => food.name.toLowerCase() === favFood.toLowerCase());
-        } else {
-          foods = []; // No favorite food set or found
-        }
-      } else if (isOneCategory) {
-        foods = foods.filter(food => food.category === this.selectedCategory);
-      }
-
-      // Filter by Search Term
-      const searchTerm = this.searchTerm;
-      if (searchTerm) {
-        const lowerSearchTerm = searchTerm.toLowerCase();
-        foods = foods.filter(food =>
-          food.name.toLowerCase().includes(lowerSearchTerm) ||
-          food.description.toLowerCase().includes(lowerSearchTerm)
-        );
-      }
-
-      return foods;
-    },
     foodTabs(): AppNavTab[] {
       return FOOD_TABS;
     },
@@ -138,23 +59,8 @@ export default defineComponent({
       const id = String(this.userId || this.userStore.currentUser?.id || '');
       return id ? { userId: id } : {};
     },
-    // The filtered foods, grouped by kind of food (only the groups that hold something)
-    foodSections(): FoodSection[] {
-      return FOOD_GROUPS
-        .map(({ id, label }) => ({ id, label, foods: this.filteredFoods.filter(food => food.category === id) }))
-        .filter(section => section.foods.length > 0);
-    },
-    foodsMeta(): string {
-      const count = this.filteredFoods.length;
-      return `${count} ${count === 1 ? 'item' : 'items'}`;
-    },
-    emptyText(): string {
-      const isMissingFavorite = this.selectedCategory === 'favorites' && !this.userFavoriteFood;
-      if (isMissingFavorite) {
-
-        return this.t('kitchen.empty.noFavorite');
-      }
-      return this.t('kitchen.empty.none');
+    comingSoonItems(): ComingSoonItem[] {
+      return KITCHEN_COMING_SOON;
     },
   },
   methods: {
@@ -191,19 +97,6 @@ export default defineComponent({
     // The hometown Market stocks the real-life treats (Frost Treat and the rest of the reward catalogue), bought with GP
     openMarket() {
       this.$router.push({ name: 'shop', params: this.heroParams });
-    },
-    // The row's sprite: the Font Awesome icon the profile's food picker uses for it, else one for its kind of food
-    foodIcon(food: FoodItem): string {
-      const match = FOOD_OPTIONS.find(option => singular(option.value) === singular(food.name));
-      return match?.icon ?? FOOD_GROUPS.find(group => group.id === food.category)?.icon ?? 'utensils';
-    },
-    categoryLabel(category: FoodCategory): string {
-      return FOOD_GROUPS.find(group => group.id === category)?.tag ?? category;
-    },
-    // True for the food the hero named as their favourite in their profile
-    isFavorite(food: FoodItem): boolean {
-      const favorite = this.userFavoriteFood;
-      return !!favorite && food.name.toLowerCase() === favorite.toLowerCase();
     },
   },
   setup() {

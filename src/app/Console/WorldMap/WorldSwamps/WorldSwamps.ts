@@ -17,8 +17,8 @@ export default dC({
     const userStore = useUserStore();
     const { setActions } = useUserActions();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     const userActions = [
       {
@@ -35,7 +35,7 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "world-map", params: { userId: userId.value } });
         },
       },
       {
@@ -44,7 +44,7 @@ export default dC({
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          router.push({ name: "temple", params: { userId, temple: 'shadow-temple' } });
+          router.push({ name: "temple", params: { userId: userId.value, temple: 'shadow-temple' } });
         },
       },
     ];

@@ -13,7 +13,8 @@ import { emptySnapshot, loadPack, packStatus, packSummary, planRemoval, readSnap
 import type { PackSnapshot, PackStatus } from "@/lib/services/core/packs/packService";
 import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { dialogMessage } from "@/lib/utils/dialogMessage";
-import { downloadTextFile, pickTextFile, readFileAsText } from "@/lib/utils/downloadFile";
+import { pickTextFile, readFileAsText } from "@/lib/utils/downloadFile";
+import { saveTextFile, savedFileLine, type SavedBackupFile } from "@/lib/services/core/backupFile";
 import debug from "@/lib/utils/debug";
 
 const RPG_ALERT = "rpg-alert";
@@ -285,13 +286,19 @@ export const buildOwnPackFor = async (shelf: PackShelf, header: string, action: 
 export const exportPackFile = async (shelf: PackShelf) => {
   const pack = await buildOwnPackFor(shelf, "Save your own pack", "Save file");
   if (!pack) return;
-  const fileName = packFileName(pack);
-  downloadTextFile(fileName, packToJson(pack));
+  let saved: SavedBackupFile;
+  try {
+    saved = await saveTextFile(packFileName(pack), packToJson(pack), { label: "pack" });
+  } catch (error) {
+    play$fx("no");
+    await showPackFailed("The pack wasn't saved", error);
+    return;
+  }
   const alert = await alertController.create({
     header: "Pack saved",
     cssClass: RPG_ALERT,
     message: dialogMessage({
-      lead: `${fileName} is in your downloads.`,
+      lead: savedFileLine(saved),
       groups: [{ title: "Holds", tone: "info", lines: [packSummary(pack)] }],
       note: "Another family loads it with Import a pack file. No heroes, logs or passcodes are in it.",
     }),

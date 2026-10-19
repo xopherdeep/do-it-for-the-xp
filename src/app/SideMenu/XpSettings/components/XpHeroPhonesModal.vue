@@ -123,6 +123,7 @@ import { formatCode, linkUrl } from "@/lib/services/multiplayer/deviceLink";
 import { removePhonePrompt } from "@/lib/services/multiplayer/familyPrompts";
 import type { HeroPhone } from "@/lib/services/multiplayer/familyServer";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { isFamilyRoadClosed, FAMILY_ROAD_CLOSED_LINE } from "@/lib/services/townhall/townHallPrompts";
 import { usesHashHistory } from "@/router/historyMode";
 import debug from "@/lib/utils/debug";
 
@@ -206,8 +207,12 @@ async function createCode(): Promise<void> {
     debug.error("Could not generate link code:", error);
     const auth = family.parentAuth;
     const isUnlinked = auth === null;
+    // The family server is not answering (its road to the city is not open yet): say so, never a code or a success
+    const isRoadClosed = isFamilyRoadClosed(error);
     if (isUnlinked) {
       errorMessage.value = "Town Hall connection required. Connect to Town Hall first to link hero phones.";
+    } else if (isRoadClosed) {
+      errorMessage.value = FAMILY_ROAD_CLOSED_LINE;
     } else {
       const message = error instanceof Error ? error.message : "Could not generate link code. Please check your connection.";
       errorMessage.value = message;

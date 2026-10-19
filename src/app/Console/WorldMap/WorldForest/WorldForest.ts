@@ -18,8 +18,8 @@ export default dC({
     const userStore = useUserStore();
     const { setActions } = useUserActions();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     const forestAudio = ref<HTMLAudioElement | null>(null);
 
@@ -60,7 +60,7 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "world-map", params: { userId: userId.value } });
         },
       },
       {
@@ -73,7 +73,7 @@ export default dC({
           router.push({
             name: "temple",
             params: {
-              userId,
+              userId: userId.value,
               temple
             }
           });

@@ -22,8 +22,8 @@ export default dC({
     const userStore = useUserStore();
     const { setActions } = useUserActions();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     const oceanAudio = ref<HTMLAudioElement | null>(null);
     const seagullInterval = ref<number | null>(null);
@@ -83,7 +83,7 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "world-map", params: { userId: userId.value } });
         },
       },
       {
@@ -93,7 +93,7 @@ export default dC({
         side: "end",
         click() {
           const temple = 'water-temple'
-          router.push({ name: "temple", params: { userId, temple } });
+          router.push({ name: "temple", params: { userId: userId.value, temple } });
         },
       },
     ];

@@ -25,7 +25,7 @@
 <script lang="ts">
 import { defineComponent, computed } from "vue";
 import { POINT_ICONS } from "@/constants";
-import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
+import { levelProgress } from "@/lib/services/stats/levelProgress";
 
 export default defineComponent({
   name: "xp-xp-bar",
@@ -36,31 +36,20 @@ export default defineComponent({
     }
   },
   setup(props) {
-    // Get the current level (base 1)
-    const currentLevel = computed(() => props.stats?.level || 1);
+    // How far through the current level the hero is: the one helper every XP bar asks (HUD hairline, My Profile)
+    const progress = computed(() => levelProgress(props.stats?.level || 1, props.stats?.xp?.now || 0));
 
-    // Calculate XP thresholds for current and next level
-    const xpForCurrentLevel = computed(() => getXpForLevel(currentLevel.value));
-    const xpForNextLevel = computed(() => getXpForLevel(currentLevel.value + 1));
+    // The current level (base 1)
+    const currentLevel = computed(() => progress.value.level);
 
     // XP earned within the current level
-    const xpInLevel = computed(() => {
-      const totalXp = props.stats?.xp?.now || 0;
-      return Math.max(0, totalXp - xpForCurrentLevel.value);
-    });
+    const xpInLevel = computed(() => progress.value.inLevel);
 
-    // XP needed to reach next level (from current level threshold)
-    const xpNeededForLevel = computed(() => {
-      return xpForNextLevel.value - xpForCurrentLevel.value;
-    });
+    // XP the whole level takes
+    const xpNeededForLevel = computed(() => progress.value.needed);
 
     // Progress percentage within current level
-    const xpProgress = computed(() => {
-      const needed = xpNeededForLevel.value;
-      const isMaxedOut = needed <= 0;
-      if (isMaxedOut) return 100; // Already at max or error case
-      return Math.min(100, (xpInLevel.value / needed) * 100);
-    });
+    const xpProgress = computed(() => progress.value.fraction * 100);
 
     const formatNumber = (num: number) => {
       return num.toLocaleString();

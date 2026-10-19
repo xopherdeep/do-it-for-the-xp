@@ -15,7 +15,13 @@ import type { RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
 import { adoptLibraryBeast, isClassicBeast } from "@/lib/services/bestiary/librarySuggest";
 import { scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import { questBeastId, questTier, type QuestTier } from "@/lib/services/temples/questRooms";
-import { gmResolution, libraryEntryOf, questRoomCells, type QuestLayout } from "@/lib/services/temples/templeQuestRows";
+import {
+  gmResolution,
+  libraryEntryOf,
+  questRoomCells,
+  type QuestLayout,
+  type QuestRoomCell,
+} from "@/lib/services/temples/templeQuestRows";
 
 /** The prefix of every quest a temple wakes. */
 const WAKE_PREFIX = "tq";
@@ -23,6 +29,9 @@ const WAKE_PREFIX = "tq";
 /** The id of the quest a temple's template wakes: `tq-shadow-temple-dish-goblin`. */
 export const wakeQuestId = (templeId: string, beastId: string): string =>
   `${WAKE_PREFIX}-${templeId}-${beastId.replace(/^beast-/, "")}`;
+
+/** True for a quest a temple woke: its id is `tq-<templeId>-<slug>` (wakeQuestId), whichever temple woke it. */
+export const isWokenQuest = (quest: Pick<Achievement, "id">): boolean => String(quest.id ?? "").startsWith(`${WAKE_PREFIX}-`);
 
 /** This week's Monday at midnight (local time): the day woken quests start, so weekly windows begin on a Monday. */
 export const mondayOf = (now: Date): Date => startOfWeek(now, { weekStartsOn: 1 });
@@ -165,6 +174,21 @@ export function wakeChoices(
     });
   }
   return [...byBeast.values()].sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier));
+}
+
+/**
+ * The quest rooms that may wake without the Game Master ticking them (Quick Start, a hero's first walk into a temple):
+ * rooms built as monster rooms whose template is a monster's too (questTier of its difficulty). Miniboss and boss rooms
+ * wait for the Game Master's Wake quests. In reading order, like questRoomCells.
+ */
+export function monsterTemplateCells(layout: QuestLayout | null | undefined): QuestRoomCell[] {
+  return questRoomCells(layout).filter((cell) => {
+    const template = cell.room.content?.quest;
+    if (!template) return false;
+    const isMonsterRoom = cell.tier === "monster";
+    const isMonsterTemplate = questTier(Number(template.difficulty)) === "monster";
+    return isMonsterRoom && isMonsterTemplate;
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

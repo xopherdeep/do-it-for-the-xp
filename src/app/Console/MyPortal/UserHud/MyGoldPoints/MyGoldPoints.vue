@@ -136,6 +136,7 @@
             @click="clickDebt"
           />
           <xp-app-row
+            v-if="cashOutAllowed"
             title="Cash Out"
             :subtitle="cashOutSubtitle"
             icon="money-bill-wave"

@@ -60,35 +60,16 @@
         </ion-list>
 
         <ion-list v-if="activeSegment === 'accessories'">
-          <ion-item-sliding v-for="entry in pendingAccessories" :key="entry.id">
-            <ion-item>
-              <ion-avatar slot="start" class="hero-avatar">
-                <ion-img v-if="heroAvatar(entry.userId)" :src="heroAvatar(entry.userId)" />
-                <i v-else class="fad fa-gift"></i>
-              </ion-avatar>
-              <ion-label class="ion-text-wrap">
-                <h2>{{ entry.itemName }}</h2>
-                <p>
-                  Bought by {{ heroName(entry.userId) }}
-                  <ion-note>{{ formatDate(entry.createdAt) }}</ion-note>
-                </p>
-                <p class="rewards">Paid {{ entry.price }} GP · {{ entry.packed ? "game item, goes in their bag when you fulfil it" : "waiting to be delivered" }}</p>
-              </ion-label>
-              <ion-badge color="warning" slot="end">
-                <xp-gp :gp="entry.price" />
-              </ion-badge>
-            </ion-item>
-            <ion-item-options side="end">
-              <ion-item-option color="success" @click="fulfilItem(entry)">
-                <i class="fad fa-hand-holding-box fa-lg"></i>
-                Fulfil
-              </ion-item-option>
-              <ion-item-option color="danger" @click="refundItem(entry)">
-                <i class="fad fa-coins fa-lg"></i>
-                Refund
-              </ion-item-option>
-            </ion-item-options>
-          </ion-item-sliding>
+          <approval-purchase-row
+            v-for="entry in pendingAccessories"
+            :key="entry.id"
+            :entry="entry"
+            :hero-name="heroName(entry.userId)"
+            :avatar="heroAvatar(entry.userId)"
+            :bought-on="formatDate(entry.createdAt)"
+            @fulfil="fulfilItem"
+            @refund="refundItem"
+          />
           <ion-item v-if="pendingAccessories.length === 0">
             <ion-label class="ion-text-center">
               <i class="fad fa-check-circle fa-3x text-success"></i>
@@ -96,7 +77,7 @@
             </ion-label>
           </ion-item>
           <p v-else class="swipe-hint">
-            Swipe a purchase left to mark it delivered (Fulfil) or give the GP back (Refund).
+            Tap Fulfil to mark it delivered or Refund to give the GP back. You can also swipe a purchase left.
           </p>
         </ion-list>
 
@@ -149,6 +130,7 @@
   import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
   import ApprovalPhoto from "./components/ApprovalPhoto.vue";
   import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
+  import ApprovalPurchaseRow from "./components/ApprovalPurchaseRow.vue";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
@@ -199,6 +181,7 @@
       XpTownHallApprovals,
       ApprovalPhoto,
       ApprovalClaimRow,
+      ApprovalPurchaseRow,
     },
     setup() {
       const userStore = useUserStore();

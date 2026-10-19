@@ -16,7 +16,8 @@ import type { DueReminder, ReminderResult } from "./deviceReminders";
 /**
  * The quest watch: what on the hero's board deserves a nudge right now. The portal shell runs it on
  * mount and every five minutes; the notifications store's dedupe (kind + quest + day) makes the repeat
- * harmless, so each quest gets one "due soon" and one "overdue" a day.
+ * harmless, so each quest gets one "due soon" and one "overdue" a day. The phone's device reminders are not
+ * booked here: the app shell books them for every hero, portal open or not (bookHeroReminders, reminderScheduler.ts).
  */
 
 /** A quest counts as "due soon" this far ahead of its deadline. */
@@ -98,10 +99,21 @@ export const remindersOf = (
 
 export interface QuestWatchRun {
   pushed: number;
-  reminders: ReminderResult;
 }
 
-/** One pass of the watch for a hero: read the board, push what is due, schedule device reminders. */
+/**
+ * Book the phone's reminders for one hero's open quests that still lie ahead, and take back the ones for quests no
+ * longer ahead. Reads the board only (no feed notes, no penalties), so the app shell can run it for every hero on the
+ * device whether or not that hero's portal is open. Idempotent: the same hero and quest keep the same device id.
+ */
+export const bookHeroReminders = async (heroId: string, now: Date = new Date()): Promise<ReminderResult> => {
+  const id = String(heroId);
+  const effects = useUserStore().getUserById(id)?.questEffects as HeroQuestEffects | undefined;
+  const board = await getQuestEngine().getQuestBoardForUser(id, now, undefined, effects);
+  return scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
+};
+
+/** One pass of the watch for a hero: read the board, push what is due into the feed. */
 export const runQuestWatch = async (heroId: string, now: Date = new Date()): Promise<QuestWatchRun> => {
   const id = String(heroId);
   const userStore = useUserStore();
@@ -125,8 +137,7 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;
   await runClaimPhotoPurge(now.getTime());
-  const reminders = await scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
-  return { pushed, reminders };
+  return { pushed };
 };
 
 /**

@@ -27,8 +27,7 @@
               <ion-card-subtitle>Play together in the same household party</ion-card-subtitle>
             </ion-card-header>
             <ion-card-content class="ion-text-center">
-              Every hero in your family shares streaks, earns party XP, and joins group adventures.
-              Add family members to this console or connect kid phones.
+              Add the heroes in your family to this console, or link their own phones.
             </ion-card-content>
 
             <div class="ion-padding-horizontal ion-padding-bottom">
@@ -93,10 +92,9 @@
             <ion-card-header class="ion-text-center">
               <i class="fad fa-users-crown text-4xl text-primary mb-2"></i>
               <ion-card-title>Invite Friends & Allies</ion-card-title>
-              <ion-card-subtitle>Expand your productivity guild</ion-card-subtitle>
             </ion-card-header>
             <ion-card-content class="ion-text-center">
-              Share your link and help friends start their own productivity adventure with Do-it-for-the-XP!
+              Send another family on the adventure.
             </ion-card-content>
             <div class="ion-padding-horizontal ion-padding-bottom">
               <ion-button
@@ -121,54 +119,7 @@
           </ion-card>
         </ion-row>
 
-        <!-- Referral Rewards Card -->
         <ion-row>
-          <ion-card class="rewards-card w-full">
-            <ion-card-title class="ion-text-center ion-padding-top">
-              Referral Rewards
-            </ion-card-title>
-            <ion-card-content>
-              <ion-list lines="none">
-                <ion-item>
-                  <ion-icon
-                    :icon="sparklesOutline"
-                    slot="start"
-                    color="success"
-                  ></ion-icon>
-                  <ion-label>
-                    <h2>+50 XP</h2>
-                    <p>Boost your level</p>
-                  </ion-label>
-                </ion-item>
-                <ion-item>
-                  <ion-icon
-                    :icon="cashOutline"
-                    slot="start"
-                    color="warning"
-                  ></ion-icon>
-                  <ion-label>
-                    <h2>+100 GP</h2>
-                    <p>Increase your wealth</p>
-                  </ion-label>
-                </ion-item>
-                <ion-item>
-                  <ion-icon
-                    :icon="cubeOutline"
-                    slot="start"
-                    color="danger"
-                  ></ion-icon>
-                  <ion-label>
-                    <h2>Mystery Item</h2>
-                    <p>A special surprise awaits</p>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
-              <p class="ion-text-center ion-margin-top fine-print">
-                Rewards are granted when your friend signs up using your link.
-              </p>
-            </ion-card-content>
-          </ion-card>
-
           <p class="ion-text-center share-count w-full" v-if="shareCount > 0">
             You've shared this quest {{ shareCount }} times! Keep it up!
           </p>
@@ -188,14 +139,11 @@ import {
   toastController,
 } from "@ionic/vue";
 import {
-  cashOutline,
   copyOutline,
-  cubeOutline,
   infiniteOutline,
   infiniteSharp,
   peopleCircleOutline,
   sendOutline,
-  sparklesOutline,
 } from "ionicons/icons";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue";
@@ -365,9 +313,6 @@ export default defineComponent({
       shareApp,
       // Icons
       peopleCircleOutline,
-      sparklesOutline,
-      cashOutline,
-      cubeOutline,
       sendOutline,
       copyOutline,
       infiniteOutline,
@@ -423,36 +368,6 @@ export default defineComponent({
   ion-card-subtitle {
     color: var(--ion-color-medium-shade);
     font-size: 0.9rem;
-  }
-
-  /* Rewards Card Specifics */
-  .rewards-card ion-item {
-    --inner-padding-end: 0;
-    --padding-start: 8px;
-    /* Align icon better */
-    --background: transparent;
-    /* Ensure item bg doesn't clash */
-  }
-
-  .rewards-card ion-icon {
-    font-size: 1.8rem;
-    margin-right: 16px;
-  }
-
-  .rewards-card ion-label h2 {
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 2px;
-  }
-
-  .rewards-card ion-label p {
-    font-size: 0.85rem;
-    color: var(--ion-color-medium-shade);
-  }
-
-  .fine-print {
-    font-size: 0.75rem;
-    color: var(--ion-color-medium);
   }
 
   /* Share Count */

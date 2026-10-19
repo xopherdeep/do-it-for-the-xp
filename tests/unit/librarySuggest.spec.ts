@@ -27,6 +27,33 @@ describe("library suggestions for a quest", () => {
     expect(names(suggestBeasts("Rake the leaves"))[0]).toBe("Leaf Lion");
   });
 
+  it("lets the thing being done outrank the thing it is done to: Feed the dog is not a walk", () => {
+    expect(names(suggestBeasts("Feed the dog", 1))).toEqual(["Kibble Kobold"]);
+    expect(names(suggestBeasts("Feed the cat", 1))).toEqual(["Kibble Kobold"]);
+    expect(names(suggestBeasts("Walk the dog", 1))).toEqual(["Zoomie Zephyr"]);
+    expect(names(suggestBeasts("Scoop the dog poop", 1))).toEqual(["Plop Golem"]);
+    expect(names(suggestBeasts("Brush the dog", 1))).toEqual(["Furball Fiend"]);
+    // the walk is still on offer under Change, just not first
+    expect(names(suggestBeasts("Feed the dog", 3))).toEqual(["Kibble Kobold", "Zoomie Zephyr", "Plop Golem"]);
+  });
+
+  it("scores a verb that matches the chore, and a phrase that fits whole, above a lone noun", () => {
+    const feed = BEAST_LIBRARY.find((b) => b.name === "Kibble Kobold")!;
+    const walk = BEAST_LIBRARY.find((b) => b.name === "Zoomie Zephyr")!;
+    expect(matchScore(feed, "Feed the dog")).toBeGreaterThan(matchScore(walk, "Feed the dog"));
+    expect(matchScore(walk, "Walk the dog")).toBeGreaterThan(matchScore(feed, "Walk the dog"));
+    // a lone noun still finds its chores: the dog is walked, scooped and fed
+    expect(matchScore(walk, "dog")).toBeGreaterThan(0);
+    expect(matchScore(feed, "dog")).toBeGreaterThan(0);
+    expect(matchScore(walk, "dog")).toBeGreaterThan(matchScore(feed, "dog"));
+  });
+
+  it("counts a synonym for less than the word the Game Master typed", () => {
+    const vacuum = BEAST_LIBRARY.find((b) => b.name === "Fluffalo")!;
+    expect(matchScore(vacuum, "Vacuum the floor")).toBeGreaterThan(matchScore(vacuum, "Hoover the floor"));
+    expect(matchScore(vacuum, "Hoover the lounge")).toBeGreaterThan(0);
+  });
+
   it("understands the words a parent would use", () => {
     expect(names(suggestBeasts("Take out the trash", 2))).toEqual(expect.arrayContaining(["Garbage Gargoyle"]));
     expect(names(suggestBeasts("Hoover the lounge", 3))).toContain("Fluffalo");

@@ -114,6 +114,12 @@ describe("the Quick start pack", () => {
     for (const quest of quests) expect(beasts.has(String(quest.beastId))).toBe(true);
   });
 
+  it("sends every finished quest to the Game Master's Approvals, as the Quick start screen promises", () => {
+    const quests = QUICK_START_PACK.content.quests ?? [];
+    expect(quests).toHaveLength(3);
+    for (const quest of quests) expect(quest.requiresApproval).toBe(true);
+  });
+
   it("sells every reward for what a new wallet holds, and one evening of chores buys one", () => {
     const rewards = QUICK_START_PACK.content.rewards ?? [];
     const evening = (QUICK_START_PACK.content.quests ?? []).reduce((sum, quest) => sum + Number(quest.gp), 0);
@@ -142,6 +148,7 @@ describe("the Quick start plan", () => {
     for (const quest of quests) {
       expect(quest.type).toBe("individual");
       expect(quest.assignee).toEqual(heroes.map((hero) => hero.id));
+      expect(quest.requiresApproval).toBe(true);
     }
   });
 

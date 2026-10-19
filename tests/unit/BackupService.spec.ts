@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import { Drivers, Storage } from "@ionic/storage";
 import {
   BACKUP_STORES,
@@ -9,7 +11,7 @@ import {
 } from "@/lib/services/core/BackupService";
 import type { BackupFile, BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
 import StorageService from "@/lib/services/core/StorageService";
-import { canManageFamily } from "@/router/_Guards/gm.guard";
+import { canRestoreHere } from "@/lib/services/core/restoreAccess";
 import { useUserStore } from "@/lib/store/stores/user";
 import { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
@@ -63,9 +65,9 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   default: { saveProfiles: jest.fn().mockResolvedValue(undefined) },
 }));
 jest.mock("@/lib/store/stores/user", () => ({ useUserStore: jest.fn() }));
+jest.mock("@/lib/services/core/restoreAccess", () => ({ __esModule: true, canRestoreHere: jest.fn(() => true) }));
 jest.mock("@/router/_Guards/gm.guard", () => ({
   __esModule: true,
-  canManageFamily: jest.fn(() => true),
   RESTORE_GM_ONLY_MESSAGE: "Only a Game Master can restore a backup.",
 }));
 
@@ -211,11 +213,30 @@ describe("BACKUP_STORES registry", () => {
     expect(storageOf("__packs")).toBe(packLibraryStorage);
   });
 
+  // Stores that belong to this device or must never travel in a file. The doc comment above BACKUP_STORES names each one
+  // and says why, so the next person who wonders "why is that not in the backup?" finds the answer there.
+  const LEFT_OUT_ON_PURPOSE = [
+    "__xp_family_events",
+    "__xp_hero_device",
+    "__xp_hero_phone",
+    "__xp_town_hall",
+    "__xp_pro",
+    "__xp_claim_photos",
+  ];
+
   it("keeps device-only and private stores out of the file", () => {
     const names = BACKUP_STORES.map((store) => store.name);
-    ["__xp_family_events", "__xp_hero_device", "__xp_town_hall", "__xp_pro", "__xp_claim_photos"].forEach((name) =>
-      expect(names).not.toContain(name)
-    );
+    LEFT_OUT_ON_PURPOSE.forEach((name) => expect(names).not.toContain(name));
+  });
+
+  it("keeps the hero phone's claims and server cursor out: they are tied to this phone's own link", () => {
+    // A restore would resend every queued claim and set the cursor into a server stream this phone may not even be on
+    expect(BACKUP_STORES.map((store) => store.name)).not.toContain("__xp_hero_phone");
+  });
+
+  it("documents every store it leaves out, next to the list", () => {
+    const source = readFileSync(resolve(__dirname, "../../src/lib/services/core/BackupService.ts"), "utf8");
+    LEFT_OUT_ON_PURPOSE.forEach((name) => expect(source).toContain(`\`${name}\``));
   });
 
   it("never reuses a name or a storage, and every store has a label", () => {
@@ -697,11 +718,21 @@ describe("restoreBackup", () => {
       expect(fakes.__profiles.contents()).toEqual({ stale: hero("stale") });
     });
 
-    it("asks canManageFamily by default", async () => {
-      (canManageFamily as jest.Mock).mockReturnValueOnce(false);
+    it("asks canRestoreHere by default", async () => {
+      (canRestoreHere as jest.Mock).mockReturnValueOnce(false);
       const { defs } = makeWorld();
 
       await expect(new BackupService(defs).restoreBackup(backupOf({}))).rejects.toBeInstanceOf(BackupPermissionError);
+    });
+
+    it("restores onto an empty device when canRestoreHere says the device has nobody to protect", async () => {
+      (canRestoreHere as jest.Mock).mockReturnValueOnce(true);
+      const { defs, fakes } = makeWorld();
+
+      const result = await new BackupService(defs, jest.fn()).restoreBackup(backupOf({ __profiles: [["p1", hero("p1")]] }));
+
+      expect(result.total).toBe(1);
+      expect(fakes.__profiles.contents()).toEqual({ p1: hero("p1") });
     });
 
     it("reloads the real user store by default", async () => {

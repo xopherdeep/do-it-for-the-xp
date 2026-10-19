@@ -20,7 +20,8 @@ import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
 import { notificationsStorage } from "@/lib/databases/NotificationsDb";
 import { saveBackupFile, type SavedBackupFile } from "@/lib/services/core/backupFile";
 import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
-import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
+import { canRestoreHere } from "@/lib/services/core/restoreAccess";
+import { RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -102,9 +103,11 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  * before the logs that record them).
  *
  * Left out on purpose, because they belong to this device or must never travel in a file: the family server queue
- * (`__xp_family_events`, a restore would resend old events), a kid phone's hero key (`__xp_hero_device`), the Town
- * Hall sign-in and unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`) and photo proof for
- * held claims (`__xp_claim_photos`, big and private).
+ * (`__xp_family_events`, a restore would resend old events), a kid phone's hero key (`__xp_hero_device`), the hero
+ * phone's own claims, answers and server cursor (`__xp_hero_phone`, they belong to that phone's link, so a restore
+ * would resend old claims and point the cursor into a stream the phone may not be on), the Town Hall sign-in and
+ * unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`) and photo proof for held claims
+ * (`__xp_claim_photos`, big and private).
  */
 export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles, cleanRecord: sealProfileSecrets },
@@ -268,7 +271,8 @@ export const backupFileName = (date: Date = new Date()): string => {
   return `do-it-for-the-xp-backup-${year}-${month}-${day}.json`;
 };
 
-const mayRestore = (): boolean => canManageFamily();
+/** A Game Master, or anybody on a device with no profiles yet (restoreAccess.ts) */
+const mayRestore = (): boolean => canRestoreHere();
 
 const reloadUserStore = async (): Promise<void> => {
   await useUserStore().loadUsers();

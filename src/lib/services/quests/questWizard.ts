@@ -4,9 +4,9 @@
  * no Vue, no router; the screen holds a draft, calls these to change it and builds the quest with `buildWizardQuest`.
  *
  * The quest is built the way the Compendium form saves one (useAchievementForm): a beast quest on a basic schedule,
- * the Fibonacci rewards (xp = d x 100, gp = d x 10, ap = d), the name in the form's title case, and the library
- * beast adopted into the family's bestiary the way the form does (beastToAdopt). Everything has a default: today,
- * anytime, Small, the hero themself. Only the name is required.
+ * the rewards of its size (`suggestedRewards`: the Quick Start pack's table, so Small pays 120 XP / 30 GP), the name
+ * in the form's title case, and the library beast adopted into the family's bestiary the way the form does
+ * (beastToAdopt). Everything has a default: today, anytime, Small, the hero themself. Only the name is required.
  *
  * A quest made by a hero who is not a Game Master is kept small and safe, and the rules live in the builder, not in
  * the screen: it is for that hero alone, at most Big (5), it needs the Game Master's approval, and it records who made it.
@@ -23,11 +23,13 @@ import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
-import { heroBandFor, rewardsFor } from "@/lib/services/core/packs/packCommon";
+import { heroBandFor } from "@/lib/services/core/packs/packCommon";
 import type { PackBand } from "@/lib/services/core/packs/packCommon";
 import { activeSuggestion, beastQuestPatch, beastToAdopt } from "@/lib/services/quests/questFormRules";
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
+import { suggestedRewards } from "@/lib/services/quests/sizeRewards";
+import type { SizeRewards } from "@/lib/services/quests/sizeRewards";
 import { formatQuestName } from "@/lib/utils/format";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
@@ -145,8 +147,12 @@ export function clampDifficulty(difficulty: number, isGm: boolean): number {
   return allowed.reduce((best, size) => (Math.abs(size - wanted) < Math.abs(best - wanted) ? size : best), allowed[0]);
 }
 
-/** The rewards a size pays, as chips: the Compendium's rule (rewardsFor in packCommon). */
-export const rewardsOf = (difficulty: number) => rewardsFor(difficulty);
+// The table lives in sizeRewards.ts (pure, no wizard); it is still exported from here for the screens and specs that read it from the wizard
+export { suggestedRewards };
+export type { SizeRewards };
+
+/** The rewards a size pays, as chips (the same table the quest is built with). */
+export const rewardsOf = (difficulty: number): SizeRewards => suggestedRewards(difficulty);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Which chore: the library, sorted for the hero
@@ -451,7 +457,7 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     customPeriodNumber: 1,
     ...schedule,
     difficulty,
-    ...rewardsFor(difficulty),
+    ...suggestedRewards(difficulty),
     draft: false,
     createdBy: ctx.creatorId,
   };

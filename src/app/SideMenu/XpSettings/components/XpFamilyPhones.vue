@@ -86,6 +86,7 @@ import { ageGroupOf, needsAgePick, type AgeGroup } from "@/lib/services/multipla
 import { homeQuestionPrompt, type FamilyCopyKey } from "@/lib/services/multiplayer/familyPrompts";
 import type { FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
+import { FAMILY_ROAD_CLOSED_LINE, isFamilyRoadClosedProblem } from "@/lib/services/townhall/townHallPrompts";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -182,7 +183,17 @@ interface Banner {
 const PROBLEM_LINES: Partial<Record<FamilyProblem, FamilyCopyKey>> = {
   taken: "family.taken",
   "not-member": "family.notMember",
-  offline: "family.offline",
+};
+
+/** The courier is late (no signal, or the family server is not there): the courier line, then what it means for the family */
+const roadClosedLine = (): string => `${t("family.offline")} ${FAMILY_ROAD_CLOSED_LINE}`;
+
+/** The clerk's line for a problem the site reported, if the Game Master has one to read */
+const lineOfProblem = (problem: FamilyProblem | null): string | undefined => {
+  const isRoadClosed = isFamilyRoadClosedProblem(problem);
+  if (isRoadClosed) return roadClosedLine();
+  const key = problem ? PROBLEM_LINES[problem] : undefined;
+  return key ? t(key) : undefined;
 };
 
 const banners = computed((): Banner[] => {
@@ -197,14 +208,14 @@ const banners = computed((): Banner[] => {
   const isHomeNotMember = (family.home as string) === "not-member";
   const hasHomeProblem = isHomeTaken || isHomeNotMember;
   const rawProblem = family.problem ?? (hasHomeProblem ? (family.home as FamilyProblem) : null);
-  const problemLine = rawProblem ? PROBLEM_LINES[rawProblem] : undefined;
+  const problemLine = lineOfProblem(rawProblem);
   const alreadyHasBanner = found.some((b) => b.id === `problem-${rawProblem}`);
   const hasProblemLine = problemLine !== undefined && !alreadyHasBanner;
   const shouldShowProblem = hasProblemLine && Boolean(rawProblem);
   if (shouldShowProblem) {
     const isUnknownToSite = rawProblem === "not-member";
     const action = isUnknownToSite ? { cy: "family-register", label: "Go to the Town Hall", run: goToTownHall } : undefined;
-    found.push({ id: `problem-${rawProblem}`, line: t(problemLine as FamilyCopyKey), action });
+    found.push({ id: `problem-${rawProblem}`, line: problemLine as string, action });
   }
   return found;
 });

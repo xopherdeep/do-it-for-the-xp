@@ -241,7 +241,7 @@ import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
-import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
+import { levelProgress } from "@/lib/services/stats/levelProgress";
 import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
@@ -502,33 +502,18 @@ export default defineComponent({
     // XP Calculation Helpers
     const currentLevel = computed(() => props.user?.stats?.level || 1);
 
-    // Calculate progress within current level
-    const xpValues = computed(() => {
-      const stats = props.user?.stats;
-      const xp = stats?.xp;
-      if (!xp) return { inLevel: 0, needed: 100 };
-
-      const totalXp = xp.now || xp.current || 0;
-      const level = currentLevel.value;
-      const xpForCurrent = getXpForLevel(level);
-      const xpForNext = getXpForLevel(level + 1);
-
-      return {
-        // Amount of XP gained into this level
-        inLevel: Math.max(0, totalXp - xpForCurrent),
-        // Total XP needed for this level (delta)
-        needed: xpForNext - xpForCurrent
-      };
+    // How far through the current level the hero is: the one helper every XP bar asks (HUD hairline, My Profile)
+    const levelXp = computed(() => {
+      const xp = props.user?.stats?.xp;
+      const totalXp = xp?.now || xp?.current || 0;
+      return levelProgress(currentLevel.value, totalXp);
     });
+
+    // XP gained into this level, and what the whole level takes
+    const xpValues = computed(() => ({ inLevel: levelXp.value.inLevel, needed: levelXp.value.needed }));
 
     // Experience Progress calculation
-    const xpProgress = computed(() => {
-      const { inLevel, needed } = xpValues.value;
-      const isMaxedOut = needed <= 0;
-      if (isMaxedOut) return 1; // maxed out
-
-      return Math.min(Math.max(inLevel / needed, 0), 1);
-    });
+    const xpProgress = computed(() => levelXp.value.fraction);
 
     // GP Progress calculation (wallet vs max)
     const gpProgress = computed(() => {

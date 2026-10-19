@@ -89,56 +89,6 @@
         </ion-item>
       </ion-item-group>
     </ion-list>
-
-    <!-- Party Roles Legend -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <i class="fad fa-users-class mr-2"></i>
-          Party Roles
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-list lines="none">
-          <ion-item>
-            <ion-chip color="warning" slot="start">
-              <i class="fad fa-crown"></i>
-            </ion-chip>
-            <ion-label>
-              <h3>Leader</h3>
-              <p>Creates quests, manages party settings</p>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <ion-chip color="danger" slot="start">
-              <i class="fad fa-medal"></i>
-            </ion-chip>
-            <ion-label>
-              <h3>Champion</h3>
-              <p>High XP earners who motivate others</p>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <ion-chip color="success" slot="start">
-              <i class="fad fa-heart"></i>
-            </ion-chip>
-            <ion-label>
-              <h3>Support</h3>
-              <p>Sends encouragement, helps with reminders</p>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <ion-chip color="tertiary" slot="start">
-              <i class="fad fa-binoculars"></i>
-            </ion-chip>
-            <ion-label>
-              <h3>Scout</h3>
-              <p>Discovers new quests/challenges</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card-content>
-    </ion-card>
   </div>
 </template>
 
@@ -148,10 +98,6 @@ import {
   IonBadge,
   IonButton,
   IonButtons,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
   IonChip,
   IonIcon,
   IonItem,

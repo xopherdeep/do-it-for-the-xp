@@ -193,10 +193,6 @@ export const clerkMenuPrompt = (isGameMaster: boolean, voice: Voice = 'adventure
   cancelId: 'never',
 });
 
-/** The clerk's answer to an errand the board cannot take yet. */
-export const comingSoonPrompt = (what: string, voice: Voice = 'adventure'): RevealPromptOptions =>
-  noticeOf(CLERK, copyFor('clerk.soon', voice, { what }), { accent: 'townHall', sprite: 'tablet' });
-
 /** The clerk when the site does not answer: the courier is late; try again or let it go. */
 export const courierLatePrompt = (): RevealPromptOptions => ({
   speaker: CLERK,

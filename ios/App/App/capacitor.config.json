@@ -21,6 +21,9 @@
 		"androidScheme": "https"
 	},
 	"packageClassList": [
+		"TextToSpeechPlugin",
+		"FirebaseAnalyticsPlugin",
+		"BarcodeScannerPlugin",
 		"AppPlugin",
 		"CAPBrowserPlugin",
 		"FilesystemPlugin",

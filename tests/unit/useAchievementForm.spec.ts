@@ -11,6 +11,8 @@ import AchievementDb, { AchievementCategoryDb, achievementCategoryStorage, achie
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { useAchievementForm } from "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/hooks/useAchievementForm";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { SEED_REWARDS } from "@/lib/services/core/packs/packSeeds";
+import { suggestedRewards } from "@/lib/services/quests/questWizard";
 
 jest.mock("@ionic/storage", () => {
   const rows = new Map<string, Map<string, unknown>>();
@@ -110,6 +112,47 @@ const savedQuest = async (form: Awaited<ReturnType<typeof newForm>>) => {
   await form.saveNow();
   return achievementDb.getTaskById(form.achievement.value.id);
 };
+
+describe("How hard?: the pay follows the same table as the packs and the Quest Wizard", () => {
+  const payOf = (form: Awaited<ReturnType<typeof newForm>>) => {
+    const { xp, gp, ap } = form.achievement.value;
+    return { xp, gp, ap };
+  };
+
+  it("pays a new Tiny quest less than a Small one, the table's 60 XP / 15 GP / 1 AP", async () => {
+    const form = await newForm();
+    expect(form.achievement.value.difficulty).toBe(1);
+    expect(payOf(form)).toEqual({ xp: 60, gp: 15, ap: 1 });
+  });
+
+  it("pays Small what the Quick Start quests of that size pay: 120 XP / 30 GP", async () => {
+    const form = await newForm();
+    form.fibonacciIndex.value = 1; // 2
+    await nextTick();
+    expect(form.achievement.value.difficulty).toBe(2);
+    expect(payOf(form)).toEqual({ xp: 120, gp: 30, ap: 2 });
+    expect(payOf(form)).toEqual(SEED_REWARDS[2]);
+  });
+
+  it("pays every step of the slider by the table, and each pays more than the one before", async () => {
+    const form = await newForm();
+    let before = { xp: 0, gp: 0, ap: 0 };
+    for (let index = 0; index < form.fibonacciArray.length; index++) {
+      form.fibonacciIndex.value = index;
+      await nextTick();
+      const pay = payOf(form);
+      expect(pay).toEqual(suggestedRewards(form.fibonacciArray[index]));
+      expect(pay.xp).toBeGreaterThan(before.xp);
+      expect(pay.gp).toBeGreaterThan(before.gp);
+      before = pay;
+    }
+  });
+
+  it("keeps the table's pay in the stored default a quest is filled in from", () => {
+    const { difficulty, xp, gp, ap } = AchievementDb.getDefault();
+    expect({ xp, gp, ap }).toEqual(suggestedRewards(difficulty));
+  });
+});
 
 describe("How hard?: tier chip and minutes", () => {
   it("names the tier of the difficulty", async () => {
@@ -217,7 +260,8 @@ describe("What's the chore?: the beast the library suggests", () => {
     const form = await newForm();
     form.setMinutes("14");
     const saved = await savedQuest(form);
-    expect(saved).toMatchObject({ beastId: "beast-dish-goblin", adventureType: "beast", estimatedMinutes: 14, draft: false });
+    // Complete, so it takes the beast; still a draft until Ready (issue #126)
+    expect(saved).toMatchObject({ beastId: "beast-dish-goblin", adventureType: "beast", estimatedMinutes: 14, draft: true });
     const beasts = await bestiaryDb.getAll();
     expect(beasts.map((b) => b.id)).toEqual(["beast-dish-goblin"]);
     expect(beasts[0]).toMatchObject({ name: "Dish Goblin", avatar: dishGoblin.avatar });
@@ -270,7 +314,7 @@ describe("What's the chore?: the beast the library suggests", () => {
     form.achievement.value.categoryId = "cat-1";
     form.achievement.value.assignee = ["hero-1"];
     const saved = await savedQuest(form);
-    expect(saved).toMatchObject({ beastId: "beast-socktopus", adventureType: "beast", draft: false });
+    expect(saved).toMatchObject({ beastId: "beast-socktopus", adventureType: "beast", draft: true });
   });
 });
 
@@ -336,6 +380,70 @@ describe("Ready?: the last step's verb", () => {
     const form = await newForm("Load the dishwasher", false);
     expect(await form.confirmReady()).toBe(false);
     expect(await achievementDb.getTaskById(form.achievement.value.id)).toBeNull();
+  });
+});
+
+describe("a draft until Ready (GitHub issue #126)", () => {
+  it("keeps a new quest a draft however complete it is, until Ready is tapped", async () => {
+    const form = await newForm();
+    expect(form.isValidAdventure.value).toBe(true);
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+    expect(form.saveState.value).toBe("draft");
+    expect(await form.confirmReady()).toBe(true);
+    expect(await achievementDb.getTaskById(form.achievement.value.id)).toMatchObject({ draft: false });
+  });
+
+  it("keeps a quest live once Ready, when it is changed and saved again", async () => {
+    const form = await newForm();
+    await form.confirmReady();
+    form.achievement.value.achievementName = "Load and unload the dishwasher";
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+    expect(form.saveState.value).toBe("saved");
+  });
+
+  it("keeps a published quest live while an edit leaves it complete", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-live", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: false });
+    const form = useAchievementForm();
+    await form.loadData("q-live");
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("treats a quest saved before drafts existed (no marker) as published", async () => {
+    const old = { ...AchievementDb.getDefault(), id: "q-old", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"] };
+    await achievementDb.setTask(old);
+    const form = useAchievementForm();
+    expect(await form.loadData("q-old")).toEqual({ isSaved: true, wasDraft: false });
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("hides a published quest while an edit leaves it incomplete, and shows it again once complete, even after a trip to the bestiary", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-live", achievementName: "Walk The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: false });
+    const form = useAchievementForm();
+    await form.loadData("q-live");
+    form.achievement.value.assignee = [];
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+    // Coming back to the same quest reads it again: it was live when it was opened, so it may go live again
+    await form.loadData("q-live");
+    form.achievement.value.assignee = ["hero-1"];
+    expect(await savedQuest(form)).toMatchObject({ draft: false });
+  });
+
+  it("keeps a draft that was opened again a draft until Ready", async () => {
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Feed The Dog", categoryId: "cat-1", assignee: ["hero-1"], draft: true });
+    const form = useAchievementForm();
+    await form.loadData("q-draft");
+    form.achievement.value.difficulty = 5;
+    expect(await savedQuest(form)).toMatchObject({ draft: true });
+  });
+
+  it("says what New Quest opens on: fresh with no draft, else the draft to ask about", async () => {
+    const form = useAchievementForm();
+    expect(await form.loadNewQuestOpening()).toEqual({ kind: "fresh" });
+    await achievementDb.setTask({ ...AchievementDb.getDefault(), id: "q-draft", achievementName: "Feed The Dog", draft: true });
+    const opening = await form.loadNewQuestOpening();
+    expect(opening).toMatchObject({ kind: "ask", waiting: 1, draft: { id: "q-draft" } });
   });
 });
 

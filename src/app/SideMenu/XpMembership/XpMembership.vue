@@ -23,7 +23,7 @@
             <h2 class="section-title">Choose Your Adventure Length</h2>
             <ion-card v-if="native" class="native-note-card">
               <ion-card-content class="native-note" data-cy="native-coming-soon">
-                Purchases on this device are coming soon. Already bought XP Pro? Restore with your key in Settings &gt; XP Pro.
+                Buying XP Pro on this device is coming soon. For now, purchases happen on the web, and nothing is charged here. Already bought XP Pro? Restore with your key in Settings &gt; XP Pro.
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -63,7 +63,7 @@
                     </ion-label>
                   </ion-item>
                 </ion-list>
-                <p class="coming-soon">Coming to XP Pro: Family Sync across devices, parent reports, hero cosmetics.</p>
+                <p class="coming-soon">Coming to XP Pro: parent reports, hero cosmetics.</p>
                 <p class="free-forever">Heroes, custom quests and custom beasts stay free forever.</p>
               </ion-card-content>
             </ion-card>

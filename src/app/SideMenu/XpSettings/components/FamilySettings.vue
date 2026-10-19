@@ -116,6 +116,24 @@
           <p>Pick two different times, or the bedtime never starts.</p>
         </ion-card-content>
       </ion-card>
+
+      <ion-card v-if="canReissueCode" class="max-w-2xl family-recovery" data-cy="recovery-code-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Recovery code</ion-label>
+          </ion-item-divider>
+          <ion-item lines="none">
+            <ion-label class="ion-text-wrap">
+              <h2>Forgot PIN code</h2>
+              <p>Lost your recovery code? Make a new one. The old code stops working the moment the new one is made.</p>
+            </ion-label>
+            <ion-button slot="end" size="small" data-cy="reissue-recovery-code" @click="clickNewRecoveryCode">
+              <i class="fad fa-key mr-2"></i>
+              New code
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
@@ -134,6 +152,9 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { dialogMessage } from "@/lib/utils/dialogMessage";
+import { canReissueRecoveryCode } from "@/lib/services/profile/pinRecovery";
+import { reissueRecoveryCode } from "@/app/SideMenu/SwitchProfile/pinRecoveryPrompts";
+import debug from "@/lib/utils/debug";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import {
   BEDTIME_CLOCKS,
@@ -182,6 +203,9 @@ export default defineComponent({
     // Only a Game Master adds, edits or deletes profiles; heroes see the list without the buttons
     const canManage = computed(() => canManageFamily(userStore));
 
+    // The recovery code belongs to the Game Master signed in as themselves (not a hero they are playing)
+    const canReissueCode = computed(() => canReissueRecoveryCode(userStore));
+
     // Methods
     const loadProfiles = async () => {
       await userStore.loadUsers();
@@ -213,6 +237,7 @@ export default defineComponent({
       requireAvatar,
       profiles,
       canManage,
+      canReissueCode,
       profileDb,
       lockFamily,
       setLockFamily,
@@ -273,6 +298,17 @@ export default defineComponent({
         ],
       });
       await alert.present();
+    },
+    async clickNewRecoveryCode() {
+      // Backstop for the button: only the signed-in Game Master makes their own code
+      if (!this.canReissueCode) return this.refuse(FAMILY_GM_ONLY_MESSAGE);
+      const profile = this.userStore.users[this.userStore.currentUser.id as string];
+      try {
+        await reissueRecoveryCode(profile);
+      } catch (error) {
+        debug.error("Could not make a new recovery code", error);
+        await this.refuse("The new recovery code could not be saved. Try again.");
+      }
     },
     getUserAvatar(user) {
       return heroAvatarSrc(user, (key: string) => this.requireAvatar(key)) || undefined;

@@ -59,10 +59,19 @@ export const keywords = (text: string): string[] => {
   return Array.from(new Set(words.map(stem)));
 };
 
-const expand = (words: string[]): string[] =>
-  Array.from(new Set(words.flatMap((w) => [w, ...(SYNONYMS[w] ?? []).map(stem)])));
-
 const WEIGHTS = { chore: 3, name: 2, checklist: 1 } as const;
+
+/** A library word that stands in for a typed one ("pet" for "dog") counts for half of what the typed word would */
+const SYNONYM_SHARE = 0.5;
+
+/**
+ * The first word of a chore is the thing being done ("feed", "walk"). Finding it in the beast's chore says more than a
+ * noun can: "dog" fits a walk, a feed and a scoop, but only one of them is "Feed the dog".
+ */
+const VERB_BONUS = 2;
+
+/** Every word of a phrase fits the beast, typed or by a synonym: the phrase as a whole is its chore */
+const WHOLE_PHRASE_BONUS = 3;
 
 /** What a phrase is matched against: a chore beast by chore, name and task list; a classic one only by a real name */
 const matchFields = (beast: LibraryEntry): Record<keyof typeof WEIGHTS, string[]> =>
@@ -70,21 +79,31 @@ const matchFields = (beast: LibraryEntry): Record<keyof typeof WEIGHTS, string[]
     ? { chore: [], name: PLACEHOLDER_NAME.test(beast.name) ? [] : keywords(beast.name), checklist: [] }
     : { chore: keywords(beast.chore), name: keywords(beast.name), checklist: keywords(beast.checklist.join(" ")) };
 
-/** How well a library beast fits a phrase: chore words count most, its name next, its task list a little */
+/**
+ * How well a library beast fits a phrase: chore words count most, its name next, its task list a little. A synonym of
+ * a typed word counts for half; the verb matching the chore, and every word of the phrase fitting, earn a bonus.
+ */
 export const matchScore = (beast: LibraryEntry, text: string): number => {
-  const wanted = expand(keywords(text));
-  const hasNoWords = !wanted.length;
+  const typed = keywords(text);
+  const hasNoWords = !typed.length;
   if (hasNoWords) return 0;
   const fields = matchFields(beast);
-  return wanted.reduce((score, word) => {
+  const weightOf = (word: string): number => {
     const isChoreWord = fields.chore.includes(word);
-    if (isChoreWord) return score + WEIGHTS.chore;
+    if (isChoreWord) return WEIGHTS.chore;
     const isNameWord = fields.name.includes(word);
-    if (isNameWord) return score + WEIGHTS.name;
+    if (isNameWord) return WEIGHTS.name;
     const isChecklistWord = fields.checklist.includes(word);
-    if (isChecklistWord) return score + WEIGHTS.checklist;
-    return score;
-  }, 0);
+    return isChecklistWord ? WEIGHTS.checklist : 0;
+  };
+  const fits = typed.map((word) => {
+    const bestSynonym = Math.max(0, ...(SYNONYMS[word] ?? []).map((synonym) => weightOf(stem(synonym))));
+    return Math.max(weightOf(word), bestSynonym * SYNONYM_SHARE);
+  });
+  const total = fits.reduce((sum, fit) => sum + fit, 0);
+  const isVerbInChore = fields.chore.includes(typed[0]);
+  const isWholePhrase = typed.length > 1 && fits.every((fit) => fit > 0);
+  return total + (isVerbInChore ? VERB_BONUS : 0) + (isWholePhrase ? WHOLE_PHRASE_BONUS : 0);
 };
 
 export interface LibraryFilter {

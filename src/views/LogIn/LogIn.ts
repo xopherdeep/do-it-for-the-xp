@@ -45,7 +45,7 @@ export default defineComponent({
   mounted(): void {
     this.animateLogo();
 
-    // Set a simple timeout to redirect to the intro screen after 60 seconds
+    // Set a simple timeout to send an idle log-in screen to the world demo after 18 seconds
     // No route check needed - this component is only mounted on the login page
     this.inactivityTimer = setTimeout(() => {
       debug.log('Login timeout - redirecting to intro screen');
@@ -79,7 +79,8 @@ export default defineComponent({
 
     // Helper method to clear the inactivity timer
     clearInactivityTimer(): void {
-      if (this.inactivityTimer) {
+      const hasInactivityTimer = Boolean(this.inactivityTimer);
+      if (hasInactivityTimer) {
         debug.log('Clearing inactivity timer');
         clearTimeout(this.inactivityTimer as ReturnType<typeof setTimeout>);
         this.inactivityTimer = 0;

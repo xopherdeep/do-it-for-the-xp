@@ -167,6 +167,8 @@ export interface HeroQuestEffects {
   bedtimeLiftedOn?: string;
   /** Old saves only (Gale's Wind used to write it): the board shows no chores until this moment */
   dayOffUntil?: string;
+  /** Temple id -> ISO time its sleeping beasts woke for this hero; written once per temple by wakeOnEntry.ts and Quick Start (quickStartTemple.ts) */
+  templesWokenAt?: Record<string, string>;
 }
 
 /** The calendar day a date falls on, the key the snooze and pull-in maps use. */

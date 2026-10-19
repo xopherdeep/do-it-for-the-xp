@@ -3,6 +3,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type BestiaryDb from "@/lib/databases/BestiaryDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
+import { minutesOnTaking } from "@/lib/services/quests/choreMinutes";
 import {
   activeSuggestion,
   beastQuestPatch,
@@ -24,7 +25,8 @@ interface BeastSuggestionSources {
  * The beast the library suggests for a quest that has none (docs/Quest-Rooms-Spec.md decision 5), on the How tab:
  * "Suggested: Dish Goblin", with Change (pick another library beast) and No beast. A live quest takes the beast
  * when it is saved: the beast joins the bestiary (unless the family has it) and the quest becomes a beast quest,
- * so it can be fought from the quest book. A draft keeps it as a suggestion; its name may not be final.
+ * so it can be fought from the quest book, with the minutes of its chore when the library knows them (choreMinutes).
+ * A draft keeps it as a suggestion; its name may not be final.
  */
 export function useBeastSuggestion({ achievement, beasts, bestiaryDb, isLive }: BeastSuggestionSources) {
   /** The library beast the parent picked with "Change"; it stands in for the top suggestion until the quest takes it */
@@ -49,7 +51,11 @@ export function useBeastSuggestion({ achievement, beasts, bestiaryDb, isLive }: 
       await bestiaryDb.setBeast(adopted);
       beasts.value = [...beasts.value, adopted];
     }
+    // The strike clock follows the chore (a walk takes longer than a Tiny quest's 3 minutes) unless the parent typed minutes
+    const minutes = minutesOnTaking(achievement.value, entry);
     Object.assign(achievement.value, beastQuestPatch(entry));
+    const hasMinutes = minutes !== null;
+    if (hasMinutes) achievement.value.estimatedMinutes = minutes;
     pickedSuggestion.value = null;
   };
 

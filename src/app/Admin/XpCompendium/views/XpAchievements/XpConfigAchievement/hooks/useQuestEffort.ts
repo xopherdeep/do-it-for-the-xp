@@ -1,18 +1,20 @@
 import { computed, type Ref } from "vue";
 import type { Achievement } from "@/lib/databases/AchievementDb";
-import { defaultMinutes, questMinutes } from "@/lib/services/quests/questClock";
-import { hasEstimatedMinutes, parseMinutes } from "@/lib/services/quests/questFormRules";
+import { questMinutesWith } from "@/lib/services/quests/choreMinutes";
+import { defaultMinutes } from "@/lib/services/quests/questClock";
+import { activeSuggestion, hasEstimatedMinutes, parseMinutes } from "@/lib/services/quests/questFormRules";
 import { minutesLabel, tierLabel } from "@/lib/services/quests/QuestLabels";
 import { questTier } from "@/lib/services/temples/questRooms";
 
 /**
  * What the difficulty slider on the Why tab also decides (docs/Quest-Rooms-Spec.md sections 5.1 and 5.5): the
  * tier chip (the temple room this difficulty fills) and "About how long?" (the strike clock). The minutes are the
- * parent's estimate once they type one, else the difficulty's default, so the field follows the slider until it is
- * edited and a reset goes back to following it.
+ * parent's estimate once they type one, else the beast the library suggests for the chore when that chore takes
+ * longer than the difficulty's default (a walk), else the difficulty's default, so the field follows the slider until
+ * it is edited and a reset goes back to following it.
  */
 export function useQuestEffort(achievement: Ref<Achievement>) {
-  const minutes = computed(() => questMinutes(achievement.value));
+  const minutes = computed(() => questMinutesWith(achievement.value, activeSuggestion(achievement.value)));
   const minutesText = computed(() => minutesLabel(minutes.value));
   const isMinutesEdited = computed(() => hasEstimatedMinutes(achievement.value));
 

@@ -21,6 +21,7 @@
         Name your kids and tap Start. Each one gets three evening quests and a shop with treats they can earn
         tonight. You can make it your own later.
       </p>
+      <p class="qs-blurb">Tonight's quests also wait in the Howling Spire, the temple out on the Plains.</p>
 
       <section class="qs-section qs-gm">
         <h3 class="qs-heading"><i class="fad fa-crown" aria-hidden="true"></i> You, the Game Master</h3>
@@ -134,6 +135,7 @@ import {
   heroNames,
   runQuickStart,
 } from "@/lib/services/core/packs/quickStart";
+import { runQuickStartTemple } from "@/lib/services/temples/quickStartTemple";
 import debug from "@/lib/utils/debug";
 
 const names = ref<string[]>(["", ""]);
@@ -182,6 +184,16 @@ async function close() {
   await modalController.dismiss(undefined, "cancel");
 }
 
+// Tonight's quests go into the Howling Spire and its other monster rooms wake for the heroes. The game is seeded by
+// then, so a temple that will not open is only logged: the heroes can still play tonight from their quest board.
+async function openHowlingSpire(heroIds: string[]) {
+  try {
+    await runQuickStartTemple(heroIds);
+  } catch (error) {
+    debug.warn("Quick start could not open the Howling Spire", error);
+  }
+}
+
 async function start() {
   const isBlocked = !canStart.value || isStarting.value;
   if (isBlocked) return;
@@ -189,6 +201,7 @@ async function start() {
   play$fx("select");
   try {
     const { heroes, gameMaster: parent } = await runQuickStart(names.value, gameMaster.value);
+    await openHowlingSpire(heroes.map((hero) => String(hero.id)));
     await modalController.dismiss({ heroes, gameMaster: parent }, "started");
   } catch (error) {
     debug.error("Quick start failed", error);
