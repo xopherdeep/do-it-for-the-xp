@@ -23,7 +23,28 @@ export type SkinTone =
   | "ember"
   | "gold";
 export type HairStyle = "none" | "short" | "bob" | "spiky" | "ponytail" | "curly" | "buzz" | "long" | "mohawk" | "bun";
-export type OutfitStyle = "tunic" | "overalls" | "armor" | "robe" | "hoodie" | "dress" | "tracksuit" | "pyjamas";
+/** The eight outfits every hero can wear from the start */
+export type StarterOutfitStyle = "tunic" | "overalls" | "armor" | "robe" | "hoodie" | "dress" | "tracksuit" | "pyjamas";
+/** A class name lower-cased with spaces as hyphens ("White Mage" is "white-mage") */
+export type ClassSlug =
+  | "warrior"
+  | "mage"
+  | "thief"
+  | "monk"
+  | "knight"
+  | "berserker"
+  | "white-mage"
+  | "black-mage"
+  | "assassin"
+  | "ranger"
+  | "martial-artist"
+  | "mystic"
+  | "paladin"
+  | "ninja"
+  | "sage";
+/** A class outfit is earned at class level 1, 5 and 10: "warrior-1", "white-mage-5", "martial-artist-10" */
+export type ClassOutfitStyle = `${ClassSlug}-${1 | 5 | 10}`;
+export type OutfitStyle = StarterOutfitStyle | ClassOutfitStyle;
 export type HatStyle = "none" | "cap" | "crown" | "wizard" | "helmet" | "beanie" | "headband" | "bandana" | "flower";
 export type FaceStyle = "smile" | "grin" | "determined" | "sleepy" | "wink" | "surprised";
 
