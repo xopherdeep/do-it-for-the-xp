@@ -1,6 +1,7 @@
 export function renderMarkup(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-    if (!(key in vars)) {
+    const keyMissing = !(key in vars);
+    if (keyMissing) {
       throw new Error(`Unknown placeholder: {{${key}}}`);
     }
     return vars[key];
@@ -14,7 +15,8 @@ export function findPlaceholders(html: string): string[] {
   let match;
   while ((match = regex.exec(html)) !== null) {
     const key = match[1];
-    if (!seen.has(key)) {
+    const keyNotSeen = !seen.has(key);
+    if (keyNotSeen) {
       seen.add(key);
       result.push(key);
     }
@@ -29,7 +31,8 @@ export function collectHrefs(html: string): string[] {
   let match;
   while ((match = regex.exec(html)) !== null) {
     const href = match[1];
-    if (!seen.has(href)) {
+    const hrefNotSeen = !seen.has(href);
+    if (hrefNotSeen) {
       seen.add(href);
       result.push(href);
     }
@@ -57,7 +60,8 @@ export function checkMarkup(html: string): string[] {
   const reportedNumbers = new Set<string>();
   for (const match of visibleText.matchAll(numberRegex)) {
     const number = match[1];
-    if (!reportedNumbers.has(number)) {
+    const numberNotReported = !reportedNumbers.has(number);
+    if (numberNotReported) {
       problems.push(`invented number: "${number}"`);
       reportedNumbers.add(number);
     }
@@ -66,7 +70,8 @@ export function checkMarkup(html: string): string[] {
   // Check for relative hrefs
   const hrefs = collectHrefs(html);
   for (const href of hrefs) {
-    if (!/^https?:\/\//.test(href) && !/^\//.test(href) && !/^#/.test(href)) {
+    const isRelativeHref = !/^https?:\/\//.test(href) && !/^\//.test(href) && !/^#/.test(href);
+    if (isRelativeHref) {
       problems.push(`relative href: ${href}`);
     }
   }
@@ -79,7 +84,8 @@ export function checkMarkup(html: string): string[] {
     const srcMatch = /src="([^"]*)"/.exec(attrs);
     const src = srcMatch ? srcMatch[1] : '';
     const altMatch = /alt="([^"]*)"/i.exec(attrs);
-    if (!altMatch || altMatch[1] === '') {
+    const hasNoAlt = !altMatch || altMatch[1] === '';
+    if (hasNoAlt) {
       problems.push(`img without alt: ${src}`);
     }
   }

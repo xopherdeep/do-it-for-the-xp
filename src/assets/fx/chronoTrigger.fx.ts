@@ -30,7 +30,7 @@ export default{
   electricArc   : require('@/assets/audio/nintendo/chrono trigger/electricArc.mp3'),
   enemyDie      : require('@/assets/audio/nintendo/chrono trigger/enemyDie.mp3'),
   epochLaunch   : require('@/assets/audio/nintendo/chrono trigger/epochLaunch.mp3'),
-  eb_fanfare: require("@/assets/audio/nintendo/earthbound/eb_fanfare.wav"),
+  eb_fanfare: require("@/assets/audio/nintendo/earthbound/eb_fanfare.mp3"),
   exhaust       : require('@/assets/audio/nintendo/chrono trigger/exhaust.mp3'),
   explosion     : require('@/assets/audio/nintendo/chrono trigger/explosion.mp3'),
   fall          : require('@/assets/audio/nintendo/chrono trigger/fall.mp3'),
