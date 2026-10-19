@@ -75,7 +75,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-account",
       component: () => import("@/app/SideMenu/XpSettings/components/AccountSettings.vue"),
     },
-    // Chore, Reward and Party list planned settings only (greyed out, Coming soon)
+    // Chore and Reward are working pages; Party still lists planned settings only (greyed out, Coming soon)
     {
       path: "chore",
       name: "xp-settings-chore",

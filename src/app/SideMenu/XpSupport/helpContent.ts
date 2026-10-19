@@ -32,11 +32,12 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     audience: "Everyone",
     intro: "Do It For The XP turns chores into an RPG. Parents are Game Masters who set quests; kids are heroes who beat them for XP, gold and powers.",
     steps: [
-      "Tap Press Start, then Start New Game on Choose A Profile.",
+      "Tap Press Start, then Start New Game on Choose A Profile. In a hurry? Quick Start on the same screen names your kids and has them playing tonight.",
       "The first profile on a device is a Game Master. Game Masters need a 4-digit passcode.",
-      "Forgot your PIN? Tap Forgot PIN on the PIN pad and type the recovery code you got on your first unlock. Too many wrong PINs make the pad wait a while.",
+      "Forgot your PIN? Tap Forgot PIN on the PIN pad and type your recovery code. The code shows at every unlock until you tap I wrote it down, and Settings, Family can make a new one. Too many wrong PINs make the pad wait a while.",
       "Add your heroes in Settings, Family. A hero's passcode is optional.",
       "Load a pack in Settings, Packs, or make your own quests in the Compendium. A new game has no quests until you do one of the two.",
+      "On a new phone or after clearing the browser, Choose A Profile also offers Restore a backup, which loads your family's saved file.",
       "The first time a hero opens their portal, a guide walks them through the XP bar and the bottom buttons. Replay it from Settings, General, Show the portal tour again.",
       "Settings, General also picks the screen each profile lands on after signing in, and Helper dialogs keeps the Guide and the tour quiet until you open the Journal.",
     ],
@@ -51,8 +52,9 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "What's the chore: a name, a category and a kind (Normal, Beast or Chain).",
       "Who does it: Open for anyone, or Solo, Team, Rotate or Race for the heroes you pick.",
       "When: the start and end dates, a due time and how often it comes back.",
-      "How hard: the difficulty sets the reward (100 XP, 10 GP and 1 AP per step) and the minutes set the battle clock.",
-      "Pick GM Review if you want to check the work before the reward is paid, or Honor System to pay at once.",
+      "How hard: the difficulty sets the reward (100 XP, 10 GP and 1 AP per step) and the minutes set the battle clock. This step also holds the approval choice, Photo proof and the quest's Late rule.",
+      "Pick GM Review if you want to check the work before the reward is paid, or Honor System to pay at once. Photo proof asks the hero for a picture when they claim, and always means GM Review.",
+      "Tap Ready on the last step. Until then the quest is a Draft that heroes can't see, and New Quest offers to Resume or Discard an unfinished draft.",
     ],
   },
   {
@@ -65,7 +67,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "Board sorts quests into Overdue, Today, This week and Later. List shows them all, and Tamed holds the beasts you've beaten.",
       "Tap a quest to see its beast and its checklist.",
       "Claim when the chore is done, or Hunt to fight the beast for 25% more XP.",
-      "A quest marked GM approves waits as Pending until a Game Master says yes.",
+      "A quest marked GM approves waits as Pending until a Game Master says yes. A Photo proof quest asks you to take a picture when you claim it.",
       "Finish a quest every day to grow your streak (the flame under your avatar). Days 3, 7, 14 and 30 open a chest, and every 7th day earns a shield that saves one missed day.",
       "Hero Records (Stats in the avatar menu, or Records in the streak box) shows your week to share, XP by week, the beasts you tame most and the ones you run from.",
     ],
@@ -139,8 +141,8 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     audience: "Game Masters",
     intro: "Open the Dashboard and tap Approvals to see what's waiting.",
     steps: [
-      "Achievements: swipe a quest to Approve and pay its reward, or Reject to put it back on the board.",
-      "Accessories: Fulfil a Real Life reward once you've handed it over, or Refund the gold. With Approve every purchase on (Settings, Rewards), potions and other game items wait here too and go into the hero's bag when you fulfil them.",
+      "Achievements: tap Approve to pay a quest's reward, or Send back to put it back on the board. A Photo proof quest shows its picture here. You can also swipe a quest left.",
+      "Accessories: tap Fulfil once you've handed a Real Life reward over, or Refund to give the gold back. Cash outs wait here too. With Approve every purchase on (Settings, Rewards), potions and other game items wait here as well and go into the hero's bag when you fulfil them.",
       "Town Hall: heroes' posts wait here before they go up.",
       "The Dashboard's Add Bonus and Take away Points handle anything a quest doesn't cover.",
     ],
@@ -168,6 +170,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     steps: [
       "News and Updates show what's new in the game.",
       "Board holds feature requests, ideas and feedback. Read them, or post your own.",
+      "Packs is the Pack Exchange: quest sets other families made. Tap Get pack to load one, or share your own.",
       "Events lists your own quests for the week.",
     ],
   },
@@ -181,6 +184,7 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
       "In Settings, Family, tap Phones next to a hero, then Link a phone.",
       "On the hero's phone, choose I'm a hero with a family code and type the code or scan the QR.",
       "Quests are still done on the family device for now.",
+      "The family server that links the phones is still being built. Until it is ready the app says the family's road to the city isn't open yet, and nothing is lost: try again later.",
     ],
   },
   {
@@ -188,11 +192,11 @@ export const MANUAL_CHAPTERS: ManualChapter[] = [
     title: "Your data and backups",
     icon: "save",
     audience: "Game Masters",
-    intro: "Everything is kept on this device. There's no account to sign in to.",
+    intro: "Everything is kept on this device, and the game needs no sign-in. The Town Hall and hero phones use a free family account on the Town Hall site.",
     steps: [
-      "Settings, Backup downloads one file with everything. Passcodes are scrambled in it, but keep it safe.",
-      "Restore from backup replaces what's on the device with the file. Only a Game Master can do it.",
-      "Settings, Packs loads ready-made worlds. Removing a pack takes back only what it added.",
+      "Settings, General, Back up everything saves one file with everything. Passcodes are scrambled in it, but keep it safe.",
+      "Restore from backup, in Settings, General, replaces what's on the device with the file. A Game Master can do it, and so can anyone on an empty device through Restore a backup on Choose A Profile.",
+      "Settings, Packs loads ready-made worlds. Removing a pack takes back only what it added. Save as a file there keeps your own quests as a pack, and Import a pack file loads one a friend sent.",
       "Settings, Account links the family's For the XP account (the Town Hall's) from the menu, shows your plan, and opens the site to change your email or password.",
     ],
   },
@@ -220,8 +224,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "No. Profiles live on this device. Tap Start New Game on Choose A Profile to begin. The Town Hall and hero phones use a free account on the Town Hall site, but the game itself doesn't.",
       },
       {
+        question: "What is Quick Start?",
+        answer: "On an empty device, Choose A Profile offers Quick Start beside Start New Game. Type your name and a 4-digit PIN, name your kids and tap Start: each hero gets three evening quests and three small rewards in the Market. The three quests wait in Approvals for your OK, so the first night shows how the game works.",
+      },
+      {
         question: "How do I approve a chore?",
-        answer: "Open the Dashboard and tap Approvals. On the Achievements tab, swipe a quest and tap Approve to pay its reward, or Reject to put it back on the board.",
+        answer: "Open the Dashboard and tap Approvals. On the Achievements tab, tap Approve to pay a quest's reward, or Send back to put it back on the board. Swiping a quest left shows the same two buttons.",
       },
       {
         question: "How do I choose which chores need my OK?",
@@ -229,7 +237,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         question: "What happens when a chore is late?",
-        answer: "Nothing is taken away. The quest moves to Overdue in the Beast Log and its beast starts ambushing the hero until the chore is done.",
+        answer: "Out of the box nothing is taken away: the quest moves to Overdue in the Beast Log and its beast starts ambushing the hero until the chore is done. Settings, Chores, Late chores can lock a late chore (heroes see Too late), pay only a share of the loot for a late finish, or take a one-time penalty. All three are off until you switch them on, and each quest has its own Late rule to bend them.",
       },
       {
         question: "How do streaks work?",
@@ -248,6 +256,22 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "Yes. Turn on Approve every purchase in Settings, Rewards. Game items bought in a shop then wait in Approvals with the Real Life rewards, and go into the hero's bag when you fulfil them. A full bag keeps the item waiting until the hero makes room.",
       },
       {
+        question: "Can a chore ask for a photo?",
+        answer: "Yes. Turn on Photo proof in the quest's How hard step. The hero takes a picture when they claim it, you see it in Approvals beside Approve, and the quest always waits for your OK. The picture stays on this device and is deleted a week after you settle the claim.",
+      },
+      {
+        question: "Can heroes cash out their GP?",
+        answer: "Cash out is off until you turn it on in Settings, Rewards. There you set the rate (how much GP makes $1) and can tick the heroes who may use it. A hero then taps Cash Out in My Funds, the GP leaves their wallet, and the request waits in Approvals until you hand over the money.",
+      },
+      {
+        question: "Can savings earn interest?",
+        answer: "Yes, once you switch on Pay interest on savings in Settings, Rewards. Each week the Gold Bank adds a share of what every hero has saved, rounded down, and you pick the weekly rate. It is off until you turn it on.",
+      },
+      {
+        question: "Will the phone remind us?",
+        answer: "Yes, on this device. Settings, Alerts has Chore reminders, a nudge half an hour before a chore is due, even when the game is closed. They are booked for every hero from the app, so a kid doesn't have to open their portal first. Game Masters also get Approval reminders when a claim has waited too long, and you choose how long (1 to 8 hours, or Off).",
+      },
+      {
         question: "Can the week start on Sunday?",
         answer: "Yes. Settings, General, Week starts on moves the first day of the week for date pickers, a quest's day row and the weekly recap, for the whole family.",
       },
@@ -258,6 +282,14 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         question: "Where do I start if I don't want to build everything?",
         answer: "Load a pack in Settings, Packs. There are packs for families, classrooms, homeschool, study, fitness, roommates, solo adults and workplaces. Your own quests are never touched.",
+      },
+      {
+        question: "How do I share my own pack?",
+        answer: "In Settings, Packs, tap Save as a file under Share your own. On Android the file lands in Documents, on an iPhone the share sheet opens so you can pick Save to Files, and in a browser it downloads. Another family loads it with Import a pack file, or you can share it in the Town Hall's Pack Exchange. No heroes, logs or passcodes are in it.",
+      },
+      {
+        question: "What is the recovery code?",
+        answer: "It rescues a forgotten PIN: tap Forgot PIN on the pad and type the code to choose a new one. Until you tap I wrote it down, every unlock shows a fresh code and the old one stops working, so write it down and keep it from the kids. If you lose it, the Recovery code card in Settings, Family has a New code button that makes a fresh one.",
       },
       {
         question: "How do I play as one of my heroes?",
@@ -310,8 +342,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
         answer: "No. The game runs offline. The Town Hall, hero phones, buying XP Pro, AI helpers and Discover Quests need a connection, and the music falls back to built-in tunes offline.",
       },
       {
+        question: "How do I back up the game?",
+        answer: "Open Settings, General and tap Back up everything. It saves one file: on Android it lands in Documents, on an iPhone the share sheet opens so you can pick Save to Files, and in a browser it downloads. Passcodes are scrambled in it, but keep the file somewhere safe.",
+      },
+      {
         question: "Where is my data stored?",
-        answer: "On this device only. Back it up in Settings, Backup before clearing the browser or moving to a new device.",
+        answer: "On this device only. Back it up in Settings, General before clearing the browser or moving to a new device.",
       },
       {
         question: "What is Settings, Account?",
@@ -319,7 +355,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         question: "How do I move to a new device?",
-        answer: "Back up on the old device, open the app on the new one, then use Restore from backup in Settings, Backup. Restore XP Pro with your key in Settings, XP Pro.",
+        answer: "Back up on the old device and open the app on the new one. On the empty Choose A Profile screen tap Restore a backup and pick the file; Restore from backup in Settings, General does the same. Restore XP Pro with your key in Settings, XP Pro.",
       },
       {
         question: "How do I start over?",

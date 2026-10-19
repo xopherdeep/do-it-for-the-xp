@@ -55,18 +55,22 @@ a number on the home, so two devices never hold two versions of a hero.
 | `hero.sheet` | home | family | `stats`, `quests` |
 | `claim.settled` | home | family | `claimId`, `questId`, `status`, `note`, `xp`, `gp`, `ap` |
 
-### What the server has to do (the plugin side, not built yet)
+### What the server does (the plugin side, built as MP7)
 
-1. **Let a hero key write `quest.claimed`, for its own hero only.** A hero key that sends any other kind, or a claim
-   whose `hero_id` is not the key's hero, is rejected (in `rejected`, not a 4xx for the batch). Writer
-   `home-or-phone` in `EVENT_KINDS`.
-2. **Accept the two new kinds from the parent's auth** (`hero.sheet`, `claim.settled`), family scope, keeping only the
-   listed fields. `hero.sheet` carries a `stats` object and a `quests` list of up to 60 objects; allow a body of about
-   16 KB per event.
-3. **`GET events` with a hero key** returns the events whose `hero_id` is the key's hero (family and public scope),
-   after `since`, oldest first, the same paging as the parent's call. The phone reads its sheet and its answers there.
+The `xophz-compass-xp` plugin carries all of the kinds above (they were added to it as MP7 on the COMPASS board). The
+contract it keeps:
+
+1. **A hero key writes `quest.claimed`, for its own hero only.** A hero key that sends any other kind, or a claim whose
+   `hero_id` is not the key's hero, is rejected (in `rejected`, not a 4xx for the batch). Writer `home-or-phone` in
+   `EVENT_KINDS`.
+2. **The parent's auth (the home) writes the two newer kinds** (`hero.sheet`, `claim.settled`), family scope, keeping only
+   the listed fields. `hero.sheet` carries a `stats` object and a `quests` list of up to 60 objects; a body of about
+   16 KB per event is allowed.
+3. **`GET events` with a hero key** returns the events whose `hero_id` is the key's hero, family and public scope, after
+   `since`, oldest first, the same paging as the parent's call. The phone reads its sheet and its answers there.
 4. **`GET events` with the parent's auth** returns the hero phones' `quest.claimed` too (they are family scope).
-5. Dedupe on the event `id` as today: a phone resends a claim whose answer it never read.
+5. **Dedupe on the event `id`**, as for every kind: a phone resends a claim whose answer it never read, and the repeat
+   changes nothing.
 
 ### The flow
 
