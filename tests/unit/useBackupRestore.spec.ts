@@ -43,8 +43,11 @@ const present = jest.fn(async () => undefined);
 const parsed = { version: 1, exportedAt: "2026-10-09T05:30:00.000Z", stores: {} };
 const summary = { exportedAt: parsed.exportedAt, total: 7, stores: [{ name: "__profiles", label: "Profiles", count: 2 }] };
 
-/** The input the flow made and clicked: the test plays the person choosing a file in it */
-let pickedInput: HTMLInputElement | null = null;
+/** Every click on a file input; the spy records the input each click ran on (mock.instances) */
+let clickSpy: jest.SpyInstance;
+
+/** The input the flow made and clicked, if it did: the test plays the person choosing a file in it */
+const pickedInput = (): HTMLInputElement | null => (clickSpy.mock.instances[0] as HTMLInputElement | undefined) ?? null;
 
 const waitFor = async (check: () => void) => {
   for (let tries = 0; tries < 50; tries += 1) {
@@ -60,8 +63,8 @@ const waitFor = async (check: () => void) => {
 
 const choose = (text = '{"version":1}') => {
   const file = new File([text], "backup.json", { type: "application/json" });
-  Object.defineProperty(pickedInput, "files", { value: [file], configurable: true });
-  pickedInput?.dispatchEvent(new Event("change"));
+  Object.defineProperty(pickedInput(), "files", { value: [file], configurable: true });
+  pickedInput()?.dispatchEvent(new Event("change"));
 };
 
 const withUsers = (count: number) => {
@@ -72,10 +75,7 @@ const withUsers = (count: number) => {
 beforeEach(() => {
   jest.clearAllMocks();
   alerts.length = 0;
-  pickedInput = null;
-  jest.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (this: HTMLInputElement) {
-    pickedInput = this;
-  });
+  clickSpy = jest.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
   (alertController.create as jest.Mock).mockImplementation(async (options: AlertOptions) => {
     alerts.push(options);
     return { present };
@@ -106,15 +106,15 @@ describe("chooseRestoreFile: who may start it", () => {
     useBackupRestore().chooseRestoreFile();
 
     expect(mockShowToast).toHaveBeenCalledWith(GM_ONLY, 2500);
-    expect(pickedInput).toBeNull();
+    expect(pickedInput()).toBeNull();
   });
 
   it("opens a JSON file picker on an empty device, where there is no Game Master to ask", () => {
     useBackupRestore().chooseRestoreFile();
 
     expect(mockShowToast).not.toHaveBeenCalled();
-    expect(pickedInput?.type).toBe("file");
-    expect(pickedInput?.accept).toBe("application/json,.json");
+    expect(pickedInput()?.type).toBe("file");
+    expect(pickedInput()?.accept).toBe("application/json,.json");
   });
 
   it("opens no second picker while a backup or restore is running", async () => {
@@ -123,7 +123,7 @@ describe("chooseRestoreFile: who may start it", () => {
       flow.chooseRestoreFile();
     });
 
-    expect(pickedInput).toBeNull();
+    expect(pickedInput()).toBeNull();
   });
 });
 
