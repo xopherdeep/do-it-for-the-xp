@@ -69,8 +69,8 @@ export default defineComponent({
       userActions: storeUserActions
     } = useUserActions();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
     const showSaveQuitModal = ref(false);
 
     const closeModal = () => modalController.dismiss()
@@ -129,13 +129,13 @@ export default defineComponent({
             handler: async () => {
               const hasHpGain = quote.hpGain > 0;
               if (hasHpGain) {
-                userStore.updateUserHP({ userId: userId as string, amount: quote.hpGain });
+                userStore.updateUserHP({ userId: userId.value, amount: quote.hpGain });
               }
               const hasMpGain = quote.mpGain > 0;
               if (hasMpGain) {
-                userStore.updateUserMP({ userId: userId as string, amount: quote.mpGain });
+                userStore.updateUserMP({ userId: userId.value, amount: quote.mpGain });
               }
-              userStore.setBedRestAt(userId as string, new Date().toISOString());
+              userStore.setBedRestAt(userId.value, new Date().toISOString());
               const canPlayFx = typeof (window as any).play$fx === "function";
               if (canPlayFx) {
 
@@ -181,7 +181,7 @@ export default defineComponent({
           side: "top",
           // link: 'storage',
           click() {
-            router.push({ name: 'storage', params: { userId } })
+            router.push({ name: 'storage', params: { userId: userId.value } })
           }
         },
         {
@@ -190,7 +190,7 @@ export default defineComponent({
           faIcon: "clock",
           side: "top",
           click() {
-            router.push({ name: 'calendar', params: { userId } })
+            router.push({ name: 'calendar', params: { userId: userId.value } })
           }
         },
         {
@@ -199,7 +199,7 @@ export default defineComponent({
           faIcon: "tools",
           side: "start",
           click() {
-            router.push({ name: 'craft-item', params: { userId } })
+            router.push({ name: 'craft-item', params: { userId: userId.value } })
           }
         },
         {
@@ -208,7 +208,7 @@ export default defineComponent({
           faIcon: "hat-chef",
           side: "end",
           click() {
-            router.push({ name: 'cook-food', params: { userId } })
+            router.push({ name: 'cook-food', params: { userId: userId.value } })
           }
         },
         {
@@ -226,7 +226,7 @@ export default defineComponent({
           faIcon: "door-open",
           side: "bottom",
           click() {
-            router.push({ name: 'home-town', params: { userId } })
+            router.push({ name: 'home-town', params: { userId: userId.value } })
             // console.log($ev.preventDefault());
           }
         },

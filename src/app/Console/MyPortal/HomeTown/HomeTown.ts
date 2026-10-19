@@ -19,8 +19,8 @@ export default dC({
     const route = useRoute();
     const { setActions } = useUserActions();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     const userActions = [
       {
@@ -28,7 +28,7 @@ export default dC({
         side: "bottom",
         faIcon: "house-user",
         click() {
-          router.push({ name: "my-home", params: { userId } });
+          router.push({ name: "my-home", params: { userId: userId.value } });
         },
       },
       {
@@ -36,7 +36,7 @@ export default dC({
         side: "start",
         faIcon: "store",
         click() {
-          router.push({ name: "shop", params: { userId } });
+          router.push({ name: "shop", params: { userId: userId.value } });
         },
       },
       {
@@ -44,7 +44,7 @@ export default dC({
         faIcon: "hospital-alt",
         side: "end",
         click() {
-          router.push({ name: "hospital", params: { userId } });
+          router.push({ name: "hospital", params: { userId: userId.value } });
         },
       },
       {
@@ -52,7 +52,7 @@ export default dC({
         faIcon: "hotel",
         side: "end",
         click() {
-          router.push({ name: "hotel", params: { userId } });
+          router.push({ name: "hotel", params: { userId: userId.value } });
         },
       },
       // No Temple building here: the `temple` route needs a temple id, and temples are entered from the World Map regions.
@@ -61,7 +61,7 @@ export default dC({
         faIcon: "piggy-bank",
         side: "top",
         click() {
-          router.push({ name: "bank", params: { userId } });
+          router.push({ name: "bank", params: { userId: userId.value } });
         },
       },
       {
@@ -70,7 +70,7 @@ export default dC({
         faIcon: "podium",
         side: "start",
         click() {
-          router.push({ name: "town-hall", params: { userId } });
+          router.push({ name: "town-hall", params: { userId: userId.value } });
           // console.log($ev.preventDefault());
         },
       },
@@ -79,7 +79,7 @@ export default dC({
         faIcon: "tornado",
         side: "top",
         click() {
-          router.push({ name: "world-plains", params: { userId } });
+          router.push({ name: "world-plains", params: { userId: userId.value } });
         },
       },
     ];
@@ -99,7 +99,7 @@ export default dC({
     };
 
     const enterOldHouse = () => {
-      router.push({ name: "temple", params: { userId, temple: MOVING_TEMPLE_ID } });
+      router.push({ name: "temple", params: { userId: userId.value, temple: MOVING_TEMPLE_ID } });
     };
 
     onIonViewDidEnter(() => {

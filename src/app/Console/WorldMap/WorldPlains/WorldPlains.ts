@@ -21,8 +21,8 @@ export default dC({
     const { setActions } = useUserActions();
     const { showToast } = useToast();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     // Audio references
     const windAudio = ref<HTMLAudioElement | null>(null);
@@ -85,7 +85,7 @@ export default dC({
             showToast(FIRST_FLIGHT_LINE, 2500, "bottom").catch((e) => { debug.warn("Could not show the first flight toast:", e); });
             return;
           }
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "world-map", params: { userId: userId.value } });
         },
       },
       {
@@ -94,7 +94,7 @@ export default dC({
         faIcon: "archway",
         side: "bottom",
         click() {
-          router.push({ name: 'home-town', params: { userId } })
+          router.push({ name: 'home-town', params: { userId: userId.value } })
         }
       },
       {
@@ -106,7 +106,7 @@ export default dC({
           const temple = "wind-temple"
           router.push({
             name: "temple", params: {
-              userId,
+              userId: userId.value,
               temple,
               x: 2,
               y: 5

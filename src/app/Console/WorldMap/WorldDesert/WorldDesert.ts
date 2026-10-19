@@ -20,8 +20,8 @@ export default dC({
     const { setActions } = useUserActions();
     const timers = useTimers();
 
-    const { userId } = route.params;
-    const user = computed(() => userStore.getUserById(userId as string));
+    const userId = computed(() => String(route.params.userId));
+    const user = computed(() => userStore.getUserById(userId.value));
 
     const windInterval = ref<number | null>(null);
     const windAudio = ref<HTMLAudioElement | null>(null);
@@ -87,7 +87,7 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "world-map", params: { userId: userId.value } });
         },
       },
       {
@@ -100,7 +100,7 @@ export default dC({
           router.push({
             name: "temple",
             params: {
-              userId,
+              userId: userId.value,
               temple
             }
           });
