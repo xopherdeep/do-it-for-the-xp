@@ -77,6 +77,32 @@
               </div>
             </div>
 
+            <!-- Restore a backup: bring a saved family file back onto this empty device -->
+            <div
+              class="eb-file-slot eb-restore-slot"
+              role="button"
+              tabindex="0"
+              data-cy="restore-backup-slot"
+              :aria-disabled="isBackupBusy"
+              @click="chooseRestoreFile"
+              @keydown.enter="chooseRestoreFile"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag"><i class="fad fa-history"></i></div>
+              <div class="eb-slot-avatar-frame eb-new-avatar">
+                <i class="fad fa-save"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-hero-name">Restore a backup</div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-desc">Load your family's saved file</span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <i class="fad fa-chevron-right eb-new-arrow"></i>
+              </div>
+            </div>
+
             <!-- Link Kid Phone Slot (when multiplayer enabled) -->
             <div
               v-if="isMultiplayerEnabled"
@@ -303,6 +329,7 @@ import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { useBackupRestore } from "@/hooks/useBackupRestore";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -329,6 +356,8 @@ export default defineComponent({
     const familyStore = useFamilyStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
+    // The same pick-a-file-and-restore flow as Settings > General: this device has no profile, so anybody may use it
+    const { isBackupBusy, chooseRestoreFile } = useBackupRestore();
 
     const isMultiplayerEnabled = computed(() => familyStore.enabled);
     const openLinkPhone = () => {
@@ -582,6 +611,8 @@ export default defineComponent({
       handleRetroAction,
       isMultiplayerEnabled,
       openLinkPhone,
+      isBackupBusy,
+      chooseRestoreFile,
     };
   },
 });

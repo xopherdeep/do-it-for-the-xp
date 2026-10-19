@@ -34,7 +34,7 @@
               button
               :detail="false"
               :disabled="isBackupBusy"
-              :style="canRestore() ? undefined : { opacity: 0.5 }"
+              :style="canRestore ? undefined : { opacity: 0.5 }"
               lines="none"
               @click="chooseRestoreFile"
             >
@@ -149,11 +149,12 @@
   import { computed, defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { cloudDownloadOutline, cloudUploadOutline, mapOutline } from "ionicons/icons";
-  import { alertController, loadingController, toastController } from "@ionic/vue";
+  import { alertController, toastController } from "@ionic/vue";
   import { rpgToastOptions } from "@/hooks/useToast";
-  import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
-  import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
-  import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
+  import { useBackupRestore } from "@/hooks/useBackupRestore";
+  import backupService from "@/lib/services/core/BackupService";
+  import { canRestoreHere } from "@/lib/services/core/restoreAccess";
+  import { canManageFamily } from "@/router/_Guards/gm.guard";
   import { dialogMessage } from "@/lib/utils/dialogMessage";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
   import { GENERAL_COMING_SOON } from "./comingSoon";
@@ -170,28 +171,10 @@
   import { useUserStore } from "@/lib/store/stores/user";
   import { backupAgeLabel, lastBackupAt, recordBackup } from "@/lib/services/core/backupReminder";
 
-  type AlertButton = string | { text: string; role?: string; handler?: () => void };
-
   const errorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : String(error);
 
-  const readFileAsText = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () =>
-        reject(reader.error ?? new Error("The file could not be read."));
-      reader.readAsText(file);
-    });
-
-  const formatBackupDate = (iso: string): string => {
-    const date = new Date(iso);
-    return Number.isNaN(date.getTime())
-      ? "on an unknown date"
-      : `on ${date.toLocaleString()}`;
-  };
-
-  /** The backup and restore dialogs share the RPG message box and its short-lines layout */
+  /** The backup dialog uses the RPG message box and its short-lines layout */
   const RPG_ALERT = "rpg-alert";
 
   export default defineComponent({
@@ -212,34 +195,6 @@
         if (noHero) return;
         resetTour(this.currentHeroId);
         await this.showToast("The tour will play next time your portal opens.");
-      },
-
-      /** Restore replaces everyone's data, so a hero who taps it is told to ask a Game Master */
-      async showGmOnlyToast() {
-        await this.showToast(RESTORE_GM_ONLY_MESSAGE);
-      },
-
-      async showAlert(
-        header: string,
-        message: string,
-        buttons: AlertButton[] = ["OK"]
-      ) {
-        const alert = await alertController.create({ header, message, buttons, cssClass: RPG_ALERT });
-        await alert.present();
-      },
-
-      /** Keeps the two backup actions from overlapping and shows a spinner while one runs */
-      async withLoading<T>(message: string, task: () => Promise<T>): Promise<T> {
-        this.isBackupBusy = true;
-        let loading: Awaited<ReturnType<typeof loadingController.create>> | undefined;
-        try {
-          loading = await loadingController.create({ message });
-          await loading.present();
-          return await task();
-        } finally {
-          this.isBackupBusy = false;
-          await loading?.dismiss();
-        }
       },
 
       async confirmBackup() {
@@ -289,115 +244,10 @@
           await this.showToast(`Backup failed: ${errorMessage(error)}`, 6000);
         }
       },
-
-      /** Pick the file first: a bad file is turned away before anyone is asked to confirm a restore */
-      chooseRestoreFile() {
-        if (!canManageFamily()) {
-          this.showGmOnlyToast();
-          return;
-        }
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "application/json,.json";
-        input.addEventListener("change", () => {
-          const file = input.files?.[0];
-          if (file) this.checkRestoreFile(file);
-        });
-        input.click();
-      },
-
-      async checkRestoreFile(file: File) {
-        let backup: BackupFile;
-        try {
-          backup = backupService.parseBackup(await readFileAsText(file));
-        } catch (error) {
-          await this.showAlert(
-            "That is not a usable backup",
-            error instanceof BackupFormatError
-              ? `${error.message} Nothing was changed.`
-              : `The file could not be read: ${errorMessage(error)} Nothing was changed.`
-          );
-          return;
-        }
-        await this.confirmRestore(backup, backupService.summarizeBackup(backup));
-      },
-
-      async confirmRestore(backup: BackupFile, summary: BackupSummary) {
-        const alert = await alertController.create({
-          header: "Replace everything?",
-          subHeader: `Backup made ${formatBackupDate(summary.exportedAt)}`,
-          cssClass: [RPG_ALERT, "rpg-alert--danger"],
-          message: dialogMessage({
-            lead: `These ${summary.total} entries replace what is here now:`,
-            groups: [
-              {
-                tone: "info",
-                lines: summary.stores.map(({ label, count }) => `${label}: ${count}`),
-              },
-            ],
-            note: "Anything not listed stays. This can't be undone.",
-          }),
-          buttons: [
-            { text: "Cancel", role: "cancel" },
-            {
-              text: "Replace everything",
-              role: "destructive",
-              handler: () => {
-                this.runRestore(backup);
-              },
-            },
-          ],
-        });
-        await alert.present();
-      },
-
-      async runRestore(backup: BackupFile) {
-        try {
-          const result = await this.withLoading("Restoring your data...", () =>
-            backupService.restoreBackup(backup)
-          );
-          await this.showRestoreDone(result);
-        } catch (error) {
-          await this.showAlert("Restore failed", errorMessage(error));
-        }
-      },
-
-      /** Caches and open screens still hold the old data, so the only button reloads the app */
-      async showRestoreDone(result: RestoreResult) {
-        const lead = `Restored ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`;
-        const warnings = [
-          ...(result.ignored.length
-            ? [`Skipped (not in this app version): ${result.ignored.join(", ")}`]
-            : []),
-          ...(result.usersReloaded ? [] : ["The profile list could not be refreshed"]),
-        ];
-
-        const alert = await alertController.create({
-          header: "Restore complete",
-          cssClass: RPG_ALERT,
-          message: dialogMessage({
-            lead,
-            groups: [
-              { title: "Left as they were", tone: "keep", lines: result.untouched },
-              { tone: "warn", lines: warnings },
-            ],
-            note: "Reload so every screen shows the new data.",
-          }),
-          backdropDismiss: false,
-          buttons: [
-            {
-              text: "Reload app",
-              handler: () => {
-                window.location.reload();
-              },
-            },
-          ],
-        });
-        await alert.present();
-      },
     },
     setup() {
-      const isBackupBusy = ref(false); // A backup or restore is running
+      // A backup or restore is running; the restore flow is shared with the empty File Select screen
+      const { isBackupBusy, withLoading, chooseRestoreFile } = useBackupRestore();
       const userStore = useUserStore();
       const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
       // When the last backup was made, and how to say so under "Back up everything"
@@ -423,6 +273,8 @@
       const rules = useGameRulesStore();
       void rules.load();
       const canManage = computed(() => canManageFamily(userStore));
+      // Restore is for a Game Master, or for anybody while the device has no profile yet
+      const canRestore = computed(() => canRestoreHere(userStore));
 
       return {
         isBackupBusy,
@@ -439,7 +291,9 @@
         rules,
         canManage,
         comingSoon: GENERAL_COMING_SOON,
-        canRestore: () => canManageFamily(),
+        canRestore,
+        chooseRestoreFile,
+        withLoading,
         cloudDownloadOutline,
         cloudUploadOutline,
       };
