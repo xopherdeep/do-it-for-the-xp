@@ -2,7 +2,7 @@
   <ion-page :class="rootClass" :style="rootStyle">
     <ion-header>
       <ion-toolbar>
-        <xp-app-header title="Kitchen" icon="utensils-alt" :meta="foodsMeta">
+        <xp-app-header title="Kitchen" icon="utensils-alt">
           <template #start>
             <xp-back-button />
           </template>
@@ -11,28 +11,8 @@
     </ion-header>
 
     <ion-content class="my-foods">
-      <!-- The pantry as grouped list rows, one section per kind of food -->
-      <xp-app-section v-for="section in foodSections" :key="section.id" :label="section.label">
-        <xp-app-row
-          v-for="food in section.foods"
-          :key="food.id"
-          :title="food.name"
-          :subtitle="food.description"
-          :icon="foodIcon(food)"
-          :chevron="false"
-        >
-          <template #chips>
-            <xp-app-chip kind="tag" :value="categoryLabel(food.category)" />
-          </template>
-          <!-- The hero's favourite food from their profile wears the star -->
-          <template #trailing>
-            <i v-if="isFavorite(food)" class="fad fa-star food-star" title="Your favorite" />
-          </template>
-        </xp-app-row>
-      </xp-app-section>
-
-      <!-- Message if no foods match filters -->
-      <xp-app-empty v-if="!filteredFoods.length" icon="utensils-alt" :text="emptyText" />
+      <!-- Nothing to cook from yet: the game's Coming soon card says so in the kitchen's words -->
+      <xp-coming-soon-card title="On the menu" :items="comingSoonItems" />
 
       <!-- FAB button (the same one the town's buildings use) to open the kitchen actions -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
@@ -43,19 +23,6 @@
     </ion-content>
 
     <ion-footer class="foods-footer">
-      <div class="xp-app-bar">
-        <label class="xp-app-search">
-          <i class="fad fa-search" aria-hidden="true"></i>
-          <input
-            v-model="searchTerm"
-            type="search"
-            placeholder="Search Foods..."
-            aria-label="Search foods"
-            autocomplete="off"
-            enterkeyhint="search"
-          />
-        </label>
-      </div>
       <xp-app-bottom-nav
         :tabs="foodTabs"
         v-model="selectedCategory"

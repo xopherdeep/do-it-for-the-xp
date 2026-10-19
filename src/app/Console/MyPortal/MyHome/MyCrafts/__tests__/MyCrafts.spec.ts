@@ -2,16 +2,11 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import MyCrafts from "../MyCrafts.vue";
 import XpAppHeader from "@/components/organisms/XpApp/XpAppHeader.vue";
-import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
-import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
-import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
-import XpAppEmpty from "@/components/organisms/XpApp/XpAppEmpty.vue";
-import { useGameStore } from "@/lib/store/stores/game";
 
 /**
- * The Workbench app on the phone apps kit: the items are list rows (decoded title, excerpt as subtitle, picture as the
- * leading tile), the search field sits above the dock, the dock keeps its five tabs, and the options menu still opens
- * the Materials Inventory.
+ * The Workbench app on the phone apps kit. It read a WordPress feed that no longer answers, so the room shows the
+ * game's Coming soon card instead (GitHub issue 140). The dock keeps its five tabs and the options menu still opens
+ * the Materials Inventory and Storage.
  */
 
 jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn() }));
@@ -29,25 +24,10 @@ const stubs = {
   IonFab: pass,
   IonFabButton: { template: "<button class='fab-stub'><slot /></button>" },
   IonActionSheet: { props: ["isOpen", "header", "buttons"], template: "<div class='action-sheet-stub' />" },
-  XpLoading: { template: "<div class='loading-stub' />" },
   XpBackButton: { template: "<button class='back-stub' />" },
   XpAppBottomNav: { props: ["tabs", "modelValue"], template: "<nav class='dock-stub' />" },
 };
-const components = { XpAppHeader, XpAppSection, XpAppRow, XpAppChip, XpAppEmpty };
-
-const PARAMS = { page: 1, search: "", per_page: 4, order: "asc", orderby: "slug" };
-
-const seed = (items: any[]) => {
-  const game = useGameStore();
-  items.forEach((item) => game.addEntity("xp_accessory", item));
-  game.addEntity("media", { id: 9, source_url: "http://img/sword.png", alt_text: "sword" });
-  game.addRequest("xp_accessory", {
-    params: { ...PARAMS },
-    ids: items.map((i) => i.id),
-    total: String(items.length),
-    total_pages: "1",
-  });
-};
+const components = { XpAppHeader };
 
 const mountPage = () => mount(MyCrafts, { props: { userId: "hero-1" }, global: { stubs, components } });
 
@@ -58,48 +38,39 @@ beforeEach(() => {
 });
 
 describe("MyCrafts on the XpApp kit", () => {
-  it("lists the items as rows with the workbench accent and the skin class on the page root", () => {
-    seed([
-      {
-        id: 1,
-        title: { rendered: "Wooden Sword &amp; Shield" },
-        excerpt: { rendered: "<p>A sturdy start.</p>" },
-        featured_media: 9,
-      },
-      { id: 2, title: { rendered: "Rope" } },
-    ]);
-
+  it("shows the Coming soon card in the workbench's own words, with the workbench accent and skin on the page root", () => {
     const wrapper = mountPage();
 
     const root = wrapper.find(".ion-page");
     expect(root.classes()).toEqual(expect.arrayContaining(["xp-app", "xp-app--modern", "my-crafts"]));
     expect(root.attributes("style")).toContain("--xp-app-accent: #e08a2e");
 
-    const rows = wrapper.findAll(".xp-app-row");
-    expect(rows).toHaveLength(2);
-    expect(rows[0].find(".xp-app-row__title").text()).toBe("Wooden Sword & Shield");
-    expect(rows[0].find(".xp-app-row__subtitle").text()).toBe("A sturdy start.");
-    expect(rows[0].find("img").attributes("src")).toBe("http://img/sword.png");
-    expect(rows[1].find(".xp-app-row__subtitle").exists()).toBe(false);
-    expect(wrapper.find(".xp-app-header__meta").text()).toBe("2 items");
+    expect(wrapper.find('[data-cy="coming-soon"]').exists()).toBe(true);
+    expect(wrapper.find(".xp-coming-soon__badge").text()).toBe("Coming soon");
+    expect(wrapper.findAll(".xp-coming-soon__item h2").map((title) => title.text())).toEqual([
+      "Crafting",
+      "Repairs",
+    ]);
+    expect(wrapper.find(".xp-app-header__title").text()).toBe("Workbench");
   });
 
-  it("shows the empty state, and a search-aware line once the hero types", async () => {
+  it("no longer reads the dead feed: no bare-bench line, no rows, no loader, no count in the header", () => {
     const wrapper = mountPage();
 
+    expect((wrapper.vm as any).request).toBeUndefined();
+    expect((wrapper.vm as any).listItems).toBeUndefined();
     expect(wrapper.find(".xp-app-row").exists()).toBe(false);
-    expect(wrapper.find(".xp-app-empty__text").text()).toContain("workbench is bare");
-
-    await wrapper.find(".xp-app-search input").setValue("anvil");
-
-    expect(wrapper.find(".xp-app-empty__text").text()).toContain("matches that search");
+    expect(wrapper.find(".xp-app-empty").exists()).toBe(false);
+    expect(wrapper.find(".loading-stub").exists()).toBe(false);
+    expect(wrapper.find(".xp-app-header__meta").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("workbench is bare");
   });
 
-  it("keeps the search above the dock, the dock tabs, and no pager", () => {
+  it("keeps the dock's five tabs, with no search strip and no pager", () => {
     const wrapper = mountPage();
 
     const footer = wrapper.find(".crafts-footer");
-    expect(footer.find(".xp-app-bar .xp-app-search input").exists()).toBe(true);
+    expect(footer.find(".xp-app-search").exists()).toBe(false);
     const dock = wrapper.findComponent(stubs.XpAppBottomNav);
     expect((dock.props("tabs") as any[]).map((t) => t.label)).toEqual([
       "All",
@@ -112,15 +83,15 @@ describe("MyCrafts on the XpApp kit", () => {
     expect(wrapper.text()).not.toMatch(/page \d+ of/i);
   });
 
-  it("switches the filter from the dock and resets the page", async () => {
+  it("moves the dock's highlight when a tab is picked", async () => {
     const wrapper = mountPage();
     const dock = wrapper.findComponent(stubs.XpAppBottomNav);
+    expect(dock.props("modelValue")).toBe("all");
 
-    dock.vm.$emit("change", "mp");
+    dock.vm.$emit("update:modelValue", "mp");
     await wrapper.vm.$nextTick();
 
-    expect((wrapper.vm as any).request.params.filter).toBe("mp");
-    expect((wrapper.vm as any).request.params.page).toBe(1);
+    expect(dock.props("modelValue")).toBe("mp");
   });
 
   it("opens the options sheet from the FAB, with no header menu button, and every option goes somewhere", async () => {

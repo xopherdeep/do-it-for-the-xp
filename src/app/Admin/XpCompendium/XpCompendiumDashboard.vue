@@ -377,7 +377,7 @@ export default defineComponent({
     };
 
     const getStarted = () => {
-      router.push({ name: "xp-main" });
+      router.push({ name: "xp-compendium-dashboard" });
     };
 
     const goToSlide = (index: number) => {

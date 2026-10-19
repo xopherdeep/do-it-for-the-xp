@@ -3,16 +3,12 @@ import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, nextTick } from "vue";
 import MyFoods from "../MyFoods.vue";
 import XpAppHeader from "@/components/organisms/XpApp/XpAppHeader.vue";
-import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
-import XpAppRow from "@/components/organisms/XpApp/XpAppRow.vue";
-import XpAppChip from "@/components/organisms/XpApp/XpAppChip.vue";
-import XpAppEmpty from "@/components/organisms/XpApp/XpAppEmpty.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 
 /**
- * The Kitchen as a phone app on the XpApp kit: foods as grouped list rows with a sprite and a favourites star, the
- * search field in the strip above the dock, and the empty line. The skin comes from the real game store.
+ * The Kitchen as a phone app on the XpApp kit. Its food list was mock data, so the room shows the game's Coming soon
+ * card instead (GitHub issue 140). The app's own dock and the FAB with its two real options stay.
  */
 
 jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn() }));
@@ -35,17 +31,10 @@ const mountKitchen = (userId = "hero-1"): VueWrapper<any> =>
       mocks: { $router: { push: routerPush } },
       components: {
         "xp-app-header": XpAppHeader,
-        "xp-app-section": XpAppSection,
-        "xp-app-row": XpAppRow,
-        "xp-app-chip": XpAppChip,
-        "xp-app-empty": XpAppEmpty,
         "xp-back-button": BackButtonStub,
       },
     },
   });
-
-const rowTitles = (wrapper: VueWrapper<any>): string[] =>
-  wrapper.findAll(".xp-app-row__title").map((title) => title.text());
 
 beforeEach(() => {
   localStorage.clear();
@@ -69,27 +58,26 @@ const openSheet = async (wrapper: VueWrapper<any>) => {
 };
 
 describe("MyFoods", () => {
-  it("lists the foods as kit rows under their kind of food, with no cards", () => {
+  it("shows the Coming soon card in the kitchen's own words, in place of a food list", () => {
     const wrapper = mountKitchen();
 
-    expect(wrapper.findAll(".xp-app-section__label").map((label) => label.text())).toEqual([
-      "Meals",
-      "Snacks",
-      "Desserts",
+    expect(wrapper.find('[data-cy="coming-soon"]').exists()).toBe(true);
+    expect(wrapper.find(".xp-coming-soon__badge").text()).toBe("Coming soon");
+    expect(wrapper.findAll(".xp-coming-soon__item h2").map((title) => title.text())).toEqual([
+      "Recipe book",
+      "Pantry shelf",
     ]);
-    expect(rowTitles(wrapper)).toEqual(["Pizza", "Burger", "Salad", "Pasta", "Apple", "Cookies", "Ice Cream"]);
-    expect(wrapper.find("ion-card").exists()).toBe(false);
     expect(wrapper.find(".xp-app-header__title").text()).toBe("Kitchen");
-    expect(wrapper.find(".xp-app-header__meta").text()).toBe("7 items");
   });
 
-  it("gives every row a sprite tile and a kind tag", () => {
+  it("has no mock foods, no food rows, no count in the header and no search strip", () => {
     const wrapper = mountKitchen();
-    const pizza = wrapper.findAll(".xp-app-row")[0];
 
-    expect(pizza.find(".xp-app-row__tile .fa-pizza-slice").exists()).toBe(true);
-    expect(pizza.find(".xp-app-chip").text()).toBe("Meal");
-    expect(pizza.find(".xp-app-row__subtitle").text()).toBe("Cheesy and delicious");
+    expect(wrapper.vm.mockFoods).toBeUndefined();
+    expect(wrapper.find(".xp-app-row").exists()).toBe(false);
+    expect(wrapper.find(".xp-app-header__meta").exists()).toBe(false);
+    expect(wrapper.find(".xp-app-search").exists()).toBe(false);
+    expect(wrapper.text()).not.toMatch(/Pizza|Burger|Ice Cream|Cookies/);
   });
 
   it("takes the skin and the kitchen accent from the profile toggle", async () => {
@@ -103,53 +91,17 @@ describe("MyFoods", () => {
     expect(wrapper.classes()).toContain("xp-app--retro");
   });
 
-  it("narrows the list as the hero types in the search field above the dock", async () => {
+  it("keeps the dock's six tabs as they were", () => {
     const wrapper = mountKitchen();
 
-    await wrapper.find(".xp-app-search input").setValue("pizza");
-
-    expect(rowTitles(wrapper)).toEqual(["Pizza"]);
-  });
-
-  it("filters by the dock's category tab", async () => {
-    const wrapper = mountKitchen();
-
-    wrapper.vm.selectedCategory = "dessert";
-    await nextTick();
-
-    expect(rowTitles(wrapper)).toEqual(["Ice Cream"]);
-    expect(wrapper.find(".xp-app-header__meta").text()).toBe("1 item");
-  });
-
-  it("tells a hero without a favourite food to set one in the profile", async () => {
-    const wrapper = mountKitchen();
-
-    wrapper.vm.selectedCategory = "favorites";
-    await nextTick();
-
-    expect(wrapper.find(".xp-app-row").exists()).toBe(false);
-    expect(wrapper.find(".xp-app-empty__text").text()).toBe("You haven't set a favorite food in your profile!");
-  });
-
-  it("stars the favourite food of the hero's profile and shows only it under Favorites", async () => {
-    (useUserStore().users as Record<string, any>)["hero-1"] = { id: "hero-1", favoriteFood: "pizza" };
-    const wrapper = mountKitchen("hero-1");
-
-    expect(wrapper.findAll(".food-star")).toHaveLength(1);
-    expect(wrapper.findAll(".xp-app-row")[0].find(".food-star").exists()).toBe(true);
-
-    wrapper.vm.selectedCategory = "favorites";
-    await nextTick();
-
-    expect(rowTitles(wrapper)).toEqual(["Pizza"]);
-  });
-
-  it("shows the empty line when the search matches nothing", async () => {
-    const wrapper = mountKitchen();
-
-    await wrapper.find(".xp-app-search input").setValue("zzz");
-
-    expect(wrapper.find(".xp-app-empty__text").text()).toBe("No food items found matching your criteria.");
+    expect(wrapper.vm.foodTabs.map((tab: { label: string }) => tab.label)).toEqual([
+      "All",
+      "Favorites",
+      "Meals",
+      "Snacks",
+      "Desserts",
+      "Pantry",
+    ]);
   });
 
   it("opens the kitchen actions from the FAB and has no second button for them in the app bar", async () => {

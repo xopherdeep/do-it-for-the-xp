@@ -112,7 +112,7 @@
     templeStorage,
   } from "@/lib/databases/TempleDb";
   import debug from "@/lib/utils/debug";
-  import { actionSheetController, onIonViewWillEnter, toastController } from "@ionic/vue";
+  import { actionSheetController, onIonViewWillEnter } from "@ionic/vue";
 
   import { createOutline, cloudDownloadOutline, diceOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -123,6 +123,7 @@
   import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
   import { play$fx } from "@/assets/fx";
   import { useProStore } from "@/lib/store/stores/pro";
+  import { importPackFile, usePackLibrary } from "@/hooks/usePackLibrary";
 
   /** The parts of a temple its card label reads */
   interface TempleLabelSource {
@@ -350,17 +351,12 @@
         });
       };
 
-      // Importing a temple is not built yet: say so instead of closing the sheet in silence
-      const sayImportIsComingSoon = async () => {
-        play$fx("no");
-        const toast = await toastController.create({
-          message: "Importing a temple is coming soon.",
-          duration: 2400,
-          position: "middle",
-          buttons: [{ text: "Close", role: "cancel" }],
-          cssClass: "rpg-toast",
-        });
-        await toast.present();
+      // Import opens the pack import flow Settings > Packs uses (a file from the Town Hall or another family).
+      // The packs already added are read first, so the file's pack is saved beside them and not over them.
+      const packShelf = usePackLibrary();
+      const importTemple = async () => {
+        await packShelf.refreshPacks();
+        await importPackFile(packShelf);
       };
 
       const presentActionSheet = async () => {
@@ -390,11 +386,11 @@
               },
             },
             {
-              text: "Import Temple (Coming soon)",
+              text: "Import a pack",
               icon: cloudDownloadOutline,
               cssClass: "action-import",
               handler: () => {
-                void sayImportIsComingSoon();
+                void importTemple();
               },
             },
             {
