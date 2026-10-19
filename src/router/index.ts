@@ -111,6 +111,17 @@ const routes: Array<RouteRecordRaw> = [
     meta: { faIcon: "dungeon", battleKind: "free" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
   },
+
+  // Catch-all: an address nothing lives at shows a lost-traveller page instead of a blank screen. Keep it last.
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: () => import("@/views/XpNotFound/XpNotFound.vue"),
+    meta: {
+      requiresAuth: false,
+      title: "Lost in the Wilds",
+    },
+  },
 ];
 
 // Create and export router factory function

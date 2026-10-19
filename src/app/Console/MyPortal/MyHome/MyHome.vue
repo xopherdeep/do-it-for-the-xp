@@ -46,6 +46,8 @@
           <ion-card-header> </ion-card-header>
         </ion-card>
       </ion-modal>
+      <!-- The bed's question: the game's own prompt, not a native alert -->
+      <xp-reveal-prompt :prompt="prompt" @respond="reveal.submitAnswer" />
       <!-- Save & Quit Modal -->
       <save-and-quit-modal :is-open="showSaveQuitModal" :user-avatar="userAvatar" @close="closeSaveQuitModal"
         @confirm="confirmSaveQuit" />

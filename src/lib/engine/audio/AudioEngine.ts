@@ -4,6 +4,7 @@ import { getCurrentInstance, reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 import { MediaSessionHandler } from './mediaControls';
 import { fallbackFor, streamUrl } from './remoteBgm';
+import { installPlayGuard } from './playGuard';
 import { play$fx } from "@/assets/fx"
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
@@ -156,6 +157,9 @@ export class AudioEngine {
     const isInitialized = this.initialized;
     if (isInitialized) return;
     this.initialized = true;
+
+    // A refused or interrupted play() is noted, not left as an unhandled rejection (and a dev error overlay)
+    installPlayGuard();
 
     // Attempt to create AudioContext immediately
     try {

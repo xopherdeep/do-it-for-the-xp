@@ -11,7 +11,7 @@ import type { CopyCatalog } from "@/lib/services/copy/voices";
 import { bankReceipt, bankRefusal, storageQuestion, storageReceipt, storageRefusal } from "@/lib/services/gp/bankTeller";
 import { amountAsk, atmMenuPrompt, savingsMenuPrompt } from "@/lib/services/gp/bankPrompts";
 import { withdrawFromSavings, depositToSavings, payDownBills } from "@/lib/services/gp/wallet";
-import { benchReceiptLine, benchRefusalLine, careConfirmPrompt, careReceiptLine, careRefusalLine, clerkMenuPrompt, comingSoonPrompt, nothingOnTheBoard, roomConfirmPrompt, roomReceiptLine, roomRefusalLine } from "@/lib/services/hometown/hometownPrompts";
+import { benchReceiptLine, benchRefusalLine, careConfirmPrompt, careReceiptLine, careRefusalLine, clerkMenuPrompt, nothingOnTheBoard, roomConfirmPrompt, roomReceiptLine, roomRefusalLine } from "@/lib/services/hometown/hometownPrompts";
 import { draftProblem, stepGuide, wizardSteps } from "@/lib/services/quests/questWizard";
 import { purchaseFailure, purchaseReceipt, walletReceipt, walletRefusal } from "@/lib/services/shop/shopPrompts";
 import { cardActions, dueClock, hintLine, stateNote, stateWord, tamedLine } from "@/app/Console/MyPortal/UserHud/MyQuests/beastCard";
@@ -172,7 +172,6 @@ describe("the shops, the hospital, the hotel and the Town Hall in three voices",
     expect(roomReceiptLine(30, { now: 40, max: 40 }, null, "classic")).toBe("Morning. ₲30 paid. HP 40/40");
     expect(nothingOnTheBoard("classic")).toBe("The board is empty.");
     expect(clerkMenuPrompt(false, "simple").lines).toEqual(["Hi! What goes on the board?"]);
-    expect(comingSoonPrompt("Bug reports", "classic").lines).toEqual(["Bug reports: not yet available."]);
   });
 });
 

@@ -11,7 +11,6 @@ import {
   careRefusalLine,
   clerkMenuChoices,
   clerkMenuPrompt,
-  comingSoonPrompt,
   conciergeMenuChoices,
   conciergeMenuPrompt,
   conciergeNotice,
@@ -183,14 +182,8 @@ describe("the Town Hall clerk", () => {
     expect(accentOf(prompt.accent)).toBe(BUILDING_ACCENTS.townHall);
   });
 
-  it("names each errand the way the board does, and says it is coming soon", () => {
+  it("names each errand the way the board does", () => {
     expect(CLERK_ERRANDS).toEqual({ board: "Posting on the Board", bug: "Bug reports", registration: "Family registration" });
-    expect(comingSoonPrompt("Bug reports")).toMatchObject({
-      speaker: CLERK,
-      accent: "townHall",
-      lines: ["*shuffles papers* Bug reports: coming soon, friend."],
-      cancelId: "ok",
-    });
   });
 
   it("says the courier is late and offers to try again, or never mind", () => {

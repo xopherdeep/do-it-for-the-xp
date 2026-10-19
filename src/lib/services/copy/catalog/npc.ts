@@ -419,15 +419,17 @@ export const npc = {
     classic: "The board is empty.",
   },
 
+  // ---- My Home: the bed -----------------------------------------------------------------------------------------
+  "home.bed.confirm": {
+    simple: "Sleep in your bed? You heal fully. Once a day.",
+    adventure: "Sleep in your cozy bed to restore all HP and MP? Once a day.",
+    classic: "Bed: free. Full restoration. Once per day. Rest?",
+  },
+
   // ---- Town Hall: the clerk -------------------------------------------------------------------------------------
   "clerk.welcome": {
     simple: "Hi! What goes on the board?",
     adventure: "Welcome to the Town Hall! What would you like to put on the board?",
     classic: "Town Hall. What would you like to post?",
-  },
-  "clerk.soon": {
-    simple: "{what}: coming soon!",
-    adventure: "*shuffles papers* {what}: coming soon, friend.",
-    classic: "{what}: not yet available.",
   },
 } satisfies CopyCatalog;

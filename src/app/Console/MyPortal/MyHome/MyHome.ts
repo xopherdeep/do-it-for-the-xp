@@ -4,11 +4,16 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useUserActions } from "@/hooks/useUserActions";
+import { useVoice } from "@/hooks/useVoice";
+import { play$fx } from "@/assets/fx";
 import ionic from "@/lib/mixins/ionic";
-import { alertController, modalController, toastController } from "@ionic/vue";
+import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
 import { quoteBedRest } from "@/lib/services/hometown/Lodging";
+import { bedRestConfirmPrompt } from "@/lib/services/hometown/bedRestPrompt";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -16,6 +21,7 @@ export default defineComponent({
   name: "my-home",
   components: {
     SaveAndQuitModal,
+    XpRevealPrompt,
   },
   mixins: [ionic],
   data() {
@@ -72,6 +78,9 @@ export default defineComponent({
     const userId = computed(() => String(route.params.userId));
     const user = computed(() => userStore.getUserById(userId.value));
     const showSaveQuitModal = ref(false);
+    // The bed asks in the game's own dialog, in the hero's voice
+    const reveal = useRevealPrompt();
+    const { voice: words } = useVoice();
 
     const closeModal = () => modalController.dismiss()
     const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
@@ -113,51 +122,34 @@ export default defineComponent({
         return;
       }
 
-      const alert = await alertController.create({
-        header: "Rest in Bed",
-        message: "Sleep in your cozy bed to restore all HP and MP? Once a day.",
-        buttons: [
-          {
-            text: "Not now",
-            role: "cancel",
-            cssClass: "alert-cancel",
-          },
-          {
-            text: "Rest",
-            role: "confirm",
-            cssClass: "alert-confirm",
-            handler: async () => {
-              const hasHpGain = quote.hpGain > 0;
-              if (hasHpGain) {
-                userStore.updateUserHP({ userId: userId.value, amount: quote.hpGain });
-              }
-              const hasMpGain = quote.mpGain > 0;
-              if (hasMpGain) {
-                userStore.updateUserMP({ userId: userId.value, amount: quote.mpGain });
-              }
-              userStore.setBedRestAt(userId.value, new Date().toISOString());
-              const canPlayFx = typeof (window as any).play$fx === "function";
-              if (canPlayFx) {
+      const pick = await reveal.showPrompt(bedRestConfirmPrompt(words.value));
+      const isRestChosen = pick === "yes";
+      if (!isRestChosen) return;
 
-                (window as any).play$fx("restoreAll");
-              }
-              const toast = await toastController.create({
-                message: "You rested comfortably. Full HP & MP restored!",
-                duration: 2500,
-                position: "top",
-                cssClass: "rpg-toast",
-              });
-              await toast.present();
-            },
-          },
-        ],
+      const hasHpGain = quote.hpGain > 0;
+      if (hasHpGain) {
+        userStore.updateUserHP({ userId: userId.value, amount: quote.hpGain });
+      }
+      const hasMpGain = quote.mpGain > 0;
+      if (hasMpGain) {
+        userStore.updateUserMP({ userId: userId.value, amount: quote.mpGain });
+      }
+      userStore.setBedRestAt(userId.value, new Date().toISOString());
+      play$fx("restoreAll");
+      const toast = await toastController.create({
+        message: "You rested comfortably. Full HP & MP restored!",
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
       });
-      await alert.present();
+      await toast.present();
     };
 
     return {
       userAvatar,
       restInBed,
+      reveal,
+      prompt: reveal.prompt,
       closeModal,
       clickSave,
       user,
