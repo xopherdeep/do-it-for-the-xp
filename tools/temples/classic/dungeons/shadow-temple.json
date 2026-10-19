@@ -1,0 +1,618 @@
+{
+  "id": "shadow-temple",
+  "source": "LTTP Palace of Darkness",
+  "floors": [
+    {
+      "name": "B1",
+      "rows": 13,
+      "cols": 6,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "PoD Shooter Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "small-key",
+          "puzzle": true,
+          "stairs": {
+            "to": "1F",
+            "row": 6,
+            "col": 1
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "PoD Warp Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "1F",
+            "row": 6,
+            "col": 2
+          },
+          "teleport": {
+            "to": "1F",
+            "row": 6,
+            "col": 4
+          }
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "PoD Basement Ledge",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "1F",
+            "row": 4,
+            "col": 1
+          }
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "room": "PoD Stalfos Basement",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2,
+          "chest": "small-key",
+          "puzzle": true,
+          "teleport": {
+            "to": "B1",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "room": "PoD Lonely Turtle",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "shutter": true
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "room": "PoD Dark Pegs Right",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 2,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 3
+          },
+          "teleport": {
+            "to": "B1",
+            "row": 12,
+            "col": 3
+          }
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "PoD Basement Ledge",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "room": "PoD Turtle Party",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 6,
+          "shutter": true
+        },
+        {
+          "row": 11,
+          "col": 3,
+          "room": "PoD Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        },
+        {
+          "row": 12,
+          "col": 3,
+          "room": "PoD Dark Basement",
+          "sides": {
+            "north": "big-key",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 6,
+          "chest": "small-key",
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 8,
+      "cols": 5,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "PoD Dark Maze",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "small-key"
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "PoD Falling Bridge Mid",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "bomb"
+          },
+          "enemies": 1,
+          "chest": "big-chest"
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "PoD Compass Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "small-key",
+            "west": "open"
+          },
+          "enemies": 4,
+          "chest": "compass",
+          "stairs": {
+            "to": "B1",
+            "row": 12,
+            "col": 3
+          }
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "room": "PoD Bow Statue Left",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 0,
+            "col": 5
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "PoD Dark Maze",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "other"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "PoD Falling Bridge Mid",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "PoD Harmless Hellway",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "other",
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "PoD Mimics 2",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "PoD Arena Main",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "chest": "small-key"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "PoD Arena Main",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "room": "PoD Sexy Statue",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "PoD Arena Main",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "PoD Arena Main",
+          "sides": {
+            "north": "open",
+            "east": "bomb",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1,
+          "chest": "small-key",
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "room": "PoD Map Balcony",
+          "sides": {
+            "north": "open",
+            "east": "bomb",
+            "south": "open",
+            "west": "bomb"
+          },
+          "enemies": 3,
+          "chest": "map"
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "room": "PoD Fairy Pool",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "bomb"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "room": "PoD Pit Room",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-key",
+          "stairs": {
+            "to": "B1",
+            "row": 0,
+            "col": 2
+          },
+          "hole": {
+            "to": "B1",
+            "row": 0,
+            "col": 2
+          }
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "room": "PoD Pit Room Blocked",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 0,
+          "hole": {
+            "to": "B1",
+            "row": 0,
+            "col": 3
+          }
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "room": "PoD Conveyor",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "room": "PoD Pit Room",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "hole": {
+            "to": "B1",
+            "row": 0,
+            "col": 3
+          }
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "PoD Pit Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "PoD Conveyor",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "shutter": true
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "room": "PoD Middle Cage",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "room": "PoD Middle Cage",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "open"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "room": "PoD Mimics 1",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "bomb",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "room": "PoD Warp Hint",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "bomb",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "teleport": {
+            "to": "B1",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "room": "PoD Lobby",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "entrance": true
+        },
+        {
+          "row": 7,
+          "col": 2,
+          "room": "PoD Lobby",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 7,
+          "col": 3,
+          "room": "PoD Jelly Hall",
+          "sides": {
+            "north": "bomb",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "room": "PoD Jelly Hall",
+          "sides": {
+            "north": "bomb",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B1": 10,
+      "1F": 29
+    },
+    "mustClear": 1,
+    "side": 26,
+    "smallKeys": 6,
+    "smallLocks": 6
+  }
+}

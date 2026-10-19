@@ -1,0 +1,6 @@
+{
+  "note": "PoD Compass Room SE is slotted Mid in Doors.py while its partner PoD Harmless Hellway NE is slotted Right; RoomData gives the door Position.InteriorE (the east half), so the Compass Room end sits in the top-right screen of 0x1a.",
+  "doors": {
+    "PoD Compass Room SE": ["0x1a", 0, 1]
+  }
+}
