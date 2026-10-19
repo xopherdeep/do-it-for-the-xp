@@ -1,4 +1,4 @@
-import { BackupNotSavedError, saveBackupFile } from "@/lib/services/core/backupFile";
+import { BackupNotSavedError, saveBackupFile, savedFileLine, saveTextFile } from "@/lib/services/core/backupFile";
 
 const mockFs = {
   checkPermissions: jest.fn(),
@@ -111,5 +111,69 @@ describe("saveBackupFile in the phone app", () => {
     mockFs.writeFile.mockRejectedValue(new Error("disk full"));
     await expect(saveBackupFile(FILE, JSON_TEXT, "ios")).rejects.toThrow(/could not be written on this phone: disk full/);
     expect(mockShare).not.toHaveBeenCalled();
+  });
+});
+
+describe("saveTextFile, the path any text file takes (a pack file shares it with backups)", () => {
+  const PACK_FILE = "the-neighbours-pack.json";
+  const PACK_TEXT = '{"id":"pack-1"}';
+
+  it("web: downloads it, and says it went to Downloads", async () => {
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    try {
+      await expect(saveTextFile(PACK_FILE, PACK_TEXT, { label: "pack", platform: "web" })).resolves.toEqual({
+        fileName: PACK_FILE,
+        savedTo: "to Downloads",
+      });
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(mockFs.writeFile).not.toHaveBeenCalled();
+      expect(mockShare).not.toHaveBeenCalled();
+    } finally {
+      clickSpy.mockRestore();
+    }
+  });
+
+  it("Android: writes it into Documents like a backup, with no share sheet", async () => {
+    await expect(saveTextFile(PACK_FILE, PACK_TEXT, { label: "pack", platform: "android" })).resolves.toEqual({
+      fileName: PACK_FILE,
+      savedTo: "in Documents",
+    });
+    expect(mockFs.writeFile).toHaveBeenCalledWith({ path: PACK_FILE, data: PACK_TEXT, directory: "DOCUMENTS", encoding: "utf8", recursive: true });
+    expect(mockShare).not.toHaveBeenCalled();
+  });
+
+  it("iOS: shares it from the cache and names the pack on the sheet", async () => {
+    await expect(saveTextFile(PACK_FILE, PACK_TEXT, { label: "pack", platform: "ios" })).resolves.toEqual({
+      fileName: PACK_FILE,
+      savedTo: "through the share sheet",
+    });
+    expect(mockFs.writeFile).toHaveBeenCalledWith({ path: PACK_FILE, data: PACK_TEXT, directory: "CACHE", encoding: "utf8" });
+    expect(mockShare).toHaveBeenCalledWith({ title: PACK_FILE, files: ["file:///cache/backup.json"], dialogTitle: "Save your pack" });
+  });
+
+  it("calls the thing a pack, not a backup, when the sheet is closed or the disk is full", async () => {
+    mockShare.mockRejectedValue(new Error("Share canceled"));
+    const closed = await saveTextFile(PACK_FILE, PACK_TEXT, { label: "pack", platform: "ios" }).catch((e: unknown) => e);
+    expect(closed).toBeInstanceOf(BackupNotSavedError);
+    expect((closed as Error).message).toMatch(/so the pack was not saved/);
+    expect((closed as Error).message).not.toMatch(/backup/);
+
+    mockFs.writeFile.mockRejectedValue(new Error("disk full"));
+    await expect(saveTextFile(PACK_FILE, PACK_TEXT, { label: "pack", platform: "ios" })).rejects.toThrow(
+      /The pack file could not be written on this phone: disk full/
+    );
+  });
+
+  it("saveBackupFile keeps its own words", async () => {
+    mockShare.mockRejectedValue(new Error("Share canceled"));
+    await expect(saveBackupFile(FILE, JSON_TEXT, "ios")).rejects.toThrow(/so the backup was not saved/);
+  });
+});
+
+describe("savedFileLine, the sentence a success alert opens with", () => {
+  it("says where the file went on each platform", () => {
+    expect(savedFileLine({ fileName: "a.json", savedTo: "to Downloads" })).toBe("a.json was saved to Downloads.");
+    expect(savedFileLine({ fileName: "a.json", savedTo: "in Documents" })).toBe("a.json was saved in Documents.");
+    expect(savedFileLine({ fileName: "a.json", savedTo: "through the share sheet" })).toBe("a.json was saved through the share sheet.");
   });
 });

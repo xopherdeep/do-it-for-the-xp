@@ -4,7 +4,7 @@ import { Share } from "@capacitor/share";
 import debug from "@/lib/utils/debug";
 
 /**
- * Puts a finished backup file somewhere the family can get it back from.
+ * Puts a finished text file (a backup, a pack) somewhere the family can get it back from.
  *
  * Browser: an `<a download>` of a Blob. Phone app: a WebView has no download handler, so that link would do nothing
  * while the app reported success. There the file is written with Capacitor Filesystem instead: on Android straight
@@ -12,14 +12,21 @@ import debug from "@/lib/utils/debug";
  * to the share sheet so the person picks Files, Drive or mail. Closing that sheet saves nothing, and says so.
  */
 
-/** Where the backup ended up, in words for the toast */
+/** Where the file ended up, in words for the toast or alert */
 export interface SavedBackupFile {
   fileName: string;
-  /** Finishes "Backup <file> saved ...": "to Downloads", "in Documents" or "through the share sheet" */
+  /** Finishes "<file> saved ...": "to Downloads", "in Documents" or "through the share sheet" */
   savedTo: string;
 }
 
-/** The backup was made but could not be put anywhere. Nothing on the device changed. */
+/** What is being saved ("backup", "pack") and, for tests, the platform to save for */
+export interface SaveTextFileOptions {
+  /** One word for the file in messages: "backup" gives "Save your backup" and "The backup file could not be written" */
+  label: string;
+  platform?: string;
+}
+
+/** The file was made but could not be put anywhere (a backup or a pack). Nothing on the device changed. */
 export class BackupNotSavedError extends Error {
   constructor(message: string) {
     super(message);
@@ -66,40 +73,44 @@ const saveToAndroidDocuments = async (fileName: string, json: string): Promise<b
     await Filesystem.writeFile({ path: fileName, data: json, directory: Directory.Documents, encoding: Encoding.UTF8, recursive: true });
     return true;
   } catch (error) {
-    debug.warn("backup: could not write to Documents, using the share sheet", error);
+    debug.warn("saveTextFile: could not write to Documents, using the share sheet", error);
     return false;
   }
 };
 
 /** Writes the file to the app's cache and opens the share sheet on it. Throws BackupNotSavedError when nothing took it. */
-const shareFromCache = async (fileName: string, json: string): Promise<SavedBackupFile> => {
+const shareFromCache = async (fileName: string, json: string, label: string): Promise<SavedBackupFile> => {
   let uri: string;
   try {
     ({ uri } = await Filesystem.writeFile({ path: fileName, data: json, directory: Directory.Cache, encoding: Encoding.UTF8 }));
   } catch (error) {
-    throw new BackupNotSavedError(`The backup file could not be written on this phone: ${reasonOf(error)}`);
+    throw new BackupNotSavedError(`The ${label} file could not be written on this phone: ${reasonOf(error)}`);
   }
   try {
-    await Share.share({ title: fileName, files: [uri], dialogTitle: "Save your backup" });
+    await Share.share({ title: fileName, files: [uri], dialogTitle: `Save your ${label}` });
   } catch (error) {
     throw new BackupNotSavedError(
       isDismissal(error)
-        ? "The share sheet was closed, so the backup was not saved. Try again and pick Save to Files, Drive or mail."
+        ? `The share sheet was closed, so the ${label} was not saved. Try again and pick Save to Files, Drive or mail.`
         : `The share sheet could not open: ${reasonOf(error)}`
     );
   }
   return { fileName, savedTo: "through the share sheet" };
 };
 
-/** Saves the backup text as `fileName` the way this platform can. Throws BackupNotSavedError instead of pretending. */
-export const saveBackupFile = async (
-  fileName: string,
-  json: string,
-  platform: string = Capacitor.getPlatform()
-): Promise<SavedBackupFile> => {
+/** Saves the text as `fileName` the way this platform can. Throws BackupNotSavedError instead of pretending. */
+export const saveTextFile = async (fileName: string, text: string, options: SaveTextFileOptions): Promise<SavedBackupFile> => {
+  const { label, platform = Capacitor.getPlatform() } = options;
   const isWeb = platform === "web";
-  if (isWeb) return downloadInBrowser(fileName, json);
-  const isSavedInDocuments = platform === "android" && (await saveToAndroidDocuments(fileName, json));
+  if (isWeb) return downloadInBrowser(fileName, text);
+  const isSavedInDocuments = platform === "android" && (await saveToAndroidDocuments(fileName, text));
   if (isSavedInDocuments) return { fileName, savedTo: "in Documents" };
-  return shareFromCache(fileName, json);
+  return shareFromCache(fileName, text, label);
 };
+
+/** Saves the backup text as `fileName` the way this platform can. Throws BackupNotSavedError instead of pretending. */
+export const saveBackupFile = (fileName: string, json: string, platform: string = Capacitor.getPlatform()): Promise<SavedBackupFile> =>
+  saveTextFile(fileName, json, { label: "backup", platform });
+
+/** The line a success alert opens with: the file and where it went ("a.json was saved to Downloads.") */
+export const savedFileLine = (saved: SavedBackupFile): string => `${saved.fileName} was saved ${saved.savedTo}.`;
