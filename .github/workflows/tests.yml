@@ -88,6 +88,18 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
 
+      # The only gate that type-checks the <script> blocks of .vue files. `chemx typecheck` is plain tsc and skips them;
+      # the production build's fork-ts-checker types them (three TS2339 in GeneralSettings.vue reached master unseen).
+      # vue-tsc is not a dependency here, and none is added for this, so a PR runs the production build (`pnpm build`,
+      # which is `ionic build`) through chemx, which groups the diagnostics. COST: a full webpack build, a few minutes
+      # and about 2-5 GB, run last so lint, audit, typecheck and the related specs fail fast first. Swap this step for
+      # `npx vue-tsc --noEmit` if vue-tsc is ever added to devDependencies.
+      - name: Build
+        if: github.event_name == 'pull_request'
+        run: npx --yes "chemx@$CHEMX_VERSION" build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
   # Browser smoke test: boots the dev server and drives a few Cypress specs (390x844) against it.
   # NOT BLOCKING while it proves itself: `continue-on-error: true` keeps a flaky run from turning master red.
   # It runs on pushes to master and on manual dispatch only (a dev server plus Cypress costs several GB and minutes).

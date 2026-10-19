@@ -4,6 +4,7 @@ import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import type { SentBack } from "./sentBack";
 import { hideDrafts, isDraft, type DraftLike } from "./questDrafts";
+import { suggestedRewards } from "./sizeRewards";
 import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
@@ -66,8 +67,14 @@ export const STATUS_LABELS: Record<QuestListStatus, string> = {
 
 const STATUS_RANK: Record<QuestListStatus, number> = { overdue: 0, open: 1, later: 2, pending: 3, done: 4 };
 
-/** The rewards a quick task carries unless the hero types others (AchievementDb.getDefault's rates). */
-export const QUICK_TASK_REWARDS: QuestRewards = { xp: 200, gp: 20, ap: 2 };
+/** The size a quick task is posted at: Tiny, the same difficulty AchievementDb.getDefault starts a new quest on. */
+export const QUICK_TASK_DIFFICULTY = 1;
+
+/**
+ * The rewards a quick task carries unless the hero types others: the shared size table (sizeRewards.suggestedRewards)
+ * at its difficulty, so it pays what a quest of that size pays anywhere else.
+ */
+export const QUICK_TASK_REWARDS: QuestRewards = suggestedRewards(QUICK_TASK_DIFFICULTY);
 
 const toNumber = (value: unknown): number => {
   const parsed = Number(value);
@@ -332,7 +339,7 @@ export const newQuickTask = (input: QuickTaskInput, now: Date = new Date()): Ach
     endsOn: "",
     repeatOnDays: [],
     showDailyUntilComplete: false,
-    difficulty: 1,
+    difficulty: QUICK_TASK_DIFFICULTY,
     xp: toNumber(rewards.xp),
     gp: toNumber(rewards.gp),
     ap: toNumber(rewards.ap),

@@ -11,6 +11,7 @@ import {
   questListFor,
   QUICK_TASK_REWARDS,
 } from "@/lib/services/quests/QuestList";
+import { suggestedRewards } from "@/lib/services/quests/sizeRewards";
 
 // 2026-10-10 is a Saturday; the hero reads the list at noon.
 const NOON = new Date(2026, 9, 10, 12, 0, 0);
@@ -310,6 +311,14 @@ describe("newQuickTask", () => {
     expect(new Date(task.startsOn)).toEqual(new Date(2026, 9, 10, 0, 0));
   });
 
+  it("pays the shared size table for its own difficulty, not a rate of its own", () => {
+    const task = newQuickTask({ title: "Take out the bins", assigneeId: "hero-2" }, NOON);
+    const { xp, gp, ap } = suggestedRewards(task.difficulty);
+    expect({ xp: task.xp, gp: task.gp, ap: task.ap }).toEqual({ xp, gp, ap });
+    expect(QUICK_TASK_REWARDS).toEqual(suggestedRewards(task.difficulty));
+    expect(QUICK_TASK_REWARDS).toEqual({ xp: 60, gp: 15, ap: 1 });
+  });
+
   it("a task that asks for a photo needs approval, and a plain one carries no photo flag", () => {
     const photo = newQuickTask({ title: "Bed", assigneeId: "gm-1", requiresApproval: false, requiresPhoto: true }, NOON);
     expect(photo).toMatchObject({ requiresPhoto: true, requiresApproval: true });
@@ -328,7 +337,7 @@ describe("newQuickTask", () => {
     );
     expect(new Date(dated.startsOn)).toEqual(new Date(2026, 11, 24, 0, 0));
     expect(dated.dueByTime).toBe("09:30");
-    expect({ xp: dated.xp, gp: dated.gp, ap: dated.ap }).toEqual({ xp: 200, gp: 50, ap: 0 });
+    expect({ xp: dated.xp, gp: dated.gp, ap: dated.ap }).toEqual({ xp: QUICK_TASK_REWARDS.xp, gp: 50, ap: 0 });
   });
 
   it("drops an unreadable time and refuses a blank title, no assignee or a bad day", () => {
