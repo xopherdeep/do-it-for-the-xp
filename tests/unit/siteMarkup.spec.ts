@@ -30,4 +30,21 @@ describe("checkMarkup", () => {
       expect.stringMatching(/^invented number: /), "relative href: page", "img without alt: /i.jpg", "placeholder {{app}}" ]));
     expect(problems).toHaveLength(4);
   });
+  it("ignores tag names and attribute values", () => {
+    expect(checkMarkup('<h2>Achievements</h2>')).toEqual([]);
+  });
+  it("finds numbers in visible text within span tags", () => {
+    const problems = checkMarkup('<p>5000 <span class="x">users</span></p>');
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^invented number: /)
+    ]));
+    expect(problems).toHaveLength(1);
+  });
+  it("reports numbers with commas as a single invented number", () => {
+    const problems = checkMarkup('<p>Over 5,000 achievements</p>');
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/5,000/)
+    ]));
+    expect(problems).toHaveLength(1);
+  });
 });

@@ -46,15 +46,26 @@ export function checkMarkup(html: string): string[] {
     problems.push(`placeholder {{${ph}}}`);
   }
 
-  // Check for invented numbers (digit run followed within 3 words by users/achievements/tasks)
-  const numberRegex = /\d+/g;
+  // Strip script and style blocks, then tags, to get visible text only
+  const visibleText = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ');
+
+  // Find invented numbers: \d[\d,.]* followed within 3 words by users/achievements/tasks
+  const numberRegex = /\d[\d,.]*/g;
+  const reportedNumbers = new Set<string>();
   let numberMatch;
-  while ((numberMatch = numberRegex.exec(html)) !== null) {
-    const afterNumber = html.substring(numberMatch.index + numberMatch[0].length);
+  while ((numberMatch = numberRegex.exec(visibleText)) !== null) {
+    const number = numberMatch[0];
+    if (reportedNumbers.has(number)) continue;
+
+    const afterNumber = visibleText.substring(numberMatch.index + number.length);
     const words = afterNumber.match(/\b\w+\b/g) || [];
     const nextThreeWords = words.slice(0, 3).join(' ').toLowerCase();
     if (/\b(users|achievements|tasks)\b/.test(nextThreeWords)) {
-      problems.push(`invented number: "${numberMatch[0]}"`);
+      problems.push(`invented number: "${number}"`);
+      reportedNumbers.add(number);
     }
   }
 
