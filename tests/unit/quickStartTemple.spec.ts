@@ -271,9 +271,9 @@ describe("runQuickStartTemple", () => {
     const done = await runQuickStartTemple([KIA, MIA], f.deps, WED);
     expect(done.remembered).toEqual([KIA, MIA]);
     expect(f.effects[KIA]).toMatchObject({ snoozedOn: { q1: "2026-10-14" } });
-    expect(wasWokenFor(f.effects[KIA], "wind-temple")).toBe(true);
-    expect(wasWokenFor(f.effects[MIA], "wind-temple")).toBe(true);
-    expect(f.effects[MIA].templesWokenAt?.["wind-temple"]).toBe(WED.toISOString());
+    expect(wasWokenFor(f.effects[KIA], "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(f.effects[MIA], "wind-temple", "1F", "1F")).toBe(true);
+    expect(f.effects[MIA].templesWokenAt?.["wind-temple@1F"]).toBe(WED.toISOString());
     // Remembered last, after every quest is written
     expect(f.calls.lastIndexOf("saveQuest")).toBeLessThan(f.calls.indexOf("saveEffects"));
   });
