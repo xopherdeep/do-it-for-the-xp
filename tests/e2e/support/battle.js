@@ -23,8 +23,16 @@ const COMMAND_PILLS = `${MENU} .radial-cluster:not(.cluster-confirm) .battle-pil
 /** True once the page's command menu is up (the box has nothing left to say). */
 export const hasMenu = ($body) => $body.find(`${MENU} .battle-pill`).length > 0;
 
-/** Waits for the five-pill command menu: the intro and every auto line have read themselves out. */
-export const waitForMenu = (timeout = 30000) => cy.get(COMMAND_PILLS, { timeout }).should("have.length", 5);
+/**
+ * Waits for the five-pill command menu: the intro and every auto line have read themselves out. The menu can drop away
+ * again for one more line and come back as new buttons, so it must still be there after a short pause: a pill found
+ * in between would be gone by the time it is pressed.
+ */
+export const waitForMenu = (timeout = 30000) => {
+  cy.get(COMMAND_PILLS, { timeout }).should("have.length", 5);
+  cy.wait(400);
+  return cy.get(COMMAND_PILLS, { timeout }).should("have.length", 5);
+};
 
 /** Presses one command pill (see ACTION). */
 export const tapAction = (name) => cy.get(ACTION[name], { timeout: 10000 }).click();

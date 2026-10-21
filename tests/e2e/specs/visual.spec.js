@@ -21,6 +21,8 @@
 // because WebGL / 2D frames are not deterministic. Things that run on their own clocks (battle timers, a typed line,
 // a script-driven swing) are hidden or stilled per screen in `shot()`'s arguments.
 
+import { tapAction, waitForMenu, readUntilMenu } from "../support/battle";
+
 const GM_ID = "gm-1";
 const HERO_ID = "hero-1";
 const HERO2_ID = "hero-2";
@@ -208,16 +210,6 @@ const findInstance = (win, test) => {
   return walk(root.subTree);
 };
 
-/** Calls a method of the page component that owns the element (Ionic's own ion-page wrapper sits in between, so walk up). */
-const callPageMethod = (selector, method, ...args) =>
-  cy.get(selector, { timeout: 30000 }).then(($el) => {
-    let instance = $el[0].__vueParentComponent;
-    while (instance && !(instance.proxy && typeof instance.proxy[method] === "function")) instance = instance.parent;
-    expect(instance, `a component with ${method}() above ${selector}`).to.be.an("object");
-    // not returned: some of these (the bank's menu) only resolve when the sheet is dismissed
-    instance.proxy[method](...args);
-  });
-
 /** Sets a piece of state on the page component that owns the element (a segment's v-model, where a synthetic click would not reach). */
 const setPageData = (selector, key, value) =>
   cy.get(selector, { timeout: 30000 }).then(($el) => {
@@ -384,7 +376,8 @@ describe("Visual baseline: signing in", () => {
     seed(null);
     go("/xp-profile");
     cy.get(".profile-card-col", { timeout: 30000 }).should("have.length", 3);
-    tap(".view-toggle-btn");
+    // The list toggle is the round button at the bottom left of File Select
+    tap("ion-fab.fab-horizontal-start ion-fab-button");
     cy.get(".retro-view", { timeout: 10000 }).should("exist");
     shot("03-choose-profile-list");
   });
@@ -400,25 +393,16 @@ describe("Visual baseline: profiles", () => {
     shot("04-passcode-pad");
   });
 
-  screen("05 backup action sheet", () => {
-    seed(null);
-    go("/xp-profile");
-    cy.get(".profile-card-col", { timeout: 30000 }).should("have.length", 3);
-    cy.get(".ion-page:not(.ion-page-hidden) ion-buttons[slot=end] ion-button").last().click({ force: true });
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
-    shot("05-backup-action-sheet");
-  });
-
-  screen("06 restore alert", () => {
-    seed(null);
-    go("/xp-profile");
-    cy.get(".profile-card-col", { timeout: 30000 }).should("have.length", 3);
-    cy.get(".ion-page:not(.ion-page-hidden) ion-buttons[slot=end] ion-button").last().click({ force: true });
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
-    cy.wait(600);
-    cy.contains("ion-action-sheet button", "Restore From Backup").click({ force: true });
+  // 05 and 06 (the File Select's backup action sheet and the restore alert) are retired: since the Game Master gate was
+  // hardened, File Select with heroes on the device offers no backup or restore at all. Backing up lives in Settings >
+  // General (05 below, and 91), restoring starts a native file picker that a test cannot drive, and the one door left on
+  // File Select, "Restore a backup", only shows on an empty device.
+  screen("05 settings backup confirm", () => {
+    seed(GM_ID);
+    go("/xp-settings/general");
+    cy.contains("ion-item", "Back up everything", { timeout: 30000 }).click({ force: true });
     cy.get("ion-alert", { timeout: 20000 }).should("exist");
-    shot("06-restore-alert");
+    shot("05-settings-backup-confirm", 1200);
   });
 
   const openNewProfile = () => {
@@ -443,17 +427,19 @@ describe("Visual baseline: profiles", () => {
     shot("08-add-profile-faces", 1500);
   });
 
+  // The new-hero wizard asks one question at a time (name, look, style, class, food, secret): a tap-through would need a
+  // name and a face first, so these two set the step directly, the way 86 sets an approvals segment
   screen("09 add profile: pick a class", () => {
     openNewProfile();
-    cy.get("#class-trigger").click({ force: true });
-    cy.get("ion-modal.job-class-selector", { timeout: 20000 }).should("exist");
+    setPageData(".hero-wizard", "step", "class");
+    cy.get(".hero-wizard .choice-card", { timeout: 20000 }).should("have.length.greaterThan", 3);
     shot("09-add-profile-class");
   });
 
   screen("10 add profile: pick a food", () => {
     openNewProfile();
-    cy.get("#food-trigger").click({ force: true });
-    cy.get("ion-modal.food-selector-modal", { timeout: 20000 }).should("exist");
+    setPageData(".hero-wizard", "step", "food");
+    cy.get(".hero-wizard .choice-card", { timeout: 20000 }).should("have.length.greaterThan", 3);
     shot("10-add-profile-food");
   });
 
@@ -612,68 +598,78 @@ describe("Visual baseline: overlays on the hero's portal", () => {
   screen("47 quest card", () => {
     seed(HERO_ID);
     go(`/my-tasks/${HERO_ID}`);
-    cy.contains("ion-button, button", /view quest/i, { timeout: 30000 }).click({ force: true });
-    cy.get("ion-modal.show-modal", { timeout: 20000 }).should("exist");
+    // A tap on a Beast Log row opens its beast card
+    cy.get("#quest-socks", { timeout: 30000 }).then(($row) => $row[0].scrollIntoView({ block: "center" }));
+    cy.get("#quest-socks").click({ force: true });
+    cy.get("ion-modal.beast-card-modal .beast-plate__name", { timeout: 20000 }).should("exist");
     shot("47-quest-card", 1800);
   });
+
+  /**
+   * The clerks (shop, bank, hospital, hotel) talk in the game's own reveal prompt: a fab opens it, the lines type out, and
+   * the menu waits under the last one. `menuShot` skips to the menu (a tap on Skip) and takes the second picture.
+   */
+  const talkTo = (fabSelector) => {
+    tap(fabSelector);
+    cy.get("[data-cy=reveal-prompt]", { timeout: 20000 }).should("be.visible");
+  };
+  const showMenu = () => {
+    cy.get("body").then(($body) => {
+      if ($body.find("[data-cy=reveal-skip]").length) cy.get("[data-cy=reveal-skip]").click({ force: true });
+    });
+    cy.get("[data-cy=reveal-choices] .rp__choice", { timeout: 20000 }).first().should("not.be.disabled");
+  };
 
   screen("48 shop clerk menu", () => {
     seed(HERO_ID);
     go(`/shop/wrecked-ship/${HERO_ID}`);
     cy.get(".accessory-shop", { timeout: 30000 }).should("exist");
     cy.wait(800);
-    callPageMethod(".ion-page.accessory-shop", "clerkMenu");
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
+    talkTo(".clerk-fab");
+    showMenu();
     shot("48-shop-clerk-menu", 1200);
   });
 
   screen("49 bank dialog and menu", () => {
     seed(HERO_ID);
     go(`/bank/${HERO_ID}`);
-    tap("ion-fab-button");
-    cy.get(".banker-dialog-box", { timeout: 20000 }).should("be.visible");
+    talkTo("ion-fab-button");
     shot("49-bank-dialog", 4000);
-    callPageMethod(".ion-page.gold-bank", "presentActionSheet");
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
+    showMenu();
     shot("49-bank-menu", 1200);
   });
 
   screen("50 hospital dialog and menu", () => {
     seed(HERO_ID);
     go(`/hospital/${HERO_ID}`);
-    tap("ion-fab-button");
+    talkTo("ion-fab-button");
     shot("50-hospital-dialog", 4000);
-    callPageMethod(".ion-page.hospital-hub", "showActionSheet");
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
+    showMenu();
     shot("50-hospital-menu", 1200);
   });
 
   screen("51 hotel dialog and menu", () => {
     seed(HERO_ID);
     go(`/hotel/${HERO_ID}`);
-    tap("ion-fab-button");
+    talkTo("ion-fab-button");
     shot("51-hotel-dialog", 4000);
-    callPageMethod(".ion-page.hotel-hub", "presentActionSheet");
-    cy.get("ion-action-sheet", { timeout: 20000 }).should("exist");
+    showMenu();
     shot("51-hotel-menu", 1200);
   });
 
   screen("52 rpg toast", () => {
-    seed(HERO_ID);
-    go(`/shop/wrecked-ship/${HERO_ID}`);
-    cy.get(".accessory-shop", { timeout: 30000 }).should("exist");
+    seed(GM_ID);
+    go("/xp-settings/general");
+    cy.contains("ion-item", "Back up everything", { timeout: 30000 }).should("exist");
     cy.wait(800);
-    // A real toast from the shop, then the same toast again with no timer, so the shot cannot race its dismissal
-    callPageMethod(".ion-page.accessory-shop", "showToast", "Not enough GP! You need 460 more to buy Bigger Wallet.");
-    cy.get("ion-toast", { timeout: 20000 }).should("exist");
+    // A real toast from the Settings page (the shops now talk through the clerk's prompt, not toasts), with no timer so
+    // the shot cannot race its dismissal
     cy.window().then((win) => {
-      const real = win.document.querySelector("ion-toast");
-      const copy = win.document.createElement("ion-toast");
-      Object.assign(copy, { message: real.message, position: real.position, cssClass: real.cssClass, swipeGesture: real.swipeGesture, buttons: real.buttons, duration: 0 });
-      real.remove();
-      win.document.querySelector("ion-app").appendChild(copy);
-      return copy.present();
+      const instance = findInstance(win, (candidate) => candidate.proxy && typeof candidate.proxy.showToast === "function");
+      expect(instance, "the Settings page, which can show a toast").to.be.an("object");
+      instance.proxy.showToast("Not enough GP! You need 460 more to buy Bigger Wallet.", 0);
     });
+    cy.get("ion-toast", { timeout: 20000 }).should("exist");
     shot("52-rpg-toast", 1200);
   });
 
@@ -737,27 +733,13 @@ describe("Visual baseline: temple and battle", () => {
     shot("61-temple-door-reveal", 1500);
   });
 
-  /** Opens the seeded Socktopus fight and reads the intro down to the command menu (same flow as battle.spec.js). */
+  /** Opens the seeded Socktopus fight and waits for the intro to read itself out and the command menu to come up (same flow as battle.spec.js). */
   const enterFight = () => {
     seed(HERO_ID);
     go(`/battle/${HERO_ID}/free/beast-socktopus`);
     cy.get(".battlefield", { timeout: 60000 }).should("exist");
     cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Socktopus");
-    cy.wait(400);
-    readUntilMenu(3);
-  };
-  const tapDialog = () => cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).click("center", { force: true });
-  const readUntilMenu = (maxTaps = 8) => {
-    const step = (left) => {
-      cy.get("body").then(($body) => {
-        if ($body.find(".menu-item").length || left === 0) return;
-        tapDialog();
-        cy.wait(350);
-        step(left - 1);
-      });
-    };
-    step(maxTaps);
-    cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
+    waitForMenu();
   };
   const CLOCKS = [".attack-timer-label", ".attack-timer", ".timer-bar", "[class*=timer]"];
 
@@ -765,8 +747,9 @@ describe("Visual baseline: temple and battle", () => {
     seed(HERO_ID);
     go(`/battle/${HERO_ID}/free/beast-socktopus`);
     cy.get(".battlefield", { timeout: 60000 }).should("exist");
-    cy.get("[data-cy=battle-dialog]").should("contain", "From the dark forces of chaos comes Socktopus!!!");
-    shot("62-battle-intro", 1500, CLOCKS);
+    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "From the dark forces of chaos comes Socktopus!!!");
+    // the intro lingers about two seconds and then reads itself away: take the picture at once
+    shot("62-battle-intro", 100, CLOCKS);
   });
 
   screen("63 battle menu", () => {
@@ -776,14 +759,14 @@ describe("Visual baseline: temple and battle", () => {
 
   screen("64 battle checklist", () => {
     enterFight();
-    cy.contains(".menu-item", "Tackle").click({ force: true });
+    tapAction("tackle");
     cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
     shot("64-battle-checklist", 1200, CLOCKS);
   });
 
   screen("65 battle chore confirm", () => {
     enterFight();
-    cy.contains(".menu-item", "Tackle").click({ force: true });
+    tapAction("tackle");
     cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
     cy.contains(".battle-task-item", "Sort the socks").click({ force: true });
     cy.get("[data-cy=task-confirm]", { timeout: 5000 }).should("be.visible");
@@ -792,30 +775,34 @@ describe("Visual baseline: temple and battle", () => {
 
   screen("66 battle potions", () => {
     enterFight();
-    cy.contains(".menu-item", "Goods").click({ force: true });
-    cy.get(".xp-equipment-modal .grid-item .fa-flask-potion", { timeout: 10000 }).should("be.visible").click({ force: true });
+    // The bottles sheet opens from a Potion Bag item the fixture hero does not carry: bring it up the way the bag would
+    cy.window().then((win) => {
+      const instance = findInstance(win, (candidate) => candidate.setupState && "sheet" in candidate.setupState && "closeSheet" in candidate.setupState);
+      expect(instance, "the battle page").to.be.an("object");
+      instance.setupState.sheet = "potions";
+    });
     cy.get("[data-cy=potion-sheet]", { timeout: 10000 }).should("be.visible");
     shot("66-battle-potions", 1200, CLOCKS);
   });
 
   screen("67 battle powers", () => {
     enterFight();
-    cy.contains(".menu-item", "Powers").click({ force: true });
+    tapAction("powers");
     cy.get("[data-cy=powers-sheet]", { timeout: 10000 }).should("be.visible");
     shot("67-battle-powers", 1200, CLOCKS);
   });
 
   screen("68 battle run away", () => {
     enterFight();
-    cy.contains(".menu-item", "Run Away").click({ force: true });
-    cy.get(".dialog-prompt").should("contain", "Run away?");
+    tapAction("run");
+    cy.get("[data-cy=radial-prompt]").should("contain", "Run away?");
     shot("68-battle-run-away", 1200, CLOCKS);
   });
 
   screen("69 battle victory", () => {
     enterFight();
     ["Sort the socks", "Match the pairs", "Put them away"].forEach((chore, index) => {
-      cy.contains(".menu-item", "Tackle").click({ force: true });
+      tapAction("tackle");
       cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
       cy.contains(".battle-task-item", chore).click({ force: true });
       cy.get("[data-cy=task-confirm]", { timeout: 5000 }).should("be.visible");
