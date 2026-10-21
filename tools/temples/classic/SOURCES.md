@@ -1,7 +1,7 @@
 # Pinned sources for the classic dungeon converter
 
 Everything under `vendor/` is a verbatim copy of an MIT-licensed file at the commit named below. The app never
-reads these files; only `convert.py` does (and Task 6's Wind converter reads `LoZ_1.dot`). Re-download with
+reads these files; only the converter does, through `lttp_tables.py` (and Task 6's Wind converter reads `LoZ_1.dot`). Re-download with
 `curl --retry 3` against the raw URL, which names the commit, and check the SHA-256 before replacing a copy.
 
 ## aerinon/ALttPDoorRandomizer, branch `DoorDev`
