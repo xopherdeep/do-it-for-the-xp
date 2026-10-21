@@ -125,7 +125,9 @@ describe("XP Pro", () => {
     it("a free family can add a fourth kid", () => {
       cy.visit("/xp-settings/family", { timeout: 120000 });
       cy.tapToWakeAudio();
-      cy.contains("ion-button, button", /add kid/i, { timeout: 20000 }).click({ force: true });
+      // The Heroes group's "Add" button (FamilySettings.vue); the Game Masters group has its own
+      cy.contains("ion-item-divider", "Heroes", { timeout: 20000 }).find("ion-button").click({ force: true });
+      cy.get("ion-modal", { timeout: 20000 }).should("exist");
       cy.contains("is part of XP Pro").should("not.exist");
     });
 

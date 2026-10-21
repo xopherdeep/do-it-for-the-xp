@@ -25,26 +25,30 @@ const openCard = (questId, title) => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(backup), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(backup)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser("hero-1"), "hero-1 is loaded").to.eq(true);
     });
   });
   cy.visit("/my-tasks/hero-1", { timeout: 120000 });
   cy.tapToWakeAudio();
-  cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
+  cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
   cy.get(`#${questId}`, { timeout: 30000 }).scrollIntoView().should("be.visible");
   cy.get(`#${questId}`).click();
   cy.get("ion-modal.beast-card-modal .beast-plate__name", { timeout: 20000 }).should("contain", title);
 };
 
-/** Hunt and Claim sit on screen, in the lower half of the phone. */
+/**
+ * Hunt and Claim sit on screen, in the lower half of the phone. The sheet slides up as the buttons first count as
+ * visible, so each box is read inside a retrying `should`: it passes once the slide has settled.
+ */
 const expectButtonsInThumbReach = () => {
   cy.get("ion-modal.beast-card-modal [data-test=hunt]", { timeout: 20000 }).should("be.visible");
   cy.get("ion-modal.beast-card-modal [data-test=claim]").should("be.visible");
-  cy.window().then((win) => {
-    ["hunt", "claim"].forEach((name) => {
-      const box = win.document.querySelector(`ion-modal.beast-card-modal [data-test=${name}]`).getBoundingClientRect();
+  ["hunt", "claim"].forEach((name) => {
+    cy.get(`ion-modal.beast-card-modal [data-test=${name}]`).should(($button) => {
+      const win = $button[0].ownerDocument.defaultView;
+      const box = $button[0].getBoundingClientRect();
       expect(box.left, `${name} left`).to.be.at.least(0);
       expect(box.right, `${name} right`).to.be.at.most(win.innerWidth);
       expect(box.bottom, `${name} bottom`).to.be.at.most(win.innerHeight);
@@ -106,24 +110,24 @@ describe("Quest beast card", () => {
         expect(win.__xp, "development seam window.__xp").to.be.an("object");
       });
       cy.window().then((win) => win.__xp.signInSeedGameMaster());
-      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(backup), { timeout: 60000 }));
+      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(backup)), { timeout: 60000 }));
       cy.window().then((win) => {
         expect(win.__xp.loginUser("hero-1"), "hero-1 is loaded").to.eq(true);
       });
       cy.visit("/my-tasks/hero-1", { timeout: 120000 });
       cy.tapToWakeAudio();
-      cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
-      cy.contains("ion-segment-button", "List", { timeout: 30000 }).click();
-      cy.contains(".quest-row", /tame the socktopus/i, { timeout: 20000 }).should("be.visible");
+      cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
+      cy.get("button[aria-label=List]", { timeout: 30000 }).filter(":visible").first().click();
+      cy.contains(".quest-log-row", /socktopus/i, { timeout: 20000 }).should("be.visible");
       // Another screen finishes the quest while this row is on show: the log now has today's clear
-      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(doneToday), { timeout: 60000 }));
+      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(doneToday)), { timeout: 60000 }));
       cy.window().then((win) => {
         expect(win.__xp.loginUser("hero-1"), "hero-1 is loaded again").to.eq(true);
       });
       cy.window().then((win) => {
         cy.wrap(win.__xp.getUser("hero-1").stats.gp.wallet).as("walletBefore");
       });
-      cy.contains(".quest-row", /tame the socktopus/i).find("ion-button.quest-row-done").click();
+      cy.contains(".quest-log-row", /socktopus/i).find("button.quest-done-btn").click();
       cy.contains("ion-action-sheet button", "Done!", { timeout: 10000 }).click();
       // The toast keeps its text in properties (it renders in a shadow root)
       cy.get("ion-toast", { timeout: 10000 }).should(($toast) => {

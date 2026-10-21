@@ -48,7 +48,7 @@ const seedFamily = () => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(family), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(family)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
     });
@@ -62,10 +62,10 @@ describe("Moving Day temple", () => {
   });
 
   it("offers the temple in the Moving House dialog, on by default, and builds it with the pack", () => {
-    cy.visit("/xp-settings/general", { timeout: 300000 });
+    cy.visit("/xp-settings/packs", { timeout: 300000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-item", "Moving House", { timeout: 60000 }).then(($item) => $item[0].scrollIntoView({ block: "center" }));
-    cy.contains("ion-item", "Moving House").click();
+    cy.contains("ion-card", "Moving House", { timeout: 60000 }).then(($card) => $card[0].scrollIntoView({ block: "center" }));
+    cy.contains("ion-card", "Moving House").contains("ion-button", "Set up").click();
     cy.get(".moving-house-modal", { timeout: 20000 }).should("be.visible");
 
     // The move is today, so every phase has opened and the rooms of the old house are awake

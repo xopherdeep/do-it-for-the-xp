@@ -85,7 +85,7 @@ const seedWorld = () => {
       expect(win.__xpTemples, "development seam window.__xpTemples").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(world), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(world)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
     });

@@ -250,7 +250,7 @@ const seed = (loginId, { random } = {}) => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(backup), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(backup)), { timeout: 60000 }));
     if (loginId) {
       cy.window().then((win) => {
         expect(win.__xp.loginUser(loginId), `${loginId} is loaded`).to.eq(true);

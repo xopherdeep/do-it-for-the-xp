@@ -86,7 +86,7 @@ const seedWorld = () => {
       expect(win.__xpTemples, "development seam window.__xpTemples").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(world), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(world)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
     });
@@ -214,9 +214,9 @@ describe("Quest rooms in the room editor", () => {
       cy.contains("Easy 3");
       cy.contains("Weekly");
       cy.contains("Approval");
-      cy.contains("no due time: never ambushes");
+      cy.contains("no due time: ambushes any time");
     });
-    cy.contains(`${picker} .quest-row`, "Banish the Dish Goblin").should("not.contain", "never ambushes");
+    cy.contains(`${picker} .quest-row`, "Banish the Dish Goblin").should("not.contain", "ambushes any time");
 
     // Picking a boss-tier quest previews the new size
     cy.contains(`${picker} .quest-row`, "Scrub the stovetop").click();
