@@ -54,6 +54,8 @@ function stubFamilyServer() {
   cy.intercept("GET", "**/wp-json/xp-family/v1/family", { statusCode: 200, fixture: "family/get-family.json", headers: CORS }).as("getFamily");
   cy.intercept("POST", "**/wp-json/xp-family/v1/heroes/*", { statusCode: 200, body: {}, headers: CORS }).as("saveHero");
   cy.intercept("POST", "**/wp-json/xp-family/v1/events", { statusCode: 200, body: { accepted: [], duplicate: [], rejected: [] }, headers: CORS }).as("events");
+  // The family's event feed is read as well as written; unstubbed it reaches the live site, which answers 401 and unlinks the family
+  cy.intercept("GET", "**/wp-json/xp-family/v1/events*", { statusCode: 200, body: [], headers: CORS }).as("pullEvents");
   cy.intercept("GET", "**/wp-json/xp-family/v1/devices", { statusCode: 200, body: [], headers: CORS }).as("listDevices");
 }
 
@@ -166,11 +168,13 @@ describe("Family Screens", () => {
     cy.get("[data-cy=family-hero][data-hero=hero-1]", { timeout: 20000 }).should("be.visible");
     cy.contains("[data-cy=family-hero][data-hero=hero-1] h2", "Max").should("be.visible");
 
+    // The card sits below the page's first screen: bring Max's row to the middle first (see scrollToCenter)
+    cy.get("[data-cy=family-hero][data-hero=hero-1]").scrollToCenter();
     cy.get("[data-cy=age-hero-1-child]").should("be.visible");
     cy.get("[data-cy=age-hero-1-teen]").should("be.visible");
     cy.get("[data-cy=age-hero-1-adult]").should("be.visible");
 
-    cy.get("[data-cy=age-hero-1-teen]").click();
+    cy.get("[data-cy=age-hero-1-teen]").click({ scrollBehavior: false }); // already centered by scrollToCenter
     cy.get("[data-cy=age-hero-1-teen]").should("have.attr", "aria-pressed", "true");
     cy.get("[data-cy=age-hero-1-child]").should("have.attr", "aria-pressed", "false");
     cy.screenshot("family-01-settings", { capture: "viewport" });
@@ -187,15 +191,20 @@ describe("Family Screens", () => {
     });
     cy.tapToWakeAudio();
 
-    cy.intercept("POST", "**/wp-json/xp-family/v1/heroes/hero-1/link-codes", {
-      statusCode: 200,
-      fixture: "family/link-code.json",
-      headers: CORS,
-    }).as("makeLinkCode");
+    // The fixture's expires_at is a fixed date that has long passed, so a fresh code would show as expired at once:
+    // the answer carries a time ten minutes from now instead
+    cy.fixture("family/link-code.json").then((linkCode) => {
+      cy.intercept("POST", "**/wp-json/xp-family/v1/heroes/hero-1/link-codes", {
+        statusCode: 200,
+        body: { ...linkCode, expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() },
+        headers: CORS,
+      }).as("makeLinkCode");
+    });
 
     cy.get("[data-cy=family-hero][data-hero=hero-1] [data-cy=family-phones-open]", { timeout: 30000 })
+      .scrollToCenter()
       .should("not.be.disabled")
-      .click();
+      .click({ scrollBehavior: false });
 
     cy.contains("ion-title", "Max's phones", { timeout: 20000 }).should("be.visible");
     cy.get("[data-cy=link-phone]", { timeout: 20000 }).should("be.visible").click();
@@ -207,7 +216,7 @@ describe("Family Screens", () => {
       .should("include", "data:image/png;base64,");
 
     cy.get("[data-cy=link-code]").should("be.visible").and("contain", "ABCD-EFGH");
-    cy.get("[data-cy=countdown]").should("be.visible").and("match", /^\d+:\d{2}$/);
+    cy.get("[data-cy=countdown]").should("be.visible").invoke("text").should("match", /^\d+:\d{2}$/);
     cy.screenshot("family-02-link-modal", { capture: "viewport" });
     cy.get("[data-cy=close-modal]").click();
   });
