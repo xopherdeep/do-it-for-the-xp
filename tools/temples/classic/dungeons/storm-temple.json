@@ -93,7 +93,8 @@
           "stairs": {
             "to": "B1",
             "row": 0,
-            "col": 0
+            "col": 0,
+            "lock": "small-key"
           }
         },
         {
@@ -441,8 +442,8 @@
       "4F": 4,
       "5F": 1
     },
-    "mustClear": 8,
-    "side": 9,
+    "mustClear": 3,
+    "side": 6,
     "smallKeys": 1,
     "smallLocks": 1
   }

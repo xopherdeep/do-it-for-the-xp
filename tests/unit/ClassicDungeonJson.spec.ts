@@ -104,6 +104,10 @@ describe("classic dungeon JSON", () => {
           for (const flag of ["potKey", "boss", "puzzle", "shutter", "entrance"] as const) {
             if (cell[flag] !== undefined) expect(cell[flag]).toBe(true);
           }
+          for (const link of ["stairs", "hole", "teleport"] as const) {
+            const lock = cell[link]?.lock;
+            if (lock !== undefined) expect(["small-key", "big-key"]).toContain(lock);
+          }
         }
       });
 
@@ -184,9 +188,17 @@ describe("classic dungeon JSON", () => {
           ({ cell }) => cell.chest === "small-key" || cell.keyDrop === "small" || cell.potKey === true
         ).length;
         expect(dungeon.report.smallKeys).toBe(sources);
-        expect(dungeon.report.smallLocks).toBeGreaterThanOrEqual(0);
         expect(dungeon.report.mustClear).toBeGreaterThanOrEqual(0);
         expect(dungeon.report.side).toBeGreaterThanOrEqual(0);
+      });
+
+      it("reports as many small locks as there are small-key sides and locked links", () => {
+        const sideEnds = all.flatMap(({ cell }) => DIRS.filter((dir) => cell.sides[dir] === "small-key")).length;
+        expect(sideEnds % 2).toBe(0); // both ends of a pair agree, so each pair shows twice
+        const lockedLinks = all.flatMap(({ cell }) =>
+          (["stairs", "hole", "teleport"] as const).filter((link) => cell[link]?.lock === "small-key")
+        ).length;
+        expect(dungeon.report.smallLocks).toBe(sideEnds / 2 + lockedLinks);
       });
 
       it("lets the hero reach every cell from the entrance", () => {

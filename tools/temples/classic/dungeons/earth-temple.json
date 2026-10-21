@@ -406,8 +406,7 @@
             "south": "wall",
             "west": "open"
           },
-          "enemies": 1,
-          "shutter": true
+          "enemies": 1
         },
         {
           "row": 6,
@@ -442,8 +441,8 @@
       "B1": 1,
       "1F": 30
     },
-    "mustClear": 8,
-    "side": 15,
+    "mustClear": 6,
+    "side": 12,
     "smallKeys": 5,
     "smallLocks": 5
   }

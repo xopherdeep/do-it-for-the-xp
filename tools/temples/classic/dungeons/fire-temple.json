@@ -133,8 +133,7 @@
             "south": "open",
             "west": "wall"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         },
         {
           "row": 4,
@@ -225,7 +224,8 @@
           "stairs": {
             "to": "B2",
             "row": 1,
-            "col": 2
+            "col": 2,
+            "lock": "small-key"
           }
         },
         {
@@ -367,8 +367,7 @@
             "south": "big-key",
             "west": "open"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         },
         {
           "row": 3,
@@ -492,7 +491,8 @@
           "stairs": {
             "to": "B1",
             "row": 2,
-            "col": 3
+            "col": 3,
+            "lock": "small-key"
           }
         },
         {
@@ -559,8 +559,7 @@
             "west": "wall"
           },
           "enemies": 1,
-          "chest": "small-key",
-          "shutter": true
+          "chest": "small-key"
         },
         {
           "row": 2,
@@ -689,8 +688,8 @@
       "B1": 19,
       "1F": 15
     },
-    "mustClear": 3,
-    "side": 22,
+    "mustClear": 7,
+    "side": 9,
     "smallKeys": 6,
     "smallLocks": 6
   }

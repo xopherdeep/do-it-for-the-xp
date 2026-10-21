@@ -152,8 +152,7 @@
             "south": "small-key",
             "west": "wall"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         },
         {
           "row": 1,
@@ -162,7 +161,7 @@
           "sides": {
             "north": "wall",
             "east": "wall",
-            "south": "open",
+            "south": "bomb",
             "west": "open"
           },
           "enemies": 4,
@@ -189,7 +188,7 @@
           "col": 5,
           "room": "Swamp Waterway",
           "sides": {
-            "north": "open",
+            "north": "bomb",
             "east": "wall",
             "south": "wall",
             "west": "open"
@@ -568,7 +567,8 @@
           "stairs": {
             "to": "B1",
             "row": 5,
-            "col": 8
+            "col": 8,
+            "lock": "small-key"
           }
         },
         {
@@ -656,8 +656,8 @@
       "B1": 31,
       "1F": 6
     },
-    "mustClear": 11,
-    "side": 25,
+    "mustClear": 3,
+    "side": 20,
     "smallKeys": 6,
     "smallLocks": 6
   }

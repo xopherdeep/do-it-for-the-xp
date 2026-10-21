@@ -62,7 +62,8 @@
           "stairs": {
             "to": "1F",
             "row": 4,
-            "col": 1
+            "col": 1,
+            "lock": "small-key"
           }
         },
         {
@@ -90,7 +91,7 @@
           "room": "PoD Lonely Turtle",
           "sides": {
             "north": "wall",
-            "east": "shutter",
+            "east": "small-key",
             "south": "shutter",
             "west": "wall"
           },
@@ -105,19 +106,13 @@
             "north": "wall",
             "east": "wall",
             "south": "wall",
-            "west": "shutter"
+            "west": "small-key"
           },
           "enemies": 2,
           "puzzle": true,
-          "shutter": true,
           "stairs": {
             "to": "1F",
             "row": 0,
-            "col": 3
-          },
-          "teleport": {
-            "to": "B1",
-            "row": 12,
             "col": 3
           }
         },
@@ -139,12 +134,30 @@
           "room": "PoD Turtle Party",
           "sides": {
             "north": "shutter",
-            "east": "wall",
+            "east": "shutter",
             "south": "wall",
             "west": "wall"
           },
           "enemies": 6,
           "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "room": "PoD Callback",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "teleport": {
+            "to": "B1",
+            "row": 12,
+            "col": 3
+          }
         },
         {
           "row": 11,
@@ -190,7 +203,7 @@
           "room": "PoD Dark Maze",
           "sides": {
             "north": "wall",
-            "east": "bomb",
+            "east": "small-key",
             "south": "open",
             "west": "wall"
           },
@@ -205,10 +218,9 @@
             "north": "wall",
             "east": "open",
             "south": "open",
-            "west": "bomb"
+            "west": "small-key"
           },
-          "enemies": 1,
-          "chest": "big-chest"
+          "enemies": 1
         },
         {
           "row": 0,
@@ -252,7 +264,7 @@
           "room": "PoD Dark Maze",
           "sides": {
             "north": "open",
-            "east": "wall",
+            "east": "bomb",
             "south": "wall",
             "west": "wall"
           },
@@ -267,9 +279,10 @@
             "north": "open",
             "east": "wall",
             "south": "small-key",
-            "west": "wall"
+            "west": "bomb"
           },
-          "enemies": 1
+          "enemies": 1,
+          "chest": "big-chest"
         },
         {
           "row": 1,
@@ -282,8 +295,7 @@
             "west": "wall"
           },
           "enemies": 0,
-          "chest": "other",
-          "shutter": true
+          "chest": "other"
         },
         {
           "row": 1,
@@ -480,8 +492,7 @@
             "south": "shutter",
             "west": "wall"
           },
-          "enemies": 1,
-          "shutter": true
+          "enemies": 1
         },
         {
           "row": 6,
@@ -607,11 +618,11 @@
   ],
   "report": {
     "cellsPerFloor": {
-      "B1": 10,
+      "B1": 11,
       "1F": 29
     },
-    "mustClear": 1,
-    "side": 26,
+    "mustClear": 6,
+    "side": 12,
     "smallKeys": 6,
     "smallLocks": 6
   }

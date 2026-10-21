@@ -4,7 +4,12 @@
  * The names here are a contract between the converter, the spec and the dress step: keep them verbatim.
  */
 export type ClassicSide = "open" | "small-key" | "big-key" | "bomb" | "shutter" | "item" | "wall";
-export interface ClassicLink { to: string; row: number; col: number } // floor name, then the arrival cell
+/**
+ * A floor name, then the arrival cell. `lock` marks a key-locked stairway: it sits on the `stairs` link of the one
+ * cell that holds the locked stairway door (LTTP keys the stairs from one side), never on the other end's link,
+ * so a dungeon's locks are the small-key sides (each pair once) plus the links that carry `lock`.
+ */
+export interface ClassicLink { to: string; row: number; col: number; lock?: "small-key" | "big-key" }
 export interface ClassicCell {
   row: number; col: number;
   room: string; // the LTTP room this screen belongs to; cells of one hall share it

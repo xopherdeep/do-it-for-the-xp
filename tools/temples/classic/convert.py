@@ -16,8 +16,13 @@ The schema is tools/temples/classic/classicDungeon.ts. The rules (decided in the
     screen become one hall. A sprite's screen is its tile x/y split at 0x10 (the tables keep 5-bit tile
     coordinates, so the brief's 0x20 can never trigger). A chest with no screen sits in its area's first screen.
   * Door kinds: small_key() or a RoomData key kind -> small-key; big_key() or BigKey -> big-key; RoomData
-    Bombable/BlastWall/Dashable -> bomb; .trap() or a RoomData Trap kind -> shutter (and the cells on both ends
-    get `shutter`); logical links named for hookshot, boots/dash, torches or flippers -> item; anything else open.
+    Bombable/BlastWall/Dashable -> bomb; .trap() or a RoomData Trap kind -> shutter (the side on both ends, the
+    `shutter` flag only on the cell whose own door is the trap); logical links named for hookshot, boots/dash,
+    torches or flippers -> item; anything else open. Two different non-open kinds on one cell edge stop the run:
+    an override moves one door or picks the kind. A key-locked stairway puts `lock` on the stairs link of the cell
+    that holds the locked door (one end). `report.smallLocks` counts small-key sides (each pair once) plus locked
+    links; `report.mustClear` counts the rooms with a fight behind a shutter or holding a key drop, `side` the
+    other fight rooms (boss and miniboss rooms count for neither).
   * Floors: areas joined by plain doors and logical links share a floor; Up/Dn spiral stairs and ladders move
     one floor; a pit lands one floor down (when the landing is not placed already). Floors are named B2, B1, 1F,
     2F ... with the entrance on 1F, each trimmed to its cells.
@@ -294,10 +299,19 @@ class Tables:
 
     def door_kind(self, door):
         """The RoomData door kind behind .pos(n), or None."""
+        entry = self.door_entry(door)
+        return entry[1] if entry else None
+
+    def door_position(self, door):
+        """The RoomData door position behind .pos(n), or None."""
+        entry = self.door_entry(door)
+        return entry[0] if entry else None
+
+    def door_entry(self, door):
         if door["pos"] is None or door["tile"] not in self.rooms:
             return None
         doors = self.rooms[door["tile"]]
-        return doors[door["pos"]][1] if door["pos"] < len(doors) else None
+        return doors[door["pos"]] if door["pos"] < len(doors) else None
 
 
 def screen_of(door):
@@ -396,6 +410,9 @@ class Conversion:
                 door["screen"] = screen_of(door)
             if door["screen"] is not None:
                 add(self.owner[name], door["tile"], door["screen"])
+        for name in self.overrides.get("doors", {}):
+            if name not in self.doors:
+                self.errors.append(f"override names an unknown door: {name}")
         for tile, sprites in sorted(self.t.sprites.items()):
             for sprite in sprites:
                 if sprite["region"] in screens:
@@ -654,8 +671,31 @@ class Conversion:
             return None
         return self.cell_of.get((door["tile"], door["screen"]))
 
+    def is_trap(self, door):
+        return door["trap"] or self.t.door_kind(door) in TRAP_KINDS
+
+    def describe(self, name):
+        door = self.doors[name]
+        return f"{name} [{door['slot']}, {self.t.door_position(door) or '-'}]"
+
+    def overridden_edges(self):
+        """(level, cell, side) for every edge a `sides` override settles, both ends."""
+        edges = set()
+        for entry in self.overrides.get("sides", []):
+            at = self.cell_of.get((int(entry["tile"], 16), (entry["row"], entry["col"])))
+            if at is None:
+                continue
+            other = (at[1] + STEP[entry["side"]][0], at[2] + STEP[entry["side"]][1])
+            edges.add((at[0], at[1:], entry["side"]))
+            edges.add((at[0], other, OPPOSITE[entry["side"]]))
+        return edges
+
     def apply_doors(self):
-        self.lock_count = 0
+        """Door pairs become sides. Two different non-open kinds on one edge stop the run (an override settles it);
+        the cell whose own door is a trap is remembered for the `shutter` flag."""
+        edge_owner = {}
+        settled = self.overridden_edges()
+        self.shutter_candidates = []
         for a, b, _ in self.wall_pairs():
             da, db = self.doors[a], self.doors[b]
             ca, cb = self.place_cell(da), self.place_cell(db)
@@ -666,9 +706,29 @@ class Conversion:
                 self.errors.append(f"door pair is not adjacent: {a} {floor_name(ca[0])} {ca[1:]} <-> {b} {floor_name(cb[0])} {cb[1:]}")
                 continue
             kind = self.door_side_kind(da, db)
-            if kind == "small-key":
-                self.lock_count += 1
-            self.set_side(ca[0], ca[1:], direction_from(ca[1:], cb[1:]), kind)
+            level, at, direction = ca[0], ca[1:], direction_from(ca[1:], cb[1:])
+            existing = self.cells[level][at]["sides"][direction]
+            edge = (level, at, direction)
+            if existing not in ("wall", "open") and kind not in ("wall", "open") and existing != kind:
+                first = edge_owner.get(edge, ("?", "?"))
+                if edge in settled:
+                    self.warnings.append(f"edge settled by override: {self.describe(first[0])} <-> {self.describe(first[1])} ({existing}) "
+                                         f"and {self.describe(a)} <-> {self.describe(b)} ({kind}) on {floor_name(level)} {at} {direction}")
+                else:
+                    self.errors.append(f"two doors on one edge {floor_name(level)} {at} {direction}: "
+                                       f"{self.describe(first[0])} <-> {self.describe(first[1])} is {existing}, "
+                                       f"{self.describe(a)} <-> {self.describe(b)} is {kind}; move one door to the other "
+                                       f"screen of its supertile (overrides.doors) or pick the kind (overrides.sides)")
+                    continue
+            elif existing not in ("wall", "open") and kind == "open":
+                kind = existing  # a plain doorway beside a locked one keeps the lock
+            self.set_side(level, at, direction, kind)
+            edge_owner[edge] = (a, b)
+            edge_owner[(level, cb[1:], OPPOSITE[direction])] = (a, b)
+            if self.is_trap(da):
+                self.shutter_candidates.append((level, at, direction))
+            if self.is_trap(db):
+                self.shutter_candidates.append((level, cb[1:], OPPOSITE[direction]))
         for src, dst, door_name in self.logical_links():
             hs, hd = self.hall(src), self.hall(dst)
             if hs == hd:
@@ -715,6 +775,14 @@ class Conversion:
             self.warnings.append(f"second stairway in one screen moved within its hall: {name}")
         return other
 
+    def stair_lock(self, door):
+        kind = self.t.door_kind(door)
+        if door["big"] or kind == "BigKey":
+            return "big-key"
+        if door["small"] or kind in KEY_KINDS:
+            return "small-key"
+        return None
+
     def already_linked(self, lower, upper):
         """True when the two doors' own cells are already each other's stairs (a parallel stairway)."""
         cl, cu = self.place_cell(self.doors[lower]), self.place_cell(self.doors[upper])
@@ -734,12 +802,18 @@ class Conversion:
             if cl is None or cu is None:
                 self.errors.append(f"stairs without a cell: {lower} <-> {upper}")
                 continue
-            if dl["small"] or du["small"] or self.t.door_kind(dl) in KEY_KINDS or self.t.door_kind(du) in KEY_KINDS:
-                self.lock_count += 1
-                self.warnings.append(f"locked stairs (counted as a lock, the schema cannot lock stairs): {lower} <-> {upper}")
             ok = self.link(cl[0], cl[1:], "stairs", cu) and self.link(cu[0], cu[1:], "stairs", cl)
             if not ok:
                 self.errors.append(f"two stairways in one cell: {lower} <-> {upper}")
+                continue
+            # a key-locked stairway: the lock sits on the link of the cell that holds the locked door, one end only
+            locked = [(name, cell) for name, door, cell in ((lower, dl, cl), (upper, du, cu)) if self.stair_lock(door)]
+            if len(locked) == 2:
+                self.warnings.append(f"both ends of a stairway are locked; the lower end carries it: {lower} <-> {upper}")
+            if locked:
+                name, cell = locked[0]
+                self.cells[cell[0]][cell[1:]]["links"]["stairs"]["lock"] = self.stair_lock(self.doors[name])
+                self.warnings.append(f"locked stairway recorded on {floor_name(cell[0])} {cell[1:]}: {name}")
         # the entrance ring before pits and warps, so reachability never loses to a slot
         main_cell = self.place_cell(self.doors[self.main_door])
         self.cells[main_cell[0]][main_cell[1:]]["flags"]["entrance"] = True
@@ -812,8 +886,11 @@ class Conversion:
                 cell = self.cells[at[0]][at[1:]]
                 kind = sprite["kind"]
                 is_boss_room = any(loc.endswith(" - Boss") or loc == "Agahnim 2" for loc in self.t.regions[region]["locations"])
-                if self.t.enemy_kind.get(kind) or (kind in BOSS_SPRITES and not is_boss_room):
+                if self.t.enemy_kind.get(kind):
                     cell["enemies"] += 1
+                elif kind in BOSS_SPRITES and not is_boss_room:
+                    cell["enemies"] += 1  # a miniboss (Ganon's Tower refights) fills the room but is not must-clear
+                    cell["minibosses"] = cell.get("minibosses", 0) + 1
                 if kind in PUZZLE_SPRITES:
                     cell["flags"]["puzzle"] = True
         for tile, pots in sorted(self.t.pots.items()):
@@ -822,6 +899,10 @@ class Conversion:
                     at = self.cell_of.get((tile, pot_screen(pot)))
                     if at is not None:
                         self.cells[at[0]][at[1:]]["flags"]["puzzle"] = True
+        known = {loc for r in self.regions for loc in self.t.regions[r]["locations"]}
+        for name in self.overrides.get("chests", {}):
+            if name not in known:
+                self.errors.append(f"override names an unknown chest: {name}")
         # the most specific areas first: a ledge's own screen takes its chest before the hall around it fills up;
         # within an area the dungeon items take cells before plain treasure does
         order = sorted(self.regions, key=lambda r: (len(self.screens[r]) or 99, self.regions.index(r)))
@@ -834,8 +915,13 @@ class Conversion:
             for cell in cells.values():
                 if any(word in cell["hall"] for word in PUZZLE_WORDS):
                     cell["flags"]["puzzle"] = True
-                if "shutter" in cell["sides"].values():
-                    cell["flags"]["shutter"] = True
+
+    def flag_shutters(self):
+        """`shutter` goes on the cell whose own door is the trap, once the side overrides have had their say."""
+        for level, at, direction in self.shutter_candidates:
+            cell = self.cells[level][at]
+            if cell["sides"][direction] == "shutter":
+                cell["flags"]["shutter"] = True
 
     def place_location(self, region, location):
         what, kind = self.classify(region, location)
@@ -978,16 +1064,22 @@ class Conversion:
             for at, cell in cells.items():
                 if (level, at) not in reach:
                     self.errors.append(f"unreachable cell: {floor_name(level)} {at} {cell['hall']}")
-        boss = next(((level, at) for level, cells in self.cells.items() for at, cell in cells.items() if cell["flags"].get("boss")), None)
-        must_clear = side = 0
+        # must-clear: the LTTP rooms with a fight behind a shutter or holding a key drop; side: the other fight
+        # rooms. The boss room and miniboss-only cells count for neither (the dress step decides minibosses).
+        must_clear_rooms, fight_rooms = set(), set()
         for level, cells in self.cells.items():
             for at, cell in cells.items():
-                if cell["enemies"] == 0 or cell["flags"].get("entrance") or (level, at) == boss:
+                if cell["flags"].get("boss") or cell["enemies"] - cell.get("minibosses", 0) <= 0:
                     continue
-                if boss is not None and boss not in self.reachable(skip=(level, at)):
-                    must_clear += 1
-                else:
-                    side += 1
+                fight_rooms.add(cell["hall"])
+                if cell["flags"].get("shutter") or cell["flags"].get("keyDrop"):
+                    must_clear_rooms.add(cell["hall"])
+        must_clear = len(must_clear_rooms)
+        side = len(fight_rooms - must_clear_rooms)
+        lock_count = sum(1 for cells in self.cells.values() for cell in cells.values()
+                         for kind in cell["sides"].values() if kind == "small-key") // 2
+        lock_count += sum(1 for cells in self.cells.values() for cell in cells.values()
+                          for link in cell["links"].values() if link.get("lock") == "small-key")
         floors = []
         cells_per_floor = OrderedDict()
         for level in sorted(self.cells):
@@ -1010,6 +1102,8 @@ class Conversion:
                         row[name] = OrderedDict([("to", target["to"]),
                                                  ("row", target["row"] - min(a[0] for a in target_cells)),
                                                  ("col", target["col"] - min(a[1] for a in target_cells))])
+                        if "lock" in target:
+                            row[name]["lock"] = target["lock"]
                 out.append(row)
             name = floor_name(level)
             floors.append(OrderedDict([("name", name), ("rows", max(at[0] for at in cells) - min_row + 1),
@@ -1021,7 +1115,7 @@ class Conversion:
         return OrderedDict([
             ("id", self.id), ("source", f"LTTP {self.dungeon}"), ("floors", floors),
             ("report", OrderedDict([("cellsPerFloor", cells_per_floor), ("mustClear", must_clear), ("side", side),
-                                    ("smallKeys", small_keys), ("smallLocks", self.lock_count)])),
+                                    ("smallKeys", small_keys), ("smallLocks", lock_count)])),
         ])
 
     def run(self):
@@ -1036,8 +1130,9 @@ class Conversion:
             return None
         self.apply_doors()
         self.apply_links()
+        self.apply_side_overrides()  # before the shutter flags and the lock count, which read the final sides
+        self.flag_shutters()
         self.apply_contents()
-        self.apply_side_overrides()
         result = self.finish()
         return None if self.errors else result
 

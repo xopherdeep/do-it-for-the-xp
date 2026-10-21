@@ -24,7 +24,8 @@
           "stairs": {
             "to": "2F",
             "row": 3,
-            "col": 0
+            "col": 0,
+            "lock": "small-key"
           }
         },
         {
@@ -187,8 +188,7 @@
             "west": "wall"
           },
           "enemies": 0,
-          "chest": "big-key",
-          "shutter": true
+          "chest": "big-key"
         },
         {
           "row": 4,
@@ -477,8 +477,8 @@
       "1F": 25,
       "2F": 8
     },
-    "mustClear": 4,
-    "side": 15,
+    "mustClear": 6,
+    "side": 6,
     "smallKeys": 4,
     "smallLocks": 4
   }

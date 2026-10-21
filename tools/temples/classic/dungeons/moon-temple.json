@@ -304,8 +304,7 @@
           },
           "enemies": 1,
           "chest": "small-key",
-          "puzzle": true,
-          "shutter": true
+          "puzzle": true
         },
         {
           "row": 2,
@@ -318,8 +317,7 @@
             "west": "small-key"
           },
           "enemies": 1,
-          "puzzle": true,
-          "shutter": true
+          "puzzle": true
         },
         {
           "row": 3,
@@ -493,8 +491,7 @@
             "south": "wall",
             "west": "open"
           },
-          "enemies": 3,
-          "shutter": true
+          "enemies": 3
         },
         {
           "row": 5,
@@ -565,8 +562,7 @@
             "south": "wall",
             "west": "shutter"
           },
-          "enemies": 1,
-          "shutter": true
+          "enemies": 1
         },
         {
           "row": 5,
@@ -669,8 +665,7 @@
             "south": "wall",
             "west": "shutter"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         },
         {
           "row": 0,
@@ -933,8 +928,7 @@
             "south": "shutter",
             "west": "wall"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         },
         {
           "row": 1,
@@ -1200,8 +1194,7 @@
             "west": "shutter"
           },
           "enemies": 0,
-          "chest": "other",
-          "shutter": true
+          "chest": "other"
         }
       ]
     },
@@ -1266,8 +1259,8 @@
       "5F": 9,
       "6F": 3
     },
-    "mustClear": 18,
-    "side": 23,
+    "mustClear": 19,
+    "side": 16,
     "smallKeys": 8,
     "smallLocks": 8
   }

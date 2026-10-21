@@ -127,7 +127,8 @@
           "stairs": {
             "to": "B6",
             "row": 14,
-            "col": 0
+            "col": 0,
+            "lock": "small-key"
           },
           "hole": {
             "to": "B6",
@@ -160,7 +161,6 @@
           },
           "enemies": 0,
           "puzzle": true,
-          "shutter": true,
           "hole": {
             "to": "B6",
             "row": 15,
@@ -211,8 +211,7 @@
             "south": "wall",
             "west": "open"
           },
-          "enemies": 0,
-          "shutter": true
+          "enemies": 0
         }
       ]
     },
@@ -231,8 +230,7 @@
             "south": "open",
             "west": "wall"
           },
-          "enemies": 1,
-          "shutter": true
+          "enemies": 1
         },
         {
           "row": 0,
@@ -671,7 +669,8 @@
           "stairs": {
             "to": "B1",
             "row": 1,
-            "col": 0
+            "col": 0,
+            "lock": "small-key"
           }
         },
         {
@@ -702,8 +701,8 @@
       "B1": 6,
       "1F": 2
     },
-    "mustClear": 4,
-    "side": 18,
+    "mustClear": 14,
+    "side": 6,
     "smallKeys": 6,
     "smallLocks": 6
   }

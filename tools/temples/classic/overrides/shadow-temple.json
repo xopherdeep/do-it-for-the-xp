@@ -1,6 +1,10 @@
 {
-  "note": "PoD Compass Room SE is slotted Mid in Doors.py while its partner PoD Harmless Hellway NE is slotted Right; RoomData gives the door Position.InteriorE (the east half), so the Compass Room end sits in the top-right screen of 0x1a.",
+  "note": "Three door moves, each decided by RoomData's door position. (1) PoD Compass Room SE is slotted Mid while its partner PoD Harmless Hellway NE is slotted Right; the door's Position.InteriorE puts it in the east half of 0x1a. (2) In 0x0b the small-key door PoD Lonely Turtle EN <-> PoD Dark Pegs WN (Position.InteriorN, the north half) and the trap door PoD Turtle Party ES <-> PoD Callback WS (Position.InteriorS, the south half) both fell on the (0,0)-(0,1) edge; the trap pair moves to the south half, where the Turtle Party's enemies are. (3) In 0x19/0x1a the small-key door PoD Dark Maze EN <-> PoD Falling Bridge WN (EastN/WestN, the north half) and the bomb wall PoD Dark Maze E <-> PoD Big Chest Balcony W (plain East/West, the middle) both fell on the (0,1)-(0,0) edge; the bomb pair moves to the south half, beside the Falling Bridge's bottom landing.",
   "doors": {
-    "PoD Compass Room SE": ["0x1a", 0, 1]
+    "PoD Compass Room SE": ["0x1a", 0, 1],
+    "PoD Turtle Party ES": ["0x0b", 1, 0],
+    "PoD Callback WS": ["0x0b", 1, 1],
+    "PoD Dark Maze E": ["0x19", 1, 1],
+    "PoD Big Chest Balcony W": ["0x1a", 1, 0]
   }
 }
