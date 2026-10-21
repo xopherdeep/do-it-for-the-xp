@@ -4,38 +4,11 @@
 // Run (dev server on :8100 first):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/moving-pack.spec.js
 
+import { tapAction, tapDialog, tapUntilSays, waitForMenu } from "../support/battle";
+
 const shot = (name) => {
   cy.wait(600);
   cy.screenshot(name, { capture: "viewport" });
-};
-
-const tapDialog = () => cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).click("center");
-/** Taps through whatever the box is saying until the command menu is back. */
-const readUntilMenu = (maxTaps = 8) => {
-  const step = (left) => {
-    cy.get("body").then(($body) => {
-      if ($body.find(".menu-item").length || left === 0) return;
-      tapDialog();
-      cy.wait(350);
-      step(left - 1);
-    });
-  };
-  step(maxTaps);
-  cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
-};
-
-/** Taps through the box until it says `text` (a line types out, and a tap finishes it before the next tap moves on). */
-const tapUntilSays = (text, maxTaps = 8) => {
-  const step = (left) => {
-    cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).then(($box) => {
-      if ($box.text().includes(text) || left === 0) return;
-      tapDialog();
-      cy.wait(350);
-      step(left - 1);
-    });
-  };
-  step(maxTaps);
-  cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", text);
 };
 
 /** Local "YYYY-MM-DD", the way the dialog's date field reads it. */
@@ -71,7 +44,7 @@ const seedFamily = () => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(family), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(family)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
     });
@@ -85,16 +58,16 @@ describe("Moving House pack", () => {
   });
 
   it("builds the pack in Settings as the Game Master", () => {
-    cy.visit("/xp-settings/general", { timeout: 120000 });
+    cy.visit("/xp-settings/packs", { timeout: 120000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-item", "Moving House", { timeout: 60000 }).then(($item) => $item[0].scrollIntoView({ block: "center" }));
-    // It sits in the Backup & Restore group, on screen above the bottom edge
-    cy.contains("ion-item", "Moving House").should(($item) => {
-      const box = $item[0].getBoundingClientRect();
-      expect(box.top, "row top").to.be.within(0, 700);
+    cy.contains("ion-card", "Moving House", { timeout: 60000 }).then(($card) => $card[0].scrollIntoView({ block: "center" }));
+    // It is a card on the Packs page, on screen above the bottom edge
+    cy.contains("ion-card", "Moving House").should(($card) => {
+      const box = $card[0].getBoundingClientRect();
+      expect(box.top, "card top").to.be.within(0, 700);
     });
     shot("01-settings-backup");
-    cy.contains("ion-item", "Moving House").click();
+    cy.contains("ion-card", "Moving House").contains("ion-button", "Set up").click();
 
     cy.get(".moving-house-modal", { timeout: 20000 }).should("be.visible");
     cy.get(".moving-house-modal .moving-date").should("be.visible");
@@ -148,42 +121,37 @@ describe("Moving House pack", () => {
     cy.window({ timeout: 60000 }).should((win) => {
       expect(win.__xp, "seam").to.be.an("object");
     });
-    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
+    cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
     shot("05-quest-book");
 
     // A moving quest is on Max's board; open its card
-    cy.get("ion-card[id^=move-]", { timeout: 30000 }).should("have.length.greaterThan", 0);
-    cy.get("ion-card#move-keep-donate-trash-hero-1", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.get(".quest-log-row[id^=move-]", { timeout: 30000 }).should("have.length.greaterThan", 0);
+    cy.get("#move-keep-donate-trash-hero-1", { timeout: 30000 }).scrollIntoView().should("be.visible");
     shot("06-quest-board-card");
-    cy.get("ion-card#move-keep-donate-trash-hero-1").click();
+    cy.get("#move-keep-donate-trash-hero-1").click();
 
-    // The detail has a Fight! button behind the hero's fab
-    cy.get("ion-modal.MyTask, ion-modal", { timeout: 20000 }).should("exist");
-    cy.get("ion-modal ion-card-title", { timeout: 20000 }).should("contain", "Keep, Donate, Trash");
-    cy.wait(800);
-    // The hero's fab opens its buttons by itself a moment after the card appears (tapping it then would shut them)
-    cy.get("ion-modal ion-fab-button").first().should("be.visible");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!", { timeout: 20000 }).should("be.visible");
-    cy.wait(1200);
+    // The quest's beast card has a Hunt button at the bottom of the sheet
+    cy.contains("ion-modal.beast-card-modal", /keep, donate, trash/i, { timeout: 20000 }).should("exist");
+    cy.get("ion-modal.beast-card-modal [data-test=hunt]", { timeout: 20000 }).should("be.visible");
+    cy.wait(1200); // the sheet slides up
     shot("07-quest-detail-fab");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").should("not.have.attr", "disabled");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").click();
+    cy.get("ion-modal.beast-card-modal [data-test=hunt]").should("not.be.disabled").click();
 
     // The battle opens with the quest's beast
     cy.location("pathname", { timeout: 30000 }).should("match", /^\/battle\/hero-1\//);
     cy.get(".battlefield", { timeout: 60000 }).should("exist");
     cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Sorting Chimera");
     cy.get("[data-cy=hero-card]").should("contain", "Max");
-    cy.wait(600);
-    shot("08-battle-intro");
-    cy.get("[data-cy=battle-dialog]").should("contain", "Sorting Chimera");
-    readUntilMenu(4);
+    // The intro reads itself out, then the command menu is up
+    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "Sorting Chimera");
+    cy.screenshot("08-battle-intro", { capture: "viewport" });
+    waitForMenu();
     cy.get(".chores-left-label").should("have.text", "5 tasks left");
     cy.get(".attack-timer-label").should("contain", ":");
 
     shot("08b-battle-menu");
     // Tackle lists the checklist as the attacks
-    cy.contains(".menu-item", "Tackle").click();
+    tapAction("tackle");
     cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
     cy.get(".battle-task-item").should("have.length", 5);
     cy.contains(".battle-task-item", "Make three piles: keep, donate, trash").should("be.visible");
@@ -196,11 +164,11 @@ describe("Moving House pack", () => {
     cy.window().then((win) => {
       win.Math.random = () => 0.5;
     });
-    cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
-    cy.contains(".menu-item", "Run Away").click();
-    cy.get(".dialog-prompt").should("contain", "Run away?");
+    waitForMenu();
+    tapAction("run");
+    cy.get("[data-cy=radial-prompt]").should("contain", "Run away?");
     shot("10-run-confirm");
-    cy.contains(".menu-item", /^\s*Run\s*$/).click();
+    tapAction("confirmRun");
     tapUntilSays("flees!");
     shot("10a-parting-strike");
     tapUntilSays("Got away safely");
@@ -221,11 +189,11 @@ describe("Moving House pack", () => {
     });
     cy.visit("/my-tasks/hero-2", { timeout: 120000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
-    cy.get("ion-card#move-toy-triage-hero-2", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
+    cy.get("#move-toy-triage-hero-2", { timeout: 30000 }).scrollIntoView().should("be.visible");
     // The kid's and the grown-ups' quests are not on their board
-    cy.get("ion-card#move-keep-donate-trash-hero-1").should("not.exist");
-    cy.get("ion-card#move-supplies").should("not.exist");
+    cy.get("#move-keep-donate-trash-hero-1").should("not.exist");
+    cy.get("#move-supplies").should("not.exist");
     shot("12-little-quest-book");
   });
 
@@ -237,16 +205,16 @@ describe("Moving House pack", () => {
     cy.window().then((win) => {
       expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
     });
-    cy.visit("/xp-settings/general", { timeout: 120000 });
+    cy.visit("/xp-settings/packs", { timeout: 120000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-item", "Home chores", { timeout: 60000 }).then(($item) => $item[0].scrollIntoView({ block: "center" }));
+    cy.contains("ion-card", "Home chores", { timeout: 60000 }).then(($card) => $card[0].scrollIntoView({ block: "center" }));
     // It sits next to Moving House, on screen above the bottom edge
-    cy.contains("ion-item", "Home chores").should(($item) => {
-      const box = $item[0].getBoundingClientRect();
-      expect(box.top, "row top").to.be.within(0, 700);
+    cy.contains("ion-card", "Home chores").should(($card) => {
+      const box = $card[0].getBoundingClientRect();
+      expect(box.top, "card top").to.be.within(0, 700);
     });
     shot("13-settings-home-chores");
-    cy.contains("ion-item", "Home chores").click();
+    cy.contains("ion-card", "Home chores").contains("ion-button", "Set up").click();
 
     cy.get(".home-chores-modal", { timeout: 20000 }).should("be.visible");
     // The Moving House pack is loaded (the move is two weeks out), so the first day is the day after it
@@ -293,35 +261,32 @@ describe("Moving House pack", () => {
     });
     cy.visit("/my-tasks/hero-1", { timeout: 120000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
+    cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
     // Max is a kid: his own and the shared chores are on his board, the grown-ups' are not
-    cy.get("ion-card#home-cupboard-kobold", { timeout: 30000 }).scrollIntoView().should("be.visible");
-    cy.get("ion-card#home-bed-basilisk").should("exist");
-    cy.get("ion-card#home-gravy-ghoul").should("not.exist");
-    cy.get("ion-card#home-grease-gorgon").should("not.exist");
+    cy.get("#home-cupboard-kobold", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.get("#home-bed-basilisk").should("exist");
+    cy.get("#home-gravy-ghoul").should("not.exist");
+    cy.get("#home-grease-gorgon").should("not.exist");
     shot("17-home-kid-board");
-    cy.get("ion-card#home-cupboard-kobold").click();
+    cy.get("#home-cupboard-kobold").click();
 
     // The card shows quest names in title case
-    cy.contains("ion-modal ion-card-title", /unload the dishwasher/i, { timeout: 20000 }).should("exist");
-    cy.wait(800);
-    cy.get("ion-modal ion-fab-button").first().should("be.visible");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!", { timeout: 20000 }).should("be.visible");
-    cy.wait(1200);
+    cy.contains("ion-modal.beast-card-modal", /unload the dishwasher/i, { timeout: 20000 }).should("exist");
+    cy.get("ion-modal.beast-card-modal [data-test=hunt]", { timeout: 20000 }).should("be.visible");
+    cy.wait(1200); // the sheet slides up
     shot("18-home-quest-detail");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").should("not.have.attr", "disabled");
-    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").click();
+    cy.get("ion-modal.beast-card-modal [data-test=hunt]").should("not.be.disabled").click();
 
     // The library beast's four chores are the attacks
     cy.location("pathname", { timeout: 30000 }).should("match", /^\/battle\/hero-1\//);
     cy.get(".battlefield", { timeout: 60000 }).should("exist");
     cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Cupboard Kobold");
     cy.get("[data-cy=hero-card]").should("contain", "Max");
-    cy.wait(600);
-    shot("19-home-battle-intro");
-    readUntilMenu(4);
+    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "Cupboard Kobold");
+    cy.screenshot("19-home-battle-intro", { capture: "viewport" });
+    waitForMenu();
     cy.get(".chores-left-label").should("have.text", "4 tasks left");
-    cy.contains(".menu-item", "Tackle").click();
+    tapAction("tackle");
     cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
     cy.get(".battle-task-item").should("have.length", 4);
     cy.contains(".battle-task-item", "Put away the plates and bowls").should("be.visible");
@@ -333,10 +298,10 @@ describe("Moving House pack", () => {
     cy.window().then((win) => {
       win.Math.random = () => 0.5;
     });
-    cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
-    cy.contains(".menu-item", "Run Away").click();
-    cy.get(".dialog-prompt").should("contain", "Run away?");
-    cy.contains(".menu-item", /^\s*Run\s*$/).click();
+    waitForMenu();
+    tapAction("run");
+    cy.get("[data-cy=radial-prompt]").should("contain", "Run away?");
+    tapAction("confirmRun");
     tapUntilSays("Got away safely");
     shot("22-home-got-away");
     tapDialog();
@@ -353,11 +318,11 @@ describe("Moving House pack", () => {
     });
     cy.visit("/my-tasks/hero-2", { timeout: 120000 });
     cy.tapToWakeAudio();
-    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
-    cy.get("ion-card#home-gravy-ghoul", { timeout: 30000 }).scrollIntoView().should("be.visible");
-    cy.get("ion-card#home-fang-fairy").should("exist");
-    cy.get("ion-card#home-cupboard-kobold").should("not.exist");
-    cy.get("ion-card#home-grease-gorgon").should("not.exist");
+    cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
+    cy.get("#home-gravy-ghoul", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.get("#home-fang-fairy").should("exist");
+    cy.get("#home-cupboard-kobold").should("not.exist");
+    cy.get("#home-grease-gorgon").should("not.exist");
     shot("21-home-little-board");
   });
 });

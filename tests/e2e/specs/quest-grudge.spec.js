@@ -5,39 +5,14 @@
 // Run (dev server on :8100 first):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/quest-grudge.spec.js
 
+import { readUntilMenu, runAway, tapAction, tapDialog, tapUntilSays, waitForMenu } from "../support/battle";
+
 const QUEST_ID = "quest-socks";
 const QUEST_FIGHT = `/battle/hero-1/quest/${QUEST_ID}`;
 
 const shot = (name) => {
   cy.wait(500);
   cy.screenshot(name, { capture: "viewport" });
-};
-const tapDialog = () => cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).click("center");
-/** Taps through whatever the box is saying until the command menu is back. */
-const readUntilMenu = (maxTaps = 8) => {
-  const step = (left) => {
-    cy.get("body").then(($body) => {
-      if ($body.find(".menu-item").length || left === 0) return;
-      tapDialog();
-      cy.wait(350);
-      step(left - 1);
-    });
-  };
-  step(maxTaps);
-  cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
-};
-/** Taps through the box until it says `text` (a line types out, and a tap finishes it before the next tap moves on). */
-const tapUntilSays = (text, maxTaps = 8) => {
-  const step = (left) => {
-    cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).then(($box) => {
-      if ($box.text().includes(text) || left === 0) return;
-      tapDialog();
-      cy.wait(350);
-      step(left - 1);
-    });
-  };
-  step(maxTaps);
-  cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", text);
 };
 
 /** Signs Max in (localStorage is cleared between tests) and opens the Socktopus quest fight at a middling roll. */
@@ -56,16 +31,7 @@ const enterQuestFight = () => {
   });
   cy.get(".battlefield", { timeout: 60000 }).should("exist");
   cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Socktopus");
-  cy.wait(400);
-  readUntilMenu(4);
-};
-
-/** Run Away, confirm, and tap through to the parting strike line. */
-const runAway = () => {
-  cy.contains(".menu-item", "Run Away").click();
-  cy.get(".dialog-prompt").should("contain", "Run away?");
-  cy.contains(".menu-item", /^\s*Run\s*$/).click();
-  tapUntilSays("flees!");
+  waitForMenu();
 };
 
 /** What each parting strike cost, in the order the fights ran. */
@@ -145,7 +111,7 @@ describe("Grudge marks", () => {
     shot("07-fourth-fight-three-marks");
 
     ["Sort the socks", "Match the pairs", "Put them away"].forEach((chore, index) => {
-      cy.contains(".menu-item", "Tackle").click();
+      tapAction("tackle");
       cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
       cy.contains(".battle-task-item", chore).click();
       cy.get("[data-cy=task-confirm]", { timeout: 5000 }).should("be.visible");

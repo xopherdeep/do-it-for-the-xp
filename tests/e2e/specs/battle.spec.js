@@ -2,31 +2,11 @@
 // Run (dev server on :8100 first):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
 
+import { finishChore, readUntilMenu, tapAction, waitForMenu } from "../support/battle";
+
 const shot = (name) => {
   cy.wait(500);
   cy.screenshot(name, { capture: "viewport" });
-};
-const tapDialog = () => cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).click("center");
-/** Taps through whatever the box is saying until the command menu is back. */
-const readUntilMenu = (maxTaps = 8) => {
-  const step = (left) => {
-    cy.get("body").then(($body) => {
-      if ($body.find(".menu-item").length || left === 0) return;
-      tapDialog();
-      cy.wait(350);
-      step(left - 1);
-    });
-  };
-  step(maxTaps);
-  cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
-};
-/** Opens the checklist and confirms one chore by name. */
-const finishChore = (name) => {
-  cy.contains(".menu-item", "Tackle").click();
-  cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
-  cy.contains(".battle-task-item", name).click();
-  cy.get("[data-cy=task-confirm]", { timeout: 5000 }).should("be.visible");
-  cy.wait(300); // Done! ignores taps for 250 ms after the row is selected (double-tap guard)
 };
 
 describe("Battle Field", () => {
@@ -41,12 +21,12 @@ describe("Battle Field", () => {
     cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Socktopus");
     cy.get("[data-cy=hero-card]").should("contain", "Max");
 
-    // Intro: the line types out (a tap finishes it), the next tap starts the fight.
-    cy.wait(400);
-    shot("01-intro-typing");
+    // Intro: the line types out and lingers on its own (about two seconds), then the command menu is up. Nothing is tapped.
+    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "From the dark forces");
+    cy.screenshot("01-intro-typing", { capture: "viewport" });
     cy.get("[data-cy=battle-dialog]").should("contain", "From the dark forces of chaos comes Socktopus!!!");
-    shot("02-intro-read");
-    readUntilMenu(3);
+    cy.screenshot("02-intro-read", { capture: "viewport" });
+    waitForMenu();
     cy.get(".chores-left-label").should("have.text", "3 tasks left");
     cy.get(".attack-timer-label").should("contain", ":");
     shot("03-menu");
@@ -62,22 +42,17 @@ describe("Battle Field", () => {
     readUntilMenu();
 
     // Run Away asks first: finished chores would not count.
-    cy.contains(".menu-item", "Run Away").click();
-    cy.get(".dialog-prompt").should("contain", "Run away?");
+    tapAction("run");
+    cy.get("[data-cy=radial-prompt]").should("contain", "Run away?");
     shot("06-run-confirm");
-    cy.contains(".menu-item", "Keep fighting").click();
-    cy.get(".menu-item").should("have.length", 5);
+    tapAction("keepFighting");
+    waitForMenu();
 
-    // Defend trades a glancing hit now for a fresh clock: the hit lands when the line is tapped away.
-    cy.contains(".menu-item", "Defend").click();
+    // Defend trades a glancing hit now for a fresh clock: its lines read themselves out, one after the other.
+    tapAction("defend");
     cy.get("[data-cy=battle-dialog]").should("contain", "braces!");
-    cy.wait(1300);
-    tapDialog();
-    cy.get("[data-cy=battle-dialog]", { timeout: 5000 }).should("contain", "attacks!");
-    tapDialog();
-    cy.wait(300);
-    tapDialog();
-    cy.get("[data-cy=battle-dialog]", { timeout: 5000 }).should("contain", "braced: only");
+    cy.get("[data-cy=battle-dialog]", { timeout: 8000 }).should("contain", "attacks!");
+    cy.get("[data-cy=battle-dialog]", { timeout: 8000 }).should("contain", "braced: only");
     shot("07-glancing-hit");
     readUntilMenu();
 
@@ -106,8 +81,7 @@ const enterFight = () => {
   cy.tapToWakeAudio();
   cy.get(".battlefield", { timeout: 60000 }).should("exist");
   cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Socktopus");
-  cy.wait(400);
-  readUntilMenu(3);
+  waitForMenu();
   cy.get(".attack-timer-label").should("contain", ":");
 };
 
@@ -118,8 +92,8 @@ describe("Battle Field: Goods and Powers", () => {
 
   it("Goods: a held tool buys time, an unheld one is refused and a potion heals", () => {
     // Goods opens My Goods in battle mode: the pack and the two held tools, one row each with a Use button.
-    cy.get(".menu-item").should("have.length", 5);
-    cy.contains(".menu-item", "Goods").click();
+    waitForMenu();
+    tapAction("goods");
     cy.get(".xp-inventory-modal", { timeout: 10000 }).should("be.visible");
     cy.contains(".goods-row", "Ice Wand", { timeout: 10000 }).should("be.visible");
     cy.contains(".goods-row", "Thor's Hammer").should("be.visible");
@@ -133,7 +107,7 @@ describe("Battle Field: Goods and Powers", () => {
     cy.get(".attack-timer-label").invoke("text").should("match", /^(18|19):\d\d$/);
 
     // Goods again: Sol's Flare lies in the pack, in neither hand, so its row says to hold it first and Use stays off.
-    cy.contains(".menu-item", "Goods").click();
+    tapAction("goods");
     cy.contains(".goods-row", "Sol's Flare", { timeout: 10000 }).as("flare").should("be.visible");
     cy.get("@flare").find(".goods-reason").should("contain", "Hold it in a hand before a fight.");
     cy.get("@flare").find(".goods-use-btn").should("be.disabled");
@@ -163,7 +137,7 @@ describe("Battle Field: Goods and Powers", () => {
       cy.wait(1500);
       cy.get(".attack-timer-label").invoke("text").should("not.eq", running);
     });
-    cy.contains(".menu-item", "Powers").click();
+    tapAction("powers");
     cy.get("[data-cy=powers-sheet]", { timeout: 10000 }).should("be.visible");
     cy.get("[data-cy=powers-sheet] .cast-btn", { timeout: 10000 }).should("have.length", 1).and("not.be.disabled");
     shot("12-powers");

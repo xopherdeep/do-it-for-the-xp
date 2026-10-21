@@ -56,6 +56,16 @@ Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = 
   });
 });
 
+/**
+ * Brings the subject to the middle of the screen with the browser's own scrollIntoView. Cypress's `.scrollIntoView()` does
+ * not reach the scroller inside `ion-content` (a shadow root), so a row below the fold stays "not visible" and `click()`
+ * scrolls it under the fixed header. This one scrolls the page's real scroller.
+ */
+Cypress.Commands.add("scrollToCenter", { prevSubject: "element" }, (subject) => {
+  subject[0].scrollIntoView({ block: "center" });
+  return cy.wrap(subject, { log: false });
+});
+
 /** Marks the page as user-interacted so the app's sound effects do not throw autoplay errors. */
 Cypress.Commands.add("tapToWakeAudio", () => {
   cy.document().then((doc) => doc.documentElement.setAttribute("data-user-interacted", "true"));
