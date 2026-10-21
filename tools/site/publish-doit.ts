@@ -123,7 +123,8 @@ function parseJsonOrNull(text: string): any {
 async function readReply<T>(res: Response): Promise<T> {
   const text = await res.text();
   const data = parseJsonOrNull(text);
-  if (!res.ok) {
+  const responseOk = res.ok;
+  if (!responseOk) {
     const code = data?.code ?? "http_error";
     const message = data?.message ?? text.slice(0, 200);
     throw new WpError(res.status, code, message);
@@ -439,7 +440,8 @@ export async function main(): Promise<void> {
     const options = readOptions(process.argv.slice(2));
     const credentials = pickAuth(options.site, parseEnvFile(readFileSync(options.envFile, "utf8")));
     const auth: SiteAuth = { ...credentials, site: options.site };
-    if (options.rollback) {
+    const shouldRollback = options.rollback;
+    if (shouldRollback) {
       await rollback(auth);
     } else {
       await publish(auth, options.dryRun);

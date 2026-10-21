@@ -15,13 +15,21 @@ export class WpError extends Error {
 // WordPress answers 404 rest_template_not_found when the theme owning the template is not the active one.
 export function isMissingTemplate(error: unknown): boolean {
   const isSiteError = error instanceof WpError;
-  return isSiteError && error.status === 404 && error.code === "rest_template_not_found";
+  if (!isSiteError) {
+    return false;
+  }
+  const isStatus404 = error.status === 404;
+  const isTemplateNotFound = error.code === "rest_template_not_found";
+  return isStatus404 && isTemplateNotFound;
 }
 
 export function frontPageKept(settings: { show_on_front: string; page_on_front: number }, homeId: number): boolean {
   const showsPage = settings.show_on_front === "page";
   const pointsAtHome = settings.page_on_front === homeId;
-  return showsPage && pointsAtHome;
+  if (!showsPage) {
+    return false;
+  }
+  return pointsAtHome;
 }
 
 const LOCAL_HOSTS = ["mycompass", "localhost", "127.0.0.1"];
