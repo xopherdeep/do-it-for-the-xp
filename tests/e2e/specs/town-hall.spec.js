@@ -170,6 +170,9 @@ describe("Town Hall", () => {
     cy.intercept("GET", "**/wp/v2/posts?_embed*", { statusCode: 503, body: { code: "down" }, headers: CORS }).as("newsDown");
     openTownHall("hero-1");
     cy.contains("[data-cy=reveal-text]", "The courier hasn't arrived", { timeout: 30000 });
+    // The clerk adds that the family's road to the city is not open yet: skip to that last line, where "Try again" waits
+    cy.get("[data-cy=reveal-skip]").click();
+    cy.contains("[data-cy=reveal-text]", "The family's road to the city isn't open yet", { timeout: 20000 });
     cy.get("[data-cy=reveal-choice-retry]", { timeout: 20000 }).should("not.be.disabled");
     cy.screenshot("town-hall-06-courier-late", { capture: "viewport" });
   });
@@ -182,6 +185,7 @@ describe("Town Hall", () => {
       else req.reply(json([post(103, "Back on the road", "The courier made it.")], { "X-WP-TotalPages": "1" }));
     }).as("newsRetry");
     openTownHall("hero-1");
+    cy.get("[data-cy=reveal-skip]", { timeout: 30000 }).click(); // the road-closed line is the last of two, and the choices wait under it
     cy.get("[data-cy=reveal-choice-retry]", { timeout: 30000 }).should("not.be.disabled").click();
     cy.contains("[data-cy=th-post]", "Back on the road", { timeout: 20000 });
   });
@@ -504,8 +508,8 @@ describe("Town Hall", () => {
         cy.get("@topicPost.all").should("have.length", 0);
 
         openAs("gm-1", approvalsPath);
-        cy.get("ion-segment-button[value=town-hall]", { timeout: 30000 }).click();
-        cy.contains("ion-segment-button[value=town-hall] ion-badge", "1");
+        cy.contains("ion-segment-button", "Town Hall", { timeout: 30000 }).click(); // the segment's value is a property, not an attribute
+        cy.contains("ion-segment-button", "Town Hall").find("ion-badge").should("contain", "1");
         cy.contains("[data-cy=th-approval]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
           cy.contains("[data-cy=th-approval-hero]", "Max");
           cy.contains("[data-cy=th-approval-signature]", SIGNATURE);
@@ -580,7 +584,7 @@ describe("Town Hall", () => {
         dismissNotice();
 
         openAs("gm-1", approvalsPath);
-        cy.get("ion-segment-button[value=town-hall]", { timeout: 30000 }).click();
+        cy.contains("ion-segment-button", "Town Hall", { timeout: 30000 }).click();
         cy.contains("[data-cy=th-approval]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
           cy.get("[data-cy=th-approve]").click();
         });
