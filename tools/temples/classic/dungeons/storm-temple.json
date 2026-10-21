@@ -1,0 +1,450 @@
+{
+  "id": "storm-temple",
+  "source": "LTTP Tower of Hera",
+  "floors": [
+    {
+      "name": "B1",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera Tile Room",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Hera Tridorm",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Hera Basement Cage",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "chest": "small-key",
+          "stairs": {
+            "to": "1F",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Hera Torches",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "big-key",
+          "puzzle": true
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera Back",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "map",
+          "stairs": {
+            "to": "B1",
+            "row": 0,
+            "col": 0,
+            "lock": "small-key"
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Hera Back",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Hera Lobby",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "entrance": true,
+          "stairs": {
+            "to": "B1",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Hera Up Stairs Landing",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "2F",
+            "row": 1,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "2F",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera Startile Wide",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "hole": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Hera Startile Wide",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "3F",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Hera Startile Corner",
+          "sides": {
+            "north": "big-key",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "hole": {
+            "to": "1F",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Hera Beetles",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 1,
+            "col": 1
+          },
+          "hole": {
+            "to": "1F",
+            "row": 1,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "3F",
+      "rows": 17,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera 4F",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "chest": "big-chest",
+          "stairs": {
+            "to": "4F",
+            "row": 0,
+            "col": 0
+          },
+          "hole": {
+            "to": "2F",
+            "row": 0,
+            "col": 0
+          },
+          "teleport": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Hera 4F",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1,
+          "chest": "compass",
+          "stairs": {
+            "to": "2F",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Hera 4F",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Hera 4F",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 16,
+          "col": 0,
+          "room": "Hera Fairies",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "4F",
+            "row": 0,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "4F",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera 5F",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "3F",
+            "row": 0,
+            "col": 0
+          },
+          "hole": {
+            "to": "3F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Hera 5F",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "5F",
+            "row": 0,
+            "col": 0
+          },
+          "hole": {
+            "to": "3F",
+            "row": 16,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Hera 5F",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Hera 5F",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        }
+      ]
+    },
+    {
+      "name": "5F",
+      "rows": 1,
+      "cols": 1,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Hera Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true,
+          "stairs": {
+            "to": "4F",
+            "row": 0,
+            "col": 1
+          },
+          "hole": {
+            "to": "4F",
+            "row": 0,
+            "col": 1
+          },
+          "teleport": {
+            "to": "3F",
+            "row": 0,
+            "col": 1
+          }
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B1": 4,
+      "1F": 4,
+      "2F": 4,
+      "3F": 5,
+      "4F": 4,
+      "5F": 1
+    },
+    "mustClear": 3,
+    "side": 6,
+    "smallKeys": 1,
+    "smallLocks": 1
+  }
+}

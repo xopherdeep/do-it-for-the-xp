@@ -1,0 +1,7 @@
+{
+  "note": "Two interior doors of supertile 0x16 land on one cell edge under the Mid-takes-the-first-half rule: Swamp Waterway NW <-> Swamp T SW (small key, Position.InteriorW, the west half) and Swamp Waterway N <-> Swamp I S (bomb wall, Position.InteriorV, the middle of the wall). The bomb pair moves to the east half, where the Waterway's NE door and Swamp I's second screen already are.",
+  "doors": {
+    "Swamp Waterway N": ["0x16", 1, 1],
+    "Swamp I S": ["0x16", 0, 1]
+  }
+}

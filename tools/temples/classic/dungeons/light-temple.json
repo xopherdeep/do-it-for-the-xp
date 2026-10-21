@@ -1,0 +1,485 @@
+{
+  "id": "light-temple",
+  "source": "LTTP Desert Palace",
+  "floors": [
+    {
+      "name": "1F",
+      "rows": 6,
+      "cols": 6,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Desert Tiles 1",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "potKey": true,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "2F",
+            "row": 3,
+            "col": 0,
+            "lock": "small-key"
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Desert Back Lobby",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "teleport": {
+            "to": "1F",
+            "row": 5,
+            "col": 2
+          }
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "Desert Big Chest Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-chest",
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Desert Bonk Torch",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "small-key",
+          "puzzle": true
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "Desert Map Room",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "map",
+          "puzzle": true
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "room": "Desert Map Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "room": "Desert Trap Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 5,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "Desert Circle of Pots",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "Desert Sandworm Corner",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 4,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "Desert Dead End",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "room": "Desert Dead End",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "room": "Desert Arrow Pot Corner",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "room": "Desert Cannonball",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-key"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "room": "Desert Fairy Fountain",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "room": "Desert West Wing",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "room": "Desert Main Lobby",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "room": "Desert Main Lobby",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "room": "Desert East Wing",
+          "sides": {
+            "north": "open",
+            "east": "small-key",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "room": "Desert Compass Room",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 3,
+          "chest": "compass",
+          "shutter": true
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "room": "Desert West Lobby",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "teleport": {
+            "to": "1F",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "room": "Desert West Wing",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "Desert Main Lobby",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "entrance": true,
+          "teleport": {
+            "to": "1F",
+            "row": 5,
+            "col": 5
+          }
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "Desert Main Lobby",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "room": "Desert East Wing",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "room": "Desert East Lobby",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "1F",
+            "row": 5,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "2F",
+      "rows": 5,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Desert Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Desert Wall Slide",
+          "sides": {
+            "north": "big-key",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Desert Wall Slide",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "small-key",
+            "west": "open"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Desert Tiles 2",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "potKey": true,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "Desert Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "Desert Beamos Hall",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "potKey": true
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "room": "Desert Four Statues",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "shutter": true
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "room": "Desert Beamos Hall",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 2,
+          "shutter": true
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "1F": 25,
+      "2F": 8
+    },
+    "mustClear": 6,
+    "side": 6,
+    "smallKeys": 4,
+    "smallLocks": 4
+  }
+}

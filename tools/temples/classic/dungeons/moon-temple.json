@@ -1,0 +1,1267 @@
+{
+  "id": "moon-temple",
+  "source": "LTTP Ganons Tower",
+  "floors": [
+    {
+      "name": "B2",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "GT Fairy Abyss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "bomb",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Big Key Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-key",
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "GT Four Torches",
+          "sides": {
+            "north": "bomb",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 3,
+            "col": 2
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Ice Armos",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "rows": 6,
+      "cols": 6,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "GT Conveyor Star Pits",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Conveyor Star Pits",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "potKey": true
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "GT Falling Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "small-key"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "room": "GT Firesnake Room",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "small-key"
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "room": "GT Firesnake Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "GT DMs Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "chest": "other",
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Hidden Star",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "teleport": {
+            "to": "B1",
+            "row": 5,
+            "col": 4
+          }
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "GT Falling Bridge",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "GT Randomizer Room",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "other"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "room": "GT Warp Maze - Rail Choice",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "wall",
+            "west": "bomb"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "B1",
+            "row": 5,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "room": "GT Warp Maze - Pot Rail",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "shutter": true,
+          "teleport": {
+            "to": "B1",
+            "row": 5,
+            "col": 1
+          }
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "GT Hookshot Mid Platform",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "GT Conveyor Cross",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "potKey": true,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "GT Bob's Torch",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "shutter",
+            "west": "open"
+          },
+          "enemies": 2,
+          "chest": "small-key",
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "room": "GT Hope Room",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 0,
+          "chest": "other",
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "room": "GT Tile Room",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "chest": "small-key",
+          "puzzle": true
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "room": "GT Speed Torch Upper",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "item",
+            "west": "small-key"
+          },
+          "enemies": 1,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "GT Hookshot Mid Platform",
+          "sides": {
+            "north": "open",
+            "east": "small-key",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "GT Map Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 0,
+          "chest": "map"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "GT Big Chest",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-chest",
+          "shutter": true,
+          "stairs": {
+            "to": "B2",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "room": "GT Bob's Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "other",
+          "hole": {
+            "to": "B2",
+            "row": 1,
+            "col": 1
+          }
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "room": "GT Pots n Blocks",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "room": "GT Speed Torch",
+          "sides": {
+            "north": "item",
+            "east": "wall",
+            "south": "shutter",
+            "west": "open"
+          },
+          "enemies": 3,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "room": "GT Double Switch Entry",
+          "sides": {
+            "north": "open",
+            "east": "small-key",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "potKey": true,
+          "puzzle": true
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "room": "GT Spike Crystal Left",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "B1",
+            "row": 0,
+            "col": 4
+          }
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "room": "GT Invisible Catwalk",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "room": "GT Invisible Catwalk",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "room": "GT Compass Room",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "compass",
+          "teleport": {
+            "to": "B1",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "room": "GT Crystal Conveyor",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "room": "GT Warp Maze - Mid Section",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "B1",
+            "row": 1,
+            "col": 4
+          }
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "room": "GT Warp Maze - Pit Section",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "teleport": {
+            "to": "B1",
+            "row": 1,
+            "col": 5
+          }
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "GT Invisible Catwalk",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "GT Invisible Catwalk",
+          "sides": {
+            "north": "open",
+            "east": "shutter",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "room": "GT Invisible Bridges",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "room": "GT Invisible Bridges",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "GT Lobby",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "B1",
+            "row": 2,
+            "col": 2
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Lobby",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "2F",
+            "row": 2,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "GT Lobby",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "entrance": true,
+          "stairs": {
+            "to": "B1",
+            "row": 2,
+            "col": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "2F",
+      "rows": 4,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Hidden Spikes",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "shutter": true
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "GT Cannonball Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "room": "GT Cannonball Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "bomb",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "3F",
+            "row": 0,
+            "col": 3
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Hidden Spikes",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "GT Refill",
+          "sides": {
+            "north": "bomb",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "GT Crystal Paths",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "GT Dash Hall",
+          "sides": {
+            "north": "big-key",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "GT Mimics 1",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "GT Mimics 2",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 2,
+          "shutter": true
+        }
+      ]
+    },
+    {
+      "name": "3F",
+      "rows": 4,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 2,
+          "room": "GT Gauntlet 2",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "room": "GT Gauntlet 1",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 4,
+          "shutter": true,
+          "stairs": {
+            "to": "2F",
+            "row": 0,
+            "col": 3
+          }
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "GT Gauntlet 3",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "GT Quad Pot",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "stairs": {
+            "to": "4F",
+            "row": 2,
+            "col": 0
+          }
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "GT Gauntlet 4",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "GT Lanmolas 2",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "GT Beam Dash",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "GT Gauntlet 5",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 2,
+          "shutter": true
+        }
+      ]
+    },
+    {
+      "name": "4F",
+      "rows": 4,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Conveyor Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 4
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "GT Torch Cross",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 0,
+          "puzzle": true
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Conveyor Bridge",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "GT Torch Cross",
+          "sides": {
+            "north": "open",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "GT Staredown",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "stairs": {
+            "to": "5F",
+            "row": 1,
+            "col": 2
+          }
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "GT Wizzrobes 1",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "stairs": {
+            "to": "3F",
+            "row": 2,
+            "col": 0
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "GT Wizzrobes 2",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "GT Moldorm Pit",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "room": "GT Moldorm Pit",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "5F",
+            "row": 2,
+            "col": 2
+          }
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "GT Dashing Bridge",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "GT Dashing Bridge",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2,
+          "shutter": true
+        }
+      ]
+    },
+    {
+      "name": "5F",
+      "rows": 4,
+      "cols": 3,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "GT Bomb Conveyor",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "bomb",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "GT Mini Helmasaur Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "small-key"
+          },
+          "enemies": 2,
+          "chest": "other",
+          "keyDrop": "small",
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Crystal Circles",
+          "sides": {
+            "north": "bomb",
+            "east": "wall",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "chest": "small-key"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "GT Falling Torches",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "4F",
+            "row": 1,
+            "col": 3
+          },
+          "hole": {
+            "to": "4F",
+            "row": 1,
+            "col": 3
+          }
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "GT Frozen Over",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "stairs": {
+            "to": "6F",
+            "row": 1,
+            "col": 1
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "GT Left Moldorm Ledge",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "hole": {
+            "to": "4F",
+            "row": 2,
+            "col": 2
+          }
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "GT Right Moldorm Ledge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "4F",
+            "row": 2,
+            "col": 3
+          }
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "GT Frozen Over",
+          "sides": {
+            "north": "open",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "GT Validation Door",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "chest": "other"
+        }
+      ]
+    },
+    {
+      "name": "6F",
+      "rows": 2,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "GT Agahnim 2",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "GT Brightly Lit Hall",
+          "sides": {
+            "north": "big-key",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "GT Brightly Lit Hall",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "5F",
+            "row": 2,
+            "col": 0
+          }
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B2": 4,
+      "B1": 35,
+      "1F": 3,
+      "2F": 9,
+      "3F": 8,
+      "4F": 11,
+      "5F": 9,
+      "6F": 3
+    },
+    "mustClear": 19,
+    "side": 16,
+    "smallKeys": 8,
+    "smallLocks": 8
+  }
+}
