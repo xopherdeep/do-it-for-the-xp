@@ -1,0 +1,664 @@
+{
+  "id": "water-temple",
+  "source": "LTTP Swamp Palace",
+  "floors": [
+    {
+      "name": "B2",
+      "rows": 4,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Swamp Refill",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Swamp Behind Waterfall",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "stairs": {
+            "to": "B1",
+            "row": 1,
+            "col": 5
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Swamp Waterfall Room",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "other"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Swamp Waterfall Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "Swamp Basement Shallows",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Swamp Drain Left",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "stairs": {
+            "to": "B1",
+            "row": 3,
+            "col": 5
+          }
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "Swamp Basement Shallows",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "Swamp Flooded Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2,
+          "chest": "other",
+          "stairs": {
+            "to": "B1",
+            "row": 4,
+            "col": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "rows": 9,
+      "cols": 9,
+      "cells": [
+        {
+          "row": 0,
+          "col": 4,
+          "room": "Swamp Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "room": "Swamp I",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "room": "Swamp I",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "bomb",
+            "west": "open"
+          },
+          "enemies": 4,
+          "stairs": {
+            "to": "B2",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "room": "Swamp Waterway",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "room": "Swamp Waterway",
+          "sides": {
+            "north": "bomb",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "potKey": true
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "room": "Swamp Shooters",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "room": "Swamp Left Elbow",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "open"
+          },
+          "enemies": 1,
+          "shutter": true,
+          "stairs": {
+            "to": "B2",
+            "row": 2,
+            "col": 1
+          }
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "room": "Swamp Push Statue",
+          "sides": {
+            "north": "shutter",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "room": "Swamp Push Statue",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "B2",
+            "row": 3,
+            "col": 1
+          }
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "room": "Swamp West Shallows",
+          "sides": {
+            "north": "wall",
+            "east": "item",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "chest": "other"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "room": "Swamp Barrier Ledge",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "item",
+            "west": "item"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "Swamp Trench 2 Alcove",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 0,
+          "chest": "big-key",
+          "potKey": true
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "Swamp Crystal Switch Outer",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "puzzle": true
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "room": "Swamp Hub",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "open",
+            "west": "small-key"
+          },
+          "enemies": 1,
+          "chest": "big-chest"
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "room": "Swamp Hub",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 5,
+          "col": 6,
+          "room": "Swamp Trench 1 Alcove",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "small-key",
+            "west": "bomb"
+          },
+          "enemies": 2,
+          "potKey": true,
+          "puzzle": true
+        },
+        {
+          "row": 5,
+          "col": 7,
+          "room": "Swamp Map Ledge",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "map"
+        },
+        {
+          "row": 5,
+          "col": 8,
+          "room": "Swamp Pot Row",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "bomb"
+          },
+          "enemies": 2,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 8
+          }
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "room": "Swamp West Shallows",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "1F",
+            "row": 7,
+            "col": 0
+          }
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "room": "Swamp West Shallows",
+          "sides": {
+            "north": "item",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "room": "Swamp Trench 2 Blocks",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "room": "Swamp Shortcut",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "room": "Swamp Hub",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 6,
+          "col": 5,
+          "room": "Swamp Hub",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "potKey": true
+        },
+        {
+          "row": 6,
+          "col": 6,
+          "room": "Swamp Trench 1 Nexus",
+          "sides": {
+            "north": "small-key",
+            "east": "item",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 6,
+          "col": 7,
+          "room": "Swamp Trench 1 Approach",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "wall",
+            "west": "item"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 6,
+          "col": 8,
+          "room": "Swamp Pot Row",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 1,
+          "potKey": true
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "room": "Swamp Donut Top",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "compass"
+        },
+        {
+          "row": 7,
+          "col": 5,
+          "room": "Swamp Donut Top",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 8,
+          "col": 4,
+          "room": "Swamp Donut Bottom",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 8,
+          "col": 5,
+          "room": "Swamp Donut Bottom",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 8,
+      "cols": 9,
+      "cells": [
+        {
+          "row": 0,
+          "col": 8,
+          "room": "Swamp Entrance",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "chest": "small-key",
+          "stairs": {
+            "to": "B1",
+            "row": 5,
+            "col": 8,
+            "lock": "small-key"
+          }
+        },
+        {
+          "row": 1,
+          "col": 8,
+          "room": "Swamp Entrance",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "entrance": true
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "room": "Swamp Attic",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "hole": {
+            "to": "B1",
+            "row": 5,
+            "col": 1
+          }
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "room": "Swamp Attic",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1,
+          "hole": {
+            "to": "B1",
+            "row": 5,
+            "col": 0
+          }
+        },
+        {
+          "row": 7,
+          "col": 0,
+          "room": "Swamp Attic",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "B1",
+            "row": 6,
+            "col": 0
+          }
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "room": "Swamp Attic",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B2": 8,
+      "B1": 31,
+      "1F": 6
+    },
+    "mustClear": 3,
+    "side": 20,
+    "smallKeys": 6,
+    "smallLocks": 6
+  }
+}

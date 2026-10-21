@@ -3,8 +3,10 @@
  * shipped temple, its sleeping monster templates wake for that hero, as the Temple Quests tab would wake them (Solo
  * Missions starting this Monday). A beast whose woken quest already exists for another hero takes this hero in (added
  * to its assignees) instead of a second quest. Miniboss and boss rooms never wake by themselves. The wake is
- * remembered per hero per temple on the hero's questEffects, so walking in again wakes nothing and a quest the Game
- * Master deleted is not made again. The plan is pure; only `commitEntryWake` writes, through the writers it is handed.
+ * remembered per hero per temple floor on the hero's questEffects, so walking in again wakes nothing and a quest the
+ * Game Master deleted is not made again. Walking in wakes only the entrance floor; every other floor wakes the first
+ * time the hero arrives on it (owner 2026-10-19). The plan is pure; only `commitEntryWake` writes, through the writers
+ * it is handed.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
@@ -15,15 +17,18 @@ import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
 import {
   WOKEN_TEMPLES_FIELD,
   commitEntryWake,
+  entranceFloorOf,
   entryWakeSkip,
   isShippedTemple,
   rememberWake,
+  wakeKey,
   wakeOnEntryPlan,
   wakeTempleOnEntry,
   wasWokenFor,
   type EntryHero,
   type EntryWakeDeps,
   type EntryWakeInput,
+  type PlayedLayout,
 } from "@/lib/services/temples/wakeOnEntry";
 import { isWokenQuest, wakeQuestId } from "@/lib/services/temples/wakeTempleQuests";
 
@@ -35,6 +40,20 @@ const MONDAY = new Date("2026-10-12T00:00:00");
 /** A fresh copy of the shipped Howling Spire */
 const spire = (): QuestLayout & { entrance: number[] } =>
   JSON.parse(JSON.stringify({ entrance: windTemple.entrance, maze: windTemple.maze, rooms: windTemple.rooms }));
+
+/** The beasts of the three monster rooms on the tower's second floor */
+const UPSTAIRS = ["beast-kibble-kobold", "beast-droop-dryad", "beast-zoomie-zephyr"];
+
+const monsterRoom = (beastId: string, difficulty = 1): Room =>
+  ({ type: "monster", content: { beasts: [], quest: { beastId, difficulty, basicSchedule: "daily", dueByTime: "19:00" } } }) as unknown as Room;
+
+/** The Spire grown into a tower: its own 1F, a 2F with three monster rooms of its own, and a 3F with no monster room at all */
+const tower = (): PlayedLayout => {
+  const layout = spire();
+  layout.rooms = { ...layout.rooms, U1: monsterRoom(UPSTAIRS[0]), U2: monsterRoom(UPSTAIRS[1]), U3: monsterRoom(UPSTAIRS[2], 2) };
+  layout.maze = { ...(layout.maze as Record<string, string[][]>), "2F": [["U1", "U2"], ["U3", "_____"]], "3F": [["R0103"]] };
+  return layout;
+};
 
 /** The six monster rooms' beasts, and the miniboss and boss rooms' */
 const MONSTERS = ["beast-cushion-croc", "beast-gravel-gnome", "beast-crumb-crawler", "beast-mailbox-mimic", "beast-spill-sprite", "beast-mustwisp"];
@@ -60,6 +79,7 @@ const input = (overrides: Partial<EntryWakeInput> = {}): EntryWakeInput => ({
   templeId: "wind-temple",
   isShipped: true,
   layout: spire(),
+  floor: "1F",
   hero: hero(),
   quests: [],
   beasts: [],
@@ -70,37 +90,86 @@ const input = (overrides: Partial<EntryWakeInput> = {}): EntryWakeInput => ({
 const beastsOf = (quests: readonly Achievement[]) => quests.map((made) => String(made.beastId)).sort();
 
 describe("remembering a wake", () => {
-  it("is a temple id and the moment it woke, kept on the hero's questEffects beside the Powers' effects", () => {
-    const effects = rememberWake({ snoozedOn: { q1: "2026-10-14" } }, "wind-temple", WED);
-    expect(effects).toEqual({ snoozedOn: { q1: "2026-10-14" }, [WOKEN_TEMPLES_FIELD]: { "wind-temple": WED.toISOString() } });
-    expect(wasWokenFor(effects, "wind-temple")).toBe(true);
-    expect(wasWokenFor(effects, "fire-temple")).toBe(false);
+  it("is a temple id, a floor and the moment it woke, kept on the hero's questEffects beside the Powers' effects", () => {
+    const effects = rememberWake({ snoozedOn: { q1: "2026-10-14" } }, "wind-temple", "1F", WED);
+    expect(effects).toEqual({ snoozedOn: { q1: "2026-10-14" }, [WOKEN_TEMPLES_FIELD]: { "wind-temple@1F": WED.toISOString() } });
+    expect(wasWokenFor(effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(effects, "fire-temple", "1F", "1F")).toBe(false);
   });
 
-  it("adds a temple to the ones already woken and never changes the effects it is handed", () => {
-    const before = { [WOKEN_TEMPLES_FIELD]: { "fire-temple": "2026-10-01T00:00:00.000Z" } };
-    const after = rememberWake(before, "wind-temple", WED);
-    expect(after[WOKEN_TEMPLES_FIELD]).toEqual({ "fire-temple": "2026-10-01T00:00:00.000Z", "wind-temple": WED.toISOString() });
-    expect(before[WOKEN_TEMPLES_FIELD]).toEqual({ "fire-temple": "2026-10-01T00:00:00.000Z" });
+  it("names a wake by temple and floor", () => {
+    expect(wakeKey("wind-temple", "2F")).toBe("wind-temple@2F");
+    expect(wakeKey("earth-temple", "B1")).toBe("earth-temple@B1");
+  });
+
+  it("adds a floor to the ones already woken and never changes the effects it is handed", () => {
+    const before = { [WOKEN_TEMPLES_FIELD]: { "fire-temple@1F": "2026-10-01T00:00:00.000Z" } };
+    const after = rememberWake(before, "wind-temple", "2F", WED);
+    expect(after[WOKEN_TEMPLES_FIELD]).toEqual({ "fire-temple@1F": "2026-10-01T00:00:00.000Z", "wind-temple@2F": WED.toISOString() });
+    expect(before[WOKEN_TEMPLES_FIELD]).toEqual({ "fire-temple@1F": "2026-10-01T00:00:00.000Z" });
+  });
+
+  it("remembers each floor of a temple on its own", () => {
+    const effects = rememberWake({}, "wind-temple", "1F", WED);
+    expect(wasWokenFor(effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(effects, "wind-temple", "2F", "1F")).toBe(false);
+    expect(wasWokenFor(effects, "earth-temple", "1F", "1F")).toBe(false);
+  });
+
+  it("reads a wake remembered by temple alone (before floors) as the entrance floor's, and no other floor's", () => {
+    const legacy = { [WOKEN_TEMPLES_FIELD]: { "wind-temple": "2026-10-01T00:00:00.000Z" } };
+    expect(wasWokenFor(legacy, "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(legacy, "wind-temple", "2F", "1F")).toBe(false);
+    // The entrance floor is whatever the layout says: a temple that starts on 2F has its legacy wake there
+    expect(wasWokenFor(legacy, "wind-temple", "2F", "2F")).toBe(true);
+    expect(wasWokenFor(legacy, "wind-temple", "1F", "2F")).toBe(false);
   });
 
   it("reads nothing as woken from effects that are missing or not a record", () => {
-    expect(wasWokenFor(undefined, "wind-temple")).toBe(false);
-    expect(wasWokenFor(null, "wind-temple")).toBe(false);
+    expect(wasWokenFor(undefined, "wind-temple", "1F", "1F")).toBe(false);
+    expect(wasWokenFor(null, "wind-temple", "1F", "1F")).toBe(false);
     // A stored profile is family data: a broken field reads as nothing woken
-    expect(wasWokenFor({ [WOKEN_TEMPLES_FIELD]: ["wind-temple"] } as unknown as HeroQuestEffects, "wind-temple")).toBe(false);
-    expect(rememberWake(undefined, "wind-temple", WED)).toEqual({ [WOKEN_TEMPLES_FIELD]: { "wind-temple": WED.toISOString() } });
+    expect(wasWokenFor({ [WOKEN_TEMPLES_FIELD]: ["wind-temple"] } as unknown as HeroQuestEffects, "wind-temple", "1F", "1F")).toBe(false);
+    expect(rememberWake(undefined, "wind-temple", "1F", WED)).toEqual({ [WOKEN_TEMPLES_FIELD]: { "wind-temple@1F": WED.toISOString() } });
+  });
+});
+
+describe("entranceFloorOf", () => {
+  it("is the first floor for an entrance given as [row, col], and for a temple drawn as one grid", () => {
+    expect(entranceFloorOf(spire())).toBe("1F");
+    expect(entranceFloorOf({ entrance: [0, 0], maze: [["E"]], rooms: {} })).toBe("1F");
+    // The editor allows floors named 2F, 3F: the first floor the temple has
+    expect(entranceFloorOf({ entrance: [1, 1], maze: { "2F": [], "3F": [] }, rooms: {} })).toBe("2F");
+  });
+
+  it("is the floor an entrance of [floorIndex, row, col] counts to, in the order the maze draws them", () => {
+    const layout = { ...tower(), entrance: [1, 0, 0] };
+    expect(entranceFloorOf(layout)).toBe("2F");
+    expect(entranceFloorOf({ ...layout, entrance: [2, 0, 0] })).toBe("3F");
+  });
+
+  it("is the first floor when the entrance counts to a floor the temple does not have", () => {
+    expect(entranceFloorOf({ ...tower(), entrance: [9, 0, 0] })).toBe("1F");
+  });
+
+  it("is 1F for a layout with no entrance or no maze", () => {
+    expect(entranceFloorOf({ maze: { "1F": [["E"]] }, rooms: {} })).toBe("1F");
+    expect(entranceFloorOf({ rooms: {} })).toBe("1F");
+    expect(entranceFloorOf(null)).toBe("1F");
   });
 });
 
 describe("entryWakeSkip", () => {
   it("wakes only a shipped temple, for a hero of the family who was never woken there", () => {
-    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: hero() })).toBeNull();
-    expect(entryWakeSkip({ templeId: "gen-move-house", isShipped: false, hero: hero() })).toBe("notShipped");
-    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: null })).toBe("noHero");
-    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: hero({ isAdult: true }) })).toBe("gameMaster");
-    const woken = hero({ questEffects: rememberWake({}, "wind-temple", WED) });
-    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: woken })).toBe("alreadyWoken");
+    const where = { floor: "1F", entranceFloor: "1F" };
+    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: hero(), ...where })).toBeNull();
+    expect(entryWakeSkip({ templeId: "gen-move-house", isShipped: false, hero: hero(), ...where })).toBe("notShipped");
+    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: null, ...where })).toBe("noHero");
+    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: hero({ isAdult: true }), ...where })).toBe("gameMaster");
+    const woken = hero({ questEffects: rememberWake({}, "wind-temple", "1F", WED) });
+    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: woken, ...where })).toBe("alreadyWoken");
+    // Another floor of the same temple is still asleep
+    expect(entryWakeSkip({ templeId: "wind-temple", isShipped: true, hero: woken, floor: "2F", entranceFloor: "1F" })).toBeNull();
   });
 
   it("knows the nine shipped temples", () => {
@@ -146,10 +215,11 @@ describe("wakeOnEntryPlan", () => {
     expect(plan.beasts.map((beast) => String(beast.id)).sort()).toEqual([...MONSTERS].sort());
   });
 
-  it("remembers the temple on the hero's questEffects, keeping their Powers' effects", () => {
+  it("remembers the floor on the hero's questEffects, keeping their Powers' effects", () => {
     const plan = wakeOnEntryPlan(input({ hero: hero({ questEffects: { trustedUntil: "2026-10-14T16:00:00.000Z" } }) }));
     expect(plan.effects).toMatchObject({ trustedUntil: "2026-10-14T16:00:00.000Z" });
-    expect(wasWokenFor(plan.effects, "wind-temple")).toBe(true);
+    expect(wasWokenFor(plan.effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(plan.floor).toBe("1F");
   });
 
   describe("a beast already woken for another hero", () => {
@@ -262,6 +332,97 @@ describe("wakeOnEntryPlan", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Floor by floor
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("waking floor by floor", () => {
+  const onFloor = (floor: string, overrides: Partial<EntryWakeInput> = {}) => wakeOnEntryPlan(input({ layout: tower(), floor, ...overrides }));
+
+  it("the first entry wakes only the entrance floor's beasts", () => {
+    const plan = onFloor("1F");
+    expect(plan.skip).toBeNull();
+    expect(beastsOf(plan.quests)).toEqual([...MONSTERS].sort());
+    for (const beastId of UPSTAIRS) expect(beastsOf(plan.quests)).not.toContain(beastId);
+    expect(wasWokenFor(plan.effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(plan.effects, "wind-temple", "2F", "1F")).toBe(false);
+  });
+
+  it("arriving on 2F wakes 2F's beasts, and keeps what 1F remembered", () => {
+    const first = onFloor("1F");
+    const plan = onFloor("2F", { hero: hero({ questEffects: first.effects ?? undefined }), quests: first.quests });
+    expect(plan.skip).toBeNull();
+    expect(plan.floor).toBe("2F");
+    expect(beastsOf(plan.quests)).toEqual([...UPSTAIRS].sort());
+    for (const made of plan.quests) expect(made).toMatchObject({ type: "individual", assignee: [KIA], id: wakeQuestId("wind-temple", String(made.beastId)) });
+    expect(wasWokenFor(plan.effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(plan.effects, "wind-temple", "2F", "1F")).toBe(true);
+    expect(wasWokenFor(plan.effects, "wind-temple", "3F", "1F")).toBe(false);
+  });
+
+  it("a second arrival on 2F wakes nothing", () => {
+    const first = onFloor("2F");
+    const again = onFloor("2F", { hero: hero({ questEffects: first.effects ?? undefined }), quests: [] });
+    expect(again).toMatchObject({ skip: "alreadyWoken", quests: [], joined: [], beasts: [], effects: null });
+  });
+
+  it("a wake remembered by temple alone counts as 1F woken, and 2F still sleeps", () => {
+    const legacy = hero({ questEffects: { [WOKEN_TEMPLES_FIELD]: { "wind-temple": "2026-10-01T00:00:00.000Z" } } });
+    expect(onFloor("1F", { hero: legacy }).skip).toBe("alreadyWoken");
+    const upstairs = onFloor("2F", { hero: legacy });
+    expect(upstairs.skip).toBeNull();
+    expect(beastsOf(upstairs.quests)).toEqual([...UPSTAIRS].sort());
+    // The old memory stays beside the new
+    expect(upstairs.effects?.[WOKEN_TEMPLES_FIELD]).toMatchObject({ "wind-temple": "2026-10-01T00:00:00.000Z", "wind-temple@2F": WED.toISOString() });
+  });
+
+  it("reads the old wake as the entrance floor's even when the entrance is not on 1F", () => {
+    const layout: PlayedLayout = { ...tower(), entrance: [1, 0, 0] };
+    expect(entranceFloorOf(layout)).toBe("2F");
+    const legacy = hero({ questEffects: { [WOKEN_TEMPLES_FIELD]: { "wind-temple": "2026-10-01T00:00:00.000Z" } } });
+    // The old wake was the entrance floor's: here that is 2F, so 1F is the sleeping one
+    expect(wakeOnEntryPlan(input({ layout, floor: "2F", hero: legacy })).skip).toBe("alreadyWoken");
+    expect(wakeOnEntryPlan(input({ layout, floor: "1F", hero: legacy })).skip).toBeNull();
+  });
+
+  it("a one-floor temple wakes every monster room on entry, as before", () => {
+    const layout = spire();
+    const plan = wakeOnEntryPlan(input({ layout, floor: entranceFloorOf(layout) }));
+    expect(beastsOf(plan.quests)).toEqual([...MONSTERS].sort());
+    expect(plan.joined).toEqual([]);
+  });
+
+  it("a floor with no monster rooms wakes nothing, and still remembers it", () => {
+    const plan = onFloor("3F");
+    expect(plan.skip).toBeNull();
+    expect(plan).toMatchObject({ quests: [], joined: [], beasts: [] });
+    expect(wasWokenFor(plan.effects, "wind-temple", "3F", "1F")).toBe(true);
+  });
+
+  it("a Game Master's profile wakes nothing on any floor", () => {
+    for (const floor of ["1F", "2F"]) expect(onFloor(floor, { hero: hero({ isAdult: true }) })).toMatchObject({ skip: "gameMaster", quests: [], effects: null });
+  });
+
+  it("a floor the temple does not have wakes nothing and remembers nothing", () => {
+    expect(onFloor("9F")).toMatchObject({ skip: "noFloor", quests: [], joined: [], beasts: [], effects: null });
+  });
+
+  it("a beast the hero already fights from another floor stirs nothing here", () => {
+    const layout = tower();
+    layout.rooms!.U1 = monsterRoom("beast-cushion-croc");
+    const first = wakeOnEntryPlan(input({ layout, floor: "1F" }));
+    const plan = wakeOnEntryPlan(input({ layout, floor: "2F", hero: hero({ questEffects: first.effects ?? undefined }), quests: first.quests }));
+    expect(beastsOf(plan.quests)).toEqual(["beast-droop-dryad", "beast-zoomie-zephyr"]);
+  });
+
+  it("takes the hero into a quest a temple already woke for another hero, on the floor they arrive on", () => {
+    const theirs = quest(wakeQuestId("wind-temple", UPSTAIRS[0]), { assignee: [MIA], beastId: UPSTAIRS[0] });
+    const plan = onFloor("2F", { quests: [theirs] });
+    expect(plan.joined).toEqual([{ ...theirs, assignee: [MIA, KIA] }]);
+    expect(beastsOf(plan.quests)).toEqual([UPSTAIRS[1], UPSTAIRS[2]].sort());
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The writes
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -296,10 +457,12 @@ describe("commitEntryWake", () => {
     expect(kinds.lastIndexOf("beast")).toBeLessThan(kinds.indexOf("quest"));
     expect(calls[calls.length - 2]).toBe(`quest:${theirs.id}`);
     expect(calls[calls.length - 1]).toBe(`effects:${KIA}`);
-    expect(done).toMatchObject({ remembered: true, changed: true });
+    expect(done).toMatchObject({ remembered: true, changed: true, floor: "1F" });
     expect(done.woken).toHaveLength(MONSTERS.length - 1);
     expect(done.joined.map((joined) => joined.assignee)).toEqual([[MIA, KIA]]);
-    expect(wasWokenFor(saved.effects[KIA], "wind-temple")).toBe(true);
+    // The beasts that stir are the quests made and the quests joined
+    expect(done.stirred).toBe(MONSTERS.length);
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "1F", "1F")).toBe(true);
   });
 
   it("remembers the wake even when there was nothing to make, so the next walk in stays quiet", async () => {
@@ -307,14 +470,14 @@ describe("commitEntryWake", () => {
     const { calls, writers } = recorder();
     const done = await commitEntryWake(wakeOnEntryPlan(input({ layout })), KIA, writers);
     expect(calls).toEqual([`effects:${KIA}`]);
-    expect(done).toMatchObject({ remembered: true, changed: false });
+    expect(done).toMatchObject({ remembered: true, changed: false, stirred: 0 });
   });
 
   it("writes nothing for a plan that skipped", async () => {
     const { calls, writers } = recorder();
     const done = await commitEntryWake(wakeOnEntryPlan(input({ hero: hero({ isAdult: true }) })), KIA, writers);
     expect(calls).toEqual([]);
-    expect(done).toEqual({ woken: [], joined: [], adopted: [], remembered: false, changed: false });
+    expect(done).toEqual({ woken: [], joined: [], adopted: [], floor: "1F", stirred: 0, remembered: false, changed: false });
   });
 
   it("a write that fails stops the rest and throws, and the wake is not remembered, so the next walk in tries again", async () => {
@@ -334,7 +497,7 @@ describe("wakeTempleOnEntry", () => {
     const wired: EntryWakeDeps = {
       readLayout: async (templeId) => {
         reads.push(`layout:${templeId}`);
-        return templeId === "wind-temple" ? spire() : null;
+        return templeId === "wind-temple" ? tower() : null;
       },
       readQuests: async () => {
         reads.push("quests");
@@ -345,27 +508,82 @@ describe("wakeTempleOnEntry", () => {
         return saved.beasts;
       },
       writers: { saveBeast: writers.saveBeast, saveQuest: writers.saveQuest },
-      hero: (id) => heroes[id],
-      saveEffects: writers.saveEffects,
+      // The user store holds what setQuestEffects last wrote
+      hero: (id) => (heroes[id] ? { ...heroes[id], questEffects: saved.effects[id] ?? heroes[id].questEffects } : undefined),
+      saveEffects: async (heroId, effects) => {
+        // A slow write: a second wake that does not wait for this one reads the hero before it lands
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        await writers.saveEffects(heroId, effects);
+      },
     };
     return { wired, calls, saved, reads };
   };
 
-  it("wakes the temple for the hero who walks in and remembers it", async () => {
+  it("wakes the entrance floor for the hero who walks in and remembers it", async () => {
     const { wired, saved } = deps({ [KIA]: { id: KIA } });
     const done = await wakeTempleOnEntry("wind-temple", KIA, wired, WED);
     expect(done?.woken).toHaveLength(MONSTERS.length);
-    expect(wasWokenFor(saved.effects[KIA], "wind-temple")).toBe(true);
+    expect(done).toMatchObject({ floor: "1F", stirred: MONSTERS.length, changed: true });
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "2F", "1F")).toBe(false);
   });
 
-  it("reads nothing for a temple that is not shipped, a Game Master or a hero already woken there", async () => {
-    const woken = { id: MIA, questEffects: rememberWake({}, "wind-temple", WED) };
-    const { wired, reads, calls } = deps({ [KIA]: { id: KIA, isAdult: true }, [MIA]: woken });
+  it("wakes the floor the hero arrives on", async () => {
+    const { wired, saved } = deps({ [KIA]: { id: KIA } });
+    await wakeTempleOnEntry("wind-temple", KIA, wired, WED);
+    const done = await wakeTempleOnEntry("wind-temple", KIA, wired, WED, "2F");
+    expect(done?.woken.map((made) => String(made.beastId)).sort()).toEqual([...UPSTAIRS].sort());
+    expect(done).toMatchObject({ floor: "2F", stirred: UPSTAIRS.length, changed: true });
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "2F", "1F")).toBe(true);
+    // Back on 2F another day: nothing is woken
+    const again = await wakeTempleOnEntry("wind-temple", KIA, wired, WED, "2F");
+    expect(again).toBeNull();
+  });
+
+  it("a floor with no monster rooms stirs nothing and is remembered", async () => {
+    const { wired, saved } = deps({ [KIA]: { id: KIA } });
+    const done = await wakeTempleOnEntry("wind-temple", KIA, wired, WED, "3F");
+    expect(done).toMatchObject({ floor: "3F", stirred: 0, changed: false, remembered: true });
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "3F", "1F")).toBe(true);
+  });
+
+  it("wakes floors that are arrived on one after another without one forgetting the other", async () => {
+    const { wired, saved } = deps({ [KIA]: { id: KIA } });
+    // Walking in and taking the stairs at once: both wakes are under way together
+    const [entry, upstairs] = await Promise.all([
+      wakeTempleOnEntry("wind-temple", KIA, wired, WED),
+      wakeTempleOnEntry("wind-temple", KIA, wired, WED, "2F"),
+    ]);
+    expect(entry?.stirred).toBe(MONSTERS.length);
+    expect(upstairs?.stirred).toBe(UPSTAIRS.length);
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "1F", "1F")).toBe(true);
+    expect(wasWokenFor(saved.effects[KIA], "wind-temple", "2F", "1F")).toBe(true);
+    expect(saved.quests).toHaveLength(MONSTERS.length + UPSTAIRS.length);
+  });
+
+  it("shares one wake between two asks for the same floor", async () => {
+    const { wired, saved } = deps({ [KIA]: { id: KIA } });
+    const first = wakeTempleOnEntry("wind-temple", KIA, wired, WED, "2F");
+    const second = wakeTempleOnEntry("wind-temple", KIA, wired, WED, "2F");
+    expect(await second).toBe(await first);
+    expect(saved.quests).toHaveLength(UPSTAIRS.length);
+  });
+
+  it("reads nothing for a temple that is not shipped, a Game Master or a hero who is not in the family", async () => {
+    const { wired, reads, calls } = deps({ [KIA]: { id: KIA, isAdult: true } });
     expect(await wakeTempleOnEntry("gen-move-house", KIA, wired, WED)).toBeNull();
     expect(await wakeTempleOnEntry("wind-temple", KIA, wired, WED)).toBeNull();
-    expect(await wakeTempleOnEntry("wind-temple", MIA, wired, WED)).toBeNull();
     expect(await wakeTempleOnEntry("wind-temple", "nobody", wired, WED)).toBeNull();
     expect(reads).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("reads only the layout for a hero already woken on that floor", async () => {
+    const woken = { id: MIA, questEffects: rememberWake({}, "wind-temple", "1F", WED) };
+    const { wired, reads, calls } = deps({ [MIA]: woken });
+    expect(await wakeTempleOnEntry("wind-temple", MIA, wired, WED)).toBeNull();
+    expect(reads).toEqual(["layout:wind-temple"]);
     expect(calls).toEqual([]);
   });
 });

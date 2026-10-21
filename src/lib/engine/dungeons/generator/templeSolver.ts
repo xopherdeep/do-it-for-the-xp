@@ -5,7 +5,9 @@
  * the only choice that matters is which locked door to open next. The solver searches every such choice
  * (depth first over the set of opened doors) and accepts a layout only when no order of openings leaves the hero
  * stuck: that is the "worst key order" of R3. Picking up keys and beating fights never hurts, so the hero is
- * taken to do both the moment a room is in reach.
+ * taken to do both the moment a room is in reach (a monster's key drop included). So does taking a Bomb: a cracked
+ * wall is a door that opens, for good, once the hero has reached a room that gives out a Bomb (a shop, a Bomb chest,
+ * a Bomb drop). A Bomb is the only thing that opens one, and opens nothing else: no locked door, no boss door.
  *
  * Each rule R1..R9 adds a reason that starts with its number; `solvable` is R2 alone.
  */
@@ -16,6 +18,7 @@ import {
   roomsOfKind,
   type Door,
   type GraphRoom,
+  type LockKind,
   type RoomRef,
   type TempleGraph,
   type TempleLayout,
@@ -39,6 +42,8 @@ interface Region {
   order: string[];
   keysFound: number;
   master: boolean;
+  /** The hero has reached a room that gives out a Bomb (roomGrants.isBombSource): every cracked wall is theirs to blow */
+  bombs: boolean;
 }
 
 type Verdict = { ok: true; history: string[] } | { ok: false; reason: string };
@@ -53,16 +58,23 @@ const doorName = (graph: TempleGraph, door: Door): string => `${name(graph, door
 
 // --- walking with the doors opened so far ----------------------------------------------------------------------
 
-/** A door the hero can walk through now. */
-const passable = (door: Door, opened: ReadonlySet<string>, master: boolean): boolean =>
-  door.lock === "none" || (door.lock === "small" && opened.has(door.id)) || (door.lock === "master" && master);
+/** What the hero carries that opens a door by itself, not a key spent door by door: the Boss Key, a Bomb. */
+interface Carried {
+  master: boolean;
+  bombs: boolean;
+}
+
+/** A door the hero can walk through now. A Bomb opens only a cracked wall, and the Boss Key only a boss door. */
+const passable = (door: Door, opened: ReadonlySet<string>, carried: Carried): boolean =>
+  door.lock === "none" || (door.lock === "small" && opened.has(door.id)) || (door.lock === "master" && carried.master) || (door.lock === "bomb" && carried.bombs);
 
 /**
- * Everything in reach from the entrance with `opened` doors unlocked. Keys and the master key are picked up on
- * the way; a boss door waits until the master key turns up, then opens.
+ * Everything in reach from the entrance with `opened` doors unlocked. Keys, the master key and Bombs are picked up on
+ * the way; a boss door waits until the master key turns up, a cracked wall until a room that gives out a Bomb is
+ * reached, and then each opens.
  */
 const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
-  const region: Region = { reached: new Set(), order: [], keysFound: 0, master: false };
+  const region: Region = { reached: new Set(), order: [], keysFound: 0, master: false, bombs: false };
   const { entrance } = graph;
   if (!entrance) return region;
   const waiting: Door[] = [];
@@ -74,20 +86,33 @@ const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
     region.order.push(key);
     const room = graph.rooms.get(key)!;
     region.keysFound += room.smallKeys;
+
+    // What the hero finds here opens the doors that were waiting for it: walk through them now
+    const found: LockKind[] = [];
     const isMasterKeyFound = room.masterKey && !region.master;
     if (isMasterKeyFound) {
       region.master = true;
-      waiting.splice(0).forEach((door) => arrive(door.to));
+      found.push("master");
+    }
+    const isBombFound = room.bombs && !region.bombs;
+    if (isBombFound) {
+      region.bombs = true;
+      found.push("bomb");
+    }
+    for (const lock of found) {
+      const ready = waiting.filter((door) => door.lock === lock);
+      waiting.splice(0, waiting.length, ...waiting.filter((door) => door.lock !== lock));
+      ready.forEach((door) => arrive(door.to));
     }
   };
 
   arrive(entrance);
   for (let i = 0; i < region.order.length; i++) {
     for (const door of graph.out.get(region.order[i]) ?? []) {
-      const isPassable = passable(door, opened, region.master);
-      const isBossDoor = door.lock === "master";
+      const isPassable = passable(door, opened, region);
+      const isWaitingDoor = door.lock === "master" || door.lock === "bomb";
       if (isPassable) arrive(door.to);
-      else if (isBossDoor) waiting.push(door);
+      else if (isWaitingDoor) waiting.push(door);
     }
   }
   return region;
@@ -134,7 +159,7 @@ const missing = (graph: TempleGraph, goal: Goal, region: Region, opened: Readonl
   const prize = goal.prizes.find((key) => region.reached.has(key));
   const isPrizeOutOfReach = goal.prizes.length > 0 && !prize;
   if (isPrizeOutOfReach) return "the Pegasus chest is out of reach";
-  const closed = new Set(graph.doors.filter((door) => !passable(door, opened, true)).map((door) => door.id));
+  const closed = new Set(graph.doors.filter((door) => !passable(door, opened, { master: true, bombs: region.bombs })).map((door) => door.id));
   const back = new Set(reachableFrom(graph, prize ?? boss, new Set(), closed));
   return exits(graph, goal).some((key) => back.has(key)) ? undefined : "no way back to the gate";
 };

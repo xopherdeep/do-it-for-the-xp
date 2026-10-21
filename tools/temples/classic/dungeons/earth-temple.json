@@ -1,0 +1,449 @@
+{
+  "id": "earth-temple",
+  "source": "LTTP Skull Woods",
+  "floors": [
+    {
+      "name": "B1",
+      "rows": 1,
+      "cols": 1,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Skull Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 7,
+      "cols": 8,
+      "cells": [
+        {
+          "row": 0,
+          "col": 6,
+          "room": "Skull Spike Corner",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "keyDrop": "small",
+          "shutter": true
+        },
+        {
+          "row": 0,
+          "col": 7,
+          "room": "Skull Final Drop",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 0,
+          "hole": {
+            "to": "B1",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "room": "Skull Vines",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 7,
+          "room": "Skull Torch Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 6,
+          "room": "Skull Star Pits",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 2,
+          "col": 7,
+          "room": "Skull Torch Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "room": "Skull X Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "Skull Back Drop",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "Skull Big Key",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "chest": "big-key",
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "room": "Skull Lone Pot",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "bomb"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "room": "Skull Pull Switch",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "bomb",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "room": "Skull Pot Circle",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "bomb"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 3,
+          "col": 6,
+          "room": "Skull 3 Lobby",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 3,
+          "col": 7,
+          "room": "Skull East Bridge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "room": "Skull 2 West Lobby",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "potKey": true,
+          "teleport": {
+            "to": "1F",
+            "row": 4,
+            "col": 2
+          }
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "room": "Skull Back Drop",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "room": "Skull 2 East Lobby",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 4,
+          "puzzle": true,
+          "shutter": true,
+          "teleport": {
+            "to": "1F",
+            "row": 4,
+            "col": 6
+          }
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "room": "Skull Pot Prison",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "chest": "small-key"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "room": "Skull 1 Lobby",
+          "sides": {
+            "north": "bomb",
+            "east": "open",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 3,
+          "chest": "big-chest",
+          "entrance": true,
+          "teleport": {
+            "to": "1F",
+            "row": 4,
+            "col": 0
+          }
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "room": "Skull Map Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "small-key",
+            "west": "open"
+          },
+          "enemies": 1,
+          "chest": "map"
+        },
+        {
+          "row": 4,
+          "col": 6,
+          "room": "Skull 3 Lobby",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "small-key",
+          "teleport": {
+            "to": "1F",
+            "row": 4,
+            "col": 4
+          }
+        },
+        {
+          "row": 4,
+          "col": 7,
+          "room": "Skull East Bridge",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "Skull Left Drop",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 3
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "Skull Compass Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "chest": "compass"
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "room": "Skull Pinball",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "small-key"
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "room": "Skull Pinball",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "open",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "room": "Skull Left Drop",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "room": "Skull Compass Room",
+          "sides": {
+            "north": "open",
+            "east": "shutter",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "room": "Skull Pinball",
+          "sides": {
+            "north": "open",
+            "east": "open",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "shutter": true
+        },
+        {
+          "row": 6,
+          "col": 5,
+          "room": "Skull Pinball",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B1": 1,
+      "1F": 30
+    },
+    "mustClear": 6,
+    "side": 12,
+    "smallKeys": 5,
+    "smallLocks": 5
+  }
+}

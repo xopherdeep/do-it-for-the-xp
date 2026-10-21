@@ -1,0 +1,709 @@
+{
+  "id": "ice-temple",
+  "source": "LTTP Ice Palace",
+  "floors": [
+    {
+      "name": "B7",
+      "rows": 1,
+      "cols": 1,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Ice Boss",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        }
+      ]
+    },
+    {
+      "name": "B6",
+      "rows": 17,
+      "cols": 3,
+      "cells": [
+        {
+          "row": 0,
+          "col": 2,
+          "room": "Ice Fairy",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "teleport": {
+            "to": "B6",
+            "row": 14,
+            "col": 0
+          }
+        },
+        {
+          "row": 14,
+          "col": 0,
+          "room": "Ice Anti-Fairy",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "stairs": {
+            "to": "B5",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 15,
+          "col": 0,
+          "room": "Ice Switch Room",
+          "sides": {
+            "north": "open",
+            "east": "small-key",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 5,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 15,
+          "col": 1,
+          "room": "Ice Refill",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 16,
+          "col": 0,
+          "room": "Ice Antechamber",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 6,
+          "puzzle": true,
+          "shutter": true,
+          "hole": {
+            "to": "B7",
+            "row": 0,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "B5",
+      "rows": 3,
+      "cols": 3,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Backwards Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "big-key",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "stairs": {
+            "to": "B6",
+            "row": 14,
+            "col": 0,
+            "lock": "small-key"
+          },
+          "hole": {
+            "to": "B6",
+            "row": 0,
+            "col": 2
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Ice Big Chest View",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-chest"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Ice Crystal Right",
+          "sides": {
+            "north": "big-key",
+            "east": "shutter",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "hole": {
+            "to": "B6",
+            "row": 15,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Ice Many Pots",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "shutter"
+          },
+          "enemies": 5,
+          "potKey": true,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Iced T",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "small-key",
+          "puzzle": true,
+          "stairs": {
+            "to": "B4",
+            "row": 2,
+            "col": 1
+          }
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "Ice Catwalk",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0
+        }
+      ]
+    },
+    {
+      "name": "B4",
+      "rows": 3,
+      "cols": 3,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Tall Hint",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "Ice Hookshot Ledge",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 4,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Ice Freezors",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "other",
+          "shutter": true,
+          "stairs": {
+            "to": "B3",
+            "row": 1,
+            "col": 0
+          },
+          "hole": {
+            "to": "B5",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Ice Tall Hint",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "small-key",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Ice Spikeball",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "B3",
+            "row": 1,
+            "col": 3
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Ice Lonely Freezor",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 6,
+          "stairs": {
+            "to": "B5",
+            "row": 2,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "B3",
+      "rows": 3,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Falling Square",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "hole": {
+            "to": "B4",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Ice Firebar",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "B4",
+            "row": 1,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Ice Spike Cross",
+          "sides": {
+            "north": "shutter",
+            "east": "small-key",
+            "south": "shutter",
+            "west": "open"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Ice Spike Room",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "small-key"
+          },
+          "enemies": 3,
+          "chest": "small-key",
+          "puzzle": true,
+          "stairs": {
+            "to": "B2",
+            "row": 1,
+            "col": 2
+          }
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "Ice Spike Room",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "stairs": {
+            "to": "B4",
+            "row": 1,
+            "col": 2
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Ice Pengator Trap",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 5,
+          "shutter": true,
+          "stairs": {
+            "to": "B2",
+            "row": 2,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "rows": 3,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Stalfos Hint",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Ice Conveyor",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 4
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Ice Conveyor",
+          "sides": {
+            "north": "shutter",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 4,
+          "keyDrop": "small",
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Ice Right H",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "chest": "map",
+          "potKey": true,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "B3",
+            "row": 1,
+            "col": 2
+          }
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "Ice Tongue Pull",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 1,
+            "col": 3
+          }
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "Ice Bomb Jump Ledge",
+          "sides": {
+            "north": "small-key",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Ice Narrow Corridor",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 3,
+          "shutter": true,
+          "stairs": {
+            "to": "B3",
+            "row": 2,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "rows": 3,
+      "cols": 4,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Bomb Drop",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "shutter",
+            "west": "wall"
+          },
+          "enemies": 4,
+          "shutter": true,
+          "hole": {
+            "to": "B2",
+            "row": 0,
+            "col": 1
+          }
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "room": "Ice Floor Switch",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 2,
+          "puzzle": true,
+          "shutter": true,
+          "stairs": {
+            "to": "1F",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "room": "Ice Cross Left",
+          "sides": {
+            "north": "shutter",
+            "east": "shutter",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Ice Pengator Switch",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 7,
+          "puzzle": true,
+          "shutter": true
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "room": "Ice Dead End",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "chest": "big-key",
+          "shutter": true,
+          "stairs": {
+            "to": "B2",
+            "row": 1,
+            "col": 3
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Ice Compass Room",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 6,
+          "chest": "compass"
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 1,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Ice Jelly Key",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 3,
+          "keyDrop": "small",
+          "shutter": true,
+          "stairs": {
+            "to": "B1",
+            "row": 1,
+            "col": 0,
+            "lock": "small-key"
+          }
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Ice Lobby",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true,
+          "entrance": true
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B7": 1,
+      "B6": 5,
+      "B5": 6,
+      "B4": 6,
+      "B3": 6,
+      "B2": 7,
+      "B1": 6,
+      "1F": 2
+    },
+    "mustClear": 14,
+    "side": 6,
+    "smallKeys": 6,
+    "smallLocks": 6
+  }
+}

@@ -9,15 +9,12 @@ import { ChestSystem, ChestContent } from './ChestSystem';
 import { Room, Dungeon } from './types';
 import { asChestRoom } from '@/lib/services/temples/ChestLoot';
 import { chestDungeonItem } from '@/lib/services/temples/roomGrants';
+import { roomPositionKey } from './roomPosition';
 import { reactive } from 'vue';
 import debug from '@/lib/utils/debug';
 
-/**
- * Key of one room of a dungeon. The floor comes first, so the room at [0, 1] on 1F and the one
- * at [0, 1] on 2F are two different rooms (visited, cleared, ...).
- */
-export const roomPositionKey = (level: string, position: readonly number[]): string =>
-  `${level}:${position[0]},${position[1]}`;
+// Key of one room of a dungeon (floor first); defined apart, with nothing to import, so the pure rules can use it too
+export { roomPositionKey };
 
 /** A dungeon as its layout made it: nothing visited, no chest touched, no door opened or sealed. */
 const copyLayout = (dungeon: Dungeon): Dungeon => {

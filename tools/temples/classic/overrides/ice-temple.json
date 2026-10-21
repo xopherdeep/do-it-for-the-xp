@@ -1,0 +1,6 @@
+{
+  "note": "Ice Spike Room (0x5f, bottom-left screen) holds both an up and a down stairway in one screen, and the schema allows one stairs link per cell. The rest of 0x5f is empty, so the down stairway (to Ice Spikeball) is pinned to the screen beside it; the room becomes two cells joined by an open side.",
+  "doors": {
+    "Ice Spike Room Down Stairs": ["0x5f", 1, 1]
+  }
+}
