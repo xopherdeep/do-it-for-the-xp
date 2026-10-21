@@ -1,0 +1,67 @@
+import { renderMarkup, findPlaceholders, collectHrefs, checkMarkup } from "../../tools/site/markup";
+
+describe("renderMarkup", () => {
+  it("replaces media, media-id and app placeholders", () => {
+    const out = renderMarkup('<img src="{{media:hometown}}" data-id="{{media-id:hometown}}"><a href="{{app}}">', {
+      "media:hometown": "https://s/h.jpg", "media-id:hometown": "12", app: "https://app.doit.forthexp.com" });
+    expect(out).toBe('<img src="https://s/h.jpg" data-id="12"><a href="https://app.doit.forthexp.com">');
+  });
+  it("throws on an unknown placeholder", () => {
+    expect(() => renderMarkup("{{media:nope}}", {})).toThrow("Unknown placeholder: {{media:nope}}");
+  });
+});
+describe("findPlaceholders", () => {
+  it("lists distinct keys in order", () => {
+    expect(findPlaceholders("{{a}} {{b}} {{a}}")).toEqual(["a", "b"]);
+  });
+});
+describe("collectHrefs", () => {
+  it("returns distinct hrefs in order", () => {
+    expect(collectHrefs('<a href="/x"><a href="#y"><a href="/x">')).toEqual(["/x", "#y"]);
+  });
+});
+describe("checkMarkup", () => {
+  it("is empty for clean markup", () => {
+    expect(checkMarkup('<a href="https://a/"><img src="/i.jpg" alt="Hometown">')).toEqual([]);
+  });
+  it("flags invented numbers, relative hrefs, missing alt and placeholders", () => {
+    const problems = checkMarkup('<p>Over 5000 achievements unlocked</p><a href="page"><img src="/i.jpg" alt="">{{app}}');
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^invented number: /), "relative href: page", "img without alt: /i.jpg", "placeholder {{app}}" ]));
+    expect(problems).toHaveLength(4);
+  });
+  it("ignores tag names and attribute values", () => {
+    expect(checkMarkup('<h2>Achievements</h2>')).toEqual([]);
+  });
+  it("finds numbers in visible text within span tags", () => {
+    const problems = checkMarkup('<p>5000 <span class="x">users</span></p>');
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^invented number: /)
+    ]));
+    expect(problems).toHaveLength(1);
+  });
+  it("reports numbers with commas as a single invented number", () => {
+    const problems = checkMarkup('<p>Over 5,000 achievements</p>');
+    expect(problems).toEqual(expect.arrayContaining([
+      expect.stringMatching(/5,000/)
+    ]));
+    expect(problems).toHaveLength(1);
+  });
+  it("strips trailing punctuation from numbers", () => {
+    const problems = checkMarkup('<p>We have 5000. Users love it</p>');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/5000/);
+    expect(problems[0]).not.toMatch(/5000\./);
+  });
+  it("handles 20000 numbers without keywords in under 500ms", () => {
+    let html = '';
+    for (let i = 1; i <= 20000; i++) {
+      html += `<p>${i} apples</p>`;
+    }
+    const start = performance.now();
+    const problems = checkMarkup(html);
+    const elapsed = performance.now() - start;
+    expect(problems).toEqual([]);
+    expect(elapsed).toBeLessThan(500);
+  });
+});

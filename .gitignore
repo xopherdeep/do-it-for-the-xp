@@ -50,3 +50,4 @@ __pycache__/
 # tools/art generators: review output (world_backgrounds.py)
 tools/art/out/
 tools/For the xp/
+tools/site/.doit-publish-report.json

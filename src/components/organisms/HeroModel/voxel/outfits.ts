@@ -27,7 +27,7 @@ export interface BodyOptions {
   hood?: boolean;
 }
 
-interface OutfitSpec {
+export interface OutfitSpec {
   torso: Box[];
   /** Left (+X) arm without the hand */
   armL: Box[];
@@ -39,22 +39,22 @@ interface OutfitSpec {
 }
 
 /** Shoe or boot under a leg whose x extent is [x0, x1] */
-const footwear = (x0: number, x1: number, upper: string, height: number, sole: string): Box[] => [
+export const footwear = (x0: number, x1: number, upper: string, height: number, sole: string): Box[] => [
   box(x0 - 0.05, 0.4, -1.6, x1 + 0.05, height, 1.6, upper),
   box(x0 - 0.05, 0.4, 1.6, x1 + 0.05, 1.0, 2.6, upper),
   box(x0 - 0.05, 0, -1.6, x1 + 0.05, 0.4, 2.6, sole),
 ];
 
 /** Sleeve from the shoulder down to `to`, skin below it down to the wrist (y 5) */
-const arm = (skin: string, color: string, to: number, extra: Box[] = []): Box[] => [
+export const arm = (skin: string, color: string, to: number, extra: Box[] = []): Box[] => [
   box(3, to, -1, 5, 8, 1, color),
   ...(to > 5 ? [box(3, 5, -1, 5, to, 1, skin)] : []),
   ...extra,
 ];
 
-const LEG_X0 = 0.25;
-const LEG_X1 = 2.75;
-const leg = (color: string, from: number, to = 3): Box => box(LEG_X0, from, -1.5, LEG_X1, to, 1.5, color);
+export const LEG_X0 = 0.25;
+export const LEG_X1 = 2.75;
+export const leg = (color: string, from: number, to = 3): Box => box(LEG_X0, from, -1.5, LEG_X1, to, 1.5, color);
 
 const tunic = (skin: string, C: string, A: string): OutfitSpec => ({
   torso: [
@@ -212,21 +212,23 @@ const tracksuit = (skin: string, C: string, A: string): OutfitSpec => {
   };
 };
 
+/** `n` horizontal bands from y0 to y1, alternating C and A (pyjama stripes, mail rows) */
+export const slice = (x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, n: number, C: string, A: string): Box[] =>
+  Array.from({ length: n }, (_, i) =>
+    box(x0, y0 + ((y1 - y0) / n) * i, z0, x1, y0 + ((y1 - y0) / n) * (i + 1), z1, i % 2 === 0 ? C : A),
+  );
+
 const pyjamas = (skin: string, C: string, A: string): OutfitSpec => {
-  const slice = (x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, n: number): Box[] =>
-    Array.from({ length: n }, (_, i) =>
-      box(x0, y0 + ((y1 - y0) / n) * i, z0, x1, y0 + ((y1 - y0) / n) * (i + 1), z1, i % 2 === 0 ? C : A),
-    );
   return {
     torso: [
-      ...slice(-3.1, 3.1, -2.1, 2.1, 3, 8, 5),
+      ...slice(-3.1, 3.1, -2.1, 2.1, 3, 8, 5, C, A),
       box(-1.4, 7.5, 2.1, 1.4, 8, 2.25, lighten(C, 0.5)),
       box(-0.2, 4.2, 2.1, 0.2, 4.6, 2.3, PALETTE.gold),
       box(-0.2, 5.4, 2.1, 0.2, 5.8, 2.3, PALETTE.gold),
       box(-0.2, 6.6, 2.1, 0.2, 7.0, 2.3, PALETTE.gold),
     ],
-    armL: [...slice(3, 5, -1, 1, 5, 8, 3), box(2.95, 5, -1.1, 5.05, 5.4, 1.1, lighten(A, 0.4))],
-    legL: [...slice(LEG_X0, LEG_X1, -1.5, 1.5, 0.6, 3, 3), ...footwear(LEG_X0, LEG_X1, shade(A, 0.75), 0.9, lighten(A, 0.3)), box(0.35, 0.4, 2.6, 2.65, 0.9, 3.0, lighten(A, 0.5))],
+    armL: [...slice(3, 5, -1, 1, 5, 8, 3, C, A), box(2.95, 5, -1.1, 5.05, 5.4, 1.1, lighten(A, 0.4))],
+    legL: [...slice(LEG_X0, LEG_X1, -1.5, 1.5, 0.6, 3, 3, C, A), ...footwear(LEG_X0, LEG_X1, shade(A, 0.75), 0.9, lighten(A, 0.3)), box(0.35, 0.4, 2.6, 2.65, 0.9, 3.0, lighten(A, 0.5))],
   };
 };
 

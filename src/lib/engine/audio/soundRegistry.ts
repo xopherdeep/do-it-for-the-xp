@@ -3,12 +3,12 @@ import debug from '@/lib/utils/debug';
 
 // Import actual audio files instead of using placeholders
 // Nintendo UI sounds
-import nintendoSelect from '@/assets/audio/nintendo/switch/Select.wav';
-import nintendoKlick from '@/assets/audio/nintendo/switch/Klick.wav';
-import nintendoConfirm from '@/assets/audio/nintendo/switch/Tick.wav';
-import nintendoCancel from '@/assets/audio/nintendo/switch/Border.wav';
-import nintendoError from '@/assets/audio/nintendo/switch/Error.wav';
-import nintendoPopup from '@/assets/audio/nintendo/switch/Popup + Run Title.wav';
+import nintendoSelect from '@/assets/audio/nintendo/switch/Select.mp3';
+import nintendoKlick from '@/assets/audio/nintendo/switch/Klick.mp3';
+import nintendoConfirm from '@/assets/audio/nintendo/switch/Tick.mp3';
+import nintendoCancel from '@/assets/audio/nintendo/switch/Border.mp3';
+import nintendoError from '@/assets/audio/nintendo/switch/Error.mp3';
+import nintendoPopup from '@/assets/audio/nintendo/switch/Popup + Run Title.mp3';
 
 // Sony UI sounds
 import sonySelect from '@/assets/audio/sony/ps5/Navigation.mp3';
@@ -18,11 +18,11 @@ import sonyError from '@/assets/audio/sony/ps5/Prompt.mp3';
 import sonyPopup from '@/assets/audio/sony/ps5/Trophy_Notification.mp3';
 
 // Earthbound game sounds
-import ebAttack from '@/assets/audio/nintendo/earthbound/attack1.wav';
-import ebHit from '@/assets/audio/nintendo/earthbound/enemyhit.wav';
-import ebEnemyAttack from '@/assets/audio/nintendo/earthbound/enemyattack.wav';
-import ebVictory from '@/assets/audio/nintendo/earthbound/eb_win.wav';
-import ebLevelUp from '@/assets/audio/nintendo/earthbound/eb_fanfare.wav';
+import ebAttack from '@/assets/audio/nintendo/earthbound/attack1.mp3';
+import ebHit from '@/assets/audio/nintendo/earthbound/enemyhit.mp3';
+import ebEnemyAttack from '@/assets/audio/nintendo/earthbound/enemyattack.mp3';
+import ebVictory from '@/assets/audio/nintendo/earthbound/eb_win.mp3';
+import ebLevelUp from '@/assets/audio/nintendo/earthbound/eb_fanfare.mp3';
 
 // Use generic audio files for Chrono Trigger and FF until we can verify paths
 import ctAttack from '@/assets/audio/click.wav';
