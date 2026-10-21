@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LTTP dungeon converter: writes tools/temples/classic/dungeons/<id>.json, one per temple, from the pinned
-tables under sources/ (see SOURCES.md). Standard library only; the same inputs give the same bytes.
+tables under vendor/ (see SOURCES.md). Standard library only; the same inputs give the same bytes.
 
     python3 tools/temples/classic/convert.py [id ...]      # default: all eight LTTP temples
 
@@ -43,7 +43,7 @@ import sys
 from collections import OrderedDict, defaultdict, deque
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SOURCES = os.path.join(HERE, "sources")
+SOURCES = os.path.join(HERE, "vendor")
 VANILLA = os.path.join(SOURCES, "vanilla")
 OUT_DIR = os.path.join(HERE, "dungeons")
 OVERRIDE_DIR = os.path.join(HERE, "overrides")

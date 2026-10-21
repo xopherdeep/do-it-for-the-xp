@@ -14,7 +14,6 @@ import XpWorldMapModal from '../MyPortal/UserHud/components/XpWorldMapModal.vue'
 import UserProfileModal from '../MyPortal/UserHud/components/UserProfileModal.vue';
 import XpBottomNav from '@/components/organisms/BottomNav/XpBottomNav.vue';
 import XpRevealPrompt from '@/components/organisms/RevealPrompt/XpRevealPrompt.vue';
-import { useRevealPrompt } from '@/components/organisms/RevealPrompt/useRevealPrompt';
 import { useHeroEquipment } from '@/hooks/useHeroEquipment';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
@@ -362,20 +361,9 @@ export default defineComponent({
       isEquipmentOpen.value = true;
     };
 
-    // What happens as the hero walks in: the blood moon notice, the first visit's wake of the entrance floor's beasts,
-    // and each other floor's wake the first time the hero arrives on it, told in the game's own prompt
-    const floorWake = useRevealPrompt();
-    useTempleEntry({
-      temple: props.temple,
-      heroId: progressHeroId,
-      whenOpened,
-      currentLevel,
-      templeSystem,
-      templeShortName,
-      say,
-      fx,
-      showPrompt: floorWake.showPrompt
-    });
+    // What happens as the hero walks in: the blood moon notice and each floor's first wake, told in the game's own prompt
+    const entry = { temple: props.temple, heroId: progressHeroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx };
+    const { floorWakePrompt, answerFloorWake } = useTempleEntry(entry);
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {
@@ -492,10 +480,9 @@ export default defineComponent({
       isShaking,
       showVoxelMonster,
       activeMonster,
-
       // The prompt that tells the hero a floor's beasts stirred
-      floorWakePrompt: floorWake.prompt,
-      answerFloorWake: floorWake.submitAnswer
+      floorWakePrompt,
+      answerFloorWake
     };
   },
   computed: {

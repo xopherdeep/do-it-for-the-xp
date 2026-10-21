@@ -2,6 +2,7 @@ import { onMounted, watch, type Ref } from 'vue';
 import debug from '@/lib/utils/debug';
 import { useCopy } from '@/hooks/useVoice';
 import type { RevealPromptOptions } from '@/components/organisms/RevealPrompt/revealPrompt';
+import { useRevealPrompt } from '@/components/organisms/RevealPrompt/useRevealPrompt';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
 import { wakeTempleOnEntry, type EntryWakeDone } from '@/lib/services/temples/wakeOnEntry';
@@ -19,16 +20,16 @@ export interface TempleEntryParts {
   templeShortName: { value: string };
   say: (message: string, duration?: number) => void;
   fx: (key: string) => void;
-  /** The in-world prompt (useRevealPrompt): resolves with the id of the choice picked */
-  showPrompt: (options: RevealPromptOptions) => Promise<string>;
 }
 
 /**
  * What happens as a hero walks into a temple: the blood moon notice, the first-visit wake of the entrance floor's
  * beasts, and the wake of every other floor the first time the hero arrives on it, told in the game's own prompt.
+ * Returns that prompt for the screen to render (XpRevealPrompt) and the answer it hands back.
  */
-export const useTempleEntry = ({ temple, heroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx, showPrompt }: TempleEntryParts) => {
+export const useTempleEntry = ({ temple, heroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx }: TempleEntryParts) => {
   const t = useCopy();
+  const floorWake = useRevealPrompt();
 
   // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
   onMounted(() => {
@@ -80,8 +81,10 @@ export const useTempleEntry = ({ temple, heroId, whenOpened, currentLevel, templ
       .then(() => templeSystem.whenProgressReady(temple))
       .then(() => wakeFloor(floor))
       .then(async (woke) => {
-        if (woke) await showPrompt(stirredPrompt(woke));
+        if (woke) await floorWake.showPrompt(stirredPrompt(woke));
       })
       .catch((error: unknown) => debug.warn('[TempleGrounds] the floor could not wake its beasts', error));
   });
+
+  return { floorWakePrompt: floorWake.prompt, answerFloorWake: floorWake.submitAnswer };
 };

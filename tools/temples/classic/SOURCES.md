@@ -1,12 +1,12 @@
 # Pinned sources for the classic dungeon converter
 
-Everything under `sources/` is a verbatim copy of an MIT-licensed file at the commit named below. The app never
+Everything under `vendor/` is a verbatim copy of an MIT-licensed file at the commit named below. The app never
 reads these files; only `convert.py` does (and Task 6's Wind converter reads `LoZ_1.dot`). Re-download with
 `curl --retry 3` against the raw URL, which names the commit, and check the SHA-256 before replacing a copy.
 
 ## aerinon/ALttPDoorRandomizer, branch `DoorDev`
 
-Commit `6f390947159b6d2162b52a60aebfd969ccf9b922`. Licence: `sources/LICENSE-ALttPDoorRandomizer.txt` (MIT, LLCoolDave 2017).
+Commit `6f390947159b6d2162b52a60aebfd969ccf9b922`. Licence: `vendor/LICENSE-ALttPDoorRandomizer.txt` (MIT, LLCoolDave 2017).
 Base URL: `https://raw.githubusercontent.com/aerinon/ALttPDoorRandomizer/6f390947159b6d2162b52a60aebfd969ccf9b922/`
 
 | File | Path in the repository | What the converter reads | SHA-256 (first 20) |
@@ -24,7 +24,7 @@ where a pot key sits.
 
 ## TheVGLC/TheVGLC
 
-Commit `0e86a8f31f20ecad4eaa5741ff061af88767f7fb`. Licence: `sources/LICENSE-TheVGLC.md` (MIT, Summerville, Ontanon, Snodgrass 2016).
+Commit `0e86a8f31f20ecad4eaa5741ff061af88767f7fb`. Licence: `vendor/LICENSE-TheVGLC.md` (MIT, Summerville, Ontanon, Snodgrass 2016).
 
 | File | Path in the repository | SHA-256 (first 20) |
 |---|---|---|
@@ -35,10 +35,10 @@ Used by Task 6 (the Wind temple); copied here so every classic source sits in on
 ## sporchia/alttp_vt_randomizer (vanilla chest contents)
 
 Commit `8c043a4089e0a058ca8d7eafebea93f76b129ae6` ("V30", 2018-10-01), the last revision whose region classes still
-carry `setVanilla()`; later commits dropped the method. Licence: `sources/LICENSE-alttp_vt_randomizer.txt` (MIT, sporchia 2016).
+carry `setVanilla()`; later commits dropped the method. Licence: `vendor/LICENSE-alttp_vt_randomizer.txt` (MIT, sporchia 2016).
 Base URL: `https://raw.githubusercontent.com/sporchia/alttp_vt_randomizer/8c043a4089e0a058ca8d7eafebea93f76b129ae6/app/Region/Standard/`
 
-`sources/vanilla/<Dungeon>.php` for `TowerOfHera`, `SkullWoods`, `DesertPalace`, `SwampPalace`, `PalaceOfDarkness`,
+`vendor/vanilla/<Dungeon>.php` for `TowerOfHera`, `SkullWoods`, `DesertPalace`, `SwampPalace`, `PalaceOfDarkness`,
 `IcePalace`, `TurtleRock`, `GanonsTower`. The converter reads only each file's `setVanilla()` body: location name to
 vanilla item, which decides a chest's kind (`map`, `compass`, `big-key`, `small-key`, `big-chest`, `other`). The
 door randomizer's own location names are not reliable for this (Turtle Rock's map is in "Roller Room - Left").

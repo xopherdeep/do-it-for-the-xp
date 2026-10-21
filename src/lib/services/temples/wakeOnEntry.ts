@@ -136,18 +136,21 @@ export interface EntryHero extends HeroProfile {
 
 export type EntryWakeSkipReason = "notShipped" | "noHero" | "gameMaster" | "alreadyWoken" | "noLayout" | "noFloor";
 
-/**
- * Why walking in wakes nothing, before anything is read; null when the wake goes ahead. Whether the floor already woke
- * is told only once the floor and the temple's entrance floor are known (the entrance floor is in the layout, so a
- * caller that has not read it yet leaves both out and gets who and where alone).
- */
-export function entryWakeSkip(input: {
+/** What entryWakeSkip reads: the temple, the hero and, once the layout is known, the floor and its entrance floor. */
+export interface EntryWakeSkipInput {
   templeId: string;
   isShipped: boolean;
   hero: EntryHero | null | undefined;
   floor?: string;
   entranceFloor?: string;
-}): EntryWakeSkipReason | null {
+}
+
+/**
+ * Why walking in wakes nothing, before anything is read; null when the wake goes ahead. Whether the floor already woke
+ * is told only once the floor and the temple's entrance floor are known (the entrance floor is in the layout, so a
+ * caller that has not read it yet leaves both out and gets who and where alone).
+ */
+export function entryWakeSkip(input: EntryWakeSkipInput): EntryWakeSkipReason | null {
   if (!input.isShipped) return "notShipped";
   const hasNoHero = !input.hero?.id;
   if (hasNoHero) return "noHero";
@@ -442,7 +445,9 @@ export function wakeTempleOnEntry(
   turns.set(hero, settled);
   const finished = started.finally(() => {
     underWay.delete(key);
-    if (turns.get(hero) === settled) turns.delete(hero);
+    // A later wake for this hero has already taken the turn: leave its turn in place
+    const isLastTurn = turns.get(hero) === settled;
+    if (isLastTurn) turns.delete(hero);
   });
   underWay.set(key, finished);
   return finished;
