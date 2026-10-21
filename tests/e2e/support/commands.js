@@ -3,6 +3,34 @@
 // backup file into every local store (the same code path as Settings > Restore) and signs a hero in.
 
 /**
+ * Quiets the one-time first-run seams that would otherwise cover a screen under test: the ambush-alert
+ * ask (battle.guard) and the portal's first-run tour (XpFirstRunTour, keyed `xp.tour.<heroId>` in
+ * src/lib/services/tutorial/firstRunTour.ts). Call it inside an `onBeforeLoad` with the window and the
+ * heroes the spec signs in. Every `cy.visit` already runs it for the fixture cast (see the overwrite
+ * below), so a spec only needs it for a hero outside that cast.
+ */
+const FIXTURE_CAST = ["gm-1", "hero-1", "hero-2"];
+Cypress.quietSeams = (win, heroIds = FIXTURE_CAST) => {
+  win.localStorage.setItem("xp.battleAlerts", "off");
+  heroIds.forEach((heroId) => win.localStorage.setItem(`xp.tour.${heroId}`, "seen"));
+};
+
+/**
+ * A copy of `backup` whose heroes have already heard the Guide's welcome (`guide.introSeen` on the profile,
+ * src/lib/services/guide/guideState.ts). That record rides in backups, so the Guide's "Your big quest" prompt
+ * is quieted by restoring this copy rather than by a localStorage key. Use it around every inline restore.
+ */
+Cypress.withGuideSeen = (backup) => {
+  const copy = JSON.parse(JSON.stringify(backup));
+  const profiles = copy && copy.stores && copy.stores.__profiles;
+  if (!Array.isArray(profiles)) return copy;
+  profiles.forEach((entry) => {
+    entry.value.guide = { ...entry.value.guide, introSeen: true };
+  });
+  return copy;
+};
+
+/**
  * Loads a backup fixture into the app's stores and signs `heroId` in.
  * Visits the app root first so the seam exists, then the caller navigates wherever the test needs.
  */
@@ -13,7 +41,7 @@ Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = 
       // The hero has already answered the one-time ambush-alert ask (see battle.guard), so its dialog
       // never covers a spec.
       onBeforeLoad(win) {
-        win.localStorage.setItem("xp.battleAlerts", "off");
+        Cypress.quietSeams(win, [heroId]);
       },
     });
     cy.window({ timeout: 60000 }).should((win) => {
@@ -21,7 +49,7 @@ Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = 
     });
     // Restore is Game Master only: sign in as a throwaway Game Master first (the restore drops that profile)
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
-    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(backup), { timeout: 60000 }));
+    cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(backup)), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser(heroId), `hero ${heroId} is loaded`).to.eq(true);
     });
@@ -44,6 +72,7 @@ Cypress.Commands.overwrite("visit", (originalFn, url, options = {}) => {
     ...options,
     onBeforeLoad(win) {
       win.localStorage.setItem("xpSkipSplash", "1");
+      Cypress.quietSeams(win);
       const hasCallerHook = typeof callerBeforeLoad === "function";
       if (hasCallerHook) callerBeforeLoad(win);
     },

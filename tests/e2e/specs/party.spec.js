@@ -62,7 +62,7 @@ describe("Party Tab", () => {
         expect(win.__xp, "development seam window.__xp").to.be.an("object");
       });
       cy.window().then((win) => win.__xp.signInSeedGameMaster());
-      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(withSeededQuestLog(fixture)), { timeout: 60000 }));
+      cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(withSeededQuestLog(fixture))), { timeout: 60000 }));
       cy.window().then((win) => {
         expect(win.__xp.loginUser(HERO_ID), `${HERO_ID} is loaded`).to.eq(true);
       });
@@ -81,7 +81,7 @@ describe("Party Tab", () => {
     cy.get("[data-cy=party-member-item]").should("have.length.at.least", 1);
 
     // 2. Activity feed check: shows seeded quest
-    cy.get("ion-segment-button[value=activity]").click({ force: true });
+    cy.contains("ion-segment-button", "Activity").click({ force: true }); // the segment value is a property, not an attribute
     cy.get("[data-cy=party-activity]", { timeout: 10000 }).should("be.visible");
     cy.contains("Luna finished Tame the Socktopus (+120 XP)").should("be.visible");
   });
