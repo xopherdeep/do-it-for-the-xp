@@ -25,7 +25,7 @@ import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
-import { generateShipped, renderModule } from "../../tools/temples/regenerate";
+import { generateShipped, renderShippedModule } from "../../tools/temples/regenerate";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -356,7 +356,7 @@ describe("the eight regenerated temples", () => {
 
     it("is exactly what tools/temples/regenerate.ts writes from its seed", () => {
       const file = readFileSync(join(__dirname, "../../src/lib/engine/temples", `${id}.ts`), "utf8");
-      expect(file).toBe(renderModule(id, generateShipped(id)));
+      expect(file).toBe(renderShippedModule(id, generateShipped(id)));
       expect(file).toContain(`// seed: "${id}"`);
     });
 
