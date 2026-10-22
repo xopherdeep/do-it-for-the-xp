@@ -36,6 +36,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import type { PotionCard } from "@/lib/services/battle/BattlePotions";
+import { faTintStyle } from "@/lib/services/items/faIcons";
 import BattleSheet from "./BattleSheet.vue";
 
 /**
@@ -51,15 +52,7 @@ const emit = defineEmits<{
 }>();
 
 /** The flask's colours as the duotone variables, when the card carries a tint. */
-const tintStyle = (potion: PotionCard): Record<string, string> => {
-  const tint = potion.tint;
-  if (!tint) return {};
-  return {
-    "--fa-primary-color": `var(--xp-color-${tint.primary})`,
-    "--fa-secondary-color": `var(--xp-color-${tint.secondary})`,
-    "--fa-secondary-opacity": "1",
-  };
-};
+const tintStyle = (potion: PotionCard): Record<string, string> => faTintStyle(potion.tint);
 
 /** Latched by a drink: the page closes the sheet next, so nothing else may fire from it before it is gone. */
 const isBusy = ref(false);

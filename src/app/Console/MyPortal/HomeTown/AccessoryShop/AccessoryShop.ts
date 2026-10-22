@@ -30,6 +30,7 @@ import {
 import { actionSheetController, modalController, onIonViewWillEnter } from "@ionic/vue";
 import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
 import debug from "@/lib/utils/debug";
+import { itemIconClass } from "@/lib/engine/voxel/iconToVoxel";
 import { play$fx } from "@/assets/fx";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
@@ -443,12 +444,6 @@ export default defineComponent({
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
     const wallet = computed(() => Number(userStore.users[heroId.value]?.stats?.gp?.wallet) || 0);
     const canAfford = (price: number) => canAffordPrice(wallet.value, price);
-    // The catalogue keeps a bare Font Awesome name ("film"); a full class ("fad fa-film") is honoured as given
-    const itemIconClass = (icon: string): string => {
-      if (!icon) return "fad fa-gift";
-      const isFullClass = icon.includes("fa-");
-      return isFullClass ? icon : `fad fa-${icon}`;
-    };
     // Null at shops that sell no wallet (Home Town, the Swamps, the Tundra, the Clouds)
     const walletWare = computed(() => {
       const stats = userStore.users[heroId.value]?.stats;

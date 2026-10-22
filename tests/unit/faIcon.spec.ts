@@ -30,6 +30,11 @@ describe("toFaClass", () => {
     expect(toFaClass(undefined, "fa-sparkles")).toBe("fa-sparkles");
   });
 
+  it("renames a Font Awesome 6 name to the glyph the vendored FA 5 font has", () => {
+    expect(toFaClass("flask-round-potion")).toBe("fa-flask-potion");
+    expect(toFaClass("fa-flask-round-potion")).toBe("fa-flask-potion");
+  });
+
   it("does not use the fallback when there is a name", () => {
     expect(toFaClass("bolt", "fa-sparkles")).toBe("fa-bolt");
     expect(toFaClass("fa-bolt", "fa-sparkles")).toBe("fa-bolt");

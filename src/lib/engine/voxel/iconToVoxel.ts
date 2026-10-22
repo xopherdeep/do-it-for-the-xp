@@ -1,6 +1,7 @@
 import type { Box, MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { buildMeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { pixelDataToBoxes } from "@/lib/engine/voxel/spriteToVoxel";
+import { faIconName } from "@/lib/services/items/faIcons";
 
 /**
  * Turns a shop item's Font Awesome duotone icon into a voxel model: the icon is drawn the way the page
@@ -22,10 +23,19 @@ export interface IconGlyph {
   secondary: GlyphLayer | null;
 }
 
-/** Icon names come bare ("film") or as a class ("fad fa-film"); an empty one is a gift box. */
+/**
+ * Icon names come bare ("film") or as a class ("fad fa-film"); an empty one is a gift box. A Font Awesome 6 name
+ * is drawn with the glyph the vendored FA 5 font has (`faIconName`).
+ */
 export const itemIconClass = (icon: string): string => {
   if (!icon) return "fad fa-gift";
-  return icon.includes("fa-") ? icon : `fad fa-${icon}`;
+  const isFullClass = icon.includes("fa-");
+  if (!isFullClass) return `fad fa-${faIconName(icon)}`;
+  return icon
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => (token.startsWith("fa-") ? `fa-${faIconName(token)}` : token))
+    .join(" ");
 };
 
 // Uncoloured icons inherit this parchment gold, the shop sign's colour.
@@ -108,8 +118,11 @@ export const createPlaceholderItemMesh = (): MeshData =>
     { x: -1, y: 4.5, z: 6.1, w: 2, h: 3, d: 0.4, color: "#5a3a1b" },
   ]);
 
-/** Reads the glyph a `<i class="fad fa-...">` draws inside `.icon-colors`, colours included. */
-export const readIconGlyph = (iconClass: string): IconGlyph | null => {
+/**
+ * Reads the glyph a `<i class="fad fa-...">` draws inside `.icon-colors`, colours included. `style` is extra inline
+ * style for the probe: a potion's tint (`faTintStyle`) overrides the icon's own colours the way it does on the page.
+ */
+export const readIconGlyph = (iconClass: string, style: Record<string, string> = {}): IconGlyph | null => {
   const isWithoutDom = typeof document === "undefined" || typeof getComputedStyle !== "function";
   if (isWithoutDom) return null;
   const wrap = document.createElement("span");
@@ -118,6 +131,7 @@ export const readIconGlyph = (iconClass: string): IconGlyph | null => {
   wrap.style.cssText = `position:absolute;left:-9999px;top:0;visibility:hidden;color:${DEFAULT_ICON_COLOR}`;
   const probe = document.createElement("i");
   probe.className = iconClass;
+  for (const [property, value] of Object.entries(style)) probe.style.setProperty(property, value);
   wrap.appendChild(probe);
   document.body.appendChild(wrap);
   try {
@@ -191,16 +205,16 @@ const rasteriseGlyph = (glyph: IconGlyph, resolution: number): Uint8ClampedArray
 
 const meshCache = new Map<string, MeshData>();
 
-/** The voxel model of an item's icon; a crate when the icon or its font cannot be drawn. */
-export const iconToVoxelMesh = async (icon: string, resolution = 24): Promise<MeshData> => {
+/** The voxel model of an item's icon, in `style`'s tint if any; a crate when the icon or its font cannot be drawn. */
+export const iconToVoxelMesh = async (icon: string, resolution = 24, style: Record<string, string> = {}): Promise<MeshData> => {
   const iconClass = itemIconClass(icon);
-  const key = `${iconClass}@${resolution}`;
+  const key = `${iconClass}@${resolution}${JSON.stringify(style)}`;
   const cached = meshCache.get(key);
   if (cached) return cached;
 
   let mesh = createPlaceholderItemMesh();
   try {
-    const glyph = readIconGlyph(iconClass);
+    const glyph = readIconGlyph(iconClass, style);
     if (glyph) {
       await waitForFont(`${glyph.fontWeight} ${resolution}px ${glyph.fontFamily}`, glyph.primary.char);
       const layers = rasteriseGlyph(glyph, resolution);

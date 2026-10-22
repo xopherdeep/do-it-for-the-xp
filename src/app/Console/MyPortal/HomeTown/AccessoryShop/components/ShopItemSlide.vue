@@ -7,7 +7,7 @@
     @click="$emit('pick')"
   >
     <!-- One thing on the shelf, standing on the shop floor: no card, just the item, its name and its tag -->
-    <xp-item-model :icon="icon" :photo="photo" :name="name" :size="168" :spinning="active" />
+    <xp-item-model :icon="icon" :tint="tint" :photo="photo" :name="name" :size="168" :spinning="active" />
     <span class="shop-item-slide__name">{{ name }}</span>
     <span class="shop-item-slide__tag">
       <i class="fad fa-coins" />
@@ -19,7 +19,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import XpItemModel from "@/components/organisms/ItemModel/XpItemModel.vue";
+import { potionTintOf } from "@/lib/services/battle/BattlePotions";
 
 interface ShopItemSlideProps {
   name: string;
@@ -35,10 +37,13 @@ interface ShopItemSlideProps {
   active?: boolean;
 }
 
-withDefaults(
+const props = withDefaults(
   defineProps<ShopItemSlideProps>(),
   { icon: "", photo: "", affordable: true, shortBy: 0, note: "", active: false }
 );
+
+/** Potions share one duotone flask and are told apart by colour (HP red, MP blue, Elixir gold). */
+const tint = computed(() => potionTintOf(props.name));
 
 defineEmits<{ (event: "pick"): void }>();
 </script>

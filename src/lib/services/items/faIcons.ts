@@ -13,6 +13,22 @@ export const FA_ICON_ALIASES: Readonly<Record<string, string>> = {
   droplet: "tint",
 };
 
+/** A duotone icon's two colours, as `--xp-color-*` names (`red`, `lightBlue`): the glass and the liquid of a flask. */
+export interface IconTint {
+  primary: string;
+  secondary: string;
+}
+
+/** The inline variables that paint a duotone icon in a tint; nothing for no tint. */
+export const faTintStyle = (tint: IconTint | null | undefined): Record<string, string> => {
+  if (!tint) return {};
+  return {
+    "--fa-primary-color": `var(--xp-color-${tint.primary})`,
+    "--fa-secondary-color": `var(--xp-color-${tint.secondary})`,
+    "--fa-secondary-opacity": "1",
+  };
+};
+
 /** `flask-potion`, `fa-flask-potion` or `flask-round-potion` -> `flask-potion`: the bare name of a glyph the font has. */
 export const faIconName = (raw: string | undefined | null): string => {
   const name = (raw ?? "").trim().replace(/^fa-/, "");

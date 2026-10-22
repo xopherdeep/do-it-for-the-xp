@@ -24,6 +24,12 @@ describe("itemIconClass", () => {
     expect(itemIconClass("fas fa-film")).toBe("fas fa-film");
     expect(itemIconClass("")).toBe("fad fa-gift");
   });
+
+  it("draws a Font Awesome 6 name with the glyph the vendored FA 5 font has", () => {
+    expect(itemIconClass("flask-round-potion")).toBe("fad fa-flask-potion");
+    expect(itemIconClass("fad fa-flask-round-potion")).toBe("fad fa-flask-potion");
+    expect(itemIconClass("fas fa-flask-vial fa-spin")).toBe("fas fa-flask fa-spin");
+  });
 });
 
 describe("cssColorToHex", () => {

@@ -7,6 +7,7 @@
  */
 import { useUserStore } from '@/lib/store/stores/user';
 import { inventoryOf } from '@/lib/services/inventory/Inventory';
+import type { IconTint } from '@/lib/services/items/faIcons';
 import { REASON_HP_FULL, SOUND_HEAL, heroPoints, refuse, type BattleEffectOutcome } from './BattleEffects';
 
 export interface PotionRule {
@@ -37,10 +38,7 @@ export const POTIONS: Record<string, PotionRule> = {
 };
 
 /** The duotone flask's colours (`--xp-color-*` names, as XpIcon takes them): glass and liquid. */
-export interface PotionTint {
-  primary: string;
-  secondary: string;
-}
+export type PotionTint = IconTint;
 
 const TINT_HP: PotionTint = { primary: 'red', secondary: 'pink' };
 const TINT_MP: PotionTint = { primary: 'blue', secondary: 'lightBlue' };

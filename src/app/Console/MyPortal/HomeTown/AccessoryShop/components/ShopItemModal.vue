@@ -13,7 +13,7 @@
       </div>
 
       <div class="shop-item-modal__showcase">
-        <xp-item-model :icon="item.icon" :photo="item.photo" :name="item.name" :size="150" spinning />
+        <xp-item-model :icon="item.icon" :tint="tint" :photo="item.photo" :name="item.name" :size="150" spinning />
       </div>
 
       <div class="shop-item-modal__desc-box">
@@ -79,11 +79,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref } from "vue";
+import { computed, defineComponent, PropType, ref } from "vue";
 import { IonButton, IonModal } from "@ionic/vue";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import XpItemModel from "@/components/organisms/ItemModel/XpItemModel.vue";
+import { potionTintOf } from "@/lib/services/battle/BattlePotions";
 
 export default defineComponent({
   name: "ShopItemModal",
@@ -124,9 +125,13 @@ export default defineComponent({
       emit("close");
     };
 
+    /** Potions share one duotone flask and are told apart by colour (HP red, MP blue, Elixir gold). */
+    const tint = computed(() => potionTintOf(props.item?.name ?? ""));
+
     return {
       modalRef,
       handleDismiss,
+      tint,
     };
   },
 });

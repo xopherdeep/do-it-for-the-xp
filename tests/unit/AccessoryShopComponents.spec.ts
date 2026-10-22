@@ -28,7 +28,7 @@ jest.mock("@ionic/vue", () => {
 });
 
 // The voxel model needs WebGL; these specs are about the shelf, not the renderer
-const itemModelStub = { template: "<div class='item-model-stub' />", props: ["icon", "photo", "name", "size", "spinning"] };
+const itemModelStub = { template: "<div class='item-model-stub' />", props: ["icon", "photo", "name", "size", "spinning", "tint"] };
 
 describe("ShopItemSlide", () => {
   const mountSlide = (props: Record<string, unknown>) =>
@@ -55,6 +55,13 @@ describe("ShopItemSlide", () => {
     const wrapper = mountSlide({ affordable: false, shortBy: 10, note: "Owned" });
     expect(wrapper.text()).toContain("Owned");
     expect(wrapper.text()).not.toContain("Need");
+  });
+
+  it("tints a potion's model by what it restores, and leaves other wares in their own colours", () => {
+    const health = mountSlide({ name: "Health Potion", icon: "flask-round-potion" });
+    expect(health.findComponent(itemModelStub).props("tint")).toEqual({ primary: "red", secondary: "pink" });
+    const ticket = mountSlide({});
+    expect(ticket.findComponent(itemModelStub).props("tint")).toBeNull();
   });
 
   it("turns the model only while it is the slide on show, and reports a pick", async () => {

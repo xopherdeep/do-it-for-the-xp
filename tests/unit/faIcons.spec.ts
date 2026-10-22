@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { FA_ICON_ALIASES, faIconName } from "@/lib/services/items/faIcons";
+import { FA_ICON_ALIASES, faIconName, faTintStyle } from "@/lib/services/items/faIcons";
 
 /**
  * The app ships Font Awesome Pro 5.15.4 (src/assets/fonts/font-awesome). Icon names from Font Awesome 6 render as
@@ -26,6 +26,16 @@ describe("faIconName", () => {
   it("gives back an empty string for nothing", () => {
     expect(faIconName(undefined)).toBe("");
     expect(faIconName("")).toBe("");
+  });
+
+  it("turns a tint into the duotone colour variables, and nothing into nothing", () => {
+    expect(faTintStyle({ primary: "red", secondary: "pink" })).toEqual({
+      "--fa-primary-color": "var(--xp-color-red)",
+      "--fa-secondary-color": "var(--xp-color-pink)",
+      "--fa-secondary-opacity": "1",
+    });
+    expect(faTintStyle(null)).toEqual({});
+    expect(faTintStyle(undefined)).toEqual({});
   });
 
   it("only aliases names the font lacks, and only to names it has", () => {

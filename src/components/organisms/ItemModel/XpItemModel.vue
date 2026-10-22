@@ -4,7 +4,7 @@
     <canvas v-if="showPhoto" ref="photoRef" class="xp-item-model__photo" :aria-label="name" role="img" />
     <!-- No WebGL: the flat duotone icon in its colours -->
     <span v-else-if="flat" class="xp-item-model__flat icon-colors" :aria-label="name" role="img">
-      <i :class="iconClass" />
+      <i :class="iconClass" :style="tintStyle" />
     </span>
     <canvas v-else ref="voxelRef" class="xp-item-model__voxel" :aria-label="name" role="img" />
     <div class="xp-item-model__shadow" aria-hidden="true" />
@@ -17,10 +17,13 @@ import { registerLandmark } from "@/components/organisms/BuildingModel/voxel/sha
 import type { LandmarkHandle } from "@/components/organisms/BuildingModel/voxel/sharedLandmarkRenderer";
 import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 import { createPlaceholderItemMesh, iconToVoxelMesh, itemIconClass } from "@/lib/engine/voxel/iconToVoxel";
+import { faTintStyle, type IconTint } from "@/lib/services/items/faIcons";
 
 interface XpItemModelProps {
   /** Font Awesome duotone name ("film") or class ("fad fa-film") */
   icon?: string;
+  /** Colours that override the icon's own (a potion's: HP red, MP blue), as `--xp-color-*` names */
+  tint?: IconTint | null;
   /** An uploaded picture's address; wins over the icon while it loads */
   photo?: string;
   name?: string;
@@ -31,7 +34,7 @@ interface XpItemModelProps {
 
 const props = withDefaults(
   defineProps<XpItemModelProps>(),
-  { icon: "", photo: "", name: "", size: 150, spinning: false }
+  { icon: "", tint: null, photo: "", name: "", size: 150, spinning: false }
 );
 
 const PHOTO_PIXELS = 36;
@@ -43,6 +46,7 @@ const photoRef = ref<HTMLCanvasElement | null>(null);
 const photoFailed = ref(false);
 const flat = ref(false);
 const iconClass = computed(() => itemIconClass(props.icon));
+const tintStyle = computed(() => faTintStyle(props.tint));
 const showPhoto = computed(() => Boolean(props.photo) && !photoFailed.value);
 const boxStyle = computed(() => ({ width: `${props.size}px`, height: `${props.size}px` }));
 
@@ -52,7 +56,7 @@ let latestIcon = 0;
 
 const loadIcon = async () => {
   const thisLoad = ++latestIcon;
-  const next = await iconToVoxelMesh(props.icon);
+  const next = await iconToVoxelMesh(props.icon, 24, tintStyle.value);
   const isStaleLoad = thisLoad !== latestIcon;
   if (isStaleLoad) return;
   mesh = next;
@@ -127,7 +131,7 @@ watch(
   }
 );
 watch(
-  () => props.icon,
+  () => [props.icon, props.tint?.primary, props.tint?.secondary],
   () => {
     if (handle) void loadIcon();
   }
