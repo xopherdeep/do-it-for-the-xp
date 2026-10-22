@@ -55,15 +55,6 @@ interface Plan {
 }
 
 const PLANS: Record<string, Plan> = {
-  "fire-temple": {
-    name: "Fire Temple", theme: "mountains", element: "fire", floors: 2,
-    quests: {
-      monsters: [["hangry-hob", 1, "daily am"], ["snack-snatcher", 2, "daily"], ["simmer-salamander", 2, "weekly"], ["cardboard-golem", 2, "weekly"]],
-      minibosses: [["grime-griffin", 5, "weekly"]],
-      boss: ["junkpile-jotun", 13, "monthly"],
-    },
-    trap: ["fire", 5], puzzle: "fireSequence", shop: "FireResistPotion", relics: ["Flame Shield"],
-  },
   "moon-temple": {
     name: "Moon Temple", theme: "moon", element: "moon", floors: 3,
     // The table lists the twos before the ones; the rule "easiest first" wins, the ones lead

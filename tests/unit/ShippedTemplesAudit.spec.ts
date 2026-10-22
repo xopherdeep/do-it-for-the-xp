@@ -39,13 +39,11 @@ const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.inclu
 
 /** Floors each regenerated temple was spread over */
 const FLOORS: Record<string, number> = {
-  "fire-temple": 2,
   "moon-temple": 3,
 };
 
 /** The relics each regenerated temple keeps in a chest */
 const RELICS: Record<string, string[]> = {
-  "fire-temple": ["Flame Shield"],
   "moon-temple": ["Lunar Pendant", "Moon Shard"],
 };
 
@@ -56,13 +54,11 @@ const RELICS: Record<string, string[]> = {
  */
 const COMBAT_ROOMS: Record<string, [number, number, number]> = {
   "wind-temple": [6, 2, 1],
-  "fire-temple": [4, 1, 1],
   "moon-temple": [6, 1, 1],
 };
 
 const TEMPLE_SIZE: Record<string, number> = {
   "wind-temple": 22,
-  "fire-temple": 25,
   "moon-temple": 22,
 };
 
@@ -79,11 +75,12 @@ const sizeOf = (id: string): number => (CLASSIC.includes(id) ? dressed(id).size 
 /**
  * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
  * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold, Earth) and
- * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none.
+ * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none. A classic temple whose plan is
+ * topped up with the rest of its theme holds that beast's starter too (Fire's Backseat Beastie: Clean Backseat Beastie).
  */
 const STARTER_MATCHES: Record<string, string[]> = {
   "wind-temple": ["quest-dust", "quest-vacuum"],
-  "fire-temple": ["quest-breakfast", "quest-cook"],
+  "fire-temple": ["quest-breakfast", "quest-cook", "quest-car"],
   "earth-temple": ["quest-weeds", "quest-pet", "quest-plants", "quest-walk-dog", "quest-poop"],
   "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear", "quest-mop"],
   "ice-temple": ["quest-socks", "quest-fridge", "quest-laundry"],

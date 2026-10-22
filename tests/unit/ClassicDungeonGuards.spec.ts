@@ -373,8 +373,9 @@ describe("every classic JSON, dressed in memory under its plan", () => {
     "shadow-temple": { solvable: true, audit: [], reasons: [] },
     // The Floor Switch, named, guards the Boss Key (the Pengator Switch does not: the Big Key's stairs come up from B2)
     "ice-temple": { solvable: true, audit: [], reasons: [] },
+    // The Lava Dual Pipes, named, fight in the Big Key's screen and hand the Boss Key out (no set of fights closes it off)
+    "fire-temple": { solvable: true, audit: [], reasons: [] },
     // Under the stand-in
-    "fire-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (3,1) loot can be reached without passing the mini-boss"] },
     "moon-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B2 (0,1) loot can be reached without passing the mini-boss"] },
   };
 

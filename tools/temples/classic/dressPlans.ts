@@ -151,6 +151,24 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibossRooms: ["Ice Floor Switch"],
     boss: ["laundry-lurker", 13, "weekly"],
   },
+  // Turtle Rock: kitchen-fire and garage chores. Seven must-clear rooms for the five fire beasts left once the mini-boss
+  // and the boss have theirs: today's two starters (breakfast, cooking), today's other two, then the car; the first two
+  // repeat. The Big Key lies at a crossroads of the Lava Dual Pipes that no set of fights closes off (the solver's R4),
+  // so the Grime Griffin fights in that room's Big Key screen and the Boss Key waits behind it; the Junkpile Jotun (13)
+  // waits at the bottom of the rock.
+  "fire-temple": {
+    name: "Fire Temple",
+    theme: "mountains",
+    element: "fire",
+    relic: "Flame Shield",
+    shop: "FireResistPotion",
+    trap: ["fire", 5],
+    puzzle: "fireSequence",
+    mustClear: [["hangry-hob", 1, "daily am"], ["simmer-salamander", 2, "weekly"], ["snack-snatcher", 2, "daily"], ["cardboard-golem", 2, "weekly"], ["backseat-beastie", 2, "weekly"]],
+    minibosses: [["grime-griffin", 5, "weekly"]],
+    minibossRooms: ["TR Lava Dual Pipes"],
+    boss: ["junkpile-jotun", 13, "monthly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);
