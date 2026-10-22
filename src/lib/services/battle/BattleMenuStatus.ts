@@ -1,6 +1,6 @@
 import type { BattlePowerEntry } from '@/lib/services/battle/BattlePowers';
-import type { BattleItemCard, BattleBagRole } from '@/lib/services/battle/BattleItems';
-import type { PotionCard } from '@/lib/services/battle/BattlePotions';
+import { REASON_NOT_HELD, type BattleItemCard, type BattleBagRole } from '@/lib/services/battle/BattleItems';
+import { REASON_FULL_STRENGTH, REASON_MP_FULL, type PotionCard } from '@/lib/services/battle/BattlePotions';
 import { REASON_HP_FULL, REASON_NO_MP, REASON_STRIKE_WAITING, REASON_USED } from '@/lib/services/battle/BattleEffects';
 
 export interface MenuSlotStatus { enabled: boolean; note: string }
@@ -27,6 +27,9 @@ const SHORT_REASONS: Record<string, string | undefined> = {
   [REASON_USED]: 'used',
   [REASON_HP_FULL]: 'HP full',
   [REASON_STRIKE_WAITING]: 'wait',
+  [REASON_NOT_HELD]: 'not held',
+  [REASON_MP_FULL]: 'MP full',
+  [REASON_FULL_STRENGTH]: 'full',
 };
 const NOTE_WORD_MAX = 9;
 
@@ -64,10 +67,14 @@ const effectTileReason = (tile: MenuGoodsTile): string | null => {
   return tile.card?.reason ?? null;
 };
 
-/** Why the first potion (else the first effect tile) the hero owns cannot be used; null when there is nothing to explain. */
+/**
+ * Why Goods is greyed out: the first potion's reason (the hero owns it and could drink it), else the first effect tile's
+ * (a tool out of hand). Null only when there are no potions and no tools to explain.
+ */
 const firstGoodsReason = (goods: MenuGoodsTile[], potions: PotionCard[]): string | null => {
-  const reasons = [...potions.map(p => p.reason), ...goods.map(effectTileReason)];
-  return reasons.find(reason => reason !== null) ?? null;
+  const potionReason = potions.map(p => p.reason).find(reason => reason !== null);
+  const toolReason = goods.map(effectTileReason).find(reason => reason !== null);
+  return potionReason ?? toolReason ?? null;
 };
 
 const getGoodsStatus = (goods: MenuGoodsTile[], potions: PotionCard[]): MenuSlotStatus => {

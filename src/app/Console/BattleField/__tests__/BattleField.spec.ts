@@ -766,8 +766,8 @@ describe("BattleField: a free fight", () => {
     expect(hero.inventory).toEqual([]);
     await readUntilMenu();
 
-    // The last bottle is gone and no tool is in a hand: Goods dims and says why (hold one), so there is no empty sheet to open
-    expect(menuNotes().item).toBe("hold");
+    // The last bottle is gone and no tool is in a hand: Goods dims and says why ("not held"), so there is no empty sheet to open
+    expect(menuNotes().item).toBe("not held");
     expect(isDimmed("item")).toBe(true);
     await wrapper.find("#item").trigger("click");
     expect(bagOpen()).toBe(false);

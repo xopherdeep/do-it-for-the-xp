@@ -1,5 +1,7 @@
 import { battleMenuStatus, shortReason } from "@/lib/services/battle/BattleMenuStatus";
 import { REASON_HP_FULL, REASON_NO_MP, REASON_STRIKE_WAITING, REASON_USED } from "@/lib/services/battle/BattleEffects";
+import { REASON_NOT_HELD } from "@/lib/services/battle/BattleItems";
+import { REASON_FULL_STRENGTH, REASON_MP_FULL } from "@/lib/services/battle/BattlePotions";
 
 const power = (mp: number, reason: string | null = null) => ({ ability: { id: `p${mp}` } as never, card: { mp, effect: "", reason } });
 const card = (reason: string | null = null, role = "effect" as const) => ({ role, card: { name: "Bomb", faIcon: "bomb", mp: 0, effect: "", reason } });
@@ -25,17 +27,20 @@ describe("battleMenuStatus", () => {
     expect(battleMenuStatus(base).powers).toEqual({ enabled: false, note: "none" });
   });
 
-  it("shortReason maps the engine's four sentences to the words a menu row holds", () => {
+  it("shortReason maps the engine's sentences to the words a menu row holds", () => {
     expect(shortReason(REASON_NO_MP)).toBe("no MP");
     expect(shortReason(REASON_USED)).toBe("used");
     expect(shortReason(REASON_HP_FULL)).toBe("HP full");
     expect(shortReason(REASON_STRIKE_WAITING)).toBe("wait");
+    expect(shortReason(REASON_NOT_HELD)).toBe("not held");
+    expect(shortReason(REASON_MP_FULL)).toBe("MP full");
+    expect(shortReason(REASON_FULL_STRENGTH)).toBe("full");
   });
 
   it("shortReason falls back to the first word in lower case, cut to nine characters", () => {
-    expect(shortReason("Not held in a hand")).toBe("not");
+    expect(shortReason("Locked until you free a Pegasus.")).toBe("locked");
     expect(shortReason("Extraordinarily unusable")).toBe("extraordi");
-    expect(shortReason("Your MP is full.")).toBe("your");
+    expect(shortReason("Out of bombs.")).toBe("out");
   });
 
   it("Goods counts usable effect tiles plus potion quantities", () => {
@@ -46,10 +51,18 @@ describe("battleMenuStatus", () => {
     expect(battleMenuStatus({ ...base, goods: [container()] }).goods).toEqual({ enabled: false, note: "empty" });
   });
 
-  it("Goods names why when the hero owns something that cannot be used: the first potion's reason, else the first effect tile's", () => {
-    const hpFull = battleMenuStatus({ ...base, potions: [potion(2, REASON_HP_FULL)] }).goods;
-    expect(hpFull).toEqual({ enabled: false, note: "HP full" });
-    expect(battleMenuStatus({ ...base, goods: [card(REASON_USED)], potions: [potion(1, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "HP full" });
+  it("Goods names why from what the hero owns: a potion's reason first, even with tools out of hand", () => {
+    expect(battleMenuStatus({ ...base, potions: [potion(2, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "HP full" });
+    expect(battleMenuStatus({ ...base, potions: [potion(1, REASON_MP_FULL)] }).goods).toEqual({ enabled: false, note: "MP full" });
+    expect(battleMenuStatus({ ...base, potions: [potion(1, REASON_FULL_STRENGTH)] }).goods).toEqual({ enabled: false, note: "full" });
+    // Tools out of hand sit beside the potion, and the potion still speaks first
+    expect(battleMenuStatus({ ...base, goods: [card(REASON_NOT_HELD)], potions: [potion(1, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "HP full" });
+    // The first potion that has a reason speaks, whatever follows it
+    expect(battleMenuStatus({ ...base, potions: [potion(1, REASON_MP_FULL), potion(1, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "MP full" });
+  });
+
+  it("Goods says 'not held' for tools out of hand when the hero has no potions", () => {
+    expect(battleMenuStatus({ ...base, goods: [card(REASON_NOT_HELD), card(REASON_USED)] }).goods).toEqual({ enabled: false, note: "not held" });
     expect(battleMenuStatus({ ...base, goods: [container(), { role: "none", card: null }, card(REASON_USED)] }).goods).toEqual({ enabled: false, note: "used" });
   });
 

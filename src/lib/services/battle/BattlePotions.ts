@@ -84,8 +84,8 @@ export interface PotionCard {
   reason: string | null;
 }
 
-const REASON_MP_FULL = 'Your MP is full.';
-const REASON_FULL_STRENGTH = 'You are already at full strength.';
+export const REASON_MP_FULL = 'Your MP is full.';
+export const REASON_FULL_STRENGTH = 'You are already at full strength.';
 const NOT_IN_PACK = "You don't have that.";
 const DEFAULT_ICON = 'flask-potion';
 
