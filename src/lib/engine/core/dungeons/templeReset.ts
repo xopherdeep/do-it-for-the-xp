@@ -44,6 +44,41 @@ export const resetTempleProgress = <P extends NewTempleProgress>(progress: P): P
   return next;
 };
 
+/** Where a run starts in a layout: the floor its entrance names (`[floorIndex, row, col]`, or `[row, col]` on the first floor) */
+export const entranceOf = (layout: { entrance?: number[] | null; maze?: string[][] | Record<string, string[][]> | null }): { level: string; position: [number, number] } => {
+  const floors = !layout.maze || Array.isArray(layout.maze) ? ['1F'] : Object.keys(layout.maze);
+  const given = layout.entrance && layout.entrance.length >= 2 ? layout.entrance : [0, 0];
+  const isOnAFloor = given.length === 3;
+  if (!isOnAFloor) return { level: floors[0] ?? '1F', position: [given[0], given[1]] };
+  return { level: floors[given[0]] ?? floors[0] ?? '1F', position: [given[1], given[2]] };
+};
+
+/**
+ * The progress after the temple's layout was switched for another (a shipped temple rebuilt, the design's "Rollout
+ * to families"): the old rooms are gone, so the hero stands on the new entrance with nothing of the old run: no
+ * keys, no Boss Key, no map or compass, no room visited, won or emptied, no door opened. What they earned for good
+ * stays: the key items (the temple's tool, the Pegasus), the cleared badge, the count of clears, the blood moons and
+ * the moon the Game Master scheduled. A layout switch is not a blood moon: `bloodMoons` does not count one more.
+ */
+export const progressForNewLayout = <P extends NewTempleProgress>(progress: P, entrance: { level: string; position: [number, number] }): P => {
+  const won = new Set(progress.clearedRooms);
+  const next: P = {
+    ...progress,
+    currentLevel: entrance.level,
+    currentPosition: [entrance.position[0], entrance.position[1]],
+    hasMap: false,
+    hasCompass: false,
+    playerKeys: 0,
+    hasMasterKey: false,
+    visitedRooms: [],
+    clearedRooms: won.has(TEMPLE_CLEARED_KEY) ? [TEMPLE_CLEARED_KEY] : [],
+    openedDoors: [],
+    openedChests: [],
+  };
+  delete (next as Partial<NewTempleProgress>).takenFromChests;
+  return next;
+};
+
 /** True when a blood moon was scheduled for a time that has come. */
 export const isBloodMoonDue = (progress: Pick<NewTempleProgress, 'bloodMoonAt'>, now: Date = new Date()): boolean => {
   const bloodMoonAt = progress.bloodMoonAt;

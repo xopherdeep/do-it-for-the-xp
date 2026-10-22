@@ -13,11 +13,14 @@
  * Hero progress lives in another store (`__templeProgress`) and is never read or written here.
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
+import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import temples from '@/lib/engine/temples';
 import { Room } from './types';
 import debug from '@/lib/utils/debug';
 import { auditTemple, type AuditableLayout } from '@/lib/services/temples/templeAudit';
 import { startTempleSync } from './templeFreshness';
+import { entranceOf, progressForNewLayout } from './templeReset';
+import { TempleSystem } from './TempleSystem';
 
 type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
 
@@ -140,6 +143,27 @@ const templeDescriptions: Record<string, string> = {
 // Temples whose edited copy was already reported this session, so the log says it once
 const reportedEdited = new Set<string>();
 
+/**
+ * A refresh puts a different temple under the same id (the design's "Rollout to families"): every hero's run in it
+ * starts over on the new entrance (progressForNewLayout), and a run the engine still holds on the old rooms is dropped
+ * before the new layout registers, so refreshRun cannot carry it over and no queued save writes it back. A failure here
+ * is warned about and never keeps the layout from being written.
+ */
+async function startRunsOver(templeId: string, layout: SeedLayout): Promise<void> {
+  const engine = TempleSystem.getInstance();
+  const isRunGoing = Boolean(engine.getTempleState(templeId));
+  if (isRunGoing) engine.forgetTempleRun(templeId);
+  try {
+    const progressDb = getTempleProgressDb();
+    const entrance = entranceOf(layout);
+    for (const saved of await progressDb.getProgressForTemple(templeId)) {
+      await progressDb.saveProgress(progressForNewLayout(saved, entrance));
+    }
+  } catch (error) {
+    debug.warn(`Could not start the runs in ${templeId} over for its new layout:`, error);
+  }
+}
+
 async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
   const report: SeedReport = {};
   try {
@@ -175,20 +199,24 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
         // create or refresh: the layout is the shipped one. A record without a layout (settings saved before
         // the layout was ever imported) and a refreshed copy keep their own fields: name, icon, description.
         const baseName = templeNames[templeId] || templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        const dungeonLayout: SeedLayout = {
+          entrance: templeData.entrance as number[],
+          maze: templeData.maze as string[][] | Record<string, string[][]>,
+          rooms: templeData.rooms as Record<string, Room>,
+        };
         const base: TempleInterface = {
           id: templeId,
           customName: baseName,
           customDescription: templeDescriptions[templeId] || `A mysterious temple of ${templeId.split('-')[0]} magic.`,
           categoryIds: ['dungeon', templeId.split('-')[0]],
           level: getTempleLevel(templeId),
-          dungeonLayout: {
-            entrance: templeData.entrance as number[],
-            maze: templeData.maze as string[][] | Record<string, string[][]>,
-            rooms: templeData.rooms as Record<string, Room>,
-          },
+          dungeonLayout,
         };
         debug.log(`${action === 'create' ? 'Importing' : 'Refreshing'} ${templeId} layout in TempleDb...`);
-        await db.setTemple({ ...base, ...existing, dungeonLayout: base.dungeonLayout, seedSignature: signature });
+        // The rooms a hero was in are gone with the old layout: their runs start over before it is replaced
+        const isLayoutSwitch = action === 'refresh';
+        if (isLayoutSwitch) await startRunsOver(templeId, dungeonLayout);
+        await db.setTemple({ ...base, ...existing, dungeonLayout, seedSignature: signature });
       } catch (error) {
         // One broken record must not keep the other temples from syncing
         debug.error(`Failed to sync ${templeId} to TempleDb:`, error);

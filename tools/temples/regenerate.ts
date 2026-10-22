@@ -1,6 +1,8 @@
 /**
- * Writes the eight generated temples of src/lib/engine/temples (earth, fire, ice, light, moon, shadow, storm, water)
- * from fixed seeds. The Wind Temple is made by hand and is never touched.
+ * Writes the generated temples of src/lib/engine/temples (earth, fire, ice, light, moon, shadow, water) from fixed
+ * seeds. The Wind Temple is made by hand and the Storm Temple is dressed from the Tower of Hera's JSON
+ * (tools/temples/classic/dress.ts); neither is touched here, and each temple that moves to a classic dungeon leaves
+ * PLANS below for classic/dressPlans.ts.
  *
  *   node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/bin/esbuild tools/temples/regenerate.ts \
  *     --bundle --platform=node --format=cjs --outfile=/tmp/regenerate-temples.cjs && node /tmp/regenerate-temples.cjs
@@ -88,15 +90,6 @@ const PLANS: Record<string, Plan> = {
       boss: ["pop-quiz-poltergeist", 8, "weekly"],
     },
     trap: ["blindingFlash", 4], puzzle: "prismAlignment", shop: "LuminousOrb", relics: ["Dawnbreaker Bow"],
-  },
-  "storm-temple": {
-    name: "Storm Temple", theme: "clouds", element: "storm", floors: 2,
-    quests: {
-      monsters: [["bed-basilisk", 1, "daily am"], ["shoe-shrew", 1, "daily"], ["mess-hog", 2, "daily"], ["toybox-troll", 2, "daily"], ["piece-poltergeist", 2, "weekly"]],
-      minibosses: [["under-bed-bogey", 5, "weekly"]],
-      boss: ["clutter-chimera", 8, "weekly"],
-    },
-    trap: ["lightning", 6], puzzle: "generic", relics: ["Lightning Rod"],
   },
   "water-temple": {
     name: "Water Temple", theme: "islands", element: "water", floors: 2,

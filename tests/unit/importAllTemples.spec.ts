@@ -198,7 +198,7 @@ describe("importAllTempleLayouts", () => {
     expect(record.seedSignature).toBe(layoutSignature(shippedTemple()));
   });
 
-  it("never touches hero progress", async () => {
+  it("touches no hero progress but the runs of a temple whose layout it switched (ClassicTempleRefresh.spec)", async () => {
     const progress = fakeStorage();
     progress.data.set("kid-1:wind-temple", { looted: ["R002"], keys: 1 });
     const before = JSON.stringify([...progress.data.entries()]);
