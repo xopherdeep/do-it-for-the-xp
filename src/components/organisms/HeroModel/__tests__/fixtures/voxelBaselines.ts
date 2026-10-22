@@ -30,8 +30,8 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
     armR: "57:-732.241",
     legL: "72:-1365.003",
     legR: "72:-1365.003",
-    handL: "111:2598.161",
-    handR: "56:1880.837",
+    handL: "127:3474.571",
+    handR: "71:2231.380",
   },
   {
     torso: "214:2960.711",
@@ -41,7 +41,7 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
     legL: "43:-903.009",
     legR: "43:-903.009",
     handL: "6:-11.571",
-    handR: "67:3474.889",
+    handR: "73:3575.797",
   },
   {
     // re-recorded with the half-unit head: the torso is shaded against the head, and the hoodie's hood lies into it
@@ -61,8 +61,8 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
     armR: "57:-732.241",
     legL: "72:-1365.003",
     legR: "72:-1365.003",
-    handL: "111:2598.161",
-    handR: "56:1880.837",
+    handL: "127:3474.571",
+    handR: "71:2231.380",
   },
 ];
 

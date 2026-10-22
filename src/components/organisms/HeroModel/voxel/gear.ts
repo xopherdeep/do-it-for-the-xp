@@ -51,6 +51,10 @@ export const wingedBoots = (): Box[] => {
     box(-0.9, -0.9, 1.9, 0.9, 0.9, 4.2, LEATHER),
     box(-1.0, -1.0, 4.2, 1.0, 1.0, 4.8, GOLD),
     box(-0.5, 0.9, 2.2, 0.5, 1.0, 3.9, shade(LEATHER, 0.8)),
+    // two dark straps round the shaft, the lower one buckled in gold at the shin
+    box(-1.0, -1.0, 2.3, 1.0, 1.05, 2.8, shade(LEATHER, 0.5)),
+    box(-1.0, -1.0, 3.3, 1.0, 1.05, 3.8, shade(LEATHER, 0.5)),
+    box(-0.25, 1.05, 2.3, 0.25, 1.15, 2.8, GOLD),
     ...wing(1),
     ...wing(-1),
   ];
@@ -73,6 +77,7 @@ export const crook = (): Box[] => {
   const ORANGE = "#c8691e";
   return [
     ...grip(-0.8, 6.2, ORANGE),
+    box(-0.5, -0.5, 5.2, 0.5, 0.5, 5.7, GOLD), // a gold collar under the curl
     box(-0.4, -0.4, 6.2, 1.2, 0.4, 6.9, ORANGE),
     box(1.2, -0.4, 5.6, 1.9, 0.4, 6.9, ORANGE),
     box(1.2, -0.4, 4.9, 1.9, 0.4, 5.6, shade(ORANGE, 0.85)),
@@ -91,6 +96,9 @@ export const spellbook = (): Box[] => {
     box(-0.25, 0.55, 1.9, 0.25, 0.7, 3.5, GOLD),
     box(-0.8, 0.55, 2.45, 0.8, 0.7, 2.95, GOLD),
     box(-0.5, 0.55, 2.1, 0.5, 0.7, 3.3, "#f7e58a"),
+    // a gold clasp over the fore-edge: its strap lies on the starred cover and its tongue fills the gap between the covers
+    box(1.0, 0.55, 2.4, 1.6, 0.65, 3.0, GOLD),
+    box(1.4, -0.25, 2.4, 1.6, 0.25, 3.0, GOLD),
   ];
 };
 
@@ -102,7 +110,9 @@ export const backpack = (): Box[] => {
     box(-1.5, -1.0, 1.2, 1.5, 1.0, 4.4, RED),
     box(-1.55, 1.0, 3.2, 1.55, 1.2, 4.45, shade(RED, 0.75)),
     box(-1.0, 1.0, 1.5, 1.0, 1.3, 2.9, lighten(RED, 0.15)),
-    box(-0.2, 1.2, 3.2, 0.2, 1.35, 3.6, GOLD),
+    // the flap's buckle: a gold plate at its lip on a dark strap that runs up the flap
+    box(-0.3, 1.2, 3.2, 0.3, 1.35, 3.7, GOLD),
+    box(-0.25, 1.2, 3.7, 0.25, 1.3, 4.45, shade(RED, 0.5)),
     box(-1.3, -1.2, 1.4, -0.9, -1.0, 4.2, shade(RED, 0.6)),
     box(0.9, -1.2, 1.4, 1.3, -1.0, 4.2, shade(RED, 0.6)),
   ];
@@ -115,6 +125,9 @@ export const wallet = (): Box[] => {
     box(-1.4, -0.45, 0.7, 1.4, 0.45, 3.1, TAN),
     box(-1.45, 0.45, 2.0, 1.45, 0.6, 3.15, shade(TAN, 0.75)),
     box(-0.3, 0.6, 2.0, 0.3, 0.75, 2.5, STEEL),
+    // a leather tab either side of the steel snap, so the clasp reads as holding the flap down
+    box(-0.8, 0.6, 2.0, -0.3, 0.7, 2.5, shade(TAN, 0.5)),
+    box(0.3, 0.6, 2.0, 0.8, 0.7, 2.5, shade(TAN, 0.5)),
     box(0.3, -0.3, 3.1, 1.1, 0.3, 3.5, GOLD),
   ];
 };
@@ -129,6 +142,9 @@ export const silverBow = (): Box[] => [
   box(-0.3, -2.8, 1.2, 0.3, -1.6, 1.9, WOOD),
   box(-0.3, -3.5, 0.7, 0.3, -2.8, 1.3, WOOD),
   box(-0.08, -3.5, 0.5, 0.08, 3.5, 0.62, lighten("#e8d5a8", 0.3)),
+  // leather bindings where the limbs leave the riser, lined up with the fist's top and bottom once the face is flipped
+  box(-0.4, -1.1, 0.65, 0.4, -0.6, 1.5, shade(WOOD, 0.6)),
+  box(-0.4, 0.65, 0.65, 0.4, 1.15, 1.5, shade(WOOD, 0.6)),
   // the arrow
   box(-0.15, -0.15, -0.6, 0.15, 0.15, 4.4, lighten(STEEL, 0.3)),
   box(-0.45, -0.15, 4.4, 0.45, 0.15, 4.8, lighten(STEEL, 0.5)),
@@ -176,6 +192,7 @@ export const warhammer = (): Box[] => {
     box(-0.45, -0.45, -0.4, 0.45, 0.45, 0.2, STEEL_D),
     box(-0.45, -0.45, 0.6, 0.45, 0.45, 1.2, STEEL_D),
     box(-0.3, -0.3, -1.5, 0.3, 0.3, -0.9, GOLD),
+    box(-0.55, -0.55, 3.9, 0.55, 0.55, 4.4, STEEL_D), // an iron collar under the head
     box(-2.0, -1.2, 4.4, 2.0, 1.2, 6.6, HEAD),
     box(-2.1, -1.3, 4.4, -1.6, 1.3, 6.6, shade(HEAD, 0.75)),
     box(1.6, -1.3, 4.4, 2.1, 1.3, 6.6, shade(HEAD, 0.75)),
@@ -189,6 +206,7 @@ export const lantern = (): Box[] => {
   return [
     box(-0.55, -0.55, -0.8, 0.55, 0.55, 3.0, RED),
     box(-0.6, -0.6, -1.0, 0.6, 0.6, -0.6, shade(RED, 0.7)),
+    box(-0.5, 0.55, 0.8, 0.5, 0.62, 2.0, shade(RED, 0.4)), // the iron frame the glowing lens is set in
     box(-0.25, 0.55, 1.0, 0.25, 0.7, 1.8, "#f7c230"),
     box(-0.9, -0.9, 3.0, 0.9, 0.9, 4.2, RED),
     box(-0.95, -0.95, 3.0, 0.95, 0.95, 3.3, shade(RED, 0.75)),
@@ -203,6 +221,7 @@ export const sunSceptre = (): Box[] => {
   const RAY = "#f7a530";
   return [
     ...grip(-0.6, 2.4, GOLD_D, 0.35),
+    box(-0.45, -0.45, 1.0, 0.45, 0.45, 1.5, GOLD), // a bright band on the shaft
     box(-0.55, -0.55, 2.4, 0.55, 0.55, 2.8, GOLD),
     ...disc(0, 3.9, 1.1, -0.7, 0.7, SUN),
     box(-0.5, 0.7, 3.4, 0.5, 0.85, 4.4, "#ffd04a"),
@@ -236,6 +255,13 @@ export const lightning = (): Box[] => {
 export const quakeMedallion = (): Box[] => {
   const GREEN = "#3f9a4a";
   const WAVE = "#1f5a2a";
+  // four pale studs set in the rim at the compass points, each a half-unit square
+  const studs: Array<[number, number]> = [
+    [-0.25, 4.0],
+    [-0.25, 1.1],
+    [1.2, 2.55],
+    [-1.7, 2.55],
+  ];
   return [
     box(-0.3, -0.3, 0.4, 0.3, 0.3, 1.2, GOLD_D),
     ...disc(0, 2.8, 1.7, -0.35, 0.35, GOLD),
@@ -244,13 +270,14 @@ export const quakeMedallion = (): Box[] => {
     box(-0.5, 0.5, 2.8, 0.0, 0.6, 3.3, WAVE),
     box(0.0, 0.5, 2.4, 0.5, 0.6, 2.9, WAVE),
     box(0.5, 0.5, 2.8, 1.0, 0.6, 3.3, WAVE),
+    ...studs.map(([x, z]) => box(x, 0.35, z, x + 0.5, 0.55, z + 0.5, lighten(GOLD, 0.55))),
   ];
 };
 
 /** Chronos' Clock: a gold pocket watch with its white face, two hands and the crown on top */
 export const pocketWatch = (): Box[] => [
   box(-0.12, -0.12, -0.2, 0.12, 0.12, 0.9, GOLD_D),
-  box(-0.35, -0.35, 0.9, 0.35, 0.35, 1.3, GOLD),
+  box(-0.4, -0.4, 0.7, 0.4, 0.35, 1.2, GOLD), // the winding crown, half a unit deep, its top flush with the case
   ...disc(0, 2.7, 1.5, -0.45, 0.35, GOLD),
   ...disc(0, 2.7, 1.1, 0.35, 0.5, "#f5efe0"),
   box(-0.1, 0.5, 2.6, 0.1, 0.6, 3.5, INK),
@@ -263,6 +290,7 @@ export const moonStaff = (): Box[] => {
   const MOON = "#9fd0f5";
   return [
     ...grip(-0.9, 4.0, "#3a3a6a", 0.35),
+    box(-0.45, -0.45, 1.6, 0.45, 0.45, 2.1, GOLD), // a gold band on the shaft, echoing the collar
     box(-0.5, -0.5, 4.0, 0.5, 0.5, 4.4, GOLD),
     // the crescent opens to the right: a back, two arms and their thin tips
     box(-1.9, -0.35, 5.2, -1.2, 0.35, 7.0, MOON),
@@ -289,6 +317,7 @@ export const fan = (): Box[] => {
     ...grip(-0.8, 1.0, WOOD, 0.3),
     ...rows.map(([z0, z1, half], i) => box(-half, -0.15, z0, half, 0.15, z1, i % 2 ? "#9fd0f5" : MINT)),
     box(-0.1, 0.15, 1.0, 0.1, 0.25, 4.6, shade(MINT, 0.6)),
+    box(-0.3, 0.15, 1.1, 0.3, 0.3, 1.6, GOLD), // the rivet the ribs turn on
     box(-1.7, 0.15, 2.8, -1.3, 0.25, 4.6, shade(MINT, 0.6)),
     box(1.3, 0.15, 2.8, 1.7, 0.25, 4.6, shade(MINT, 0.6)),
   ];
@@ -301,6 +330,7 @@ export const wizardHat = (): Box[] => {
     box(-2.0, -2.0, 0.7, 2.0, 2.0, 1.0, "#8fd8f0"),
     box(-1.3, -1.3, 1.0, 1.3, 1.3, 2.1, PURPLE),
     box(-1.35, -1.35, 1.0, 1.35, 1.35, 1.4, "#8fd8f0"),
+    box(-0.3, 1.35, 0.9, 0.3, 1.45, 1.4, GOLD), // a gold buckle on the band, at the front
     box(-0.9, -0.9, 2.1, 0.9, 0.9, 3.1, PURPLE),
     box(-0.55, -0.55, 3.1, 0.55, 0.55, 4.0, PURPLE),
     box(-0.3, -0.3, 4.0, 0.9, 0.3, 4.5, lighten(PURPLE, 0.15)),
@@ -312,6 +342,7 @@ export const wizardHat = (): Box[] => {
 /** Fire Wand: the icon's red rod, its tip burning orange to yellow */
 export const fireWand = (): Box[] => [
   ...grip(-0.8, 4.0, "#c0302a", 0.35),
+  box(-0.45, -0.45, 1.0, 0.45, 0.45, 1.5, shade("#c0302a", 0.55)), // a dark leather wrap above the fist
   box(-0.45, -0.45, 3.4, 0.45, 0.45, 3.8, GOLD),
   box(-0.75, -0.75, 4.0, 0.75, 0.75, 5.0, "#d8402a"),
   box(-0.5, -0.5, 5.0, 0.5, 0.5, 5.8, "#f7a530"),
@@ -324,6 +355,7 @@ export const iceWand = (): Box[] => {
   const ICE = "#8fd8f0";
   return [
     ...grip(-0.8, 4.0, "#3a6fd8", 0.35),
+    box(-0.45, -0.45, 1.0, 0.45, 0.45, 1.5, shade("#3a6fd8", 0.55)), // a dark leather wrap above the fist
     box(-0.45, -0.45, 3.4, 0.45, 0.45, 3.8, STEEL),
     box(-0.5, -0.5, 4.0, 0.5, 0.5, 6.4, ICE),
     box(-0.8, -0.3, 4.4, 0.8, 0.3, 5.8, ICE),
@@ -342,6 +374,7 @@ export const bottle = (): Box[] => {
     box(-1.1, -1.1, 2.0, 1.1, 1.1, 2.8, GLASS),
     box(-1.0, -1.0, 0.75, 1.0, 1.0, 0.95, shade(POTION, 0.75)),
     box(-0.5, -0.5, 2.8, 0.5, 0.5, 3.8, GLASS),
+    box(-0.6, -0.6, 3.3, 0.6, 0.6, 3.8, shade(GLASS, 0.8)), // the lip of the neck the cork sits in
     box(-0.6, -0.6, 3.8, 0.6, 0.6, 4.4, WOOD_L),
     box(-0.2, 1.1, 1.2, 0.2, 1.18, 2.5, WHITE),
   ];
@@ -350,6 +383,12 @@ export const bottle = (): Box[] => {
 /** Portal Home: a gold hand mirror holding a swirl of blue portal */
 export const portalMirror = (): Box[] => {
   const PORTAL = "#3f6fe0";
+  const corners: Array<[number, number]> = [
+    [-1.5, 1.9],
+    [1.0, 1.9],
+    [-1.5, 4.4],
+    [1.0, 4.4],
+  ];
   return [
     ...grip(-0.8, 1.4, GOLD_D, 0.35),
     box(-0.8, -0.35, 1.4, 0.8, 0.35, 1.9, GOLD),
@@ -359,5 +398,7 @@ export const portalMirror = (): Box[] => {
     box(-0.6, 0.35, 1.9, 0.6, 0.5, 4.9, PORTAL),
     box(-0.5, 0.5, 2.8, 0.5, 0.6, 4.0, lighten(PORTAL, 0.35)),
     box(-0.15, 0.6, 3.2, 0.15, 0.68, 3.6, WHITE),
+    // a pale jewel in each corner of the frame, where the glass stops short
+    ...corners.map(([x, z]) => box(x, 0.35, z, x + 0.5, 0.45, z + 0.5, "#f7e58a")),
   ];
 };
