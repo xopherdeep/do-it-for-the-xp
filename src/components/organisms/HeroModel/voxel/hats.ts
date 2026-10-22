@@ -49,10 +49,10 @@ export const hat = (style: HatStyle, color: string): Box[] => {
         box(-0.5, 15.75, 3.75, 0.5, 16.75, 4.25, G),
         box(-0.5, 15.75, -4.25, 0.5, 16.75, -3.75, G),
         box(-0.25, 16.75, 3.75, 0.25, 17.25, 4.25, lighten(G, 0.6)),
-        // gems along the front, and a velvet lining a quarter unit deep inside the ring
+        // gems along the front, and a velvet lining 0.2 deep inside the ring (its top clears the 15.25 plates of buzz and mohawk hair)
         box(-0.5, 14.75, 4.25, 0.5, 15.25, 4.4, "#2f8fe0"),
         ...both([box(2, 14.75, 4.25, 3, 15.25, 4.4, "#e8433b")]),
-        box(-3.7, 15.0, -3.7, 3.7, 15.25, 3.7, shade("#9b2d30", 0.9)),
+        box(-3.7, 15.0, -3.7, 3.7, 15.2, 3.7, shade("#9b2d30", 0.9)),
       ];
     }
 
@@ -96,7 +96,7 @@ export const hat = (style: HatStyle, color: string): Box[] => {
       return [
         ...cutBlock(-4.25, 14.25, -4.25, 4.25, 15.25, 4.25, shade(C, 0.85)),
         ...cutBlock(-4, 15.25, -4, 4, 16.25, 4, C),
-        // the stripe, a quarter unit proud of the knit
+        // the stripe: 0.25 tall, 0.05 proud of the knit
         ...cutBlock(-4.05, 15.5, -4.05, 4.05, 15.75, 4.05, lighten(C, 0.35)),
         box(-3.25, 16.25, -3.25, 3.25, 17, 3.25, C),
         box(-1.75, 17, -1.75, 1.75, 17.5, 1.75, C),
