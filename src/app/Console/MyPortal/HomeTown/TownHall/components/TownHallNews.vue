@@ -115,7 +115,7 @@ import debug from "@/lib/utils/debug";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { formatTownDate, plainText, type CommentTarget } from "./townHallShared";
 import TownHallHeldComments from "./TownHallHeldComments.vue";
-import type { DeskActions } from "./useTownHallDesk";
+import { NO_DESK, type DeskActions } from "./useTownHallDesk";
 import { useTownHallLoad } from "./useTownHallLoad";
 
 /**
@@ -133,15 +133,6 @@ const emit = defineEmits<{
   (event: "edit", target: { type: EditableType; id: number }): void;
 }>();
 
-/** A link without a desk (a hero's) has no tools to show; this keeps the template from asking whether there is one */
-const NO_DESK: DeskActions = {
-  publish: async () => false,
-  bin: async () => false,
-  approve: async () => false,
-  resolve: async () => false,
-  isBusy: () => false,
-  troubleOf: () => null,
-};
 const desk = computed<DeskActions>(() => props.desk ?? NO_DESK);
 
 /** A post on the page: one the site has published, or a draft of the clerk's that it has not */

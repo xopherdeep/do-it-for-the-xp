@@ -54,6 +54,16 @@ export interface DeskActions {
   troubleOf(type: DeskItemType, id: number): string | null;
 }
 
+/** A link without a desk (a hero's) has no tools to show; this keeps a tab's template from asking whether there is one */
+export const NO_DESK: DeskActions = {
+  publish: async () => false,
+  bin: async () => false,
+  approve: async () => false,
+  resolve: async () => false,
+  isBusy: () => false,
+  troubleOf: () => null,
+};
+
 /** The desk's actions with the lists, the badge's number and the writers. */
 export type TownHallDesk = DeskActions & {
   heldComments: Ref<HeldComment[]>;
