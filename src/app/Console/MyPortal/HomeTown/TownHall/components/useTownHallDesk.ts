@@ -117,7 +117,7 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
     if (isComplaint) return { ok: false, message: error.message };
     // Unauthorized is the store's own to handle at the next flush; anything else is not the site's doing.
     const isUnauthorized = error instanceof TownHallError && error.code === "unauthorized";
-    if (!isUnauthorized) debug.error("Town Hall desk could not send:", error);
+    if (!isUnauthorized) debug.error("Town Hall desk call failed:", error);
     return { ok: false };
   };
 
@@ -151,21 +151,31 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
     }
   };
 
+  const countOneFewer = (): void => {
+    waitingCount.value = Math.max(0, waitingCount.value - 1);
+  };
+
   /** A comment or bug the site has dealt with leaves its list, and the badge counts one fewer. */
   const takeOff = <T extends { id: number }>(list: Ref<T[]>, id: number): void => {
     const isListed = list.value.some((item) => item.id === id);
     if (!isListed) return;
     list.value = list.value.filter((item) => item.id !== id);
-    waitingCount.value = Math.max(0, waitingCount.value - 1);
+    countOneFewer();
   };
 
-  const takeOffItsList = (type: DeskItemType, id: number): void => {
+  /** What the badge and the lists show once the site has binned an item. A published post or topic was not waiting. */
+  const settleBinned = (type: DeskItemType, id: number, published: boolean): void => {
     if (type === "comment") takeOff(heldComments, id);
     if (type === "bug") takeOff(bugs, id);
+    const isDraftOrTopic = type === "post" || type === "topic";
+    const wasWaiting = isDraftOrTopic && !published;
+    if (wasWaiting) countOneFewer();
   };
 
+  /** A draft or a held topic that goes up is no longer waiting. */
   const publish = async (type: EditableType, id: number): Promise<boolean> => {
     const outcome = await act(publishRequest(type, id), keyOf(type, id));
+    if (outcome.ok) countOneFewer();
     return outcome.ok;
   };
 
@@ -176,7 +186,7 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
       if (choice !== "take-down") return false;
     }
     const outcome = await act(trashRequest(type, id), keyOf(type, id));
-    if (outcome.ok) takeOffItsList(type, id);
+    if (outcome.ok) settleBinned(type, id, published);
     return outcome.ok;
   };
 
@@ -262,13 +272,25 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
     return problemOf(outcome);
   };
 
-  const readWords = async (type: EditableType, id: number): Promise<Words | null> => {
+  /** One read of the words: what was typed, a late courier, or null for anything else (a refusal is told as `act` does). */
+  const readWordsOnce = async (type: EditableType, id: number): Promise<Words | typeof LATE | null> => {
     try {
       return await fetchWords(type, id, { auth: store.auth });
     } catch (error) {
-      noteFailedRead(error);
-      return null;
+      const outcome = await failedWith(error);
+      return outcome === LATE ? LATE : null;
     }
+  };
+
+  /** A late courier gets one more read if the admin asks, never a loop. */
+  const readWords = async (type: EditableType, id: number): Promise<Words | null> => {
+    let words = await readWordsOnce(type, id);
+    if (words === LATE) {
+      const choice = await reveal.showPrompt(courierLatePrompt());
+      if (choice !== "retry") return null;
+      words = await readWordsOnce(type, id);
+    }
+    return words === LATE ? null : words;
   };
 
   return {

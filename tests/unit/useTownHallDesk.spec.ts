@@ -302,6 +302,40 @@ describe("the lists and the waiting count", () => {
     expect(desk.waitingCount.value).toBe(1);
   });
 
+  it("publishing a draft or binning a waiting topic counts one fewer on the badge; binning something published leaves it alone", async () => {
+    const { desk, reveal } = rig();
+    siteHolds([], [], { drafts: 2, topics: 3 });
+    await desk.refresh();
+    expect(desk.waitingCount.value).toBe(5);
+
+    await expect(desk.publish("post", 7)).resolves.toBe(true);
+    expect(desk.waitingCount.value).toBe(4);
+
+    await expect(desk.bin("topic", 8, false)).resolves.toBe(true);
+    expect(desk.waitingCount.value).toBe(3);
+
+    const taking = desk.bin("post", 9, true);
+    await flushPromises();
+    reveal.answer("take-down");
+    await expect(taking).resolves.toBe(true);
+    expect(desk.waitingCount.value).toBe(3);
+
+    fetchMock.mockRejectedValueOnce(new TownHallError("invalid", "No", 400));
+    await expect(desk.publish("topic", 8)).resolves.toBe(false);
+    expect(desk.waitingCount.value).toBe(3);
+  });
+
+  it("never counts below zero", async () => {
+    const { desk } = rig();
+    siteHolds([], []);
+    await desk.refresh();
+
+    await desk.publish("post", 7);
+    await desk.bin("topic", 8, false);
+
+    expect(desk.waitingCount.value).toBe(0);
+  });
+
   it("refresh counts drafts, topics, held comments and open bugs for a publishing moderator, and nothing for a contributor", async () => {
     const store = fakeStore();
     const desk = useTownHallDesk({ store, reveal: fakeReveal() });
@@ -419,17 +453,66 @@ describe("writing for the site", () => {
     expect(store.dropPowers).toHaveBeenCalledTimes(1);
   });
 
-  it("reads the words for an edit and answers null when the courier is late", async () => {
+  it("reads the words for an edit, and answers null without a word when anything else goes wrong", async () => {
     const { desk, reveal } = rig();
     wordsMock.mockResolvedValue({ title: "Raw title", body: "Raw body" });
 
     await expect(desk.readWords("post", 7)).resolves.toEqual({ title: "Raw title", body: "Raw body" });
     expect(wordsMock).toHaveBeenCalledWith("post", 7, { auth: AUTH });
 
-    wordsMock.mockRejectedValue(new TownHallError("offline"));
+    wordsMock.mockRejectedValue(new Error("boom"));
 
     await expect(desk.readWords("post", 7)).resolves.toBeNull();
     expect(reveal.asked).toEqual([]);
+    expect(mockLogged).toHaveBeenCalledTimes(1);
+  });
+
+  it("says the courier is late when the words cannot be read, and reads again on retry", async () => {
+    const { desk, reveal } = rig();
+    wordsMock.mockRejectedValueOnce(new TownHallError("offline")).mockResolvedValueOnce({ title: "Raw title", body: "Raw body" });
+
+    const reading = desk.readWords("post", 7);
+    await flushPromises();
+    expect(reveal.asked).toEqual([courierLatePrompt()]);
+    reveal.answer("retry");
+
+    await expect(reading).resolves.toEqual({ title: "Raw title", body: "Raw body" });
+    expect(wordsMock).toHaveBeenCalledTimes(2);
     expect(mockLogged).not.toHaveBeenCalled();
+
+    wordsMock.mockReset();
+    wordsMock.mockRejectedValue(new TownHallError("server", "Bad gateway", 502));
+    const giveUp = desk.readWords("post", 7);
+    await flushPromises();
+    reveal.answer("never");
+
+    await expect(giveUp).resolves.toBeNull();
+    expect(wordsMock).toHaveBeenCalledTimes(1);
+    expect(reveal.asked).toHaveLength(2);
+  });
+
+  it("asks only once when the courier is late twice, and drops the powers when the words are refused", async () => {
+    const { desk, store, reveal } = rig();
+    wordsMock.mockRejectedValue(new TownHallError("offline"));
+
+    const twice = desk.readWords("post", 7);
+    await flushPromises();
+    reveal.answer("retry");
+
+    await expect(twice).resolves.toBeNull();
+    expect(wordsMock).toHaveBeenCalledTimes(2);
+    expect(reveal.asked).toEqual([courierLatePrompt()]);
+
+    wordsMock.mockReset();
+    wordsMock.mockRejectedValue(new TownHallError("forbidden", "No", 403));
+    const refused = desk.readWords("post", 7);
+    await flushPromises();
+    expect(store.dropPowers).toHaveBeenCalledTimes(1);
+    expect(reveal.asked[1]).toEqual(keysTakenNotice());
+    reveal.answer();
+
+    await expect(refused).resolves.toBeNull();
+    expect(wordsMock).toHaveBeenCalledTimes(1);
+    expect(reveal.asked).toHaveLength(2);
   });
 });
