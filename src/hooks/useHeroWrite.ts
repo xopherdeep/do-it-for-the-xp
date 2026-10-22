@@ -48,3 +48,15 @@ export const saveHeroEdit = async (gate: HeroWriteGate | undefined, heroId: stri
   await save();
   return true;
 };
+
+/**
+ * Runs a change that answers something (a progress record, whether an item was unlocked) on the hero's turn through a
+ * screen's `writeHero`; answers what it came to, or "refused" when it did not run (the clerk has said why)
+ */
+export const resultOnTurn = async <T>(writeHero: HeroWriteGate["writeHero"], heroId: string, work: () => Promise<T>): Promise<T | "refused"> => {
+  const holder: { value?: T } = {};
+  const isWritten = await writeHero(heroId, async () => {
+    holder.value = await work();
+  });
+  return isWritten ? (holder.value as T) : "refused";
+};

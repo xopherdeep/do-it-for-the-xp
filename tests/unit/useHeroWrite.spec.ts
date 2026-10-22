@@ -1,6 +1,8 @@
 import { defineComponent, reactive, type ShallowUnwrapRef } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { saveHeroEdit, useHeroWrite } from "@/hooks/useHeroWrite";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { resultOnTurn, saveHeroEdit, useHeroWrite } from "@/hooks/useHeroWrite";
 
 const mockSync = reactive({ borrow: jest.fn() });
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
@@ -64,5 +66,34 @@ describe("a Game Master's change to a hero under Family Sync", () => {
 
     expect(await saveHeroEdit(undefined, "h-9", save)).toBe(true);
     expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it("a change that answers something runs on the hero's turn and hands its answer back, or says it was refused", async () => {
+    const work = jest.fn(async () => ({ bloodMoons: 1 }));
+    const granted = jest.fn(async (_heroId: string, change: () => Promise<void>) => {
+      await change();
+      return true;
+    });
+    expect(await resultOnTurn(granted, "h-1", work)).toEqual({ bloodMoons: 1 });
+
+    const refused = jest.fn(async () => false);
+    work.mockClear();
+    expect(await resultOnTurn(refused, "h-1", work)).toBe("refused");
+    expect(work).not.toHaveBeenCalled();
+  });
+
+  it("the Compendium's key-item unlock and the blood moon's actions write a hero only on the hero's turn", () => {
+    const source = (path: string) => readFileSync(join(__dirname, "../../src/app/Admin/XpCompendium/views", path), "utf8");
+    const keyItems = source("XpAccessories/components/tabs/XpEconomyKeyItems.vue");
+    expect(keyItems).toMatch(/resultOnTurn\(writeHero, userId, async \(\) => userStore\.unlockItem\(userId, itemName\)\)/);
+    expect(keyItems).not.toMatch(/const isUnlocked = userStore\.unlockItem/);
+    expect(keyItems).toContain('<xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />');
+
+    const bloodMoon = source("XpTemples/components/XpBloodMoonModal.vue");
+    // every action (schedule, take back, weekly, rise now) goes through act(), whose work runs on the hero's turn
+    expect(bloodMoon).toMatch(/const entry = await resultOnTurn\(writeHero, row\.userId, work\)/);
+    expect(bloodMoon.match(/templeSystem\.(bloodMoon|scheduleBloodMoon|setBloodMoonEvery)\(/g)).toHaveLength(4);
+    expect(bloodMoon.match(/await act\(|void act\(/g)).toHaveLength(4);
+    expect(bloodMoon).toContain('<xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />');
   });
 });
