@@ -176,6 +176,32 @@ describe("TempleSolver", () => {
     expect(solveTemple(pit).reasons).toEqual(["R8: 2F (0,3) pit drops onto a wall at 1F (0,3)"]);
   });
 
+  it("R8 Pits: a pit that names its landing drops there, on any lower floor; one that names none drops as before", () => {
+    const rooms: Record<string, Room> = {
+      [_]: { type: "wall" },
+      E001: { type: "entrance" },
+      R002: { type: "empty" },
+      V001: { type: "pit", content: { targetLevel: "1F", targetCoords: { x: 1, y: 0 } } },
+      V002: { type: "pit" },
+      V003: { type: "pit", content: { targetLevel: "B1", targetCoords: { x: 0, y: 0 } } },
+    };
+    const pitDoors = (layout: TempleLayout) => buildTempleGraph(layout).doors.filter((door) => door.kind === "pit").map((door) => door.id);
+
+    // Two floors down to the cell it names; the unnamed pit next to it lands on the same cell below, as always
+    const tall: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", "R002"]], "2F": [["R002", "V002"]], "3F": [["V001", "R002"]] }, rooms };
+    expect(pitDoors(tall)).toEqual(["2F:0,1>1F:0,1", "3F:0,0>1F:0,1"]);
+    expect(buildTempleGraph(tall).issues).toEqual([]);
+
+    // Into a one-room floor
+    const cellar: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", "V003"]], B1: [["R002"]] }, rooms };
+    expect(pitDoors(cellar)).toEqual(["1F:0,1>B1:0,0"]);
+    expect(buildTempleGraph(cellar).issues).toEqual([]);
+
+    // A named cell that is a wall is said so, and the pit still drops where it can
+    const astray: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", _]], "2F": [[_, "V001"]] }, rooms };
+    expect(buildTempleGraph(astray).issues).toEqual([{ rule: "R8", text: "2F (0,1) pit drops onto a wall at 1F (0,1)" }]);
+  });
+
   describe("a flight of stairs can be locked: a small key or the Boss Key opens the climb (#1484)", () => {
     const climbRooms = (stairs: Room): Record<string, Room> => ({ ...ROOMS, R001: { type: "empty" }, U001: stairs, D001: { type: "stairs-down" } });
     /** 1F walks east to the stairs up (1,3); 2F walks west from the stairs down to the boss, the Boss Key above the mini-boss */

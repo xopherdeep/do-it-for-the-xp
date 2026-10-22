@@ -4,7 +4,7 @@
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { hurtHero } from './hero';
-import { arriveOn, findRoomOfKind, neighbourFloor } from './travel';
+import { arriveOn, findRoomOfKind, neighbourFloor, temples } from './travel';
 import { hasHappened, rememberOnce, rngOf, roomKey } from './visitMemory';
 import { roomKind, SFX, words } from './vocabulary';
 import type { RoomContext, RoomOutcome } from './vocabulary';
@@ -38,12 +38,26 @@ export const jumpTrap = (room: Room, ctx: RoomContext): RoomOutcome => {
   return springTrap(room, ctx);
 };
 
-const fallInPit = (ctx: RoomContext): RoomOutcome => {
+/**
+ * The floor a pit drops to: the one it names (`content.targetLevel`, any lower floor, as a classic dungeon's hole is
+ * written), else the next floor down; nothing when the temple has no such floor.
+ */
+const pitFloor = (room: Room, ctx: RoomContext): string | undefined => {
+  const named = room.content?.targetLevel;
+  const isNamed = typeof named === 'string' && named !== '';
+  if (isNamed) return temples().getFloors(ctx.templeId).includes(named) ? named : undefined;
+  return neighbourFloor(ctx.templeId, ctx.level, -1);
+};
+
+/** The cell a pit lands on first: the one it names (`content.targetCoords`, x the column and y the row), then the same cell, then the floor's first stairs up */
+const fallInPit = (room: Room, ctx: RoomContext): RoomOutcome => {
   const { lost, defeated } = hurtHero(ctx.userId, 5);
   if (defeated) return { message: `The pit swallows you: -${lost} HP. You black out.`, sound: SFX.damage, shake: true, defeated: true };
 
-  const below = neighbourFloor(ctx.templeId, ctx.level, -1);
-  const hasLandedBelow = below && arriveOn(ctx.templeId, below, [ctx.position, findRoomOfKind(ctx.templeId, below, ['stairs-up'])]);
+  const below = pitFloor(room, ctx);
+  const coords = room.content?.targetCoords;
+  const named: [number, number] | undefined = coords ? [Number(coords.y), Number(coords.x)] : undefined;
+  const hasLandedBelow = below && arriveOn(ctx.templeId, below, [named, ctx.position, findRoomOfKind(ctx.templeId, below, ['stairs-up'])]);
   if (hasLandedBelow) {
     return { message: `You fall to ${below}: -${lost} HP`, sound: SFX.damage, shake: true, moved: true };
   }
@@ -66,11 +80,11 @@ export const onEnterRoom = (room: Room | undefined, ctx: RoomContext): RoomOutco
 
   const isPit = kind === 'pit';
   if (isPit) {
-    // With a floor below the pit always drops the hero; with none it only bruises them once
-    const hasFloorBelow = Boolean(neighbourFloor(ctx.templeId, ctx.level, -1));
+    // With a floor to drop to the pit always drops the hero; with none it only bruises them once
+    const hasFloorBelow = Boolean(pitFloor(room, ctx));
     const isRepeatPitVisit = !hasFloorBelow && !rememberOnce(roomKey(ctx, 'pit'));
     if (isRepeatPitVisit) return null;
-    return fallInPit(ctx);
+    return fallInPit(room, ctx);
   }
 
   return null;

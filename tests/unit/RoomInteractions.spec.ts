@@ -1015,6 +1015,30 @@ describe("stairs and pits", () => {
     expect(temples.getTempleState(upper)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
   });
 
+  // A pit may name its landing (content.targetLevel / targetCoords, as stairs do): the dress step writes where a
+  // classic dungeon's hole really drops the hero, any lower floor, any cell. One that names none drops as before.
+  it("drops a hero through a pit that names its landing onto that cell, two floors down when it says so", () => {
+    const pit: Room = { type: "pit", content: { targetLevel: "1F", targetCoords: { x: 2, y: 0 } } };
+    const id = makeTemple({ E: { type: "entrance" }, P: pit, F: { type: "empty" } }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "F"]], "3F": [["F", "P", "F"]] });
+    enter(id, [0, 1], "3F");
+
+    const outcome = onEnterRoom(dungeons.getRoom(id, [0, 1], "3F"), contextAt(id, [0, 1]))!;
+
+    expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", sound: "damage", moved: true });
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+  });
+
+  it("drops a hero through a pit that names a one-room floor onto that room", () => {
+    const pit: Room = { type: "pit", content: { targetLevel: "B1", targetCoords: { x: 0, y: 0 } } };
+    const id = makeTemple({ E: { type: "entrance" }, P: pit, F: { type: "empty" } }, { "1F": [["E", "F", "P"]], B1: [["F"]] });
+    enter(id, [0, 2], "1F");
+
+    const outcome = onEnterRoom(dungeons.getRoom(id, [0, 2], "1F"), contextAt(id, [0, 2]))!;
+
+    expect(outcome).toMatchObject({ message: "You fall to B1: -5 HP", moved: true });
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 0] });
+  });
+
   describe("in a temple whose basement was drawn after its upper floors (maze keys 1F, 2F, B1; task #1380)", () => {
     // Stairs with no target climb to the next floor in the order floors are climbed (B1, 1F, 2F), not in the map's
     const withBasement = () =>
