@@ -15,7 +15,7 @@ export interface Bounds {
 export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
   {
     torso: "169:2938.383",
-    head: "225:19399.240",
+    head: "382:31405.729",
     armL: "32:-496.396",
     armR: "32:-496.396",
     legL: "66:-1254.072",
@@ -25,7 +25,7 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
   },
   {
     torso: "153:4620.538",
-    head: "432:49929.055",
+    head: "638:66214.053",
     armL: "57:-301.453",
     armR: "57:-732.241",
     legL: "72:-1365.003",
@@ -35,7 +35,7 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
   },
   {
     torso: "214:2960.711",
-    head: "682:65544.519",
+    head: "913:77150.349",
     armL: "24:-588.148",
     armR: "24:-803.048",
     legL: "43:-903.009",
@@ -44,8 +44,9 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
     handR: "67:3474.889",
   },
   {
-    torso: "171:5190.460",
-    head: "364:34618.096",
+    // re-recorded with the half-unit head: the torso is shaded against the head, and the hoodie's hood lies into it
+    torso: "175:5331.989",
+    head: "640:53919.445",
     armL: "24:-643.198",
     armR: "24:-643.198",
     legL: "49:-1095.536",
@@ -55,7 +56,7 @@ export const BENCH_SIGNATURES: Array<Record<PartName, string>> = [
   },
   {
     torso: "153:4620.538",
-    head: "682:65544.519",
+    head: "903:77181.173",
     armL: "57:-301.453",
     armR: "57:-732.241",
     legL: "72:-1365.003",
