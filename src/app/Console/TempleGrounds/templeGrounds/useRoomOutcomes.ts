@@ -22,7 +22,7 @@ import { CARRIED_TO_HOSPITAL_LINE } from '@/lib/services/hometown/hospitalBill';
 import { pegasusOfTemple, pegasusView } from '@/lib/services/temples/TemplePegasus';
 import type { useUserStore } from '@/lib/store/stores/user';
 import { dungeonExitRuns, EXIT_W, EXIT_H } from '../components/exitSprite';
-import type { useChestReveal, useChoiceReveal, usePegasusReveal } from './templeReveals';
+import type { useChestReveal, useChoiceReveal, useDropReveal, usePegasusReveal } from './templeReveals';
 import type { useItemFanfare } from './useItemFanfare';
 import type { useRoomBeast } from './useRoomBeast';
 import type { useTempleLayout } from './useTempleLayout';
@@ -45,7 +45,7 @@ export interface RoomOutcomeDeps
   showChestContentsDialog: ReturnType<typeof useChestReveal>['showChestContentsDialog'];
   showEmptyChest: ReturnType<typeof useChestReveal>['showEmptyChest'];
   /** A beaten beast's drop comes up in the chest reveal, ticked, to be taken whole */
-  showDropReveal: ReturnType<typeof useChestReveal>['showDropReveal'];
+  showDropReveal: ReturnType<typeof useDropReveal>['showDropReveal'];
   openChoiceReveal: ReturnType<typeof useChoiceReveal>['openChoiceReveal'];
   beastCard: ReturnType<typeof useRoomBeast>['getBeastCard'];
   activeMonster: ReturnType<typeof useRoomBeast>['activeMonster'];

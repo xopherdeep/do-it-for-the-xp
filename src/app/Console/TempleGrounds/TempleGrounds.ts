@@ -40,7 +40,7 @@ import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
 import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
 import { useTempleLayout } from './templeGrounds/useTempleLayout';
 import { useTempleEntry } from './templeGrounds/useTempleEntry';
-import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
+import { useChestReveal, useChoiceReveal, useDoorReveal, useDropReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
@@ -155,12 +155,14 @@ export default defineComponent({
       moveIcons,
       stepTo,
       isDoorLocked,
-      claimChestItems, claimDropItems,
+      claimChestItems,
+      claimDropItems,
       handleTeleport,
       toggleMap,
       showTempleMessage,
       registerMessageDisplay,
-      chestContents, dropContents,
+      chestContents,
+      dropContents,
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
@@ -246,18 +248,19 @@ export default defineComponent({
       useChoiceReveal();
     const { pegasusReveal, showTempleCleared, completeTempleCleared: finishTempleCleared } = usePegasusReveal(leaveTemple);
     const { isPegasusRevealOpen, pegasusShown, pegasusReward, pegasusLevelUp } = pegasusReveal;
-    const { chest, showChestContentsDialog, showEmptyChest, showDropReveal, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
+    const { chest, showChestContentsDialog, showEmptyChest, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
       useChestReveal({
         props,
         progressHeroId,
-        chestContents, dropContents,
+        chestContents,
         currentRoom,
         showTempleMessage,
-        claimChestItems, claimDropItems,
+        claimChestItems,
+        claimDropItems,
         showTempleCleared,
         setHushMessages
       });
-    const { isChestOpen, chestLootShown, isChestClosed, isDropShown } = chest;
+    const { showDropReveal } = useDropReveal({ chest, dropContents });
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
     const { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
@@ -296,7 +299,8 @@ export default defineComponent({
       leaveTemple,
       showTempleCleared,
       showChestContentsDialog,
-      showEmptyChest, showDropReveal,
+      showEmptyChest,
+      showDropReveal,
       openChoiceReveal,
       beastCard,
       activeMonster,
@@ -422,9 +426,7 @@ export default defineComponent({
       templeElement,
       isDoorLocked,
       showRoomActions,
-      isChestOpen,
-      isChestClosed, isDropShown,
-      chestLootShown,
+      ...chest,
       takeChestLoot,
       leaveChest,
       choiceReveal,
