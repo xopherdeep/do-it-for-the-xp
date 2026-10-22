@@ -1,5 +1,5 @@
 import type { HatStyle } from "@/lib/hero-look/types";
-import type { PartName } from "../voxel/shape";
+import type { PartName } from "../../voxel/shape";
 
 /**
  * The geometry of today's hero, recorded before the mesher's culling is rewritten so the rewrite can prove it did not

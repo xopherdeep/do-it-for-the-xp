@@ -8,8 +8,8 @@ import { GEAR_BY_ICON, held } from "../voxel/held";
 import { formatMeasure, measureHero } from "../voxel/measure";
 import { PART_NAMES } from "../voxel/shape";
 import type { Box } from "../voxel/shape";
-import { BENCH_SIGNATURES, HAT_BOUNDS, HELD_BOUNDS } from "./voxelBaselines";
-import type { Bounds } from "./voxelBaselines";
+import { BENCH_SIGNATURES, HAT_BOUNDS, HELD_BOUNDS } from "./fixtures/voxelBaselines";
+import type { Bounds } from "./fixtures/voxelBaselines";
 
 /**
  * The hero's geometry measured without WebGL: how many boxes and quads a look costs, and what it meshes to, pinned so
@@ -102,6 +102,25 @@ describe("head rules", () => {
         for (const box of boxes) {
           const isFacePaint = box.z >= HEAD.z - 1e-6 && box.d <= 0.25 + 1e-6;
           if (isFacePaint) expect(box.z + box.d).toBeLessThanOrEqual(HEAD.z + 0.5 + 1e-6);
+        }
+      }
+    }
+  });
+
+  it("keeps the head within x 3.5 and lets only the two ears reach 3.9", () => {
+    for (const skin of Object.keys(SKIN_TONES)) {
+      for (const face of FACE_STYLES) {
+        const boxes = head(skin as SkinTone, face, "#222233");
+        const wide = boxes.filter((box) => Math.max(Math.abs(box.x), Math.abs(box.x + box.w)) > 3.5 + 1e-6);
+        expect(wide.length).toBeLessThanOrEqual(2);
+        for (const ear of wide) {
+          const b = boundsOf([ear]);
+          expect(b.min[0]).toBeGreaterThanOrEqual(-3.9 - 1e-6);
+          expect(b.max[0]).toBeLessThanOrEqual(3.9 + 1e-6);
+          expect(b.min[1]).toBeGreaterThanOrEqual(10 - 1e-6);
+          expect(b.max[1]).toBeLessThanOrEqual(12.5 + 1e-6);
+          expect(b.min[2]).toBeGreaterThanOrEqual(-1 - 1e-6);
+          expect(b.max[2]).toBeLessThanOrEqual(1 + 1e-6);
         }
       }
     }
