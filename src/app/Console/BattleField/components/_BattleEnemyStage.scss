@@ -3,8 +3,6 @@
 $ink: #1b0a1b; // text outlines and deep shadows
 $outline: -2px -2px 0 $ink, 0 -2px 0 $ink, 2px -2px 0 $ink, -2px 0 0 $ink, 2px 0 0 $ink, -2px 2px 0 $ink, 0 2px 0 $ink,
   2px 2px 0 $ink;
-$ember: linear-gradient(150deg, #ffd25a 0%, #ff8a2a 50%, #e8402a 100%);
-$green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-green}) 55%, #2d9a47 100%);
 
 // The middle zone clips, so the plate, pips and clock keep 20 px of air at the sides (the plate's rings reach 16 px).
 .enemy-container {
@@ -288,18 +286,18 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   height: 22px;
   border: 2px solid $ink;
   border-radius: 6px;
-  background: $ember; // still to do: a warm ember
-  box-shadow: 0 0 8px 1px rgba(255, 138, 42, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  background: var(--gs-accent); // still to do: the style's accent
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--gs-accent) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 
   &.is-done {
-    background: $green;
-    box-shadow: 0 0 5px rgba(80, 210, 110, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    background: var(--gs-good);
+    box-shadow: 0 0 8px 1px color-mix(in srgb, var(--gs-good) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
     i {
       font-size: 11px;
       line-height: 1;
-      --fa-primary-color: #0d3d1d;
-      --fa-secondary-color: #0d3d1d;
+      --fa-primary-color: var(--gs-window-color);
+      --fa-secondary-color: var(--gs-window-color);
       --fa-secondary-opacity: 0.4;
     }
   }
@@ -324,7 +322,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 .chore-bar-fill {
   width: var(--fill, 0%);
   height: 100%;
-  background: $green;
+  background: var(--gs-good);
   transition: width 0.4s ease-out;
 }
 
@@ -335,7 +333,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   line-height: 1.1;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  color: $eb-color-cream;
+  color: var(--gs-text);
   text-shadow: #{$outline};
 }
 
@@ -361,34 +359,26 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   min-height: 40px;
   padding: 4px 10px 4px 8px;
   border-radius: 12px;
-  background: rgba(40, 8, 40, 0.78);
-  box-shadow: 0 0 0 2px rgba(247, 232, 168, 0.4);
+  background: color-mix(in srgb, var(--gs-window-color) 85%, transparent);
+  box-shadow: 0 0 0 2px var(--gs-divider);
   transition: box-shadow 0.3s ease;
+  --tone-glow: color-mix(in srgb, var(--tone) 65%, transparent);
 
-  // The colours of the moment, read by the icon, the fill and the label
+  // The colour of the moment, read by the icon, the fill, the label and the glow
   &.tone-ok {
-    --tone-light: #9af5ae;
-    --tone-mid: #46c866;
-    --tone-deep: #2a9a48;
-    --tone-glow: rgba(70, 200, 102, 0.65);
+    --tone: var(--gs-good);
   }
 
   &.tone-warn {
-    --tone-light: #ffe28a;
-    --tone-mid: #ffb62e;
-    --tone-deep: #e08a00;
-    --tone-glow: rgba(255, 182, 46, 0.65);
+    --tone: var(--gs-accent);
   }
 
   &.tone-danger {
-    --tone-light: #ff9a8a;
-    --tone-mid: #ff4d3d;
-    --tone-deep: #c42a28;
-    --tone-glow: rgba(255, 77, 61, 0.7);
+    --tone: var(--gs-danger);
   }
 
   &.is-critical {
-    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.85), 0 0 12px rgba(255, 107, 107, 0.55);
+    box-shadow: 0 0 0 2px var(--gs-danger), 0 0 12px color-mix(in srgb, var(--gs-danger) 55%, transparent);
 
     .attack-timer-label {
       animation: timer-pulse var(--pulse-duration, 0.3s) ease-in-out infinite alternate;
@@ -400,8 +390,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   flex: 0 0 auto;
   font-size: 24px;
   line-height: 1;
-  --fa-primary-color: var(--tone-light);
-  --fa-secondary-color: var(--tone-deep);
+  --fa-primary-color: var(--tone);
+  --fa-secondary-color: var(--tone);
   --fa-secondary-opacity: 0.85;
   filter: drop-shadow(0 0 6px var(--tone-glow));
 }
@@ -413,7 +403,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   min-width: 0;
   height: 14px;
   overflow: hidden;
-  border: 2px solid rgba(247, 232, 168, 0.7);
+  border: 2px solid var(--gs-divider);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.75);
   box-shadow: 0 0 6px var(--tone-glow);
@@ -425,7 +415,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   width: var(--fill, 0%);
   height: 100%;
   border-radius: 6px;
-  background: linear-gradient(180deg, var(--tone-light) 0%, var(--tone-mid) 55%, var(--tone-deep) 100%);
+  background: var(--tone);
   box-shadow: 0 0 8px var(--tone-glow);
   transition: width 0.4s ease-out; // a refill after a chore animates; the engine's 100 ms ticks glide through it
   animation: timer-pulse var(--pulse-duration, 1.6s) ease-in-out infinite alternate;
@@ -457,7 +447,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   font-family: "StatusPlz", monospace;
   font-size: 0.85rem;
   letter-spacing: 0.5px;
-  color: $eb-color-cream;
+  color: var(--gs-text);
   opacity: 0.85;
 }
 
@@ -467,7 +457,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   font-size: 1.25rem;
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
-  color: var(--tone-light);
+  color: var(--tone);
   text-shadow: #{$outline};
 }
 
@@ -551,11 +541,11 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 
 @keyframes timer-bar-pulse {
   0% {
-    border-color: rgba(247, 232, 168, 0.55);
+    border-color: color-mix(in srgb, var(--gs-accent) 55%, transparent);
     box-shadow: 0 0 2px var(--tone-glow);
   }
   100% {
-    border-color: rgba(247, 232, 168, 0.95);
+    border-color: color-mix(in srgb, var(--gs-accent) 95%, transparent);
     box-shadow: 0 0 10px var(--tone-glow);
   }
 }

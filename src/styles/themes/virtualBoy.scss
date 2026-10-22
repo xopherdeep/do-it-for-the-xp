@@ -48,6 +48,11 @@ ion-app#virtualBoy {
 
   @include game-style-surfaces;
 
+  // Good and danger share one colour here: the critical clock blinks instead
+  .battlefield .attack-timer.is-critical .attack-timer-bar {
+    animation: gs-critical-blink 0.5s steps(1, end) infinite;
+  }
+
   ion-toolbar.rpg-box ion-title {
     color: var(--gs-accent);
     font-size: 18px;

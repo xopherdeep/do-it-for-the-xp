@@ -42,6 +42,11 @@ ion-app#dragonQuest {
 
   @include game-style-surfaces;
 
+  // Good and danger share one colour here: the critical clock blinks instead
+  .battlefield .attack-timer.is-critical .attack-timer-bar {
+    animation: gs-critical-blink 0.5s steps(1, end) infinite;
+  }
+
   // The cursor blinks in place instead of bobbing
   ion-card ion-item:hover::before,
   ion-card ion-item.ion-focused::before,

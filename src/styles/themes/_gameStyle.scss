@@ -420,3 +420,16 @@ $gs-star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
     scrollbar-color: var(--gs-text-dim) var(--gs-window-color);
   }
 }
+
+@keyframes gs-critical-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  // !important: the themes set the blink under ion-app#<id>, which outranks this selector
+  .battlefield .attack-timer.is-critical .attack-timer-bar {
+    animation: none !important;
+  }
+}
