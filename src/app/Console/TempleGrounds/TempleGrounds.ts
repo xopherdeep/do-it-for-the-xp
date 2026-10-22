@@ -365,9 +365,9 @@ export default defineComponent({
       isEquipmentOpen.value = true;
     };
 
-    // What happens as the hero walks in: the blood moon notice and each floor's first wake, told in the game's own prompt
+    // What happens as the hero walks in: the blood moon notice, each floor's first wake, a won fight's drop on the battle return
     const entry = { temple: props.temple, heroId: progressHeroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx };
-    const { floorWakePrompt, answerFloorWake } = useTempleEntry(entry);
+    const { floorWakePrompt, answerFloorWake } = useTempleEntry({ ...entry, returnsTo: startPosition, liveContext, showDropReveal });
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {

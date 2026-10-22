@@ -1,11 +1,14 @@
-import { onMounted, watch, type Ref } from 'vue';
+import { nextTick, onMounted, watch, type Ref } from 'vue';
+import { onIonViewDidEnter } from '@ionic/vue';
 import debug from '@/lib/utils/debug';
 import { useCopy } from '@/hooks/useVoice';
 import type { RevealPromptOptions } from '@/components/organisms/RevealPrompt/revealPrompt';
 import { useRevealPrompt } from '@/components/organisms/RevealPrompt/useRevealPrompt';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
+import { roomActions } from '@/lib/services/temples/RoomInteractions';
 import { wakeTempleOnEntry, type EntryWakeDone } from '@/lib/services/temples/wakeOnEntry';
+import type { useRoomOutcomes } from './useRoomOutcomes';
 
 /** What the temple screen hands over: the temple, the hero walking in, and the screen's own toast and sound */
 export interface TempleEntryParts {
@@ -20,16 +23,62 @@ export interface TempleEntryParts {
   templeShortName: { value: string };
   say: (message: string, duration?: number) => void;
   fx: (key: string) => void;
+  /** The room a battle returns the hero to ([row, col], the route's x and y); none when the hero walked in */
+  returnsTo?: [number, number];
+  /** The room the hero stands in, read from the temple itself (useRoomOutcomes) */
+  liveContext: ReturnType<typeof useRoomOutcomes>['getLiveContext'];
+  /** Opens the chest reveal on what a beaten beast dropped in the room the hero stands in */
+  showDropReveal: () => void;
 }
 
 /**
+ * The battle return (design spec, "Fight-room drops"): on a win the beast drops what it held, and the hero takes it
+ * through the chest reveal on coming back to the room. Each time Ionic shows the page of a battle return (a second
+ * battle in the same room shows that parked page again rather than a new one), a won fight's drop waiting in the room
+ * the route names opens in that reveal, once per page: a hero who leaves it shut finds "Take it" on the room's sheet,
+ * and a later arrival in the room, or the page shown again, opens nothing.
+ */
+const useBattleReturnDrop = ({ temple, whenOpened, templeSystem, returnsTo, liveContext, showDropReveal }: TempleEntryParts): void => {
+  if (!returnsTo) return;
+  let hasOfferedDrop = false;
+
+  /** Whether the hero stands in the battle's room, with a won fight's drop waiting there that this page has not shown */
+  const isDropToOffer = (): boolean => {
+    const live = liveContext();
+    if (!live) return false;
+    const [row, col] = live.ctx.position;
+    const isOnReturnRoom = row === returnsTo[0] && col === returnsTo[1];
+    return isOnReturnRoom && !hasOfferedDrop && roomActions(live.room, live.ctx).drop === 'waiting';
+  };
+
+  // Waits for the run to be read (the battle recorded the win in it) and for the screen to catch up with where it stands
+  const offerWaitingDrop = async (): Promise<void> => {
+    const isOpened = await whenOpened;
+    if (!isOpened) return;
+    await templeSystem.whenProgressReady(temple);
+    await nextTick();
+    const shouldOffer = isDropToOffer();
+    if (!shouldOffer) return;
+    hasOfferedDrop = true;
+    showDropReveal();
+  };
+
+  onIonViewDidEnter(() => {
+    void offerWaitingDrop().catch((error: unknown) => debug.warn('[TempleGrounds] the drop could not be shown', error));
+  });
+};
+
+/**
  * What happens as a hero walks into a temple: the blood moon notice, the first-visit wake of the entrance floor's
- * beasts, and the wake of every other floor the first time the hero arrives on it, told in the game's own prompt.
+ * beasts, and the wake of every other floor the first time the hero arrives on it, told in the game's own prompt; and,
+ * coming back from a won fight, the drop it left (useBattleReturnDrop).
  * Returns that prompt for the screen to render (XpRevealPrompt) and the answer it hands back.
  */
-export const useTempleEntry = ({ temple, heroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx }: TempleEntryParts) => {
+export const useTempleEntry = (parts: TempleEntryParts) => {
+  const { temple, heroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx } = parts;
   const t = useCopy();
   const floorWake = useRevealPrompt();
+  useBattleReturnDrop(parts);
 
   // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
   onMounted(() => {
