@@ -34,16 +34,19 @@ export class DbStorageApi {
   }
 
   public async remove(key: string) {
+    // Read first: once the record is gone there is nothing left to name its hero from
+    const previous = await this.storage.get(key);
     await this.storage.remove(key);
-    emitRecordWritten({ store: storeNameOf(this.storage), key, value: null });
+    emitRecordWritten({ store: storeNameOf(this.storage), key, value: null, previous });
   }
 
   public async clear() {
-    // The keys are read first: once the store is empty there is nothing left to name
+    // The keys and what they held are read first: once the store is empty there is nothing left to name
     const keys = await this.storage.keys();
+    const held = await Promise.all(keys.map((key) => this.storage.get(key)));
     await this.storage.clear();
     const store = storeNameOf(this.storage);
-    keys.forEach((key) => emitRecordWritten({ store, key, value: null }));
+    keys.forEach((key, index) => emitRecordWritten({ store, key, value: null, previous: held[index] }));
   }
 
   public async keys() {

@@ -28,7 +28,7 @@ describe("emptySyncState", () => {
 
   it("hands out a fresh state each time, so one caller's edit never reaches the next", () => {
     const first = emptySyncState();
-    first.outbox.push({ store: "__achievements", key: "a1", queuedAt: "2026-10-22T10:00:00.000Z" });
+    first.outbox.push({ store: "__achievements", key: "a1", heroId: null, queuedAt: "2026-10-22T10:00:00.000Z" });
     first.turns["h-1"] = "held";
     expect(emptySyncState()).toEqual(readSyncState(null));
     expect(emptySyncState().outbox).toEqual([]);
@@ -52,7 +52,7 @@ describe("SyncDb", () => {
 
   it("round-trips a state under the key `state`", async () => {
     const state: SyncState = {
-      outbox: [{ store: "__achievements", key: "a1", queuedAt: "2026-10-22T10:00:00.000Z" }],
+      outbox: [{ store: "__questLog", key: "log-1", heroId: "h-1", queuedAt: "2026-10-22T10:00:00.000Z" }],
       lastSeq: 41,
       firstPushDone: true,
       firstPullDone: true,
@@ -84,7 +84,7 @@ describe("readSyncState", () => {
   });
 
   it("drops list and map entries of the wrong shape and keeps the good ones", () => {
-    const goodItem = { store: "__achievements", key: "a1", queuedAt: "2026-10-22T10:00:00.000Z" };
+    const goodItem = { store: "__achievements", key: "a1", heroId: null, queuedAt: "2026-10-22T10:00:00.000Z" };
     const stored = {
       outbox: [goodItem, { store: "__achievements" }, "x", null],
       turns: { "h-1": "held", "h-2": "busy", "h-3": 4, "h-4": "resting" },
@@ -100,10 +100,26 @@ describe("readSyncState", () => {
     });
   });
 
+  it("reads an outbox item saved before it named a hero as a record of no hero, and one with a bad hero the same", () => {
+    const at = "2026-10-22T10:00:00.000Z";
+    const stored = {
+      outbox: [
+        { store: "__beasts", key: "b1", queuedAt: at },
+        { store: "__questLog", key: "log-1", heroId: "h-1", queuedAt: at },
+        { store: "__questLog", key: "log-2", heroId: 5, queuedAt: at },
+      ],
+    };
+    expect(readSyncState(stored).outbox).toEqual([
+      { store: "__beasts", key: "b1", heroId: null, queuedAt: at },
+      { store: "__questLog", key: "log-1", heroId: "h-1", queuedAt: at },
+      { store: "__questLog", key: "log-2", heroId: null, queuedAt: at },
+    ]);
+  });
+
   it("does not hand back the stored objects themselves", () => {
     const stored = { outbox: [], turns: { "h-1": "held" } };
     const state = readSyncState(stored);
-    state.outbox.push({ store: "s", key: "k", queuedAt: "t" });
+    state.outbox.push({ store: "s", key: "k", heroId: null, queuedAt: "t" });
     expect(stored.outbox).toEqual([]);
   });
 });

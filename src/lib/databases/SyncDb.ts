@@ -13,10 +13,14 @@ export const syncStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
-/** One changed record waiting to be sent: the store and key only, because the value is read at send time */
+/**
+ * One changed record waiting to be sent: the store and key, because the value is read at send time, and the hero the record
+ * belongs to, because a removed record has no value left to name its hero from (null for a family record)
+ */
 export interface OutboxItem {
   store: string;
   key: string;
+  heroId: string | null;
   queuedAt: string;
 }
 
@@ -54,8 +58,16 @@ export const emptySyncState = (): SyncState => ({
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 
-const isOutboxItem = (value: unknown): value is OutboxItem =>
-  isRecord(value) && typeof value.store === "string" && typeof value.key === "string" && typeof value.queuedAt === "string";
+/** A stored outbox item read back, or null when it is not one; an item saved before it named a hero, or with a bad one, has none */
+const readOutboxItem = (value: unknown): OutboxItem | null => {
+  if (!isRecord(value)) return null;
+  const hasFields = typeof value.store === "string" && typeof value.key === "string" && typeof value.queuedAt === "string";
+  if (!hasFields) return null;
+  const heroId = typeof value.heroId === "string" ? value.heroId : null;
+  return { store: value.store as string, key: value.key as string, heroId, queuedAt: value.queuedAt as string };
+};
+
+const isItem = (item: OutboxItem | null): item is OutboxItem => item !== null;
 
 const isStoredTurn = (value: unknown): value is StoredTurn => STORED_TURNS.includes(value as StoredTurn);
 
@@ -87,7 +99,7 @@ export const readSyncState = (stored: unknown): SyncState => {
   const saved: Record<string, unknown> = isRecord(stored) ? stored : {};
   const empty = emptySyncState();
   return {
-    outbox: Array.isArray(saved.outbox) ? saved.outbox.filter(isOutboxItem) : empty.outbox,
+    outbox: Array.isArray(saved.outbox) ? saved.outbox.map(readOutboxItem).filter(isItem) : empty.outbox,
     lastSeq: typeof saved.lastSeq === "number" ? saved.lastSeq : empty.lastSeq,
     firstPushDone: typeof saved.firstPushDone === "boolean" ? saved.firstPushDone : empty.firstPushDone,
     firstPullDone: typeof saved.firstPullDone === "boolean" ? saved.firstPullDone : empty.firstPullDone,

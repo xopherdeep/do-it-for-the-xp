@@ -12,6 +12,8 @@ export interface RecordWrite {
   store: string;
   key: string;
   value: unknown | null;
+  /** A removal only: the record that was there (null when none was). A removal has no value to name its hero from, so this does */
+  previous?: unknown;
 }
 
 /** A restore rewrote a store, and these keys were in it before and are not any more */
