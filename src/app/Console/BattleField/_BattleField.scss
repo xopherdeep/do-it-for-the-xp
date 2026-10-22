@@ -1,3 +1,5 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
 // Battle Field page: the three-zone layout, the message box and the shared motion.
 // The beast, the hero card, the sheets (checklist, potions, Powers), the bag and the victory card style themselves.
 
@@ -99,21 +101,9 @@
     justify-content: center;
     position: relative; // for the more indicator
 
-    // Theme the inner Ionic components with a clear background and RPG yellow text
-    --ion-color-primary: transparent;
-    --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
-    --ion-color-primary-contrast: var(--ion-color-rpg);
-    --ion-color-primary-shade: transparent;
-    --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
-
-    border-radius: 1px;
-    box-shadow:
-      0 0 0 5px #383050, // medium purple
-      0 0 0 10px #68d0b8, // minty blue
-      0 0 0 12px #f7e8a8, // pale yellow
-      0 0 0 16px #3d3c55; // slate
-    background-color: #280828; // dark purple
-    color: var(--ion-color-rpg); // rpg yellow text
+    // The window, frame, radius and text come from the Game Style tokens
+    @include eb-box();
+    color: var(--gs-text);
 
     .dialog-content {
       font-family: "Apple Kid", "StatusPlz", monospace;
@@ -156,7 +146,7 @@
       right: 15px;
       font-size: 20px;
       animation: bounce 0.5s infinite alternate;
-      color: var(--ion-color-rpg);
+      color: var(--gs-accent);
     }
 
     // A hint or a question above the command menu
@@ -165,7 +155,8 @@
       font-family: "StatusPlz", monospace;
       font-size: 1.15rem;
       letter-spacing: 1px;
-      color: #e7e6b3;
+      color: var(--gs-accent);
+      text-shadow: var(--gs-text-shadow);
       opacity: 0.9;
     }
 
