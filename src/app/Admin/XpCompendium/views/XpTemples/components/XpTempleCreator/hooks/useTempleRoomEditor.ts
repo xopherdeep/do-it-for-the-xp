@@ -27,6 +27,7 @@ import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
 import { canonicalRoomType, hasRoomTypeGuide, roomTypeShortLabel } from '../roomTypeGuide';
 import { isQuestRoom as holdsQuest } from '@/lib/services/temples/questRooms';
+import { BOMB_ITEM } from '@/lib/services/temples/fightDrops';
 import { floorSlice, getEntranceFloor, sortedFloorKeys, writeMazeCell } from './grid/floorLayers';
 import { listMonsterConfigs, type MonsterConfigOption } from './grid/monsterConfigs';
 import { syncNeighbourSides } from './grid/neighbourLinks';
@@ -106,7 +107,8 @@ export const CONSUMABLE_ITEMS = [
   { id: 'ether', icon: 'fa-flask-potion', label: 'Ether' },
   { id: 'elixir', icon: 'fa-flask', label: 'Elixir' },
   { id: 'antidote', icon: 'fa-tint', label: 'Antidote' },
-  { id: 'remedy', icon: 'fa-star-of-life', label: 'Remedy' }
+  { id: 'remedy', icon: 'fa-star-of-life', label: 'Remedy' },
+  { id: BOMB_ITEM, icon: 'fa-bomb', label: 'Bomb' } // blows a cracked wall; its id is its name
 ];
 
 

@@ -64,6 +64,9 @@
             @open-beast-selector="openBeastSelector" @remove-beast="removeBeast" @toggle-auto-lock="toggleAutoLock"
             @update:reward-index="handleRewardIndexChange" @update:rewards="handleRewardsUpdate" />
 
+          <!-- What a fight room's beast drops (classic and quest rooms alike) -->
+          <RoomDropsConfig v-if="hasDrops" v-model:drops="drops" />
+
           <!-- Loot Configuration -->
           <RoomLootConfig v-if="isLootRoom" :selected-chest-type="roomData?.content?.chest || ''"
             :selected-dungeon-item="roomData?.content?.dungeon || ''" :selected-items="roomData?.content?.items || []"
@@ -138,6 +141,8 @@ import { useUserStore } from '@/lib/store/stores/user';
 import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 import { dormantLine, questCardOf } from '@/lib/services/temples/questRoomPicker';
 import { needsTravelControls, pairingNote, withRoomAt } from '@/lib/engine/core/dungeons/teleportPairing';
+import type { RoomDrops } from '@/lib/engine/core/dungeons/types';
+import { FIGHT_ROOM_TYPES } from '@/lib/services/temples/fightDrops';
 
 import { useTempleRoomEditor, useTempleRoomNavigation } from './hooks';
 
@@ -149,6 +154,7 @@ import {
   RoomMonsterConfigSelector,
   RoomQuestConfig,
   RoomQuestPicker,
+  RoomDropsConfig,
   RoomLootConfig,
   RoomTravelConfig,
   RoomShopConfig,
@@ -170,7 +176,7 @@ export default defineComponent({
     IonPage, IonHeader, IonToolbar, IonButtons, IonButton,
     IonContent, IonFab, IonFabButton,
     RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomMonsterConfigSelector, RoomQuestConfig, RoomQuestPicker,
-    RoomLootConfig, RoomTravelConfig, RoomShopConfig,
+    RoomDropsConfig, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
     XpLoading,
     RoomEditorMiniMap,
     RoomLegendModal
@@ -244,6 +250,18 @@ export default defineComponent({
       return isWaiting ? dormantLine(holding.template, editor.allBeasts.value) : '';
     });
 
+    // A fight room's drops: the picker builds the drop, the page only keeps it (null lets it go)
+    const hasDrops = computed(() => FIGHT_ROOM_TYPES.includes(editor.roomData.value?.type ?? ''));
+    const drops = computed<RoomDrops | null>({
+      get: () => editor.roomData.value?.content?.drops ?? null,
+      set: (next) => {
+        const content = editor.roomData.value?.content;
+        if (!content) return;
+        if (next) content.drops = next;
+        else delete content.drops;
+      }
+    });
+
     // Initialize on mount
     onMounted(() => {
       editor.loadRoomData();
@@ -296,6 +314,8 @@ export default defineComponent({
       isMonsterRoom: editor.isMonsterRoom,
       isBossRoom: editor.isBossRoom,
       isLootRoom: editor.isLootRoom,
+      hasDrops,
+      drops,
       isTravelRoom: editor.isTravelRoom,
       travel,
       automaticFloor,
