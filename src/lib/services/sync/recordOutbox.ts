@@ -78,9 +78,11 @@ export const nextBatch = async (
   const oversize: OutboxItem[] = [];
   let total = 0;
   for (const queued of outbox) {
-    if (records.length >= limits.count) break;
+    const isBatchFull = records.length >= limits.count;
+    if (isBatchFull) break;
     const record = (await read(queued)) ?? tombstoneOf(queued);
-    if (record.bytes > limits.record) {
+    const isOversize = record.bytes > limits.record;
+    if (isOversize) {
       oversize.push(queued);
       continue;
     }
@@ -117,8 +119,8 @@ export const settlePut = (
   });
   const settled = new Set([...accepted, ...refusedRecords].map((record) => stampOf(record.item)));
   const takenOver = refusedRecords.flatMap(({ code, heroId }) => {
-    if (code !== TURN_REFUSAL) return [];
-    return heroId === null ? [] : [heroId];
+    const isTakeover = code === TURN_REFUSAL && heroId !== null;
+    return isTakeover ? [heroId as string] : [];
   });
   return {
     outbox: outbox.filter((queued) => !settled.has(stampOf(queued))),

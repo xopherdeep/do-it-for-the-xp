@@ -51,51 +51,56 @@ const turnOf = (state: TurnState, busy: TurnBusy | null = null, provisional = fa
 /** A fresh turn: resting, holding nothing */
 export const initialTurn = (): HeroTurn => turnOf("resting");
 
+/** What the transitions read of the turn they are given */
+interface TurnFacts {
+  isAsking: boolean;
+  isHeld: boolean;
+  isBusy: boolean;
+  /** The site answers a first ask, or the ask retried when the device is back online after a provisional hold */
+  awaitsAnswer: boolean;
+  /** A turn the player can walk away from: being asked for, held (provisional or not), or waiting behind the busy prompt */
+  isInPlay: boolean;
+}
+
+const factsOf = (turn: HeroTurn): TurnFacts => {
+  const isAsking = turn.state === "asking";
+  const isHeld = turn.state === "held";
+  const isBusy = turn.state === "busy";
+  const isProvisionalHold = isHeld && turn.provisional;
+  return { isAsking, isHeld, isBusy, awaitsAnswer: isAsking || isProvisionalHold, isInPlay: isAsking || isHeld || isBusy };
+};
+
+type Transition<E extends TurnEvent> = (turn: HeroTurn, e: E, at: TurnFacts) => HeroTurn;
+
+/** The table of spec section 5, one transition per event */
+const TRANSITIONS: { [K in TurnEvent["type"]]: Transition<Extract<TurnEvent, { type: K }>> } = {
+  // resting -> asking: POST play without force
+  signIn: (turn) => (turn.state === "resting" ? turnOf("asking") : turn),
+  // asking -> held; a provisional hold is confirmed the same way
+  granted: (turn, _e, at) => (at.awaitsAnswer ? turnOf("held") : turn),
+  // asking -> busy; a provisional hold learns of the other device here ("a later busy is shown then")
+  busy: (turn, e, at) => (at.awaitsAnswer ? turnOf("busy", { ...e.device }) : turn),
+  // busy -> asking: POST play with force, and the site's `granted` makes it held
+  force: (turn, _e, at) => (at.isBusy ? turnOf("asking") : turn),
+  // busy -> resting: back to the picker (family device) or the mirror (kid phone)
+  decline: (turn, _e, at) => (at.isBusy ? turnOf("resting") : turn),
+  // held -> resting (the device uploads and rests first); asking and busy simply give up
+  signOut: (turn, _e, at) => (at.isInPlay ? turnOf("resting") : turn),
+  // asking -> held, provisional: local-first, play goes on and the ask is retried on `online`
+  offline: (turn, _e, at) => (at.isAsking ? turnOf("held", null, true) : turn),
+  // held -> takenOver: another device took the turn while this one played
+  refused: (turn, _e, at) => (at.isHeld ? turnOf("takenOver") : turn),
+  // takenOver -> resting: the copy is replaced and the clerk has said so
+  caughtUp: (turn) => (turn.state === "takenOver" ? turnOf("resting") : turn),
+};
+
 /**
  * The table of spec section 5: the next turn for an event. A transition the table does not have returns the very same
  * object, so a caller can tell nothing happened with `===`.
  */
 export const turnReducer = (turn: HeroTurn, e: TurnEvent): HeroTurn => {
-  const isAsking = turn.state === "asking";
-  const isHeld = turn.state === "held";
-  const isBusy = turn.state === "busy";
-  const isProvisionalHold = isHeld && turn.provisional;
-  // The site answers a first ask, or the ask retried when the device is back online after a provisional hold
-  const awaitsAnswer = isAsking || isProvisionalHold;
-  // A turn the player can walk away from: being asked for, held (provisional or not), or waiting behind the busy prompt
-  const isInPlay = isAsking || isHeld || isBusy;
-
-  switch (e.type) {
-    // resting -> asking: POST play without force
-    case "signIn":
-      return turn.state === "resting" ? turnOf("asking") : turn;
-    // asking -> held; a provisional hold is confirmed the same way
-    case "granted":
-      return awaitsAnswer ? turnOf("held") : turn;
-    // asking -> busy; a provisional hold learns of the other device here ("a later busy is shown then")
-    case "busy":
-      return awaitsAnswer ? turnOf("busy", { ...e.device }) : turn;
-    // busy -> asking: POST play with force, and the site's `granted` makes it held
-    case "force":
-      return isBusy ? turnOf("asking") : turn;
-    // busy -> resting: back to the picker (family device) or the mirror (kid phone)
-    case "decline":
-      return isBusy ? turnOf("resting") : turn;
-    // held -> resting (the device uploads and rests first); asking and busy simply give up
-    case "signOut":
-      return isInPlay ? turnOf("resting") : turn;
-    // asking -> held, provisional: local-first, play goes on and the ask is retried on `online`
-    case "offline":
-      return isAsking ? turnOf("held", null, true) : turn;
-    // held -> takenOver: another device took the turn while this one played
-    case "refused":
-      return isHeld ? turnOf("takenOver") : turn;
-    // takenOver -> resting: the copy is replaced and the clerk has said so
-    case "caughtUp":
-      return turn.state === "takenOver" ? turnOf("resting") : turn;
-    default:
-      return turn;
-  }
+  const transition = TRANSITIONS[e.type] as Transition<TurnEvent> | undefined;
+  return transition ? transition(turn, e, factsOf(turn)) : turn;
 };
 
 /** Only the device holding the turn may send this hero's records; a provisional hold plays local-first and sends too */

@@ -96,8 +96,10 @@ export const fetchRecords = async (auth: TownHallAuth, since: number, limit = 10
  */
 export const playHero = async (auth: TownHallAuth, heroId: string, deviceId: string, label: string, force = false): Promise<PlayAnswer> => {
   const { data } = await townHallFetch<Wire>(`${heroPath(heroId)}/play`, { auth, method: "POST", body: { device_id: deviceId, label, force } });
-  if (data.answer === "granted") return { answer: "granted" };
-  if (data.answer === "busy") {
+  const isGranted = data.answer === "granted";
+  if (isGranted) return { answer: "granted" };
+  const isBusy = data.answer === "busy";
+  if (isBusy) {
     const device = (data.device && typeof data.device === "object" ? data.device : {}) as Wire;
     const lastSeen = device.last_seen_at;
     return { answer: "busy", device: { label: textOf(device.label), lastSeenAt: typeof lastSeen === "string" ? lastSeen : null } };

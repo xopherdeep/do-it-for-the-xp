@@ -21,7 +21,7 @@ import { notificationsStorage } from "@/lib/databases/NotificationsDb";
 import { saveBackupFile, type SavedBackupFile } from "@/lib/services/core/backupFile";
 import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
 import { canRestoreHere } from "@/lib/services/core/restoreAccess";
-import { emitStoreRestored } from "@/lib/services/sync/recordSignals";
+import { announceRestored } from "@/lib/services/core/restoreAnnounce";
 import { RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -247,12 +247,6 @@ const replaceEntries = async (storage: BackupStorage, entries: readonly BackupEn
   await writeEntries(storage, entries);
 };
 
-/** The keys a store held before a restore that the restored records do not carry */
-const keysDroppedBy = (before: readonly BackupEntry[], after: readonly BackupEntry[]): string[] => {
-  const kept = new Set(after.map((entry) => entry.key));
-  return before.filter((entry) => !kept.has(entry.key)).map((entry) => entry.key);
-};
-
 const parseEntries = (store: string, entries: unknown): BackupEntry[] => {
   if (!Array.isArray(entries)) {
     throw new BackupFormatError(`"${store}" must be a list of entries.`);
@@ -459,13 +453,8 @@ export class BackupService {
       );
     }
 
-    // Announced only now, so a restore that was rolled back announces nothing. A merge keeps every record, so it removed none
-    for (const store of plan) {
-      const before = snapshots.get(store.name) ?? [];
-      const removedKeys = mode === "merge" ? [] : keysDroppedBy(before, backup.stores[store.name]);
-      const previous = new Map(before.filter((entry) => removedKeys.includes(entry.key)).map((entry) => [entry.key, entry.value]));
-      emitStoreRestored({ store: store.name, removedKeys, previous });
-    }
+    // Announced only now (restoreAnnounce.ts), so a restore that was rolled back announces nothing
+    announceRestored(plan, snapshots, backup.stores, mode);
 
     // 4. Only now that every store is written: refresh mirrored copies, then rebuild the user store
     for (const store of plan) {

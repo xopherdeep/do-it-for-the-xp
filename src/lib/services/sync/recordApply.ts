@@ -134,7 +134,8 @@ const applyOne = async (record: ReceivedRecord, target: ApplyTarget): Promise<bo
       return true;
     }
     const body = bodyOf(record);
-    if (body === null) {
+    const hasNoBody = body === null;
+    if (hasNoBody) {
       debug.warn(`[sync] record ${record.store}/${record.key} has no usable body; skipped`);
       return false;
     }
