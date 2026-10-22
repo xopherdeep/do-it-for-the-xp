@@ -392,3 +392,25 @@ export const byway = (): ClassicDungeon =>
       cell(1, 3, "Alcove", { west: "shutter" }, { chest: "big-key" }),
     ]),
   ]);
+
+/**
+ * AERIE, the Eagle (Zelda 1, Level 1) in miniature: one floor 2x4 over a one-cell basement. The hermit's room behind a
+ * cracked wall, a hall whose enemies stand over the compass, the guard whose key opens the boss door, the boss; the
+ * entrance, a shutter sentry, and the push-block steps whose stairway (a circle of ours) rides down to the Big Chest.
+ *
+ *   1F:  H  C  G  B        B1:  V
+ *        E  S  R  _
+ */
+export const aerie = (): ClassicDungeon =>
+  dungeon("aerie", [
+    floor("B1", 1, 1, [cell(0, 0, "Cellar", {}, { chest: "big-chest", teleport: { to: "1F", row: 1, col: 2 } })]),
+    floor("1F", 2, 4, [
+      cell(0, 0, "Hermit", { east: "bomb" }),
+      cell(0, 1, "Hall", { west: "bomb", east: "open", south: "open" }, { enemies: 1, chest: "compass" }),
+      cell(0, 2, "Guard", { west: "open", east: "small-key" }, { enemies: 1, keyDrop: "small" }),
+      cell(0, 3, "Throne", { west: "small-key" }, { boss: true }),
+      cell(1, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(1, 1, "Sentry", { west: "open", north: "open", east: "open" }, { enemies: 1, shutter: true }),
+      cell(1, 2, "Steps", { west: "open" }, { puzzle: true, teleport: { to: "B1", row: 0, col: 0 } }),
+    ]),
+  ]);

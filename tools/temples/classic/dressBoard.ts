@@ -7,9 +7,10 @@
  * room the plan names as a mini-boss's (`minibossRooms`), which fights even where the converter read no enemies.
  *
  * Precedence, one thing per cell: entrance > boss > must-clear fight > stairs > Big Key chest > Big Chest > other
- * chests and a key in the open > puzzle > circle > side fight > hole. A must-clear fight outranks the stairs that
+ * chests and a key in the open > circle > puzzle > side fight > hole. A must-clear fight outranks the stairs that
  * share its screen because the fight is what gates the doors there; the stairs land next door instead (a flight can
- * name its landing, `targetCoords`). What loses its cell moves, and dressPlace says where: what a sealed fight held
+ * name its landing, `targetCoords`). A circle outranks a riddle as a flight does: it is the way on (Zelda 1's push
+ * block hides the stairway it shares a screen with), and a displaced riddle is only dropped. What loses its cell moves, and dressPlace says where: what a sealed fight held
  * goes beside the fight, else beside a room the hero reaches only through it (a chest or a key with no such room is
  * handed out by the fight), except a flight or a circle whose other end the hero reaches without the fight, which
  * stands beside it or in front of every seal (GT's Bob's Torch's flight, its twin in the lobby, stands beside Speed
@@ -51,10 +52,11 @@ export type ItemKind =
   | "empty";
 
 /**
- * The precedence of the things a cell can hold: the first one found stays, the rest move or drop. A hole comes last:
- * a pit replaces the walking doors of its cell, so one on a screen the hero must cross would cut the dungeon in two.
+ * The precedence of the things a cell can hold: the first one found stays, the rest move or drop. A circle comes before
+ * a riddle, as stairs do: it is the way on, and a riddle that loses its cell is only dropped. A hole comes last: a pit
+ * replaces the walking doors of its cell, so one on a screen the hero must cross would cut the dungeon in two.
  */
-export const PRECEDENCE: ItemKind[] = ["entrance", "boss", "mustClearFight", "stairs", "bigKey", "bigChest", "chest", "potKey", "puzzle", "teleport", "sideFight", "hole"];
+export const PRECEDENCE: ItemKind[] = ["entrance", "boss", "mustClearFight", "stairs", "bigKey", "bigChest", "chest", "potKey", "teleport", "puzzle", "sideFight", "hole"];
 
 export interface Item {
   kind: ItemKind;
