@@ -3,8 +3,9 @@
  * miniature (classicFixtures.ts): the push-block steps keep their stairway, a circle of ours, over the riddle; and the
  * plan's options the Wind Temple needs: rooms of its own beyond the dungeon's (`handRooms`), a side of the dungeon
  * opened (`opens`), the shop in a room the dungeon names (`shopAt`), a side fight standing over its chest
- * (`guardedChests`) and every chore of the plan kept (`keepsEveryChore`). The rules every classic dungeon shares are checked in ClassicDress.spec.ts, the Wind Temple
- * itself in WindTemple.spec.ts.
+ * (`guardedChests`), every chore of the plan kept (`keepsEveryChore`) and a Big Chest of treasure where the temple has
+ * no relic of its own (`treasure`). The rules every classic dungeon shares are checked in ClassicDress.spec.ts, the Wind
+ * Temple itself in WindTemple.spec.ts.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph, reachableFrom, solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
@@ -132,6 +133,19 @@ describe("dressing a dungeon of Zelda 1", () => {
 
     it("throws when the pin names no free converted cell", () => {
       expect(() => dressDungeon(aerie(), aeriePlan({ shopAt: { floor: "1F", row: 1, col: 0 } }))).toThrow(/pins the shop on 1F \(1,0\)/);
+    });
+  });
+
+  describe("a Big Chest of treasure where the temple has no relic of its own (treasure)", () => {
+    it("holds the plan's gold and items, and no relic", () => {
+      const made = dressDungeon(aerie(), aeriePlan({ relic: undefined, treasure: { gold: 50, items: ["Potion"] } }));
+      const chest = roomsOf(made.temple)("B1", 0, 0);
+      expect(chest).toMatchObject({ type: "loot", content: { chest: "gold", gold: 50, items: ["Potion"] } });
+      expect(chest?.content?.dungeon).toBeUndefined();
+    });
+
+    it("throws for a plan that names neither a relic nor a treasure", () => {
+      expect(() => dressDungeon(aerie(), aeriePlan({ relic: undefined }))).toThrow(/neither a relic nor a treasure/);
     });
   });
 

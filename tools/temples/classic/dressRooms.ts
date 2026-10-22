@@ -57,15 +57,25 @@ const TOKEN_LETTER: Record<string, string> = {
   empty: "N",
 };
 
+/** What the Big Chest holds: the plan's relic, else its treasure (gold and items: a gold chest of ours) */
+const bigChestOf = (plan: ClassicPlan): RoomContent => {
+  const relic = plan.relic;
+  const hasRelic = Boolean(relic);
+  if (hasRelic) return { chest: "dungeon", dungeon: relic };
+  const treasure = plan.treasure;
+  if (!treasure) throw new Error(`${plan.name}: the plan names neither a relic nor a treasure for the Big Chest`);
+  return { chest: "gold", gold: treasure.gold, items: [...treasure.items] };
+};
+
 /**
- * What a chest holds: the Boss Key, the relic, a Bomb, a relic beyond the plan's first or else 25 gold for an "other"
- * chest, else the dungeon item of its kind
+ * What a chest holds: the Boss Key, the relic (or the plan's treasure), a Bomb, a relic beyond the plan's first or else
+ * 25 gold for an "other" chest, else the dungeon item of its kind
  */
 const chestOf = (item: Item, plan: ClassicPlan): RoomContent => {
   const isBossKey = item.kind === "bigKey";
   if (isBossKey) return { chest: "dungeon", dungeon: "master-key" };
   const isRelic = item.kind === "bigChest";
-  if (isRelic) return { chest: "dungeon", dungeon: plan.relic };
+  if (isRelic) return bigChestOf(plan);
   const isExtraRelic = Boolean(item.relic);
   if (isExtraRelic) return { chest: "dungeon", dungeon: item.relic };
   const isBomb = item.kind === "bombChest";
@@ -229,7 +239,8 @@ const SHAPES: Record<ItemKind, (input: ShapeInput) => RoomShape> = {
   teleport: circleShape,
   hole: pitShape,
   bigKey: lootShape("boss-key"),
-  bigChest: lootShape("relic"),
+  // The Big Chest is spelled as a relic room, or as a loot room when it holds the plan's treasure
+  bigChest: ({ item, plan }) => ({ type: "loot", letter: plan.relic ? "relic" : "loot", content: chestOf(item, plan) }),
   chest: ({ item, plan }) => ({ type: "loot", letter: item.chest === "small-key" ? "key" : "loot", content: chestOf(item, plan) }),
   bombChest: lootShape("loot"),
   potKey: () => ({ type: "key", letter: "key" }),

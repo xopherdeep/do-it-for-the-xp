@@ -24,6 +24,12 @@ export interface HandRoom extends ClassicCell {
   floor: string;
 }
 
+/** A Big Chest's treasure in place of a relic: its gold and the items it holds (a supply such as "Potion" goes in the bag) */
+export interface BigChestTreasure {
+  gold: number;
+  items: string[];
+}
+
 /** A side of a cell: north, east, south or west */
 export type CellSide = keyof ClassicCell["sides"];
 
@@ -44,8 +50,13 @@ export interface ClassicPlan {
   /** The world the temple stands in (the registry's `world`): the theme written on its monster rooms */
   theme: string;
   element: string;
-  /** What the Big Chest holds: the temple's relic */
-  relic: string;
+  /** What the Big Chest holds: the temple's relic (a temple whose relic waits elsewhere names a `treasure` instead) */
+  relic?: string;
+  /**
+   * What the Big Chest holds when the temple has no relic of its own: the Wind Temple's relic, the Wind Whistle, is
+   * its Pegasus chest's prize (ChestLoot), so its Big Chest holds treasure. A plan names a relic or a treasure.
+   */
+  treasure?: BigChestTreasure;
   /**
    * The temple's relics beyond the first (a dungeon has one Big Chest): in order, each in place of the gold of the
    * dungeon's `other` chest nearest the entrance by path distance (every door open), the next for the next
