@@ -1,16 +1,16 @@
 /**
  * The dress step's rules (tools/temples/classic/dress.ts) that a dungeon of Zelda 1 asks for, on AERIE, the Eagle in
  * miniature (classicFixtures.ts): the push-block steps keep their stairway, a circle of ours, over the riddle; and the
- * plan's options the Wind Temple needs: rooms of its own beyond the dungeon's (`handRooms`), the shop in a room the
- * dungeon names (`shopAt`), a side fight standing over its chest (`guardedChests`) and every chore of the plan kept
- * (`keepsEveryChore`). The rules every classic dungeon shares are checked in ClassicDress.spec.ts, the Wind Temple
+ * plan's options the Wind Temple needs: rooms of its own beyond the dungeon's (`handRooms`), a side of the dungeon
+ * opened (`opens`), the shop in a room the dungeon names (`shopAt`), a side fight standing over its chest
+ * (`guardedChests`) and every chore of the plan kept (`keepsEveryChore`). The rules every classic dungeon shares are checked in ClassicDress.spec.ts, the Wind Temple
  * itself in WindTemple.spec.ts.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
-import { solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
+import { buildTempleGraph, reachableFrom, solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
-import { dressDungeon, withHandRooms } from "../../tools/temples/classic/dress";
+import { asPlanned, dressDungeon, withHandRooms } from "../../tools/temples/classic/dress";
 import { AERIE_HAND_ROOMS, aerie, aeriePlan, plan } from "./classicFixtures";
 
 const asRegistered = (temple: TempleLayout): TempleLayout => ({
@@ -70,6 +70,12 @@ describe("dressing a dungeon of Zelda 1", () => {
       expect(() => withHandRooms(aerie(), aeriePlan({ handRooms: [{ ...pantry, floor: "3F" }] }))).toThrow(/floor 3F/);
     });
 
+    it("throw when one opens on a converted cell: they join the dungeon by their own circles alone", () => {
+      const [pantry] = AERIE_HAND_ROOMS;
+      const intoTheSentry = { ...pantry, sides: { ...pantry.sides, north: "open" as const } };
+      expect(() => withHandRooms(aerie(), aeriePlan({ handRooms: [intoTheSentry] }))).toThrow(/Owner's Pantry opens north on the converted cell 1F \(1,1\)/);
+    });
+
     it("are dressed as the dungeon's own cells, with the sides they were drawn with", () => {
       expect(at("1F", 2, 1)).toMatchObject({ type: "key", sides: { north: "wall", east: "door", south: "wall", west: "wall" } });
       expect(at("1F", 2, 4)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" }, sides: { west: "door" } });
@@ -91,6 +97,27 @@ describe("dressing a dungeon of Zelda 1", () => {
     it("pass the solver and the audit", () => {
       expect(solveTemple(asRegistered(made.temple))).toMatchObject({ solvable: true, reasons: [] });
       expect(missingNames(auditTemple(made.temple))).toEqual([]);
+    });
+  });
+
+  describe("a side of the dungeon the plan opens (opens)", () => {
+    const hermitsWall = { floor: "1F", row: 0, col: 0, side: "east" as const };
+
+    it("opens it on both ends, so the shop pinned behind the hermit's cracked wall is reached without a Bomb", () => {
+      const made = dressDungeon(aerie(), aeriePlan({ opens: [hermitsWall] }));
+      const at = roomsOf(made.temple);
+      expect([at("1F", 0, 0)?.sides?.east, at("1F", 0, 1)?.sides?.west]).toEqual(["door", "door"]);
+      const graph = buildTempleGraph(asRegistered(made.temple));
+      const cracks = new Set(graph.doors.filter((door) => door.lock === "bomb").map((door) => door.id));
+      expect(reachableFrom(graph, graph.entrance!, new Set(), cracks)).toContain("1F:0,0");
+      // The converter's dungeon is left as it was
+      const converted = aerie();
+      asPlanned(converted, aeriePlan({ opens: [hermitsWall] }));
+      expect(converted.floors[1].cells[0].sides.east).toBe("bomb");
+    });
+
+    it("throws on a side that stands between no two converted cells", () => {
+      expect(() => asPlanned(aerie(), aeriePlan({ opens: [{ floor: "1F", row: 1, col: 2, side: "east" }] }))).toThrow(/opens 1F \(1,2\) east/);
     });
   });
 

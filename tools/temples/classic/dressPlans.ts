@@ -24,6 +24,20 @@ export interface HandRoom extends ClassicCell {
   floor: string;
 }
 
+/** A side of a cell: north, east, south or west */
+export type CellSide = keyof ClassicCell["sides"];
+
+/**
+ * A side of a converted cell the plan opens, on both ends (the cell's and its neighbour's): the Eagle's cracked wall
+ * before the old man's room, which the owner's Wind Temple reached without a Bomb
+ */
+export interface OpenedSide {
+  floor: string;
+  row: number;
+  col: number;
+  side: CellSide;
+}
+
 export interface ClassicPlan {
   /** "Storm Temple": the name the Temple Creator lists the temple under */
   name: string;
@@ -58,6 +72,8 @@ export interface ClassicPlan {
   boss: PlanQuest;
   /** Rooms of the temple's own beyond the dungeon's (HandRoom), each where the dungeon has no cell */
   handRooms?: HandRoom[];
+  /** Sides of the dungeon opened on both ends (OpenedSide), each between two converted cells */
+  opens?: OpenedSide[];
   /**
    * The converted cell the shop stands in, by its own position, when the dungeon names a room for it (the Eagle's old
    * man's room), wherever it lies; without it the shop takes the first empty cell the hero reaches with nothing in hand
@@ -288,10 +304,52 @@ export const loadDungeon = (id: string): ClassicDungeon => JSON.parse(readFileSy
 /** A cell that hands out a small key: a key chest, a key drop, a key in the pots */
 const isSmallKeyCell = (cell: ClassicCell): boolean => cell.chest === "small-key" || cell.keyDrop === "small" || Boolean(cell.potKey);
 
+/** The step toward a side, and the side the cell there faces back with */
+interface Toward {
+  row: number;
+  col: number;
+  back: CellSide;
+}
+
+const TOWARD: Record<CellSide, Toward> = {
+  north: { row: -1, col: 0, back: "south" },
+  east: { row: 0, col: 1, back: "west" },
+  south: { row: 1, col: 0, back: "north" },
+  west: { row: 0, col: -1, back: "east" },
+};
+
+const SIDES = Object.keys(TOWARD) as CellSide[];
+
+/** The cell at a position of a floor's cells */
+const cellAt = (cells: readonly ClassicCell[], row: number, col: number): ClassicCell | undefined => cells.find((cell) => cell.row === row && cell.col === col);
+
 /**
- * The dungeon the dress step reads: the converter's, with the plan's own rooms (`handRooms`) added to their floors, each
- * floor grown to hold them, and the report counting them. A copy: the converter's dungeon is left as it was, and comes
- * back itself when the plan draws none. A hand room on a converted cell, or on a floor the dungeon lacks, throws.
+ * The converter's dungeon with the sides the plan opens (`opens`) open on both ends. A copy: the converter's dungeon is
+ * left as it was, and comes back itself when the plan opens none. A side between no two converted cells throws.
+ */
+const withOpenedSides = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "opens">): ClassicDungeon => {
+  const opened = plan.opens ?? [];
+  const isAsConverted = opened.length === 0;
+  if (isAsConverted) return dungeon;
+  const floors = dungeon.floors.map((level) => ({ ...level, cells: level.cells.map((cell) => ({ ...cell, sides: { ...cell.sides } })) }));
+  for (const { floor, row, col, side } of opened) {
+    const cells = floors.find((level) => level.name === floor)?.cells ?? [];
+    const toward = TOWARD[side];
+    const here = cellAt(cells, row, col);
+    const there = cellAt(cells, row + toward.row, col + toward.col);
+    const isBetweenCells = Boolean(here) && Boolean(there);
+    if (!isBetweenCells) throw new Error(`${dungeon.id}: the plan opens ${floor} (${row},${col}) ${side}, which stands between no two converted cells`);
+    here!.sides[side] = "open";
+    there!.sides[toward.back] = "open";
+  }
+  return { ...dungeon, floors };
+};
+
+/**
+ * The dungeon with the plan's own rooms (`handRooms`) added to their floors, each floor grown to hold them, and the
+ * report counting them. A copy: the dungeon handed in is left as it was, and comes back itself when the plan draws none.
+ * A hand room joins the dungeon by its own circles or flights alone: one on a converted cell, on a floor the dungeon
+ * lacks, or with a side that is no wall facing a converted cell, throws.
  */
 export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "handRooms">): ClassicDungeon => {
   const hand = plan.handRooms ?? [];
@@ -303,6 +361,12 @@ export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "
     if (!level) throw new Error(`${dungeon.id}: the hand room ${cell.room} names the floor ${floor}, which the dungeon does not have`);
     const isOnACell = level.cells.some((other) => other.row === cell.row && other.col === cell.col);
     if (isOnACell) throw new Error(`${dungeon.id}: the hand room ${cell.room} stands on the converted cell ${floor} (${cell.row},${cell.col})`);
+    const converted = dungeon.floors.find((entry) => entry.name === floor)!.cells;
+    const facing = SIDES.find((side) => cell.sides[side] !== "wall" && Boolean(cellAt(converted, cell.row + TOWARD[side].row, cell.col + TOWARD[side].col)));
+    if (facing) {
+      const at = `${floor} (${cell.row + TOWARD[facing].row},${cell.col + TOWARD[facing].col})`;
+      throw new Error(`${dungeon.id}: the hand room ${cell.room} opens ${facing} on the converted cell ${at}: it joins the dungeon by its own circles or flights alone`);
+    }
     level.cells.push(cell);
     level.rows = Math.max(level.rows, cell.row + 1);
     level.cols = Math.max(level.cols, cell.col + 1);
@@ -311,3 +375,9 @@ export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "
   const smallKeys = dungeon.report.smallKeys + hand.filter(isSmallKeyCell).length;
   return { ...dungeon, floors, report: { ...dungeon.report, cellsPerFloor, smallKeys } };
 };
+
+/**
+ * The dungeon the dress step reads under a plan: the converter's, with the sides the plan opens open (withOpenedSides)
+ * and the plan's own rooms joined (withHandRooms). Pure, and a copy whenever the plan changes anything.
+ */
+export const asPlanned = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "opens" | "handRooms">): ClassicDungeon => withHandRooms(withOpenedSides(dungeon, plan), plan);

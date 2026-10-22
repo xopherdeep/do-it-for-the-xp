@@ -28,12 +28,12 @@ import type { ClassicDungeon } from "./classicDungeon";
 import { allSlots, buildBoard, cellKey, describeCell, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift, type Slot } from "./dressBoard";
 import { planChores } from "./dressChores";
 import { demoteShortcutWarps, drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
-import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, withHandRooms, type ClassicPlan, type HandRoom } from "./dressPlans";
+import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, asPlanned, loadDungeon, withHandRooms, type ClassicPlan, type HandRoom, type OpenedSide } from "./dressPlans";
 import { openInFront } from "./dressPlace";
 import { buildRooms, type ClassicPlacement } from "./dressRooms";
 
-export { CLASSIC_IDS, CLASSIC_PLANS, loadDungeon, withHandRooms };
-export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef, HandRoom };
+export { CLASSIC_IDS, CLASSIC_PLANS, asPlanned, loadDungeon, withHandRooms };
+export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef, HandRoom, OpenedSide };
 
 /** What the dressing did with a dungeon, for the tests and the build report */
 export interface ClassicReport {
@@ -158,11 +158,11 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
 };
 
 /**
- * A converted dungeon as a temple of ours, under `plan`, with the plan's own rooms joined to it (withHandRooms). Pure:
- * the same dungeon and plan give the same temple.
+ * A converted dungeon as a temple of ours, under `plan`, read as the plan has it (asPlanned: the sides it opens open,
+ * its own rooms joined). Pure: the same dungeon and plan give the same temple.
  */
 export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
-  const board = buildBoard(withHandRooms(dungeon, plan), plan);
+  const board = buildBoard(asPlanned(dungeon, plan), plan);
   // The board as registration reads it, fights plain before the chores are dealt (the doors are all the steps below read)
   const layoutNow = (): TempleLayout => asRegistered(buildRooms(board, plan, drawSides(board)));
   demoteShortcutWarps(board, layoutNow);
