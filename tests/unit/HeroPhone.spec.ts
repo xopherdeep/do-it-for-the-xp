@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { nextTick, reactive } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import HeroPhone from "@/app/SideMenu/HeroPhone/HeroPhone.vue";
@@ -84,6 +84,12 @@ const mockUser = reactive({
   logoutUser: jest.fn(),
 });
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => mockUser }));
+
+const mockDebugWarn = jest.fn();
+jest.mock("@/lib/utils/debug", () => ({
+  __esModule: true,
+  default: { warn: (...args: unknown[]) => mockDebugWarn(...args), error: jest.fn(), log: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
 
 const BUSY_ON_IPAD = { label: "Mia's iPad", lastSeenAt: null };
 
@@ -357,14 +363,111 @@ describe("HeroPhone", () => {
       expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
     });
 
-    it("stays on the board when the pull did not bring the hero", async () => {
+    it("a pull that completes before the hero's profile arrives opens the portal once the profile lands", async () => {
       mockUser.users = {};
-      await open();
+      const wrapper = await open();
       mockSync.isFullPortal = true;
       await flushPromises();
+
+      // The pull counted an empty page as done: the family's world is still arriving, so the line stays and nothing opens
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
       expect(mockSync.signIn).not.toHaveBeenCalled();
       expect(mockUser.loginUser).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockDebugWarn).toHaveBeenCalledWith(expect.stringContaining("has not arrived"));
+
+      // A later download brings the hero
+      mockUser.users = { "hero-1": mockHero };
+      await flushPromises();
+
+      expect(mockSync.signIn).toHaveBeenCalledTimes(1);
+      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+      expect(lines(wrapper)).toEqual([]);
+    });
+
+    it("opens the screen on a finished pull whose hero is not here yet and waits for the profile", async () => {
+      mockUser.users = {};
+      mockSync.isFullPortal = true;
+      const wrapper = await open();
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
+      expect(mockReplace).not.toHaveBeenCalled();
+
+      mockUser.users = { "hero-1": mockHero };
+      await flushPromises();
+      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+    });
+
+    it("stops waiting for the hero when the phone is no longer a full portal", async () => {
+      mockUser.users = {};
+      const wrapper = await open();
+      mockSync.isFullPortal = true;
+      await flushPromises();
+      expect(lines(wrapper)).toHaveLength(1);
+
+      mockSync.isOn = false;
+      mockSync.isFullPortal = false;
+      await flushPromises();
+      expect(lines(wrapper)).toEqual([]);
+
+      mockUser.users = { "hero-1": mockHero };
+      await flushPromises();
+      expect(mockSync.signIn).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("keeps the pull line up while the turn is asked for, so the card never flashes", async () => {
+      let grant: (answer: string) => void = () => undefined;
+      mockSync.signIn.mockReturnValue(new Promise((resolve) => (grant = resolve)));
+      const wrapper = await open();
+      mockSync.isFullPortal = true;
+      await flushPromises();
+
+      expect(mockSync.signIn).toHaveBeenCalledWith("hero-1");
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
+
+      grant("granted");
+      await flushPromises();
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+    });
+
+    it.each([
+      ["the hero cannot be signed in", () => mockUser.loginUser.mockImplementationOnce(() => { throw new Error("no store"); })],
+      ["the portal cannot be opened", () => mockReplace.mockRejectedValueOnce(new Error("no route"))],
+    ])("rests the hero and shows the board when %s", async (_label, fail) => {
+      fail();
+      mockFamily.phoneState = waitingSheet;
+      const wrapper = await open();
+      mockSync.isFullPortal = true;
+      await flushPromises();
+
+      expect(mockSync.rest).toHaveBeenCalledWith("hero-1");
+      expect(lines(wrapper)).toEqual([]);
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+    });
+
+    it("moves the count on the line at most once a second, and the newest count gets its turn", async () => {
+      const wrapper = await open();
+      jest.useFakeTimers();
+      try {
+        mockSync.firstPullProgress = 10;
+        await nextTick();
+        expect(lines(wrapper)).toEqual(["Fetching your family's world… (10)"]);
+
+        mockSync.firstPullProgress = 20;
+        await nextTick();
+        mockSync.firstPullProgress = 30;
+        await nextTick();
+        expect(lines(wrapper)).toEqual(["Fetching your family's world… (10)"]);
+
+        jest.advanceTimersByTime(1000);
+        await nextTick();
+        expect(lines(wrapper)).toEqual(["Fetching your family's world… (30)"]);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it("offline on the first pull shows the board with the offline line", async () => {
