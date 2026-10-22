@@ -47,6 +47,7 @@
             :entry="entry"
             :hero-name="heroName(entry.userId)"
             :avatar="heroAvatar(entry.userId)"
+            :sent-line="sentLine(entry)"
             @approve="approveItem"
             @reject="rejectItem"
           />
@@ -132,6 +133,7 @@
   import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
   import ApprovalPurchaseRow from "./components/ApprovalPurchaseRow.vue";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
+  import { useSentVerdicts } from "./useSentVerdicts";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
   import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
@@ -187,6 +189,8 @@
       const userStore = useUserStore();
       // Follows the profile's Retro / Modern toggle, like the other phone apps
       const { rootClass, rootStyle } = useAppSkin("quests");
+      // A verdict on a hero another device holds goes to that device (family sync); the row says so until its copy lands
+      const sentLineOf = useSentVerdicts();
       const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
       const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
         "achievements"
@@ -233,6 +237,9 @@
           return ""; // avatar file missing; the template falls back to an icon
         }
       };
+
+      /** The line for a claim whose verdict went to the device holding the hero's turn; "" while it waits on this Game Master */
+      const sentLine = (entry: QuestLogEntry): string => sentLineOf(entry, heroName(entry.userId));
 
       const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -405,7 +412,9 @@
           reviewing.delete(entry.id);
         }
         await loadApprovals();
-        void showToast(outcome.message, outcome.color);
+        // A verdict sent to the hero's device has no toast: its row says so
+        const hasMessage = outcome.message !== "";
+        if (hasMessage) void showToast(outcome.message, outcome.color);
       };
 
       const unsettled = (reason: Extract<ReviewOutcome, { ok: false }>["reason"]): ReviewMessage =>
@@ -443,6 +452,7 @@
                   const isUnsettled = !result.ok;
                   if (isUnsettled) return unsettled(result.reason);
                   play$fx("select");
+                  if (result.remote) return { message: "" };
                   return {
                     message: `Approved! ${hero} earned ${result.line}`,
                   };
@@ -480,6 +490,7 @@
                   const result = await rejectClaim(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
                   const isUnsettled = !result.ok;
                   if (isUnsettled) return unsettled(result.reason);
+                  if (result.remote) return { message: "" };
                   return {
                     message: `Sent back. "${entry.questName}" is open again for ${hero}.`,
                     color: "medium",
@@ -604,6 +615,7 @@
         historyRows,
         heroName,
         heroAvatar,
+        sentLine,
         formatDate,
         approveItem,
         rejectItem,
