@@ -1,6 +1,6 @@
 import { TextEncoder } from "util";
 import { createPinia, getActivePinia, setActivePinia } from "pinia";
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { useSyncStore } from "@/lib/store/stores/sync";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
@@ -1170,6 +1170,9 @@ describe("the sync store", () => {
   it("a busy hero's records stay queued and are dropped when the holder's record lands", async () => {
     jest.useFakeTimers();
     const sync = await started();
+    // a borrow's busy answer rests at once: never a busy turn a stale portal could ask about
+    const states: string[] = [];
+    watch(() => sync.turns["h-1"]?.state, (state) => states.push(String(state)), { flush: "sync" });
     playHero.mockResolvedValue(BUSY);
     write("__questLog", "q1", { id: "q1", userId: "h-1", status: "here" });
     await tick(5_000);
@@ -1178,6 +1181,7 @@ describe("the sync store", () => {
     expect(sent()).toEqual([]);
     expect(restHero).not.toHaveBeenCalled();
     expect(sync.turns["h-1"].state).toBe("resting");
+    expect(states).toEqual(["asking", "resting"]);
     expect(sync.state.outbox.map((item) => item.key)).toEqual(["q1"]);
 
     const fromPhone = { id: "q1", userId: "h-1", status: "phone" };
@@ -1239,5 +1243,176 @@ describe("the sync store", () => {
     expect(sent().map((record) => record.key)).toEqual(["b1", "q1", "q1"]);
     expect(sync.state.outbox).toEqual([]);
     expect(sync.turns["h-1"].state).toBe("resting");
+  });
+
+  // --- Fix round 1 ---
+
+  /** The put waits until the test lets it go */
+  const holdPuts = () => {
+    const gate = held();
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      await gate.promise;
+      return acceptAll(auth, device, records);
+    });
+    return gate;
+  };
+
+  it("the front coming back while the background rest is uploading keeps the hero held, and the site is not told", async () => {
+    const sync = await started();
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    expect(sync.holds("h-1")).toBe(true);
+    const gate = holdPuts();
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+
+    showPage("hidden");
+    await drain();
+    expect(putRecords).toHaveBeenCalledTimes(1);
+    showPage("visible");
+    await drain();
+    gate.release();
+    await drain();
+
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(restHero).not.toHaveBeenCalled();
+    expect(playHero).toHaveBeenCalledTimes(1);
+    expect(sent().map((record) => record.key)).toEqual(["q1"]);
+  });
+
+  it("re-picking the hero while Save & Quit's rest is uploading keeps the hero held", async () => {
+    const sync = await started();
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    const gate = holdPuts();
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+
+    // Save & Quit signs out; the picker picks the same hero again before the upload is done
+    mockUser.currentUser.id = null;
+    await drain();
+    const picked = sync.signIn("h-1");
+    await drain();
+    gate.release();
+
+    expect(await picked).toBe("granted");
+    await drain();
+    expect(sync.holds("h-1")).toBe(true);
+    expect(restHero).not.toHaveBeenCalled();
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    expect(playHero).toHaveBeenCalledTimes(1);
+  });
+
+  it("a sign-in while an earlier ask is still out joins it, and the turn this device plays is never given back", async () => {
+    const sync = await started();
+    const answer = held();
+    playHero.mockImplementationOnce(async () => {
+      await answer.promise;
+      return { answer: "granted" };
+    });
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("asking");
+
+    // the background rests the hero while the ask is out, and the front signs it in again
+    showPage("hidden");
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("resting");
+    showPage("visible");
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("asking");
+    expect(playHero).toHaveBeenCalledTimes(1);
+
+    answer.release();
+    await drain();
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(restHero).not.toHaveBeenCalled();
+  });
+
+  it("an offline hold the site answers busy keeps its play until the player answers: Not now yields, Play here sends", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    playHero.mockRejectedValue(new TownHallError("offline"));
+    await sync.signIn("h-1");
+    await sync.signIn("h-2");
+    const offlinePlay = { id: "q1", userId: "h-1", status: "offline play" };
+    write("__questLog", "q1", offlinePlay);
+    write("__questLog", "q2", { id: "q2", userId: "h-2", status: "offline play" });
+    await drain();
+
+    // back online: the site says another device plays both heroes now
+    playHero.mockReset();
+    playHero.mockImplementation(async (_auth: unknown, _hero: string, _device: string, _label: string, force: boolean) =>
+      force ? { answer: "granted" } : BUSY
+    );
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("busy");
+    expect(sync.turns["h-2"].state).toBe("busy");
+    expect(sent()).toEqual([]);
+
+    // until the player answers, the holder's copy does not land over the offline play
+    const fromPhone = { id: "q1", userId: "h-1", status: "phone" };
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
+    await sync.download();
+    expect(mockStores.__questLog.q1).toEqual(offlinePlay);
+    expect(sync.state.lastSeq).toBe(5);
+
+    // Not now: the holder's copy lands and the offline change is dropped
+    await sync.rest("h-1");
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
+    await sync.download();
+    expect(mockStores.__questLog.q1).toEqual(fromPhone);
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q2"]);
+
+    // Play here: the offline play goes up
+    await sync.takeOver("h-2");
+    expect(sync.turns["h-2"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sent().map((record) => record.key)).toEqual(["q2"]);
+  });
+
+  it("a hero the site does not know loses its queued records once this device no longer has it", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    mockUser.users = { "h-8": { id: "h-8" } };
+    playHero.mockRejectedValue(failWith(404, "xp_family_no_hero"));
+    write("__questLog", "q8", { id: "q8", userId: "h-8" });
+    write("__questLog", "q9", { id: "q9", userId: "h-9" });
+    await tick(5_000);
+
+    // h-9 was removed here: its record goes; h-8 is still here (not registered yet): its record waits
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q8"]);
+    expect(sync.turns["h-9"].state).toBe("resting");
+    const said = (debug.warn as jest.Mock).mock.calls.filter(([line]) => String(line).includes("hero h-9"));
+    expect(said).toHaveLength(1);
+    mockUser.users = {};
+  });
+
+  it("with the sync off, a switch rests the old hero here and Play here plays locally; back on, only the current hero signs in", async () => {
+    const sync = await started();
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    expect(sync.holds("h-1")).toBe(true);
+
+    mockPro.isPro = false;
+    await drain();
+    mockUser.currentUser.id = "h-2";
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(sync.turns["h-2"]).toBeUndefined();
+
+    playHero.mockClear();
+    mockPro.isPro = true;
+    await drain();
+    expect(playHero.mock.calls.map(([, heroId]) => heroId)).toEqual(["h-2"]);
+    expect(sync.holds("h-2")).toBe(true);
+    expect(sync.turns["h-1"].state).toBe("resting");
+
+    // Play here while the sync is off: the hero plays here, held until the site can be asked
+    playHero.mockResolvedValueOnce(BUSY);
+    await sync.signIn("h-3");
+    mockPro.isPro = false;
+    await drain();
+    await sync.takeOver("h-3");
+    expect(sync.turns["h-3"]).toEqual({ state: "held", busy: null, provisional: true });
   });
 });

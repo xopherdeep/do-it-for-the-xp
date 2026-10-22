@@ -57,7 +57,8 @@ export interface TransferContext {
   pulled(count: number): void;
   /** Whether a queued record may go now: a family record always, a hero's while this device holds the hero's turn */
   maySend(heroId: string | null): boolean;
-  /** Whether this device plays the hero (its turn held here); a hero record of a hero it does not play lands over local changes */
+  /** Whether this device keeps its changes to the hero (held here, or waiting on the player's busy answer); otherwise a
+   *  received record of that hero lands over a change made here */
   isPlayedHere(heroId: string): boolean;
   /** Before a send: holds made offline ask the site again (the site refuses a hero's records from a device it has not granted) */
   confirmTurns(): Promise<void>;

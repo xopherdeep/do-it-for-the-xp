@@ -114,4 +114,20 @@ describe("the clerk's turn questions", () => {
     expect(mockSync.takeOver).toHaveBeenCalledWith("h-1");
     expect(portal.prompt).toBeNull();
   });
+
+  it("a took-over notice that arrives while the busy question is open is said once the question closes", async () => {
+    mockSync.turns = { "h-1": busy };
+    const portal = withSetup(() => usePortalTurn("h-1"));
+    await flushPromises();
+    expect(showing(portal.prompt).options.lines[0]).toMatch(/^Mia is still playing/);
+
+    mockSync.signIn.mockResolvedValue("granted");
+    mockSync.tookOverNotice = "h-1";
+    await flushPromises();
+    portal.respond({ id: "play", amount: null });
+    await flushPromises();
+
+    expect(showing(portal.prompt).options.lines[0]).toMatch(/took over Mia's game/);
+    expect(mockSync.tookOverNotice).toBeNull();
+  });
 });

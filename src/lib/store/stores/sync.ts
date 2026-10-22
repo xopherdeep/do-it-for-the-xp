@@ -223,7 +223,7 @@ export const useSyncStore = defineStore("sync", () => {
       if (isFirstPull) firstPullProgress.value += count;
     },
     maySend: (heroId) => heroTurns.maySendNow(heroId),
-    isPlayedHere: (heroId) => heroTurns.holds(heroId),
+    isPlayedHere: (heroId) => heroTurns.keepsLocal(heroId),
     confirmTurns: () => heroTurns.confirm(),
     turnLost: (heroIds) => heroTurns.lost(heroIds),
   });
@@ -280,6 +280,7 @@ export const useSyncStore = defineStore("sync", () => {
     notPro: (error) => void noteFailure(error),
     waiting: () => Array.from(new Set(state.value.outbox.flatMap((item) => (item.heroId === null ? [] : [item.heroId])))),
     current: () => currentHero(),
+    hasHero: (heroId) => Boolean(user.users?.[heroId]),
     mayLend: () => isOn.value && !pauses.isPaused(),
   });
 

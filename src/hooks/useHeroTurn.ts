@@ -70,7 +70,7 @@ export function usePortalTurn(heroId: string) {
   const nick = (): string => nickOf(hero());
   const voice = (): Voice => voiceFor(hero());
 
-  /** One question at a time: a busy turn noticed while the clerk is already talking is part of that talk */
+  /** One question at a time; what arrived meanwhile (a took-over notice, a busy turn) is taken up once it is over */
   let isTalking = false;
   const talk = async (job: () => Promise<void>): Promise<void> => {
     if (isTalking) return;
@@ -80,6 +80,7 @@ export function usePortalTurn(heroId: string) {
     } finally {
       isTalking = false;
     }
+    talkAboutWhatWaits();
   };
 
   const askBusy = async (): Promise<void> => {
@@ -99,22 +100,16 @@ export function usePortalTurn(heroId: string) {
     if (isBusy) await askBusy();
   };
 
-  watch(
-    () => sync.tookOverNotice,
-    (notice) => {
-      const isThisHero = notice === heroId;
-      if (isThisHero) void talk(afterTakeover);
-    },
-    { immediate: true }
-  );
-  watch(
-    () => sync.turns[heroId]?.state,
-    (state) => {
-      const isBusy = state === "busy";
-      if (isBusy) void talk(askBusy);
-    },
-    { immediate: true }
-  );
+  /** The took-over line first, then the busy question; nothing when neither waits */
+  function talkAboutWhatWaits(): void {
+    const isTakenOver = sync.tookOverNotice === heroId;
+    const isBusy = sync.turns[heroId]?.state === "busy";
+    if (isTakenOver) void talk(afterTakeover);
+    else if (isBusy) void talk(askBusy);
+  }
+
+  watch(() => sync.tookOverNotice, talkAboutWhatWaits, { immediate: true });
+  watch(() => sync.turns[heroId]?.state, talkAboutWhatWaits, { immediate: true });
 
   return { prompt, respond: submitAnswer };
 }
