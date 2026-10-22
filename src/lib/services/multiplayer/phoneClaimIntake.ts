@@ -32,9 +32,16 @@ export const claimTimeOf = (at: string, now: Date): Date => {
   return isUsable ? new Date(time) : now;
 };
 
-/** Whether a received event is a claim made on a hero phone (not this device's own `quest.claimed`) */
-export const isPhoneClaim = (e: ReceivedEvent, ownDeviceId: string): boolean =>
-  e.kind === "quest.claimed" && e.deviceId !== ownDeviceId && typeof e.data?.questId === "string";
+/**
+ * Whether a received event is a claim made on a hero phone: not this device's own `quest.claimed`, and not a synced one
+ * (its quest log entry arrives as a record, so taking it too would log the claim twice)
+ */
+export const isPhoneClaim = (e: ReceivedEvent, ownDeviceId: string): boolean => {
+  const isClaim = e.kind === "quest.claimed" && typeof e.data?.questId === "string";
+  const isOwn = e.deviceId === ownDeviceId;
+  const isSynced = e.data?.synced === true;
+  return isClaim && !isOwn && !isSynced;
+};
 
 const answer = (claimId: string, questId: string, status: ClaimSettled["status"], note = "", paid = { xp: 0, gp: 0, ap: 0 }): ClaimSettled => ({
   claimId,

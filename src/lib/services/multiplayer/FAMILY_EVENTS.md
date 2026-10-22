@@ -51,7 +51,7 @@ a number on the home, so two devices never hold two versions of a hero.
 
 | kind | writer | scope | fields |
 | --- | --- | --- | --- |
-| `quest.claimed` | home **or the hero's own phone** | family | `questId`, `difficulty`, `requiresApproval` |
+| `quest.claimed` | home **or the hero's own phone** | family | `questId`, `difficulty`, `requiresApproval`, `synced` |
 | `hero.sheet` | home | family | `stats`, `quests` |
 | `claim.settled` | home | family | `claimId`, `questId`, `status`, `note`, `xp`, `gp`, `ap` |
 
@@ -88,6 +88,18 @@ contract it keeps:
   note, beside the usual `quest.approved` / `quest.rejected`.
 - **Order:** the phone keeps the sheet with the highest `seq` and moves a claim forward only (waiting, pending, then
   approved or rejected), so late or repeated events change nothing.
+
+### Under Family Sync: the `synced` claim and verdicts on the hero's turn
+
+A Pro family's devices sync the save as records (`docs/superpowers/specs/2026-10-22-family-sync-design.md`, sections 5
+and 6), so `quest.claimed` carries one more kept field, `synced` (boolean, in `EVENT_KINDS` and the plugin's
+`KINDS`): a device that syncs sets it on every claim it queues, and the intake (`isPhoneClaim`) skips a synced claim,
+since its quest log entry arrives as a record. A free kid phone's claim, and a claim sent again after a takeover (a
+pending entry the site refused with `xp_family_turn`), carry no mark and are taken as above, by the device holding the
+hero's turn (or one that borrows it for the moment). A Game Master's verdict on a hero another device holds is a
+`claim.settled` whose `claimId` is the quest log entry's id, with no pay: the device holding the hero applies it and
+pays (`services/sync/verdictApply.ts`, `store/stores/sync/verdicts.ts`), and a server's `reward.granted` is paid the
+same way, once, by its receipt.
 
 ## Photo proof is local-only today
 

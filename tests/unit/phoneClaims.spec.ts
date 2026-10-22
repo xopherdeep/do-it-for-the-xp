@@ -1,6 +1,7 @@
 import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import type { SheetQuest } from "@/lib/services/multiplayer/heroSheet";
 import { sheetEvent, sheetFromEvent, sheetKey, statsOf, MAX_SHEET_QUESTS } from "@/lib/services/multiplayer/heroSheet";
+import { isPhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
 import {
   addClaim,
   applyReceived,
@@ -141,5 +142,19 @@ describe("the phone's claims", () => {
   it("reads an old or broken save as empty", () => {
     expect(readPhoneState(null)).toEqual(emptyPhoneState());
     expect(readPhoneState({ claims: [{ id: "c1", status: "nope" }, { id: "c2", status: "waiting" }], lastSeq: "x" })).toMatchObject({ lastSeq: 0, claims: [{ id: "c2" }] });
+  });
+});
+
+describe("the family device's intake", () => {
+  const claimFrom = (deviceId: string, data: Record<string, unknown>): ReceivedEvent => ({ ...received(4, "quest.claimed", data), deviceId });
+
+  it("takes a claim made on another device, never its own", () => {
+    expect(isPhoneClaim(claimFrom("PHONE", { questId: "q1", difficulty: 2, requiresApproval: true }), "HOME")).toBe(true);
+    expect(isPhoneClaim(claimFrom("HOME", { questId: "q1", difficulty: 2, requiresApproval: true }), "HOME")).toBe(false);
+  });
+
+  it("a synced claim is not taken as a phone claim", () => {
+    // its quest log entry arrives as a record; taking it too would log the claim twice
+    expect(isPhoneClaim(claimFrom("TABLET", { questId: "q1", difficulty: 2, requiresApproval: true, synced: true }), "HOME")).toBe(false);
   });
 });
