@@ -120,7 +120,8 @@ describe("the engine follows the TempleDb", () => {
     const id = "wind-temple";
     const shippedLayout = shipped[id] as unknown as DungeonLayout;
     registerAllTemples({ [id]: shippedLayout }); // the copy in code, as the temple screen registers it
-    const [key] = Object.entries(shippedLayout.rooms).find(([, room]) => room.type === "empty") ?? [];
+    // A chest room the edit turns into a shop (the Eagle leaves Wind no empty room)
+    const [key] = Object.entries(shippedLayout.rooms).find(([, room]) => room.type === "loot") ?? [];
     expect(key).toBeDefined();
 
     await db.setTemple(

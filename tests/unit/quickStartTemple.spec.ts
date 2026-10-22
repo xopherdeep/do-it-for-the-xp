@@ -10,7 +10,7 @@ import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { TempleInterface } from "@/lib/databases/TempleDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
-import windTemple from "@/lib/engine/temples/wind-temple";
+import { windBeforeEagle as windTemple } from "./windBeforeEagle";
 import { QUICK_START_PACK } from "@/lib/services/core/packs/catalog/quickStart";
 import { roomQuestIds } from "@/lib/services/temples/questRooms";
 import {
@@ -30,7 +30,7 @@ const MONDAY = new Date("2026-10-12T00:00:00");
 
 type Layout = NonNullable<TempleInterface["dungeonLayout"]>;
 
-/** A fresh copy of the shipped Howling Spire, so no spec can change the one in code */
+/** A fresh copy of the Howling Spire as the owner made it (windBeforeEagle.ts), so no spec can change it */
 const spire = (): Layout => JSON.parse(JSON.stringify({ entrance: windTemple.entrance, maze: windTemple.maze, rooms: windTemple.rooms }));
 
 const TONIGHT = ["quick-dishes", "quick-room", "quick-homework"];
