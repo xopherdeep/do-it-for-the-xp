@@ -1,6 +1,6 @@
 /**
  * The chore plan of each classic temple: the theme's beasts the dress step deals out to the rooms of the converted
- * dungeon (tools/temples/classic/dungeons/<id>.json), with the temple's relic, riddle and trap. One entry per shipped
+ * dungeon (tools/temples/classic/dungeons/<id>.json), with the temple's relic and riddle. One entry per shipped
  * temple: eight follow an LTTP palace, the Wind Temple Zelda 1's Eagle with the owner's own east rooms.
  *
  * `mustClear` lists the candidates for the must-clear monster rooms in priority order: the beasts of today's starter
@@ -64,8 +64,6 @@ export interface ClassicPlan {
   extraRelics?: string[];
   /** What the shop (the first empty cell from the entrance) stocks, when the temple has one */
   shop?: string;
-  /** The temple's trap, kept for the plan's shape: no converted cell is a trap today */
-  trap: [string, number];
   /** A riddle of RoomInteractions (`generic` when the temple has none of its own) */
   puzzle: string;
   /** The must-clear chores in priority order (see the top of this file) */
@@ -110,7 +108,8 @@ const OPEN_ALL_ROUND: ClassicCell["sides"] = { north: "open", east: "open", sout
  * The owner's four east rooms of the Wind Temple (src/lib/engine/temples/wind-temple.ts at 61d7b718), kept as he drew
  * them, every side a door: his Boss Key chest (L0503), the key room (M0404), the Cobweb Widow's mini-boss room (m0504)
  * and his circle (T0505). Zelda's Eagle has no Big Key: his is the temple's Boss Key. His circle rides to the bow's
- * basement, as the Eagle's stairway at (0,1) does, so the dressing adds it a circle there beside the Wind Whistle.
+ * basement, as the Eagle's stairway at (0,1) does, so the dressing adds it a circle there beside the Big Chest (50 gold
+ * and a Potion).
  */
 const WIND_EAST_ROOMS: HandRoom[] = [
   { floor: "1F", row: 3, col: 5, room: "Owner's Boss Key Room", sides: OPEN_ALL_ROUND, enemies: 0, chest: "big-key" },
@@ -126,7 +125,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     theme: "clouds",
     element: "storm",
     relic: "Lightning Rod",
-    trap: ["lightning", 6],
     puzzle: "generic",
     mustClear: [["bed-basilisk", 1, "daily am"], ["shoe-shrew", 1, "daily"], ["toybox-troll", 2, "daily"], ["mess-hog", 2, "daily"], ["piece-poltergeist", 2, "weekly"]],
     minibosses: [["under-bed-bogey", 5, "weekly"]],
@@ -140,7 +138,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "earth",
     relic: "Gaia's Hammer",
     shop: "EarthquakeScroll",
-    trap: ["rockfall", 7],
     puzzle: "stonePillars",
     mustClear: [["kibble-kobold", 1, "daily am"], ["droop-dryad", 1, "weekly"], ["zoomie-zephyr", 2, "daily"], ["plop-golem", 2, "weekly"], ["weed-wyrm", 2, "weekly"]],
     minibosses: [["leaf-lion", 5, "weekly"]],
@@ -154,7 +151,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "light",
     relic: "Dawnbreaker Bow",
     shop: "LuminousOrb",
-    trap: ["blindingFlash", 4],
     puzzle: "prismAlignment",
     mustClear: [["backpack-boggart", 1, "school bed"], ["paperwork-pixie", 1, "school"], ["bookwyrm", 2, "daily"], ["sum-sphinx", 2, "school"], ["desk-drake", 2, "weekly"]],
     minibosses: [["homework-hydra", 5, "school"]],
@@ -169,7 +165,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "water",
     relic: "Trident of Tides",
     shop: "WaterBreathingPotion",
-    trap: ["whirlpool", 5],
     puzzle: "waterLevels",
     mustClear: [["soggy-slug", 1, "daily"], ["bare-roll-imp", 1, "daily"], ["toothpaste-serpent", 2, "daily bed"], ["puddle-phantom", 2, "daily"], ["smudge-specter", 2, "weekly"]],
     minibosses: [["drain-drake", 5, "weekly"]],
@@ -186,7 +181,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "shadow",
     relic: "Void Dagger",
     shop: "ShadowVeil",
-    trap: ["voidTrap", 8],
     puzzle: "shadowReflection",
     mustClear: [
       ["plate-pixie", 1, "daily"],
@@ -211,7 +205,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "ice",
     relic: "Frost Wand",
     shop: "FrostResistPotion",
-    trap: ["iceSpikes", 6],
     puzzle: "mirrorIce",
     mustClear: [
       ["socktopus", 2, "weekly"],
@@ -239,7 +232,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "fire",
     relic: "Flame Shield",
     shop: "FireResistPotion",
-    trap: ["fire", 5],
     puzzle: "fireSequence",
     mustClear: [["hangry-hob", 1, "daily am"], ["simmer-salamander", 2, "weekly"], ["snack-snatcher", 2, "daily"], ["cardboard-golem", 2, "weekly"], ["backseat-beastie", 2, "weekly"]],
     minibosses: [["grime-griffin", 5, "weekly"]],
@@ -257,7 +249,6 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     element: "moon",
     relic: "Lunar Pendant",
     extraRelics: ["Moon Shard"],
-    trap: ["moonquake", 5],
     puzzle: "generic",
     mustClear: [
       ["fang-fairy", 2, "daily am+night"],
@@ -278,15 +269,14 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
   // past the Cobweb Widow. Five must-clear rooms (the Eagle's key drops but the one before the boss door) take five
   // chores, the Spill Sprite the side room behind the entrance's locked door, where it stood (keepsEveryChore); the
   // Dust Bunny King fights in the key room before the boss door, the Fluffalo waits behind it. The side fights stand
-  // over the map, the compass and the boomerang's gold. The lead's rulings: the old man's room is the shop (Bombs, as
-  // today), reached without a Bomb as the owner's was, so the plan opens Zelda's cracked wall before it; Wind's relic,
-  // the Wind Whistle, stays its Pegasus chest's prize (ChestLoot), so the Big Chest holds 50 gold and a Potion.
+  // over the map, the compass and the boomerang's gold. The old man's room is the shop (Bombs, as today), and a new
+  // hero reaches it without a Bomb as the owner's shop was reached, so the plan opens Zelda's cracked wall before it.
+  // Wind's relic, the Wind Whistle, stays its Pegasus chest's prize (ChestLoot): the Big Chest holds 50 gold and a Potion.
   "wind-temple": {
     name: "Wind Temple",
     theme: "plains",
     element: "wind",
     treasure: { gold: 50, items: ["Potion"] },
-    trap: ["gust", 4],
     puzzle: "generic",
     mustClear: [
       ["cushion-croc", 1, "daily"],
@@ -360,12 +350,6 @@ const withOpenedSides = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "opens
 };
 
 /**
- * The dungeon with the plan's own rooms (`handRooms`) added to their floors, each floor grown to hold them, and the
- * report counting them. A copy: the dungeon handed in is left as it was, and comes back itself when the plan draws none.
- * A hand room joins the dungeon by its own circles or flights alone: one on a converted cell, on a floor the dungeon
- * lacks, or with a side that is no wall facing a converted cell, throws.
- */
-/**
  * Why a hand room cannot join its floor, or undefined when it can: the floor is missing, a cell already stands there
  * (`cells`, the floor's cells so far), or a side that is no wall faces one of the converter's cells (`converted`)
  */
@@ -379,7 +363,13 @@ const handRoomTrouble = (room: HandRoom, cells: readonly ClassicCell[] | undefin
   return facing ? `the hand room ${room.room} opens ${facing} on the converted cell ${at}: it joins the dungeon by its own circles or flights alone` : undefined;
 };
 
-export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "handRooms">): ClassicDungeon => {
+/**
+ * The dungeon with the plan's own rooms (`handRooms`) added to their floors, each floor grown to hold them, and the
+ * report counting them. A copy: the dungeon handed in is left as it was, and comes back itself when the plan draws none.
+ * A hand room joins the dungeon by its own circles or flights alone: one on a converted cell, on a floor the dungeon
+ * lacks, or with a side that is no wall facing a converted cell, throws.
+ */
+export const withHandRooms =(dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "handRooms">): ClassicDungeon => {
   const hand = plan.handRooms ?? [];
   const isDrawnAsIs = hand.length === 0;
   if (isDrawnAsIs) return dungeon;

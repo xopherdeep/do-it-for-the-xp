@@ -13,7 +13,7 @@
 // failed leaving the Shoe Shrew's victory card: the hero levelled up, the card was still counting the rewards when the
 // spec tapped it, and the Battle Field stayed up past the timeout. `leaveVictory` below taps the card until the temple
 // is back (written after that run, not run). The fourth test (3F, 4F, the Boss Key climb, the Boss door, Moldorm, the
-// Pegasus) has never run past its first step. See .superpowers/sdd/2026-10-19-classic-dungeon-temples/task-7-report.md.
+// Pegasus) has never run past its first step. The record of the work: docs/superpowers/plans/2026-10-19-classic-dungeon-temples-record/.
 
 import { hasMenu, tapAction, tapDialog, waitForMenu } from "../support/battle";
 

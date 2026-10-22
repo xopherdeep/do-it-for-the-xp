@@ -131,7 +131,7 @@ describe("the Wind Temple, Zelda's Eagle", () => {
     }
   });
 
-  it("draws Zelda's doors: a lock on one end of each small-key door, the three cracked walls, the Boss doors", () => {
+  it("draws Zelda's doors: a lock on one end of each small-key door, the two cracked walls left, the Boss doors", () => {
     const drawn = (word: string): string[] =>
       Object.entries(temple.maze).flatMap(([floor, grid]) =>
         grid.flatMap((line, row) => line.flatMap((_token, col) => DIRS.filter((dir) => at(floor, row, col)?.sides?.[dir] === word).map((dir) => `${floor} (${row},${col}) ${dir}`)))

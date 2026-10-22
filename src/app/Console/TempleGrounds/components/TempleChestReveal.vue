@@ -178,11 +178,12 @@ import PixelRuns from "./PixelRuns.vue";
 /**
  * Opening a treasure chest: the chest lands and rattles, the lid flies open in a burst of light and the loot rises
  * out of it one piece after another, fanning out above the chest while each piece's line fills in below. A chest that
- * comes with `closed` first lands shut and waits: Leave, or Open, which plays the same lid sequence from a shake. Everything
- * starts unticked; tap a line to tick that piece, and Take hands over only what is ticked (Take stays disabled until a
- * line is ticked; whatever is left stays in the chest). A tap anywhere while the chest is still opening skips to
- * the end. An empty chest opens the same way, on a puff of dust instead of light, and can only be closed. The page
- * owns `open`, and closes the reveal on `take` or `leave`.
+ * comes with `closed` first lands shut and waits: Leave, or Open, which plays the same lid sequence from a shake. A
+ * chest's rows start unticked but for one that comes ticked (a Pegasus chest's egg and whistle); tap a line to tick that
+ * piece, and Take hands over only what is ticked (Take stays disabled until a line is ticked; whatever is left stays in
+ * the chest). A beast's drop (`whole`) comes with every row ticked and is taken whole. A tap anywhere while the chest is
+ * still opening skips to the end. An empty chest opens the same way, on a puff of dust instead of light, and can only
+ * be closed. The page owns `open`, and closes the reveal on `take` or `leave`.
  */
 interface ChestRevealProps {
   open: boolean;

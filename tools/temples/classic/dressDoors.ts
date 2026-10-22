@@ -2,8 +2,8 @@
  * The doors of a dressed dungeon, as the Temple Creator draws them (`sides`): the side table of the design, the one
  * lock of a small-key door on the end the hero reaches first, the Boss door on every way into the boss cell, and a
  * door from every room the dressing added to the one neighbour it opens on. Then the Bomb chests: a cracked wall on
- * the only way to the boss gets a Bomb in the nearest reachable empty cell before it (the lead's ruling: whether or
- * not a shop sells Bombs), so the solver and a hero both pass it with nothing blown by hand.
+ * the only way to the boss gets a Bomb in the nearest reachable empty cell before it, whether or not a shop sells
+ * Bombs (a hero with no gold must still reach the boss), so the solver and a hero both pass it with nothing blown by hand.
  */
 import type { ClassicDungeon, ClassicSide } from "./classicDungeon";
 import { DIRECTIONS, STEP, allSlots, cellKey, describeCell, directionTo, sameCell, slotAt, type Board, type CellRef, type ClassicMove, type Direction, type Slot } from "./dressBoard";
@@ -125,7 +125,7 @@ export const drawSides = (board: Board): Map<string, Sides> => {
 /** The two rooms of a cracked wall as one key, whichever end names it */
 const crackKey = (a: string, b: string): string => [a, b].sort().join("|");
 
-/** The layout with every cracked wall not yet given a Bomb read as a wall, as the lead's ruling reads them */
+/** The layout with every cracked wall not yet given a Bomb read as a wall: a crack passes only with a Bomb found before it */
 const withCracksClosed = (layout: TempleLayout, opened: ReadonlySet<string>): TempleLayout => {
   const graph = buildTempleGraph(layout);
   const rooms: TempleLayout["rooms"] = {};
@@ -250,7 +250,7 @@ const reachesBossWith = (layout: TempleLayout, opened: ReadonlySet<string>): boo
 };
 
 /**
- * Bomb chests before the cracked walls on the only way to the boss (the lead's ruling). With every crack read as a
+ * Bomb chests before the cracked walls on the only way to the boss (see the top of this file). With every crack read as a
  * wall, of the cracks the hero stands before and cannot pass only those whose closing alone cuts the boss off earn a
  * chest (a crack beside the way does not); when none does alone yet the boss is still out of reach (two cracks side by
  * side), the nearest one does. A crack with a chest then counts as open and the walk is tried again, until the boss is

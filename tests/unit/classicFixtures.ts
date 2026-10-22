@@ -100,7 +100,6 @@ export const plan = (overrides: Partial<ClassicPlan> = {}): ClassicPlan => ({
   theme: "clouds",
   element: "storm",
   relic: "Lightning Rod",
-  trap: ["lightning", 6],
   puzzle: "generic",
   mustClear: [["bed-basilisk", 1, "daily am"], ["shoe-shrew", 1, "daily"], ["toybox-troll", 2, "daily"], ["mess-hog", 2, "daily"], ["piece-poltergeist", 2, "weekly"]],
   minibosses: [["under-bed-bogey", 5, "weekly"]],

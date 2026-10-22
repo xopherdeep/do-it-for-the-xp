@@ -200,11 +200,11 @@ const reachedEmptyHanded = (dressedTemple: Dressed, start: string, onFoot = fals
 
 /** The rooms the dressing added of its own accord (not something moved out of a cell) */
 const ADDED_OF_ITS_OWN = new Set(["landing circle", "circle back from the boss", "Bomb chest", "shop", "antechamber"]);
-/** What must stay before its lock when it leaves its cell (the lead's ruling): a key, the Big Key, the map, the compass, the Big Chest */
+/** What must stay before its lock when it leaves its cell (behind it, it could never be reached): a key, the Big Key, the map, the compass, the Big Chest */
 const KEPT_IN_REACH = new Set(["small-key chest", "pot key", "big-key chest", "map chest", "compass chest", "big-chest"]);
 
 /**
- * Whether a room stands in front of a sealed fight (the lead's ruling, read on the converted dungeon, not on the dressed
+ * Whether a room stands in front of a sealed fight (read on the converted dungeon, not on the dressed
  * temple that already holds the room): every converted cell it reaches on foot, past no seal, lies in front of every
  * seal (frontOf), as read from the entrance or from its link's far end; a room that opens on the fight alone reaches none
  */
