@@ -306,11 +306,13 @@ export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): Item
   const isNavigation = NAVIGATION_ITEMS.includes(name);
   const runsItsClick = isNavigation || PEGASUS_ITEMS.includes(name);
   if (runsItsClick) {
-    if (typeof definition?.click !== 'function') return refuse(`${name} is out of reach right now.`);
+    const click = definition?.click;
+    const isOutOfReach = typeof click !== 'function';
+    if (isOutOfReach) return refuse(`${name} is out of reach right now.`);
     // The portal is the way out of a temple the hero is stuck in: they come back in through its entrance
     const isPortalHome = name === PORTAL_HOME;
     if (isPortalHome) void TempleSystem.getInstance().leaveByPortal(ctx.templeId);
-    definition.click();
+    click.call(definition);
     return isNavigation ? { navigated: true } : {};
   }
 

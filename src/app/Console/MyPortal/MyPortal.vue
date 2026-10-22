@@ -59,6 +59,9 @@
       <!-- PEGASUS WORLD MAP MODAL (Wind Whistle) -->
       <xp-world-map-modal :is-open="isPegasusModalOpen" @close="closePegasusModal" />
 
+      <!-- FAMILY SYNC: the clerk's took-over line and the busy question for this hero -->
+      <xp-reveal-prompt :prompt="turnPrompt" @respond="answerTurn" />
+
       <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
       <template v-if="guidesOn">
         <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"

@@ -91,3 +91,17 @@ export const phoneLabel = (nickname: string, userAgent: string, platform: string
   if (isLinuxWeb) return `${prefix}Linux`;
   return hasName ? `${name}'s phone` : "phone";
 };
+
+/** The narrowest side of an iPad: a screen at least this wide is a tablet, or a computer's window */
+const TABLET_WIDTH = 768;
+
+/**
+ * What a Game Master's device is called where a hero's turn is busy ("Mia is playing on the family tablet"): a wide screen is
+ * a tablet in the native app and a computer in a browser; anything narrower is a phone
+ */
+export const familyDeviceLabel = (platform: string, width: number): string => {
+  const isWide = width >= TABLET_WIDTH;
+  if (!isWide) return "the family phone";
+  const isBrowser = platform === "web";
+  return isBrowser ? "the family computer" : "the family tablet";
+};

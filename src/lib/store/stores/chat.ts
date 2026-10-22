@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, onScopeDispose } from 'vue';
 import { chatDb, ChatMessage } from '@/lib/databases/ChatDb';
 import { chatEngine } from '@/lib/engine/core/ChatEngine';
 import { v4 as uuidv4 } from 'uuid';
 import debug from '@/lib/utils/debug';
+import { onRecordsLanded } from '@/lib/services/sync/recordSignals';
 import { useUserStore } from './user';
 
 /** The one family room every hero and Game Master shares. */
@@ -96,6 +97,26 @@ export const useChatStore = defineStore('chat', () => {
         chatEngine.processIncomingMessage(message);
         return message;
     }
+
+    /**
+     * Chat another device posted landed here (Family Sync: kid phones write the chat too): every open room is read again,
+     * as many messages as it shows (at least a page)
+     */
+    async function reloadRooms(): Promise<void> {
+        for (const roomId of Object.keys(messages.value)) {
+            try {
+                const shown = Math.max(50, messages.value[roomId]?.length ?? 0);
+                messages.value[roomId] = await chatDb.getMessagesByRoom(roomId, shown);
+            } catch (error) {
+                debug.error(`[chat] failed to read room ${roomId} again`, error);
+            }
+        }
+    }
+    const stopLandings = onRecordsLanded(({ store }) => {
+        const isChat = store === '__chat';
+        if (isChat) void reloadRooms();
+    });
+    onScopeDispose(stopLandings);
 
     const hasMore = ref<Record<string, boolean>>({});
 

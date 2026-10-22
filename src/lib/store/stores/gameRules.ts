@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { onScopeDispose, ref } from "vue";
 import {
   DEFAULT_FAMILY_SETTINGS,
   loadFamilySettings,
@@ -7,12 +7,15 @@ import {
   type FamilySettings,
 } from "@/lib/services/family/familySettings";
 import { DEFAULT_LATE_CHORES, normalizeLateChores, type LateChoreSettings } from "@/lib/services/quests/lateRules";
+import { onRecordsLanded } from "@/lib/services/sync/recordSignals";
+import debug from "@/lib/utils/debug";
 
 type Bedtime = FamilySettings["bedtime"];
 
 /**
  * The family-wide game rules the screens read live (kept in the family settings, services/family/familySettings.ts).
- * Starts on the defaults and loads once (a second `load()` is the same promise); a change saves at once.
+ * Starts on the defaults and loads once (a second `load()` is the same promise); a change saves at once. Settings a
+ * Game Master changed on another device that land here (Family Sync) are read again.
  */
 export const useGameRulesStore = defineStore("gameRules", () => {
   const streaks = ref(true);
@@ -36,6 +39,12 @@ export const useGameRulesStore = defineStore("gameRules", () => {
     if (!loading) loading = loadFamilySettings().then(take);
     return loading;
   }
+
+  const stopLandings = onRecordsLanded(({ store }) => {
+    const isSettings = store === "__family_settings";
+    if (isSettings) loadFamilySettings().then(take).catch((error) => debug.warn("[gameRules] could not read the landed settings", error));
+  });
+  onScopeDispose(stopLandings);
 
   /**
    * Save a change to the stored settings and show it at once. The stored settings are read fresh first, so a screen

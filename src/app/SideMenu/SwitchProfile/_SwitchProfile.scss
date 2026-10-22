@@ -90,6 +90,15 @@ ion-content {
   }
 }
 
+// A kid phone's one line: whose phone this is
+.kid-phone-line {
+  margin: 1rem 0 0.5rem;
+  text-align: center;
+  font-family: "StatusPlz", monospace;
+  font-size: 1rem;
+  color: #f7e8a8;
+}
+
 // Empty state styling (Authentic Earthbound Window)
 .empty-state-view {
   display: flex;

@@ -13,6 +13,7 @@ jest.mock("@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue", () => ({
 
 const mockFamily = reactive({
   enabled: true,
+  isKidMode: false,
   parentAuth: { kind: "basic" } as Record<string, unknown> | null,
   home: "home",
   problem: null as string | null,
@@ -87,6 +88,7 @@ describe("XpFamilyPhones", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockFamily.enabled = true;
+    mockFamily.isKidMode = false;
     mockFamily.parentAuth = { kind: "basic" };
     mockFamily.home = "home";
     mockFamily.problem = null;
@@ -106,6 +108,16 @@ describe("XpFamilyPhones", () => {
     it("shows nothing with the flag off", async () => {
       mockFamily.enabled = false;
       expect(cy(await open(), "family-phones").exists()).toBe(false);
+    });
+
+    it("shows nothing on a kid phone, not even the Town Hall prompt", async () => {
+      mockFamily.isKidMode = true;
+      const wrapper = await open();
+      expect(cy(wrapper, "family-phones").exists()).toBe(false);
+      expect(cy(wrapper, "family-phones-connect").exists()).toBe(false);
+      mockFamily.parentAuth = null;
+      await flushPromises();
+      expect(cy(wrapper, "family-phones-connect").exists()).toBe(false);
     });
 
     it("shows nothing while the family is not linked", async () => {

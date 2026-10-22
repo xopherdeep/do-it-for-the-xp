@@ -19,7 +19,7 @@
       :fullscreen="true"
       class="rpg-box bg-slide ion-padding"
     >
-      <xp-backup-nudge />
+      <xp-backup-nudge v-if="!isKidMode" />
 
       <!-- One panel for each question: who plays, how the game runs, what this phone does, the account -->
       <ion-card v-for="section in sections" :key="section.id" class="settings-section" :data-section="section.id">
@@ -32,12 +32,14 @@
               v-for="item in section.items"
               :key="item.id"
               button
-              detail
+              :detail="!item.action"
+              :disabled="isRowBusy(item)"
               lines="full"
-              :router-link="item.route"
+              :router-link="item.action ? undefined : item.route"
               class="settings-row"
               :class="{ 'settings-row--soon': item.soon }"
               :data-test="`settings-${item.id}`"
+              @click="runRow(item)"
             >
               <ion-img slot="start" class="settings-row__icon" :src="item.icon" alt="" />
               <ion-label class="ion-text-wrap">
@@ -59,6 +61,9 @@
         </span>
         <i class="fad fa-chevron-right settings-pro__go" aria-hidden="true"></i>
       </router-link>
+
+      <!-- The clerk asks before a kid phone leaves the family -->
+      <xp-reveal-prompt :prompt="prompt" @respond="respond" />
     </ion-content>
   </ion-page>
 </template>
