@@ -1,3 +1,5 @@
+import type { SitePowers } from "./townHallDesk";
+
 /** What this device keeps about the Town Hall: the family's WordPress link and the posts waiting to be sent. */
 
 /** The family's WordPress account on the Town Hall site, linked through an Application Password. */
@@ -9,6 +11,8 @@ export interface TownHallLink {
   linkedAt: number;
   /** The Application Password's id on the site, read after linking; it lets Unlink remove it there too. */
   appPasswordUuid?: string;
+  /** What the account may do on the site, read when linking and refreshed each visit; an older link has none until read. */
+  powers?: SitePowers;
 }
 
 /** What the Account page shows of the family's account on the site; read fresh each time, never kept. */

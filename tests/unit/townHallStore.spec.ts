@@ -3,6 +3,7 @@ import { BACKUP_STORES } from "@/lib/services/core/BackupService";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { townHallFetch, TownHallError } from "@/lib/services/townhall/townHallClient";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
+import { NO_POWERS } from "@/lib/services/townhall/townHallDesk";
 import { appVersion } from "@/lib/services/townhall/townHallSite";
 import type { TownHallLink, TownHallPost } from "@/lib/services/townhall/townHallTypes";
 import { LINK_STATE_KEY, LINK_STATE_TTL_MS, newLinkState } from "@/lib/services/townhall/townHallLinkState";
@@ -1331,6 +1332,87 @@ describe("town hall store", () => {
   describe("what a backup carries", () => {
     it("never holds the family's sign-in or unsent posts", () => {
       expect(BACKUP_STORES.map((store) => store.name)).not.toContain("__xp_town_hall");
+    });
+  });
+
+  describe("site powers", () => {
+    const ADMIN = { name: "Mom", capabilities: { publish_posts: true, edit_others_posts: true, moderate_comments: true } };
+
+    it("keeps the powers the site grants when the link is made", async () => {
+      mockDb.getLink.mockResolvedValue(null);
+      mockDb.getPosts.mockResolvedValue([]);
+      siteAnswers({ me: ADMIN });
+      expectReturn();
+      const store = useTownHallStore();
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+      expect(mockDb.saveLink.mock.calls[0][0].powers).toMatchObject({ publish: true, moderate: true });
+      expect(store.canPublish).toBe(true);
+    });
+
+    it("reads an older link without powers as none, and refreshes them from the site", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink());
+      mockDb.getPosts.mockResolvedValue([]);
+      siteAnswers({ me: ADMIN });
+      const store = useTownHallStore();
+      await store.init();
+      expect(store.powers).toEqual(NO_POWERS);
+      await store.refreshPowers();
+      expect(store.canPublish).toBe(true);
+      expect(store.canModerate).toBe(true);
+      expect(requests()[0]).toMatchObject({ path: "wp/v2/users/me", query: { context: "edit" } });
+      expect(mockDb.saveLink).toHaveBeenCalledWith(expect.objectContaining({ powers: expect.objectContaining({ publish: true }) }));
+    });
+
+    it("keeps the stored powers when the refresh fails", async () => {
+      const powers = { publish: true, moderate: true, readAt: 1 };
+      mockDb.getLink.mockResolvedValue(storedLink({ powers }));
+      mockDb.getPosts.mockResolvedValue([]);
+      siteAnswers({ me: new TownHallError("server") });
+      const store = useTownHallStore();
+      await store.refreshPowers();
+      expect(store.powers).toEqual(powers);
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+    });
+
+    it("drops the powers and saves the link without them", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ powers: { publish: true, moderate: true, readAt: 1 } }));
+      mockDb.getPosts.mockResolvedValue([]);
+      const store = useTownHallStore();
+      await store.dropPowers();
+      expect(store.canPublish).toBe(false);
+      expect(mockDb.saveLink.mock.calls[0][0].powers).toMatchObject({ publish: false, moderate: false });
+    });
+
+    it("holds a website session's powers in memory only", async () => {
+      mockDb.getLink.mockResolvedValue(null);
+      mockDb.getPosts.mockResolvedValue([]);
+      window.wpApiSettings = { root: "https://doit.forthexp.com/wp-json/", nonce: "n1" } as never;
+      siteAnswers({ me: ADMIN });
+      const store = useTownHallStore();
+      await store.refreshPowers();
+      expect(store.canPublish).toBe(true);
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+      delete (window as { wpApiSettings?: unknown }).wpApiSettings;
+    });
+
+    it("does nothing for a guest", async () => {
+      mockDb.getLink.mockResolvedValue(null);
+      mockDb.getPosts.mockResolvedValue([]);
+      const store = useTownHallStore();
+      await store.refreshPowers();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("sends an approved topic published when the link can publish", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ powers: { publish: true, moderate: true, readAt: 1 } }));
+      mockDb.getPosts.mockResolvedValue([aPost({ status: "queued" })]);
+      fetchMock.mockImplementation(async (path: string) => ({
+        data: path === BOARDS_PATH ? [{ id: 3, slug: "feature-requests" }] : { id: 77 },
+        headers: { get: () => null },
+      }));
+      const store = useTownHallStore();
+      await store.flush();
+      expect(requests().find((r) => r.path === "wp/v2/cafeteria_topic")?.body.status).toBe("publish");
     });
   });
 });
