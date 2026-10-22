@@ -5,6 +5,8 @@ import { play$fx } from "@/assets/fx";
 import { hospitalBillOf } from "@/lib/services/gp/wallet";
 import { forgiveBill } from "@/lib/services/hometown/hospitalAdmission";
 import { useUserStore } from "@/lib/store/stores/user";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useHeroWrite } from "@/hooks/useHeroWrite";
 
 /**
  * "Grounded · ₲60 owed" on a hero's card in the Game Master's dashboard, with a Forgive action
@@ -15,13 +17,18 @@ import { useUserStore } from "@/lib/store/stores/user";
 const props = defineProps<{ user: { id: string; name?: { nick?: string; first?: string }; stats?: { gp?: { hospitalBill?: number } | null } | null } }>();
 
 const userStore = useUserStore();
+const { prompt: heroPrompt, respond: answerHero, writeHero } = useHeroWrite();
 const bill = computed(() => hospitalBillOf(props.user?.stats?.gp));
 const heroName = computed(() => props.user?.name?.nick || props.user?.name?.first || "this hero");
 
 const forgive = async () => {
-  // The Game Master on this device; a masquerade changes who is signed in, so the chat names whoever is
-  const forgiven = forgiveBill(props.user.id, userStore.currentUser?.id ?? "");
-  const isNothingForgiven = forgiven <= 0;
+  // The Game Master on this device; a masquerade changes who is signed in, so the chat names whoever is. On the hero's
+  // turn (Family Sync): nothing is forgiven while another device plays the hero, and the clerk says so
+  let forgiven = 0;
+  const isWritten = await writeHero(String(props.user.id), async () => {
+    forgiven = forgiveBill(props.user.id, userStore.currentUser?.id ?? "");
+  });
+  const isNothingForgiven = !isWritten || forgiven <= 0;
   if (isNothingForgiven) return;
   play$fx("select");
   const toast = await toastController.create({
@@ -59,6 +66,8 @@ const confirmForgive = async () => {
     <span class="chip-line"><i class="fad fa-hospital" aria-hidden="true" /> Grounded · ₲{{ bill }} owed</span>
     <span class="chip-action">Forgive</span>
   </button>
+  <!-- Family Sync: the clerk says when another device plays the hero -->
+  <xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />
 </template>
 
 <style lang="scss" scoped>

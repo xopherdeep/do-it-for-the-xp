@@ -1,6 +1,7 @@
 /**
  * What the Town Clerk says about keeping the family's phones in step (family sync): who holds a hero's turn, the first
- * download and upload, the Pro gate, a verdict on its way and a missing signal. Written in the adventure voice; the
+ * download and upload, the Pro gate, a verdict on its way, a missing signal, and a Game Master's change to a hero that
+ * could not be made because another device plays the hero (or its turn could not be had). Written in the adventure voice; the
  * simple and classic voices fall back to it until they get wording of their own. Spoken through the reveal prompt,
  * never a toast or native alert.
  */
@@ -42,5 +43,11 @@ export const sync = {
   },
   "sync.thisPhone": {
     adventure: "This is {nick}'s phone",
+  },
+  "sync.heroBusyForGm": {
+    adventure: "{nick} is playing on {device}. Try again when they rest.",
+  },
+  "sync.heroUnreachableForGm": {
+    adventure: "{nick}'s game can't be reached right now. Try again in a moment.",
   },
 } satisfies CopyCatalog;

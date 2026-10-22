@@ -4,6 +4,8 @@ import {
   busyPrompt,
   firstPullPrompt,
   firstPushPrompt,
+  heroBusyForGmPrompt,
+  heroUnreachableForGmPrompt,
   offlinePrompt,
   proRequiredPrompt,
   tookOverPrompt,
@@ -70,5 +72,14 @@ describe("the clerk's sync prompts", () => {
     expect(firstPushPrompt(0).lines).toEqual(["Sending the family's save to the site…"]);
     expect(firstPushPrompt(120).lines).toEqual(["Sending the family's save to the site… (120)"]);
     expect(firstPushPrompt(5).choices).toEqual([]);
+  });
+
+  it("tells a Game Master their change to a hero played elsewhere was not made, with OK", () => {
+    const busy = heroBusyForGmPrompt("Mia", "Mia's iPhone");
+    expect(busy.lines).toEqual(["Mia is playing on Mia's iPhone. Try again when they rest."]);
+    expect(busy.speaker).toBe(CLERK);
+    expect(busy.choices.map((choice) => choice.id)).toEqual(["ok"]);
+    expect(heroBusyForGmPrompt("Mia", "").lines).toEqual(["Mia is playing on another device. Try again when they rest."]);
+    expect(heroUnreachableForGmPrompt("Mia").lines).toEqual(["Mia's game can't be reached right now. Try again in a moment."]);
   });
 });

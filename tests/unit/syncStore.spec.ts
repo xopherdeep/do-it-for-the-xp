@@ -1247,6 +1247,34 @@ describe("the sync store", () => {
     expect(sync.holds("h-1")).toBe(true);
   });
 
+  it("a Game Master's change to a hero runs on the hero's free turn; on a hero another device plays it does not run, and the device is named", async () => {
+    const sync = await started();
+    const order: string[] = [];
+    playHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`play ${heroId}`);
+      return heroId === "h-3" ? BUSY : { answer: "granted" };
+    });
+    restHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`rest ${heroId}`);
+    });
+    const refund = jest.fn(async () => {
+      order.push("refund");
+      write("__purchaseLog", "p1", { id: "p1", userId: "h-2", status: "refunded" });
+    });
+
+    expect(await sync.borrow("h-2", refund)).toEqual({ ran: true });
+    expect(order).toEqual(["play h-2", "refund", "rest h-2"]);
+    expect(sent().map((record) => record.key)).toEqual(["p1"]);
+
+    const notRun = jest.fn(async () => undefined);
+    expect(await sync.borrow("h-3", notRun)).toEqual({ ran: false, busy: BUSY.device });
+    expect(notRun).not.toHaveBeenCalled();
+
+    // the hero this device plays: applied as today
+    await sync.signIn("h-1");
+    expect(await sync.borrow("h-1", async () => undefined)).toEqual({ ran: true });
+  });
+
   it("a profile switch rests the hero who played and signs in the next; the background rests and the front signs in again", async () => {
     await started();
     const sync = useSyncStore();

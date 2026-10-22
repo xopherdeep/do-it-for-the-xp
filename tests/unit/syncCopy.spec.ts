@@ -15,6 +15,8 @@ const SYNC_KEYS = [
   "sync.play",
   "sync.notNow",
   "sync.thisPhone",
+  "sync.heroBusyForGm",
+  "sync.heroUnreachableForGm",
 ];
 
 describe("the clerk's sync lines", () => {
@@ -41,6 +43,10 @@ describe("the clerk's sync lines", () => {
     );
     expect(copyFor("sync.thisPhone", "adventure", { nick: "Mo" })).toBe("This is Mo's phone");
     expect(copyFor("sync.verdictSent", "adventure", { nick: "Mo" })).toBe("Approved · paying on Mo's device");
+    expect(copyFor("sync.heroBusyForGm", "adventure", { nick: "Mo", device: "Mo's iPhone" })).toBe(
+      "Mo is playing on Mo's iPhone. Try again when they rest.",
+    );
+    expect(copyFor("sync.heroUnreachableForGm", "adventure", { nick: "Mo" })).toBe("Mo's game can't be reached right now. Try again in a moment.");
   });
 
   it("keeps the fixed lines word for word", () => {

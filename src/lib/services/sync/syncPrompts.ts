@@ -84,3 +84,11 @@ export const proRequiredPrompt = (voice: Voice = "adventure"): RevealPromptOptio
 /** "No signal. Play on; this device tells the others when it's back." and OK */
 export const offlinePrompt = (voice: Voice = "adventure"): RevealPromptOptions =>
   noticeOf(CLERK, copyFor("sync.offline", voice), CLERK_LOOK);
+
+/** "{nick} is playing on {device}. Try again when they rest." and OK: a Game Master's change to that hero was not made */
+export const heroBusyForGmPrompt = (nick: string, label: string | null, voice: Voice = "adventure"): RevealPromptOptions =>
+  noticeOf(CLERK, copyFor("sync.heroBusyForGm", voice, { nick, device: deviceOf(label) }), CLERK_LOOK);
+
+/** "{nick}'s game can't be reached right now. Try again in a moment." and OK: the hero's turn could not be had */
+export const heroUnreachableForGmPrompt = (nick: string, voice: Voice = "adventure"): RevealPromptOptions =>
+  noticeOf(CLERK, copyFor("sync.heroUnreachableForGm", voice, { nick }), CLERK_LOOK);
