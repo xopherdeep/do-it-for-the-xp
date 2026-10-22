@@ -28,14 +28,14 @@ const listen = () => {
 
 describe("DbStorageApi announces its writes", () => {
   it("set emits the store name, key and value; remove emits null; clear emits a removal per key", async () => {
-    const api = await openApi("__recordSignalsSpec");
+    const api = await openApi("__beasts");
     const { writes, stop } = listen();
 
     await api.set("a", { id: "a", name: "First" });
-    expect(writes).toEqual([{ store: "__recordSignalsSpec", key: "a", value: { id: "a", name: "First" } }]);
+    expect(writes).toEqual([{ store: "__beasts", key: "a", value: { id: "a", name: "First" } }]);
 
     await api.remove("a");
-    expect(writes[1]).toEqual({ store: "__recordSignalsSpec", key: "a", value: null, previous: { id: "a", name: "First" } });
+    expect(writes[1]).toEqual({ store: "__beasts", key: "a", value: null, previous: { id: "a", name: "First" } });
 
     await api.set("b", { id: "b" });
     await api.set("c", { id: "c" });
@@ -43,22 +43,22 @@ describe("DbStorageApi announces its writes", () => {
     await api.clear();
 
     expect(writes).toEqual([
-      { store: "__recordSignalsSpec", key: "b", value: null, previous: { id: "b" } },
-      { store: "__recordSignalsSpec", key: "c", value: null, previous: { id: "c" } },
+      { store: "__beasts", key: "b", value: null, previous: { id: "b" } },
+      { store: "__beasts", key: "c", value: null, previous: { id: "c" } },
     ]);
     expect(await api.keys()).toEqual([]);
     stop();
   });
 
   it("a removal carries the record that was there, so a log entry can still name its hero", async () => {
-    const api = await openApi("__recordSignalsPrevious");
+    const api = await openApi("__questLog");
     const { writes, stop } = listen();
     await api.set("q1", { id: "q1", userId: "h-1" });
     writes.length = 0;
 
     await api.remove("q1");
 
-    expect(writes).toEqual([{ store: "__recordSignalsPrevious", key: "q1", value: null, previous: { id: "q1", userId: "h-1" } }]);
+    expect(writes).toEqual([{ store: "__questLog", key: "q1", value: null, previous: { id: "q1", userId: "h-1" } }]);
     stop();
   });
 
@@ -75,12 +75,30 @@ describe("DbStorageApi announces its writes", () => {
   });
 
   it("removing a key that was never there says there was nothing before", async () => {
-    const api = await openApi("__recordSignalsMissing");
+    const api = await openApi("__castLog");
     const { writes, stop } = listen();
 
     await api.remove("ghost");
 
-    expect(writes).toEqual([{ store: "__recordSignalsMissing", key: "ghost", value: null, previous: null }]);
+    expect(writes).toEqual([{ store: "__castLog", key: "ghost", value: null, previous: null }]);
+    stop();
+  });
+
+  it("a store the sync does not carry is not read before a removal or a clear", async () => {
+    const api = await openApi("__recordSignalsLocal");
+    await api.set("photo", { id: "photo", blob: "a big picture" });
+    await api.set("other", { id: "other" });
+    const read = jest.spyOn(api.storage, "get");
+    const { writes, stop } = listen();
+
+    await api.remove("photo");
+    await api.clear();
+
+    expect(read).not.toHaveBeenCalled();
+    expect(writes).toEqual([
+      { store: "__recordSignalsLocal", key: "photo", value: null },
+      { store: "__recordSignalsLocal", key: "other", value: null },
+    ]);
     stop();
   });
 

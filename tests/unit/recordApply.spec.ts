@@ -2,7 +2,7 @@ import { beastStorage } from "@/lib/databases/BestiaryDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { BACKUP_STORES } from "@/lib/services/core/BackupService";
 import type { ReceivedRecord } from "@/lib/services/sync/familySyncClient";
-import { applyRecords, rawTargetFor, refreshMirrors, type ApplyOutcome, type ApplyTarget } from "@/lib/services/sync/recordApply";
+import { applyRecords, rawTargetFor, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome, type ApplyTarget } from "@/lib/services/sync/recordApply";
 import { onRecordWritten, type RecordWrite } from "@/lib/services/sync/recordSignals";
 import debug from "@/lib/utils/debug";
 
@@ -281,6 +281,26 @@ describe("rawTargetFor", () => {
     expect(written).toEqual({ id: "b1", name: "Socktopus" });
     expect(removed).toBeNull();
     expect(writes).toEqual([]);
+  });
+});
+
+describe("reading the raw stores for the upload", () => {
+  it("reads one record and a whole store, and nothing from a store that does not sync", async () => {
+    await beastStorage.create();
+    await beastStorage.clear();
+    await beastStorage.set("b1", { id: "b1" });
+    await beastStorage.set("b2", { id: "b2" });
+
+    expect(await readRawRecord("__beasts", "b1")).toEqual({ id: "b1" });
+    expect(await readRawRecord("__beasts", "gone")).toBeNull();
+    const byKey = (a: { key: string }, b: { key: string }) => a.key.localeCompare(b.key);
+    expect((await readRawEntries("__beasts")).sort(byKey)).toEqual([
+      { key: "b1", value: { id: "b1" } },
+      { key: "b2", value: { id: "b2" } },
+    ]);
+    expect(await readRawRecord("__localSettings", "b1")).toBeNull();
+    expect(await readRawEntries("__localSettings")).toEqual([]);
+    expect(await readRawEntries("__proto__")).toEqual([]);
   });
 });
 

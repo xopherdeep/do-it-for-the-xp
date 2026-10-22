@@ -9,7 +9,8 @@
  *
  * `applyRecords` is pure over its targets (tests hand it in-memory ones). `refreshMirrors` then does what a backup restore does
  * after the profiles store changed, because that is the one store something else mirrors; every other store is read on demand
- * by its screen.
+ * by its screen. `readRawRecord` and `readRawEntries` read the same raw stores the other way, for the upload: a record as it
+ * is when it is sent, and every record of a store for the first push.
  */
 import type { Storage } from "@ionic/storage";
 import { BACKUP_STORES, type BackupStorage } from "@/lib/services/core/BackupService";
@@ -42,8 +43,8 @@ export interface ApplyOutcome {
 
 const PROFILES = "__profiles";
 
-/** What a backup store really is: an Ionic `Storage`. `BackupStorage` names only what a backup uses, and a removal is not in it */
-type RawStorage = BackupStorage & Pick<Storage, "remove">;
+/** What a backup store really is: an Ionic `Storage`. `BackupStorage` names only what a backup uses; a removal and a read are not in it */
+type RawStorage = BackupStorage & Pick<Storage, "remove" | "get">;
 
 /** The storages already created (or being created) this session: `create()` is called once per storage, not once per write */
 const created = new WeakMap<RawStorage, Promise<unknown>>();
@@ -84,19 +85,30 @@ export const rawTargetFor = (store: string): ApplyTarget | null => {
   };
 };
 
-/** Every profile the raw profiles store holds, as the profile mirror wants them */
-const readAllProfiles = async (): Promise<unknown[]> => {
-  const storage = rawStorageOf(PROFILES);
+/** Every record a synced store holds, with its key; nothing for a store that is unknown or does not sync */
+export const readRawEntries = async (store: string): Promise<{ key: string; value: unknown }[]> => {
+  const storage = rawStorageOf(store);
   if (!storage) return [];
   await open(storage);
-  const profiles: unknown[] = [];
-  await storage.forEach((value) => {
+  const entries: { key: string; value: unknown }[] = [];
+  await storage.forEach((value, key) => {
     // Block body on purpose: forEach stops iterating as soon as the callback returns anything but undefined
     const isStored = value !== undefined && value !== null;
-    if (isStored) profiles.push(value);
+    if (isStored) entries.push({ key, value });
   });
-  return profiles;
+  return entries;
 };
+
+/** What a synced store holds under the key now; null when it holds nothing there, or the store is unknown or does not sync */
+export const readRawRecord = async (store: string, key: string): Promise<unknown> => {
+  const storage = rawStorageOf(store);
+  if (!storage) return null;
+  await open(storage);
+  return (await storage.get(key)) ?? null;
+};
+
+/** Every profile the raw profiles store holds, as the profile mirror wants them */
+const readAllProfiles = async (): Promise<unknown[]> => (await readRawEntries(PROFILES)).map((entry) => entry.value);
 
 /** The record's body as a value to store, or null when there is none: a body missing, not JSON, or not an object (a list is one: notifications, packs) */
 const bodyOf = (record: ReceivedRecord): object | null => {

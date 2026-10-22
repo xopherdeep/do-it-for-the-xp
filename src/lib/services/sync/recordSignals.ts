@@ -20,6 +20,8 @@ export interface RecordWrite {
 export interface StoreRestored {
   store: string;
   removedKeys: string[];
+  /** What each removed key held before the restore: a removed log entry names its hero only by its value */
+  previous?: ReadonlyMap<string, unknown>;
 }
 
 const recordWritten = makeSignal<RecordWrite>("recordWritten");

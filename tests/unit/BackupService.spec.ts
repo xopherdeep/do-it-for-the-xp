@@ -861,14 +861,14 @@ describe("restoreBackup announces what it did to each store", () => {
     return { heard, stop };
   };
 
-  it("a replace restore emits storeRestored with the keys the file did not carry", async () => {
+  it("a replace restore emits storeRestored with the keys the file did not carry and what each held", async () => {
     const { service } = makeWorld(seed);
     const { heard, stop } = listen();
 
     await service.restoreBackup(fileWithOnlyA);
     stop();
 
-    expect(heard).toEqual([{ store: "__beasts", removedKeys: ["b"] }]);
+    expect(heard).toEqual([{ store: "__beasts", removedKeys: ["b"], previous: new Map([["b", { id: "b" }]]) }]);
   });
 
   it("a merge restore emits none removed", async () => {
@@ -878,7 +878,7 @@ describe("restoreBackup announces what it did to each store", () => {
     await service.restoreBackup(fileWithOnlyA, { mode: "merge" });
     stop();
 
-    expect(heard).toEqual([{ store: "__beasts", removedKeys: [] }]);
+    expect(heard).toEqual([{ store: "__beasts", removedKeys: [], previous: new Map() }]);
   });
 
   it("announces each store the file carries, in restore order, and none it leaves alone", async () => {
@@ -889,8 +889,8 @@ describe("restoreBackup announces what it did to each store", () => {
     stop();
 
     expect(heard).toEqual([
-      { store: "__beasts", removedKeys: ["b"] },
-      { store: "__questLog", removedKeys: ["q1"] },
+      { store: "__beasts", removedKeys: ["b"], previous: new Map([["b", { id: "b" }]]) },
+      { store: "__questLog", removedKeys: ["q1"], previous: new Map([["q1", { id: "q1" }]]) },
     ]);
   });
 

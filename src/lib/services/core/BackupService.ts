@@ -461,8 +461,10 @@ export class BackupService {
 
     // Announced only now, so a restore that was rolled back announces nothing. A merge keeps every record, so it removed none
     for (const store of plan) {
-      const removedKeys = mode === "merge" ? [] : keysDroppedBy(snapshots.get(store.name) ?? [], backup.stores[store.name]);
-      emitStoreRestored({ store: store.name, removedKeys });
+      const before = snapshots.get(store.name) ?? [];
+      const removedKeys = mode === "merge" ? [] : keysDroppedBy(before, backup.stores[store.name]);
+      const previous = new Map(before.filter((entry) => removedKeys.includes(entry.key)).map((entry) => [entry.key, entry.value]));
+      emitStoreRestored({ store: store.name, removedKeys, previous });
     }
 
     // 4. Only now that every store is written: refresh mirrored copies, then rebuild the user store

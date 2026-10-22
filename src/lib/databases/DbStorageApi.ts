@@ -1,6 +1,7 @@
 import { Storage } from "@ionic/storage"
 import { toastController } from "@ionic/vue";
 import { emitRecordWritten } from "@/lib/services/sync/recordSignals";
+import { isSyncedStore } from "@/lib/services/sync/syncScopes";
 
 /**
  * What the sync layer calls this store: the name the Storage was created with. Ionic Storage 4 keeps its config private (`_config`) and
@@ -34,19 +35,23 @@ export class DbStorageApi {
   }
 
   public async remove(key: string) {
-    // Read first: once the record is gone there is nothing left to name its hero from
-    const previous = await this.storage.get(key);
+    const store = storeNameOf(this.storage);
+    // Only a store Family Sync carries is read first (once the record is gone there is nothing left to name its hero from);
+    // the others (claim photos, this device's settings) are never read for it
+    const isSynced = isSyncedStore(store);
+    const previous = isSynced ? await this.storage.get(key) : undefined;
     await this.storage.remove(key);
-    emitRecordWritten({ store: storeNameOf(this.storage), key, value: null, previous });
+    emitRecordWritten(isSynced ? { store, key, value: null, previous } : { store, key, value: null });
   }
 
   public async clear() {
-    // The keys and what they held are read first: once the store is empty there is nothing left to name
-    const keys = await this.storage.keys();
-    const held = await Promise.all(keys.map((key) => this.storage.get(key)));
-    await this.storage.clear();
     const store = storeNameOf(this.storage);
-    keys.forEach((key, index) => emitRecordWritten({ store, key, value: null, previous: held[index] }));
+    // The keys, and for a synced store what they held, are read first: once the store is empty there is nothing left to name
+    const keys = await this.storage.keys();
+    const isSynced = isSyncedStore(store);
+    const held = isSynced ? await Promise.all(keys.map((key) => this.storage.get(key))) : [];
+    await this.storage.clear();
+    keys.forEach((key, index) => emitRecordWritten(isSynced ? { store, key, value: null, previous: held[index] } : { store, key, value: null }));
   }
 
   public async keys() {
