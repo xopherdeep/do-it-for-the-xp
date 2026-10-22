@@ -34,6 +34,7 @@ import { townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { useProStore } from "@/lib/store/stores/pro";
 import { createCardQueue } from "./family/familyCards";
 import { createFamilySender } from "./family/familySender";
 import { createHeroPhoneSync } from "./family/heroPhoneSync";
@@ -628,6 +629,10 @@ export const useFamilyStore = defineStore("family", () => {
       await useSyncStore().reset();
       device.value = heroDevice;
       problem.value = null;
+      // The family's licence, claimed now: with Pro the sync turns on and the first pull starts in this session
+      await useProStore()
+        .adoptedFamily(claimed.familyId)
+        .catch((error: unknown) => debug.warn("family: could not claim the linked family's licence", error));
       return "linked";
     } catch (error) {
       const found = familyProblem(error);

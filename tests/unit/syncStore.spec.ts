@@ -173,7 +173,7 @@ jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: ()
 
 // --- What the sync store binds to: the licence, the client, its own db, the raw stores ---
 
-const mockPro = reactive({ isPro: true, recheck: jest.fn() });
+const mockPro = reactive({ isPro: true, recheck: jest.fn(), adoptedFamily: jest.fn() });
 jest.mock("@/lib/store/stores/pro", () => ({ __esModule: true, useProStore: () => mockPro }));
 
 jest.mock("@/lib/services/sync/familySyncClient", () => ({
@@ -594,6 +594,30 @@ describe("the sync store", () => {
     expect(sync.state.lastSeq).toBe(3);
     expect(mockStores.__profiles["h-1"]).toEqual({ id: "h-1", name: { nick: "Mia" } });
     expect(mockStores.__achievements.a1).toEqual({ id: "a1" });
+  });
+
+  it("a phone linked in this session claims the family's licence, turns the sync on and starts its first pull, with no restart", async () => {
+    // a fresh phone: no family of its own Pro, nothing kept
+    mockSyncState = undefined;
+    mockPro.isPro = false;
+    mockTownHall.isLinked = false;
+    mockPro.adoptedFamily.mockImplementation(async () => {
+      mockPro.isPro = true;
+    });
+    (server.claimDevice as jest.Mock).mockResolvedValue({ familyId: FAMILY, heroId: "h-1", key: HERO_KEY, card: null });
+    fetchRecords.mockImplementation(async (_auth: unknown, since: number) =>
+      since === 0 ? [received("__profiles", "h-1", 1, { id: "h-1", name: { nick: "Mia" } }, { heroId: "h-1" })] : []
+    );
+    const sync = await started();
+    expect(sync.isOn).toBe(false);
+
+    expect(await useFamilyStore().claim("ABCD-2345")).toBe("linked");
+    await drain();
+
+    expect(mockPro.adoptedFamily).toHaveBeenCalledWith(FAMILY);
+    expect(sync.isOn).toBe(true);
+    expect(fetchRecords).toHaveBeenCalledWith({ kind: "hero", key: HERO_KEY }, 0, 100);
+    expect(sync.state.firstPullDone).toBe(true);
   });
 
   it("a first pull that cannot reach the site stays owed and is tried again on online", async () => {
