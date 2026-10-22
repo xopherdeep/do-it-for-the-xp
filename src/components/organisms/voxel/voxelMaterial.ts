@@ -25,9 +25,9 @@ export interface VoxelMaterialOptions {
 const AO_STRENGTH = 1;
 /** How much of the occlusion reaches the direct sun: keeps lit faces from going muddy */
 const AO_DIRECT = 0.6;
-/** Bevel width in world units; it never drops under ~1.25 pixels so small models still get a crisp rim */
+/** Bevel width in world units; small models lift it to ~1.25 pixels for a crisp rim, and BEVEL_MAX_FRACTION caps it on small quads */
 const EDGE_WIDTH = 0.09;
-/** The bevel never takes more than this fraction of a quad's shorter side, so a small box keeps a face between its rims */
+/** The bevel never takes more than this fraction of a quad's shorter side, so a half-unit box keeps its colour between the rims */
 const BEVEL_MAX_FRACTION = 0.2;
 /** How much lighter the bevel is than the face */
 const EDGE_LIGHT = 0.22;
@@ -79,7 +79,7 @@ const AO_FRAGMENT = /* glsl */ `
 
 const BEVEL_RIM_FRAGMENT = /* glsl */ `
 {
-  // Distance to each convex edge of the quad, in world units; fwidth keeps the bevel a pixel or so wide at any zoom
+  // Distance to each convex edge of the quad, in world units; fwidth lifts the bevel to a pixel or so on small models, and the quad's size caps it
   vec2 uv = vVoxelUv.xy;
   vec2 size = vVoxelUv.zw;
   vec2 px = max(fwidth(uv), vec2(1e-4));
