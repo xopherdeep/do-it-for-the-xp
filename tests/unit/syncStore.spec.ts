@@ -168,14 +168,18 @@ jest.mock("@/lib/databases/SyncDb", () => {
 
 /** The raw Ionic stores the game writes and the download lands in: `mockStores[store][key]` */
 let mockStores: Record<string, Record<string, unknown>> = {};
+/** Runs as a downloaded record lands, before it is written: a test makes the game write something meanwhile */
+let mockOnApply: ((store: string, key: string) => void) | null = null;
 const mockRefreshMirrors = jest.fn(async (..._args: unknown[]) => undefined);
 jest.mock("@/lib/services/sync/recordApply", () => {
   const actual = jest.requireActual("@/lib/services/sync/recordApply");
   const target = (store: string) => ({
     set: async (key: string, value: unknown) => {
+      mockOnApply?.(store, key);
       (mockStores[store] ??= {})[key] = value;
     },
     remove: async (key: string) => {
+      mockOnApply?.(store, key);
       delete mockStores[store]?.[key];
     },
   });
@@ -266,6 +270,18 @@ const received = (store: string, key: string, seq: number, body: unknown = { id:
   ...over,
 });
 
+/** A reply the test lets go when it wants */
+const held = () => {
+  let release!: () => void;
+  const promise = new Promise<void>((resolve) => (release = resolve));
+  return { promise, release };
+};
+
+const showPage = (state: "visible" | "hidden") => {
+  Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+  document.dispatchEvent(new Event("visibilitychange"));
+};
+
 const failWith = (status: number, siteCode?: string) =>
   new TownHallError(status === 401 ? "unauthorized" : status === 403 ? "forbidden" : "server", "no", status, siteCode);
 
@@ -300,6 +316,7 @@ describe("the sync store", () => {
     mockSyncState = syncState({ firstPushDone: true, lastSeq: 5 });
     mockSyncSaves.length = 0;
     mockStores = {};
+    mockOnApply = null;
     nextSeq = 1000;
     ensureIdentity.mockResolvedValue({ familyId: FAMILY, deviceId: OWN });
     bindFamily.mockResolvedValue("home");
@@ -319,6 +336,7 @@ describe("the sync store", () => {
   afterEach(() => {
     disposeAll();
     jest.useRealTimers();
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
   });
 
   it("off without Pro, off with the flag off, on for a bound parent and for a linked kid phone", async () => {
@@ -525,6 +543,10 @@ describe("the sync store", () => {
   it("pro-required turns the store off and rechecks the licence", async () => {
     jest.useFakeTimers();
     const sync = await started();
+    // The licence agrees with the site: the family is not Pro any more
+    mockPro.recheck.mockImplementation(async () => {
+      mockPro.isPro = false;
+    });
     putRecords.mockRejectedValueOnce(failWith(403, "xp_family_pro_required"));
     write("__beasts", "b1", { id: "b1" });
     await tick(5_000);
@@ -534,14 +556,35 @@ describe("the sync store", () => {
     expect(sync.isOn).toBe(false);
     expect(sync.state.outbox).toHaveLength(1);
 
-    // still off while the licence says no, and on again (sending what waits) once it says Pro
-    mockPro.isPro = false;
-    await drain();
-    expect(sync.isOn).toBe(false);
+    // Writes made while it is off still wait in the outbox, and everything goes once the licence says Pro again
+    write("__beasts", "b2", { id: "b2" });
+    await tick(60_000);
+    expect(sent().map((record) => record.key)).toEqual(["b1"]);
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["b1", "b2"]);
     mockPro.isPro = true;
     await drain();
     expect(sync.isOn).toBe(true);
-    expect(sent().map((record) => record.key)).toEqual(["b1", "b1"]);
+    expect(sent().map((record) => record.key)).toEqual(["b1", "b1", "b2"]);
+    expect(sync.state.outbox).toEqual([]);
+    expect(sync.problem).toBeNull();
+  });
+
+  it("a refusal while the licence still says Pro pauses, then tries again and sends what was written meanwhile", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    putRecords.mockRejectedValueOnce(failWith(403, "xp_family_pro_required"));
+    write("__beasts", "b1", { id: "b1" });
+    await tick(5_000);
+    expect(sync.problem).toBe("pro-required");
+    expect(mockPro.recheck).toHaveBeenCalledTimes(1);
+    // paused, not off: the site may be behind the licence (a renewal)
+    expect(sync.isOn).toBe(true);
+
+    write("__beasts", "b2", { id: "b2" });
+    await tick(30_000);
+    expect(sent().map((record) => record.key)).toEqual(["b1"]);
+    await tick(30_000);
+    expect(sent().map((record) => record.key)).toEqual(["b1", "b1", "b2"]);
     expect(sync.state.outbox).toEqual([]);
     expect(sync.problem).toBeNull();
   });
@@ -580,6 +623,7 @@ describe("the sync store", () => {
     write("__questLog", "q2", { id: "q2", userId: "h-2" });
     write("__beasts", "b1", { id: "b1" });
     write("__chat", "c1", { id: "c1" });
+    emitStoreRestored({ store: "__beasts", removedKeys: ["b9"] });
     await drain();
 
     expect(sync.state.outbox.map((item) => `${item.store}/${item.key}`)).toEqual(["__questLog/q1", "__chat/c1"]);
@@ -666,20 +710,147 @@ describe("the sync store", () => {
     expect(sync.state.outbox).toEqual([]);
   });
 
-  it("a received record for a key in the outbox is not applied, and the local value is uploaded on the next send", async () => {
+  it("a received record for a key in the outbox stops the read before it, and the local value goes up first", async () => {
     jest.useFakeTimers();
     const sync = await started();
     write("__beasts", "b1", { id: "b1", name: "Local" });
     await drain();
+    fetchRecords.mockReset();
     fetchRecords.mockResolvedValueOnce([received("__beasts", "b1", 8, { id: "b1", name: "Server" }), received("__beasts", "b2", 9)]);
 
     await sync.download();
+    // the first row is held back: the cursor does not move and nothing after it lands this round
     expect(mockStores.__beasts.b1).toEqual({ id: "b1", name: "Local" });
-    expect(mockStores.__beasts.b2).toEqual({ id: "b2" });
-    expect(sync.state.lastSeq).toBe(9);
+    expect(mockStores.__beasts.b2).toBeUndefined();
+    expect(sync.state.lastSeq).toBe(5);
+    expect(fetchRecords).toHaveBeenCalledTimes(1);
 
+    // The next round sends b1 first; the site's newest row for it is then this device's own
+    fetchRecords.mockResolvedValueOnce([
+      received("__beasts", "b2", 9),
+      received("__beasts", "b1", 1000, { id: "b1", name: "Local" }, { deviceId: OWN }),
+    ]);
+    fetchRecords.mockResolvedValue([]);
     await tick(5_000);
     expect(sent()).toEqual([{ store: "__beasts", key: "b1", heroId: null, deleted: false, body: JSON.stringify({ id: "b1", name: "Local" }) }]);
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(fetchRecords.mock.invocationCallOrder[1]);
+    expect(mockStores.__beasts.b1).toEqual({ id: "b1", name: "Local" });
+    expect(mockStores.__beasts.b2).toEqual({ id: "b2" });
+    expect(sync.state.lastSeq).toBe(1000);
+  });
+
+  it("a write that lands while a page is being applied keeps its local value: the read stops before that record", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    mockStores.__beasts = { b2: { id: "b2", name: "Before" } };
+    // The game writes b2 while the download is landing b1, before the outbox has saved it
+    mockOnApply = (_store, key) => {
+      if (key === "b1") write("__beasts", "b2", { id: "b2", name: "Local" });
+    };
+    fetchRecords.mockResolvedValueOnce([received("__beasts", "b1", 6), received("__beasts", "b2", 7, { id: "b2", name: "Server" })]);
+
+    await sync.download();
+    mockOnApply = null;
+
+    expect(mockStores.__beasts.b1).toEqual({ id: "b1" });
+    expect(mockStores.__beasts.b2).toEqual({ id: "b2", name: "Local" });
+    expect(sync.state.lastSeq).toBe(6);
+    await tick(5_000);
+    expect(sent()).toEqual([{ store: "__beasts", key: "b2", heroId: null, deleted: false, body: JSON.stringify({ id: "b2", name: "Local" }) }]);
+  });
+
+  it("the upload on the way to the background settles before any download starts", async () => {
+    jest.useFakeTimers();
+    await started();
+    fetchRecords.mockClear();
+    const put = held();
+    putRecords.mockImplementationOnce(async (auth: unknown, device: string, records: WireRecord[]) => {
+      await put.promise;
+      return acceptAll(auth, device, records);
+    });
+    write("__beasts", "b1", { id: "b1" });
+    await drain();
+
+    showPage("hidden");
+    await drain();
+    expect(putRecords).toHaveBeenCalledTimes(1);
+
+    // back in front, the 5 s send and the minute tick all wait for that upload
+    showPage("visible");
+    await tick(60_000);
+    expect(fetchRecords).not.toHaveBeenCalled();
+
+    put.release();
+    await drain();
+    expect(fetchRecords).toHaveBeenCalled();
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(fetchRecords.mock.invocationCallOrder[0]);
+  });
+
+  it("the first push reads the family's save first, even after a read that was cut off, and sends only what the family lacks", async () => {
+    jest.useFakeTimers();
+    mockSyncState = undefined;
+    mockStores = {
+      __beasts: { b1: { id: "b1", name: "Starter" }, b3: { id: "b3" } },
+      __questLog: { q1: { id: "q1", userId: "h-1" } },
+    };
+    fetchRecords.mockReset();
+    fetchRecords
+      .mockResolvedValueOnce([received("__beasts", "b1", 1, { id: "b1", name: "Family" }), received("__beasts", "b2", 2)])
+      .mockRejectedValueOnce(new TownHallError("offline"))
+      .mockResolvedValue([]);
+
+    const sync = await started();
+    expect(putRecords).not.toHaveBeenCalled();
+    expect(sync.state.firstPushDone).toBe(false);
+    expect(sync.state.lastSeq).toBe(2);
+
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(fetchRecords.mock.calls[2][1]).toBe(2);
+    expect(fetchRecords.mock.invocationCallOrder[2]).toBeLessThan(putRecords.mock.invocationCallOrder[0]);
+    expect(sent().map((record) => `${record.store}/${record.key}`).sort()).toEqual(["__beasts/b3", "__questLog/q1"]);
+    expect(mockStores.__beasts.b1).toEqual({ id: "b1", name: "Family" });
+    expect(sync.state.firstPushDone).toBe(true);
+  });
+
+  it("a second Game Master device takes the family's copies and uploads only what the family lacks", async () => {
+    mockSyncState = undefined;
+    mockStores = { __beasts: { b1: { id: "b1", name: "Starter" }, b3: { id: "b3" } } };
+    fetchRecords.mockReset();
+    fetchRecords
+      .mockResolvedValueOnce([received("__beasts", "b1", 4, { id: "b1", name: "Family" }), received("__beasts", "b2", 5)])
+      .mockResolvedValue([]);
+
+    const sync = await started();
+
+    expect(sent()).toEqual([{ store: "__beasts", key: "b3", heroId: null, deleted: false, body: JSON.stringify({ id: "b3" }) }]);
+    expect(mockStores.__beasts).toEqual({ b1: { id: "b1", name: "Family" }, b2: { id: "b2" }, b3: { id: "b3" } });
+    expect(sync.state.firstPushDone).toBe(true);
+  });
+
+  it("a failed send backs off instead of trying again every 5 s, and the browser coming back online sends at once", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    putRecords.mockRejectedValue(new TownHallError("offline"));
+    write("__beasts", "b1", { id: "b1" });
+    await tick(5_000);
+    expect(putRecords).toHaveBeenCalledTimes(1);
+
+    for (let n = 0; n < 5; n++) {
+      write("__beasts", `w${n}`, { id: `w${n}` });
+      await tick(6_000);
+    }
+    // one more try when the first 5 s pause ended, then a 30 s pause that the writes do not cut short
+    expect(putRecords).toHaveBeenCalledTimes(2);
+    expect(sync.problem).toBe("offline");
+
+    putRecords.mockImplementation(acceptAll);
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(putRecords).toHaveBeenCalledTimes(3);
+    expect(sync.state.outbox).toEqual([]);
+    expect(sync.problem).toBeNull();
   });
 
   it("a Pro family runs one minute tick: records up and down, then the family's events, and the 2 minute tick stands down", async () => {

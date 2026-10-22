@@ -635,6 +635,8 @@ export const useFamilyStore = defineStore("family", () => {
       };
       await getHeroDeviceDb().saveDevice(heroDevice);
       await adoptFamily(claimed.familyId);
+      // Family Sync starts from nothing on a phone linked (again): its first pull reads the family's save from 0
+      await useSyncStore().reset();
       device.value = heroDevice;
       problem.value = null;
       return "linked";

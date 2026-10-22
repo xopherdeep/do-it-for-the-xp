@@ -1032,6 +1032,8 @@ describe("family store", () => {
       expect(adoptFamily).toHaveBeenCalledWith(FAMILY);
       expect(store.isKidMode).toBe(true);
       expect(store.device).toMatchObject({ key: "xph_key123", heroId: "h-1" });
+      // A phone linked again starts Family Sync from nothing: its first pull reads from 0
+      expect(mockSync.reset).toHaveBeenCalledTimes(1);
     });
 
     it("a code-invalid rejection saves nothing", async () => {

@@ -4,35 +4,37 @@ import { computed, onScopeDispose, ref, watch } from "vue";
 import { emptySyncState, getSyncDb, type SyncState } from "@/lib/databases/SyncDb";
 import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import type { ClaimSettled } from "@/lib/services/multiplayer/familyEvents";
-import { familyProblem, retryAfterMs, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
+import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import type { HeroTurn } from "@/lib/services/sync/heroTurn";
+import { createLocalChanges } from "@/lib/services/sync/localChanges";
 import { readRawEntries } from "@/lib/services/sync/recordApply";
 import { onRecordWritten, onStoreRestored, type RecordWrite, type StoreRestored } from "@/lib/services/sync/recordSignals";
 import { heroIdOf, isSyncedStore, mayPhoneWrite } from "@/lib/services/sync/syncScopes";
 import { queueAll, type QueueRef } from "@/lib/services/sync/syncQueue";
+import { createWorkLane, type Work } from "@/lib/services/sync/workLane";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useProStore } from "@/lib/store/stores/pro";
 import debug from "@/lib/utils/debug";
-import { createRecordTransfer, everyRecord } from "./sync/recordTransfer";
+import { createRecordTransfer } from "./sync/recordTransfer";
+import { createSyncPauses } from "./sync/syncPauses";
 
 /** A change is sent this long after the last one, so a burst of writes goes in one put */
 const UPLOAD_DELAY_MS = 5_000;
 /** The round (records up and down, and for a family device the family's events) runs every minute while the app is open */
 const TICK_MS = 60_000;
-/** A 429 that names no wait pauses the sync this long */
-const RATE_LIMIT_PAUSE_MS = 60_000;
 
 /**
  * Family Sync on this device (section 4 of the family sync spec): every write to a synced store is queued and uploaded,
  * the family's records are downloaded and land in the raw stores, and a device that joins runs the first push (a family
- * device) or the first pull (a kid phone). It runs only while `isOn`: the flag on, the family Pro, and this device a bound
- * parent device or a linked kid phone. With any of them off it does nothing and the game is as it was.
+ * device) or the first pull (a kid phone). It sends and reads only while `isOn`: the flag on, the family Pro, and this
+ * device a bound parent device or a linked kid phone. A device that has synced keeps queueing its writes while Pro is
+ * lapsed or refused, so they go when it is back; a device that never synced does nothing, and the game is as it was.
  *
- * Bound to the family store for the sign-in and the device, and to the Pro store for the licence. One upload and one
- * download at a time; a call while one runs joins it. Every round uploads before it downloads, and a downloaded record
- * whose key still waits in the outbox does not land (the local change is newer).
+ * Bound to the family store for the sign-in and the device, and to the Pro store for the licence. Every transfer goes
+ * through one work lane (services/sync/workLane.ts), so no upload and download ever overlap and every round uploads
+ * before it downloads; a download never lands a record changed here that the site has not settled.
  */
 export const useSyncStore = defineStore("sync", () => {
   const family = useFamilyStore();
@@ -45,17 +47,21 @@ export const useSyncStore = defineStore("sync", () => {
   const firstPullProgress = ref(0);
   /** heroId -> the hero's turn on this device (Task 17 fills it) */
   const turns = ref<Record<string, HeroTurn>>({});
-  /** The site said the family is not Pro: off until the licence says Pro again */
-  const proRefused = ref(false);
 
   /** A kid phone whose hero key the site has not refused */
   const isLinkedPhone = computed(() => family.isKidMode && family.device?.unlinked !== true);
   /** A Game Master's device with the Town Hall link that the site has answered */
   const isBoundParent = computed(() => !family.isKidMode && family.parentAuth !== null && family.home !== "unknown");
+  const isJoined = computed(() => isBoundParent.value || isLinkedPhone.value);
   const isOn = computed(() => {
-    const isLicensed = multiplayerEnabled() && pro.isPro && !proRefused.value;
-    const isJoined = isBoundParent.value || isLinkedPhone.value;
-    return isLicensed && isJoined;
+    const isLicensed = multiplayerEnabled() && pro.isPro;
+    return isLicensed && isJoined.value;
+  });
+  /** Writes are queued while the device is in the family and syncs or has synced: a lapse or a refusal stops the sending only */
+  const isCapturing = computed(() => {
+    const hasSynced = state.value.firstPushDone || state.value.firstPullDone;
+    const isWanted = isOn.value || hasSynced;
+    return multiplayerEnabled() && isJoined.value && isWanted;
   });
   const isFamilyDevice = computed(() => isOn.value && isBoundParent.value);
   const isFullPortal = computed(() => isOn.value && isLinkedPhone.value && state.value.firstPullDone);
@@ -108,31 +114,40 @@ export const useSyncStore = defineStore("sync", () => {
     return run;
   }
 
-  // --- When the site says no ---
+  // --- When the site says no (sync/syncPauses.ts) ---
 
-  /** A 429 asked to wait until then (ms since the epoch) */
-  let pausedUntil = 0;
+  const pauses = createSyncPauses({
+    recheckPro: async () => {
+      await pro.recheck().catch((error: unknown) => debug.warn("sync: could not recheck the licence", error));
+      return pro.isPro;
+    },
+    wake: () => {
+      if (!disposed) requestNow("round");
+    },
+  });
 
   async function noteFailure(error: unknown): Promise<void> {
     const found = familyProblem(error);
     problem.value = found;
     const isUnexplained = found === "server";
     if (isUnexplained) debug.warn("sync: the site could not do that", error);
-    const isRateLimited = found === "rate-limited";
-    if (isRateLimited) pausedUntil = Date.now() + (retryAfterMs(error) ?? RATE_LIMIT_PAUSE_MS);
-    const isNotPro = found === "pro-required";
-    if (!isNotPro) return;
-    proRefused.value = true;
-    await pro.recheck().catch((recheckError: unknown) => debug.warn("sync: could not recheck the licence", recheckError));
+    await pauses.failed(found, error);
   }
 
-  /** The sign-in for a call now, or null while the sync is off or a 429's pause runs */
+  function succeeded(): void {
+    problem.value = null;
+    pauses.succeeded();
+  }
+
+  /** The sign-in for a call now, or null while the sync is off or a pause runs */
   const mayCall = (): TownHallAuth | null => {
-    const isPaused = Date.now() < pausedUntil;
-    return isOn.value && !isPaused ? syncAuth() : null;
+    const mayGo = isOn.value && !pauses.isPaused();
+    return mayGo ? syncAuth() : null;
   };
 
   // --- Change capture ---
+
+  const changes = createLocalChanges();
 
   function queue(refs: QueueRef[]): void {
     update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()) }))
@@ -140,32 +155,50 @@ export const useSyncStore = defineStore("sync", () => {
       .catch((error) => debug.warn("sync: could not queue a record", error));
   }
 
+  /** A kid phone sends only what the site lets it write: its own hero's records and the chat */
+  const isRefusedOnPhone = (store: string, heroId: string | null): boolean => {
+    const phone = family.device;
+    return phone !== null && !mayPhoneWrite(store, heroId, phone.heroId);
+  };
+
   /** A record was written here: a synced one goes in the outbox. An announced null is a removal, never a stored record */
   function onWrite(write: RecordWrite): void {
-    const isCarried = isOn.value && isSyncedStore(write.store);
+    const isCarried = isCapturing.value && isSyncedStore(write.store);
     if (!isCarried) return;
     const isRemoval = write.value === null || write.value === undefined;
     const heroId = heroIdOf(write.store, write.key, isRemoval ? write.previous : write.value);
-    // A kid phone sends only what the site lets it write: its own hero's records and the chat
-    const phone = family.device;
-    const isRefusedOnPhone = phone !== null && !mayPhoneWrite(write.store, heroId, phone.heroId);
-    if (isRefusedOnPhone) return;
+    const isRefused = isRefusedOnPhone(write.store, heroId);
+    if (isRefused) return;
+    // Known at once, before anything awaits: a page landing meanwhile must not overwrite it
+    changes.touch(write.store, write.key);
     queue([{ store: write.store, key: write.key, heroId }]);
   }
 
   /** A restore rewrote a store without announcing its records: all it holds now goes again, and each key it removed as a tombstone */
   async function onRestored(restored: StoreRestored): Promise<void> {
-    const isCarried = isOn.value && isSyncedStore(restored.store);
+    const isCarried = isCapturing.value && isSyncedStore(restored.store);
     if (!isCarried) return;
     const { store, removedKeys, previous } = restored;
     const held = await readRawEntries(store);
-    queue([
+    const refs = [
       ...removedKeys.map((key) => ({ store, key, heroId: heroIdOf(store, key, previous?.get(key)) })),
       ...held.map(({ key, value }) => ({ store, key, heroId: heroIdOf(store, key, value) })),
-    ]);
+    ].filter((ref) => !isRefusedOnPhone(ref.store, ref.heroId));
+    const hasNothing = refs.length === 0;
+    if (hasNothing) return;
+    refs.forEach((ref) => changes.touch(ref.store, ref.key));
+    queue(refs);
   }
 
-  // --- Sending and reading (sync/recordTransfer.ts) ---
+  // --- Sending and reading: one lane (sync/recordTransfer.ts does the work) ---
+
+  /** The first sync this device still owes */
+  const owes = (): "pull" | "push" | null => {
+    const owesPull = isOn.value && isLinkedPhone.value && !state.value.firstPullDone;
+    if (owesPull) return "pull";
+    const owesPush = isFamilyDevice.value && !state.value.firstPushDone;
+    return owesPush ? "push" : null;
+  };
 
   const transfer = createRecordTransfer({
     kept: async () => {
@@ -175,72 +208,38 @@ export const useSyncStore = defineStore("sync", () => {
     update,
     generation: () => generation,
     auth: mayCall,
-    succeeded: () => {
-      problem.value = null;
-    },
-    failed: noteFailure,
+    changes,
+    isLocal: (store, key) => changes.has(store, key) || state.value.outbox.some((item) => item.store === store && item.key === key),
+    owes,
+    succeeded,
     pulled: (count) => {
-      const isFirstPull = isLinkedPhone.value && !state.value.firstPullDone;
+      const isFirstPull = owes() === "pull";
       if (isFirstPull) firstPullProgress.value += count;
     },
   });
-  const { upload, download, pullToEnd } = transfer;
 
-  /** Uploads what waits, then downloads */
-  async function flush(): Promise<void> {
-    await upload();
-    await download();
-  }
+  const WORK: Record<Work, () => Promise<unknown>> = { upload: transfer.upload, download: transfer.download, round: transfer.round };
 
-  // --- The first sync and the rounds ---
-
-  /** A kid phone's first open: the family's save from 0, then the portal may open */
-  async function runFirstPull(): Promise<void> {
-    const startedIn = generation;
-    firstPullProgress.value = 0;
-    await upload();
-    const isCaughtUp = await pullToEnd();
-    if (!isCaughtUp) return;
-    await update((current) => ({ ...current, firstPullDone: true }), startedIn);
-  }
-
-  /**
-   * A family device sends every record of every synced store once. A device that has read nothing yet reads the family's
-   * save first, so its own copies of records the family already holds (the starter world) do not overwrite the family's.
-   */
-  async function runFirstPush(): Promise<void> {
-    const startedIn = generation;
-    await upload();
-    const isJoining = state.value.lastSeq === 0;
-    const isCaughtUp = isJoining ? await pullToEnd() : true;
-    if (!isCaughtUp) return;
-    const refs = await everyRecord();
-    await update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()), firstPushDone: true }), startedIn);
-    await flush();
-  }
-
-  async function runRound(): Promise<void> {
-    if (!isOn.value) return;
-    await load();
-    const owesFirstPull = isLinkedPhone.value && !state.value.firstPullDone;
-    if (owesFirstPull) return runFirstPull();
-    const owesFirstPush = isFamilyDevice.value && !state.value.firstPushDone;
-    if (owesFirstPush) return runFirstPush();
-    await flush();
-  }
-
-  let rounding: Promise<void> | null = null;
-
-  /** The first push or pull while one is owed, otherwise upload then download; a call while a round runs joins it */
-  function round(): Promise<void> {
-    if (!rounding) {
-      rounding = runRound()
-        .catch(noteFailure)
-        .finally(() => {
-          rounding = null;
-        });
+  /** One job of the lane; what went wrong lands in `problem`, and the job never rejects */
+  async function runWork(work: Work): Promise<void> {
+    try {
+      await WORK[work]();
+    } catch (error) {
+      await noteFailure(error);
     }
-    return rounding;
+  }
+
+  let lane = createWorkLane(runWork);
+
+  /** Sends what waits */
+  const upload = (): Promise<void> => lane.request("upload");
+  /** Reads up to 5 pages of the family's records */
+  const download = (): Promise<void> => lane.request("download");
+  /** Uploads what waits, then downloads (the first push or pull while one is owed) */
+  const flush = (): Promise<void> => lane.request("round");
+
+  function requestNow(work: Work): void {
+    lane.request(work).catch((error) => debug.warn(`sync: the ${work} failed`, error));
   }
 
   // --- When it runs ---
@@ -256,27 +255,29 @@ export const useSyncStore = defineStore("sync", () => {
     clearTimeout(uploadTimer);
     uploadTimer = setTimeout(() => {
       uploadTimer = undefined;
-      flush().catch((error) => debug.warn("sync: could not send", error));
+      requestNow("round");
     }, UPLOAD_DELAY_MS);
   }
 
   /** The minute round; on a family device the family store's event download rides on it (its own 2 minute round stands down) */
   function onTick(): void {
     if (!isOn.value) return;
-    round()
+    flush()
       .then(() => (isFamilyDevice.value ? family.downloadRound() : undefined))
       .catch((error) => debug.warn("sync: the minute round failed", error));
   }
 
+  /** The connection may be back (online, the app in front): a failed call's pause ends now, a 429's or Pro's does not */
   function roundNow(): void {
-    round().catch((error) => debug.warn("sync: the round failed", error));
+    pauses.connectionBack();
+    requestNow("round");
   }
 
   /** In front: a round. Going to the background: what waits is sent while the app still can */
   function onVisibilityChange(): void {
     const isInFront = document.visibilityState === "visible";
     if (isInFront) roundNow();
-    else upload().catch((error) => debug.warn("sync: could not send on the way out", error));
+    else requestNow("upload");
   }
 
   function listen(): void {
@@ -286,20 +287,11 @@ export const useSyncStore = defineStore("sync", () => {
         onRestored(restored).catch((error) => debug.warn("sync: could not queue a restore", error));
       })
     );
-    // Turned on (a bind answered, a phone linked, Pro bought): the first push or pull, or a round
+    // Turned on (a bind answered, a phone linked, Pro bought or back): the first push or pull, or a round
     stops.push(
       watch(isOn, (isNowOn) => {
-        if (isNowOn) roundNow();
+        if (isNowOn) requestNow("round");
       })
-    );
-    // A licence that says Pro again lifts the site's refusal
-    stops.push(
-      watch(
-        () => pro.isPro,
-        (isNowPro) => {
-          if (isNowPro) proRefused.value = false;
-        }
-      )
     );
     const hasWindow = typeof window !== "undefined";
     if (hasWindow) {
@@ -325,7 +317,7 @@ export const useSyncStore = defineStore("sync", () => {
         if (!multiplayerEnabled()) return;
         await load();
         listen();
-        if (isOn.value) roundNow();
+        if (isOn.value) requestNow("round");
       })().catch((error) => {
         initPromise = null;
         throw error;
@@ -334,15 +326,18 @@ export const useSyncStore = defineStore("sync", () => {
     return initPromise;
   }
 
-  /** The device left the family (a kid phone unlinked): the queue, the numbers and the turns go, and nothing waits to be sent */
+  /** The device left the family, or a phone is linked anew: the queue, the numbers and the turns go, and nothing waits to be sent */
   async function reset(): Promise<void> {
     generation++;
     clearTimeout(uploadTimer);
     uploadTimer = undefined;
-    pausedUntil = 0;
+    pauses.clear();
+    changes.clear();
+    transfer.forget();
+    // A request still out for the old link must not hold up the new one
+    lane = createWorkLane(runWork);
     turns.value = {};
     problem.value = null;
-    proRefused.value = false;
     firstPullProgress.value = 0;
     const cleared = writing.then(async () => {
       await getSyncDb().clearState();
@@ -378,6 +373,7 @@ export const useSyncStore = defineStore("sync", () => {
     disposed = true;
     stops.splice(0).forEach((stop) => stop());
     clearTimeout(uploadTimer);
+    pauses.clear();
   });
 
   return {
