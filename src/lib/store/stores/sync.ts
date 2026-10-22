@@ -6,7 +6,7 @@ import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import type { ClaimSettled } from "@/lib/services/multiplayer/familyEvents";
 import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
-import type { HeroTurn } from "@/lib/services/sync/heroTurn";
+import type { HeroTurn, TurnState } from "@/lib/services/sync/heroTurn";
 import { createLocalChanges } from "@/lib/services/sync/localChanges";
 import { readRawEntries } from "@/lib/services/sync/recordApply";
 import { onRecordWritten, onStoreRestored, type RecordWrite, type StoreRestored } from "@/lib/services/sync/recordSignals";
@@ -418,6 +418,9 @@ export const useSyncStore = defineStore("sync", () => {
     pauses.clear();
   });
 
+  /** What this device knows of a hero's turn, or null with none on record: the gate of the reminders and the encounter clock reads it (sync/watchGate.ts) */
+  const stateOf = (heroId: string): TurnState | null => turns.value[heroId]?.state ?? null;
+
   return {
     state,
     problem,
@@ -435,6 +438,7 @@ export const useSyncStore = defineStore("sync", () => {
     reset,
     // The hero's turn (sync/heroTurns.ts): holds, signIn (granted, busy or offline), takeOver, rest, withTurn
     holds: heroTurns.holds,
+    stateOf,
     signIn: heroTurns.signIn,
     takeOver: heroTurns.takeOver,
     rest: heroTurns.rest,

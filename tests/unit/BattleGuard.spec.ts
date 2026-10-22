@@ -3,6 +3,8 @@ import type { RouteLocationNormalized, Router } from "vue-router";
 import { freeBattleRoute, questBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import { initialTurn, maySend, turnReducer } from "@/lib/services/sync/heroTurn";
+import type { HeroTurn, TurnEvent } from "@/lib/services/sync/heroTurn";
 import { handleBattleTimerGuard } from "@/router/_Guards/battle.guard";
 import debug from "@/lib/utils/debug";
 
@@ -20,16 +22,19 @@ const mockUserStore = {
   }),
 };
 
-// Family Sync: whether it is on, and the heroes whose turn this device holds (the sync store's isOn and holds).
+// Family Sync: whether it is on, and the hero's turn on this device. The turns move through the real reducer
+// (heroTurn.ts), so a spec says what the sync did (sign in, granted, rest, busy, refused) and not what the store answers.
 // Off by default, as for a family that has not joined; the specs under "with Family Sync" turn it on.
 let mockSyncOn = false;
-let mockHeld = new Set<string>();
+let mockTurns: Record<string, HeroTurn> = {};
+const mockHolds = (id: string): boolean => (mockTurns[id] ? maySend(mockTurns[id]) : false);
 jest.mock("@/lib/store/stores/sync", () => ({
   useSyncStore: () => ({
     get isOn() {
       return mockSyncOn;
     },
-    holds: (id: string) => mockHeld.has(id),
+    holds: (id: string) => mockHolds(id),
+    stateOf: (id: string) => mockTurns[id]?.state ?? null,
   }),
 }));
 
@@ -177,7 +182,7 @@ beforeEach(() => {
   mockUserStore.currentUser.id = "hero-1";
   mockUserStore.users = {};
   mockSyncOn = false;
-  mockHeld = new Set();
+  mockTurns = {};
   mockVisibility = "visible";
   mockBridge.battleAlertsChoice.mockReturnValue("off");
   mockBridge.isNativeApp.mockReturnValue(false);
@@ -1048,12 +1053,40 @@ describe("battle guard", () => {
   });
 });
 
-// --- Family Sync: the encounter clock runs only for a hero whose turn this device holds ---------------
+// --- Family Sync: the encounter clock runs for the hero signed in here unless another device holds them ---
 
 describe("battle guard with Family Sync", () => {
   beforeEach(() => {
     mockBattleStore = makeBattleStore();
+    mockSyncOn = true;
   });
+
+  /** What the sync did with the hero's turn: each event goes through the real reducer, one after the other. */
+  const turnSees = (heroId: string, ...events: TurnEvent["type"][]) => {
+    for (const type of events) {
+      mockTurns[heroId] = turnReducer(mockTurns[heroId] ?? initialTurn(), { type } as TurnEvent);
+    }
+  };
+  const BUSY: TurnEvent = { type: "busy", device: { label: "Dad's tablet", lastSeenAt: null } };
+  const turnIsBusy = (heroId: string) => {
+    turnSees(heroId, "signIn");
+    mockTurns[heroId] = turnReducer(mockTurns[heroId], BUSY);
+  };
+  /** The hero signed in and the site granted the turn */
+  const holdTurn = (heroId = "hero-1") => turnSees(heroId, "signIn", "granted");
+  /** The app goes to the background: the sync rests the hero, then the page hides */
+  const hideApp = () => {
+    turnSees("hero-1", "signOut");
+    setVisibility("hidden");
+  };
+  /** The app comes back: the sync asks for the turn again (and the site grants it), then the page shows */
+  const showApp = (answer: "granted" | "busy" | "refused" = "granted") => {
+    turnSees("hero-1", "signIn");
+    if (answer === "busy") mockTurns["hero-1"] = turnReducer(mockTurns["hero-1"], BUSY);
+    else turnSees("hero-1", "granted");
+    if (answer === "refused") turnSees("hero-1", "refused");
+    setVisibility("visible");
+  };
 
   /** The hero stands on the home town with the encounter one step away. */
   const standNearEncounter = () => {
@@ -1063,84 +1096,124 @@ describe("battle guard with Family Sync", () => {
     return { router, tick };
   };
 
-  it("with sync off, the encounter fires for the current hero whatever turns this device holds", async () => {
+  it("with sync off, the encounter fires for the current hero whatever the turns say", async () => {
+    mockSyncOn = false;
+    turnIsBusy("hero-1");
     const { router, tick } = standNearEncounter();
     await tick();
 
     expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
   });
 
-  it("with sync on, the encounter fires for a hero whose turn this device holds", async () => {
-    mockSyncOn = true;
-    mockHeld = new Set(["hero-1"]);
+  it("fires for a hero whose turn this device holds", async () => {
+    holdTurn();
     const { router, tick } = standNearEncounter();
     await tick();
 
     expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
   });
 
-  it("an ambush never fires for a hero this device does not hold while sync is on", async () => {
-    mockSyncOn = true;
-    mockHeld = new Set(["hero-2"]);
+  it.each([
+    ["being asked for, as the app comes to the front", ["signIn"]],
+    ["resting, as the app goes to the background", ["signIn", "granted", "signOut"]],
+    ["unknown, on a cold start", []],
+  ] as Array<[string, TurnEvent["type"][]]>)("still fires for the signed-in hero while the turn is %s", async (_label, events) => {
+    turnSees("hero-1", ...events);
     const { router, tick } = standNearEncounter();
-
-    await tickTimes(tick, 5);
-    expect(router.push).not.toHaveBeenCalled();
-    expect(mockBattleStore.randomEncounter).not.toHaveBeenCalled();
-    expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
-    // The tick rests the walk, so the encounter that was coming is still coming when the turn is taken
-    expect(mockBattleStore.restWalk).toHaveBeenCalledTimes(5);
-    expect(mockBattleStore.counter).toBe(1);
-
-    mockHeld = new Set(["hero-1"]); // the hero signs in here and takes the turn
     await tick();
+
     expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
   });
 
-  it("an overdue quest does not ambush a hero this device does not hold either", async () => {
-    mockSyncOn = true;
-    const { router, tick } = standNearEncounter();
-    await tickTimes(tick, 3);
+  describe("an ambush never fires for a hero another device holds while sync is on", () => {
+    it.each([
+      ["busy", () => turnIsBusy("hero-1")],
+      ["taken over", () => turnSees("hero-1", "signIn", "granted", "refused")],
+    ] as Array<[string, () => void]>)("when the device knows it (%s)", async (_label, knowTheTurnIsElsewhere) => {
+      knowTheTurnIsElsewhere();
+      const { router, tick } = standNearEncounter();
 
-    expect(mockBoard).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
-  });
+      await tickTimes(tick, 5);
+      expect(router.push).not.toHaveBeenCalled();
+      expect(mockBattleStore.randomEncounter).not.toHaveBeenCalled();
+      expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
+      // The tick rests the walk, so the encounter that was coming is still coming when the hero plays here again
+      expect(mockBattleStore.restWalk).toHaveBeenCalledTimes(5);
+      expect(mockBattleStore.counter).toBe(1);
+    });
 
-  it("waits for no ambush and rings no alert for a hero this device does not hold, even when the page is hidden", async () => {
-    mockSyncOn = true;
-    mockBridge.battleAlertsChoice.mockReturnValue("on");
-    const { router, tick } = standNearEncounter();
-    mockVisibility = "hidden";
-    await tick();
+    it("and fires again once the player says 'Play here anyway'", async () => {
+      turnIsBusy("hero-1");
+      const { router, tick } = standNearEncounter();
+      await tickTimes(tick, 2);
+      expect(router.push).not.toHaveBeenCalled();
 
-    expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
-    expect(mockBridge.showAlert).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
-  });
+      turnSees("hero-1", "force", "granted");
+      await tick();
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+    });
 
-  describe("an ambush that waited", () => {
-    /** The page is hidden, the encounter springs, and the ambush waits for the hero. */
-    const springAway = async () => {
-      mockSyncOn = true;
-      mockHeld = new Set(["hero-1"]);
+    it("reads no quest board for a hero the device knows is played elsewhere", async () => {
+      turnIsBusy("hero-1");
+      const { tick } = standNearEncounter();
+      await tickTimes(tick, 3);
+
+      expect(mockBoard).not.toHaveBeenCalled();
+    });
+
+    it("waits for no ambush and rings no alert, even when the page is hidden", async () => {
+      mockBridge.battleAlertsChoice.mockReturnValue("on");
+      turnIsBusy("hero-1");
       const { router, tick } = standNearEncounter();
       mockVisibility = "hidden";
       await tick();
+
+      expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
+      expect(mockBridge.showAlert).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("an ambush that waited while the app was in the background", () => {
+    /** The hero holds the turn; the app hides (the hero rests) and the encounter springs while it is hidden. */
+    const springAway = async () => {
+      holdTurn();
+      const { router, tick } = standNearEncounter();
+      hideApp();
+      await tick();
+      expect(mockBattleStore.pendingAmbush).not.toBeNull();
       return { router, tick };
     };
 
-    it("springs when the hero comes back and this device still holds the turn", async () => {
+    it("springs when the app comes back, though the hero rested on hiding and is being asked for again", async () => {
       const { router } = await springAway();
-      expect(mockBattleStore.pendingAmbush).not.toBeNull();
+      expect(mockTurns["hero-1"].state).toBe("resting");
+      showApp();
+
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+      expect(mockBattleStore.pendingAmbush).toBeNull();
+    });
+
+    it("springs while the turn is still being asked for", async () => {
+      const { router } = await springAway();
+      turnSees("hero-1", "signIn");
+      expect(mockTurns["hero-1"].state).toBe("asking");
       setVisibility("visible");
 
       expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
     });
 
-    it("is dropped when the turn went to another device while the hero was away", async () => {
+    it("is dropped when the site says another device holds the hero", async () => {
       const { router } = await springAway();
-      mockHeld = new Set(); // another device took the hero over
-      setVisibility("visible");
+      showApp("busy");
+
+      expect(router.push).not.toHaveBeenCalled();
+      expect(mockBattleStore.pendingAmbush).toBeNull();
+    });
+
+    it("is dropped when another device took the turn", async () => {
+      const { router } = await springAway();
+      showApp("refused");
 
       expect(router.push).not.toHaveBeenCalled();
       expect(mockBattleStore.pendingAmbush).toBeNull();
@@ -1151,21 +1224,32 @@ describe("battle guard with Family Sync", () => {
     const due = new Date("2026-10-10T20:00:00.000Z");
 
     beforeEach(() => {
-      mockSyncOn = true;
       mockBridge.battleAlertsChoice.mockReturnValue("on");
       enter("home-town", makeRouter());
       mockBattleStore.nextEncounterAt.mockReturnValue(due);
     });
 
-    it("is booked for a hero whose turn this device holds", () => {
-      mockHeld = new Set(["hero-1"]);
-      setVisibility("hidden");
+    it("is booked as the app hides, after the sync has rested the hero", () => {
+      holdTurn();
+      hideApp();
 
+      expect(mockTurns["hero-1"].state).toBe("resting");
       expect(mockBridge.scheduleAlert).toHaveBeenCalledWith({ ...AMBUSH_ALERT, at: due });
     });
 
-    it("is not booked for a hero this device does not hold", () => {
-      mockHeld = new Set(["hero-2"]);
+    it("is booked as the app hides, before the sync has rested the hero", () => {
+      holdTurn();
+      setVisibility("hidden");
+
+      expect(mockTurns["hero-1"].state).toBe("held");
+      expect(mockBridge.scheduleAlert).toHaveBeenCalledWith({ ...AMBUSH_ALERT, at: due });
+    });
+
+    it.each([
+      ["busy", () => turnIsBusy("hero-1")],
+      ["taken over", () => turnSees("hero-1", "signIn", "granted", "refused")],
+    ] as Array<[string, () => void]>)("is not booked once the device knows another device holds the hero (%s)", (_label, knowTheTurnIsElsewhere) => {
+      knowTheTurnIsElsewhere();
       setVisibility("hidden");
 
       expect(mockBridge.scheduleAlert).not.toHaveBeenCalled();

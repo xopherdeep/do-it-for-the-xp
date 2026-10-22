@@ -32,7 +32,7 @@ import {
   setBattleAlertsChoice,
   showAlert,
 } from "@/lib/services/notifications/alertBridge";
-import { heroesToWatch } from "@/lib/services/notifications/questWatch";
+import { isHeroWatched } from "@/lib/services/sync/watchGate";
 import debug from "@/lib/utils/debug";
 
 /** Routes that trigger random battle encounters: the home town, the map and the nine region pages. */
@@ -116,11 +116,13 @@ const encounterRoute = (
 const isHeroHere = (): boolean => typeof document === "undefined" || document.visibilityState === "visible";
 
 /**
- * True when this device runs the encounter clock for the hero: always with Family Sync off, and with it on only for a
- * hero whose turn this device holds (heroesToWatch). The ambush fires, waits and rings on the phone in the hero's hand,
- * so a hero who plays on another device is never ambushed here.
+ * True when this device runs the encounter clock for the hero (isHeroWatched): always with Family Sync off, and with it
+ * on for the hero signed in here unless the device knows another device holds them (busy, or taken over). Their turn
+ * rests on every hide of the app and is asked for again on every show, and the ambush that waits for their return is
+ * the owner's feature, so resting and asking still count as this device's. The ambush fires, waits and rings on the
+ * phone in the hero's hand, so a hero who plays on another device is never ambushed here.
  */
-const isHeroHeldHere = (heroId: string): boolean => heroesToWatch([heroId], useSyncStore()).length > 0;
+const isHeroWatchedHere = (heroId: string): boolean => isHeroWatched(heroId, useSyncStore(), useUserStore().currentUser.id);
 
 /** The hero's profile when the user store has it, else the signed-in hero. */
 const heroProfile = (userStore: ReturnType<typeof useUserStore>, heroId: string) =>
@@ -143,7 +145,7 @@ const heroProfile = (userStore: ReturnType<typeof useUserStore>, heroId: string)
  *    route is still battle-free, so reading the live route also stops a second fight stacking
  *    on the first);
  *  - nobody is the current hero;
- *  - Family Sync is on and another device holds the hero's turn (the ambush is that device's to spring);
+ *  - Family Sync is on and the device knows another device holds the hero's turn (the ambush is that device's to spring);
  *  - the hero cast the Quiet Day Power (no random encounters until it runs out; an old save's X's Invisibility
  *    wrote the same field);
  *  - a battle is already active;
@@ -161,7 +163,7 @@ async function onExplorationTick(router: Router): Promise<void> {
     isBattleRoute(routeName) ||
     isOverlayOpen() ||
     !heroId ||
-    !isHeroHeldHere(heroId) ||
+    !isHeroWatchedHere(heroId) ||
     hasNoEncounters(heroProfile(userStore, heroId), new Date()) ||
     battleStore.active ||
     Boolean(battleStore.pendingAmbush);
@@ -244,10 +246,10 @@ async function onReturn(router: Router): Promise<void> {
     if (!ambush) return;
     battleStore.clearPendingAmbush();
 
-    // An ambush also goes when another device took the hero's turn while they were away
+    // An ambush also goes when the device learned that another device holds the hero's turn while they were away
     const shouldDropAmbush =
       useUserStore().currentUser.id !== ambush.heroId ||
-      !isHeroHeldHere(ambush.heroId) ||
+      !isHeroWatchedHere(ambush.heroId) ||
       isBattleRoute(router.currentRoute.value.name);
     if (shouldDropAmbush) return;
 
@@ -280,7 +282,7 @@ function onLeave(router: Router): void {
       isBattleRoute(router.currentRoute.value.name) ||
       isOverlayOpen() ||
       !heroId ||
-      !isHeroHeldHere(heroId) ||
+      !isHeroWatchedHere(heroId) ||
       battleStore.active ||
       battleAlertsChoice() !== "on";
     if (isNothingComingForHero) {
