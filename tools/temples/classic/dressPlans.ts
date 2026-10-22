@@ -124,6 +124,33 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibossRooms: ["PoD Middle Cage"],
     boss: ["grease-gorgon", 8, "weekly"],
   },
+  // The Ice Palace: laundry and cold-store chores. Thirteen must-clear rooms for nine ice beasts: today's three (the
+  // socks starter first), then the other six of the theme, the first four repeating. The Pengator Switch before the Big
+  // Key leaves it in reach (its stairs come up from B2), so the Leftover Lich takes the Floor Switch, the sealed room
+  // the Big Key lies behind; the Laundry Lurker waits at the bottom of the palace.
+  "ice-temple": {
+    name: "Ice Temple",
+    theme: "ice",
+    element: "ice",
+    relic: "Frost Wand",
+    shop: "FrostResistPotion",
+    trap: ["iceSpikes", 6],
+    puzzle: "mirrorIce",
+    mustClear: [
+      ["socktopus", 2, "weekly"],
+      ["hamper-hound", 1, "daily bed"],
+      ["wrinkle-wyvern", 2, "weekly"],
+      ["wardrobe-wraith", 1, "daily"],
+      ["lint-lizard", 1, "weekly"],
+      ["pantry-phantom", 1, "weekly"],
+      ["bedsheet-banshee", 2, "weekly"],
+      ["freezer-yeti", 2, "weekly"],
+      ["slush-golem", 2, "weekly"],
+    ],
+    minibosses: [["leftover-lich", 5, "weekly"]],
+    minibossRooms: ["Ice Floor Switch"],
+    boss: ["laundry-lurker", 13, "weekly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);

@@ -26,7 +26,7 @@ import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQu
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
 import { generateShipped, renderShippedModule, SHIPPED_IDS } from "../../tools/temples/regenerate";
-import { CLASSIC_IDS, dressClassic } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -40,14 +40,12 @@ const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.inclu
 /** Floors each regenerated temple was spread over */
 const FLOORS: Record<string, number> = {
   "fire-temple": 2,
-  "ice-temple": 2,
   "moon-temple": 3,
 };
 
 /** The relics each regenerated temple keeps in a chest */
 const RELICS: Record<string, string[]> = {
   "fire-temple": ["Flame Shield"],
-  "ice-temple": ["Frost Wand"],
   "moon-temple": ["Lunar Pendant", "Moon Shard"],
 };
 
@@ -59,14 +57,12 @@ const RELICS: Record<string, string[]> = {
 const COMBAT_ROOMS: Record<string, [number, number, number]> = {
   "wind-temple": [6, 2, 1],
   "fire-temple": [4, 1, 1],
-  "ice-temple": [3, 1, 1],
   "moon-temple": [6, 1, 1],
 };
 
 const TEMPLE_SIZE: Record<string, number> = {
   "wind-temple": 22,
   "fire-temple": 25,
-  "ice-temple": 23,
   "moon-temple": 22,
 };
 
@@ -210,6 +206,8 @@ describe("the shipped temples as quest rooms", () => {
     const isClassic = CLASSIC.includes(id);
     /** A classic temple's side rooms repeat a must-clear beast: the rules of "once" and "easiest first" read its sealed rooms */
     const sealed = (room: GraphRoom): boolean => !isClassic || room.room.content?.lockOnEnter === true;
+    /** The beasts a classic temple's must-clear rooms had to repeat, its theme being short of beasts (classicReport) */
+    const repeats = isClassic ? classicReport(id).repeats.map((slug) => `beast-${slug}`) : [];
 
     it("has the combat rooms of the theme map: monsters, minibosses and one boss", () => {
       expect(combatRooms(graph, "monster")).toHaveLength(monsterCount);
@@ -229,8 +227,11 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("keeps to the theme: every beast is a library beast of this temple's theme, used once (a classic temple: once per sealed room)", () => {
-      const once = rooms.filter(sealed).map((room) => templateOf(room).beastId);
+    it("keeps to the theme: every beast is a library beast of this temple's theme, used once (a classic temple: once per sealed room, but its reported repeats)", () => {
+      const once = rooms
+        .filter(sealed)
+        .map((room) => templateOf(room).beastId)
+        .filter((beastId) => !repeats.includes(beastId));
       expect(new Set(once).size).toBe(once.length);
       const ids = templates.map((template) => template.beastId);
       for (const beastId of ids) {
