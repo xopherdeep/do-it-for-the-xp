@@ -4,6 +4,7 @@
  * pits go to the next floor of THIS order, not of the map's: one rule for play, the audit, the solver and the editor.
  * It is not the order of `Object.keys(maze)`, which the entrance's floor index still counts in.
  */
+import type { RoomContent } from './types';
 
 /** How high a floor stands: "2F" is 2, "B1" is -1, any other name sits at ground level (0) */
 export const floorHeight = (name: string): number => {
@@ -29,4 +30,31 @@ export const neighbourFloorOf = (floors: readonly string[], floor: string, step:
   const order = climbOrder(floors);
   const index = order.indexOf(floor);
   return index < 0 ? undefined : order[index + step];
+};
+
+/** Where a pit drops the hero: the floor, and the cell it names to land on first ([row, col]), when it names one. */
+export interface PitDrop {
+  floor: string;
+  cell?: [number, number];
+}
+
+/**
+ * Where a pit on `floor` drops the hero: one rule for the engine's fall (hazards.ts) and the solver's graph. A pit may
+ * name its landing (`targetLevel`, and `targetCoords` with x the column and y the row), as a classic dungeon's hole is
+ * written. The name counts only for a floor the temple has that stands below the pit in the climbing order, and only
+ * then is the cell read. Any other name (the pit's own floor and cell 0,0, the seed the Temple Creator once gave every
+ * new pit; a floor above; a floor the temple lacks) drops by the plain rule: the next floor down. Undefined when there
+ * is no floor to drop to.
+ */
+export const pitDropOf = (floors: readonly string[], floor: string, target: Pick<RoomContent, 'targetLevel' | 'targetCoords'> = {}): PitDrop | undefined => {
+  const order = climbOrder(floors);
+  const named = target.targetLevel ?? '';
+  const namedIndex = order.indexOf(named);
+  const isNamedBelow = namedIndex >= 0 && namedIndex < order.indexOf(floor);
+  if (isNamedBelow) {
+    const coords = target.targetCoords;
+    return { floor: named, cell: coords ? [Number(coords.y), Number(coords.x)] : undefined };
+  }
+  const below = neighbourFloorOf(floors, floor, -1);
+  return below ? { floor: below } : undefined;
 };

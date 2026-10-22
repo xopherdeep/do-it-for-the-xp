@@ -1039,6 +1039,55 @@ describe("stairs and pits", () => {
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 0] });
   });
 
+  // Until 2026-10-13 the Temple Creator seeded every new pit with its own floor and cell 0,0. A pit's named floor
+  // counts only when the temple has it and it stands below the pit; anything else drops as an unnamed pit always did.
+  describe("a pit whose named floor is not below it drops by the plain rule", () => {
+    const named = (targetLevel: string): Room => ({ type: "pit", content: { targetLevel, targetCoords: { x: 0, y: 0 } } });
+    const fallFrom = (id: string, level: string, position: [number, number]) => {
+      enter(id, position, level);
+      return onEnterRoom(dungeons.getRoom(id, position, level), contextAt(id, position))!;
+    };
+
+    it("only bruises a hero, and only once, on an old-seed pit in a one-floor temple", () => {
+      const id = makeTemple({ W: { type: "wall" }, E: { type: "entrance" }, P: named("1F") }, [["W", "E", "P"]]);
+
+      const outcome = fallFrom(id, "1F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You land hard at the bottom: -5 HP", sound: "damage", shake: true });
+      expect(outcome.moved).toBeUndefined();
+      expect(hp()).toBe(25);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+      expect(onEnterRoom(dungeons.getRoom(id, [0, 2], "1F"), contextAt(id, [0, 2]))).toBeNull();
+    });
+
+    it("drops a hero through an old-seed pit to the same cell of the floor below, not to cell 0,0", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("2F") }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "P"]] });
+
+      const outcome = fallFrom(id, "2F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+
+    it("drops a hero through a pit naming a floor the temple lacks to the next floor down, its cell unread", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("B3") }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "P"]] });
+
+      const outcome = fallFrom(id, "2F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+
+    it("only bruises a hero on a ground-floor pit naming the floor above", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("2F") }, { "1F": [["E", "F", "P"]], "2F": [["F", "F", "F"]] });
+
+      const outcome = fallFrom(id, "1F", [0, 2]);
+
+      expect(outcome.moved).toBeUndefined();
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+  });
+
   describe("in a temple whose basement was drawn after its upper floors (maze keys 1F, 2F, B1; task #1380)", () => {
     // Stairs with no target climb to the next floor in the order floors are climbed (B1, 1F, 2F), not in the map's
     const withBasement = () =>

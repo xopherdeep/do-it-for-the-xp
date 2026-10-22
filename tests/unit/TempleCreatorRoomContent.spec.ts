@@ -193,6 +193,18 @@ describe("seedTravelTargets", () => {
     }
   });
 
+  it("clears the old seed of a pit too: a pit never drops to its own floor", () => {
+    const content: RoomContent = { targetLevel: "2F", targetCoords: { x: 0, y: 0 } };
+    seedTravelTargets(content, "pit", "2F");
+    expect(content).toEqual({});
+  });
+
+  it("leaves a pit's target on a lower floor alone: a classic dungeon's hole names where it drops", () => {
+    const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 0, y: 0 } };
+    seedTravelTargets(content, "pit", "2F");
+    expect(content).toEqual({ targetLevel: "1F", targetCoords: { x: 0, y: 0 } });
+  });
+
   it("keeps the cell a Game Master picked when it clears the own-floor target of a stairs room", () => {
     const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 2, y: 1 } };
     seedTravelTargets(content, "stairs-up", "1F");

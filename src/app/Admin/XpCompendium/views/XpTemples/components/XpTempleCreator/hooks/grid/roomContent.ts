@@ -225,16 +225,17 @@ export const pickChestItem = (content: RoomContent | undefined, itemId: string |
  * A new travel room (stairs, pit, void, teleport) starts with no target at all: stairs then climb to the neighbouring
  * floor and land on the paired stairs, and teleport circles pair themselves. A target seeded here (the room's own floor
  * and cell 0,0) made stairs "blocked by rubble", or landed the hero on cell 0,0 instead of the paired stairs. A target
- * the Game Master picked is kept; the old seed on a stairs room (its own floor, cell 0,0) is cleared.
+ * the Game Master picked is kept; the old seed on a stairs room or a pit (its own floor, cell 0,0) is cleared: neither
+ * leads to the floor it stands on (a pit drops only to a floor below, pitDropOf).
  */
 export const seedTravelTargets = (
   content: RoomContent,
   type: string,
   currentLevelId: string
 ): void => {
-  const isStairs = type === "stairs-up" || type === "stairs-down";
+  const isStairsOrPit = type === "stairs-up" || type === "stairs-down" || type === "pit";
   const pointsAtOwnFloor = content.targetLevel === currentLevelId;
-  const shouldClearSeed = isStairs && pointsAtOwnFloor;
+  const shouldClearSeed = isStairsOrPit && pointsAtOwnFloor;
   if (shouldClearSeed) {
     delete content.targetLevel;
     const isDefaultCell = content.targetCoords?.x === 0 && content.targetCoords?.y === 0;

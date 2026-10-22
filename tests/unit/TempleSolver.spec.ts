@@ -202,6 +202,29 @@ describe("TempleSolver", () => {
     expect(buildTempleGraph(astray).issues).toEqual([{ rule: "R8", text: "2F (0,1) pit drops onto a wall at 1F (0,1)" }]);
   });
 
+  // Until 2026-10-13 the Temple Creator seeded every new pit with its own floor and cell 0,0. As in the engine's fall
+  // (hazards.ts), a named floor counts only when the temple has it and it stands below the pit.
+  it("R8 Pits: a pit whose named floor is not below it (the old seed, a floor above, a missing floor) drops as an unnamed pit", () => {
+    const named = (targetLevel: string): Room => ({ type: "pit", content: { targetLevel, targetCoords: { x: 0, y: 0 } } });
+    const rooms: Record<string, Room> = { [_]: { type: "wall" }, E001: { type: "entrance" }, R002: { type: "empty" }, V1F: named("1F"), V2F: named("2F"), VB3: named("B3") };
+    const pitDoors = (layout: TempleLayout) => buildTempleGraph(layout).doors.filter((door) => door.kind === "pit").map((door) => door.id);
+    const tower = (ground: string, upper: string): TempleLayout => ({ entrance: [0, 0, 1], maze: { "1F": [[_, "E001", ground]], "2F": [["R002", "R002", upper]] }, rooms });
+
+    // One floor: the old seed is a bruise, not a door onto itself, and the pit keeps its walking door
+    const flat: TempleLayout = { entrance: [0, 1], maze: [[_, "E001", "V1F"]], rooms };
+    expect(pitDoors(flat)).toEqual([]);
+    expect(buildTempleGraph(flat).issues).toEqual([]);
+    expect(buildTempleGraph(flat).doors.map((door) => door.id)).toContain("1F:0,2>1F:0,1");
+
+    // Two floors: the old seed and a missing floor drop to the same cell below, the cell they name unread
+    expect(pitDoors(tower("R002", "V2F"))).toEqual(["2F:0,2>1F:0,2"]);
+    expect(pitDoors(tower("R002", "VB3"))).toEqual(["2F:0,2>1F:0,2"]);
+    expect(buildTempleGraph(tower("R002", "VB3")).issues).toEqual([]);
+
+    // A ground-floor pit naming the floor above has nothing below it
+    expect(pitDoors(tower("V2F", "R002"))).toEqual([]);
+  });
+
   describe("a flight of stairs can be locked: a small key or the Boss Key opens the climb (#1484)", () => {
     const climbRooms = (stairs: Room): Record<string, Room> => ({ ...ROOMS, R001: { type: "empty" }, U001: stairs, D001: { type: "stairs-down" } });
     /** 1F walks east to the stairs up (1,3); 2F walks west from the stairs down to the boss, the Boss Key above the mini-boss */
