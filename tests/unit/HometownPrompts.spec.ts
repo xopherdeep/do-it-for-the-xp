@@ -286,6 +286,10 @@ describe("the clerk's posting lines", () => {
     }
   });
 
+  it("tells a publishing link its post is up already", () => {
+    expect(postedNotice("published").lines).toEqual(["*pins it to the wall* It's up on the wall already."]);
+  });
+
   it("says the family must register again, to anyone", () => {
     expect(registerAgainPrompt()).toMatchObject({
       speaker: CLERK,

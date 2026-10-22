@@ -274,6 +274,7 @@ export const unlinkResultNotice = (result: 'forgotten' | 'removed-here-only'): R
 const POSTED_LINES: Record<PostedOutcome, string> = {
   'to-gm': '*pins it to the desk* Your Game Master will read it first.',
   'to-site': "*stamps it* Sent! It shows up once it's approved.",
+  published: "*pins it to the wall* It's up on the wall already.",
   bug: '*files it carefully* Thanks! The developers will see it.',
   'on-file-hero': "*files it* I'll keep it until your Game Master registers the family.",
   'on-file-gm': "*files it* I'll send it once your family is registered.",
