@@ -153,11 +153,9 @@ function stubPlay(answerFor) {
 }
 
 /**
- * Links a fresh phone with the code in the address (the hero's card comes up), then opens it again, the way a phone is
- * opened after it was linked: the Pro store claims the licence under the family the phone joined, the sync is on, and the
- * first pull, the hero's turn and the portal follow by themselves.
- * The reload is not decoration: the Pro store keeps the family id the app started with, and a phone that has just joined
- * is not asked again until its next open (see the Task 23 report), so the licence of a family it linked into is claimed then.
+ * Links a fresh phone with the code in the address, in one session: the link claims the licence under the family the
+ * phone joined at once, so the sync turns on, and the first pull, the hero's turn and the portal follow by themselves
+ * (no second open needed; the Pro store adopts the family the phone joined).
  */
 function openLinkedPhone() {
   cy.visit(LINK_PATH, {
@@ -166,10 +164,6 @@ function openLinkedPhone() {
   });
   cy.tapToWakeAudio();
   cy.wait("@claimDevice");
-  cy.url({ timeout: 20000 }).should("match", HERO_PHONE_PATH);
-  cy.get("[data-cy=hero-card]", { timeout: 20000 }).should("be.visible");
-  cy.reload();
-  cy.tapToWakeAudio();
 }
 
 /** The clerk's line on screen */
