@@ -45,7 +45,7 @@
       <p v-if="shownProblem" class="th-compose__problem" role="alert" data-cy="th-problem">{{ shownProblem }}</p>
     </ion-content>
 
-    <!-- The board and Send: the bottom of the sheet, under the thumb -->
+    <!-- The board (or the category) and the sends: the bottom of the sheet, under the thumb -->
     <ion-footer class="th-compose__dock">
       <div class="dock">
         <div v-if="kind === 'topic'" class="th-compose__boards" role="radiogroup" aria-label="Board" data-cy="th-board-picker">
@@ -63,9 +63,34 @@
             {{ option.name }}
           </button>
         </div>
-        <button type="button" class="th-compose__send" data-cy="th-send" :disabled="blocked" @click="send">
+        <div v-if="hasCategoryPicker" class="th-compose__boards" role="radiogroup" aria-label="Category">
+          <button
+            v-for="option in CATEGORY_OPTIONS"
+            :key="option.slug"
+            type="button"
+            role="radio"
+            class="th-compose__board"
+            :class="{ 'is-on': option.slug === pickedCategory }"
+            :aria-checked="option.slug === pickedCategory"
+            :data-cy="`th-pick-${option.slug}`"
+            @click="pickedCategory = option.slug"
+          >
+            {{ option.name }}
+          </button>
+        </div>
+        <button
+          v-if="isNews"
+          type="button"
+          class="th-compose__send is-secondary"
+          data-cy="th-save-draft"
+          :disabled="blocked"
+          @click="send('draft')"
+        >
+          Save draft
+        </button>
+        <button type="button" class="th-compose__send" data-cy="th-send" :disabled="blocked" @click="send('publish')">
           <i class="fad fa-paper-plane" aria-hidden="true"></i>
-          {{ sending ? "Sending..." : "Send" }}
+          {{ sendLabel }}
         </button>
       </div>
     </ion-footer>
@@ -76,44 +101,85 @@
 import { computed, ref, watch } from "vue";
 import { IonButton, IonButtons, IonContent, IonFooter, IonHeader, IonModal, IonTitle, IonToolbar } from "@ionic/vue";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
-import { BODY_MAX, BUG_BODY_MAX, charCount, draftProblem, type PostDraft } from "@/lib/services/townhall/townHallPosts";
+import {
+  NEWS_BODY_MAX,
+  wordsProblem,
+  type ComposeDraft,
+  type ComposeKind,
+  type ComposeWords,
+  type NewsCategory,
+  type NewsDraft,
+} from "@/lib/services/townhall/townHallDesk";
+import { BODY_MAX, BUG_BODY_MAX, charCount, draftProblem } from "@/lib/services/townhall/townHallPosts";
 import { TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
-import type { TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
 import { plainText } from "./townHallShared";
 
 /**
- * The sheet where a hero writes a topic, a comment or a bug report. It holds the words and the board picked; the page
- * keeps the post (`send` carries the trimmed draft) and says when it is `sending`. The board names come from the site's
- * boards when the Board tab has read them, else the four boards of the Town Hall under their slugs, so a post can be
- * written (and kept for later) without a connection.
+ * The sheet where a hero writes a topic, a comment or a bug report, and where an administrator writes news or rewrites
+ * a post or topic. It holds the words and the board (or news category) picked; the page keeps the post (`send` carries
+ * the trimmed draft) and says when it is `sending`. The board names come from the site's boards when the Board tab has
+ * read them, else the four boards of the Town Hall under their slugs, so a post can be written (and kept for later)
+ * without a connection. A news post goes out as a draft or published, by the button tapped.
  */
 interface ComposeProps {
-  kind: TownHallPostKind;
+  kind: ComposeKind;
   /** The board a topic starts on */
   board?: TownHallBoardSlug;
   /** The site's id of the post or topic a comment answers */
   postId?: number;
   /** That post's title, as text */
   replyingTo?: string;
-  /** A failed post's words, when the hero edits it */
-  initial?: PostDraft;
+  /** A failed post's words when the hero edits it, or an item's words when an administrator rewrites it */
+  initial?: ComposeWords;
   boards: BoardInfo[];
   isOpen?: boolean;
   sending?: boolean;
   /** What the page could not do with the draft (it keeps the sheet open) */
   trouble?: string | null;
+  /** Whether the site has a Patch Notes category to file news under */
+  patchNotesAvailable?: boolean;
+  /** The category news starts on */
+  newsCategory?: NewsCategory;
 }
 
-const props = withDefaults(defineProps<ComposeProps>(), { isOpen: true, sending: false, trouble: null });
+const props = withDefaults(defineProps<ComposeProps>(), {
+  isOpen: true,
+  sending: false,
+  trouble: null,
+  patchNotesAvailable: false,
+  newsCategory: "news",
+});
 
-const emit = defineEmits<{ (event: "send", draft: PostDraft): void; (event: "close"): void }>();
+const emit = defineEmits<{ (event: "send", draft: ComposeDraft): void; (event: "close"): void }>();
 
-const HEADINGS: Record<TownHallPostKind, string> = { topic: "Post on the Board", comment: "Write a comment", bug: "Report a bug" };
-const PLACEHOLDERS: Record<TownHallPostKind, string> = {
+type NewsStatus = NewsDraft["status"];
+
+const HEADINGS: Record<ComposeKind, string> = {
+  topic: "Post on the Board",
+  comment: "Write a comment",
+  bug: "Report a bug",
+  news: "Write news",
+  edit: "Edit",
+};
+const PLACEHOLDERS: Record<ComposeKind, string> = {
   topic: "What's on your mind?",
   comment: "Write your comment",
   bug: "What went wrong? What were you doing?",
+  news: "What's new in the city?",
+  edit: "",
 };
+const SEND_LABELS: Record<ComposeKind, string> = { topic: "Send", comment: "Send", bug: "Send", news: "Publish", edit: "Save" };
+const BODY_LIMITS: Record<ComposeKind, number> = {
+  topic: BODY_MAX,
+  comment: BODY_MAX,
+  bug: BUG_BODY_MAX,
+  news: NEWS_BODY_MAX,
+  edit: NEWS_BODY_MAX,
+};
+const CATEGORY_OPTIONS: { slug: NewsCategory; name: string }[] = [
+  { slug: "news", name: "News" },
+  { slug: "patch-notes", name: "Patch Notes" },
+];
 
 /** "feature-requests" as a name, until the site has said what the board is called */
 const nameOfSlug = (slug: string): string => slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -127,6 +193,7 @@ const boardOptions = computed(() =>
 const title = ref("");
 const body = ref("");
 const pickedBoard = ref<TownHallBoardSlug | undefined>();
+const pickedCategory = ref<NewsCategory>("news");
 /** Nothing is said about what is missing until the hero starts writing */
 const touched = ref(false);
 
@@ -134,6 +201,7 @@ const reset = () => {
   title.value = props.initial?.title ?? "";
   body.value = props.initial?.body ?? "";
   pickedBoard.value = props.initial?.board ?? props.board ?? boardOptions.value[0]?.slug;
+  pickedCategory.value = props.newsCategory;
   touched.value = false;
 };
 reset();
@@ -146,31 +214,54 @@ watch(
 
 const heading = computed(() => HEADINGS[props.kind]);
 const bodyPlaceholder = computed(() => PLACEHOLDERS[props.kind]);
+const sendLabel = computed(() => (props.sending ? "Sending..." : SEND_LABELS[props.kind]));
 const hasTitleField = computed(() => props.kind !== "comment");
-const max = computed(() => (props.kind === "bug" ? BUG_BODY_MAX : BODY_MAX));
-
-/** The draft the page keeps: trimmed, so a trailing space never counts against a limit */
-const draft = computed<PostDraft>(() => {
-  const trimmedTitle = title.value.trim();
-  const postId = props.postId ?? props.initial?.postId;
-  return {
-    kind: props.kind,
-    body: body.value.trim(),
-    ...(hasTitleField.value && trimmedTitle ? { title: trimmedTitle } : {}),
-    ...(props.kind === "topic" && pickedBoard.value ? { board: pickedBoard.value } : {}),
-    ...(props.kind === "comment" && postId !== undefined ? { postId } : {}),
-  };
+const max = computed(() => BODY_LIMITS[props.kind]);
+const isNews = computed(() => props.kind === "news");
+const hasCategoryPicker = computed(() => {
+  const isOffered = props.kind === "news" && props.patchNotesAvailable;
+  return isOffered;
 });
+
+/** The draft the page keeps: trimmed, so a trailing space never counts against a limit. A news post's `status` is the button tapped. */
+const draftFor = (status: NewsStatus): ComposeDraft => {
+  const kind = props.kind;
+  const trimmedTitle = title.value.trim();
+  const trimmedBody = body.value.trim();
+  if (kind === "news") return { kind, title: trimmedTitle, body: trimmedBody, category: pickedCategory.value, status };
+  if (kind === "edit") return { kind, title: trimmedTitle, body: trimmedBody };
+  const postId = props.postId ?? props.initial?.postId;
+  const hasTitle = hasTitleField.value && trimmedTitle.length > 0;
+  const hasBoard = kind === "topic" && pickedBoard.value !== undefined;
+  const hasPost = kind === "comment" && postId !== undefined;
+  return {
+    kind,
+    body: trimmedBody,
+    ...(hasTitle ? { title: trimmedTitle } : {}),
+    ...(hasBoard ? { board: pickedBoard.value } : {}),
+    ...(hasPost ? { postId } : {}),
+  };
+};
+
+/** What the typed words say about themselves; the status does not matter to the limits */
+const draft = computed(() => draftFor("publish"));
+
+/** The first thing wrong with a draft: news and edits are held to the site's words, a hero's post to its kind's limits */
+const problemOf = (current: ComposeDraft): string | null => {
+  if (current.kind === "news") return wordsProblem(current);
+  if (current.kind === "edit") return wordsProblem(current);
+  return draftProblem(current);
+};
 
 const count = computed(() => charCount(draft.value.body));
 const isOver = computed(() => count.value > max.value);
-const problem = computed(() => draftProblem(draft.value));
+const problem = computed(() => problemOf(draft.value));
 const shownProblem = computed(() => props.trouble ?? (touched.value ? problem.value : null));
 const blocked = computed(() => problem.value !== null || props.sending);
 
-const send = () => {
+const send = (status: NewsStatus) => {
   if (blocked.value) return;
-  emit("send", draft.value);
+  emit("send", draftFor(status));
 };
 </script>
 
@@ -321,6 +412,13 @@ const send = () => {
   i {
     --fa-primary-color: #{$eb-color-dark-purple};
     --fa-secondary-color: #{$eb-color-medium-purple};
+  }
+
+  // Save draft sits above Publish: the same shape and ring, outlined instead of filled
+  &.is-secondary {
+    margin-bottom: 8px;
+    color: $eb-color-cream;
+    background: transparent;
   }
 
   &:active:not(:disabled) {
