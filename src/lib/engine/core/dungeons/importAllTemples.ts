@@ -10,6 +10,8 @@
  *   If it differs, the temple audit decides: a copy that passes it is a finished temple of the Game Master's
  *   own (a hand-built one) and is kept; a copy that fails it can not be finished, so it is a stale old seed
  *   (missing its Master Room or Boss Key, say) and is refreshed like an unedited one.
+ * - Tonight's quests that Quick Start placed in the Wind Temple's copy are no edit (quickStartPlan): the copy is
+ *   compared without them, and a refresh places them again in the new layout by Quick Start's own rule.
  * Hero progress lives in another store (`__templeProgress`). It is touched here in one case only: a refresh puts a
  * different temple under the same id, so every hero's run in it starts over on the new entrance (startRunsOver).
  */
@@ -19,6 +21,7 @@ import temples from '@/lib/engine/temples';
 import { Room } from './types';
 import debug from '@/lib/utils/debug';
 import { auditTemple, type AuditableLayout } from '@/lib/services/temples/templeAudit';
+import { placeQuickStartQuests, withoutQuickStartQuests } from '@/lib/services/temples/quickStartPlan';
 import { startTempleSync } from './templeFreshness';
 import { entranceOf, progressForNewLayout } from './templeReset';
 import { TempleSystem } from './TempleSystem';
@@ -54,6 +57,8 @@ export interface SeedPlan {
   action: SeedAction;
   /** The signature of the shipped layout */
   signature: string;
+  /** Tonight's quests Quick Start placed in the copy (quickStartPlan): a refresh places them again in the new layout */
+  quickStartQuestIds?: string[];
 }
 
 export type SeedReport = Record<string, SeedAction>;
@@ -95,19 +100,25 @@ export function layoutSignature(layout: Partial<SeedLayout> | ShippedTemple | nu
   return `${SIGNATURE_VERSION}:${hashText(JSON.stringify(toStable(plain)))}`;
 }
 
-/** What to do with a stored record given the layout now shipped for it. Pure. */
+/**
+ * What to do with a stored record given the layout now shipped for it. Pure. The quests Quick Start placed in the Wind
+ * Temple's copy are no edit of the Game Master's: the copy is compared with its seed without them (withoutQuickStartQuests),
+ * and a refresh hands them on to be placed again.
+ */
 export function planSeedSync(existing: TempleInterface | null | undefined, shipped: ShippedTemple): SeedPlan {
   const signature = layoutSignature(shipped);
   if (!existing) return { action: 'create', signature };
   const layout = existing.dungeonLayout;
   if (!layout) return { action: 'create', signature };
 
-  const current = layoutSignature(layout);
+  const quickStart = withoutQuickStartQuests(existing.id, layout);
+  const current = layoutSignature(quickStart.layout);
   const seeded = existing.seedSignature;
   if (seeded) {
     const isEditedSinceSeed = current !== seeded;
     if (isEditedSinceSeed) return { action: 'edited', signature };
-    return { action: seeded === signature ? 'current' : 'refresh', signature };
+    const isShippedChanged = seeded !== signature;
+    return isShippedChanged ? { action: 'refresh', signature, quickStartQuestIds: quickStart.questIds } : { action: 'current', signature };
   }
   // Nothing says what this copy was imported from (it predates signatures). The shipped layout: untouched.
   const isShippedLayout = current === signature;
@@ -175,7 +186,7 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
     for (const [templeId, templeData] of Object.entries(shipped)) {
       try {
         const existing = await db.getTempleById(templeId);
-        const { action, signature } = planSeedSync(existing, templeData);
+        const { action, signature, quickStartQuestIds = [] } = planSeedSync(existing, templeData);
         report[templeId] = action;
 
         const isEdited = action === 'edited';
@@ -200,11 +211,13 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
         // create or refresh: the layout is the shipped one. A record without a layout (settings saved before
         // the layout was ever imported) and a refreshed copy keep their own fields: name, icon, description.
         const baseName = templeNames[templeId] || templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        const dungeonLayout: SeedLayout = {
+        const seedLayout: SeedLayout = {
           entrance: templeData.entrance as number[],
           maze: templeData.maze as string[][] | Record<string, string[][]>,
           rooms: templeData.rooms as Record<string, Room>,
         };
+        // Tonight's quests Quick Start had placed in the old copy go into the new layout by Quick Start's own rule
+        const dungeonLayout = placeQuickStartQuests(seedLayout, quickStartQuestIds);
         const base: TempleInterface = {
           id: templeId,
           customName: baseName,
