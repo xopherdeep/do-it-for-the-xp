@@ -5,13 +5,15 @@
  * state and sign-ins: the family tablet (a Game Master's device) and Mia's phone (a Pro kid phone linked to h-1). One
  * device acts at a time (`on(device)`), and the signals a device raises reach only that device's stores.
  *
- * The verdict's pay is real enough to see: approving a claim adds its GP to the hero's profile record.
+ * The verdict's pay is real enough to see: approving a claim adds its GP to the hero's profile record. The user store is
+ * the real one, reading and saving each device's profiles, so what a device shows and saves back is under test too.
  */
 import { TextEncoder } from "util";
 import { createPinia, setActivePinia, type Pinia } from "pinia";
 import { reactive } from "vue";
 import { useSyncStore } from "@/lib/store/stores/sync";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { useUserStore } from "@/lib/store/stores/user";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
 import type { ReceivedRecord, WireRecord } from "@/lib/services/sync/familySyncClient";
 import type { FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
@@ -38,7 +40,10 @@ interface Device {
   syncState: unknown;
   familyState: FamilyEventsState;
   heroDevice: HeroDevice | null;
-  user: { users: Record<string, unknown>; currentUser: { id: string | null } };
+  /** The hero this device signs in again on its next start (the user store's saved id) */
+  savedUserId: string | null;
+  /** The user store has read this device's profiles */
+  hasLoadedUsers: boolean;
   townHall: { isLinked: boolean; auth: unknown; init: jest.Mock; forgetLink: jest.Mock };
   /** The site cannot be reached from this device */
   offline: boolean;
@@ -305,7 +310,8 @@ jest.mock("@/lib/services/sync/recordApply", () => {
     __esModule: true,
     ...actual,
     applyRecords: (records: ReceivedRecord[], own: string) => actual.applyRecords(records, own, target),
-    refreshMirrors: async () => undefined,
+    // The real one: the profiles that landed reload into the real user store
+    refreshMirrors: actual.refreshMirrors,
     rawTargetFor: (store: string) => target(store),
     readRawRecord: async (store: string, key: string) => mockActive.stores[store]?.[key] ?? null,
     readRawEntries: async (store: string) => Object.entries(mockActive.stores[store] ?? {}).map(([key, value]) => ({ key, value })),
@@ -323,7 +329,31 @@ jest.mock("@/lib/services/notifications/notify", () => ({ __esModule: true, noti
 jest.mock("@/lib/services/quests/waitingClaims", () => ({ __esModule: true, refreshWaitingClaims: jest.fn(async () => 0) }));
 
 jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallStore: () => mockActive.townHall }));
-jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => mockActive.user }));
+
+// The real user store, on each device's own profiles: it reads them from the raw store and saves through ProfileDb, a
+// write the game makes (announced, so Family Sync queues it)
+jest.mock("@/lib/api", () => ({
+  __esModule: true,
+  default: { get: jest.fn(async () => Object.values(mockActive.stores.__profiles ?? {}).map((profile) => JSON.parse(JSON.stringify(profile)))) },
+}));
+jest.mock("@/lib/databases/ProfileDb", () => {
+  class MockProfileDb {
+    async setProfile(profile: { id: string }) {
+      mockWrite("__profiles", String(profile.id), profile);
+    }
+  }
+  return { __esModule: true, ProfileDb: MockProfileDb, default: MockProfileDb };
+});
+jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileStorage: {} }));
+jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn(async () => undefined) } }));
+jest.mock("@/lib/store/stores/user/session", () => ({
+  __esModule: true,
+  ...jest.requireActual("@/lib/store/stores/user/session"),
+  saveCurrentUserId: (id: string | null) => {
+    mockActive.savedUserId = id;
+  },
+  getSavedUserId: () => mockActive?.savedUserId ?? null,
+}));
 const mockPro = reactive({ isPro: true, recheck: jest.fn(async () => undefined), adoptedFamily: jest.fn() });
 jest.mock("@/lib/store/stores/pro", () => ({ __esModule: true, useProStore: () => mockPro }));
 
@@ -356,7 +386,8 @@ const device = (id: string, over: Partial<Device> = {}): Device => ({
   syncState: { firstPushDone: true, firstPullDone: true, lastSeq: 0 },
   familyState: familyState(),
   heroDevice: null,
-  user: reactive({ users: { "h-1": MIA, "gm-1": MOM }, currentUser: { id: null } }) as Device["user"],
+  savedUserId: null,
+  hasLoadedUsers: false,
   townHall: reactive({ isLinked: true, auth: PARENT, init: jest.fn(async () => undefined), forgetLink: jest.fn() }) as unknown as Device["townHall"],
   offline: false,
   ...over,
@@ -371,9 +402,18 @@ const on = async (next: Device) => {
   mockActive = next;
   setActiveId(next.id);
   setActivePinia(next.pinia);
+  // The app reads the profiles before anything else starts
+  if (!next.hasLoadedUsers) await useUserStore().loadUsers();
+  next.hasLoadedUsers = true;
   await useFamilyStore().init();
   await drain();
   return useSyncStore();
+};
+
+/** The player picks the hero on the device acting now (the real user store's sign-in) */
+const signInHere = (heroId: string) => {
+  const userStore = useUserStore();
+  userStore.loginUser(userStore.users[heroId]);
 };
 
 /** The connection is back on the device acting now: a round, and what follows one */
@@ -393,8 +433,9 @@ const verdict = (claimId: string) => ({ claimId, questId: "q-dishes", status: "a
 
 describe("Family Sync on one shared site, two devices", () => {
   beforeEach(() => {
-    // No clock runs by itself: each device's rounds are raised by the test, never while the other device acts
-    jest.useFakeTimers();
+    // No clock runs by itself: each device's rounds are raised by the test, never while the other device acts. The legacy
+    // fakes leave queueMicrotask alone: the user store saves a profile at the end of the tick with it
+    (jest.useFakeTimers as (implementation?: "legacy" | "modern") => void)("legacy");
     jest.clearAllMocks();
     mockSite.seq = 0;
     mockSite.rows.clear();
@@ -453,7 +494,7 @@ describe("Family Sync on one shared site, two devices", () => {
   it("the two-device verdict: a claim made on the phone is approved on the tablet and paid once, by the phone that plays the hero", async () => {
     // Mia plays on her phone and claims the dishes
     let sync = await on(phone);
-    phone.user.currentUser.id = "h-1";
+    signInHere("h-1");
     expect(await sync.signIn("h-1")).toBe("granted");
     mockWrite("__questLog", "e1", claimOf("e1"));
     await sync.upload();
@@ -513,7 +554,7 @@ describe("Family Sync on one shared site, two devices", () => {
   it("Play here with the tablet's rows for the hero on the site: the phone's offline play is the truth, and the tablet's new record lands too", async () => {
     // Mia plays offline on her phone (the hold never reached the site)
     let sync = await on(phone);
-    phone.user.currentUser.id = "h-1";
+    signInHere("h-1");
     phone.offline = true;
     expect(await sync.signIn("h-1")).toBe("offline");
     mockWrite("__profiles", "h-1", { ...MIA, stats: { gp: 77 } });
@@ -554,7 +595,7 @@ describe("Family Sync on one shared site, two devices", () => {
     mockWrite("__questLog", "e1", claimOf("e1"));
     await sync.rest("h-1");
     phone.offline = true;
-    phone.user.currentUser.id = "h-1";
+    signInHere("h-1");
     expect(await sync.signIn("h-1")).toBe("offline");
     mockWrite("__profiles", "h-1", { ...MIA, stats: { gp: 70 } });
     await drain();
@@ -582,19 +623,23 @@ describe("Family Sync on one shared site, two devices", () => {
     expect(siteRow("__questLog", "e1").status).toBe("approved");
   });
 
-  it("Not now on the kid phone: the tablet is the truth, the phone's offline play goes, and nothing of Mia runs on the phone", async () => {
+  it("Not now on the kid phone: the tablet is the truth, the phone's offline play goes (in the user store too), and nothing stale goes up later", async () => {
     // the tablet plays Mia
     let sync = await on(tablet);
     expect(await sync.signIn("h-1")).toBe("granted");
     mockWrite("__profiles", "h-1", { ...MIA, stats: { gp: 30 } });
     await sync.upload();
 
-    // the phone played offline, then hears busy and says Not now
+    // the phone played offline (through the real user store: what it shows and saves), then hears busy and says Not now
     sync = await on(phone);
     phone.offline = true;
-    phone.user.currentUser.id = "h-1";
+    signInHere("h-1");
     expect(await sync.signIn("h-1")).toBe("offline");
-    mockWrite("__profiles", "h-1", { ...MIA, stats: { gp: 500 } });
+    const userStore = useUserStore();
+    (userStore.users["h-1"] as typeof MIA).stats.gp = 500;
+    userStore.setFavoriteFood("h-1", "Offline pie");
+    await drain();
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["h-1"]);
     phone.offline = false;
     await online();
     expect(sync.turns["h-1"].state).toBe("busy");
@@ -604,8 +649,23 @@ describe("Family Sync on one shared site, two devices", () => {
     expect(sync.stateOf("h-1")).toBe("busy");
     expect(isHeroWatched("h-1", sync, "h-1")).toBe(false);
     await sync.download();
+    await drain();
+    // the repair lands the tablet's copy in the raw store and in the user store the portal and the card read
     expect((phone.stores.__profiles["h-1"] as typeof MIA).stats.gp).toBe(30);
+    expect((userStore.users["h-1"] as typeof MIA).stats.gp).toBe(30);
+    expect((userStore.users["h-1"] as { favoriteFood?: string }).favoriteFood).toBeUndefined();
     expect(siteRow("__profiles", "h-1").stats.gp).toBe(30);
     expect(mockSite.turns.get("h-1")).toBe(tablet.id);
+
+    // the tablet rests; Mia plays on her phone again: what it saves is the tablet's copy with her new change, never the
+    // dropped offline play
+    sync = await on(tablet);
+    await sync.rest("h-1");
+    sync = await on(phone);
+    expect(await sync.signIn("h-1")).toBe("granted");
+    useUserStore().setFavoriteFood("h-1", "Pancakes");
+    await drain();
+    await sync.upload();
+    expect(siteRow("__profiles", "h-1")).toMatchObject({ stats: { gp: 30 }, favoriteFood: "Pancakes" });
   });
 });

@@ -115,6 +115,12 @@ const sealed = (store: string, value: unknown): unknown => {
 /** The body a record goes up with */
 const bodyToSend = (store: string, value: unknown): string => JSON.stringify(sealed(store, value));
 
+/** What a repair's removal of a key the site never had comes to, as a landed tombstone would */
+const removalOutcome = (ref: StoreRef): ApplyOutcome => {
+  const isProfile = ref.store === "__profiles";
+  return { ...emptyOutcome(), applied: 1, stores: [ref.store], removedProfiles: isProfile ? [ref.key] : [] };
+};
+
 /** A queued record as it goes now: its current value, sealed; null when it is gone (a tombstone goes instead) */
 const readToSend = async (item: OutboxItem): Promise<BatchRecord | null> =>
   batchRecordOf(item, sealed(item.store, await readRawRecord(item.store, item.key)));
@@ -209,6 +215,20 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
 
   // --- Down ---
 
+  /**
+   * What landed (or a repair removed) is in the stores: the mirrors refresh (the profiles reload into the user store, a
+   * hero removed while signed in is signed out), then the keys are announced per store for the copies held in memory
+   */
+  const announceLanded = async (outcome: ApplyOutcome, keysByStore: Map<string, string[]>): Promise<void> => {
+    try {
+      await refreshMirrors(outcome);
+    } catch (error) {
+      // The records are in the stores; the screens read them on their next visit
+      debug.warn("sync: could not refresh the mirrors", error);
+    }
+    keysByStore.forEach((keys, store) => emitRecordsLanded({ store, keys }));
+  };
+
   /** A record changed here and not settled; this device's own rows never count (they are skipped, never landed) */
   const isChangedHere = (record: ReceivedRecord, deviceId: string): boolean => {
     const isOwn = record.deviceId !== "" && record.deviceId === deviceId;
@@ -257,13 +277,7 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     }
     const hasReplaced = replaced.length > 0;
     if (hasReplaced) await dropReplaced(replaced, startedIn);
-    try {
-      await refreshMirrors(outcome);
-    } catch (error) {
-      // The records are in the stores; the screens read them on their next visit
-      debug.warn("sync: could not refresh the mirrors", error);
-    }
-    landedKeys.forEach((keys, store) => emitRecordsLanded({ store, keys }));
+    await announceLanded(outcome, landedKeys);
     return { outcome, landed };
   };
 
@@ -292,16 +306,25 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     const found = await readAllFor(auth as TownHallAuth, wanted, startedIn);
     if (!found) return;
     const isChangedAgain = (ref: StoreRef): boolean => ctx.isLocal(ref.store, ref.key);
-    const landedKeys = new Map<string, string[]>();
+    const changedKeys = new Map<string, string[]>();
+    const noteChanged = (ref: StoreRef): void => {
+      changedKeys.set(ref.store, [...(changedKeys.get(ref.store) ?? []), ref.key]);
+    };
+    let outcome = emptyOutcome();
     for (const record of found.filter((each) => !isChangedAgain(each))) {
       // An empty device id lands this device's own rows too: what it played meanwhile was dropped
-      await applyRecords([record], "");
-      landedKeys.set(record.store, [...(landedKeys.get(record.store) ?? []), record.key]);
+      outcome = mergeOutcomes(outcome, await applyRecords([record], ""));
+      noteChanged(record);
       wanted.delete(recordId(record));
     }
-    for (const ref of Array.from(wanted.values()).filter((each) => !isChangedAgain(each))) await rawTargetFor(ref.store)?.remove(ref.key);
+    for (const ref of Array.from(wanted.values()).filter((each) => !isChangedAgain(each))) {
+      await rawTargetFor(ref.store)?.remove(ref.key);
+      noteChanged(ref);
+      outcome = mergeOutcomes(outcome, removalOutcome(ref));
+    }
     Array.from(repairs.keys()).forEach((id) => repairs.delete(id));
-    landedKeys.forEach((keys, store) => emitRecordsLanded({ store, keys }));
+    // The user store and the other copies held in memory take the repaired records, as for a page that landed
+    await announceLanded(outcome, changedKeys);
   };
 
   const download = async (): Promise<PullResult> => {

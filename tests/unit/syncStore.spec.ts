@@ -1187,6 +1187,8 @@ describe("the sync store", () => {
     for (let n = 0; n < 51; n++) write("__questLog", `q${n}`, { id: `q${n}`, userId: "h-1", status: "local" });
     write("__beasts", "b1", { id: "b1" });
     putRecords.mockImplementationOnce(refuseTurn);
+    const landed: RecordsLanded[] = [];
+    const stopListening = onRecordsLanded((signal) => landed.push(signal));
     let stateWhileCatchingUp = "";
     const fromTablet = { id: "q0", userId: "h-1", status: "tablet" };
     // the site holds the tablet's q0 (the one record of the hero it has), whatever this device read before
@@ -1201,8 +1203,13 @@ describe("the sync store", () => {
     expect(sent().filter((record) => record.store === "__questLog")).toHaveLength(50);
     expect(sent().map((record) => record.key)).toContain("b1");
     expect(stateWhileCatchingUp).toBe("takenOver");
-    // the copy here is the tablet's again: its q0, and none of the 50 records played here that the site never took
+    // the copy here is the tablet's again: its q0, and none of the 50 records played here that the site never took; the
+    // repair refreshes the mirrors and announces what it landed and what it removed
     expect(mockStores.__questLog).toEqual({ q0: fromTablet });
+    stopListening();
+    const repaired = landed.filter((signal) => signal.store === "__questLog").flatMap((signal) => signal.keys);
+    expect(repaired).toEqual(expect.arrayContaining(["q0", "q1", "q50"]));
+    expect(mockRefreshMirrors).toHaveBeenCalledWith(expect.objectContaining({ stores: ["__questLog"] }));
     expect(sync.turns["h-1"]).toEqual({ state: "resting", busy: null, provisional: false });
     expect(sync.tookOverNotice).toBe("h-1");
     expect(sync.state.outbox).toEqual([]);
