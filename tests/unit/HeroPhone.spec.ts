@@ -2,6 +2,7 @@ import { nextTick, reactive } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import HeroPhone from "@/app/SideMenu/HeroPhone/HeroPhone.vue";
+import { handleHeroPhoneGuard } from "@/router/_Guards/heroPhone.guard";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -76,6 +77,10 @@ const mockSync = reactive({
 });
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
+// The licence as the board reads it: the family's Pro, or not
+const mockPro = reactive({ isPro: false });
+jest.mock("@/lib/store/stores/pro", () => ({ __esModule: true, useProStore: () => mockPro }));
+
 const mockHero = { id: "hero-1", name: { nick: "Mia" }, isAdult: false };
 const mockUser = reactive({
   users: {} as Record<string, unknown>,
@@ -93,6 +98,15 @@ jest.mock("@/lib/utils/debug", () => ({
 
 const BUSY_ON_IPAD = { label: "Mia's iPad", lastSeenAt: null };
 
+/** What the family device sent the phone: the hero's numbers and no quests to claim */
+const SHEET_STATE = {
+  outbox: [],
+  lastSeq: 3,
+  sheet: { heroId: "hero-1", at: "2026-10-18T09:00:00Z", seq: 2, stats: { level: 7, xp: 40, nextLevelXp: 300, gp: 55, ap: 3, hp: 18, maxHp: 30, mp: 4, maxMp: 9 }, quests: [] },
+  claims: [],
+} as any;
+const NO_SHEET_STATE = { outbox: [], lastSeq: 0, sheet: null, claims: [] } as any;
+
 /** Every screen opened by a test, taken down after it so a watcher on the shared sync mock never answers a later test */
 const opened: { unmount: () => void }[] = [];
 
@@ -106,6 +120,7 @@ const open = async () => {
         "ion-page": { template: "<div><slot /></div>" },
         "ion-header": { template: "<div><slot /></div>" },
         "ion-toolbar": { template: "<div><slot /></div>" },
+        "ion-footer": { template: "<div><slot /></div>" },
         "ion-title": { template: "<div><slot /></div>" },
         "ion-content": { template: "<div><slot /></div>" },
         "ion-grid": { template: "<div><slot /></div>" },
@@ -158,6 +173,7 @@ describe("HeroPhone", () => {
     mockSync.problem = null;
     mockSync.firstPullProgress = 0;
     mockSync.turns = {};
+    mockPro.isPro = false;
     mockSync.signIn.mockResolvedValue("granted");
     mockSync.takeOver.mockResolvedValue(undefined);
     mockSync.rest.mockResolvedValue(undefined);
@@ -283,6 +299,7 @@ describe("HeroPhone", () => {
 
     beforeEach(() => {
       mockSync.isOn = true;
+      mockPro.isPro = true;
     });
     afterEach(() => {
       mockFamily.phoneState = { outbox: [], lastSeq: 0, sheet: null, claims: [] };
@@ -333,7 +350,7 @@ describe("HeroPhone", () => {
       expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
     });
 
-    it("Not now rests the hero and leaves the phone on its read-only board", async () => {
+    it("Not now rests the hero and leaves the phone on its card, with Play to try again", async () => {
       mockSync.signIn.mockImplementation(async (heroId: string) => {
         mockSync.turns = { [heroId]: { state: "busy", busy: BUSY_ON_IPAD, provisional: false } };
         return "busy";
@@ -350,7 +367,8 @@ describe("HeroPhone", () => {
       expect(mockSync.takeOver).not.toHaveBeenCalled();
       expect(mockUser.loginUser).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
-      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(false);
+      expect(wrapper.find("[data-cy=play-button]").exists()).toBe(true);
       expect(lines(wrapper)).toEqual([]);
     });
 
@@ -385,19 +403,6 @@ describe("HeroPhone", () => {
       expect(mockReplace).toHaveBeenCalledTimes(1);
       expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
       expect(lines(wrapper)).toEqual([]);
-    });
-
-    it("opens the screen on a finished pull whose hero is not here yet and waits for the profile", async () => {
-      mockUser.users = {};
-      mockSync.isFullPortal = true;
-      const wrapper = await open();
-      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
-      expect(mockReplace).not.toHaveBeenCalled();
-
-      mockUser.users = { "hero-1": mockHero };
-      await flushPromises();
-      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
-      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
     });
 
     it("stops waiting for the hero when the phone is no longer a full portal", async () => {
@@ -436,7 +441,7 @@ describe("HeroPhone", () => {
     it.each([
       ["the hero cannot be signed in", () => mockUser.loginUser.mockImplementationOnce(() => { throw new Error("no store"); })],
       ["the portal cannot be opened", () => mockReplace.mockRejectedValueOnce(new Error("no route"))],
-    ])("rests the hero and shows the board when %s", async (_label, fail) => {
+    ])("rests the hero and leaves the card with Play when %s", async (_label, fail) => {
       fail();
       mockFamily.phoneState = waitingSheet;
       const wrapper = await open();
@@ -445,7 +450,8 @@ describe("HeroPhone", () => {
 
       expect(mockSync.rest).toHaveBeenCalledWith("hero-1");
       expect(lines(wrapper)).toEqual([]);
-      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(false);
+      expect(wrapper.find("[data-cy=play-button]").exists()).toBe(true);
     });
 
     it("moves the count on the line at most once a second, and the newest count gets its turn", async () => {
@@ -487,6 +493,29 @@ describe("HeroPhone", () => {
       expect(wrapper.find("[data-cy=sync-footer]").exists()).toBe(false);
     });
 
+    it("offline while the hero's profile is awaited shows the card with the No signal line, and the line returns with the signal", async () => {
+      mockUser.users = {};
+      const wrapper = await open();
+      mockSync.isFullPortal = true;
+      await flushPromises();
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
+
+      mockSync.problem = "offline";
+      await flushPromises();
+      expect(lines(wrapper)).toEqual([]);
+      expect(wrapper.find("[data-cy=hero-card]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=sync-footer]").text()).toBe("No signal. Play on; this device tells the others when it's back.");
+
+      mockSync.problem = null;
+      await flushPromises();
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
+      expect(wrapper.find("[data-cy=sync-footer]").exists()).toBe(false);
+
+      mockUser.users = { "hero-1": mockHero };
+      await flushPromises();
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+    });
+
     it("does not pull on a phone without the family's Pro: today's card and no line", async () => {
       mockSync.isOn = false;
       const wrapper = await open();
@@ -507,6 +536,222 @@ describe("HeroPhone", () => {
       expect(lines(wrapper)).toEqual([]);
       expect(mockSync.signIn).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a kid phone without Pro", () => {
+    afterEach(() => {
+      mockFamily.phoneState = NO_SHEET_STATE;
+    });
+
+    it("a kid phone without Pro shows the board with the Pro line and the guard keeps it there", async () => {
+      mockFamily.phoneState = SHEET_STATE;
+      const wrapper = await open();
+
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=pro-required]").text()).toBe("Playing the whole game on this phone needs XP Pro. Ask your Game Master.");
+      expect(wrapper.find("[data-cy=play-button]").exists()).toBe(false);
+      // The phone is not a full portal, so the guard sends every other route back to this screen
+      expect(handleHeroPhoneGuard({ name: "my-portal" }, mockFamily.isKidMode, mockSync.isFullPortal)).toEqual({ name: "hero-phone" });
+    });
+
+    it("says nothing about Pro when the family has it and the site has not refused", async () => {
+      mockPro.isPro = true;
+      mockSync.isOn = true;
+      mockFamily.phoneState = SHEET_STATE;
+      const wrapper = await open();
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=pro-required]").exists()).toBe(false);
+    });
+
+    it("says it when the site turns the licence down, whatever this phone holds", async () => {
+      mockPro.isPro = true;
+      mockSync.problem = "pro-required";
+      mockFamily.phoneState = SHEET_STATE;
+      const wrapper = await open();
+      expect(wrapper.find("[data-cy=pro-required]").exists()).toBe(true);
+    });
+
+    it("says nothing on a device that is not a kid phone", async () => {
+      mockFamily.isKidMode = false;
+      mockFamily.phoneState = SHEET_STATE;
+      const wrapper = await open();
+      expect(wrapper.find("[data-cy=pro-required]").exists()).toBe(false);
+    });
+  });
+
+  describe("a full portal: the card and Play", () => {
+    const lines = (wrapper: Awaited<ReturnType<typeof open>>) => wrapper.findAll("[data-cy=reveal-line]").map((line) => line.text());
+    const playButton = (wrapper: Awaited<ReturnType<typeof open>>) => wrapper.find("[data-cy=play-button]");
+
+    beforeEach(() => {
+      mockSync.isOn = true;
+      mockSync.isFullPortal = true;
+      mockPro.isPro = true;
+    });
+    afterEach(() => {
+      mockFamily.phoneState = NO_SHEET_STATE;
+    });
+
+    it("full-portal mode shows Play and hides the board", async () => {
+      mockFamily.phoneState = SHEET_STATE;
+      const wrapper = await open();
+
+      expect(wrapper.find("[data-cy=hero-card]").exists()).toBe(true);
+      expect(playButton(wrapper).text()).toBe("Play");
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(false);
+      expect(wrapper.find("[data-cy=pro-required]").exists()).toBe(false);
+    });
+
+    it("tells a hero with no sheet nothing about quests elsewhere: the portal has the quest book", async () => {
+      const wrapper = await open();
+      expect(playButton(wrapper).exists()).toBe(true);
+      expect(wrapper.find("[data-cy=quests-elsewhere]").exists()).toBe(false);
+    });
+
+    it("a cold start on a finished pull shows the card and Play and opens nothing by itself", async () => {
+      const wrapper = await open();
+      await flushPromises();
+
+      expect(playButton(wrapper).exists()).toBe(true);
+      expect(lines(wrapper)).toEqual([]);
+      expect(mockSync.signIn).not.toHaveBeenCalled();
+      expect(mockUser.loginUser).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("Play signs the hero in and opens the portal", async () => {
+      const wrapper = await open();
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+
+      expect(mockSync.signIn).toHaveBeenCalledWith("hero-1");
+      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+      // The turn is asked for before the hero signs in, and the portal opens after
+      const [signedFor] = mockSync.signIn.mock.invocationCallOrder;
+      const [loggedIn] = mockUser.loginUser.mock.invocationCallOrder;
+      const [opened] = mockReplace.mock.invocationCallOrder;
+      expect(signedFor).toBeLessThan(loggedIn);
+      expect(loggedIn).toBeLessThan(opened);
+    });
+
+    it("Play on a busy hero shows the busy question, and Play here takes the turn and opens the portal", async () => {
+      mockSync.signIn.mockImplementation(async (heroId: string) => {
+        mockSync.turns = { [heroId]: { state: "busy", busy: BUSY_ON_IPAD, provisional: false } };
+        return "busy";
+      });
+      const wrapper = await open();
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+
+      expect(lines(wrapper)).toEqual(["Mia is still playing on Mia's iPad (last seen a while ago). Play here anyway?"]);
+      expect(mockReplace).not.toHaveBeenCalled();
+
+      await wrapper.find("[data-cy=choice-play]").trigger("click");
+      await flushPromises();
+
+      expect(mockSync.takeOver).toHaveBeenCalledWith("hero-1");
+      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+    });
+
+    it("Not now on the busy question rests the hero and leaves the card with Play", async () => {
+      mockSync.signIn.mockImplementation(async (heroId: string) => {
+        mockSync.turns = { [heroId]: { state: "busy", busy: BUSY_ON_IPAD, provisional: false } };
+        return "busy";
+      });
+      const wrapper = await open();
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+      await wrapper.find("[data-cy=choice-later]").trigger("click");
+      await flushPromises();
+
+      expect(mockSync.rest).toHaveBeenCalledWith("hero-1");
+      expect(mockUser.loginUser).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(lines(wrapper)).toEqual([]);
+      expect(playButton(wrapper).attributes("disabled")).toBeUndefined();
+    });
+
+    it("keeps Play from a second tap while the turn is asked for", async () => {
+      let grant: (answer: string) => void = () => undefined;
+      mockSync.signIn.mockReturnValue(new Promise((resolve) => (grant = resolve)));
+      const wrapper = await open();
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+
+      expect(playButton(wrapper).attributes("disabled")).toBeDefined();
+      await playButton(wrapper).trigger("click");
+      expect(mockSync.signIn).toHaveBeenCalledTimes(1);
+
+      grant("granted");
+      await flushPromises();
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+    });
+
+    it("rests the hero when the portal cannot be opened, and Play tries again", async () => {
+      mockReplace.mockRejectedValueOnce(new Error("no route"));
+      const wrapper = await open();
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+      expect(mockSync.rest).toHaveBeenCalledWith("hero-1");
+      expect(playButton(wrapper).attributes("disabled")).toBeUndefined();
+
+      await playButton(wrapper).trigger("click");
+      await flushPromises();
+      expect(mockSync.signIn).toHaveBeenCalledTimes(2);
+      expect(mockReplace).toHaveBeenLastCalledWith("/my-portal/hero-1/my-home");
+    });
+
+    it("a cold start before the hero's profile has loaded keeps Play off until it has, and opens nothing by itself", async () => {
+      mockUser.users = {};
+      const wrapper = await open();
+      expect(wrapper.find("[data-cy=hero-card]").exists()).toBe(true);
+      expect(playButton(wrapper).attributes("disabled")).toBeDefined();
+      expect(lines(wrapper)).toEqual([]);
+
+      mockUser.users = { "hero-1": mockHero };
+      await flushPromises();
+      expect(playButton(wrapper).attributes("disabled")).toBeUndefined();
+      expect(mockSync.signIn).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("a cold start where the licence loads after the screen opens nothing by itself", async () => {
+      mockSync.isOn = false;
+      mockSync.isFullPortal = false;
+      mockPro.isPro = false;
+      const wrapper = await open();
+      expect(playButton(wrapper).exists()).toBe(false);
+
+      // The licence is read from the device a moment later: the phone turns into a full portal at once
+      mockPro.isPro = true;
+      mockSync.isOn = true;
+      mockSync.isFullPortal = true;
+      await flushPromises();
+
+      expect(playButton(wrapper).exists()).toBe(true);
+      expect(lines(wrapper)).toEqual([]);
+      expect(mockSync.signIn).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("a pull that finishes while the screen is up still opens the portal by itself", async () => {
+      mockSync.isFullPortal = false;
+      const wrapper = await open();
+      expect(playButton(wrapper).exists()).toBe(false);
+
+      mockSync.isFullPortal = true;
+      await flushPromises();
+      expect(mockReplace).toHaveBeenCalledWith("/my-portal/hero-1/my-home");
+    });
+
+    it("offers no Play on a card that was unlinked", async () => {
+      mockFamily.device = { ...mockFamily.device, unlinked: true };
+      mockSync.isFullPortal = false;
+      const wrapper = await open();
+      expect(playButton(wrapper).exists()).toBe(false);
     });
   });
 

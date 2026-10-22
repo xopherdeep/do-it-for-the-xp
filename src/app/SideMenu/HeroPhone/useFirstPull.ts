@@ -25,15 +25,16 @@ const PROGRESS_MS = 1000;
 /**
  * A Pro kid phone's first open after linking (family sync spec, section 7): the clerk's progress line while the family's
  * world downloads, then the hero's turn is asked for, the hero signs in and the portal opens. Not now on the turn leaves
- * the phone on its read-only board. Offline on the way, the progress line gives way to the board and the clerk's
- * "No signal" line as its footer; the store retries when the signal is back.
+ * the phone on the hero's card. Offline on the way (or while the hero's profile is awaited), the progress line gives way
+ * to the card and the clerk's "No signal" line as its footer; the store retries when the signal is back.
  *
- * The portal is wanted when the pull finishes while this screen is up, or when the screen opens on a finished pull whose
- * hero is not on the phone yet. A pull can finish before the family device has sent the hero (it counts an empty page as
- * done), so the wish waits for the hero's profile to land on a later download and the progress line stays up meanwhile.
- * The wish ends when the portal opens, on Not now, on a failure (the hero rests) and when the pull stops being done. A
- * screen reached after a finished pull whose hero is here (Save & Quit returns to the hero's card) stays put.
- * The screen renders `<xp-reveal-prompt :prompt="prompt" @respond="answer" />` once.
+ * The portal opens by itself only for a pull this screen watched finish: nothing else wants it. A cold start on a
+ * finished pull (the licence, the roster or the hero still loading, or Save & Quit coming back to the card) shows the
+ * card, and `play` is the way in. A pull can finish before the family device has sent the hero (it counts an empty page
+ * as done), so the wish waits for the hero's profile to land on a later download and the progress line stays up
+ * meanwhile. The wish ends when the portal opens, on Not now, on a failure (the hero rests) and when the pull stops
+ * being done. The screen renders `<xp-reveal-prompt :prompt="prompt" @respond="answer" />` once, and its Play button
+ * (shown when `isFullPortal`) calls `play`, which `canPlay` allows once the hero is here and no open is under way.
  */
 export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">) {
   const sync = useSyncStore();
@@ -53,7 +54,7 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
   const isPortalWanted = ref(false);
   const isArriving = computed(() => isPulling.value || isPortalWanted.value);
   const isFetching = computed(() => isArriving.value && sync.problem === null);
-  const isOffline = computed(() => isPulling.value && sync.problem === "offline");
+  const isOffline = computed(() => isArriving.value && sync.problem === "offline");
 
   // --- The count on the line, moved at most once a second (the newest count always gets its turn) ---
 
@@ -89,7 +90,9 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
 
   // --- Opening the portal ---
 
-  let isOpening = false;
+  const isOpening = ref(false);
+  /** Whether Play can open the portal now: the hero's profile is here and no open is under way */
+  const canPlay = computed(() => Boolean(hero.value) && !isOpening.value);
 
   /** A failed open leaves nobody signed in, so the hero's turn goes back rather than stay held */
   const restAfterFailure = async (heroId: string): Promise<void> => {
@@ -105,14 +108,14 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
    * the hero's profile it waits (the wish stays) for it to land. The wish ends however an open goes.
    */
   const openPortal = async (): Promise<void> => {
-    if (isOpening) return;
+    if (isOpening.value) return;
     const profile = hero.value;
     const hasNoHero = !profile;
     if (hasNoHero) {
       debug.warn("hero-phone: the first pull is done but the hero has not arrived yet; waiting for them");
       return;
     }
-    isOpening = true;
+    isOpening.value = true;
     try {
       const isPlayingHere = await requestTurn(profile);
       if (!isPlayingHere) return;
@@ -122,7 +125,7 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
       debug.warn("hero-phone: could not open the portal", error);
       await restAfterFailure(String(profile.id));
     } finally {
-      isOpening = false;
+      isOpening.value = false;
       isPortalWanted.value = false;
     }
   };
@@ -132,11 +135,19 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
     void openPortal();
   };
 
+  // A pull seen under way by this screen ends in the portal; a phone that was a full portal when the screen opened (or
+  // became one as its licence loaded) waits for Play
+  let hasSeenPull = isPulling.value;
+  watch(isPulling, (isNowPulling) => {
+    if (isNowPulling) hasSeenPull = true;
+  });
   watch(
     () => sync.isFullPortal,
     (isFullPortal) => {
-      if (isFullPortal) wantPortal();
-      else isPortalWanted.value = false;
+      const isWanted = isFullPortal && hasSeenPull;
+      hasSeenPull = false;
+      if (isWanted) wantPortal();
+      else if (!isFullPortal) isPortalWanted.value = false;
     }
   );
   // The hero's profile lands on a download after the pull was done
@@ -144,8 +155,10 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
     const hasArrived = Boolean(profile) && isPortalWanted.value;
     if (hasArrived) void openPortal();
   });
-  const isWaitingForHero = sync.isFullPortal && !hero.value;
-  if (isWaitingForHero) wantPortal();
 
-  return { prompt, answer, footer };
+  /** Play: the same open as the end of a first pull, asked for by the player */
+  const play = (): Promise<void> => openPortal();
+  const isFullPortal = computed(() => sync.isFullPortal);
+
+  return { prompt, answer, footer, play, canPlay, isFullPortal };
 }

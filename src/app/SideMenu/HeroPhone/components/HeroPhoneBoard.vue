@@ -35,6 +35,9 @@
         </li>
       </ul>
     </section>
+
+    <!-- The board is all this phone has: without the family's Pro (or when the site says so) the clerk says why -->
+    <p v-if="needsPro" class="board-footer" data-cy="pro-required">{{ t("sync.proRequired") }}</p>
   </div>
 </template>
 
@@ -42,7 +45,8 @@
 /**
  * A linked hero phone's board (two-phone play), shown once the family device has sent a sheet: the hero's numbers and the quests the family device says they can claim,
  * a Done button that claims one (kept on the phone until it is sent), and the claims with what became of them. The
- * phone shows what the family device sent; it never changes a number itself.
+ * phone shows what the family device sent; it never changes a number itself. A kid phone without the family's Pro
+ * keeps this board as its whole game, and its footer line (`sync.proRequired`) says why.
  */
 import { computed, ref } from "vue";
 import { IonButton, toastController } from "@ionic/vue";
@@ -52,9 +56,13 @@ import { useCopy } from "@/hooks/useVoice";
 import type { SheetQuest } from "@/lib/services/multiplayer/heroSheet";
 import { claimableQuests, isUnsent, type HeroPhoneState, type PhoneClaim } from "@/lib/services/multiplayer/phoneClaims";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { useProStore } from "@/lib/store/stores/pro";
+import { useSyncStore } from "@/lib/store/stores/sync";
 import debug from "@/lib/utils/debug";
 
 const family = useFamilyStore();
+const pro = useProStore();
+const sync = useSyncStore();
 const t = useCopy();
 const claiming = ref("");
 
@@ -62,6 +70,13 @@ const state = computed<HeroPhoneState | null>(() => (family.phoneState as HeroPh
 const stats = computed(() => state.value?.sheet?.stats ?? null);
 const quests = computed(() => (state.value ? claimableQuests(state.value) : []));
 const claims = computed(() => state.value?.claims ?? []);
+
+/** A kid phone the family's Pro does not reach, or one the site has turned away for it */
+const needsPro = computed(() => {
+  const isWithoutPro = family.isKidMode && !pro.isPro;
+  const isRefused = sync.problem === "pro-required";
+  return isWithoutPro || isRefused;
+});
 
 /** A waiting claim still on this phone reads "Not sent yet"; one on the server reads "Sent" */
 const statusOf = (claim: PhoneClaim): string => {

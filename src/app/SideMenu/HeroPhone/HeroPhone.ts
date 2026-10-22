@@ -9,6 +9,7 @@ import {
   IonCardTitle,
   IonCol,
   IonContent,
+  IonFooter,
   IonGrid,
   IonHeader,
   IonPage,
@@ -36,6 +37,7 @@ export const HeroPhone = defineComponent({
     IonCardTitle,
     IonCol,
     IonContent,
+    IonFooter,
     IonGrid,
     IonHeader,
     IonPage,
@@ -52,13 +54,21 @@ export const HeroPhone = defineComponent({
     const router = useRouter();
     const family = useFamilyStore();
     const t = useCopy();
-    // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal
-    const { prompt, answer, footer: syncFooter } = useFirstPull(family, router);
+    // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal; Play opens it later
+    const { prompt, answer, footer: syncFooter, play, canPlay, isFullPortal } = useFirstPull(family, router);
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
     /** The family device sent this hero's sheet: the board shows it (two-phone play) */
     const hasSheet = computed(() => Boolean(family.phoneState?.sheet));
+    /** The board is for a phone that is not the full game: the portal has the real quest book */
+    const isBoardShown = computed(() => {
+      const isBoardPhone = !isUnlinked.value && !isFullPortal.value;
+      return isBoardPhone && hasSheet.value;
+    });
+    /** The notice that the quests are on the family device, for a card with no board and no portal */
+    const isElsewhereShown = computed(() => !hasSheet.value && !isFullPortal.value);
+    const isPlayShown = computed(() => isFullPortal.value && !isUnlinked.value);
 
     const pageTitle = computed(() => {
       const heroNickname = card.value?.nickname;
@@ -67,6 +77,7 @@ export const HeroPhone = defineComponent({
     });
 
     const unlinkedText = computed(() => t("family.unlinked"));
+    const playText = computed(() => t("sync.play"));
     const questsElsewhereText = computed(() => t("family.questsElsewhere"));
 
     const handleStartFresh = async (): Promise<void> => {
@@ -100,11 +111,16 @@ export const HeroPhone = defineComponent({
 
     return {
       answer,
+      canPlay,
       card,
-      hasSheet,
       handleStartFresh,
+      isBoardShown,
+      isElsewhereShown,
+      isPlayShown,
       isUnlinked,
       pageTitle,
+      play,
+      playText,
       prompt,
       questsElsewhereText,
       syncFooter,

@@ -34,6 +34,9 @@ export const sync = {
   "sync.playHere": {
     adventure: "Play here",
   },
+  "sync.play": {
+    adventure: "Play",
+  },
   "sync.notNow": {
     adventure: "Not now",
   },

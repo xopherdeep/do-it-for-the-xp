@@ -42,7 +42,7 @@
                 </ion-card-subtitle>
               </ion-card-header>
 
-              <ion-card-content v-if="!hasSheet" class="ion-text-center">
+              <ion-card-content v-if="isElsewhereShown" class="ion-text-center">
                 <ion-text class="quests-elsewhere" data-cy="quests-elsewhere">
                   {{ questsElsewhereText }}
                 </ion-text>
@@ -50,7 +50,7 @@
             </ion-card>
 
             <!-- Two-phone play: the hero's numbers and quests from the family device, and their claims -->
-            <hero-phone-board v-if="!isUnlinked && hasSheet" />
+            <hero-phone-board v-if="isBoardShown" />
 
             <!-- A Pro phone's first pull waiting for a signal: the clerk's line under the board -->
             <ion-text v-if="syncFooter" class="sync-footer" data-cy="sync-footer">{{ syncFooter }}</ion-text>
@@ -58,6 +58,15 @@
         </ion-row>
       </ion-grid>
     </ion-content>
+
+    <!-- The full game: Play signs the hero in and opens their portal. Controls stay at the bottom, in thumb reach -->
+    <ion-footer v-if="isPlayShown" class="play-footer">
+      <ion-toolbar class="rpg-box play-bar">
+        <ion-button expand="block" class="play-btn" data-cy="play-button" :disabled="!canPlay" @click="play">
+          {{ playText }}
+        </ion-button>
+      </ion-toolbar>
+    </ion-footer>
 
     <!-- The clerk: the first pull's progress line, and the question when another device plays the hero -->
     <xp-reveal-prompt :prompt="prompt" @respond="answer" />

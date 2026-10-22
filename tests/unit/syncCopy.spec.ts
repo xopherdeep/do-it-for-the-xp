@@ -12,6 +12,7 @@ const SYNC_KEYS = [
   "sync.verdictSent",
   "sync.verdictRejectedSent",
   "sync.playHere",
+  "sync.play",
   "sync.notNow",
   "sync.thisPhone",
 ];
@@ -45,6 +46,7 @@ describe("the clerk's sync lines", () => {
   it("keeps the fixed lines word for word", () => {
     expect(copyFor("sync.verdictRejectedSent", "adventure")).toBe("Not this time · sent");
     expect(copyFor("sync.playHere", "adventure")).toBe("Play here");
+    expect(copyFor("sync.play", "adventure")).toBe("Play");
     expect(copyFor("sync.notNow", "adventure")).toBe("Not now");
   });
 });
