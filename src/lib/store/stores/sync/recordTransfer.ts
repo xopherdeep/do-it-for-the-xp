@@ -4,11 +4,17 @@ import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import { fetchRecords, putRecords, type ReceivedRecord } from "@/lib/services/sync/familySyncClient";
 import type { LocalChanges } from "@/lib/services/sync/localChanges";
 import { applyRecords, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
-import { dropItems, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
+import { dropItems, dropWhere, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
 import { SYNC_STORES } from "@/lib/services/sync/syncScopes";
 import { batchRecordOf, cursorAfter, emptyOutcome, firstPushRefs, mergeOutcomes, queueAll, recordId, type StoreEntry } from "@/lib/services/sync/syncQueue";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import debug from "@/lib/utils/debug";
+
+/** A record named by its store and key */
+interface StoreRef {
+  store: string;
+  key: string;
+}
 
 /**
  * The sync store's transfer (section 4 of the family sync spec): the outbox goes up in batches of 50 records and 1 MB, and
@@ -20,6 +26,11 @@ import debug from "@/lib/utils/debug";
  * is never landed: the read stops before it, the cursor stays before it, and the next round reads it again after its
  * upload (by then the site's newest row for that key is usually this device's own). Checked record by record, just
  * before each one lands.
+ *
+ * Hero records follow the hero's turn (section 5): one is sent only while this device holds the hero (`maySend`), and a
+ * hero record of a hero this device does not play always lands, over a change made here without the turn, which is
+ * then dropped: the device holding the turn wrote it, and it is the hero's only writer. A put the site refuses with
+ * `xp_family_turn` names the heroes another device took over (`turnLost`).
  *
  * The sync store runs these one at a time through its work lane (services/sync/workLane.ts); nothing here joins or
  * queues. Every call rejects when the site fails; the store notes it. Bound to the store the way the family store binds
@@ -44,6 +55,14 @@ export interface TransferContext {
   succeeded(): void;
   /** A page landed this many records */
   pulled(count: number): void;
+  /** Whether a queued record may go now: a family record always, a hero's while this device holds the hero's turn */
+  maySend(heroId: string | null): boolean;
+  /** Whether this device plays the hero (its turn held here); a hero record of a hero it does not play lands over local changes */
+  isPlayedHere(heroId: string): boolean;
+  /** Before a send: holds made offline ask the site again (the site refuses a hero's records from a device it has not granted) */
+  confirmTurns(): Promise<void>;
+  /** The site refused these heroes' records with xp_family_turn: another device holds their turn */
+  turnLost(heroIds: string[]): void;
 }
 
 /** How a read of pages ended: at the newest record, with more to read, before a record changed here, or stopped */
@@ -56,6 +75,8 @@ export interface RecordTransfer {
   download(): Promise<PullResult>;
   /** The first pull or push while one is owed, otherwise upload then download */
   round(): Promise<void>;
+  /** A hero was taken over: its queued records leave the outbox for good, and stop holding the download back */
+  dropHero(heroId: string): Promise<void>;
   /** The device left the family: the bodies kept for the first push go */
   forget(): void;
 }
@@ -114,28 +135,35 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
   ): Promise<boolean> => {
     const result = await putRecords(auth, deviceId, records);
     let settledCount = 0;
+    let takenOver: string[] = [];
     await ctx.update((current) => {
       const settled = settlePut(current.outbox, records, result);
       settledCount = current.outbox.length - settled.outbox.length;
+      takenOver = settled.takenOver;
       return { ...current, outbox: settled.outbox };
     }, startedIn);
     result.refused.forEach((refused) => debug.warn(`[sync] the site refused ${refused.store}/${refused.key} (${refused.code}); dropped`));
     settle([...result.accepted, ...result.refused]);
     ctx.succeeded();
+    const isTakenOver = takenOver.length > 0;
+    if (isTakenOver) ctx.turnLost(takenOver);
     return settledCount > 0;
   };
 
   const upload = async (): Promise<void> => {
     const startedIn = ctx.generation();
     const { deviceId } = await ensureIdentity();
+    const mayAsk = ctx.auth() !== null;
+    if (mayAsk) await ctx.confirmTurns();
     for (;;) {
-      const { outbox } = await ctx.kept();
+      // A hero's records wait while another device (or no device) holds the hero's turn
+      const sendable = (await ctx.kept()).outbox.filter((item) => ctx.maySend(item.heroId));
       const auth = ctx.auth();
-      const mayGo = auth !== null && startedIn === ctx.generation() && outbox.length > 0;
+      const mayGo = auth !== null && startedIn === ctx.generation() && sendable.length > 0;
       if (!mayGo) return;
       // Each record's change mark is noted before it is read: a change made after it stays known until it goes too
       const marks = new Map<string, number | undefined>();
-      const { records, oversize } = await nextBatch(outbox, (item) => {
+      const { records, oversize } = await nextBatch(sendable, (item) => {
         marks.set(recordId(item), ctx.changes.markOf(item.store, item.key));
         return readToSend(item);
       });
@@ -152,24 +180,38 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
 
   // --- Down ---
 
-  /** A record changed here and not settled; this device's own rows are never held back (they cannot overwrite anything) */
-  const isHeldBack = (record: ReceivedRecord, deviceId: string): boolean => {
+  /** A record changed here and not settled; this device's own rows never count (they are skipped, never landed) */
+  const isChangedHere = (record: ReceivedRecord, deviceId: string): boolean => {
     const isOwn = record.deviceId !== "" && record.deviceId === deviceId;
     return !isOwn && ctx.isLocal(record.store, record.key);
   };
 
+  /** A hero record of a hero this device does not play: the device holding the turn wrote it, and it wins */
+  const isWritersCopy = (record: ReceivedRecord): boolean => record.heroId !== null && !ctx.isPlayedHere(record.heroId);
+
+  /** The changes a writer's copy landed over leave the outbox: they were made without the turn, and are gone from the store */
+  const dropReplaced = async (replaced: (StoreRef & { mark: number | undefined })[], startedIn: number): Promise<void> => {
+    await ctx.update((current) => ({ ...current, outbox: dropItems(current.outbox, replaced) }), startedIn);
+    replaced.forEach((ref) => ctx.changes.settled(ref.store, ref.key, ref.mark));
+  };
+
   /** Lands a page record by record, stopping before the first one held back; answers what landed and how many */
-  const landPage = async (records: ReceivedRecord[], deviceId: string): Promise<{ outcome: ApplyOutcome; landed: number }> => {
+  const landPage = async (records: ReceivedRecord[], deviceId: string, startedIn: number): Promise<{ outcome: ApplyOutcome; landed: number }> => {
     const isCollecting = ctx.owes() === "push";
     let outcome = emptyOutcome();
     let landed = 0;
+    const replaced: (StoreRef & { mark: number | undefined })[] = [];
     for (const record of records) {
-      const isHeld = isHeldBack(record, deviceId);
+      const isLocal = isChangedHere(record, deviceId);
+      const isHeld = isLocal && !isWritersCopy(record);
       if (isHeld) break;
+      if (isLocal) replaced.push({ store: record.store, key: record.key, mark: ctx.changes.markOf(record.store, record.key) });
       if (isCollecting) received.set(recordId(record), record.deleted ? null : record.body ?? null);
       outcome = mergeOutcomes(outcome, await applyRecords([record], deviceId));
       landed += 1;
     }
+    const hasReplaced = replaced.length > 0;
+    if (hasReplaced) await dropReplaced(replaced, startedIn);
     try {
       await refreshMirrors(outcome);
     } catch (error) {
@@ -194,7 +236,7 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
       // Only an empty page is the end, never a short one: the site cuts a page at 1 MB of bodies too
       const isEmpty = records.length === 0;
       if (isEmpty) return "caughtUp";
-      const { outcome, landed } = await landPage(records, deviceId);
+      const { outcome, landed } = await landPage(records, deviceId, startedIn);
       // The cursor moves over what landed (or was skipped) only, so a record held back is read again
       const next = cursorAfter(since, [outcome.maxSeq]);
       const hasMoved = next > since;
@@ -255,5 +297,12 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     await download();
   };
 
-  return { upload, download, round, forget: () => received.clear() };
+  const dropHero = (heroId: string): Promise<void> =>
+    ctx.update((current) => {
+      const isHeros = (item: OutboxItem): boolean => item.heroId === heroId;
+      current.outbox.filter(isHeros).forEach((item) => ctx.changes.settled(item.store, item.key, ctx.changes.markOf(item.store, item.key)));
+      return { ...current, outbox: dropWhere(current.outbox, isHeros) };
+    }, ctx.generation());
+
+  return { upload, download, round, dropHero, forget: () => received.clear() };
 };

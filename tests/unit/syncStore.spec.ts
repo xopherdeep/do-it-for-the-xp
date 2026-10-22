@@ -127,7 +127,9 @@ const mockTownHall = reactive({
 });
 jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallStore: () => mockTownHall }));
 
-jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ users: {} }) }));
+/** The user store as the sync store reads it: who is signed in on this device */
+const mockUser = reactive({ users: {} as Record<string, unknown>, currentUser: { id: null as string | null } });
+jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => mockUser }));
 
 // --- What the sync store binds to: the licence, the client, its own db, the raw stores ---
 
@@ -195,6 +197,8 @@ jest.mock("@/lib/services/sync/recordApply", () => {
 
 const putRecords = client.putRecords as jest.Mock;
 const fetchRecords = client.fetchRecords as jest.Mock;
+const playHero = client.playHero as jest.Mock;
+const restHero = client.restHero as jest.Mock;
 const bindFamily = server.bindFamily as jest.Mock;
 const fetchEvents = server.fetchEvents as jest.Mock;
 const { ensureIdentity } = require("@/lib/services/pro/familyIdentity") as { ensureIdentity: jest.Mock };
@@ -331,6 +335,9 @@ describe("the sync store", () => {
     fetchEvents.mockResolvedValue([]);
     putRecords.mockImplementation(acceptAll);
     fetchRecords.mockResolvedValue([]);
+    playHero.mockResolvedValue({ answer: "granted" });
+    restHero.mockResolvedValue(undefined);
+    mockUser.currentUser.id = null;
   });
 
   afterEach(() => {
@@ -384,6 +391,8 @@ describe("the sync store", () => {
   it("a record write queues its key and uploads 5 s later with the hero id", async () => {
     jest.useFakeTimers();
     const sync = await started();
+    // a hero record goes only while this device holds the hero's turn
+    await sync.signIn("h-1");
     fetchRecords.mockClear();
 
     const entry = { id: "q1", userId: "h-1", questName: "Pair the socks" };
@@ -454,7 +463,7 @@ describe("the sync store", () => {
     expect(sync.state.lastSeq).toBe(16);
   });
 
-  it("the first push sends every record of every synced store once", async () => {
+  it("the first push sends every record of every synced store once, a hero's records under the hero's turn", async () => {
     jest.useFakeTimers();
     mockSyncState = undefined;
     mockStores = {
@@ -465,6 +474,10 @@ describe("the sync store", () => {
     };
 
     const sync = await started();
+    // the family's records go at once; the hero's wait for the hero's turn (the site refuses them from any other device)
+    expect(sent().map((record) => `${record.store}/${record.key}`).sort()).toEqual(["__beasts/b1", "__beasts/b2"]);
+    expect(sync.state.outbox.map((item) => `${item.store}/${item.key}`).sort()).toEqual(["__profiles/h-1", "__questLog/q1"]);
+    await sync.signIn("h-1");
 
     const keys = sent().map((record) => `${record.store}/${record.key}`);
     expect(keys.sort()).toEqual(["__beasts/b1", "__beasts/b2", "__profiles/h-1", "__questLog/q1"]);
@@ -527,6 +540,8 @@ describe("the sync store", () => {
   it("a restore re-sends everything and tombstones the removed keys", async () => {
     jest.useFakeTimers();
     const sync = await started();
+    await sync.signIn("h-1");
+    await sync.signIn("h-2");
     mockStores.__questLog = { q2: { id: "q2", userId: "h-2" } };
 
     emitStoreRestored({ store: "__questLog", removedKeys: ["q1"], previous: new Map([["q1", { id: "q1", userId: "h-1" }]]) });
@@ -632,6 +647,7 @@ describe("the sync store", () => {
   it("an oversize record is dropped from the outbox and logged, and the rest still go", async () => {
     jest.useFakeTimers();
     const sync = await started();
+    await sync.signIn("h-big");
     write("__profiles", "h-big", { id: "h-big", face: "x".repeat(client.MAX_RECORD_BYTES) });
     write("__beasts", "b1", { id: "b1" });
     await tick(5_000);
@@ -806,6 +822,7 @@ describe("the sync store", () => {
 
     window.dispatchEvent(new Event("online"));
     await drain();
+    await sync.signIn("h-1");
 
     expect(fetchRecords.mock.calls[2][1]).toBe(2);
     expect(fetchRecords.mock.invocationCallOrder[2]).toBeLessThan(putRecords.mock.invocationCallOrder[0]);
@@ -867,5 +884,254 @@ describe("the sync store", () => {
     expect(fetchRecords).toHaveBeenCalledTimes(2);
     // the family store's own 2 minute round would make it 3
     expect(fetchEvents).toHaveBeenCalledTimes(2);
+  });
+
+  // --- The hero's turn (spec section 5) ---
+
+  const BUSY = { answer: "busy", device: { label: "Mia's iPhone", lastSeenAt: "2026-10-22T11:55:00.000Z" } };
+  const refuseTurn = async (_auth: unknown, _device: string, records: WireRecord[]) => ({
+    accepted: [],
+    refused: records.map((record) => ({ store: record.store, key: record.key, code: "xp_family_turn", message: "Another device is playing this hero." })),
+  });
+
+  it("signIn asks the site and holds on granted, downloads at once", async () => {
+    const sync = await started();
+    fetchRecords.mockClear();
+    // what the device that played Mia last wrote comes down before play starts
+    const fromPhone = { id: "h-1", name: { nick: "Mia" }, stats: { xp: 90 } };
+    fetchRecords.mockResolvedValueOnce([received("__profiles", "h-1", 6, fromPhone, { heroId: "h-1" })]).mockResolvedValue([]);
+
+    const answer = await sync.signIn("h-1");
+
+    expect(answer).toBe("granted");
+    expect(playHero).toHaveBeenCalledWith(PARENT, "h-1", OWN, "the family computer", false);
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sync.holds("h-1")).toBe(true);
+    expect(playHero.mock.invocationCallOrder[0]).toBeLessThan(fetchRecords.mock.invocationCallOrder[0]);
+    expect(mockStores.__profiles["h-1"]).toEqual(fromPhone);
+
+    // a hero this device already holds is not asked for again
+    expect(await sync.signIn("h-1")).toBe("granted");
+    expect(playHero).toHaveBeenCalledTimes(1);
+
+    // with the sync off a hero simply plays, and the site is not asked
+    freshDevice();
+    mockPro.isPro = false;
+    const off = await started();
+    playHero.mockClear();
+    expect(await off.signIn("h-1")).toBe("granted");
+    expect(playHero).not.toHaveBeenCalled();
+  });
+
+  it("busy keeps the hero out until play here forces it", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    playHero.mockResolvedValueOnce(BUSY);
+
+    expect(await sync.signIn("h-1")).toBe("busy");
+    expect(sync.turns["h-1"]).toEqual({ state: "busy", busy: BUSY.device, provisional: false });
+    expect(sync.holds("h-1")).toBe(false);
+
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    await tick(5_000);
+    expect(sent()).toEqual([]);
+
+    await sync.takeOver("h-1");
+    expect(playHero).toHaveBeenLastCalledWith(PARENT, "h-1", OWN, "the family computer", true);
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sent().map((record) => record.key)).toEqual(["q1"]);
+  });
+
+  it("offline holds provisionally and re-asks on online", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    playHero.mockRejectedValue(new TownHallError("offline"));
+
+    expect(await sync.signIn("h-1")).toBe("offline");
+    // local-first: play goes on, and this device runs the hero's clocks
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: true });
+    expect(sync.holds("h-1")).toBe(true);
+
+    // the hero's records wait until the site has confirmed the turn: every send asks again first
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    await tick(5_000);
+    expect(playHero).toHaveBeenCalledTimes(2);
+    expect(sent()).toEqual([]);
+
+    playHero.mockReset();
+    playHero.mockResolvedValue({ answer: "granted" });
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(playHero).toHaveBeenCalledWith(PARENT, "h-1", OWN, "the family computer", false);
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sent().map((record) => record.key)).toEqual(["q1"]);
+    expect(playHero.mock.invocationCallOrder[0]).toBeLessThan(putRecords.mock.invocationCallOrder[0]);
+  });
+
+  it("rest uploads what waits then tells the site", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    await sync.signIn("h-1");
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+
+    await sync.rest("h-1");
+
+    expect(sent().map((record) => record.key)).toEqual(["q1"]);
+    expect(restHero).toHaveBeenCalledWith(PARENT, "h-1", OWN);
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(restHero.mock.invocationCallOrder[0]);
+    expect(sync.turns["h-1"]).toEqual({ state: "resting", busy: null, provisional: false });
+    expect(sync.holds("h-1")).toBe(false);
+
+    // a hero resting here is not given back twice
+    await sync.rest("h-1");
+    expect(restHero).toHaveBeenCalledTimes(1);
+  });
+
+  it("a record refused with xp_family_turn marks the hero taken over, downloads and rests", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    await sync.signIn("h-1");
+    fetchRecords.mockClear();
+    // 51 records: the first batch of 50 is refused, and the one left over is dropped with them, never sent
+    for (let n = 0; n < 51; n++) write("__questLog", `q${n}`, { id: `q${n}`, userId: "h-1", status: "local" });
+    write("__beasts", "b1", { id: "b1" });
+    putRecords.mockImplementationOnce(refuseTurn);
+    let stateWhileCatchingUp = "";
+    const fromTablet = { id: "q0", userId: "h-1", status: "tablet" };
+    fetchRecords.mockImplementationOnce(async () => {
+      stateWhileCatchingUp = sync.turns["h-1"].state;
+      return [received("__questLog", "q0", 6, fromTablet, { heroId: "h-1" })];
+    });
+
+    await tick(5_000);
+
+    expect(putRecords.mock.calls[0][2]).toHaveLength(50);
+    expect(sent().filter((record) => record.store === "__questLog")).toHaveLength(50);
+    expect(sent().map((record) => record.key)).toContain("b1");
+    expect(stateWhileCatchingUp).toBe("takenOver");
+    expect(mockStores.__questLog.q0).toEqual(fromTablet);
+    expect(sync.turns["h-1"]).toEqual({ state: "resting", busy: null, provisional: false });
+    expect(sync.tookOverNotice).toBe("h-1");
+    expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("hero records are not sent while the hero is resting", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    write("__beasts", "b1", { id: "b1" });
+    await tick(5_000);
+
+    expect(sent().map((record) => record.key)).toEqual(["b1"]);
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q1"]);
+
+    await sync.signIn("h-1");
+    expect(sent().map((record) => record.key)).toEqual(["b1", "q1"]);
+    expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("withTurn takes, runs, rests, and answers false when busy", async () => {
+    const sync = await started();
+    const order: string[] = [];
+    playHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`play ${heroId}`);
+      return heroId === "h-3" ? BUSY : { answer: "granted" };
+    });
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      order.push(`put ${records.map((record) => record.key).join(",")}`);
+      return acceptAll(auth, device, records);
+    });
+    restHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`rest ${heroId}`);
+    });
+    const pay = jest.fn(async () => {
+      order.push("pay");
+      write("__questLog", "q9", { id: "q9", userId: "h-2", status: "approved" });
+    });
+
+    expect(await sync.withTurn("h-2", pay)).toBe(true);
+    expect(order).toEqual(["play h-2", "pay", "put q9", "rest h-2"]);
+    expect(sync.turns["h-2"]).toEqual({ state: "resting", busy: null, provisional: false });
+
+    // another device plays h-3: nothing runs, and its turn is not forced
+    const notRun = jest.fn(async () => undefined);
+    expect(await sync.withTurn("h-3", notRun)).toBe(false);
+    expect(notRun).not.toHaveBeenCalled();
+    expect(playHero).toHaveBeenLastCalledWith(PARENT, "h-3", OWN, "the family computer", false);
+    expect(sync.turns["h-3"].state).toBe("resting");
+
+    // a hero this device plays: it simply runs, and the hero stays held
+    await sync.signIn("h-1");
+    order.length = 0;
+    expect(await sync.withTurn("h-1", async () => undefined)).toBe(true);
+    expect(order).toEqual([]);
+    expect(sync.holds("h-1")).toBe(true);
+  });
+
+  it("a profile switch rests the hero who played and signs in the next; the background rests and the front signs in again", async () => {
+    await started();
+    const sync = useSyncStore();
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    expect(sync.holds("h-1")).toBe(true);
+
+    mockUser.currentUser.id = "h-2";
+    await drain();
+    expect(restHero).toHaveBeenCalledWith(PARENT, "h-1", OWN);
+    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(sync.holds("h-2")).toBe(true);
+
+    showPage("hidden");
+    await drain();
+    expect(restHero).toHaveBeenLastCalledWith(PARENT, "h-2", OWN);
+    expect(sync.holds("h-2")).toBe(false);
+
+    playHero.mockClear();
+    showPage("visible");
+    await drain();
+    expect(playHero).toHaveBeenCalledWith(PARENT, "h-2", OWN, "the family computer", false);
+    expect(sync.holds("h-2")).toBe(true);
+  });
+
+  it("a hero signed out while the site was still answering is given back when the grant arrives", async () => {
+    const sync = await started();
+    const answer = held();
+    playHero.mockImplementationOnce(async () => {
+      await answer.promise;
+      return { answer: "granted" };
+    });
+
+    const signingIn = sync.signIn("h-1");
+    await drain();
+    expect(sync.turns["h-1"].state).toBe("asking");
+    await sync.rest("h-1");
+    expect(restHero).not.toHaveBeenCalled();
+
+    answer.release();
+    await signingIn;
+    expect(restHero).toHaveBeenCalledWith(PARENT, "h-1", OWN);
+    expect(sync.turns["h-1"].state).toBe("resting");
+  });
+
+  it("the copy of the device holding a hero lands over a change made here without the turn, and the change is dropped", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "here" });
+    write("__beasts", "b1", { id: "b1", name: "Local" });
+    await drain();
+    putRecords.mockImplementation(() => new Promise(() => undefined));
+    fetchRecords.mockResolvedValueOnce([
+      received("__questLog", "q1", 6, { id: "q1", userId: "h-1", status: "phone" }, { heroId: "h-1" }),
+      received("__beasts", "b1", 7, { id: "b1", name: "Server" }),
+    ]);
+
+    await sync.download();
+
+    // the hero's record lands; the family record changed here is still held back
+    expect(mockStores.__questLog.q1).toEqual({ id: "q1", userId: "h-1", status: "phone" });
+    expect(mockStores.__beasts.b1).toEqual({ id: "b1", name: "Local" });
+    expect(sync.state.lastSeq).toBe(6);
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["b1"]);
   });
 });

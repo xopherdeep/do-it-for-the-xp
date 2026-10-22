@@ -229,6 +229,8 @@ export default defineComponent({
       showSaveQuitModal.value = false;
       if (shouldLogout.value) {
         shouldLogout.value = false;
+        // Signing out rests the hero's turn (the sync store watches who is signed in): what waits goes up first
+        userStore.logoutUser();
         router.replace({ name: "xp-profile" });
       }
     };

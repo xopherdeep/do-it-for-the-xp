@@ -289,6 +289,9 @@
     <!-- Toast for restore success -->
     <ion-toast :is-open="showRestoreToast" :message="restoreMessage" :duration="3000"
       :color="restoreSuccess ? 'success' : 'warning'" position="top" @didDismiss="showRestoreToast = false"></ion-toast>
+
+    <!-- The clerk asks when another device is still playing the picked hero -->
+    <xp-reveal-prompt :prompt="turnPrompt" @respond="answerTurn" />
   </xp-rpg-page>
 </template>
 
@@ -301,7 +304,6 @@ import {
   onIonViewDidLeave,
 } from "@ionic/vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { useAudioStore } from "@/lib/store/stores/audio";
 import { computed, defineComponent, ref, onUnmounted } from "vue";
 import {
   peopleCircleSharp,
@@ -328,6 +330,8 @@ import debug from "@/lib/utils/debug";
 import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useTurnGate } from "@/hooks/useHeroTurn";
 import { useFileSelectDoors } from "./useFileSelectDoors";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
@@ -343,7 +347,8 @@ export default defineComponent({
   components: {
     XpGp,
     XpProfileCard,
-    XpRpgPage
+    XpRpgPage,
+    XpRevealPrompt
   },
   mixins: [ionic],
   setup() {
@@ -351,11 +356,12 @@ export default defineComponent({
     // State management
     const isLoading = ref(false); // For initial list loading
     const userStore = useUserStore();
-    const audioStore = useAudioStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
     // Restore a backup and Link a phone, the doors on this screen that are not a hero
     const { isBackupBusy, selectRestoreFile, isMultiplayerEnabled, openLinkPhone } = useFileSelectDoors();
+    // With Family Sync on, the picked hero's turn is asked for first (the clerk asks when another device plays them)
+    const { prompt: turnPrompt, respond: answerTurn, requestTurn } = useTurnGate();
 
     // Restore notification state
     // Restore notification state
@@ -367,7 +373,6 @@ export default defineComponent({
 
     // Computed properties
     const users = computed(() => userStore.usersAz);
-    const bgm = computed(() => audioStore.bgm);
 
     // Data loading function
     const loadProfiles = async () => {
@@ -413,6 +418,10 @@ export default defineComponent({
 
     // Navigation functions
     const navigateToUserPortal = async (profile: User) => {
+      // Not now on the clerk's question: the hero stays with the other device, and the picker stays
+      const isPlayingHere = await requestTurn(profile);
+      if (!isPlayingHere) return;
+
       // Create and present the loading modal
       const loadingModal = await modalController.create({
         component: ProfileLoadingModal,
@@ -582,7 +591,6 @@ export default defineComponent({
     return {
       isLoading,
       users,
-      bgm,
       peopleCircleSharp,
       peopleCircleOutline,
       getUserAvatar,
@@ -606,6 +614,8 @@ export default defineComponent({
       openLinkPhone,
       isBackupBusy,
       selectRestoreFile,
+      turnPrompt,
+      answerTurn,
     };
   },
 });

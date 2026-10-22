@@ -16,7 +16,9 @@ import { createWorkLane, type Work } from "@/lib/services/sync/workLane";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useProStore } from "@/lib/store/stores/pro";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { createHeroTurns } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
 
@@ -32,21 +34,25 @@ const TICK_MS = 60_000;
  * device a bound parent device or a linked kid phone. A device that has synced keeps queueing its writes while Pro is
  * lapsed or refused, so they go when it is back; a device that never synced does nothing, and the game is as it was.
  *
- * Bound to the family store for the sign-in and the device, and to the Pro store for the licence. Every transfer goes
- * through one work lane (services/sync/workLane.ts), so no upload and download ever overlap and every round uploads
- * before it downloads; a download never lands a record changed here that the site has not settled.
+ * Bound to the family store for the sign-in and the device, to the Pro store for the licence, and to the user store for
+ * the hero signed in here. Every transfer goes through one work lane (services/sync/workLane.ts), so no upload and
+ * download ever overlap and every round uploads before it downloads; a download never lands a record changed here that
+ * the site has not settled, unless it is a hero's record from the device holding that hero's turn (sync/heroTurns.ts).
  */
 export const useSyncStore = defineStore("sync", () => {
   const family = useFamilyStore();
   const pro = useProStore();
+  const user = useUserStore();
 
   const state = ref<SyncState>(emptySyncState());
   /** The last thing the site refused or could not do, until a call goes well */
   const problem = ref<FamilyProblem | null>(null);
   /** Records downloaded so far by a kid phone's first pull, for its clerk line */
   const firstPullProgress = ref(0);
-  /** heroId -> the hero's turn on this device (Task 17 fills it) */
+  /** heroId -> the hero's turn on this device, changed only through heroTurn.ts's reducer (sync/heroTurns.ts) */
   const turns = ref<Record<string, HeroTurn>>({});
+  /** The hero another device took over while this one played, until the portal has said so (it sets it back to null) */
+  const tookOverNotice = ref<string | null>(null);
 
   /** A kid phone whose hero key the site has not refused */
   const isLinkedPhone = computed(() => family.isKidMode && family.device?.unlinked !== true);
@@ -216,6 +222,10 @@ export const useSyncStore = defineStore("sync", () => {
       const isFirstPull = owes() === "pull";
       if (isFirstPull) firstPullProgress.value += count;
     },
+    maySend: (heroId) => heroTurns.maySendNow(heroId),
+    isPlayedHere: (heroId) => heroTurns.holds(heroId),
+    confirmTurns: () => heroTurns.confirm(),
+    turnLost: (heroIds) => heroTurns.lost(heroIds),
   });
 
   const WORK: Record<Work, () => Promise<unknown>> = { upload: transfer.upload, download: transfer.download, round: transfer.round };
@@ -241,6 +251,35 @@ export const useSyncStore = defineStore("sync", () => {
   function requestNow(work: Work): void {
     lane.request(work).catch((error) => debug.warn(`sync: the ${work} failed`, error));
   }
+
+  // --- The hero's turn (sync/heroTurns.ts) ---
+
+  const heroTurns = createHeroTurns({
+    turns,
+    tookOverNotice,
+    isOn: () => isOn.value,
+    auth: () => (isOn.value ? syncAuth() : null),
+    label: () => deviceLabel.value,
+    // Waits for the writes just queued (a verdict's pay, the last move before Save & Quit), then sends
+    upload: async () => {
+      await writing;
+      await upload();
+    },
+    download,
+    flush,
+    dropHero: (heroId) => transfer.dropHero(heroId),
+    answered: () => {
+      succeeded();
+      pauses.connectionBack();
+    },
+    notPro: (error) => void noteFailure(error),
+  });
+
+  /** The hero signed in on this device, if any */
+  const currentHero = (): string | null => {
+    const id = user.currentUser?.id;
+    return id ? String(id) : null;
+  };
 
   // --- When it runs ---
 
@@ -273,11 +312,17 @@ export const useSyncStore = defineStore("sync", () => {
     requestNow("round");
   }
 
-  /** In front: a round. Going to the background: what waits is sent while the app still can */
+  /** In front: a round, and the hero the background rested signs in again. Going away: the hero rests, or what waits is sent */
   function onVisibilityChange(): void {
     const isInFront = document.visibilityState === "visible";
-    if (isInFront) roundNow();
-    else requestNow("upload");
+    const hero = currentHero();
+    if (isInFront) {
+      roundNow();
+      heroTurns.visible(hero);
+      return;
+    }
+    const isResting = heroTurns.hidden(hero);
+    if (!isResting) requestNow("upload");
   }
 
   function listen(): void {
@@ -287,12 +332,16 @@ export const useSyncStore = defineStore("sync", () => {
         onRestored(restored).catch((error) => debug.warn("sync: could not queue a restore", error));
       })
     );
-    // Turned on (a bind answered, a phone linked, Pro bought or back): the first push or pull, or a round
+    // Turned on (a bind answered, a phone linked, Pro bought or back): the first push or pull, or a round; the hero signs in
     stops.push(
       watch(isOn, (isNowOn) => {
-        if (isNowOn) requestNow("round");
+        if (!isNowOn) return;
+        requestNow("round");
+        heroTurns.switched(null, currentHero());
       })
     );
+    // A profile switch, a sign-in or a sign-out: the hero who played rests, the next one signs in
+    stops.push(watch(currentHero, (next, previous) => heroTurns.switched(previous ?? null, next)));
     const hasWindow = typeof window !== "undefined";
     if (hasWindow) {
       window.addEventListener("online", roundNow);
@@ -317,7 +366,9 @@ export const useSyncStore = defineStore("sync", () => {
         if (!multiplayerEnabled()) return;
         await load();
         listen();
-        if (isOn.value) requestNow("round");
+        if (!isOn.value) return;
+        requestNow("round");
+        heroTurns.switched(null, currentHero());
       })().catch((error) => {
         initPromise = null;
         throw error;
@@ -336,6 +387,7 @@ export const useSyncStore = defineStore("sync", () => {
     transfer.forget();
     // A request still out for the old link must not hold up the new one
     lane = createWorkLane(runWork);
+    heroTurns.forget();
     turns.value = {};
     problem.value = null;
     firstPullProgress.value = 0;
@@ -346,25 +398,6 @@ export const useSyncStore = defineStore("sync", () => {
     writing = cleared.catch(() => undefined);
     await cleared;
   }
-
-  // --- The hero's turn: declared now, filled by Task 17 (signIn, takeOver, rest, withTurn) and Task 18 (sendVerdict) ---
-
-  const holds = (heroId: string): boolean => turns.value[heroId]?.state === "held";
-
-  /** Asks the site for the hero's turn; until Task 17 every hero plays here as before */
-  const signIn = async (_heroId: string): Promise<"granted" | "busy" | "offline"> => "granted";
-
-  /** Takes the hero's turn from the device that holds it; nothing until Task 17 */
-  const takeOver = async (_heroId: string): Promise<void> => undefined;
-
-  /** Gives the hero's turn back; nothing until Task 17 */
-  const rest = async (_heroId: string): Promise<void> => undefined;
-
-  /** Runs `fn` with the hero's turn held; until Task 17 it simply runs it */
-  const withTurn = async (_heroId: string, fn: () => Promise<void>): Promise<boolean> => {
-    await fn();
-    return true;
-  };
 
   /** Sends a Game Master's verdict for a hero this device does not hold; nothing until Task 18 */
   const sendVerdict = async (_settled: ClaimSettled, _heroId: string): Promise<void> => undefined;
@@ -381,6 +414,7 @@ export const useSyncStore = defineStore("sync", () => {
     problem,
     firstPullProgress,
     turns,
+    tookOverNotice,
     isOn,
     isFamilyDevice,
     isFullPortal,
@@ -390,11 +424,12 @@ export const useSyncStore = defineStore("sync", () => {
     upload,
     download,
     reset,
-    holds,
-    signIn,
-    takeOver,
-    rest,
-    withTurn,
+    // The hero's turn (sync/heroTurns.ts): holds, signIn (granted, busy or offline), takeOver, rest, withTurn
+    holds: heroTurns.holds,
+    signIn: heroTurns.signIn,
+    takeOver: heroTurns.takeOver,
+    rest: heroTurns.rest,
+    withTurn: heroTurns.withTurn,
     sendVerdict,
   };
 });
