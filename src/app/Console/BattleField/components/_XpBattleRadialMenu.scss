@@ -159,7 +159,9 @@
   box-shadow: 0 0 0 2px var(--gs-divider), 0 3px 8px rgba(0, 0, 0, 0.6);
   border-radius: 24px;
   font-family: var(--gs-font);
-  font-size: 1.15rem;
+  // 1.15rem on a 390px phone and up; narrower phones scale the pills down with the screen (0.95rem at 320px),
+  // so a label wraps only under a font that really is too wide
+  font-size: clamp(0.95rem, 4.72vw, 1.15rem);
   // Ionic's button adds .06em of tracking, more than a wide pixel font can spare
   letter-spacing: 0;
   // The pill hugs its text and shrinks to its slot: a wide Game Style font never pushes it off the phone
@@ -254,6 +256,50 @@
     .pill-icon {
       color: var(--gs-accent);
     }
+  }
+}
+
+// Narrow phones (320-374px): a smaller hero button and tighter gutters leave the pills their width
+@media (max-width: 374px) {
+  .radial-cluster {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .radial-slot {
+    &.slot-left {
+      padding-right: 4px;
+    }
+
+    &.slot-center {
+      padding: 0 2px;
+    }
+
+    &.slot-right {
+      padding-left: 4px;
+    }
+  }
+
+  .center-avatar-btn {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+// Short phones: the cluster gives 14px back to the arena
+@media (max-height: 700px) {
+  .radial-prompt {
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  .radial-cluster {
+    min-height: 126px;
+    padding-top: 32px;
+  }
+
+  .cluster-confirm {
+    padding-top: 32px;
   }
 }
 

@@ -462,16 +462,24 @@ $outline: -2px -2px 0 $ink, 0 -2px 0 $ink, 2px -2px 0 $ink, -2px 0 0 $ink, 2px 0
   text-shadow: #{$outline};
 }
 
-// Short phones: give the beast the room.
+// Short phones: give the beast the room (the page tightens the hero card and the box the same way).
 @media (max-height: 700px) {
   .enemy-name {
-    margin-top: 18px;
-    margin-bottom: 16px;
+    margin-top: 14px;
+    margin-bottom: 10px;
   }
 
   .chores,
   .attack-timer-slot {
-    margin-top: 6px;
+    margin-top: 4px;
+  }
+
+  .attack-timer-slot {
+    min-height: 40px;
+  }
+
+  .attack-timer {
+    min-height: 36px;
   }
 }
 

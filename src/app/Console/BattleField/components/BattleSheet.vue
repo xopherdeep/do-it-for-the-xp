@@ -206,6 +206,31 @@ const back = () => {
   }
 }
 
+// Short phones (iPhone SE / 8, 360x640 Androids): a taller sheet with a tighter head and foot, so a Power card and its
+// Cast button show whole instead of half under the fold
+@media (max-height: 700px) {
+  .battle-sheet {
+    max-height: 80%;
+  }
+
+  .sheet-header {
+    padding-bottom: 6px;
+  }
+
+  .sheet-subtitle {
+    margin-top: 2px;
+  }
+
+  .menu-content {
+    max-height: 58vh;
+  }
+
+  .menu-footer {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rpg-button {
     transition: none;
