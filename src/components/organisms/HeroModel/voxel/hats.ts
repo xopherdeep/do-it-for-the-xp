@@ -1,7 +1,6 @@
 import type { HatStyle } from "@/lib/hero-look/types";
-import { cutBlock } from "./head";
 import { hexToRgb } from "./mesh";
-import { box, both, lighten, PALETTE, shade } from "./shape";
+import { box, both, cutBlock, lighten, PALETTE, shade } from "./shape";
 import type { Box } from "./shape";
 
 /**
@@ -29,7 +28,7 @@ export const hat = (style: HatStyle, color: string): Box[] => {
         box(-3, 14.5, 6, 3, 15, 6.5, shade(C, 0.55)),
         box(-1, 15.25, 4, 1, 15.75, 4.25, lighten(C, 0.6)),
         // the band round the foot of the crown, a hair proud of it
-        ...cutBlock(-4.1, 14.5, -4.1, 4.1, 14.75, 4, shade(C, 0.85)),
+        ...cutBlock(-4.1, 14.5, -4.1, 4.1, 14.75, 4.1, shade(C, 0.85)),
       ];
 
     case "crown": {
@@ -115,6 +114,8 @@ export const hat = (style: HatStyle, color: string): Box[] => {
     case "bandana":
       return [
         ...cutBlock(-4, 14, -4, 4, 15.25, 4, C),
+        // the front corners stay square in the lowest half unit, so their cut walls do not lie flat against the hair's fringe
+        ...both([box(3.5, 14, 3.5, 4, 14.5, 4, C)]),
         ...both([box(1, 15.25, 0.5, 2, 15.45, 1.5, lighten(C, 0.8)), box(-3, 15.25, -2.5, -2, 15.45, -1.5, lighten(C, 0.8))]),
         box(-0.5, 15.25, 2.4, 0.5, 15.45, 3.4, lighten(C, 0.8)),
         box(-3, 14.4, 4, -2.4, 14.9, 4.15, lighten(C, 0.8)),

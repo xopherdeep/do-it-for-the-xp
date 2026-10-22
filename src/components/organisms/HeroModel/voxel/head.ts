@@ -1,6 +1,6 @@
 import { SKIN_TONES } from "@/lib/hero-look/types";
 import type { FaceStyle, SkinTone } from "@/lib/hero-look/types";
-import { box, both, mix, PALETTE, shade } from "./shape";
+import { box, both, cutBlock, mix, PALETTE, shade } from "./shape";
 import type { Box } from "./shape";
 
 /**
@@ -10,14 +10,6 @@ import type { Box } from "./shape";
 export const HEAD = { x: 3.5, y0: 8, y1: 15, z: 3.5 } as const;
 const F = HEAD.z;
 const R = F + 0.25;
-/** How much a block's vertical edges are cut away: half a unit, the smallest step a box may take */
-const CUT = 0.5;
-
-/** A block with its four vertical edges cut by `cut`: two boxes crossed, one short in z and one short in x */
-export const cutBlock = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string, cut = CUT): Box[] => [
-  box(x0, y0, z0 + cut, x1, y1, z1 - cut, color),
-  box(x0 + cut, y0, z0, x1 - cut, y1, z1, color),
-];
 
 /** A flat feature on the face: x/y rectangle at the face plane, raised by `depth` (a quarter unit at most) */
 const dot = (x0: number, y0: number, x1: number, y1: number, color: string, depth = 0.25): Box =>
@@ -26,7 +18,10 @@ const dot = (x0: number, y0: number, x1: number, y1: number, color: string, dept
 /** Eye highlight: sits on top of the eye, so it is raised a little further */
 const glint = (x0: number, y0: number, color = PALETTE.white): Box => box(x0, y0, R, x0 + 0.5, y0 + 0.5, R + 0.12, color);
 
-/** Features sit on half-unit steps, drawn on the right of the face and mirrored; nothing goes past x 3, where the face plane ends */
+/**
+ * Features sit on half-unit steps and nothing goes past x 3, where the face plane ends. Most are drawn on the right and
+ * mirrored with `both`; the glints, the wink, the smirks and the tongue are placed per side on purpose.
+ */
 const face = (style: FaceStyle, eye: string, brow: string, blush: string, lid: string): Box[] => {
   const cheeks = both([box(2, 10, F, 3, 11, F + 0.12, blush)]);
   switch (style) {

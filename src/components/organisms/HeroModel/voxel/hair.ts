@@ -1,6 +1,5 @@
 import type { HairStyle, HatStyle } from "@/lib/hero-look/types";
-import { cutBlock } from "./head";
-import { box, both, lighten, shade } from "./shape";
+import { box, both, cutBlock, lighten, shade } from "./shape";
 import type { Box } from "./shape";
 
 /** Hats that sit over the crown, so hair must not poke through the top */
@@ -60,7 +59,7 @@ export const hair = (style: HairStyle, color: string, options: HairOptions = {})
   if (isHooded) {
     const isHairHiddenByHood = style === "none" || style === "buzz" || style === "mohawk";
     if (isHairHiddenByHood) return [];
-    return [lock(-3.5, 13.75, 3.5, 14.25)];
+    return [lock(-3.5, 13.5, 3.5, 14.25)];
   }
 
   switch (style) {
@@ -114,7 +113,7 @@ export const hair = (style: HairStyle, color: string, options: HairOptions = {})
           ]);
       return [
         ...slab(3.75, 15.75),
-        ...base(H, topY, [lock(-3.5, 14, 3.5, topY), lock(-2.5, 13.5, -1.5, 14), lock(0, 13, 1, 14), lock(2, 13.5, 3, 14)]),
+        ...base(H, topY, [lock(-3.5, 14, 3.5, topY), lock(-2.5, 13.5, -1.5, 14), lock(0, 13, 1, 14), lock(2, 13.5, 3.5, 14)]),
         ...spikes,
       ];
     }
@@ -157,7 +156,7 @@ export const hair = (style: HairStyle, color: string, options: HairOptions = {})
           box(2.5, 16.25, 1, 4.25, 17.25, 3, H),
           box(1.5, 16.25, -3.5, 3.5, 17.5, -1.5, Hd),
           box(0.2, 17, 0.2, 1.4, 17.6, 1.4, Hl),
-          box(3.5, 14.25, 3.5, 4.25, 15.25, 4.25, Hd),
+          box(3.5, 14.25, 3.25, 4.25, 15.25, 4.25, Hd),
         ]),
         box(-3.5, 11.5, -4.5, 3.5, 14.5, -3.5, H),
         box(-1.25, 16.25, 2.5, 1.25, 17.5, 4.25, Hd),
@@ -175,9 +174,9 @@ export const hair = (style: HairStyle, color: string, options: HairOptions = {})
             // the shaved sides: a darker plate laid on the crown, cut like the head under it
             ...cutBlock(-3.5, 15, -3.5, 3.5, 15.25, 3.5, shade(H, 0.7)),
             box(-0.8, 15, 1, 0.8, 17, 3.75, H),
-            box(-0.8, 15, -1.5, 0.8, 18, 1, H),
+            box(-0.8, 15, -1.5, 0.8, 17.9, 1, H),
             box(-0.8, 15, -3.75, 0.8, 16.5, -1.5, H),
-            box(-0.4, 18, -1, 0.4, 18.5, 0.5, Hl),
+            box(-0.4, 17.9, -1, 0.4, 18.4, 0.5, Hl),
             box(-0.4, 17, 2, 0.4, 17.5, 3.25, Hl),
           ];
 

@@ -46,7 +46,7 @@ const GENERIC_HELD = ["sword", "shield", "wand", "book", "axe", "hammer", "bow",
 describe("measureHero", () => {
   it("counts the default hero's boxes and quads and times the build", () => {
     const m = measureHero(DEFAULT_LOOK);
-    expect(m.boxes).toBe(50);
+    expect(m.boxes).toBe(52);
     expect(m.quads).toBeGreaterThan(400);
     expect(m.ms).toBeGreaterThanOrEqual(0);
     expect(Object.keys(m.parts).sort()).toEqual([...PART_NAMES].sort());
