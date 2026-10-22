@@ -17,8 +17,9 @@ import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useProStore } from "@/lib/store/stores/pro";
 import { useUserStore } from "@/lib/store/stores/user";
+import { getSavedUserId } from "@/lib/store/stores/user/session";
 import debug from "@/lib/utils/debug";
-import { createHeroTurns } from "./sync/heroTurns";
+import { createHeroTurns, storedTurnsOf } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
 
@@ -273,6 +274,12 @@ export const useSyncStore = defineStore("sync", () => {
     download,
     flush,
     dropHero: (heroId) => transfer.dropHero(heroId),
+    turnsChanged: () => {
+      // Saved for a restart only when what a restart needs changed (held or not), never for each ask
+      const kept = storedTurnsOf(turns.value);
+      const isSame = JSON.stringify(kept) === JSON.stringify(state.value.turns);
+      if (!isSame) update((current) => ({ ...current, turns: kept })).catch((error) => debug.warn("sync: could not save the turns", error));
+    },
     answered: () => {
       succeeded();
       pauses.connectionBack();
@@ -284,9 +291,9 @@ export const useSyncStore = defineStore("sync", () => {
     mayLend: () => isOn.value && !pauses.isPaused(),
   });
 
-  /** The hero signed in on this device, if any */
+  /** The hero signed in on this device, if any; before the profiles load, the one the app will sign in again */
   const currentHero = (): string | null => {
-    const id = user.currentUser?.id;
+    const id = user.currentUser?.id || getSavedUserId();
     return id ? String(id) : null;
   };
 
@@ -375,6 +382,8 @@ export const useSyncStore = defineStore("sync", () => {
       initPromise = (async () => {
         if (!multiplayerEnabled()) return;
         await load();
+        // The heroes this device held when it stopped are held again, provisionally, until the site answers
+        heroTurns.restore(Object.keys(state.value.turns).filter((heroId) => state.value.turns[heroId] === "held"));
         listen();
         if (!isOn.value) return;
         requestNow("round");

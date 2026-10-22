@@ -1415,4 +1415,139 @@ describe("the sync store", () => {
     await sync.takeOver("h-3");
     expect(sync.turns["h-3"]).toEqual({ state: "held", busy: null, provisional: true });
   });
+
+  // --- Fix round 2 ---
+
+  it("a sign-in after an ask decided to give the turn back waits for it, then asks again and holds", async () => {
+    const sync = await started();
+    const answer = held();
+    const givenBack = held();
+    playHero.mockImplementationOnce(async () => {
+      await answer.promise;
+      return { answer: "granted" };
+    });
+    restHero.mockImplementationOnce(async () => {
+      await givenBack.promise;
+    });
+    mockUser.currentUser.id = "h-1";
+    await drain();
+    showPage("hidden");
+    await drain();
+    // the grant arrives for a hero that rests now: it is being given back
+    answer.release();
+    await drain();
+    expect(restHero).toHaveBeenCalledTimes(1);
+
+    showPage("visible");
+    await drain();
+    expect(playHero).toHaveBeenCalledTimes(1);
+    expect(sync.turns["h-1"].state).toBe("resting");
+    givenBack.release();
+    await drain();
+
+    expect(playHero).toHaveBeenCalledTimes(2);
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sync.holds("h-1")).toBe(true);
+  });
+
+  it("a busy answer heard after the hero rested holds nothing back", async () => {
+    const sync = await started();
+    const answer = held();
+    playHero.mockImplementationOnce(async () => {
+      await answer.promise;
+      return BUSY;
+    });
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "here" });
+    const signingIn = sync.signIn("h-1");
+    await drain();
+    await sync.rest("h-1");
+    answer.release();
+    expect(await signingIn).toBe("busy");
+    expect(sync.turns["h-1"].state).toBe("resting");
+
+    const fromPhone = { id: "q1", userId: "h-1", status: "phone" };
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
+    await sync.download();
+    expect(mockStores.__questLog.q1).toEqual(fromPhone);
+    expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("an offline hold rested while its confirm hears busy ends with nothing held back", async () => {
+    const sync = await started();
+    playHero.mockRejectedValue(new TownHallError("offline"));
+    await sync.signIn("h-1");
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "offline play" });
+    playHero.mockReset();
+    playHero.mockResolvedValue(BUSY);
+
+    await sync.rest("h-1");
+    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(sent()).toEqual([]);
+
+    const fromPhone = { id: "q1", userId: "h-1", status: "phone" };
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
+    await sync.download();
+    expect(mockStores.__questLog.q1).toEqual(fromPhone);
+    expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("Play here answered busy keeps the hero busy and its changes kept", async () => {
+    const sync = await started();
+    playHero.mockResolvedValue(BUSY);
+    expect(await sync.signIn("h-1")).toBe("busy");
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "here" });
+    await drain();
+
+    await sync.takeOver("h-1");
+    expect(playHero).toHaveBeenLastCalledWith(PARENT, "h-1", OWN, "the family computer", true);
+    expect(sync.turns["h-1"].state).toBe("busy");
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, { id: "q1", userId: "h-1", status: "phone" }, { heroId: "h-1" })]);
+    await sync.download();
+    expect(mockStores.__questLog.q1).toEqual({ id: "q1", userId: "h-1", status: "here" });
+  });
+
+  it("the turns are saved, and after a restart a hero held here is held again until the site answers; busy keeps its play", async () => {
+    let sync = await started();
+    await sync.signIn("h-1");
+    expect((mockSyncState as SyncState).turns).toEqual({ "h-1": "held" });
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "offline play" });
+    await drain();
+
+    // the app is killed while it plays; on the next start another device plays the hero
+    freshDevice();
+    mockSyncState = syncState({ firstPushDone: true, lastSeq: 5, turns: { "h-1": "held" }, outbox: [{ store: "__questLog", key: "q1", heroId: "h-1", queuedAt: "2026-10-22T10:00:00.000Z" }] });
+    mockUser.currentUser.id = "h-1";
+    playHero.mockResolvedValue(BUSY);
+    const fromPhone = { id: "q1", userId: "h-1", status: "phone" };
+    fetchRecords.mockResolvedValue([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
+    sync = await started();
+
+    expect(sync.turns["h-1"].state).toBe("busy");
+    expect(mockStores.__questLog.q1).toEqual({ id: "q1", userId: "h-1", status: "offline play" });
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q1"]);
+    expect(sync.state.lastSeq).toBe(5);
+  });
+
+  it("after a restart the hero the player is on is confirmed and plays on; one held for a borrow is sent and rested", async () => {
+    mockSyncState = syncState({
+      firstPushDone: true,
+      lastSeq: 5,
+      turns: { "h-1": "held", "h-2": "held" },
+      outbox: [
+        { store: "__questLog", key: "q1", heroId: "h-1", queuedAt: "2026-10-22T10:00:00.000Z" },
+        { store: "__questLog", key: "q2", heroId: "h-2", queuedAt: "2026-10-22T10:00:01.000Z" },
+      ],
+    });
+    mockStores = { __questLog: { q1: { id: "q1", userId: "h-1" }, q2: { id: "q2", userId: "h-2" } } };
+    mockUser.currentUser.id = "h-1";
+
+    const sync = await started();
+    await drain();
+
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sync.turns["h-2"].state).toBe("resting");
+    expect(sent().map((record) => record.key).sort()).toEqual(["q1", "q2"]);
+    expect(restHero.mock.calls.map(([, heroId]) => heroId)).toEqual(["h-2"]);
+    expect((mockSyncState as SyncState).turns).toEqual({ "h-1": "held", "h-2": "resting" });
+  });
 });
