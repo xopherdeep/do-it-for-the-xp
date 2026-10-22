@@ -39,7 +39,6 @@ const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.inclu
 
 /** Floors each regenerated temple was spread over */
 const FLOORS: Record<string, number> = {
-  "earth-temple": 2,
   "fire-temple": 2,
   "ice-temple": 2,
   "light-temple": 2,
@@ -50,7 +49,6 @@ const FLOORS: Record<string, number> = {
 
 /** The relics each regenerated temple keeps in a chest */
 const RELICS: Record<string, string[]> = {
-  "earth-temple": ["Gaia's Hammer"],
   "fire-temple": ["Flame Shield"],
   "ice-temple": ["Frost Wand"],
   "light-temple": ["Dawnbreaker Bow"],
@@ -66,7 +64,6 @@ const RELICS: Record<string, string[]> = {
  */
 const COMBAT_ROOMS: Record<string, [number, number, number]> = {
   "wind-temple": [6, 2, 1],
-  "earth-temple": [5, 1, 1],
   "water-temple": [5, 1, 1],
   "shadow-temple": [7, 1, 1],
   "fire-temple": [4, 1, 1],
@@ -77,7 +74,6 @@ const COMBAT_ROOMS: Record<string, [number, number, number]> = {
 
 const TEMPLE_SIZE: Record<string, number> = {
   "wind-temple": 22,
-  "earth-temple": 21,
   "water-temple": 21,
   "shadow-temple": 23,
   "fire-temple": 25,

@@ -177,7 +177,8 @@ describe("the classic dungeon temples", () => {
 
     it("names a landing on a stairs room of the opposite kind for every flight", () => {
       const flights = report.placements.filter((entry) => /^stairs-/.test(entry.type));
-      expect(flights.length).toBeGreaterThanOrEqual(2);
+      // One flight per stairway of the dungeon (Skull Woods has none: its basement is reached by a fall)
+      expect(flights).toHaveLength(cells.filter(({ cell }) => cell.stairs).length);
       for (const flight of flights) {
         const content = roomOf(flight).content!;
         const landing = roomAt(String(content.targetLevel), Number(content.targetCoords?.y), Number(content.targetCoords?.x));

@@ -47,6 +47,20 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibosses: [["under-bed-bogey", 5, "weekly"]],
     boss: ["clutter-chimera", 8, "weekly"],
   },
+  // Skull Woods: yard and pet chores. Five must-clear rooms take today's five beasts, every one a starter fill (Feed
+  // the Loyal Familiar finds the Kibble Kobold through the library); the Leaf Lion guards the Big Key room.
+  "earth-temple": {
+    name: "Earth Temple",
+    theme: "forest",
+    element: "earth",
+    relic: "Gaia's Hammer",
+    shop: "EarthquakeScroll",
+    trap: ["rockfall", 7],
+    puzzle: "stonePillars",
+    mustClear: [["kibble-kobold", 1, "daily am"], ["droop-dryad", 1, "weekly"], ["zoomie-zephyr", 2, "daily"], ["plop-golem", 2, "weekly"], ["weed-wyrm", 2, "weekly"]],
+    minibosses: [["leaf-lion", 5, "weekly"]],
+    boss: ["meadow-minotaur", 8, "weekly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);

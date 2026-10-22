@@ -1,19 +1,19 @@
 /**
- * The guards of the dress step (tools/temples/classic/dress.ts) for the temples that follow Storm: every classic JSON
- * dressed in memory under the Storm plan as a stand-in (Task 8 writes each temple's own plan and module), checked
- * against its own converted dungeon:
+ * The guards of the dress step (tools/temples/classic/dress.ts) on every classic JSON: each dressed in memory under its
+ * own plan (dressPlans.ts) once it has one, else under the Storm plan as a stand-in, and checked against its own
+ * converted dungeon:
  * - every must-clear fight that blocks the boss in the dungeon still blocks him in the temple (the seals pin);
  * - whatever the dressing pushes out of a sealed fight is reached only through that fight, a warp that lands on a
  *   sealed fight lands in front of it, and a chest or a key that leaves its cell is reached from that cell with
  *   nothing in hand (no key, no Bomb, no seal);
- * - what each temple builds and solves today, pinned, for Task 8 to flip temple by temple.
+ * - what each temple builds and solves today, pinned: under its own plan once it has one, else under the stand-in.
  * The shipped classic temples are checked in ClassicTemples.spec.ts, the rules on hand-made dungeons in
  * ClassicDress.spec.ts.
  */
 import { readdirSync } from "fs";
 import { join } from "path";
 import type { ClassicDungeon } from "../../tools/temples/classic/classicDungeon";
-import { CLASSIC_IDS, CLASSIC_PLANS, dressDungeon, loadDungeon, type DressedTemple } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, CLASSIC_PLANS, dressDungeon, loadDungeon, type ClassicPlan, type DressedTemple } from "../../tools/temples/classic/dress";
 import { DUNGEON_DIR } from "../../tools/temples/classic/dressPlans";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph, reachableFrom, roomKey, solveTemple, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator";
@@ -41,12 +41,15 @@ const asRegistered = (temple: TempleLayout): TempleLayout => ({
   rooms: Object.fromEntries(Object.entries(temple.rooms).map(([token, room]) => [token, lockedFromSides(room)])),
 });
 
-/** Each JSON dressed once, under the Storm plan as a stand-in */
+/** The plan a JSON is dressed under: its own once it has one, else the Storm plan as a stand-in */
+const planFor = (id: string): ClassicPlan => CLASSIC_PLANS[id] ?? { ...CLASSIC_PLANS["storm-temple"], name: `${id} (in memory)` };
+
+/** Each JSON dressed once, under its plan */
 const dressed = new Map<string, DressedTemple>();
 const dressedIn = (id: string): DressedTemple => {
   const known = dressed.get(id);
   if (known) return known;
-  const made = dressDungeon(loadDungeon(id), { ...CLASSIC_PLANS["storm-temple"], name: `${id} (in memory)` });
+  const made = dressDungeon(loadDungeon(id), planFor(id));
   dressed.set(id, made);
   return made;
 };
@@ -231,7 +234,7 @@ const arrivesFromBefore = (dressedTemple: Dressed, room: string, fight: string):
   return ends.some((key) => before.has(key));
 };
 
-describe("the classic JSONs, dressed in memory under the stand-in plan", () => {
+describe("the classic JSONs, dressed in memory under their plans", () => {
   it("are every JSON the converter wrote, the shipped classic temples among them", () => {
     const written = readdirSync(join(process.cwd(), DUNGEON_DIR)).filter((name) => name.endsWith(".json")).map((name) => name.replace(/\.json$/, ""));
     expect([...written].sort()).toEqual([...ALL_NINE].sort());
@@ -291,7 +294,7 @@ describe("the classic JSONs, dressed in memory under the stand-in plan", () => {
     it("hands out every chest and key of its dungeon exactly once, a boxed-in fight's drops among them", () => {
       const all = Object.values(dressedIn(id).temple.rooms as Record<string, Room>);
       const cells = dungeon.floors.flatMap((level) => level.cells);
-      const relic = CLASSIC_PLANS["storm-temple"].relic;
+      const relic = planFor(id).relic;
       const holding = (item: string): number => all.filter((room) => grantedDungeonItems(room).includes(item)).length;
       const goldOf = (room: Room): number => Number(room.type === "loot" && room.content?.chest === "gold" ? room.content.gold : 0) + Number(roomDrops(room)?.gold ?? 0);
       const handedOut = {
@@ -346,12 +349,12 @@ describe("the classic JSONs, dressed in memory under the stand-in plan", () => {
 });
 
 /**
- * What the tool makes of each JSON under the stand-in plan, pinned per temple (builds, solves, the solver's exact
- * reasons, the audit's missing names). Task 8 flips each line to clean as it dresses that temple with its own plan;
- * any regression of the tool turns a line red. The Wind JSON is the Eagle (Zelda 1): no Big Key, so no Boss Key chest
- * under any plan. The R4 notes are the mini-boss of each plan, still to choose.
+ * What the tool makes of each JSON under its plan, pinned per temple (builds, solves, the solver's exact reasons, the
+ * audit's missing names): a temple with its own plan is clean; one still under the stand-in shows what the tool makes of
+ * it today, and any regression of the tool turns a line red. The Wind JSON is the Eagle (Zelda 1): no Big Key, so no
+ * Boss Key chest under the stand-in. The R4 notes are the mini-boss each plan still has to choose.
  */
-describe("every classic JSON, dressed in memory under the stand-in plan", () => {
+describe("every classic JSON, dressed in memory under its plan", () => {
   const PINNED: Record<string, { solvable: boolean; reasons: string[]; audit: string[] }> = {
     "wind-temple": {
       solvable: false,
@@ -361,6 +364,7 @@ describe("every classic JSON, dressed in memory under the stand-in plan", () => 
         "R4: no master key",
       ],
     },
+    // Its own plan
     "earth-temple": { solvable: true, audit: [], reasons: [] },
     "light-temple": { solvable: true, audit: [], reasons: [] },
     // The entrance's key chest waits beside the locked flight it opens (it took the Swamp Attic, behind that flight, before)
@@ -381,10 +385,9 @@ describe("every classic JSON, dressed in memory under the stand-in plan", () => 
 });
 
 /**
- * The tool on the two temples that follow Storm (Task 8 writes their plans and modules): their JSON dressed in memory
- * under a stand-in plan must build, clear the solver and the audit, and keep the Boss Key between the hero and the
- * boss. A boss reached by a fall (both) lands the hero beside him, and the ride back lands beside the room they fell
- * from.
+ * The tool on the two temples whose boss is reached by a fall: their JSON dressed in memory under its plan must build,
+ * clear the solver and the audit, and keep the Boss Key between the hero and the boss. The fall lands the hero beside
+ * the boss, and the ride back lands beside the room they fell from.
  */
 describe("the next temples, dressed in memory", () => {
   describe.each(["earth-temple", "ice-temple"])("%s", (id) => {

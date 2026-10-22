@@ -1,8 +1,8 @@
 /**
- * Writes the generated temples of src/lib/engine/temples (earth, fire, ice, light, moon, shadow, water) from fixed
- * seeds. The Wind Temple is made by hand and the Storm Temple is dressed from the Tower of Hera's JSON
- * (tools/temples/classic/dress.ts); neither is touched here, and each temple that moves to a classic dungeon leaves
- * PLANS below for classic/dressPlans.ts.
+ * Writes the generated temples of src/lib/engine/temples that PLANS below still lists, from fixed seeds. The Wind
+ * Temple is made by hand, and the temples that follow a classic dungeon (Storm from the Tower of Hera, Earth from
+ * Skull Woods, ...) are dressed from its JSON (tools/temples/classic/dress.ts); none of those is touched here, and each
+ * temple that moves to a classic dungeon leaves PLANS for classic/dressPlans.ts.
  *
  *   node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/bin/esbuild tools/temples/regenerate.ts \
  *     --bundle --platform=node --format=cjs --outfile=/tmp/regenerate-temples.cjs && node /tmp/regenerate-temples.cjs
@@ -55,15 +55,6 @@ interface Plan {
 }
 
 const PLANS: Record<string, Plan> = {
-  "earth-temple": {
-    name: "Earth Temple", theme: "forest", element: "earth", floors: 2,
-    quests: {
-      monsters: [["kibble-kobold", 1, "daily am"], ["droop-dryad", 1, "weekly"], ["zoomie-zephyr", 2, "daily"], ["plop-golem", 2, "weekly"], ["weed-wyrm", 2, "weekly"]],
-      minibosses: [["leaf-lion", 5, "weekly"]],
-      boss: ["meadow-minotaur", 8, "weekly"],
-    },
-    trap: ["rockfall", 7], puzzle: "stonePillars", shop: "EarthquakeScroll", relics: ["Gaia's Hammer"],
-  },
   "fire-temple": {
     name: "Fire Temple", theme: "mountains", element: "fire", floors: 2,
     quests: {
