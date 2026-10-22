@@ -29,8 +29,11 @@ export type StoredTurn = "held" | "resting";
 
 const STORED_TURNS: StoredTurn[] = ["held", "resting"];
 
-/** A `claim.settled` this device has taken for a hero whose log entry it has not paid yet, with the site's number for it */
-export type PendingVerdict = ClaimSettled & { heroId: string; seq: number };
+/**
+ * A `claim.settled` this device has taken for a hero whose log entry it has not paid yet, with the site's number for it
+ * (0 for a verdict this device gave) and when it was first kept (a verdict whose entry never comes is dropped after a week)
+ */
+export type PendingVerdict = ClaimSettled & { heroId: string; seq: number; at?: string };
 
 export interface SyncState {
   outbox: OutboxItem[];
@@ -42,7 +45,7 @@ export interface SyncState {
   turns: Record<string, StoredTurn>;
   /** questLog entry id -> the verdict this Game Master device sent for an entry it does not own, until the mirror arrives */
   verdictsSent: Record<string, { approved: boolean; at: string }>;
-  /** claimId -> a verdict that came before its quest log entry did, kept until it can be applied */
+  /** claimId -> a verdict not applied yet (its quest log entry has not come, or another device holds the hero), until its entry is settled */
   pendingVerdicts: Record<string, PendingVerdict>;
 }
 

@@ -111,12 +111,23 @@ jest.mock("@/lib/databases/FamilyEventsDb", () => ({
   }),
 }));
 
-jest.mock("@/lib/services/quests/QuestCompletionService", () => ({ __esModule: true, applyQuestRewards: jest.fn() }));
+/** The completion service's review as a verdict applies it: a pending entry in the raw quest log is settled (and paid) once */
+jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
+  __esModule: true,
+  applyQuestRewards: jest.fn(),
+  approveCompletion: jest.fn(async (id: string) => mockReview(id, { status: "approved", rewardsApplied: true })),
+  rejectCompletion: jest.fn(async (id: string, _reviewer: unknown, note?: string) => mockReview(id, { status: "rejected", note })),
+}));
 
+/** The quest log reads the raw store the download lands in */
 jest.mock("@/lib/databases/QuestLogDb", () => ({
   __esModule: true,
   ...jest.requireActual("@/lib/databases/QuestLogDb"),
-  getQuestLogDb: () => ({ getEntries: async () => [], getAll: async () => [] }),
+  getQuestLogDb: () => ({
+    getEntries: async () => Object.values(mockStores.__questLog ?? {}),
+    getAll: async () => Object.values(mockStores.__questLog ?? {}),
+    get: async (id: string) => mockStores.__questLog?.[id] ?? null,
+  }),
 }));
 
 const mockTownHall = reactive({
@@ -190,6 +201,7 @@ jest.mock("@/lib/services/sync/recordApply", () => {
     ...actual,
     applyRecords: (records: ReceivedRecord[], own: string) => actual.applyRecords(records, own, target),
     refreshMirrors: (...args: unknown[]) => mockRefreshMirrors(...args),
+    rawTargetFor: (store: string) => target(store),
     readRawRecord: async (store: string, key: string) => mockStores[store]?.[key] ?? null,
     readRawEntries: async (store: string) => Object.entries(mockStores[store] ?? {}).map(([key, value]) => ({ key, value })),
   };
@@ -250,6 +262,19 @@ const write = (store: string, key: string, value: unknown) => {
   (mockStores[store] ??= {})[key] = value;
   emitRecordWritten({ store, key, value });
 };
+
+/** The quest log entries the verdicts paid, in order */
+const mockPays: string[] = [];
+/** approveCompletion / rejectCompletion: a pending entry is settled and written (the game's write, so it goes up); a settled one is left alone */
+function mockReview(id: string, patch: Record<string, unknown>): Promise<unknown> {
+  const entry = mockStores.__questLog?.[id] as Record<string, unknown> | undefined;
+  const isPending = entry?.status === "pending";
+  if (!isPending) return Promise.resolve(entry ?? null);
+  const settled = { ...entry, ...patch };
+  if (patch.status === "approved") mockPays.push(id);
+  write("__questLog", id, settled);
+  return Promise.resolve(settled);
+}
 
 /** The site keeps every record it is sent, numbering them from 1000 */
 let nextSeq = 1000;
@@ -320,6 +345,7 @@ describe("the sync store", () => {
     mockSyncState = syncState({ firstPushDone: true, lastSeq: 5 });
     mockSyncSaves.length = 0;
     mockStores = {};
+    mockPays.length = 0;
     mockOnApply = null;
     nextSeq = 1000;
     ensureIdentity.mockResolvedValue({ familyId: FAMILY, deviceId: OWN });
@@ -1549,5 +1575,200 @@ describe("the sync store", () => {
     expect(sent().map((record) => record.key).sort()).toEqual(["q1", "q2"]);
     expect(restHero.mock.calls.map(([, heroId]) => heroId)).toEqual(["h-2"]);
     expect((mockSyncState as SyncState).turns).toEqual({ "h-1": "held", "h-2": "resting" });
+  });
+
+  // --- Verdicts and claims under one writer (spec section 6, and the takeover re-send of section 5) ---
+
+  /** A claim waiting on a Game Master, as the quest log holds it */
+  const claimEntry = (id: string, over: Record<string, unknown> = {}) => ({
+    id,
+    questId: "q-dishes",
+    questName: "Dishes",
+    userId: "h-1",
+    status: "pending",
+    source: "claim",
+    rewards: { xp: 30, gp: 40, ap: 2 },
+    completedAt: "2026-10-22T09:00:00.000Z",
+    ...over,
+  });
+  const verdictOf = (claimId: string, status: "approved" | "rejected" = "approved", note = "") => ({ claimId, questId: "q-dishes", status, note, xp: 0, gp: 0, ap: 0 });
+  /** A verdict another Game Master device sent, as the family's event download reads it */
+  const settledEvent = (seq: number, claimId: string, heroId = "h-1", status: "approved" | "rejected" = "approved") => ({
+    seq,
+    id: `ev-${seq}`,
+    heroId,
+    deviceId: OTHER,
+    kind: "claim.settled" as const,
+    scope: "family" as const,
+    at: "2026-10-22T10:00:00.000Z",
+    receivedAt: "2026-10-22T10:00:01.000Z",
+    data: verdictOf(claimId, status),
+  });
+  /** The events the family store queued for the site */
+  const queuedEvents = () => mockFamilyState.outbox.map(({ kind, heroId, deviceId, data }) => ({ kind, heroId, deviceId, data }));
+
+  it("sendVerdict pays through withTurn when nobody holds the hero", async () => {
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}", "h-2": "{}" } });
+    const sync = await started();
+    mockStores.__questLog = { e1: claimEntry("e1") };
+    const order: string[] = [];
+    playHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`play ${heroId}`);
+      return heroId === "h-2" ? BUSY : { answer: "granted" };
+    });
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      order.push(`put ${records.map((record) => record.key).join(",")}`);
+      return acceptAll(auth, device, records);
+    });
+    restHero.mockImplementation(async (_auth: unknown, heroId: string) => {
+      order.push(`rest ${heroId}`);
+    });
+
+    await sync.sendVerdict(verdictOf("e1"), "h-1");
+    // Approvals says so at once
+    expect(sync.state.verdictsSent.e1).toEqual({ approved: true, at: expect.any(String) });
+    await drain();
+
+    expect(queuedEvents()).toEqual([{ kind: "claim.settled", heroId: "h-1", deviceId: OWN, data: verdictOf("e1") }]);
+    expect(order).toEqual(["play h-1", "put e1", "rest h-1"]);
+    expect(mockPays).toEqual(["e1"]);
+    expect(mockStores.__questLog.e1).toMatchObject({ status: "approved", rewardsApplied: true });
+    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(sync.state.pendingVerdicts).toEqual({});
+    expect(sync.state.verdictsSent).toEqual({});
+
+    // h-2 plays on another device: the verdict waits for that device, and Approvals says so until its copy lands
+    mockStores.__questLog.e2 = claimEntry("e2", { userId: "h-2" });
+    await sync.sendVerdict(verdictOf("e2", "rejected", "Under the bed too"), "h-2");
+    await drain();
+    expect(mockPays).toEqual(["e1"]);
+    expect(mockStores.__questLog.e2).toMatchObject({ status: "pending" });
+    expect(sync.state.verdictsSent.e2).toEqual({ approved: false, at: expect.any(String) });
+    expect(sync.state.pendingVerdicts.e2).toMatchObject({ claimId: "e2", heroId: "h-2", status: "rejected", note: "Under the bed too" });
+
+    const fromPhone = claimEntry("e2", { userId: "h-2", status: "rejected", note: "Under the bed too" });
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "e2", 6, fromPhone, { heroId: "h-2" })]).mockResolvedValue([]);
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(mockStores.__questLog.e2).toEqual(fromPhone);
+    expect(sync.state.pendingVerdicts).toEqual({});
+    expect(sync.state.verdictsSent).toEqual({});
+  });
+
+  it("a verdict for an entry not yet here waits in pendingVerdicts and applies after the download", async () => {
+    const sync = await started();
+    await sync.signIn("h-1");
+    fetchEvents.mockResolvedValueOnce([settledEvent(7, "e1")]);
+
+    await useFamilyStore().download();
+
+    expect(mockPays).toEqual([]);
+    expect(sync.state.pendingVerdicts).toEqual({ e1: expect.objectContaining({ ...verdictOf("e1"), heroId: "h-1", seq: 7 }) });
+
+    // the claim's entry comes down with the next round, and the verdict waiting for it is applied here, once
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "e1", 6, claimEntry("e1"), { heroId: "h-1" })]).mockResolvedValue([]);
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(mockPays).toEqual(["e1"]);
+    expect(mockStores.__questLog.e1).toMatchObject({ status: "approved" });
+    expect(sync.state.pendingVerdicts).toEqual({});
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(mockPays).toEqual(["e1"]);
+  });
+
+  it("two devices settling one claim pay once", async () => {
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}" } });
+    const tablet = await started();
+    mockStores.__questLog = { e1: claimEntry("e1") };
+    await tablet.sendVerdict(verdictOf("e1"), "h-1");
+    await drain();
+    expect(mockPays).toEqual(["e1"]);
+    const paidCopy = mockStores.__questLog.e1;
+
+    // the second Game Master device still shows the claim pending and approves it too; the turn it borrows downloads
+    // the tablet's copy first, so the verdict finds the claim settled
+    freshDevice();
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}" } });
+    mockSyncState = syncState({ firstPushDone: true, lastSeq: 5 });
+    const second = await started();
+    mockStores.__questLog = { e1: claimEntry("e1") };
+    fetchRecords.mockReset();
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "e1", 1001, paidCopy, { heroId: "h-1" })]).mockResolvedValue([]);
+    await second.sendVerdict(verdictOf("e1"), "h-1");
+    await drain();
+
+    expect(mockStores.__questLog.e1).toEqual(paidCopy);
+    // and the tablet's own verdict, read from the family's events, finds it settled too
+    fetchEvents.mockResolvedValueOnce([settledEvent(8, "e1")]);
+    await useFamilyStore().download();
+
+    expect(mockPays).toEqual(["e1"]);
+    expect(second.state.pendingVerdicts).toEqual({});
+  });
+
+  it("a verdict for a hero another device holds waits, and is applied here once the hero is free; one whose entry never comes goes after a week", async () => {
+    const weekAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    mockSyncState = syncState({
+      firstPushDone: true,
+      lastSeq: 5,
+      pendingVerdicts: { lost: { ...verdictOf("lost"), heroId: "h-1", seq: 3, at: weekAgo } },
+    });
+    const sync = await started();
+    expect(sync.state.pendingVerdicts).toEqual({});
+
+    mockStores.__questLog = { e2: claimEntry("e2", { userId: "h-2" }) };
+    playHero.mockResolvedValue(BUSY);
+    fetchEvents.mockResolvedValueOnce([settledEvent(7, "e2", "h-2")]);
+    await useFamilyStore().download();
+    expect(mockPays).toEqual([]);
+    expect(sync.state.pendingVerdicts.e2).toMatchObject({ claimId: "e2", heroId: "h-2", seq: 7 });
+
+    // the phone holding h-2 rested before it read the verdict: the next round finds the hero free and pays it here
+    playHero.mockResolvedValue({ answer: "granted" });
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(mockPays).toEqual(["e2"]);
+    expect(sync.state.pendingVerdicts).toEqual({});
+  });
+
+  it("a pending claim refused in a takeover is re-sent as an unsynced claim event", async () => {
+    jest.useFakeTimers();
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}" } });
+    const sync = await started();
+    await sync.signIn("h-1");
+    write("__questLog", "e1", claimEntry("e1"));
+    write("__questLog", "e2", claimEntry("e2", { questId: "q-trash", status: "approved", rewardsApplied: true }));
+    putRecords.mockImplementationOnce(refuseTurn);
+
+    await tick(5_000);
+
+    expect(sync.tookOverNotice).toBe("h-1");
+    // the held claim goes again as a phone-style claim for the device now holding the hero; the paid one is not re-paid
+    const claims = queuedEvents().filter((e) => e.kind === "quest.claimed");
+    expect(claims).toEqual([{ kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-dishes", difficulty: 1, requiresApproval: true } }]);
+    // this device's copy of the claim goes: the holder writes the claim's entry when it takes it
+    expect(mockStores.__questLog.e1).toBeUndefined();
+    expect(mockStores.__questLog.e2).toBeDefined();
+  });
+
+  it("a Pro kid phone holding its hero applies the verdict from its own event download", async () => {
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    const sync = await started();
+    expect(sync.isFullPortal).toBe(true);
+    await sync.signIn("h-1");
+    mockStores.__questLog = { e1: claimEntry("e1") };
+    playHero.mockClear();
+    fetchEvents.mockResolvedValueOnce([settledEvent(9, "e1")]);
+
+    await useFamilyStore().syncPhone();
+    await drain();
+
+    expect(fetchEvents).toHaveBeenCalledWith({ kind: "hero", key: HERO_KEY }, 0, 100);
+    expect(mockPays).toEqual(["e1"]);
+    expect(playHero).not.toHaveBeenCalled();
+    expect(sync.state.pendingVerdicts).toEqual({});
   });
 });

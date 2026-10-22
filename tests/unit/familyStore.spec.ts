@@ -2,7 +2,7 @@ import { createPinia, getActivePinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
-import { emitHeroRemoved, emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { emitHeroRemoved, emitQuestClaimed, emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import * as server from "@/lib/services/multiplayer/familyServer";
 import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import { cardKey, cardOf } from "@/lib/services/multiplayer/heroCard";
@@ -40,10 +40,13 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
 
 /** The sheet the family device builds for a hero (the board behind it is not under test here) */
 const mockBuildHeroSheet = jest.fn();
+/** Taking one phone claim (the completion service behind it is not under test here) */
+const mockTakePhoneClaim = jest.fn();
 jest.mock("@/lib/services/multiplayer/phoneClaimIntake", () => ({
   __esModule: true,
   ...jest.requireActual("@/lib/services/multiplayer/phoneClaimIntake"),
   buildHeroSheet: (...args: any[]) => mockBuildHeroSheet(...args),
+  takePhoneClaim: (...args: any[]) => mockTakePhoneClaim(...args),
 }));
 
 jest.mock("@/lib/services/pro/familyIdentity", () => ({
@@ -147,8 +150,20 @@ jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallS
 const mockUsers = reactive<Record<string, any>>({});
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ users: mockUsers }) }));
 
-/** Family Sync, as the family store sees it: on for a Pro family, and whether this device is one of its family devices */
-const mockSync = reactive({ isOn: false, isFamilyDevice: false, init: jest.fn(), reset: jest.fn() });
+/**
+ * Family Sync, as the family store sees it: on for a Pro family, whether this device is one of its family devices, the
+ * hero's turn (`withTurn` runs the work here, borrowed, or answers false when another device holds the hero) and the
+ * verdicts it takes from the family's events
+ */
+const mockSync = reactive({
+  isOn: false,
+  isFamilyDevice: false,
+  isFullPortal: false,
+  init: jest.fn(),
+  reset: jest.fn(),
+  withTurn: jest.fn(),
+  takeVerdicts: jest.fn(),
+});
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
 const bindFamily = server.bindFamily as jest.Mock;
@@ -266,8 +281,14 @@ describe("family store", () => {
     mockTownHall.forgetLink.mockResolvedValue(undefined);
     mockSync.isOn = false;
     mockSync.isFamilyDevice = false;
+    mockSync.isFullPortal = false;
     mockSync.init.mockResolvedValue(undefined);
     mockSync.reset.mockResolvedValue(undefined);
+    mockSync.withTurn.mockImplementation(async (_heroId: string, fn: () => Promise<void>) => {
+      await fn();
+      return true;
+    });
+    mockSync.takeVerdicts.mockResolvedValue(undefined);
     (require("@/lib/services/pro/familyIdentity").ensureIdentity as jest.Mock).mockResolvedValue({ familyId: FAMILY, deviceId: DEVICE });
     bindFamily.mockResolvedValue("created");
     moveHome.mockResolvedValue(undefined);
@@ -1338,6 +1359,96 @@ describe("family store", () => {
 
       await store.downloadRound();
       expect(fetchEvents).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("a family that syncs (family sync, section 6)", () => {
+    const phoneClaimEvent = (seq: number, id: string, heroId = "h-1", data: Record<string, unknown> = {}): ReceivedEvent => ({
+      seq,
+      id,
+      heroId,
+      deviceId: "PHONE",
+      kind: "quest.claimed",
+      scope: "family",
+      at: "2026-10-22T09:00:00.000Z",
+      receivedAt: "2026-10-22 09:00:01",
+      data: { questId: "q-1", difficulty: 2, requiresApproval: true, ...data },
+    });
+    /** h-2 is played on another device: its turn is busy, and nothing runs for it here */
+    const turnsWithBoElsewhere = () =>
+      mockSync.withTurn.mockImplementation(async (heroId: string, fn: () => Promise<void>) => {
+        if (heroId === "h-2") return false;
+        await fn();
+        return true;
+      });
+
+    it("intake runs through withTurn when sync is on", async () => {
+      mockSync.isOn = true;
+      fillUsers(mia(), bo(), mom());
+      turnsWithBoElsewhere();
+      mockTakePhoneClaim.mockImplementation(async (e: ReceivedEvent) => ({ claimId: e.id, questId: "q-1", status: "pending", note: "", xp: 0, gp: 0, ap: 0 }));
+      fetchEvents.mockResolvedValueOnce([
+        phoneClaimEvent(1, "c-1", "h-1"),
+        phoneClaimEvent(2, "c-2", "h-2"),
+        // a synced claim's entry arrives as a record: never taken
+        phoneClaimEvent(3, "c-3", "h-1", { synced: true }),
+      ]);
+      const store = await started();
+      await store.download();
+
+      expect(mockSync.withTurn.mock.calls.map(([heroId]) => heroId)).toEqual(["h-1", "h-2"]);
+      expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-1"]);
+      // Bo's claim is left for the device holding Bo: not answered, not marked taken
+      expect(mockState.takenClaims.map((claim) => claim.id)).toEqual(["c-1"]);
+      expect(mockState.outbox.filter((e) => e.kind === "claim.settled").map((e) => e.data.claimId)).toEqual(["c-1"]);
+      expect(mockState.lastSeq).toBe(3);
+    });
+
+    it("a server reward is paid on its hero's turn; one for a hero played elsewhere is left to that device", async () => {
+      mockSync.isOn = true;
+      turnsWithBoElsewhere();
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent(), sampleRewardEvent({ seq: 2, id: "evt-rew-2", heroId: "h-2" })]);
+      const store = await started();
+      await store.download();
+
+      expect(mockApplyQuestRewards).toHaveBeenCalledTimes(1);
+      expect(mockApplyQuestRewards).toHaveBeenCalledWith("h-1", { xp: 50, gp: 0, ap: 3 }, "party:evt-rew-1");
+      expect(mockState.paidRewards.map((paid) => paid.id)).toEqual(["evt-rew-1"]);
+    });
+
+    it("the verdicts among the events go to the sync store, only while it is on", async () => {
+      const verdict: ReceivedEvent = { ...phoneClaimEvent(4, "v-1"), kind: "claim.settled", data: { claimId: "entry-1", questId: "q-1", status: "approved", note: "", xp: 0, gp: 0, ap: 0 } };
+      fetchEvents.mockResolvedValueOnce([verdict]);
+      let store = await started();
+      await store.download();
+      expect(mockSync.takeVerdicts).not.toHaveBeenCalled();
+
+      (getActivePinia() as unknown as { _s: Map<string, { $dispose: () => void }> })._s.forEach((running) => running.$dispose());
+      setActivePinia(createPinia());
+      mockState = emptyState();
+      mockSync.isOn = true;
+      fetchEvents.mockReset();
+      fetchEvents.mockResolvedValueOnce([verdict]).mockResolvedValue([]);
+      store = await started();
+      await store.download();
+      expect(mockSync.takeVerdicts).toHaveBeenCalledWith([verdict]);
+    });
+
+    it("a claim made here is marked synced while the sync is on", async () => {
+      mockState = { ...emptyState(), lastCards: cardsAlreadySent() };
+      const store = await started();
+      emitQuestClaimed({ heroId: "h-1", questId: "q-1", difficulty: 3, requiresApproval: true });
+      await settle();
+      mockSync.isOn = true;
+      emitQuestClaimed({ heroId: "h-1", questId: "q-2", difficulty: 3, requiresApproval: true });
+      await settle();
+
+      const claims = mockState.outbox.filter((e) => e.kind === "quest.claimed").map((e) => e.data);
+      expect(claims).toEqual([
+        { questId: "q-1", difficulty: 3, requiresApproval: true },
+        { questId: "q-2", difficulty: 3, requiresApproval: true, synced: true },
+      ]);
+      expect(store.home).toBe("home");
     });
   });
 });

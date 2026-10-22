@@ -37,6 +37,10 @@ jest.mock("@/lib/databases/NotificationsDb", () => ({
   }),
 }));
 
+/** Family Sync as approvalFlow reads it: off unless a test turns it on; `holds` says whether this device plays the hero */
+const mockSync = { isOn: false, holds: jest.fn((_heroId: string) => false), sendVerdict: jest.fn(async (..._args: unknown[]) => undefined) };
+jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
+
 const log: QuestLogEntry[] = [];
 jest.mock("@/lib/databases/QuestLogDb", () => ({
   getQuestLogDb: () => ({
@@ -86,6 +90,9 @@ let stops: Array<() => void> = [];
 
 beforeEach(() => {
   setActivePinia(createPinia());
+  mockSync.isOn = false;
+  mockSync.holds.mockReset().mockReturnValue(false);
+  mockSync.sendVerdict.mockClear();
   log.length = 0;
   claimed = [];
   reviewed = [];
@@ -147,6 +154,60 @@ describe("rejecting", () => {
     expect(inbox("kid")[0]).toMatchObject({ kind: "rejected" });
     expect(inbox("kid")[0].body).toContain("Under the bed too");
     expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: false, note: "Under the bed too" }]);
+  });
+});
+
+describe("a family that syncs (family sync, section 6)", () => {
+  it("a verdict for a hero this device does not hold is sent, not written", async () => {
+    mockSync.isOn = true;
+    const { entry } = await completeQuest(chore(), "kid");
+
+    const outcome = await approveClaim(entry.id, "mum");
+
+    // the device holding the kid's turn computes the pay and writes the entry; this one only sends the verdict
+    expect(outcome).toEqual({ ok: true, entry: expect.objectContaining({ id: entry.id, status: "pending" }), line: "", remote: true });
+    expect(mockSync.holds).toHaveBeenCalledWith("kid");
+    expect(mockSync.sendVerdict).toHaveBeenCalledWith(
+      { claimId: entry.id, questId: "q1", status: "approved", note: "", xp: 0, gp: 0, ap: 0 },
+      "kid"
+    );
+    expect(log.find((candidate) => candidate.id === entry.id)?.status).toBe("pending");
+    expect(walletOf("kid")).toBe(0);
+    expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: true, note: "" }]);
+    // the Game Masters' notices are settled: the word is given
+    expect(inbox("dad")[0].readAt).toBeTruthy();
+
+    // a rejection goes the same way, with the note the hero reads
+    const second = await completeQuest({ ...chore(), id: "q2" } as Achievement, "kid");
+    const sentBack = await rejectClaim(second.entry.id, "mum", `  ${"Under the bed too. ".repeat(10)}  `);
+    expect(sentBack).toMatchObject({ ok: true, line: "", remote: true });
+    const note = "Under the bed too. ".repeat(10).trim().slice(0, 140);
+    expect(mockSync.sendVerdict).toHaveBeenLastCalledWith(
+      { claimId: second.entry.id, questId: "q2", status: "rejected", note, xp: 0, gp: 0, ap: 0 },
+      "kid"
+    );
+    expect(log.find((candidate) => candidate.id === second.entry.id)?.status).toBe("pending");
+  });
+
+  it("a verdict for a held hero is written as before", async () => {
+    mockSync.isOn = true;
+    mockSync.holds.mockReturnValue(true);
+    const { entry } = await completeQuest(chore(), "kid");
+
+    const outcome = await approveClaim(entry.id, "mum");
+
+    expect(outcome).toEqual({ ok: true, entry: expect.objectContaining({ status: "approved" }), line: "+30 XP · +40 GP · +2 AP" });
+    expect(walletOf("kid")).toBe(40);
+    expect(mockSync.sendVerdict).not.toHaveBeenCalled();
+    expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: true, note: "", paid: { xp: 30, gp: 40, ap: 2 } }]);
+  });
+
+  it("an own chore or a settled claim is refused before anything is sent", async () => {
+    mockSync.isOn = true;
+    const own = await completeQuest(chore(), "mum");
+    expect(await approveClaim(own.entry.id, "mum")).toEqual({ ok: false, reason: "own-claim" });
+    expect(await rejectClaim("no-such-entry", "mum")).toEqual({ ok: false, reason: "gone" });
+    expect(mockSync.sendVerdict).not.toHaveBeenCalled();
   });
 });
 

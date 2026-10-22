@@ -64,6 +64,8 @@ export interface TransferContext {
   confirmTurns(): Promise<void>;
   /** The site refused these heroes' records with xp_family_turn: another device holds their turn */
   turnLost(heroIds: string[]): void;
+  /** Every record the site refused in a put, with its code and the body it went with (a claim lost to a takeover goes again) */
+  refused(records: (BatchRecord & { code: string })[]): void;
 }
 
 /** How a read of pages ended: at the newest record, with more to read, before a record changed here, or stopped */
@@ -137,15 +139,19 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     const result = await putRecords(auth, deviceId, records);
     let settledCount = 0;
     let takenOver: string[] = [];
+    let refusedRecords: (BatchRecord & { code: string })[] = [];
     await ctx.update((current) => {
       const settled = settlePut(current.outbox, records, result);
       settledCount = current.outbox.length - settled.outbox.length;
       takenOver = settled.takenOver;
+      refusedRecords = settled.refusedRecords;
       return { ...current, outbox: settled.outbox };
     }, startedIn);
     result.refused.forEach((refused) => debug.warn(`[sync] the site refused ${refused.store}/${refused.key} (${refused.code}); dropped`));
     settle([...result.accepted, ...result.refused]);
     ctx.succeeded();
+    const hasRefused = refusedRecords.length > 0;
+    if (hasRefused) ctx.refused(refusedRecords);
     const isTakenOver = takenOver.length > 0;
     if (isTakenOver) ctx.turnLost(takenOver);
     return settledCount > 0;

@@ -3,7 +3,6 @@ import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, watch } from "vue";
 import { emptySyncState, getSyncDb, type SyncState } from "@/lib/databases/SyncDb";
 import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
-import type { ClaimSettled } from "@/lib/services/multiplayer/familyEvents";
 import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import type { HeroTurn, TurnState } from "@/lib/services/sync/heroTurn";
@@ -22,6 +21,7 @@ import debug from "@/lib/utils/debug";
 import { createHeroTurns, storedTurnsOf } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
+import { createVerdicts } from "./sync/verdicts";
 
 /** A change is sent this long after the last one, so a burst of writes goes in one put */
 const UPLOAD_DELAY_MS = 5_000;
@@ -227,6 +227,9 @@ export const useSyncStore = defineStore("sync", () => {
     isPlayedHere: (heroId) => heroTurns.keepsLocal(heroId),
     confirmTurns: () => heroTurns.confirm(),
     turnLost: (heroIds) => heroTurns.lost(heroIds),
+    refused: (records) => {
+      verdicts.resendClaims(records).catch((error) => debug.warn("sync: could not send a claim again", error));
+    },
   });
 
   const WORK: Record<Work, () => Promise<unknown>> = { upload: transfer.upload, download: transfer.download, round: transfer.round };
@@ -249,12 +252,15 @@ export const useSyncStore = defineStore("sync", () => {
   /** Uploads what waits, then downloads (the first push or pull while one is owed) */
   const flush = (): Promise<void> => lane.request("round");
 
-  /** Asks the lane for the work; after a round, the heroes whose records wait here go on borrowed turns */
+  /** After a round, outside the lane: the heroes whose records wait here go on borrowed turns, then the verdicts that wait are tried */
+  const afterRound = (): Promise<void> => heroTurns.lendWaiting().then(() => verdicts.retry());
+
+  /** Asks the lane for the work, and after a round what follows one */
   function requestNow(work: Work): void {
     const isRound = work === "round";
     lane
       .request(work)
-      .then(() => (isRound ? heroTurns.lendWaiting() : undefined))
+      .then(() => (isRound ? afterRound() : undefined))
       .catch((error) => debug.warn(`sync: the ${work} failed`, error));
   }
 
@@ -291,6 +297,19 @@ export const useSyncStore = defineStore("sync", () => {
     mayLend: () => isOn.value && !pauses.isPaused(),
   });
 
+  // --- Verdicts and claims under one writer (sync/verdicts.ts) ---
+
+  const verdicts = createVerdicts({
+    kept: async () => {
+      await load();
+      return state.value;
+    },
+    update,
+    generation: () => generation,
+    withTurn: (heroId, fn) => heroTurns.withTurn(heroId, fn),
+    queueEvent: (heroId, build) => family.queueApprovalEvent(heroId, build),
+  });
+
   /** The hero signed in on this device, if any; before the profiles load, the one the app will sign in again */
   const currentHero = (): string | null => {
     const id = user.currentUser?.id || getSavedUserId();
@@ -318,7 +337,7 @@ export const useSyncStore = defineStore("sync", () => {
   function onTick(): void {
     if (!isOn.value) return;
     flush()
-      .then(() => heroTurns.lendWaiting())
+      .then(afterRound)
       .then(() => (isFamilyDevice.value ? family.downloadRound() : undefined))
       .catch((error) => debug.warn("sync: the minute round failed", error));
   }
@@ -418,9 +437,6 @@ export const useSyncStore = defineStore("sync", () => {
     await cleared;
   }
 
-  /** Sends a Game Master's verdict for a hero this device does not hold; nothing until Task 18 */
-  const sendVerdict = async (_settled: ClaimSettled, _heroId: string): Promise<void> => undefined;
-
   onScopeDispose(() => {
     disposed = true;
     stops.splice(0).forEach((stop) => stop());
@@ -453,6 +469,8 @@ export const useSyncStore = defineStore("sync", () => {
     takeOver: heroTurns.takeOver,
     rest: heroTurns.rest,
     withTurn: heroTurns.withTurn,
-    sendVerdict,
+    // A Game Master's verdict on a hero this device does not hold, and the verdicts among the family's events (sync/verdicts.ts)
+    sendVerdict: verdicts.send,
+    takeVerdicts: verdicts.take,
   };
 });
