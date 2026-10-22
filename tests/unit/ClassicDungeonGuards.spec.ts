@@ -364,9 +364,10 @@ describe("every classic JSON, dressed in memory under its plan", () => {
         "R4: no master key",
       ],
     },
-    // Its own plan
+    // Under their own plans
     "earth-temple": { solvable: true, audit: [], reasons: [] },
     "light-temple": { solvable: true, audit: [], reasons: [] },
+    // Under the stand-in
     // The entrance's key chest waits beside the locked flight it opens (it took the Swamp Attic, behind that flight, before)
     "water-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (5,2) loot can be reached without passing the mini-boss"] },
     "shadow-temple": { solvable: true, audit: [], reasons: ["R4: the master key at 1F (4,0) loot can be reached without passing the mini-boss"] },

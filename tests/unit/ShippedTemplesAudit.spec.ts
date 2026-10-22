@@ -41,7 +41,6 @@ const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.inclu
 const FLOORS: Record<string, number> = {
   "fire-temple": 2,
   "ice-temple": 2,
-  "light-temple": 2,
   "water-temple": 2,
   "moon-temple": 3,
   "shadow-temple": 3,
@@ -51,7 +50,6 @@ const FLOORS: Record<string, number> = {
 const RELICS: Record<string, string[]> = {
   "fire-temple": ["Flame Shield"],
   "ice-temple": ["Frost Wand"],
-  "light-temple": ["Dawnbreaker Bow"],
   "water-temple": ["Trident of Tides"],
   "moon-temple": ["Lunar Pendant", "Moon Shard"],
   "shadow-temple": ["Void Dagger"],
@@ -68,7 +66,6 @@ const COMBAT_ROOMS: Record<string, [number, number, number]> = {
   "shadow-temple": [7, 1, 1],
   "fire-temple": [4, 1, 1],
   "ice-temple": [3, 1, 1],
-  "light-temple": [5, 1, 1],
   "moon-temple": [6, 1, 1],
 };
 
@@ -78,7 +75,6 @@ const TEMPLE_SIZE: Record<string, number> = {
   "shadow-temple": 23,
   "fire-temple": 25,
   "ice-temple": 23,
-  "light-temple": 21,
   "moon-temple": 22,
 };
 

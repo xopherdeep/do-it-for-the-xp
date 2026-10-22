@@ -73,15 +73,6 @@ const PLANS: Record<string, Plan> = {
     },
     trap: ["iceSpikes", 6], puzzle: "mirrorIce", shop: "FrostResistPotion", relics: ["Frost Wand"],
   },
-  "light-temple": {
-    name: "Light Temple", theme: "desert", element: "light", floors: 2,
-    quests: {
-      monsters: [["paperwork-pixie", 1, "school"], ["backpack-boggart", 1, "school bed"], ["bookwyrm", 2, "daily"], ["sum-sphinx", 2, "school"], ["desk-drake", 2, "weekly"]],
-      minibosses: [["homework-hydra", 5, "school"]],
-      boss: ["pop-quiz-poltergeist", 8, "weekly"],
-    },
-    trap: ["blindingFlash", 4], puzzle: "prismAlignment", shop: "LuminousOrb", relics: ["Dawnbreaker Bow"],
-  },
   "water-temple": {
     name: "Water Temple", theme: "islands", element: "water", floors: 2,
     quests: {

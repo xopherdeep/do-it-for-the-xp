@@ -61,6 +61,20 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibosses: [["leaf-lion", 5, "weekly"]],
     boss: ["meadow-minotaur", 8, "weekly"],
   },
+  // The Desert Palace: school chores. Five must-clear rooms take today's five beasts, the starter (the backpack) first;
+  // the Homework Hydra guards the Big Key in the Compass Room, the Pop Quiz Poltergeist waits upstairs.
+  "light-temple": {
+    name: "Light Temple",
+    theme: "desert",
+    element: "light",
+    relic: "Dawnbreaker Bow",
+    shop: "LuminousOrb",
+    trap: ["blindingFlash", 4],
+    puzzle: "prismAlignment",
+    mustClear: [["backpack-boggart", 1, "school bed"], ["paperwork-pixie", 1, "school"], ["bookwyrm", 2, "daily"], ["sum-sphinx", 2, "school"], ["desk-drake", 2, "weekly"]],
+    minibosses: [["homework-hydra", 5, "school"]],
+    boss: ["pop-quiz-poltergeist", 8, "weekly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);
