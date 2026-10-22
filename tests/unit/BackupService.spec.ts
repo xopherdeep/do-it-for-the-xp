@@ -223,6 +223,7 @@ describe("BACKUP_STORES registry", () => {
     "__xp_town_hall",
     "__xp_pro",
     "__xp_claim_photos",
+    "__xp_sync",
   ];
 
   it("keeps device-only and private stores out of the file", () => {
@@ -233,6 +234,11 @@ describe("BACKUP_STORES registry", () => {
   it("keeps the hero phone's claims and server cursor out: they are tied to this phone's own link", () => {
     // A restore would resend every queued claim and set the cursor into a server stream this phone may not even be on
     expect(BACKUP_STORES.map((store) => store.name)).not.toContain("__xp_hero_phone");
+  });
+
+  it("__xp_sync is not a backup store", () => {
+    // A restored queue would resend old records, and the turns it holds belong to this device
+    expect(BACKUP_STORES.map((store) => store.name)).not.toContain("__xp_sync");
   });
 
   it("documents every store it leaves out, next to the list", () => {
