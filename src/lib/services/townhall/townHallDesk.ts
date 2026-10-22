@@ -126,7 +126,8 @@ export function createNewsRequest(draft: NewsDraft, patchNotesId: number | null)
   const body: Record<string, unknown> = { title: draft.title, content: draft.body, status: draft.status };
   const isPatchNotes = draft.category === "patch-notes";
   if (isPatchNotes) {
-    if (patchNotesId === null) throw new Error("The site has no Patch Notes category yet.");
+    const hasNoCategory = patchNotesId === null;
+    if (hasNoCategory) throw new Error("The site has no Patch Notes category yet.");
     body.categories = [patchNotesId];
   }
   return { path: REST_PATHS.post, method: "POST", body };

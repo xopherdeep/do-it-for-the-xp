@@ -156,26 +156,10 @@ const cards = computed<Card[]>(() => {
   return [...waitingCards, ...postedCards];
 });
 const hasNoCards = computed(() => cards.value.length === 0);
-const isEmpty = computed(() => {
-  const isDone = !isLoading.value;
-  const isBare = isDone && hasNoCards.value;
-  return isBare;
-});
-const isReadingFirst = computed(() => {
-  const isReading = isLoading.value;
-  const isFirstRead = isReading && hasNoCards.value;
-  return isFirstRead;
-});
-const isLate = computed(() => {
-  const hasFailed = failed.value;
-  const isStillWaiting = hasFailed && hasNoCards.value;
-  return isStillWaiting;
-});
-const canLoadMore = computed(() => {
-  const isDone = !isLoading.value;
-  const hasOlder = isDone && hasMore.value;
-  return hasOlder;
-});
+const isEmpty = computed(() => !isLoading.value && hasNoCards.value);
+const isReadingFirst = computed(() => isLoading.value && hasNoCards.value);
+const isLate = computed(() => failed.value && hasNoCards.value);
+const canLoadMore = computed(() => !isLoading.value && hasMore.value);
 
 /** Only the newest request may fill the list: a hero flipping between boards must not see the slow one land last. */
 let ticket = 0;

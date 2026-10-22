@@ -218,22 +218,21 @@ const sendLabel = computed(() => (props.sending ? "Sending..." : SEND_LABELS[pro
 const hasTitleField = computed(() => props.kind !== "comment");
 const max = computed(() => BODY_LIMITS[props.kind]);
 const isNews = computed(() => props.kind === "news");
-const hasCategoryPicker = computed(() => {
-  const isOffered = props.kind === "news" && props.patchNotesAvailable;
-  return isOffered;
-});
+const hasCategoryPicker = computed(() => isNews.value && props.patchNotesAvailable);
 
 /** The draft the page keeps: trimmed, so a trailing space never counts against a limit. A news post's `status` is the button tapped. */
 const draftFor = (status: NewsStatus): ComposeDraft => {
   const kind = props.kind;
   const trimmedTitle = title.value.trim();
   const trimmedBody = body.value.trim();
-  if (kind === "news") {
+  const isNewsKind = kind === "news";
+  if (isNewsKind) {
     // Patch Notes is filed under only while the picker offers it; otherwise the post is news
     const category = hasCategoryPicker.value ? pickedCategory.value : "news";
     return { kind, title: trimmedTitle, body: trimmedBody, category, status };
   }
-  if (kind === "edit") return { kind, title: trimmedTitle, body: trimmedBody };
+  const isEditKind = kind === "edit";
+  if (isEditKind) return { kind, title: trimmedTitle, body: trimmedBody };
   const postId = props.postId ?? props.initial?.postId;
   const hasTitle = hasTitleField.value && trimmedTitle.length > 0;
   const hasBoard = kind === "topic" && pickedBoard.value !== undefined;
@@ -252,8 +251,10 @@ const draft = computed(() => draftFor("publish"));
 
 /** The first thing wrong with a draft: news and edits are held to the site's words, a hero's post to its kind's limits */
 const problemOf = (current: ComposeDraft): string | null => {
-  if (current.kind === "news") return wordsProblem(current);
-  if (current.kind === "edit") return wordsProblem(current);
+  const isNewsDraft = current.kind === "news";
+  if (isNewsDraft) return wordsProblem(current);
+  const isEditDraft = current.kind === "edit";
+  if (isEditDraft) return wordsProblem(current);
   return draftProblem(current);
 };
 

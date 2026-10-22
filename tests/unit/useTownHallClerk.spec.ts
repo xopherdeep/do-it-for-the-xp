@@ -19,7 +19,11 @@ jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallPostin
   },
 }));
 jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallDesk", () => ({
-  useTownHallDesk: () => ({ refresh: mockDeskRefresh }),
+  useTownHallDesk: () => ({
+    state: {},
+    actions: { refresh: mockDeskRefresh },
+    writer: { createNews: jest.fn(), saveEdit: jest.fn(), readWords: jest.fn() },
+  }),
 }));
 jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/registrationOffer", () => ({
   registrationOffer: () => mockOfferRegistration,

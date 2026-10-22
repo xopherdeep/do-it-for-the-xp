@@ -102,11 +102,13 @@ import { useTownHallLoad } from "./useTownHallLoad";
  * To a Game Master's link there is more: the drafts first (publish one, edit it, bin it), Edit and Bin on the published
  * notes, and the Bug Net card between the notes and the statistics. Every tool goes through the desk, which also owns the bugs.
  */
-const props = withDefaults(defineProps<{ stats: TownStats; canPublish?: boolean; bugs?: BugItem[]; desk?: DeskActions }>(), {
-  canPublish: false,
-  bugs: () => [],
-  desk: undefined,
-});
+interface UpdatesProps {
+  stats: TownStats;
+  canPublish?: boolean;
+  bugs?: BugItem[];
+  desk?: DeskActions;
+}
+const props = withDefaults(defineProps<UpdatesProps>(), { canPublish: false, bugs: () => [], desk: undefined });
 const emit = defineEmits<{
   (event: "trouble"): void;
   (event: "edit-site", target: { type: EditableType; id: number }): void;
@@ -130,16 +132,8 @@ const cards = computed<Card[]>(() => {
   return [...draftCards, ...noteCards];
 });
 const hasNoCards = computed(() => cards.value.length === 0);
-const isReadingFirst = computed(() => {
-  const isReading = isLoading.value;
-  const isFirstRead = isReading && hasNoCards.value;
-  return isFirstRead;
-});
-const isLate = computed(() => {
-  const hasFailed = failed.value;
-  const isStillWaiting = hasFailed && hasNoCards.value;
-  return isStillWaiting;
-});
+const isReadingFirst = computed(() => isLoading.value && hasNoCards.value);
+const isLate = computed(() => failed.value && hasNoCards.value);
 
 const loadNotes = async () => {
   notes.value = await fetchPatchNotes();

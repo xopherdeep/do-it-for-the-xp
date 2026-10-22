@@ -123,10 +123,13 @@ import { useTownHallLoad } from "./useTownHallLoad";
  * To a hero that is all of it. To a Game Master's link there is more: the drafts first (publish one, edit it, bin it), Edit
  * and Bin on the published posts, and the comments the site holds under the post they answer. Every tool goes through the desk.
  */
-const props = withDefaults(
-  defineProps<{ canPublish?: boolean; canModerate?: boolean; heldComments?: HeldComment[]; desk?: DeskActions }>(),
-  { canPublish: false, canModerate: false, heldComments: () => [], desk: undefined },
-);
+interface NewsProps {
+  canPublish?: boolean;
+  canModerate?: boolean;
+  heldComments?: HeldComment[];
+  desk?: DeskActions;
+}
+const props = withDefaults(defineProps<NewsProps>(), { canPublish: false, canModerate: false, heldComments: () => [], desk: undefined });
 const emit = defineEmits<{
   (event: "trouble"): void;
   (event: "comment", target: CommentTarget): void;
@@ -151,18 +154,8 @@ const cards = computed<Card[]>(() => [
   ...items.value.map((item) => ({ ...item, isDraft: false })),
 ]);
 const hasNoCards = computed(() => cards.value.length === 0);
-const isReadingFirst = computed(() => {
-  const isReading = isLoading.value;
-  const isEmpty = hasNoCards.value;
-  const isFirstRead = isReading && isEmpty;
-  return isFirstRead;
-});
-const isLate = computed(() => {
-  const hasFailed = failed.value;
-  const isEmpty = hasNoCards.value;
-  const isStillWaiting = hasFailed && isEmpty;
-  return isStillWaiting;
-});
+const isReadingFirst = computed(() => isLoading.value && hasNoCards.value);
+const isLate = computed(() => failed.value && hasNoCards.value);
 
 const loadPage = async (next: number) => {
   const result = await fetchNews(next);

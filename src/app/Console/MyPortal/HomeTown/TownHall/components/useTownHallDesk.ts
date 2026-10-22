@@ -64,19 +64,29 @@ export const NO_DESK: DeskActions = {
   troubleOf: () => null,
 };
 
-/** The desk's actions with the lists, the badge's number and the writers. */
-export type TownHallDesk = DeskActions & {
+/** The lists the desk reads off the site and the badge's number. */
+export interface DeskState {
   heldComments: Ref<HeldComment[]>;
   bugs: Ref<BugItem[]>;
   waitingCount: Ref<number>;
   patchNotesAvailable: Ref<boolean>;
-  refresh(): Promise<void>;
+}
+
+/** The desk's writers: a new news post, an edit, and a read of the words an edit starts from. */
+export interface DeskWriter {
   /** The problem in words, or null when the site took the post */
   createNews(draft: NewsDraft): Promise<string | null>;
   /** The problem in words, or null when the site took the new words */
   saveEdit(target: { type: EditableType; id: number }, words: Words): Promise<string | null>;
   /** The title and body as they were typed, or null when the site could not be reached */
   readWords(type: EditableType, id: number): Promise<Words | null>;
+}
+
+/** The desk in three parts: what it read (`state`), what the tabs can do (`actions`, with `refresh`) and the writers. */
+export type TownHallDesk = {
+  state: DeskState;
+  actions: DeskActions & { refresh(): Promise<void> };
+  writer: DeskWriter;
 };
 
 /** How a call to the site ended: taken, or not (with the site's own words when it gave a reason). */
@@ -140,21 +150,30 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
     }
   };
 
-  /** The one door every action goes through. A late courier gets one more try if the admin asks, never a loop. */
+  /** A late courier gets one more try if the admin asks, never a loop. */
+  const sendOrAsk = async (request: DeskRequest): Promise<Outcome | typeof LATE> => {
+    const first = await send(request);
+    const wasLate = first === LATE;
+    if (!wasLate) return first;
+    const choice = await reveal.showPrompt(courierLatePrompt());
+    const isRetry = choice === "retry";
+    if (!isRetry) return { ok: false };
+    return send(request);
+  };
+
+  /** The one door every action goes through. */
   const act = async (request: DeskRequest, key: string): Promise<Outcome> => {
     if (busy[key]) return { ok: false };
     busy[key] = true;
     delete troubles[key];
     try {
-      let outcome = await send(request);
-      if (outcome === LATE) {
-        const choice = await reveal.showPrompt(courierLatePrompt());
-        if (choice !== "retry") return { ok: false };
-        outcome = await send(request);
-      }
-      if (outcome === LATE) return { ok: false };
+      const outcome = await sendOrAsk(request);
+      const isLate = outcome === LATE;
+      if (isLate) return { ok: false };
       if (outcome.ok) return outcome;
-      if (outcome.message !== undefined) troubles[key] = outcome.message;
+      const { message } = outcome;
+      const hasMessage = message !== undefined;
+      if (hasMessage) troubles[key] = message;
       return outcome;
     } finally {
       delete busy[key];
@@ -175,8 +194,10 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
 
   /** What the badge and the lists show once the site has binned an item. A published post or topic was not waiting. */
   const settleBinned = (type: DeskItemType, id: number, published: boolean): void => {
-    if (type === "comment") takeOff(heldComments, id);
-    if (type === "bug") takeOff(bugs, id);
+    const isComment = type === "comment";
+    if (isComment) takeOff(heldComments, id);
+    const isBug = type === "bug";
+    if (isBug) takeOff(bugs, id);
     const isDraftOrTopic = type === "post" || type === "topic";
     const wasWaiting = isDraftOrTopic && !published;
     if (wasWaiting) countOneFewer();
@@ -193,7 +214,8 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
     if (isBusy(type, id)) return false;
     if (published) {
       const choice = await reveal.showPrompt(binPrompt());
-      if (choice !== "take-down") return false;
+      const isTakeDown = choice === "take-down";
+      if (!isTakeDown) return false;
     }
     const outcome = await act(trashRequest(type, id), keyOf(type, id));
     if (outcome.ok) settleBinned(type, id, published);
@@ -273,7 +295,8 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
 
   const createNews = async (draft: NewsDraft): Promise<string | null> => {
     const built = await newsRequestOrProblem(draft);
-    if (typeof built === "string") return built;
+    const isProblem = typeof built === "string";
+    if (isProblem) return built;
     return problemOf(await act(built, NEWS_KEY));
   };
 
@@ -288,35 +311,27 @@ export function useTownHallDesk(deps: DeskDeps): TownHallDesk {
       return await fetchWords(type, id, { auth: store.auth });
     } catch (error) {
       const outcome = await failedWith(error);
-      return outcome === LATE ? LATE : null;
+      const wasLate = outcome === LATE;
+      return wasLate ? LATE : null;
     }
   };
 
   /** A late courier gets one more read if the admin asks, never a loop. */
   const readWords = async (type: EditableType, id: number): Promise<Words | null> => {
-    let words = await readWordsOnce(type, id);
-    if (words === LATE) {
-      const choice = await reveal.showPrompt(courierLatePrompt());
-      if (choice !== "retry") return null;
-      words = await readWordsOnce(type, id);
-    }
-    return words === LATE ? null : words;
+    const first = await readWordsOnce(type, id);
+    const wasLate = first === LATE;
+    if (!wasLate) return first;
+    const choice = await reveal.showPrompt(courierLatePrompt());
+    const isRetry = choice === "retry";
+    if (!isRetry) return null;
+    const second = await readWordsOnce(type, id);
+    const isStillLate = second === LATE;
+    return isStillLate ? null : second;
   };
 
   return {
-    heldComments,
-    bugs,
-    waitingCount,
-    patchNotesAvailable,
-    refresh,
-    publish,
-    bin,
-    approve,
-    resolve,
-    isBusy,
-    troubleOf,
-    createNews,
-    saveEdit,
-    readWords,
+    state: { heldComments, bugs, waitingCount, patchNotesAvailable },
+    actions: { refresh, publish, bin, approve, resolve, isBusy, troubleOf },
+    writer: { createNews, saveEdit, readWords },
   };
 }

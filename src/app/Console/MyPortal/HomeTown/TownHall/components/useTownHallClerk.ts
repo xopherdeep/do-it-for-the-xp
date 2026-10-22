@@ -107,9 +107,9 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
       await registerFamily();
     },
     desk: {
-      createNews: desk.createNews,
-      saveEdit: desk.saveEdit,
-      readWords: desk.readWords,
+      createNews: desk.writer.createNews,
+      saveEdit: desk.writer.saveEdit,
+      readWords: desk.writer.readWords,
       changed: reloadFor,
     },
   });
@@ -131,7 +131,7 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
   async function completeLinkReturn(): Promise<void> {
     const handled = await link.completeReturn();
     await store.refreshPowers();
-    await desk.refresh();
+    await desk.actions.refresh();
     void posting.sendQueue();
     if (!handled) await offerRegistration();
   }
