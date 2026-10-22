@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import XpBattleRadialMenu from "@/app/Console/BattleField/components/XpBattleRadialMenu.vue";
 
-const buttonStub = { props: ["disabled"], template: "<button :disabled=\"disabled\" @click=\"$emit('click')\"><slot /></button>" };
+const buttonStub = { props: ["disabled"], emits: ["click"], template: "<button :disabled=\"disabled\" @click=\"$emit('click')\"><slot /></button>" };
 const stubs = {
   IonButton: buttonStub,
   IonFabButton: buttonStub,
@@ -39,7 +39,16 @@ describe("XpBattleRadialMenu", () => {
     const w = mountMenu(actions);
     expect(w.find(".center-badge").attributes("data-icon")).toBe("attack-icon");
     await w.find("[data-cy=radial-avatar-btn]").trigger("click");
-    expect(actions[0].click).toHaveBeenCalled();
+    expect(actions[0].click).toHaveBeenCalledTimes(1);
+  });
+
+  it("a disabled Tackle ignores the centre tap", async () => {
+    const actions = five();
+    actions[0] = action("attack", { note: "no chores", disabled: true });
+    const w = mountMenu(actions);
+    await w.find("[data-cy=radial-avatar-btn]").trigger("click");
+    expect(actions[0].click).not.toHaveBeenCalled();
+    expect(w.emitted("action")).toBeUndefined();
   });
 
   it("the confirm layout has no badge", () => {

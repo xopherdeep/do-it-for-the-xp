@@ -458,6 +458,7 @@ const onCenterTap = () => {
     font-family: "StatusPlz", monospace;
     font-size: 0.72em;
     font-weight: normal;
+    text-transform: none;
     color: var(--gs-text-dim);
     white-space: nowrap;
     max-width: 9ch;
