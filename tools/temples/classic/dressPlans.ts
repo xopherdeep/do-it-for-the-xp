@@ -365,25 +365,34 @@ const withOpenedSides = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "opens
  * A hand room joins the dungeon by its own circles or flights alone: one on a converted cell, on a floor the dungeon
  * lacks, or with a side that is no wall facing a converted cell, throws.
  */
+/**
+ * Why a hand room cannot join its floor, or undefined when it can: the floor is missing, a cell already stands there
+ * (`cells`, the floor's cells so far), or a side that is no wall faces one of the converter's cells (`converted`)
+ */
+const handRoomTrouble = (room: HandRoom, cells: readonly ClassicCell[] | undefined, converted: readonly ClassicCell[]): string | undefined => {
+  const { floor, row, col } = room;
+  if (!cells) return `the hand room ${room.room} names the floor ${floor}, which the dungeon does not have`;
+  const isOnACell = Boolean(cellAt(cells, row, col));
+  if (isOnACell) return `the hand room ${room.room} stands on the converted cell ${floor} (${row},${col})`;
+  const facing = SIDES.find((side) => room.sides[side] !== "wall" && Boolean(cellAt(converted, row + TOWARD[side].row, col + TOWARD[side].col)));
+  const at = facing ? `${floor} (${row + TOWARD[facing].row},${col + TOWARD[facing].col})` : "";
+  return facing ? `the hand room ${room.room} opens ${facing} on the converted cell ${at}: it joins the dungeon by its own circles or flights alone` : undefined;
+};
+
 export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "handRooms">): ClassicDungeon => {
   const hand = plan.handRooms ?? [];
   const isDrawnAsIs = hand.length === 0;
   if (isDrawnAsIs) return dungeon;
   const floors = dungeon.floors.map((level) => ({ ...level, cells: [...level.cells] }));
-  for (const { floor, ...cell } of hand) {
+  for (const room of hand) {
+    const { floor, ...cell } = room;
     const level = floors.find((entry) => entry.name === floor);
-    if (!level) throw new Error(`${dungeon.id}: the hand room ${cell.room} names the floor ${floor}, which the dungeon does not have`);
-    const isOnACell = level.cells.some((other) => other.row === cell.row && other.col === cell.col);
-    if (isOnACell) throw new Error(`${dungeon.id}: the hand room ${cell.room} stands on the converted cell ${floor} (${cell.row},${cell.col})`);
-    const converted = dungeon.floors.find((entry) => entry.name === floor)!.cells;
-    const facing = SIDES.find((side) => cell.sides[side] !== "wall" && Boolean(cellAt(converted, cell.row + TOWARD[side].row, cell.col + TOWARD[side].col)));
-    if (facing) {
-      const at = `${floor} (${cell.row + TOWARD[facing].row},${cell.col + TOWARD[facing].col})`;
-      throw new Error(`${dungeon.id}: the hand room ${cell.room} opens ${facing} on the converted cell ${at}: it joins the dungeon by its own circles or flights alone`);
-    }
-    level.cells.push(cell);
-    level.rows = Math.max(level.rows, cell.row + 1);
-    level.cols = Math.max(level.cols, cell.col + 1);
+    const converted = dungeon.floors.find((entry) => entry.name === floor)?.cells ?? [];
+    const trouble = handRoomTrouble(room, level?.cells, converted);
+    if (trouble) throw new Error(`${dungeon.id}: ${trouble}`);
+    level!.cells.push(cell);
+    level!.rows = Math.max(level!.rows, cell.row + 1);
+    level!.cols = Math.max(level!.cols, cell.col + 1);
   }
   const cellsPerFloor = Object.fromEntries(floors.map((level) => [level.name, level.cells.length]));
   const smallKeys = dungeon.report.smallKeys + hand.filter(isSmallKeyCell).length;
