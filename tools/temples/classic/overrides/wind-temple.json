@@ -1,0 +1,9 @@
+{
+  "stairways": [
+    {
+      "from": 18,
+      "to": 2,
+      "why": "the push-block room (18) hides the stairway down to the bow's basement (2); the dot labels it l like a shutter"
+    }
+  ]
+}

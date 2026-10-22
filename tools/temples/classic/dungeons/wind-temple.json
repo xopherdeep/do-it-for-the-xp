@@ -1,0 +1,272 @@
+{
+  "id": "wind-temple",
+  "source": "Zelda 1 Level 1 (Eagle)",
+  "floors": [
+    {
+      "name": "B1",
+      "rows": 1,
+      "cols": 1,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "room": "Eagle Basement",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "chest": "big-chest",
+          "teleport": {
+            "to": "1F",
+            "row": 0,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "1F",
+      "rows": 6,
+      "cols": 6,
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "room": "Eagle (0,1)",
+          "sides": {
+            "north": "wall",
+            "east": "small-key",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "puzzle": true,
+          "teleport": {
+            "to": "B1",
+            "row": 0,
+            "col": 0
+          }
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "room": "Eagle (0,2)",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "small-key",
+            "west": "small-key"
+          },
+          "enemies": 1,
+          "keyDrop": "small"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "room": "Eagle (1,2)",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "open",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "keyDrop": "small",
+          "puzzle": true
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "room": "Eagle Boss",
+          "sides": {
+            "north": "wall",
+            "east": "shutter",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 0,
+          "boss": true
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "room": "Eagle Triforce",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "shutter"
+          },
+          "enemies": 0,
+          "shutter": true
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "room": "Eagle (2,0)",
+          "sides": {
+            "north": "wall",
+            "east": "bomb",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 0
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "room": "Eagle (2,1)",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "small-key",
+            "west": "bomb"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "room": "Eagle (2,2)",
+          "sides": {
+            "north": "open",
+            "east": "small-key",
+            "south": "bomb",
+            "west": "open"
+          },
+          "enemies": 1,
+          "chest": "compass"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "room": "Eagle (2,3)",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "bomb",
+            "west": "small-key"
+          },
+          "enemies": 1,
+          "chest": "other"
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "room": "Eagle (2,4)",
+          "sides": {
+            "north": "small-key",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "keyDrop": "small"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "room": "Eagle (3,1)",
+          "sides": {
+            "north": "small-key",
+            "east": "shutter",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "room": "Eagle (3,2)",
+          "sides": {
+            "north": "bomb",
+            "east": "open",
+            "south": "open",
+            "west": "shutter"
+          },
+          "enemies": 1,
+          "keyDrop": "small",
+          "shutter": true
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "room": "Eagle (3,3)",
+          "sides": {
+            "north": "bomb",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "chest": "map"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "room": "Eagle (4,2)",
+          "sides": {
+            "north": "open",
+            "east": "wall",
+            "south": "small-key",
+            "west": "wall"
+          },
+          "enemies": 1
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "room": "Eagle (5,1)",
+          "sides": {
+            "north": "wall",
+            "east": "open",
+            "south": "wall",
+            "west": "wall"
+          },
+          "enemies": 1,
+          "keyDrop": "small"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "room": "Eagle Entrance",
+          "sides": {
+            "north": "small-key",
+            "east": "open",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 0,
+          "entrance": true
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "room": "Eagle (5,3)",
+          "sides": {
+            "north": "wall",
+            "east": "wall",
+            "south": "wall",
+            "west": "open"
+          },
+          "enemies": 1,
+          "keyDrop": "small"
+        }
+      ]
+    }
+  ],
+  "report": {
+    "cellsPerFloor": {
+      "B1": 1,
+      "1F": 17
+    },
+    "mustClear": 6,
+    "side": 6,
+    "smallKeys": 6,
+    "smallLocks": 6
+  }
+}

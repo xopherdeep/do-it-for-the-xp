@@ -239,3 +239,100 @@ describe("classic dungeon JSON", () => {
     });
   }
 });
+
+/**
+ * The Wind Temple's JSON (convert.py wind-temple): Zelda 1 Level 1, the Eagle, matched from TheVGLC's LoZ_1.dot onto the
+ * 17 cells of today's Wind outline that are not the owner's four east rooms. The checks above run on it as on any other
+ * dungeon (it is not LTTP, so the Big Key and the one-big-chest rule skip it); these pin what is Wind's own.
+ */
+const EAGLE_CELLS: [number, number][] = [
+  [0, 1], [0, 2],
+  [1, 2], [1, 4], [1, 5],
+  [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
+  [3, 1], [3, 2], [3, 3],
+  [4, 2],
+  [5, 1], [5, 2], [5, 3],
+];
+const OWNERS_FOUR: [number, number][] = [[3, 5], [4, 4], [4, 5], [5, 5]];
+const wind = dungeons.find((dungeon) => dungeon.id === "wind-temple");
+const windFloor = wind?.floors.find((floor) => floor.name === "1F");
+const windAt = (row: number, col: number): ClassicCell | undefined =>
+  windFloor?.cells.find((cell) => cell.row === row && cell.col === col);
+/** The side between two orthogonal Eagle cells, read from the first one */
+const windSide = (a: [number, number], b: [number, number]): ClassicSide | undefined => {
+  const dir = DIRS.find((d) => a[0] + STEP[d][0] === b[0] && a[1] + STEP[d][1] === b[1]);
+  return dir ? windAt(a[0], a[1])?.sides[dir] : undefined;
+};
+
+describe("the Wind Temple's JSON (the Eagle)", () => {
+  it("is Zelda 1 Level 1: a 6x6 floor 1F with exactly the 17 Eagle cells, not the owner's four", () => {
+    expect(wind).toBeDefined();
+    expect(wind?.source).toBe("Zelda 1 Level 1 (Eagle)");
+    expect(windFloor?.rows).toBe(6);
+    expect(windFloor?.cols).toBe(6);
+    const placed = (windFloor?.cells ?? []).map((cell) => [cell.row, cell.col]);
+    expect(placed).toEqual(expect.arrayContaining(EAGLE_CELLS));
+    expect(placed).toHaveLength(EAGLE_CELLS.length);
+    for (const [row, col] of OWNERS_FOUR) expect(windAt(row, col)).toBeUndefined();
+  });
+
+  it("enters at (5,2), fights the boss at (1,4) and keeps the Triforce room at (1,5) for the Master Room", () => {
+    expect(windAt(5, 2)?.entrance).toBe(true);
+    expect(windAt(1, 4)?.boss).toBe(true);
+    expect(windAt(1, 5)?.room).toMatch(/Triforce/);
+    const triforce = flatCells(wind as ClassicDungeon).filter(({ cell }) => /Triforce/.test(cell.room));
+    expect(triforce.map(({ floor, cell }) => `${floor.name}@${cell.row},${cell.col}`)).toEqual(["1F@1,5"]);
+  });
+
+  it("has 6 small keys (all enemy drops) and 6 small-key doors, and no Big Key", () => {
+    const all = flatCells(wind as ClassicDungeon);
+    expect(wind?.report.smallKeys).toBe(6);
+    expect(wind?.report.smallLocks).toBe(6);
+    expect(all.filter(({ cell }) => cell.keyDrop === "small")).toHaveLength(6);
+    expect(all.filter(({ cell }) => cell.chest === "small-key")).toHaveLength(0);
+    const pairs = all.flatMap(({ cell }) => DIRS.filter((dir) => cell.sides[dir] === "small-key")).length / 2;
+    expect(pairs).toBe(6);
+    expect(all.filter(({ cell }) => cell.chest === "big-key" || cell.keyDrop === "big")).toHaveLength(0);
+  });
+
+  it("holds one map at (3,3) and one compass at (2,2), in graph order", () => {
+    const all = flatCells(wind as ClassicDungeon);
+    expect(all.filter(({ cell }) => cell.chest === "map").map(({ cell }) => [cell.row, cell.col])).toEqual([[3, 3]]);
+    expect(all.filter(({ cell }) => cell.chest === "compass").map(({ cell }) => [cell.row, cell.col])).toEqual([[2, 2]]);
+  });
+
+  it("keeps all 18 doors of the graph between orthogonal neighbours, with Level 1's locks", () => {
+    const pairs: [[number, number], [number, number], ClassicSide][] = [
+      [[5, 2], [4, 2], "small-key"], [[3, 1], [2, 1], "small-key"], [[2, 2], [2, 3], "small-key"],
+      [[0, 2], [0, 1], "small-key"], [[1, 2], [0, 2], "small-key"], [[2, 4], [1, 4], "small-key"],
+      [[2, 1], [2, 0], "bomb"], [[3, 3], [2, 3], "bomb"], [[3, 2], [2, 2], "bomb"],
+      [[3, 2], [3, 1], "shutter"], [[1, 4], [1, 5], "shutter"],
+      [[5, 2], [5, 1], "open"], [[5, 2], [5, 3], "open"], [[3, 2], [3, 3], "open"], [[3, 2], [4, 2], "open"],
+      [[1, 2], [2, 2], "open"], [[2, 2], [2, 1], "open"], [[2, 3], [2, 4], "open"],
+    ];
+    for (const [a, b, kind] of pairs) {
+      expect(`${a} ${b}: ${windSide(a, b)}`).toBe(`${a} ${b}: ${kind}`);
+      expect(`${b} ${a}: ${windSide(b, a)}`).toBe(`${b} ${a}: ${kind}`);
+    }
+    const doors = (windFloor?.cells ?? []).flatMap((cell) => DIRS.filter((dir) => cell.sides[dir] !== "wall")).length;
+    expect(doors).toBe(pairs.length * 2);
+    expect(windAt(3, 2)?.shutter).toBe(true); // the key-drop room whose own door shuts
+    expect(windAt(1, 5)?.shutter).toBe(true);
+  });
+
+  it("drops the bow in the stairway basement (the big-chest) and the boomerang in an ordinary chest", () => {
+    const all = flatCells(wind as ClassicDungeon);
+    const bigChests = all.filter(({ cell }) => cell.chest === "big-chest");
+    expect(bigChests).toHaveLength(1);
+    const basement = bigChests[0];
+    expect(basement.floor.name).not.toBe("1F");
+    const down = windAt(0, 1)?.teleport; // the push-block room
+    expect(down).toBeDefined();
+    expect(down?.to).toBe(basement.floor.name);
+    expect([down?.row, down?.col]).toEqual([basement.cell.row, basement.cell.col]);
+    expect(basement.cell.teleport).toEqual({ to: "1F", row: 0, col: 1 });
+    expect(windAt(0, 1)?.puzzle).toBe(true);
+    expect(windAt(2, 3)?.chest).toBe("other");
+    expect(all.filter(({ cell }) => cell.chest === "other")).toHaveLength(1);
+  });
+});
