@@ -351,11 +351,12 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
 /**
  * What the tool makes of each JSON under its plan, pinned per temple (builds, solves, the solver's exact reasons, the
  * audit's missing names): a temple with its own plan is clean; one still under the stand-in shows what the tool makes of
- * it today, and any regression of the tool turns a line red. The Wind JSON is the Eagle (Zelda 1): no Big Key, so no
- * Boss Key chest under the stand-in. The R4 notes are the mini-boss each plan still has to choose.
+ * it today, and any regression of the tool turns a line red. Wind is the one left under the stand-in (Task 9 plans it):
+ * its JSON is the Eagle (Zelda 1), no Big Key, so no Boss Key chest under the stand-in.
  */
 describe("every classic JSON, dressed in memory under its plan", () => {
   const PINNED: Record<string, { solvable: boolean; reasons: string[]; audit: string[] }> = {
+    // Under the stand-in
     "wind-temple": {
       solvable: false,
       audit: ["Boss Key"],
@@ -375,8 +376,8 @@ describe("every classic JSON, dressed in memory under its plan", () => {
     "ice-temple": { solvable: true, audit: [], reasons: [] },
     // The Lava Dual Pipes, named, fight in the Big Key's screen and hand the Boss Key out (no set of fights closes it off)
     "fire-temple": { solvable: true, audit: [], reasons: [] },
-    // Under the stand-in
-    "moon-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B2 (0,1) loot can be reached without passing the mini-boss"] },
+    // The Ice Armos, named, guards the Boss Key (LTTP's Armos refight, which the converter reads no enemies in)
+    "moon-temple": { solvable: true, audit: [], reasons: [] },
   };
 
   describe.each(Object.keys(PINNED))("%s", (id) => {

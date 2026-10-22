@@ -2,7 +2,8 @@
  * Writes the generated temples of src/lib/engine/temples that PLANS below still lists, from fixed seeds. The Wind
  * Temple is made by hand, and the temples that follow a classic dungeon (Storm from the Tower of Hera, Earth from
  * Skull Woods, ...) are dressed from its JSON (tools/temples/classic/dress.ts); none of those is touched here, and each
- * temple that moves to a classic dungeon leaves PLANS for classic/dressPlans.ts.
+ * temple that moves to a classic dungeon leaves PLANS for classic/dressPlans.ts. Since the Moon Temple followed Ganon's
+ * Tower every shipped temple has: PLANS is empty and the script writes nothing until a temple is planned here again.
  *
  *   node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/bin/esbuild tools/temples/regenerate.ts \
  *     --bundle --platform=node --format=cjs --outfile=/tmp/regenerate-temples.cjs && node /tmp/regenerate-temples.cjs
@@ -54,18 +55,8 @@ interface Plan {
   relics: string[];
 }
 
-const PLANS: Record<string, Plan> = {
-  "moon-temple": {
-    name: "Moon Temple", theme: "moon", element: "moon", floors: 3,
-    // The table lists the twos before the ones; the rule "easiest first" wins, the ones lead
-    quests: {
-      monsters: [["fang-fairy", 2, "daily am+night"], ["scroll-troll", 2, "daily bed"], ["snooze-sloth", 2, "daily am"], ["pajama-pooka", 1, "daily am"], ["grubgoblin", 1, "daily"], ["hairball-harpy", 1, "daily am"]],
-      minibosses: [["stinkwisp", 5, "daily"]],
-      boss: ["night-owlbear", 8, "daily bed"],
-    },
-    trap: ["moonquake", 5], puzzle: "generic", relics: ["Lunar Pendant", "Moon Shard"],
-  },
-};
+// Every shipped temple follows a classic dungeon now (classic/dressPlans.ts) or is made by hand (Wind)
+const PLANS: Record<string, Plan> = {};
 
 /** The seed is the temple's id; the rest is what makes the layout short and kind: a handful of rooms a floor, one lock a floor pair. */
 export const optionsFor = (id: string): GenerateOptions => {

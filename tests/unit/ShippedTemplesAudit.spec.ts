@@ -37,15 +37,11 @@ const HAND_MADE = ["wind-temple"];
 const CLASSIC = IDS.filter((id) => CLASSIC_IDS.includes(id));
 const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.includes(id));
 
-/** Floors each regenerated temple was spread over */
-const FLOORS: Record<string, number> = {
-  "moon-temple": 3,
-};
+/** Floors each regenerated temple was spread over (none left: every shipped temple follows a classic dungeon or is made by hand) */
+const FLOORS: Record<string, number> = {};
 
 /** The relics each regenerated temple keeps in a chest */
-const RELICS: Record<string, string[]> = {
-  "moon-temple": ["Lunar Pendant", "Moon Shard"],
-};
+const RELICS: Record<string, string[]> = {};
 
 /**
  * Quest Rooms (docs/Quest-Rooms-Spec.md sections 10 and 11): the combat rooms of each temple as (monster, miniboss, boss)
@@ -54,12 +50,10 @@ const RELICS: Record<string, string[]> = {
  */
 const COMBAT_ROOMS: Record<string, [number, number, number]> = {
   "wind-temple": [6, 2, 1],
-  "moon-temple": [6, 1, 1],
 };
 
 const TEMPLE_SIZE: Record<string, number> = {
   "wind-temple": 22,
-  "moon-temple": 22,
 };
 
 /** A classic temple's combat rooms and size, read from its dressed rooms (side rooms, repeats of a must-clear beast, count too) */
@@ -76,7 +70,8 @@ const sizeOf = (id: string): number => (CLASSIC.includes(id) ? dressed(id).size 
  * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
  * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold, Earth) and
  * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none. A classic temple whose plan is
- * topped up with the rest of its theme holds that beast's starter too (Fire's Backseat Beastie: Clean Backseat Beastie).
+ * topped up with the rest of its theme holds that beast's starter too (Fire's Backseat Beastie: Clean Backseat Beastie;
+ * Moon's Sniffle Sprite: Sniffle Sprite Salve).
  */
 const STARTER_MATCHES: Record<string, string[]> = {
   "wind-temple": ["quest-dust", "quest-vacuum"],
@@ -85,7 +80,7 @@ const STARTER_MATCHES: Record<string, string[]> = {
   "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear", "quest-mop"],
   "ice-temple": ["quest-socks", "quest-fridge", "quest-laundry"],
   "light-temple": ["quest-backpack", "quest-homework", "quest-reading"],
-  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep"],
+  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep", "quest-vitamins"],
   "storm-temple": ["quest-bed", "quest-shoes", "quest-toys"],
 };
 
@@ -302,7 +297,10 @@ describe("the regenerated temples", () => {
     expect(REGENERATED).not.toContain("storm-temple");
   });
 
-  describe.each(REGENERATED)("%s", (id) => {
+  // Every shipped temple follows a classic dungeon or is made by hand now, and jest refuses an empty table: the rules
+  // below run for whatever regenerate.ts plans again
+  const hasRegenerated = REGENERATED.length > 0;
+  if (hasRegenerated) describe.each(REGENERATED)("%s", (id) => {
     const layout = registered(id);
     const graph = buildTempleGraph(layout);
     const rooms = [...graph.rooms.values()];

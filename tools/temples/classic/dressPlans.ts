@@ -169,6 +169,30 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibossRooms: ["TR Lava Dual Pipes"],
     boss: ["junkpile-jotun", 13, "monthly"],
   },
+  // Ganon's Tower: morning and bedtime habits. Its many must-clear rooms take the seven moon beasts the mini-bosses and
+  // the boss leave, today's six (every one a starter) then the vitamins, each repeating. Two mini-bosses: the Quad Pot,
+  // whose enemies are GT's Lanmolas, and the Ice Armos, the shutter room in front of the Big Key (LTTP's Armos refight,
+  // which the converter reads no enemies in). One Big Chest: it holds the Lunar Pendant; the Moon Shard has no chest.
+  "moon-temple": {
+    name: "Moon Temple",
+    theme: "moon",
+    element: "moon",
+    relic: "Lunar Pendant",
+    trap: ["moonquake", 5],
+    puzzle: "generic",
+    mustClear: [
+      ["fang-fairy", 2, "daily am+night"],
+      ["scroll-troll", 2, "daily bed"],
+      ["snooze-sloth", 2, "daily am"],
+      ["pajama-pooka", 1, "daily am"],
+      ["grubgoblin", 1, "daily"],
+      ["hairball-harpy", 1, "daily am"],
+      ["sniffle-sprite", 1, "daily am"],
+    ],
+    minibosses: [["stinkwisp", 5, "daily"], ["glowleech", 3, "daily bed"]],
+    minibossRooms: ["GT Quad Pot", "GT Ice Armos"],
+    boss: ["night-owlbear", 8, "daily bed"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);
