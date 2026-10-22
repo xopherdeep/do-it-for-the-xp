@@ -11,6 +11,9 @@ export interface Vec3 {
 
 export type PartName = "torso" | "head" | "armL" | "armR" | "legL" | "legR" | "handL" | "handR";
 
+/** Every part, in the order the builder makes them */
+export const PART_NAMES: PartName[] = ["torso", "head", "armL", "armR", "legL", "legR", "handL", "handR"];
+
 /**
  * One named, separately animated lump of the character. Boxes are in CHARACTER space; `pivot` is where the
  * group hangs (shoulder, hip, neck) so the builder can re-centre the geometry on it and animation can rotate it.

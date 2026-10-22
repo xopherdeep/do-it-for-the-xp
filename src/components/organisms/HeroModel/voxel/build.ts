@@ -4,7 +4,11 @@ import { createSoftShadowMaterial, createVoxelMaterial, voxelGeometry } from "@/
 import { assembleHero } from "./assemble";
 import { buildMeshData } from "./mesh";
 import type { Box, MeshData } from "./mesh";
+import { partMeshInput } from "./partMesh";
+import { PART_NAMES } from "./shape";
 import type { Part, PartName } from "./shape";
+
+export { PART_NAMES } from "./shape";
 
 /**
  * The scene graph for a look:
@@ -30,19 +34,6 @@ export interface RestPose {
   rot: [number, number, number];
 }
 
-export const PART_NAMES: PartName[] = ["torso", "head", "armL", "armR", "legL", "legR", "handL", "handR"];
-
-/**
- * The parts whose rest pose touches another's, for the shade where they meet: the head sits on the torso and the torso
- * on the legs. Arms and hands swing and lift too far for a baked contact to hold, so they shade only themselves.
- */
-const CONTACTS: Partial<Record<PartName, PartName[]>> = {
-  torso: ["head", "legL", "legR"],
-  head: ["torso"],
-  legL: ["torso"],
-  legR: ["torso"],
-};
-
 /**
  * Recently meshed parts by what they are made of. Baking the shading is the dear part of a build, and the builder's
  * thumbnails rebuild the same hero dozens of times with one option changed: the other parts come from here.
@@ -50,7 +41,7 @@ const CONTACTS: Partial<Record<PartName, PartName[]>> = {
 const meshCache = new Map<string, MeshData>();
 const MESH_CACHE_SIZE = 96;
 
-const meshPart = (boxes: Box[], occluders: Box[]): MeshData => {
+const meshPart = ({ boxes, occluders }: { boxes: Box[]; occluders: Box[] }): MeshData => {
   const key = JSON.stringify([boxes, occluders]);
   const cached = meshCache.get(key);
   if (cached) {
@@ -66,13 +57,9 @@ const meshPart = (boxes: Box[], occluders: Box[]): MeshData => {
   return data;
 };
 
-const toGeometry = (part: Part, byName: Map<PartName, Part>): THREE.BufferGeometry => {
-  const { pivot } = part;
-  const centre = (boxes: Box[]): Box[] => boxes.map((b) => ({ ...b, x: b.x - pivot.x, y: b.y - pivot.y, z: b.z - pivot.z }));
-  const occluders = (CONTACTS[part.name] ?? []).flatMap((name) => byName.get(name)?.boxes ?? []);
-  // The mesh data is shared between cached builds: geometries only read it
-  return voxelGeometry(meshPart(centre(part.boxes), centre(occluders)));
-};
+// The mesh data is shared between cached builds: geometries only read it
+const toGeometry = (part: Part, byName: Map<PartName, Part>): THREE.BufferGeometry =>
+  voxelGeometry(meshPart(partMeshInput(part, byName)));
 
 const setRest = (group: THREE.Group, rot: [number, number, number] = [0, 0, 0]): void => {
   const rest: RestPose = { pos: [group.position.x, group.position.y, group.position.z], rot };
