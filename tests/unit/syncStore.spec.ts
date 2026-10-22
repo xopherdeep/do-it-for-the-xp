@@ -1189,9 +1189,10 @@ describe("the sync store", () => {
     putRecords.mockImplementationOnce(refuseTurn);
     let stateWhileCatchingUp = "";
     const fromTablet = { id: "q0", userId: "h-1", status: "tablet" };
-    fetchRecords.mockImplementationOnce(async () => {
-      stateWhileCatchingUp = sync.turns["h-1"].state;
-      return [received("__questLog", "q0", 6, fromTablet, { heroId: "h-1" })];
+    // the site holds the tablet's q0 (the one record of the hero it has), whatever this device read before
+    fetchRecords.mockImplementation(async (_auth: unknown, since: number) => {
+      stateWhileCatchingUp ||= sync.turns["h-1"].state;
+      return since < 6 ? [received("__questLog", "q0", 6, fromTablet, { heroId: "h-1" })] : [];
     });
 
     await tick(5_000);
@@ -1200,7 +1201,8 @@ describe("the sync store", () => {
     expect(sent().filter((record) => record.store === "__questLog")).toHaveLength(50);
     expect(sent().map((record) => record.key)).toContain("b1");
     expect(stateWhileCatchingUp).toBe("takenOver");
-    expect(mockStores.__questLog.q0).toEqual(fromTablet);
+    // the copy here is the tablet's again: its q0, and none of the 50 records played here that the site never took
+    expect(mockStores.__questLog).toEqual({ q0: fromTablet });
     expect(sync.turns["h-1"]).toEqual({ state: "resting", busy: null, provisional: false });
     expect(sync.tookOverNotice).toBe("h-1");
     expect(sync.state.outbox).toEqual([]);
@@ -2190,10 +2192,11 @@ describe("the sync store", () => {
       { kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-dishes", difficulty: 1, requiresApproval: true }, at: "2026-10-22T09:00:00.000Z" },
       { kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-laundry", difficulty: 1, requiresApproval: true }, at: "2026-10-22T08:15:00.000Z" },
     ]);
-    // this device's copies of the claims go: the holder writes each claim's entry when it takes it
+    // this device's copies of the claims go: the holder writes each claim's entry when it takes it. The copy here is the
+    // holder's again, so the paid honor claim the site never took goes too (spec section 5: play lost to a takeover)
     expect(mockStores.__questLog.e1).toBeUndefined();
     expect(mockStores.__questLog.e3).toBeUndefined();
-    expect(mockStores.__questLog.e2).toBeDefined();
+    expect(mockStores.__questLog.e2).toBeUndefined();
   });
 
   it("a kid phone sends its hero's approval-loop events with its own key", async () => {

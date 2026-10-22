@@ -4,7 +4,7 @@ import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import { fetchRecords, putRecords, type ReceivedRecord } from "@/lib/services/sync/familySyncClient";
 import type { LocalChanges } from "@/lib/services/sync/localChanges";
 import { emitRecordsLanded } from "@/lib/services/sync/recordSignals";
-import { applyRecords, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
+import { applyRecords, rawTargetFor, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
 import { dropItems, dropWhere, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
 import { heroIdOf, scopeOf, SYNC_STORES } from "@/lib/services/sync/syncScopes";
 import { batchRecordOf, cursorAfter, emptyOutcome, firstPushRefs, mergeOutcomes, queueAll, recordId, type StoreEntry } from "@/lib/services/sync/syncQueue";
@@ -31,7 +31,10 @@ interface StoreRef {
  * Hero records follow the hero's turn (section 5): one is sent only while this device holds the hero (`maySend`), and a
  * hero record of a hero this device does not play always lands, over a change made here without the turn, which is
  * then dropped: the device holding the turn wrote it, and it is the hero's only writer. A put the site refuses with
- * `xp_family_turn` names the heroes another device took over (`turnLost`).
+ * `xp_family_turn` names the heroes another device took over (`turnLost`). The changes a takeover or a Not now drops
+ * (`dropHero`) are repaired by the next read: it reads the family's records from the start once and lands the site's
+ * copy of each dropped key, from any device, over what was played here (a key the site never had is removed), so the
+ * copy here is the holder's again even where this device had already read past the holder's row.
  *
  * The sync store runs these one at a time through its work lane (services/sync/workLane.ts); nothing here joins or
  * queues. Every call rejects when the site fails; the store notes it. Bound to the store the way the family store binds
@@ -95,6 +98,8 @@ export interface RecordTransfer {
   forget(): void;
 }
 
+const TURN_REFUSAL = "xp_family_turn";
+
 /** Pages read per download, at most: a device that was away long catches up over a few rounds */
 const MAX_PAGES = 5;
 const PAGE = 100;
@@ -127,6 +132,8 @@ const everyEntry = async (): Promise<StoreEntry[]> => {
 export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
   /** Record id -> the body the site sent (null for a tombstone), while the first push is owed: what not to send back */
   const received = new Map<string, string | null>();
+  /** Record id -> a change a takeover or a Not now dropped: the next read lands the site's copy over it */
+  const repairs = new Map<string, StoreRef>();
 
   // --- Up ---
 
@@ -161,6 +168,8 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     result.refused.forEach((refused) => debug.warn(`[sync] the site refused ${refused.store}/${refused.key} (${refused.code}); dropped`));
     settle([...result.accepted, ...result.refused]);
     ctx.succeeded();
+    // A record refused because another device took its hero: the next read lands the holder's copy over it
+    refusedRecords.filter((record) => record.code === TURN_REFUSAL).forEach((record) => repairs.set(recordId(record), { store: record.store, key: record.key }));
     const hasRefused = refusedRecords.length > 0;
     if (hasRefused) ctx.refused(refusedRecords);
     const isTakenOver = takenOver.length > 0;
@@ -258,9 +267,47 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     return { outcome, landed };
   };
 
+  /** Every page of the family's records from the start: the copies of the keys asked for, or null when it was stopped */
+  const readAllFor = async (auth: TownHallAuth, wanted: Map<string, StoreRef>, startedIn: number): Promise<ReceivedRecord[] | null> => {
+    const found: ReceivedRecord[] = [];
+    let since = 0;
+    for (;;) {
+      const page = await fetchRecords(auth, since, PAGE);
+      const isStopped = startedIn !== ctx.generation();
+      if (isStopped) return null;
+      found.push(...page.filter((record) => wanted.has(recordId(record))));
+      const next = Math.max(since, ...page.map((record) => record.seq).filter(Number.isFinite));
+      const isEnd = next <= since;
+      if (isEnd) return found;
+      since = next;
+    }
+  };
+
+  /** The dropped changes: the site's copy of each lands (from any device), and a key the site never had is removed */
+  const repairDropped = async (startedIn: number): Promise<void> => {
+    const auth = ctx.auth();
+    const isDue = repairs.size > 0 && auth !== null;
+    if (!isDue) return;
+    const wanted = new Map(repairs);
+    const found = await readAllFor(auth as TownHallAuth, wanted, startedIn);
+    if (!found) return;
+    const isChangedAgain = (ref: StoreRef): boolean => ctx.isLocal(ref.store, ref.key);
+    const landedKeys = new Map<string, string[]>();
+    for (const record of found.filter((each) => !isChangedAgain(each))) {
+      // An empty device id lands this device's own rows too: what it played meanwhile was dropped
+      await applyRecords([record], "");
+      landedKeys.set(record.store, [...(landedKeys.get(record.store) ?? []), record.key]);
+      wanted.delete(recordId(record));
+    }
+    for (const ref of Array.from(wanted.values()).filter((each) => !isChangedAgain(each))) await rawTargetFor(ref.store)?.remove(ref.key);
+    Array.from(repairs.keys()).forEach((id) => repairs.delete(id));
+    landedKeys.forEach((keys, store) => emitRecordsLanded({ store, keys }));
+  };
+
   const download = async (): Promise<PullResult> => {
     const startedIn = ctx.generation();
     const { deviceId } = await ensureIdentity();
+    await repairDropped(startedIn);
     for (let page = 0; page < MAX_PAGES; page++) {
       const since = (await ctx.kept()).lastSeq;
       const auth = ctx.auth();
@@ -357,6 +404,7 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
       const isHeros = (item: OutboxItem): boolean => item.heroId === heroId;
       dropped = current.outbox.filter(isHeros);
       dropped.forEach((item) => ctx.changes.settled(item.store, item.key, ctx.changes.markOf(item.store, item.key)));
+      dropped.forEach((item) => repairs.set(recordId(item), { store: item.store, key: item.key }));
       return { ...current, outbox: dropWhere(current.outbox, isHeros) };
     }, ctx.generation());
     return dropped;
@@ -369,5 +417,10 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     await ctx.update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()) }), ctx.generation());
   };
 
-  return { upload: () => upload(), download, round, catchUp, readToEnd, dropHero, queueHero, forget: () => received.clear() };
+  const forget = (): void => {
+    received.clear();
+    repairs.clear();
+  };
+
+  return { upload: () => upload(), download, round, catchUp, readToEnd, dropHero, queueHero, forget };
 };
