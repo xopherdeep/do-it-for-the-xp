@@ -184,7 +184,7 @@ import PixelRuns from "./PixelRuns.vue";
  * the end. An empty chest opens the same way, on a puff of dust instead of light, and can only be closed. The page
  * owns `open`, and closes the reveal on `take` or `leave`.
  */
-const props = defineProps<{
+interface ChestRevealProps {
   open: boolean;
   loot: ChestLoot[];
   /** The chest starts shut, waiting for Open (or Leave); the loot sequence plays when it is pressed. An empty chest never waits. */
@@ -194,7 +194,9 @@ const props = defineProps<{
    * whatever is ticked, so a row that looked left out would be a lie). Take still hands over every row.
    */
   whole?: boolean;
-}>();
+}
+
+const props = defineProps<ChestRevealProps>();
 
 const emit = defineEmits<{
   (e: "take", values: string[]): void;
