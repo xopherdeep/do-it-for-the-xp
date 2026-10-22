@@ -25,7 +25,7 @@ import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
-import { CLASSIC_IDS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
 
 const shipped = temples as Record<string, any>;
 const IDS = Object.keys(shipped);
@@ -281,6 +281,22 @@ describe("the shipped temples as quest rooms", () => {
       // A classic temple's side rooms repeat a beast, so one starter quest can fill several rooms
       expect([...new Set(filled)].sort()).toEqual([...wanted].sort());
     });
+  });
+});
+
+/**
+ * A classic temple repeats a must-clear beast only when its theme is short of beasts: its plan then lists every beast of
+ * the theme its mini-bosses and boss leave, so a plan short by mistake fails here instead of repeating quietly
+ */
+describe("the classic temples' plans", () => {
+  it.each(CLASSIC)("%s repeats a beast only when its plan lists every beast of its theme", (id) => {
+    const plan = CLASSIC_PLANS[id];
+    const listed = new Set([...plan.mustClear, ...plan.minibosses, plan.boss].map(([slug]) => slug));
+    const theme = id.replace("-temple", "");
+    const unlisted = BEAST_LIBRARY.filter((beast) => beast.theme === theme && !listed.has(beast.slug)).map((beast) => beast.slug);
+    const { repeats } = classicReport(id);
+    const isRepeating = repeats.length > 0;
+    expect({ id, repeats, unlisted: isRepeating ? unlisted : [] }).toEqual({ id, repeats, unlisted: [] });
   });
 });
 
