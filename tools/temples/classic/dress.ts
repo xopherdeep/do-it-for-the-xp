@@ -204,8 +204,8 @@ if (isRunDirectly) {
     const { temple, report } = dressDungeon(loadDungeon(id), planOf(id));
     writeFileSync(join(folder, `${id}.ts`), renderClassicModule(id, temple));
     const floors = Object.keys(temple.maze);
-    console.log(`${id}: ${floors.length} floors, ${Object.keys(temple.rooms).length - 1} rooms, ${report.mustClear} must-clear, ${report.moves.length} moved, ${report.dropped.length} dropped, ${report.bombChests.length} Bomb chests`);
+    process.stdout.write(`${id}: ${floors.length} floors, ${Object.keys(temple.rooms).length - 1} rooms, ${report.mustClear} must-clear, ${report.moves.length} moved, ${report.dropped.length} dropped, ${report.bombChests.length} Bomb chests\n`);
     const hasNotes = report.repeats.length || report.overflow.length || report.left.length;
-    if (hasNotes) console.log(`  repeats: [${report.repeats}] overflow: [${report.overflow}] left: [${report.left}]`);
+    if (hasNotes) process.stdout.write(`  repeats: [${report.repeats}] overflow: [${report.overflow}] left: [${report.left}]\n`);
   }
 }
