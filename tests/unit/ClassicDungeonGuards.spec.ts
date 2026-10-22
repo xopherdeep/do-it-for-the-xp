@@ -1,7 +1,7 @@
 /**
  * The guards of the dress step (tools/temples/classic/dress.ts) on every classic JSON: each dressed in memory under its
  * own plan (dressPlans.ts) once it has one, else under the Storm plan as a stand-in, and checked against its own
- * converted dungeon, the plan's own rooms joined to it (withHandRooms: Wind's owner's four):
+ * converted dungeon as the plan has it (asPlanned: the sides it opens open, its own rooms joined; Wind's owner's four):
  * - every must-clear fight that blocks the boss in the dungeon still blocks him in the temple (the seals pin);
  * - whatever the dressing pushes out of a sealed fight is reached only through that fight, a warp that lands on a
  *   sealed fight lands in front of it, and a chest or a key that leaves its cell is reached from that cell with
@@ -13,7 +13,7 @@
 import { readdirSync } from "fs";
 import { join } from "path";
 import type { ClassicDungeon } from "../../tools/temples/classic/classicDungeon";
-import { CLASSIC_IDS, CLASSIC_PLANS, dressDungeon, loadDungeon, withHandRooms, type ClassicPlan, type DressedTemple } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, CLASSIC_PLANS, asPlanned, dressDungeon, loadDungeon, type ClassicPlan, type DressedTemple } from "../../tools/temples/classic/dress";
 import { DUNGEON_DIR } from "../../tools/temples/classic/dressPlans";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph, reachableFrom, roomKey, solveTemple, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator";
@@ -44,8 +44,8 @@ const asRegistered = (temple: TempleLayout): TempleLayout => ({
 /** The plan a JSON is dressed under: its own once it has one, else the Storm plan as a stand-in */
 const planFor = (id: string): ClassicPlan => CLASSIC_PLANS[id] ?? { ...CLASSIC_PLANS["storm-temple"], name: `${id} (in memory)` };
 
-/** The dungeon a JSON is dressed from: its cells and its plan's own rooms */
-const dungeonOf = (id: string): ClassicDungeon => withHandRooms(loadDungeon(id), planFor(id));
+/** The dungeon a JSON is dressed from: its cells as its plan has them, and the plan's own rooms */
+const dungeonOf = (id: string): ClassicDungeon => asPlanned(loadDungeon(id), planFor(id));
 
 /** Each JSON dressed once, under its plan */
 const dressed = new Map<string, DressedTemple>();
@@ -282,13 +282,15 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
       }
     });
 
-    it("sells on the entrance floor before any key, Bomb or seal, or where the plan pins the shop", () => {
+    it("sells on the entrance floor before any key, Bomb or seal; a shop the plan pins, there and before any cracked wall", () => {
       const shops = report.placements.filter((entry) => entry.type === "shop");
       expect(shops).toHaveLength(1);
       const entrance = temple.graph.rooms.get(temple.graph.entrance!)!;
-      // Wind's is the Eagle's old man's room, past two locks, a seal and the cracked wall Zelda hides him behind
+      // Wind's is the Eagle's old man's room: keys and a seal stand before it, a Bomb never (the plan opens its wall)
       const pinned = planFor(id).shopAt;
-      const isWhereItShould = pinned ? sameCell(shops[0].at, pinned) : reachedEmptyHanded(temple, temple.graph.entrance!).has(keyOf(shops[0].at));
+      const cracks = new Set(temple.graph.doors.filter((door) => door.lock === "bomb").map((door) => door.id));
+      const isReachedWithoutABomb = reachableFrom(temple.graph, temple.graph.entrance!, new Set(), cracks).includes(keyOf(shops[0].at));
+      const isWhereItShould = pinned ? sameCell(shops[0].at, pinned) && isReachedWithoutABomb : reachedEmptyHanded(temple, temple.graph.entrance!).has(keyOf(shops[0].at));
       expect({ floor: shops[0].at.floor, reached: isWhereItShould }).toEqual({ floor: entrance.ref.floor, reached: true });
     });
 
@@ -299,27 +301,31 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
     it("hands out every chest and key of its dungeon exactly once, a boxed-in fight's drops among them", () => {
       const all = Object.values(dressedIn(id).temple.rooms as Record<string, Room>);
       const cells = dungeon.floors.flatMap((level) => level.cells);
-      const { relic, extraRelics = [] } = planFor(id);
+      const { relic, extraRelics = [], treasure } = planFor(id);
+      const bigChests = cells.filter((cell) => cell.chest === "big-chest").length;
+      const isTreasure = (room: Room): boolean => room.type === "loot" && Boolean(treasure) && JSON.stringify(room.content?.items) === JSON.stringify(treasure!.items);
       const holding = (item: string): number => all.filter((room) => grantedDungeonItems(room).includes(item)).length;
       const goldOf = (room: Room): number => Number(room.type === "loot" && room.content?.chest === "gold" ? room.content.gold : 0) + Number(roomDrops(room)?.gold ?? 0);
       const handedOut = {
         map: holding("map"),
         compass: holding("compass"),
         bossKey: all.filter(grantsBossKey).length,
-        relic: all.filter((room) => (room.type === "loot" && room.content?.dungeon === relic) || roomDrops(room)?.dungeon === relic).length,
+        relic: relic ? all.filter((room) => (room.type === "loot" && room.content?.dungeon === relic) || roomDrops(room)?.dungeon === relic).length : 0,
+        treasure: all.filter(isTreasure).length,
         extraRelics: extraRelics.map(holding),
         smallKeys: all.reduce((sum, room) => sum + smallKeysGranted(room), 0),
         gold: all.reduce((sum, room) => sum + goldOf(room), 0),
       };
-      // The plan's relics beyond the first each take an `other` chest's gold
+      // The plan's relics beyond the first each take an `other` chest's gold; a Big Chest holds the relic, or the treasure
       expect(handedOut).toEqual({
         map: cells.filter((cell) => cell.chest === "map").length,
         compass: cells.filter((cell) => cell.chest === "compass").length,
         bossKey: cells.filter((cell) => cell.chest === "big-key" || cell.keyDrop === "big").length,
-        relic: cells.filter((cell) => cell.chest === "big-chest").length,
+        relic: relic ? bigChests : 0,
+        treasure: treasure ? bigChests : 0,
         extraRelics: extraRelics.map(() => 1),
         smallKeys: cells.filter((cell) => cell.chest === "small-key" || cell.keyDrop === "small" || cell.potKey).length,
-        gold: 25 * (cells.filter((cell) => cell.chest === "other").length - extraRelics.length),
+        gold: 25 * (cells.filter((cell) => cell.chest === "other").length - extraRelics.length) + (treasure ? treasure.gold * bigChests : 0),
       });
     });
 

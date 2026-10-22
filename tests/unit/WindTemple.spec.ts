@@ -5,10 +5,11 @@
  * Two floors: B1, the bow's basement, under 1F, the Eagle's 17 cells on a 6x6 floor, entered at (5,2).
  *
  * The route: the Eagle's key drops open its locked doors up to the push-block steps at (0,1), whose circle rides down
- * to the Wind Whistle in the basement; a second circle there rides on to the owner's circle at (5,5), and past the
- * Cobweb Widow lies his Boss Key at (3,5). Back the same way, the Dust Bunny King guards the boss door at (2,4), the
- * Fluffalo waits at (1,4) and the Master Room at (1,5), the Eagle's Triforce room. The old man's room at (2,0) is the
- * shop. ClassicTemples.spec.ts holds Wind to the dressing's rules as it holds the other eight.
+ * to the Big Chest in the basement (treasure: the Wind Whistle stays the Pegasus chest's prize); a second circle there
+ * rides on to the owner's circle at (5,5), and past the Cobweb Widow lies his Boss Key at (3,5). Back the same way, the
+ * Dust Bunny King guards the boss door at (2,4), the Fluffalo waits at (1,4) and the Master Room at (1,5), the Eagle's
+ * Triforce room. The old man's room at (2,0) is the shop, its cracked wall opened: the owner's shop was reached without
+ * a Bomb. ClassicTemples.spec.ts holds Wind to the dressing's rules as it holds the other eight.
  */
 import windTemple from "@/lib/engine/temples/wind-temple";
 import type { Room } from "@/lib/engine/core/dungeons/types";
@@ -21,6 +22,7 @@ import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { roomDrops } from "@/lib/services/temples/fightDrops";
 import { grantedDungeonItems, grantsBossKey } from "@/lib/services/temples/roomGrants";
 import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
+import { WIND_TEMPLE_ID, WIND_WHISTLE, asChestRoom } from "@/lib/services/temples/ChestLoot";
 import { CLASSIC_PLANS, classicReport, loadDungeon } from "../../tools/temples/classic/dress";
 import { templateFor } from "../../tools/temples/questPlan";
 
@@ -104,10 +106,11 @@ describe("the Wind Temple, Zelda's Eagle", () => {
     expect(sides).toEqual([undefined, undefined, undefined, undefined, undefined, undefined]);
   });
 
-  it("keeps the Big Chest in the basement: the Wind Whistle, between the circle down from (0,1) and the circle on to (5,5)", () => {
+  it("keeps the Big Chest in the basement, gold and a Potion, between the circle down from (0,1) and the circle on to (5,5)", () => {
     expect(temple.maze["B1"]).toHaveLength(2);
-    expect(at("B1", 0, 0)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "Wind Whistle" } });
-    expect(plan.relic).toBe("Wind Whistle");
+    expect(at("B1", 0, 0)).toEqual(expect.objectContaining({ type: "loot", content: { chest: "gold", gold: 50, items: ["Potion"] } }));
+    expect(plan.relic).toBeUndefined();
+    expect(plan.treasure).toEqual({ gold: 50, items: ["Potion"] });
     expect(at("B1", 0, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 1, y: 0 } } });
     expect(at("B1", 1, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 5, y: 5 } } });
     expect(at("1F", 0, 1)).toMatchObject({ content: { targetLevel: "B1", targetCoords: { x: 1, y: 0 } } });
@@ -135,7 +138,9 @@ describe("the Wind Temple, Zelda's Eagle", () => {
       );
     // Six small-key doors in the Eagle: the one into the boss's room is his Boss door
     expect(drawn("locked").sort()).toEqual(["1F (0,2) west", "1F (1,2) north", "1F (2,2) east", "1F (3,1) north", "1F (5,2) north"]);
-    expect(drawn("bombable").sort()).toEqual(["1F (2,0) east", "1F (2,1) west", "1F (2,2) south", "1F (2,3) south", "1F (3,2) north", "1F (3,3) north"]);
+    // The third, before the old man's room, the plan opens (the owner's shop was reached without a Bomb)
+    expect(drawn("bombable").sort()).toEqual(["1F (2,2) south", "1F (2,3) south", "1F (3,2) north", "1F (3,3) north"]);
+    expect(plan.opens).toEqual([{ floor: "1F", row: 2, col: 0, side: "east" }]);
     expect(drawn("masterlocked").sort()).toEqual(["1F (1,4) east", "1F (1,4) south", "1F (1,5) west", "1F (2,4) north"]);
   });
 
@@ -187,11 +192,19 @@ describe("the Wind Temple, Zelda's Eagle", () => {
       expect(solveTemple({ ...layout, rooms }).solvable).toBe(false);
     });
 
-    it("sells at the old man's room, which Zelda hides behind a cracked wall: no Bomb found in the temple reaches it", () => {
-      expect(at("1F", 2, 0)).toMatchObject({ type: "shop", sides: { east: "bombable" } });
+    it("sells at the old man's room, reached from the entrance without a Bomb (keys and seals on the way)", () => {
+      expect(at("1F", 2, 0)).toMatchObject({ type: "shop", sides: { east: "door" } });
+      expect(at("1F", 2, 1)?.sides?.west).toBe("door");
       const graph = buildTempleGraph(layout);
       const cracks = new Set(graph.doors.filter((door) => door.lock === "bomb").map((door) => door.id));
-      expect(reachableFrom(graph, graph.entrance!, new Set(), cracks)).not.toContain("1F:2,0");
+      expect(reachableFrom(graph, graph.entrance!, new Set(), cracks)).toContain("1F:2,0");
+    });
+
+    it("hands out the Wind Whistle from the Pegasus chest alone, as the temple plays its chests", () => {
+      expect(JSON.stringify(temple.rooms)).not.toContain(WIND_WHISTLE);
+      const played = Object.values(temple.rooms).map((room) => asChestRoom(room, WIND_TEMPLE_ID));
+      const whistles = played.filter((room) => (room.content?.items ?? []).includes(WIND_WHISTLE) || room.content?.dungeon === WIND_WHISTLE);
+      expect(whistles).toEqual([expect.objectContaining({ content: expect.objectContaining({ pegasus: true }) })]);
     });
   });
 });

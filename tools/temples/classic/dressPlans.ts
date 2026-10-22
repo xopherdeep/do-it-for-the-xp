@@ -274,16 +274,18 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
   },
   // Zelda 1's Level 1, the Eagle, with the owner's four east rooms (WIND_EAST_ROOMS): quick, easy chores, today's nine.
   // His way to his Boss Key: the Eagle's key drops open its locked doors up to the push-block steps at (0,1), whose
-  // circle rides down to the Wind Whistle in the bow's basement; a second circle there rides on to his circle at (5,5),
+  // circle rides down to the Big Chest in the bow's basement; a second circle there rides on to his circle at (5,5),
   // past the Cobweb Widow. Five must-clear rooms (the Eagle's key drops but the one before the boss door) take five
   // chores, the Spill Sprite the side room behind the entrance's locked door, where it stood (keepsEveryChore); the
-  // Dust Bunny King fights in the key room before the boss door, the Fluffalo waits behind it. The old man's room is
-  // the shop (sells Bombs, as today); the side fights stand over the map, the compass and the boomerang's gold.
+  // Dust Bunny King fights in the key room before the boss door, the Fluffalo waits behind it. The side fights stand
+  // over the map, the compass and the boomerang's gold. The lead's rulings: the old man's room is the shop (Bombs, as
+  // today), reached without a Bomb as the owner's was, so the plan opens Zelda's cracked wall before it; Wind's relic,
+  // the Wind Whistle, stays its Pegasus chest's prize (ChestLoot), so the Big Chest holds 50 gold and a Potion.
   "wind-temple": {
     name: "Wind Temple",
     theme: "plains",
     element: "wind",
-    relic: "Wind Whistle",
+    treasure: { gold: 50, items: ["Potion"] },
     trap: ["gust", 4],
     puzzle: "generic",
     mustClear: [
@@ -299,6 +301,7 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     boss: ["fluffalo", 8, "weekly"],
     handRooms: WIND_EAST_ROOMS,
     shopAt: { floor: "1F", row: 2, col: 0 },
+    opens: [{ floor: "1F", row: 2, col: 0, side: "east" }],
     guardedChests: true,
     keepsEveryChore: true,
   },

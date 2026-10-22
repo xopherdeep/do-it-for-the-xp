@@ -9,7 +9,7 @@ const windTemple = {
   entrance: [1, 5, 2], // [Floor Index (0 is the first floor in the list), row, column]
   maze: {
     "B1": [
-      ["R001", "T001"],
+      ["O001", "T001"],
       ["T002", "_"],
     ],
     "1F": [
@@ -23,7 +23,7 @@ const windTemple = {
   },
   rooms: {
     "_": { type: "wall" },
-    "R001": { type: "loot", content: { chest: "dungeon", dungeon: "Wind Whistle" }, sides: { north: "wall", east: "door", south: "door", west: "wall" } },
+    "O001": { type: "loot", content: { chest: "gold", gold: 50, items: ["Potion"] }, sides: { north: "wall", east: "door", south: "door", west: "wall" } },
     "T001": { type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 1, y: 0 } }, sides: { north: "wall", east: "wall", south: "wall", west: "door" } },
     "T002": { type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 5, y: 5 } }, sides: { north: "door", east: "wall", south: "wall", west: "wall" } },
     "T003": { type: "teleport", content: { targetLevel: "B1", targetCoords: { x: 1, y: 0 } }, sides: { north: "wall", east: "door", south: "wall", west: "wall" } },
@@ -31,8 +31,8 @@ const windTemple = {
     "M002": { type: "monster", content: { lockOnEnter: true, difficulty: "normal", theme: "plains", quest: { beastId: "beast-gravel-gnome", difficulty: 2, basicSchedule: "weekly", dueByTime: "18:00" }, drops: { chest: "dungeon", dungeon: "key" } }, sides: { north: "locked", east: "wall", south: "door", west: "wall" } },
     "B001": { type: "boss", content: { lockOnEnter: true, difficulty: "boss", element: "wind", quest: { beastId: "beast-fluffalo", difficulty: 8, basicSchedule: "weekly", dueByTime: "18:00" } }, sides: { north: "wall", east: "masterlocked", south: "masterlocked", west: "wall" } },
     "X001": { type: "master", content: { chest: "dungeon", dungeon: "Pegasus", pegasus: true }, sides: { north: "wall", east: "wall", south: "wall", west: "masterlocked" } },
-    "P001": { type: "shop", sides: { north: "wall", east: "bombable", south: "wall", west: "wall" } },
-    "m001": { type: "monster", content: { difficulty: "normal", theme: "plains", quest: { beastId: "beast-gravel-gnome", difficulty: 2, basicSchedule: "weekly", dueByTime: "18:00" } }, sides: { north: "wall", east: "door", south: "door", west: "bombable" } },
+    "P001": { type: "shop", sides: { north: "wall", east: "door", south: "wall", west: "wall" } },
+    "m001": { type: "monster", content: { difficulty: "normal", theme: "plains", quest: { beastId: "beast-gravel-gnome", difficulty: 2, basicSchedule: "weekly", dueByTime: "18:00" } }, sides: { north: "wall", east: "door", south: "door", west: "door" } },
     "m002": { type: "monster", content: { difficulty: "easy", theme: "plains", quest: { beastId: "beast-cushion-croc", difficulty: 1, basicSchedule: "daily", dueByTime: "19:00" }, drops: { chest: "dungeon", dungeon: "compass" } }, sides: { north: "door", east: "locked", south: "bombable", west: "door" } },
     "m003": { type: "monster", content: { difficulty: "normal", theme: "plains", quest: { beastId: "beast-crumb-crawler", difficulty: 2, basicSchedule: "daily", dueByTime: "19:00" }, drops: { chest: "gold", gold: 25 } }, sides: { north: "wall", east: "door", south: "bombable", west: "door" } },
     "b001": { type: "miniboss", content: { lockOnEnter: true, difficulty: "hard", quest: { beastId: "beast-dust-bunny-king", difficulty: 3, basicSchedule: "weekly", dueByTime: "18:00" }, drops: { chest: "dungeon", dungeon: "key" } }, sides: { north: "masterlocked", east: "wall", south: "wall", west: "door" } },
