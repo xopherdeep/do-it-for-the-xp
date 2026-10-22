@@ -16,6 +16,7 @@ import {
   IonChip,
   IonFab,
   IonFabButton,
+  IonBadge,
 } from "@ionic/vue";
 import {
   businessOutline,
@@ -83,6 +84,7 @@ export default defineComponent({
     IonChip,
     IonFab,
     IonFabButton,
+    IonBadge,
     XpRevealPrompt,
     TownHallNews,
     TownHallBoard,
@@ -184,9 +186,22 @@ export default defineComponent({
 
     const reveal = useRevealPrompt();
 
+    // The tabs the page keeps: a tab shows its own reads and answers to reload() (the courier's retry, a desk change)
+    const newsTab = ref<TownHallTab | null>(null);
+    const boardTab = ref<TownHallTab | null>(null);
+    const packsTab = ref<TownHallTab | null>(null);
+    const eventsTab = ref<TownHallTab | null>(null);
+    const updatesTab = ref<TownHallTab | null>(null);
+    const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, packs: packsTab, events: eventsTab, updates: updatesTab };
+
     // The clerk's counter: the menu, the compose sheet, the hero's waiting list, and sending the queue whenever there is a chance to
     // Posts are signed on the public site: a nickname of the hero's own, never their real name (see signingName)
     const heroName = () => signingName(userStore.getUserById(props.userId)?.name);
+    // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
+    const profilesReady = async () => {
+      const hasNoProfiles = Object.keys(userStore.users).length === 0;
+      if (hasNoProfiles) await userStore.loadUsers();
+    };
     const clerk = useTownHallClerk({
       store: townHall,
       reveal,
@@ -195,22 +210,18 @@ export default defineComponent({
       isGameMaster: () => canAccessGameMaster(),
       route: () => router.currentRoute.value.path,
       currentBoard: () => boardSlug.value,
-      // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
-      profilesReady: async () => {
-        const hasNoProfiles = Object.keys(userStore.users).length === 0;
-        if (hasNoProfiles) await userStore.loadUsers();
-      },
+      reloadTab: (id) => tabRefs[id].value?.reload() ?? Promise.resolve(),
+      profilesReady,
     });
+
+    // The menu offers Family Registration to a Game Master: a tap on a cold start waits for the profiles that say who that is
+    const openClerkMenu = async () => {
+      await profilesReady();
+      await clerk.posting.openClerkMenu();
+    };
 
     // The courier is late: the clerk says so, says the family's road to the city is not open yet, and offers to ask again.
     // One answer at a time, whatever else is talking.
-    const newsTab = ref<TownHallTab | null>(null);
-    const boardTab = ref<TownHallTab | null>(null);
-    const packsTab = ref<TownHallTab | null>(null);
-    const eventsTab = ref<TownHallTab | null>(null);
-    const updatesTab = ref<TownHallTab | null>(null);
-    const tabRefs: Record<TabId, typeof newsTab> = { news: newsTab, board: boardTab, packs: packsTab, events: eventsTab, updates: updatesTab };
-
     const onTrouble = async (id: TabId) => {
       const isClerkBusy = Boolean(reveal.prompt.value);
       if (isClerkBusy) return;
@@ -242,7 +253,16 @@ export default defineComponent({
       openComment: clerk.posting.openComment,
       openEdit: clerk.posting.openEdit,
       closeCompose: clerk.posting.closeCompose,
-      openClerkMenu: clerk.posting.openClerkMenu,
+      openClerkMenu,
+      openSiteEdit: clerk.posting.openSiteEdit,
+      // The owner's desk: what a link with powers may do, and what waits for it (a family's link sees none of it)
+      canPublish: computed(() => townHall.canPublish),
+      canModerate: computed(() => townHall.canModerate),
+      heldComments: clerk.desk.heldComments,
+      bugs: clerk.desk.bugs,
+      waitingCount: clerk.desk.waitingCount,
+      patchNotesAvailable: clerk.desk.patchNotesAvailable,
+      desk: clerk.desk,
       sendDraft: clerk.posting.sendDraft,
       postPack: clerk.posting.postPack,
       dismissPost: clerk.posting.dismissPost,

@@ -289,6 +289,25 @@ $th-amber: #ffd27f;
     height: auto;
   }
 
+  // The button clips what is slotted in it to its round face (contain and overflow on its native part): the count sits on the rim, so let it out
+  ion-fab-button::part(native) {
+    contain: none;
+    overflow: visible;
+  }
+
+  // The clerk's count: how many things wait for the owner (drafts, pending topics, held comments, new bugs), at the button's top right
+  .th-clerk__count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    border-radius: 10px;
+    background: $th-yellow;
+    color: $th-purple;
+    font-family: "StatusPlz", monospace;
+    box-shadow: 0 0 0 2px $th-purple; // a ring, so the count reads against the button's own pale face
+  }
+
   // The Earthbound theme styles these with an id in the selector, so the page's own rules need one too
   #earthbound & {
     // A card's ring is as wide as the margin between cards: leave a gap so the rings do not touch
