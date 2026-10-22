@@ -1,7 +1,22 @@
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 
-/** bookHeroReminders: one hero's board becomes that hero's phone reminders, without touching the feed or the penalties. */
+/**
+ * bookHeroReminders: one hero's board becomes that hero's phone reminders, without touching the feed or the penalties.
+ * Under Family Sync (spec section 5) a device books them only for heroes whose turn it holds, and takes back what it
+ * booked for a hero it does not, so the reminder rings on the phone in the hero's hand and nowhere else.
+ */
 const NOON = new Date(2026, 9, 18, 12, 0, 0);
+
+let mockSyncOn = false;
+let mockHeld = new Set<string>();
+jest.mock("@/lib/store/stores/sync", () => ({
+  useSyncStore: () => ({
+    get isOn() {
+      return mockSyncOn;
+    },
+    holds: (id: string) => mockHeld.has(id),
+  }),
+}));
 
 const mockBoardFor = jest.fn();
 const mockSchedule = jest.fn(async (..._args: unknown[]) => ({ scheduled: 1 }));
@@ -37,6 +52,8 @@ const row = (q: QuestBoardItem["quest"], extra: Partial<QuestBoardItem> = {}): Q
 
 describe("bookHeroReminders", () => {
   beforeEach(() => {
+    mockSyncOn = false;
+    mockHeld = new Set();
     mockBoardFor.mockReset();
     mockSchedule.mockClear();
     mockPush.mockClear();
@@ -65,5 +82,43 @@ describe("bookHeroReminders", () => {
     await bookHeroReminders("stranger", NOON);
     expect(mockSchedule).toHaveBeenCalledWith("stranger", [], NOON);
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  describe("with Family Sync", () => {
+    beforeEach(() => {
+      mockBoardFor.mockResolvedValue([row(quest("soon", "13:30", "Dishes"))]);
+    });
+
+    it("with sync off, every hero gets reminders", async () => {
+      await bookHeroReminders("kid-1", NOON);
+      await bookHeroReminders("kid-2", NOON);
+      const booked = mockSchedule.mock.calls.map(([heroId, reminders]) => [heroId, (reminders as unknown[]).length]);
+      expect(booked).toEqual([
+        ["kid-1", 1],
+        ["kid-2", 1],
+      ]);
+    });
+
+    it("with sync on, reminders are booked only for held heroes", async () => {
+      mockSyncOn = true;
+      mockHeld = new Set(["kid-1"]);
+      await bookHeroReminders("kid-1", NOON);
+      await bookHeroReminders("kid-2", NOON);
+      const kid1 = mockSchedule.mock.calls.find(([heroId]) => heroId === "kid-1");
+      const kid2 = mockSchedule.mock.calls.find(([heroId]) => heroId === "kid-2");
+      expect((kid1?.[1] as Array<{ questId: string }>).map((r) => r.questId)).toEqual(["soon"]);
+      expect(kid2?.[1]).toEqual([]);
+    });
+
+    it("with sync on, a hero another device holds has nothing booked and the reminders already booked here are taken back", async () => {
+      mockSyncOn = true;
+      mockHeld = new Set(["kid-2"]);
+      const result = await bookHeroReminders("kid-1", NOON);
+      expect(mockBoardFor).not.toHaveBeenCalled();
+      expect(mockSchedule).toHaveBeenCalledTimes(1);
+      expect(mockSchedule).toHaveBeenCalledWith("kid-1", [], NOON);
+      expect(result).toEqual({ scheduled: 1 });
+      expect(mockPush).not.toHaveBeenCalled();
+    });
   });
 });

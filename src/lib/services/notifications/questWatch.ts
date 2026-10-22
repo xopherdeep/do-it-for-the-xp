@@ -102,18 +102,6 @@ export interface QuestWatchRun {
   pushed: number;
 }
 
-/**
- * Book the phone's reminders for one hero's open quests that still lie ahead, and take back the ones for quests no
- * longer ahead. Reads the board only (no feed notes, no penalties), so the app shell can run it for every hero on the
- * device whether or not that hero's portal is open. Idempotent: the same hero and quest keep the same device id.
- */
-export const bookHeroReminders = async (heroId: string, now: Date = new Date()): Promise<ReminderResult> => {
-  const id = String(heroId);
-  const effects = useUserStore().getUserById(id)?.questEffects as HeroQuestEffects | undefined;
-  const board = await getQuestEngine().getQuestBoardForUser(id, now, undefined, effects);
-  return scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
-};
-
 /** What the watch reads of Family Sync: whether it is on, and whether this device holds a hero's turn (the sync store fits). */
 export interface WatchTurns {
   isOn: boolean;
@@ -128,6 +116,22 @@ export interface WatchTurns {
 export const heroesToWatch = (allHeroIds: string[], sync: WatchTurns): string[] => {
   if (!sync.isOn) return allHeroIds;
   return allHeroIds.filter((heroId) => sync.holds(heroId));
+};
+
+/**
+ * Book the phone's reminders for one hero's open quests that still lie ahead, and take back the ones for quests no
+ * longer ahead. Reads the board only (no feed notes, no penalties), so the app shell can run it for every hero on the
+ * device whether or not that hero's portal is open. Idempotent: the same hero and quest keep the same device id.
+ * With Family Sync on, a hero this device does not hold rings on the device that does (heroesToWatch): nothing is
+ * booked here for them and what was booked before is taken back, so one reminder reaches the phone in the hero's hand.
+ */
+export const bookHeroReminders = async (heroId: string, now: Date = new Date()): Promise<ReminderResult> => {
+  const id = String(heroId);
+  const isWatched = heroesToWatch([id], useSyncStore()).length > 0;
+  if (!isWatched) return scheduleDueReminders(id, [], now);
+  const effects = useUserStore().getUserById(id)?.questEffects as HeroQuestEffects | undefined;
+  const board = await getQuestEngine().getQuestBoardForUser(id, now, undefined, effects);
+  return scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
 };
 
 /** One hero's board read and pushed into the feed: overdue and due-soon notes, late penalties, the weekly recap. */
