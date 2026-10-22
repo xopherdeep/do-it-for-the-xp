@@ -6,7 +6,7 @@
  */
 
 import { roomPositionKey } from '../DungeonManager';
-import type { Room } from '../types';
+import type { ClimbLock, Room } from '../types';
 import { barrierBetween, isBossRoom } from '@/lib/services/temples/authoredDoors';
 import { clearedRoomKey, isRoomCleared } from './runState';
 import type { TempleRuns } from './runState';
@@ -95,6 +95,15 @@ export function doorKey(level: string, position: [number, number], direction: Do
  */
 export function bossKeyMark(level: string, position: [number, number], direction: DoorState['direction']): string {
   return `${doorKey(level, position, direction)}:boss`;
+}
+
+/**
+ * `${level}:${row},${col}:climb`: how a locked flight of stairs opened with a key is remembered, by the stairs room the
+ * climb leaves from. It rides in `openedDoors` with the doors, so a saved run keeps the stairs open and a blood moon (which
+ * forgets every opened door) locks them again. A door key ends in a direction and a mark in `:boss`, so nothing parses it as one.
+ */
+export function climbKey(level: string, position: [number, number]): string {
+  return `${roomPositionKey(level, position)}:climb`;
 }
 
 /** Every door into a boss room is the boss door, whatever the authored sides say: only the Boss Key opens it. */
@@ -308,6 +317,37 @@ export function isRoomBarred(runs: TempleRuns, templeId: string, level: string, 
 export function isSealedByFight(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
   const room = runs.dungeonManager.getRoom(templeId, position, level);
   return Boolean(room?.content?.lockOnEnter) && !isRoomCleared(runs, templeId, level, position);
+}
+
+/** Whether the locked climb from the stairs room at `position` on `level` has been opened in this run (a free flight has no lock to open and reads as not opened). */
+export function isClimbUnlocked(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
+  return Boolean(runs.templeStates[templeId]?.openedDoors?.has(climbKey(level, position)));
+}
+
+/**
+ * Open the locked climb from the stairs room at `position` on `level`. A 'small' lock spends one small key (refused with
+ * none); a 'master' lock needs the Boss Key and keeps it. The opening is remembered with the hero's progress, so the climb
+ * is free for the rest of the run. A climb already open is opened again for nothing: no key is spent twice.
+ * @returns True if the climb is open now
+ */
+export function unlockClimb(runs: TempleRuns, templeId: string, level: string, position: [number, number], kind: ClimbLock): boolean {
+  const templeState = runs.templeStates[templeId];
+  if (!templeState) return false;
+  if (isClimbUnlocked(runs, templeId, level, position)) return true;
+
+  const isSmallLock = kind === 'small';
+  if (isSmallLock) {
+    const isOutOfKeys = templeState.playerKeys <= 0;
+    if (isOutOfKeys) return false;
+    templeState.playerKeys -= 1;
+  } else if (!templeState.hasMasterKey) {
+    return false;
+  }
+
+  templeState.openedDoors ??= new Set<string>();
+  templeState.openedDoors.add(climbKey(level, position));
+  runs.queueSave(templeId);
+  return true;
 }
 
 export function addKey(runs: TempleRuns, templeId: string): boolean {

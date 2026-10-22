@@ -865,6 +865,142 @@ describe("stairs and pits", () => {
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
   });
 
+  describe("a flight of stairs with a lock on it (#1484)", () => {
+    const SMALL_LOCK = "A small lock bars the way.";
+    const BOSS_LOCK = "The Boss Door's lock bars the way.";
+    const lockedTower = (locked: "small" | "master") =>
+      makeTemple(
+        { E: { type: "entrance" }, U: { type: "stairs-up", content: { locked } }, D: { type: "stairs-down" }, F: { type: "empty" } },
+        { "1F": [["E", "U"]], "2F": [["F", "D"]] }
+      );
+    const keys = (id: string): number => temples.getTempleState(id)!.playerKeys;
+    /** The sheet of the stairs at [0,1] on the floor the hero stands on (the test has opened the temple already) */
+    const stairsSheet = (id: string) => roomActions(dungeons.getRoom(id, [0, 1], temples.getTempleState(id)!.currentLevel), contextAt(id, [0, 1]));
+    const giveKeys = (id: string, count: number) => {
+      for (let i = 0; i < count; i++) temples.addKey(id);
+    };
+
+    it("says the way is barred and offers no Climb to a hero with no key", () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      const sheet = stairsSheet(id);
+
+      expect(sheet).toMatchObject({ header: "Stairs lead up.", subHeader: SMALL_LOCK, actions: [] });
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
+    });
+
+    it("offers Unlock and climb to a hero with a key: one key is spent and the hero is upstairs", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+
+      const sheet = stairsSheet(id);
+      expect(labels(sheet)).toEqual(["Unlock and climb"]);
+      const outcome = await run(sheet);
+
+      expect(outcome).toMatchObject({ message: "Unlocked! You climb up to 2F.", sound: "useKey", moved: true });
+      expect(keys(id)).toBe(1);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 1] });
+    });
+
+    it("climbs there again in the same run for free: no second key is spent", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+      await run(stairsSheet(id));
+      expect(keys(id)).toBe(1);
+      temples.changeLevel(id, "1F", [0, 1]);
+
+      const again = stairsSheet(id);
+      expect(again).toMatchObject({ header: "Stairs lead up.", actions: [expect.objectContaining({ label: "Climb" })] });
+      const outcome = await run(again);
+
+      expect(outcome).toMatchObject({ message: "You climb up to 2F.", sound: "steps", moved: true });
+      expect(keys(id)).toBe(1);
+    });
+
+    it("lets the landing climb back down with no key", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1], "2F");
+
+      const outcome = await run(stairsSheet(id));
+
+      expect(outcome).toMatchObject({ message: "You climb down to 1F.", moved: true });
+      expect(keys(id)).toBe(0);
+    });
+
+    it("turns a hero with no key back from the same stairs when the sheet is stale", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 1);
+      const stale = stairsSheet(id);
+      temples.getTempleState(id)!.playerKeys = 0; // the key is spent elsewhere before the tap
+
+      expect(await run(stale)).toEqual({ message: SMALL_LOCK, sound: "error" });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
+    });
+
+    it("needs the Boss Key for a master lock, and a small key does not do", () => {
+      const id = lockedTower("master");
+      enter(id, [0, 1]);
+      giveKeys(id, 3);
+
+      expect(stairsSheet(id)).toMatchObject({ header: "Stairs lead up.", subHeader: BOSS_LOCK, actions: [] });
+    });
+
+    it("opens a master lock with the Boss Key and does not spend it", async () => {
+      const id = lockedTower("master");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+      temples.grantMasterKey(id);
+
+      const sheet = stairsSheet(id);
+      expect(labels(sheet)).toEqual(["Unlock and climb"]);
+      const outcome = await run(sheet);
+
+      expect(outcome).toMatchObject({ message: "The big lock falls away. You climb up to 2F.", sound: "useKey", moved: true });
+      expect(temples.hasMasterKey(id)).toBe(true);
+      expect(keys(id)).toBe(2);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+    });
+
+    it("finds rubble before it takes a key: stairs to no floor stay shut and the key stays in the bag", async () => {
+      const { id, room, ctx } = withRoom({ type: "stairs-up", content: { locked: "small" } });
+      giveKeys(id, 1);
+
+      const outcome = await run(roomActions(room, ctx));
+
+      expect(outcome).toEqual({ message: "The stairs are blocked by rubble.", sound: "error" });
+      expect(keys(id)).toBe(1);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+    });
+
+    it("keeps the stairs open with the saved run, and a blood moon locks them again", async () => {
+      const id = lockedTower("small");
+      temples.initTemple(id, [0, 1], undefined, HERO);
+      await temples.whenProgressReady(id);
+      giveKeys(id, 1);
+      await run(stairsSheet(id));
+      temples.changeLevel(id, "1F", [0, 1]);
+
+      await temples.flushProgress();
+      temples.forgetTempleRun(id);
+      temples.initTemple(id, [0, 1], undefined, HERO);
+      await temples.whenProgressReady(id);
+      temples.changeLevel(id, "1F", [0, 1]);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+      expect(labels(stairsSheet(id))).toEqual(["Climb"]);
+
+      await temples.bloodMoon(id, HERO);
+      await temples.whenProgressReady(id);
+      temples.changeLevel(id, "1F", [0, 1]);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+      expect(stairsSheet(id)).toMatchObject({ subHeader: SMALL_LOCK, actions: [] });
+    });
+  });
+
   it("drops a hero through a pit to the floor below, 5 HP lighter", () => {
     const upper = makeTemple(
       { E: { type: "entrance" }, P: { type: "pit" }, F: { type: "empty" } },

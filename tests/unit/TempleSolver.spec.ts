@@ -176,6 +176,49 @@ describe("TempleSolver", () => {
     expect(solveTemple(pit).reasons).toEqual(["R8: 2F (0,3) pit drops onto a wall at 1F (0,3)"]);
   });
 
+  describe("a flight of stairs can be locked: a small key or the Boss Key opens the climb (#1484)", () => {
+    const climbRooms = (stairs: Room): Record<string, Room> => ({ ...ROOMS, R001: { type: "empty" }, U001: stairs, D001: { type: "stairs-down" } });
+    /** 1F walks east to the stairs up (1,3); 2F walks west from the stairs down to the boss, the Boss Key above the mini-boss */
+    const tower = (stairs: Room, ground: string[][], upper: string[][]): TempleLayout => ({ entrance: [0, 1, 0], maze: { "1F": ground, "2F": upper }, rooms: climbRooms(stairs) });
+    const small: Room = { type: "stairs-up", content: { locked: "small" } };
+    const master: Room = { type: "stairs-up", content: { locked: "master" } };
+    const onTheWay = [[_, "K001", _, _], ["E001", "R001", "R002", "U001"], [_, _, _, _]];
+    const upstairs = [[_, _, "MK01", _], ["B001", "R004", "b001", "D001"], ["P001", _, _, _]];
+
+    it("is solvable when the only small key lies on the floor below, and not once that key is gone", () => {
+      expect(solveTemple(tower(small, onTheWay, upstairs))).toMatchObject({ solvable: true, reasons: [] });
+
+      const keyless = tower(small, [[_, _, _, _], onTheWay[1], onTheWay[2]], upstairs);
+      expect(solveTemple(keyless).solvable).toBe(false);
+      expect(reasonsUnder("R2", keyless)).toEqual([expect.stringMatching(/^R2: the master key is out of reach: 0 keys in hand, 1 locked door in reach \(1F \(1,3\) stairs-up -> 2F \(1,3\) stairs-down\)/)]);
+    });
+
+    it("locks the climb and not the landing: the stairs door leaving a locked stairs room carries the lock", () => {
+      const stairsDoors = buildTempleGraph(tower(small, onTheWay, upstairs)).doors.filter((door) => door.kind === "stairs");
+      expect(stairsDoors.map(({ id, lock }) => [id, lock])).toEqual([["1F:1,3>2F:1,3", "small"], ["2F:1,3>1F:1,3", "none"]]);
+      expect(buildTempleGraph(tower(master, onTheWay, upstairs)).doors.find((door) => door.kind === "stairs")?.lock).toBe("master");
+    });
+
+    it("counts the stairs' small lock against the keys: a key short of it is an R3", () => {
+      expect(reasonsUnder("R3", tower(small, [[_, _, _, _], onTheWay[1], onTheWay[2]], upstairs))).toEqual(["R3: 0 small keys for 1 locked door on the critical path"]);
+      expect(reasonsUnder("R3", tower(small, onTheWay, upstairs))).toEqual([]);
+    });
+
+    it("a Boss Key climb is solvable only when the Boss Key is reachable before it", () => {
+      const keyBelow = [[_, _, "MK01", _], ["E001", "R001", "b001", "U001"], [_, _, _, _]];
+      const bossFloor = [[_, _, _, _], ["B001", "R004", "R002", "D001"], ["P001", _, _, _]];
+      expect(solveTemple(tower(master, keyBelow, bossFloor))).toMatchObject({ solvable: true, reasons: [] });
+
+      // The same Boss Key left on the boss floor is behind the very lock it opens
+      const keyAbove = [[_, _, "MK01", _], ["B001", "R004", "R002", "D001"], ["P001", _, _, _]];
+      const noKeyBelow = [[_, _, _, _], ["E001", "R001", "b001", "U001"], [_, _, _, _]];
+      expect(solveTemple(tower({ type: "stairs-up" }, noKeyBelow, keyAbove)).solvable).toBe(true);
+      const stuck = tower(master, noKeyBelow, keyAbove);
+      expect(solveTemple(stuck).solvable).toBe(false);
+      expect(reasonsUnder("R2", stuck)).toEqual([expect.stringMatching(/^R2: the master key is out of reach/)]);
+    });
+  });
+
   describe("R8 Floors follow the climbing order, not the order the maze map holds them (#1380)", () => {
     // The map's keys are 1F, 2F, B1 (the basement was drawn last), so B1 lies below 1F. The entrance's floor index
     // still counts in the map's own order: 0 is 1F.

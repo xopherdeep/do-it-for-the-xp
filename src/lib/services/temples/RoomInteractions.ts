@@ -21,7 +21,7 @@ import { heroEffects, luckyTop } from '@/lib/services/stats/StatEffects';
 import { asChestRoom } from './ChestLoot';
 import { earnGold, healHero, readGold, readPoints, restoreMana } from './roomInteractions/hero';
 import { hasHappened, pick, randomInt, rememberOnce, rngOf, roomKey } from './roomInteractions/visitMemory';
-import { climb, temples } from './roomInteractions/travel';
+import { stairsSheet, temples } from './roomInteractions/travel';
 import { jumpTrap, springTrap } from './roomInteractions/hazards';
 import { shopWares } from './roomInteractions/shop';
 import { isPuzzleSolved, publicRiddle, riddleFor } from './roomInteractions/puzzle';
@@ -275,9 +275,9 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     }
 
     case 'stairs-up':
-      return sheet('Stairs lead up.', [act('Climb', () => climb(room, ctx, 'up'))]);
+      return stairsSheet(room, ctx, 'up');
     case 'stairs-down':
-      return sheet('Stairs lead down.', [act('Climb', () => climb(room, ctx, 'down'))]);
+      return stairsSheet(room, ctx, 'down');
 
     case 'pit':
       return sheet('A hole in the floor. Mind your step.');

@@ -10,6 +10,7 @@
 import { reactive } from 'vue';
 import { DungeonManager } from './DungeonManager';
 import { Dungeon, Room } from './types';
+import type { ClimbLock } from './types';
 import { ChestSystem } from './ChestSystem';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
@@ -395,6 +396,20 @@ export class TempleSystem {
     direction: 'north' | 'south' | 'east' | 'west'
   ): boolean {
     return doors.unlockDoor(this.runs, templeId, position, direction);
+  }
+
+  /** Whether the locked climb from the stairs room at `position` on `level` was opened in this run (see doors.unlockClimb). */
+  public isClimbUnlocked(templeId: string, level: string, position: [number, number]): boolean {
+    return doors.isClimbUnlocked(this.runs, templeId, level, position);
+  }
+
+  /**
+   * Open the locked climb from the stairs room at `position` on `level`: a 'small' lock spends one small key, a 'master' lock
+   * needs the Boss Key and keeps it; an open climb opens again for nothing.
+   * @returns True if the climb is open now
+   */
+  public unlockClimb(templeId: string, level: string, position: [number, number], kind: ClimbLock): boolean {
+    return doors.unlockClimb(this.runs, templeId, level, position, kind);
   }
   
   /**

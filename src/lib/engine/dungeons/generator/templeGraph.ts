@@ -18,7 +18,8 @@
  *   the master key opens the door), and a small lock still wants its key;
  * - stairs up lead to the next floor up in the climbing order (floorOrder: B1, 1F, 2F), stairs down to the next one
  *   down, landing on the requested coordinates, else the first matching stairs on that floor, else the same cell
- *   (R8 wants pairs at the same row and column);
+ *   (R8 wants pairs at the same row and column); a flight with `content.locked` ('small' | 'master') is a stairs door
+ *   with that lock, one way: the climb from that room, never the landing's way back;
  * - a teleport leads where `teleportTargetFor` sends the hero: the author's target, else the next circle on its
  *   floor (wrapping), else the temple's next circle; a circle with none leads nowhere (R8);
  * - a pit drops the hero to the floor below (same cell, else that floor's first stairs up) when there is one,
@@ -30,7 +31,7 @@
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
 import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
-import { barrierBetween, isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { barrierBetween, climbLockOf, isBossRoom } from "@/lib/services/temples/authoredDoors";
 import { grantsBossKey, isBombSource, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
@@ -265,7 +266,8 @@ const linkStairs = (graph: TempleGraph): void => {
     const isTwinMissing = twin?.kind !== twinKind;
     if (isTwinMissing) graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} has no ${twinKind} at ${target} (${stairs.ref.row},${stairs.ref.col})` });
     const landing = stairsLanding(graph, stairs, target, twinKind);
-    if (landing) addDoor(graph, { from: stairs.key, to: landing.key, kind: "stairs", lock: "none" });
+    // A locked flight (content.locked) bars the climb from this room only, with the lock the engine asks (a small key, or the Boss Key); its landing climbs back freely
+    if (landing) addDoor(graph, { from: stairs.key, to: landing.key, kind: "stairs", lock: climbLockOf(stairs.room) ?? "none" });
   }
 };
 

@@ -4,6 +4,8 @@
  */
 import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { TempleState } from "@/lib/engine/core/dungeons/TempleSystem";
+import { kindOf } from "@/lib/engine/dungeons/generator/templeGraph";
+import { climbLockOf } from "@/lib/services/temples/authoredDoors";
 import { grantedDungeonItems, grantsBossKey, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 import { getItemIcon } from "./templeLookups";
 import { isRoom, type DungeonLayout } from "./mazeFloors";
@@ -166,14 +168,21 @@ export const filterMonstersByTier = (monsters: { size: string, count: number }[]
 /**
  * Small keys play hands out (roomGrants.smallKeysGranted: key chests, Key rooms, a loot room's "key" rows) and locked
  * doors among the room records; a locked door shows on both rooms that share the edge, so the lock count is halved.
- * A record drawn by several cells counts once.
+ * A flight of stairs with a small lock (`content.locked`) is one more lock: stairs have no sides, so the door count never
+ * sees it. A Boss Key climb is no small lock. A record drawn by several cells counts once.
  */
 export const countKeysAndLocks = (rooms: Record<string, any>) => {
   let totalKeys = 0;
   let totalLockedDoors = 0;
+  let totalLockedClimbs = 0;
 
   Object.values(rooms).forEach((room: any) => {
     totalKeys += smallKeysGranted(room);
+
+    const kind = kindOf(room);
+    const isStairs = kind === 'stairs-up' || kind === 'stairs-down';
+    const isSmallLockedClimb = isStairs && climbLockOf(room) === 'small';
+    if (isSmallLockedClimb) totalLockedClimbs++;
 
     // Check locked doors
     const sides = room.sides;
@@ -187,7 +196,7 @@ export const countKeysAndLocks = (rooms: Record<string, any>) => {
 
   // Locked doors are counted twice (once per room sharing the edge)
   // Except for edges leading outside which shouldn't happen for 'locked' type usually
-  const actualLocks = Math.ceil(totalLockedDoors / 2);
+  const actualLocks = Math.ceil(totalLockedDoors / 2) + totalLockedClimbs;
 
   return { totalKeys, actualLocks };
 };
