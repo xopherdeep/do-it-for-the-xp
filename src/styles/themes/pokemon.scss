@@ -30,6 +30,10 @@ ion-app#pokemon {
 
   --gs-divider: rgba(15, 56, 15, 0.3);
   --gs-select: rgba(48, 98, 48, 0.15);
+  --gs-good: #306230;
+  --gs-danger: #0f380f;
+  --gs-button: #8bac0f;
+  --gs-button-edge: #0f380f;
   --gs-cursor: #{gs-arrow-cursor("0f380f")};
   --gs-cursor-w: 8px;
   --gs-cursor-h: 14px;

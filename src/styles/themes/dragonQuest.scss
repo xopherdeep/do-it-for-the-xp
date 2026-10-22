@@ -25,6 +25,10 @@ ion-app#dragonQuest {
 
   --gs-divider: rgba(248, 248, 248, 0.25);
   --gs-select: transparent;
+  --gs-good: #f8f8f8;
+  --gs-danger: #f8f8f8;
+  --gs-button: #000000;
+  --gs-button-edge: #f8f8f8;
   --gs-cursor: #{gs-arrow-cursor("f8f8f8")};
   --gs-cursor-w: 9px;
   --gs-cursor-h: 15px;

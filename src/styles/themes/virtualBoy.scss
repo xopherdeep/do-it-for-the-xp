@@ -31,6 +31,10 @@ ion-app#virtualBoy {
 
   --gs-divider: rgba(170, 0, 0, 0.5);
   --gs-select: rgba(255, 0, 0, 0.12);
+  --gs-good: #ff5050;
+  --gs-danger: #ff0000;
+  --gs-button: #3a0000;
+  --gs-button-edge: #ff2a2a;
   --gs-cursor: #{gs-arrow-cursor("ff0000")};
   --gs-cursor-w: 8px;
   --gs-cursor-h: 14px;
