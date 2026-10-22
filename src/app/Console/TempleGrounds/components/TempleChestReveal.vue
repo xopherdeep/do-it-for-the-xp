@@ -86,6 +86,7 @@
               class="loot-row__button"
               role="checkbox"
               :aria-checked="selected.has(item.value)"
+              :aria-disabled="whole || undefined"
               :tabindex="index < revealed ? 0 : -1"
               :data-cy="`chest-loot-${item.value}`"
               @click.stop="toggle(item.value)"
@@ -188,6 +189,11 @@ const props = defineProps<{
   loot: ChestLoot[];
   /** The chest starts shut, waiting for Open (or Leave); the loot sequence plays when it is pressed. An empty chest never waits. */
   closed?: boolean;
+  /**
+   * A beast's drop, taken whole: every row comes ticked and no row can be unticked (the temple hands out the whole drop
+   * whatever is ticked, so a row that looked left out would be a lie). Take still hands over every row.
+   */
+  whole?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -329,8 +335,9 @@ const start = () => {
   clearTimers();
   revealed.value = 0;
   exitMode.value = "leave";
-  // A row that comes ticked (a Pegasus chest's egg and whistle) starts ticked; every other row starts unticked
-  selected.value = new Set(props.loot.filter((item) => item.checked).map((item) => item.value));
+  // A row that comes ticked (a Pegasus chest's egg and whistle) starts ticked; every other row starts unticked. A drop
+  // taken whole has every row ticked.
+  selected.value = new Set(props.loot.filter((item) => props.whole || item.checked).map((item) => item.value));
   // The dialog holds the focus from the start, so Escape leaves even while the chest is opening
   nextTick(() => root.value?.focus({ preventScroll: true }));
   // A shut chest waits for Open: it lands, and nothing else happens until the hero presses it
@@ -380,6 +387,8 @@ const toggle = (value: string) => {
     skip();
     return;
   }
+  // A drop is taken whole: there is nothing to tick or untick
+  if (props.whole) return;
   const next = new Set(selected.value);
   const isTicked = next.has(value);
   if (isTicked) {

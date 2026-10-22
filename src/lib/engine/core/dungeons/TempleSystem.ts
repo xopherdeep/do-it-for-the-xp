@@ -323,6 +323,24 @@ export class TempleSystem {
   }
 
   /**
+   * Remember that the hero took what a beaten beast dropped in a fight room, so a reload finds it taken. It is kept with
+   * the hero's progress under the room's drop key, apart from the room's own: a blood moon gives it back, a quest
+   * restoring the room does not.
+   * @param level Floor the room is on
+   */
+  public markDropTaken(templeId: string, level: string, position: [number, number]): void {
+    chests.markDropTaken(this.runs, templeId, level, position);
+  }
+
+  /**
+   * Whether the hero already took the drop of the fight room at `position` (false for a temple that is not open).
+   * @param level Floor the room is on
+   */
+  public isDropTaken(templeId: string, level: string, position: [number, number]): boolean {
+    return chests.isDropTaken(this.runs, templeId, level, position);
+  }
+
+  /**
    * Check if a room on the floor the hero stands on has been visited
    */
   public hasVisited(templeId: string, position: [number, number]): boolean {

@@ -44,6 +44,8 @@ export interface RoomOutcomeDeps
   showTempleCleared: ReturnType<typeof usePegasusReveal>['showTempleCleared'];
   showChestContentsDialog: ReturnType<typeof useChestReveal>['showChestContentsDialog'];
   showEmptyChest: ReturnType<typeof useChestReveal>['showEmptyChest'];
+  /** A beaten beast's drop comes up in the chest reveal, ticked, to be taken whole */
+  showDropReveal: ReturnType<typeof useChestReveal>['showDropReveal'];
   openChoiceReveal: ReturnType<typeof useChoiceReveal>['openChoiceReveal'];
   beastCard: ReturnType<typeof useRoomBeast>['getBeastCard'];
   activeMonster: ReturnType<typeof useRoomBeast>['activeMonster'];
@@ -78,6 +80,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     showTempleCleared,
     showChestContentsDialog,
     showEmptyChest,
+    showDropReveal,
     openChoiceReveal,
     beastCard,
     activeMonster,
@@ -213,6 +216,9 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
         break;
       case 'emptyChest':
         showEmptyChest();
+        break;
+      case 'takeDrop':
+        showDropReveal();
         break;
       case 'teleport': {
         const didTeleport = handleTeleport();

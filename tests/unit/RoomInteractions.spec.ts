@@ -1,5 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
+import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { MapVisibility, TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/TempleSystem";
 import {
   answerRiddle,
@@ -14,6 +16,7 @@ import {
   type RoomOutcome,
 } from "@/lib/services/temples/RoomInteractions";
 import { bombInPack, useItem } from "@/lib/services/temples/ItemUse";
+import { isRoomSpent } from "@/lib/services/temples/roomInteractions/treasure";
 import { useUserStore } from "@/lib/store/stores/user";
 import { addHero, contextAt, dice, dungeons, enter, HERO, hero, hp, makeTemple, mp, temples, wallet } from "./templeFixtures";
 
@@ -1199,5 +1202,177 @@ describe("what the hero takes stays taken after the app is closed", () => {
     const again = await reload(id);
 
     expect(roomActions(again.room, again.ctx).header).toBe("The glyphs have faded.");
+  });
+});
+
+describe("what a beaten beast leaves behind (a fight room's drop)", () => {
+  const SMALL_KEY_DROP = { chest: "dungeon", dungeon: "small-key" };
+  const GLINT = "Something glints where the beast fell.";
+  const labelsOf = (room: Room, ctx: RoomContext) => labels(roomActions(room, ctx));
+
+  // Monday 12 October 2026, ten in the morning
+  const NOW = new Date(2026, 9, 12, 10, 0, 0);
+
+  const quest = (overrides: Partial<Achievement> = {}): Achievement =>
+    ({
+      id: "q1",
+      achievementName: "Wash the dishes",
+      type: "individual",
+      assignee: [HERO],
+      basicSchedule: "daily",
+      customFrequency: 1,
+      customPeriodType: "day",
+      customPeriodNumber: 1,
+      repeatOnDays: [],
+      startsOn: "2026-01-01T00:00:00",
+      endsOn: "",
+      dueByTime: "18:00",
+      difficulty: 2,
+      beastId: "beast-dish-goblin",
+      ...overrides,
+    }) as unknown as Achievement;
+
+  const row = (q: Achievement, status: QuestBoardItem["status"] = "open", extra: Partial<QuestBoardItem> = {}): QuestBoardItem =>
+    ({ quest: q, status, progress: null, pending: false, overdue: false, ...extra }) as QuestBoardItem;
+
+  /** A monster quest room that drops a small key, the hero standing in it, with the board the run keeps */
+  const questRoomWith = (board: QuestBoardItem | undefined, liveQuests: Achievement[] = [quest()]) => {
+    const room: Room = { type: "monster", content: { lockOnEnter: true, questId: "q1", drops: SMALL_KEY_DROP } };
+    const { id, room: placed } = withRoom(room);
+    jest.spyOn(temples, "getQuestBoard").mockImplementation((templeId: string) =>
+      templeId === id ? { heroId: HERO, board: board ? [board] : [], liveQuests } : undefined
+    );
+    return { id, room: placed, ctx: { ...contextAt(id, [0, 1]), now: NOW } };
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it("is not offered while the beast lurks: the fight comes first", () => {
+    const { room, ctx } = questRoomWith(row(quest()));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("A Monster approaches!");
+    expect(labels(sheet)).toEqual(["Fight"]);
+    expect(sheet.drop).toBeUndefined();
+    expect(sheet.body).not.toContain(GLINT);
+  });
+
+  it("waits in the room once the chore is done: Take it, then the search", async () => {
+    const { room, ctx } = questRoomWith(row(quest(), "done"));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("Nothing left here but the smell.");
+    expect(labels(sheet)).toEqual(["Take it", "Search the room"]);
+    expect(sheet.drop).toBe("waiting");
+    expect(sheet.body).toBe(`Wash the dishes · Back tomorrow. ${GLINT}`);
+    expect(await run(sheet)).toEqual({ intent: "takeDrop" });
+  });
+
+  it("waits for a hero whose claim the Game Master is still checking: the beast is down", () => {
+    const { room, ctx } = questRoomWith(row(quest(), "done", { pending: true }));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("waits for a hero whose beast is asleep in another hero's quest (not yours): there is no fight there", () => {
+    const mias = quest({ assignee: ["hero-2"] });
+    useUserStore().users["hero-2"] = { id: "hero-2", name: { nick: "Mia", full: "Mia" }, stats: {} };
+    const { room, ctx } = questRoomWith(undefined, [mias]);
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("Mia's Dish Goblin sleeps here.");
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("waits for a hero whose beast is away until its day (away): there is no fight there", () => {
+    const saturdays = quest({ basicSchedule: "weekly", repeatOnDays: ["sat"] });
+    const { room, ctx } = questRoomWith(row(saturdays, "notDue"), [saturdays]);
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("The lair is empty.");
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("is taken once: Take it goes, the search stays, and the two are filed apart", async () => {
+    const { id, room, ctx } = questRoomWith(row(quest(), "done"));
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(false);
+
+    temples.markDropTaken(id, "1F", [0, 1]);
+
+    const sheet = roomActions(room, ctx);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(true);
+    expect(labels(sheet)).toEqual(["Search the room"]);
+    expect(sheet.drop).toBeUndefined();
+    expect(sheet.body).toBe("Wash the dishes · Back tomorrow.");
+    // The keys are separate: taking the drop does not spend the search, and searching does not take the drop
+    expect(isRoomSpent(ctx)).toBe(false);
+    await run(roomActions(room, { ...ctx, rng: dice(0.9) }));
+    expect(isRoomSpent(ctx)).toBe(true);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(true);
+  });
+
+  it("is not taken by searching the room", async () => {
+    const { id, room, ctx } = questRoomWith(row(quest(), "done"));
+
+    await run(roomActions(room, { ...ctx, rng: dice(0.9) }), 1); // "Search the room"
+
+    expect(isRoomSpent(ctx)).toBe(true);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(false);
+    expect(labels(roomActions(room, ctx))).toEqual(["Take it"]);
+  });
+
+  describe("in a classic room", () => {
+    const classic = (type = "monster") =>
+      withRoom({ type, content: { beasts: ["beast-socktopus"], drops: SMALL_KEY_DROP } });
+
+    it.each(["monster", "miniboss", "boss"])("a %s room's drop is not offered before the fight is won", (type) => {
+      const { room, ctx } = classic(type);
+
+      const sheet = roomActions(room, ctx);
+
+      expect(labels(sheet)).toEqual(["Fight"]);
+      expect(sheet.drop).toBeUndefined();
+    });
+
+    it.each(["monster", "miniboss", "boss"])("a %s room's drop waits once the fight is won", async (type) => {
+      const { id, room, ctx } = classic(type);
+      temples.markRoomCleared(id, "1F", [0, 1]);
+
+      const sheet = roomActions(room, ctx);
+
+      expect(sheet.header).toBe("Nothing left here but the smell.");
+      expect(labels(sheet)).toEqual(["Take it", "Search the room"]);
+      expect(sheet.drop).toBe("waiting");
+      expect(sheet.body).toBe(GLINT);
+      expect(sheet.beastDefeated).toBe(true);
+      expect(await run(sheet)).toEqual({ intent: "takeDrop" });
+    });
+
+    it("is gone from the sheet once taken", () => {
+      const { id, room, ctx } = classic();
+      temples.markRoomCleared(id, "1F", [0, 1]);
+      temples.markDropTaken(id, "1F", [0, 1]);
+
+      expect(labelsOf(room, ctx)).toEqual(["Search the room"]);
+      expect(roomActions(room, ctx).body).toBeUndefined();
+    });
+
+    it("offers nothing in a fight room that drops nothing, nor for drops written under another kind of room", () => {
+      const bare = withRoom({ type: "monster", content: { beasts: ["beast-socktopus"] } });
+      temples.markRoomCleared(bare.id, "1F", [0, 1]);
+      expect(labelsOf(bare.room, bare.ctx)).toEqual(["Search the room"]);
+
+      const loot = withRoom({ type: "loot", content: { chest: "loot", items: ["Potion"], drops: SMALL_KEY_DROP } });
+      expect(labelsOf(loot.room, loot.ctx)).toEqual(["Open Chest"]);
+    });
   });
 });

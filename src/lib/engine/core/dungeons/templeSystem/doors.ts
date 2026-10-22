@@ -88,6 +88,15 @@ export function doorKey(level: string, position: [number, number], direction: Do
   return `${roomPositionKey(level, position)}>${direction}`;
 }
 
+/**
+ * `${doorKey}:boss`: how the Boss Key opening the boss door of a cracked wall is remembered. A Bomb and the Boss Key both
+ * file the plain `doorKey` of the side (the blast opens the wall, the key opens the lock), so a cracked wall into a boss
+ * room needs a mark of its own to say the lock was opened too. Any other boss door has no use for it.
+ */
+export function bossKeyMark(level: string, position: [number, number], direction: DoorState['direction']): string {
+  return `${doorKey(level, position, direction)}:boss`;
+}
+
 /** Every door into a boss room is the boss door, whatever the authored sides say: only the Boss Key opens it. */
 export function isBossDoor(there: Room | undefined): boolean {
   return isBossRoom(there);
@@ -119,10 +128,14 @@ export function doorKind(
   if (isWall) return 'wall';
   const hasOpened = (key: string): boolean => Boolean(templeState?.openedDoors?.has(key));
   const isBlownOpen = hasOpened(doorKey(floor, position, direction)) || hasOpened(doorKey(floor, beyond, OPPOSITE[direction]));
-  const isUnblownCrack = barrier === 'bombable' && !isBlownOpen;
+  const isCrackedWall = barrier === 'bombable';
+  const isUnblownCrack = isCrackedWall && !isBlownOpen;
   if (isUnblownCrack) return 'bombable';
 
-  const isUnopenedBossDoor = isBossDoor(there) && !templeState?.openedDoors?.has(doorKey(floor, position, direction));
+  // Bombs never open locked doors: a cracked wall into a boss room is still the boss door once it is blown, and only
+  // the Boss Key (which leaves its mark on the side) opens the lock. Any other boss door is open once its key is.
+  const isLockOpened = hasOpened(doorKey(floor, position, direction)) && (!isCrackedWall || hasOpened(bossKeyMark(floor, position, direction)));
+  const isUnopenedBossDoor = isBossDoor(there) && !isLockOpened;
   if (isUnopenedBossDoor) return 'master';
   return here.locked?.[direction] ? 'locked' : 'open';
 }
@@ -172,7 +185,8 @@ export function unlockDoor(
   // No key, small or Boss, walks the hero out of a fight: refused before anything is spent
   if (isRoomBarred(runs, templeId, templeState.currentLevel, position)) return false;
 
-  switch (doorKind(runs, templeId, position, direction)) {
+  const kind = doorKind(runs, templeId, position, direction);
+  switch (kind) {
     case 'master':
       if (!templeState.hasMasterKey) return false;
       break;
@@ -188,7 +202,19 @@ export function unlockDoor(
   }
 
   openDoor(runs, templeId, templeState.currentLevel, position, direction);
+  const isCrackedBossDoor = kind === 'master' && isCrackedSide(runs, templeId, templeState.currentLevel, position, direction);
+  if (isCrackedBossDoor) {
+    templeState.openedDoors?.add(bossKeyMark(templeState.currentLevel, position, direction));
+    runs.queueSave(templeId);
+  }
   return true;
+}
+
+/** Whether the side of the room at `position` is drawn as a cracked wall (from either end of the way), blown or not. */
+function isCrackedSide(runs: TempleRuns, templeId: string, floor: string, position: [number, number], direction: DoorState['direction']): boolean {
+  const here = runs.dungeonManager.getRoom(templeId, position, floor);
+  const there = runs.dungeonManager.getRoom(templeId, stepFrom(position, direction), floor);
+  return barrierBetween(here, there, direction) === 'bombable';
 }
 
 export function openDoorSide(
@@ -217,7 +243,8 @@ export function openDoorSide(
 /**
  * Blow open the cracked wall on one side of a room: it is one wall, so it opens from both rooms, and both ends are
  * remembered with the hero's progress (a reload finds it open). Only a cracked wall with a room beyond it opens, never
- * from inside a fight the beast has sealed. A key and a riddle do not do this (unlockDoor, openDoorSide refuse it).
+ * from inside a fight the beast has sealed. A key and a riddle do not do this (unlockDoor, openDoorSide refuse it), and a
+ * Bomb never opens a lock: a cracked wall into a boss room is still the Boss door after the blast (doorKind).
  * @returns True if a cracked wall was there and is open now
  */
 export function blowBombableSide(

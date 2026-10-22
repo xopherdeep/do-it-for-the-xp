@@ -2,7 +2,7 @@
  * Characterization of the pure door helpers TempleSystem delegates to (templeSystem/doors.ts):
  * what they return today, so the split keeps it.
  */
-import { DOOR_DIRECTIONS, doorKey, isBossDoor, sealKey } from "@/lib/engine/core/dungeons/templeSystem/doors";
+import { BOSS_DOOR_LINE, DOOR_DIRECTIONS, doorKey, isBossDoor, sealKey } from "@/lib/engine/core/dungeons/templeSystem/doors";
 import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { createPinia, setActivePinia } from "pinia";
@@ -253,6 +253,70 @@ describe("walls and bombable sides the Game Master drew", () => {
     expect(temples.doorKind(id, [0, 0], "east")).toBe("open");
     expect(temples.doorKind(id, [1, 0], "east")).toBe("bombable");
     expect(temples.doorKind(id, [1, 1], "west")).toBe("bombable");
+  });
+
+  describe("a cracked wall into a boss room", () => {
+    /** A draws a cracked wall on its east, toward the boss room B; the hero stands in A */
+    const crackedIntoBoss = (): string =>
+      drawn({ A: { type: "empty", sides: { north: "door", east: "bombable", south: "door", west: "door" } }, B: { type: "boss" } });
+
+    it("is still the Boss door once a Bomb has blown it: the blast opens the wall, not the lock", () => {
+      const id = crackedIntoBoss();
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("bombable");
+
+      expect(temples.blowBombableSide(id, [0, 1], "east")).toBe(true);
+
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
+      expect(temples.explainDoor(id, [0, 1], "east")).toBe(BOSS_DOOR_LINE);
+      expect(temples.moveToPosition(id, [0, 2], "east")).toBe(false);
+      // The wall itself is open from both rooms: the way back out of the boss room is a plain way
+      expect(temples.doorKind(id, [0, 2], "west")).toBe("open");
+    });
+
+    it("takes no small key, and the Boss Key is not spent opening it", () => {
+      const id = crackedIntoBoss();
+      temples.blowBombableSide(id, [0, 1], "east");
+      temples.addKey(id);
+
+      expect(temples.unlockDoor(id, [0, 1], "east")).toBe(false);
+      expect(temples.openDoorSide(id, [0, 1], "east")).toBe(false);
+      expect(temples.getTempleState(id)?.playerKeys).toBe(1);
+
+      temples.grantMasterKey(id);
+      expect(temples.unlockDoor(id, [0, 1], "east")).toBe(true);
+      expect(temples.getTempleState(id)?.hasMasterKey).toBe(true);
+      expect(temples.getTempleState(id)?.playerKeys).toBe(1);
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("open");
+      expect(temples.moveToPosition(id, [0, 2], "east")).toBe(true);
+    });
+
+    it("stays the Boss door through a reload, and stays open once the Boss Key opened it", () => {
+      const id = crackedIntoBoss();
+      temples.blowBombableSide(id, [0, 1], "east");
+      // What a reload does: the layout registers cracked again and the hero's saved opened doors are put back
+      const blown = [...(temples.getTempleState(id)?.openedDoors ?? [])];
+      expect(blown.sort()).toEqual(["1F:0,1>east", "1F:0,2>west"]);
+      temples.getTempleState(id)!.openedDoors = new Set(blown);
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
+
+      temples.grantMasterKey(id);
+      temples.unlockDoor(id, [0, 1], "east");
+      temples.getTempleState(id)!.openedDoors = new Set([...(temples.getTempleState(id)?.openedDoors ?? [])]);
+      expect(temples.doorKind(id, [0, 1], "east")).toBe("open");
+    });
+
+    it("leaves a cracked wall into any other room, and a plain Boss door, as they were", () => {
+      const plain = drawn({ A: { type: "empty", sides: { north: "door", east: "bombable", south: "door", west: "door" } } });
+      expect(temples.blowBombableSide(plain, [0, 1], "east")).toBe(true);
+      expect(temples.doorKind(plain, [0, 1], "east")).toBe("open");
+      expect([...(temples.getTempleState(plain)?.openedDoors ?? [])].sort()).toEqual(["1F:0,1>east", "1F:0,2>west"]);
+
+      const bossDoor = drawn({ B: { type: "boss" } });
+      temples.grantMasterKey(bossDoor);
+      expect(temples.unlockDoor(bossDoor, [0, 1], "east")).toBe(true);
+      expect([...(temples.getTempleState(bossDoor)?.openedDoors ?? [])]).toEqual(["1F:0,1>east"]);
+      expect(temples.doorKind(bossDoor, [0, 1], "east")).toBe("open");
+    });
   });
 
   it("is not blown open from inside a fight the beast has sealed", () => {

@@ -155,12 +155,12 @@ export default defineComponent({
       moveIcons,
       stepTo,
       isDoorLocked,
-      claimChestItems,
+      claimChestItems, claimDropItems,
       handleTeleport,
       toggleMap,
       showTempleMessage,
       registerMessageDisplay,
-      chestContents,
+      chestContents, dropContents,
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
@@ -246,18 +246,18 @@ export default defineComponent({
       useChoiceReveal();
     const { pegasusReveal, showTempleCleared, completeTempleCleared: finishTempleCleared } = usePegasusReveal(leaveTemple);
     const { isPegasusRevealOpen, pegasusShown, pegasusReward, pegasusLevelUp } = pegasusReveal;
-    const { chest, showChestContentsDialog, showEmptyChest, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
+    const { chest, showChestContentsDialog, showEmptyChest, showDropReveal, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
       useChestReveal({
         props,
         progressHeroId,
-        chestContents,
+        chestContents, dropContents,
         currentRoom,
         showTempleMessage,
-        claimChestItems,
+        claimChestItems, claimDropItems,
         showTempleCleared,
         setHushMessages
       });
-    const { isChestOpen, chestLootShown, isChestClosed } = chest;
+    const { isChestOpen, chestLootShown, isChestClosed, isDropShown } = chest;
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
     const { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
@@ -296,7 +296,7 @@ export default defineComponent({
       leaveTemple,
       showTempleCleared,
       showChestContentsDialog,
-      showEmptyChest,
+      showEmptyChest, showDropReveal,
       openChoiceReveal,
       beastCard,
       activeMonster,
@@ -423,7 +423,7 @@ export default defineComponent({
       isDoorLocked,
       showRoomActions,
       isChestOpen,
-      isChestClosed,
+      isChestClosed, isDropShown,
       chestLootShown,
       takeChestLoot,
       leaveChest,
