@@ -20,6 +20,7 @@ import { createHeroTurns } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
 import { createSyncProgress } from "./sync/syncProgress";
+import { listenToDevice } from "./sync/syncSignals";
 import { createVerdicts } from "./sync/verdicts";
 
 /** A change is sent this long after the last one, so a burst of writes goes in one put */
@@ -277,11 +278,9 @@ export const useSyncStore = defineStore("sync", () => {
     flush,
     // The pending claims a takeover drops unsent go again, phone-style (sync/verdicts.ts)
     dropHero: async (heroId) => verdicts.resendDropped(await transfer.dropHero(heroId)),
-    ownCopy: async (heroId) => {
+    queueWhole: async (heroId) => {
       await writing;
-      const isPlayedWithoutTurn = waitingHeroes().includes(heroId);
-      if (isPlayedWithoutTurn) await transfer.queueHero(heroId);
-      return isPlayedWithoutTurn;
+      await transfer.queueHero(heroId);
     },
     // Saved for a restart only when what a restart needs changed (held or not), never for each ask; worked out as the save
     // runs, against what was saved before it, so a quick held, resting, held never leaves the middle one saved
@@ -360,8 +359,7 @@ export const useSyncStore = defineStore("sync", () => {
   }
 
   /** In front: a round, and the hero the background rested signs in again. Going away: the hero rests, or what waits is sent */
-  function onVisibilityChange(): void {
-    const isInFront = document.visibilityState === "visible";
+  function onVisibilityChange(isInFront: boolean): void {
     const hero = currentHero();
     if (isInFront) {
       roundNow();
@@ -389,18 +387,8 @@ export const useSyncStore = defineStore("sync", () => {
     );
     // A profile switch, a sign-in or a sign-out: the hero who played rests, the next one signs in
     stops.push(watch(currentHero, (next, previous) => heroTurns.switched(previous ?? null, next)));
-    const hasWindow = typeof window !== "undefined";
-    if (hasWindow) {
-      window.addEventListener("online", roundNow);
-      stops.push(() => window.removeEventListener("online", roundNow));
-    }
-    const hasDocument = typeof document !== "undefined";
-    if (hasDocument) {
-      document.addEventListener("visibilitychange", onVisibilityChange);
-      stops.push(() => document.removeEventListener("visibilitychange", onVisibilityChange));
-    }
-    const interval = setInterval(onTick, TICK_MS);
-    stops.push(() => clearInterval(interval));
+    // The connection back, the app to the front or the background, the minute round (sync/syncSignals.ts)
+    stops.push(listenToDevice({ online: roundNow, visibility: onVisibilityChange, tick: onTick }, TICK_MS));
     // A kid phone's first pull waiting on its hero: after five minutes the card shows, and the rounds keep pulling
     stops.push(progress.watchStall(() => owes() === "pull"));
   }
@@ -488,6 +476,7 @@ export const useSyncStore = defineStore("sync", () => {
     takeOver: heroTurns.takeOver,
     rest: heroTurns.rest,
     withTurn: heroTurns.withTurn,
+    borrow: heroTurns.borrow,
     // Verdicts sent and taken, claims and rewards kept for the next round, the start of the events read (sync/verdicts.ts)
     sendVerdict: verdicts.send,
     takeVerdicts: verdicts.take,

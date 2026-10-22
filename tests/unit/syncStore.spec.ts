@@ -1164,6 +1164,18 @@ describe("the sync store", () => {
     expect(sync.state.outbox).toEqual([]);
   });
 
+  it("a borrow sends only what this device changed, never its whole copy of the hero", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    mockStores.__profiles = { "h-1": { id: "h-1", name: { nick: "Mia" }, stats: { gp: 10 } } };
+    mockStores.__questLog = { q0: { id: "q0", userId: "h-1", status: "approved" } };
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    await tick(5_000);
+
+    expect(sent().map((record) => record.key)).toEqual(["q1"]);
+    expect(sync.turns["h-1"].state).toBe("resting");
+  });
+
   it("withTurn takes, runs, rests, and answers false when busy", async () => {
     const sync = await started();
     const order: string[] = [];
