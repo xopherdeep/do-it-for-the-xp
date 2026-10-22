@@ -3,6 +3,7 @@ import {
   agoOf,
   busyPrompt,
   firstPullPrompt,
+  firstPushPrompt,
   offlinePrompt,
   proRequiredPrompt,
   tookOverPrompt,
@@ -63,5 +64,11 @@ describe("the clerk's sync prompts", () => {
     expect(proRequiredPrompt().lines).toEqual(["Playing the whole game on this phone needs XP Pro. Ask your Game Master."]);
     expect(offlinePrompt().lines).toEqual(["No signal. Play on; this device tells the others when it's back."]);
     [firstPullPrompt(3), proRequiredPrompt(), offlinePrompt()].forEach((prompt) => expect(prompt.speaker).toBe(CLERK));
+  });
+
+  it("the first push line says what the family device is doing, with the records sent so far, and nothing to tap", () => {
+    expect(firstPushPrompt(0).lines).toEqual(["Sending the family's save to the site…"]);
+    expect(firstPushPrompt(120).lines).toEqual(["Sending the family's save to the site… (120)"]);
+    expect(firstPushPrompt(5).choices).toEqual([]);
   });
 });

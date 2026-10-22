@@ -55,7 +55,9 @@ export const HeroPhone = defineComponent({
     const family = useFamilyStore();
     const t = useCopy();
     // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal; Play opens it later
-    const { prompt, answer, footer: syncFooter, play, canPlay, isFullPortal, isPlayedElsewhere } = useFirstPull(family, router);
+    const { prompt, answer, footer: syncFooter, play, status } = useFirstPull(family, router);
+    const canPlay = computed(() => status.value.canPlay);
+    const isFullPortal = computed(() => status.value.isFullPortal);
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
@@ -63,14 +65,15 @@ export const HeroPhone = defineComponent({
     const hasSheet = computed(() => Boolean(family.phoneState?.sheet));
     /** The board is for a phone that is not the full game (the portal has the real quest book), or one whose hero another device plays */
     const isBoardShown = computed(() => {
-      const isBoardPhone = !isUnlinked.value && (!isFullPortal.value || isPlayedElsewhere.value);
+      const isBoardPhone = !isUnlinked.value && (!isFullPortal.value || status.value.isPlayedElsewhere);
       return isBoardPhone && hasSheet.value;
     });
     /** A full-game phone shows the board only while another device plays the hero: read-only, nothing is claimed from it */
     const isBoardReadOnly = computed(() => isFullPortal.value);
-    /** The notice that the quests are on the family device, for a card with no board and no portal */
-    const isElsewhereShown = computed(() => !hasSheet.value && !isFullPortal.value);
-    const isPlayShown = computed(() => isFullPortal.value && !isUnlinked.value);
+    /** The notice that the quests are on the family device, for a card with no board and no portal (a stalled pull says it below) */
+    const isElsewhereShown = computed(() => !hasSheet.value && !isFullPortal.value && !status.value.isStalled);
+    /** Play: the full game, or (off) a first pull still waiting on its hero after five minutes */
+    const isPlayShown = computed(() => status.value.isPlayShown && !isUnlinked.value);
 
     const pageTitle = computed(() => {
       const heroNickname = card.value?.nickname;

@@ -14,16 +14,19 @@ import { useProStore } from "@/lib/store/stores/pro";
 import { useUserStore } from "@/lib/store/stores/user";
 import { getSavedUserId } from "@/lib/store/stores/user/session";
 import debug from "@/lib/utils/debug";
+import { readRawRecord } from "@/lib/services/sync/recordApply";
 import { createChangeCapture } from "./sync/changeCapture";
 import { createHeroTurns } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
+import { createSyncProgress } from "./sync/syncProgress";
 import { createVerdicts } from "./sync/verdicts";
 
 /** A change is sent this long after the last one, so a burst of writes goes in one put */
 const UPLOAD_DELAY_MS = 5_000;
 /** The round (records up and down, and for a family device the family's events) runs every minute while the app is open */
 const TICK_MS = 60_000;
+const PROFILES = "__profiles";
 
 /**
  * Family Sync on this device (section 4 of the family sync spec): every write to a synced store is queued and uploaded,
@@ -45,8 +48,8 @@ export const useSyncStore = defineStore("sync", () => {
   const state = ref<SyncState>(emptySyncState());
   /** The last thing the site refused or could not do, until a call goes well */
   const problem = ref<FamilyProblem | null>(null);
-  /** Records downloaded so far by a kid phone's first pull, for its clerk line */
-  const firstPullProgress = ref(0);
+  /** The first sync's progress lines: records pulled, a pull stalled on its hero, records pushed (sync/syncProgress.ts) */
+  const progress = createSyncProgress();
   /** heroId -> the hero's turn on this device, changed only through heroTurn.ts's reducer (sync/heroTurns.ts) */
   const turns = ref<Record<string, HeroTurn>>({});
   /** The hero another device took over while this one played, until the portal has said so (it sets it back to null) */
@@ -61,11 +64,13 @@ export const useSyncStore = defineStore("sync", () => {
     const isLicensed = multiplayerEnabled() && pro.isPro;
     return isLicensed && isJoined.value;
   });
-  /** Writes are queued while the device is in the family and syncs or has synced: a lapse or a refusal stops the sending only */
+  /**
+   * Writes are queued while the device syncs, and whenever it has ever synced: a lapse, a refusal or a lost link stops
+   * the sending only (only leaving the family clears it), so a change made meanwhile is never overwritten after it
+   */
   const isCapturing = computed(() => {
     const hasSynced = state.value.firstPushDone || state.value.firstPullDone;
-    const isWanted = isOn.value || hasSynced;
-    return multiplayerEnabled() && isJoined.value && isWanted;
+    return multiplayerEnabled() && (isOn.value || hasSynced);
   });
   const isFamilyDevice = computed(() => isOn.value && isBoundParent.value);
   const isFullPortal = computed(() => isOn.value && isLinkedPhone.value && state.value.firstPullDone);
@@ -188,7 +193,12 @@ export const useSyncStore = defineStore("sync", () => {
     succeeded,
     pulled: (count) => {
       const isFirstPull = owes() === "pull";
-      if (isFirstPull) firstPullProgress.value += count;
+      if (isFirstPull) progress.pulled(count);
+    },
+    pushing: (total) => progress.pushing(total),
+    hasArrived: async () => {
+      const phoneHero = family.device?.heroId;
+      return phoneHero ? (await readRawRecord(PROFILES, phoneHero)) !== null : true;
     },
     maySend: (heroId) => heroTurns.maySendNow(heroId),
     isPlayedHere: (heroId) => heroTurns.keepsLocal(heroId),
@@ -391,6 +401,8 @@ export const useSyncStore = defineStore("sync", () => {
     }
     const interval = setInterval(onTick, TICK_MS);
     stops.push(() => clearInterval(interval));
+    // A kid phone's first pull waiting on its hero: after five minutes the card shows, and the rounds keep pulling
+    stops.push(progress.watchStall(() => owes() === "pull"));
   }
 
   /**
@@ -429,7 +441,7 @@ export const useSyncStore = defineStore("sync", () => {
     heroTurns.forget();
     turns.value = {};
     problem.value = null;
-    firstPullProgress.value = 0;
+    progress.reset();
     const cleared = writing.then(async () => {
       await getSyncDb().clearState();
       state.value = emptySyncState();
@@ -454,7 +466,9 @@ export const useSyncStore = defineStore("sync", () => {
   return {
     state,
     problem,
-    firstPullProgress,
+    firstPullProgress: progress.firstPullProgress,
+    firstPullStalled: progress.firstPullStalled,
+    firstPushProgress: progress.firstPushProgress,
     turns,
     tookOverNotice,
     isOn,

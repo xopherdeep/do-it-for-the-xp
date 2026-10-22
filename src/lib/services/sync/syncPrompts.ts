@@ -63,12 +63,19 @@ export const busyPrompt = (nick: string, device: TurnBusy, now: Date, voice: Voi
 export const tookOverPrompt = (nick: string, label: string | null, voice: Voice = "adventure"): RevealPromptOptions =>
   noticeOf(CLERK, capitalized(copyFor("sync.tookOver", voice, { nick, device: deviceOf(label) })), CLERK_LOOK);
 
-/** "Fetching your family's world…" with the records landed so far; a progress line, so nothing to tap */
-export const firstPullPrompt = (count: number, voice: Voice = "adventure"): RevealPromptOptions => {
-  const line = copyFor("sync.firstPull", voice);
+/** A progress line with the records so far once there are some; nothing to tap */
+const progressPrompt = (line: string, count: number): RevealPromptOptions => {
   const hasCount = count > 0;
   return { speaker: CLERK, ...CLERK_LOOK, lines: [hasCount ? `${line} (${count})` : line], choices: [] };
 };
+
+/** "Fetching your family's world…" with the records landed so far; a progress line, so nothing to tap */
+export const firstPullPrompt = (count: number, voice: Voice = "adventure"): RevealPromptOptions =>
+  progressPrompt(copyFor("sync.firstPull", voice), count);
+
+/** "Sending the family's save to the site…" with the records sent so far, on a family device's first push */
+export const firstPushPrompt = (count: number, voice: Voice = "adventure"): RevealPromptOptions =>
+  progressPrompt(copyFor("sync.firstPush", voice), count);
 
 /** "Playing the whole game on this phone needs XP Pro. Ask your Game Master." and OK */
 export const proRequiredPrompt = (voice: Voice = "adventure"): RevealPromptOptions =>

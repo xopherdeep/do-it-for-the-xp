@@ -10,8 +10,8 @@ describe("SYNC_STORES", () => {
     expect(scopes).toEqual({
       __profiles: "hero",
       __achievementCategories: "family",
-      __beasts: "family",
-      __achievements: "family",
+      __beasts: "family-any",
+      __achievements: "family-any",
       __abilities: "family",
       __accessories: "family",
       __shops: "family",
@@ -35,7 +35,7 @@ describe("SYNC_STORES", () => {
     expect(isSyncedStore("__nope")).toBe(false);
     expect(scopeOf("__chat")).toBe("family-any");
     expect(scopeOf("__profiles")).toBe("hero");
-    expect(scopeOf("__achievements")).toBe("family");
+    expect(scopeOf("__achievements")).toBe("family-any");
     expect(scopeOf("__localSettings")).toBeNull();
   });
 
@@ -88,7 +88,10 @@ describe("mayPhoneWrite", () => {
     expect(mayPhoneWrite("__questLog", "h-1", "h-1")).toBe(true);
     expect(mayPhoneWrite("__profiles", "h-2", "h-1")).toBe(false);
     expect(mayPhoneWrite("__questLog", null, "h-1")).toBe(false);
-    expect(mayPhoneWrite("__achievements", null, "h-1")).toBe(false);
+    // a temple run's quests, a quick task and a painted beast: the site keeps a hero key to its own rows
+    expect(mayPhoneWrite("__achievements", null, "h-1")).toBe(true);
+    expect(mayPhoneWrite("__beasts", null, "h-1")).toBe(true);
+    expect(mayPhoneWrite("__temples", null, "h-1")).toBe(false);
     expect(mayPhoneWrite("__localSettings", null, "h-1")).toBe(false);
     expect(mayPhoneWrite("__nope", "h-1", "h-1")).toBe(false);
   });

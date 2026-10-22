@@ -3,6 +3,7 @@ import type { Router } from "vue-router";
 import type { ActiveRevealPrompt } from "@/components/organisms/RevealPrompt/revealPrompt";
 import { useTimers } from "@/hooks/useTimers";
 import { useTurnGate } from "@/hooks/useHeroTurn";
+import { copyFor } from "@/lib/services/copy/copy";
 import { voiceFor } from "@/lib/services/copy/voices";
 import { landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
 import { firstPullPrompt, offlinePrompt } from "@/lib/services/sync/syncPrompts";
@@ -30,11 +31,12 @@ const PROGRESS_MS = 1000;
  *
  * The portal opens by itself only for a pull this screen watched finish: nothing else wants it. A cold start on a
  * finished pull (the licence, the roster or the hero still loading, or Save & Quit coming back to the card) shows the
- * card, and `play` is the way in. A pull can finish before the family device has sent the hero (it counts an empty page
- * as done), so the wish waits for the hero's profile to land on a later download and the progress line stays up
- * meanwhile. The wish ends when the portal opens, on Not now, on a failure (the hero rests) and when the pull stops
- * being done. The screen renders `<xp-reveal-prompt :prompt="prompt" @respond="answer" />` once, and its Play button
- * (shown when `isFullPortal`) calls `play`, which `canPlay` allows once the hero is here and no open is under way.
+ * card, and `play` is the way in. The pull is done only once the hero's profile has landed (the store pulls on each
+ * round until then); after five minutes without the hero (`firstPullStalled`) the progress line gives way to the card,
+ * with Play shown but off and the "quests are on the family device" line as its footer, while the store keeps trying.
+ * The wish ends when the portal opens, on Not now, on a failure (the hero rests) and when the pull stops being done. The
+ * screen renders `<xp-reveal-prompt :prompt="prompt" @respond="answer" />` once, and its Play button (shown when
+ * `status.isPlayShown`) calls `play`, which `status.canPlay` allows once the hero is here and no open is under way.
  */
 export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">) {
   const sync = useSyncStore();
@@ -53,7 +55,9 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
   /** The pull is done and the portal is to open: it waits for the hero's profile, then asks for the turn */
   const isPortalWanted = ref(false);
   const isArriving = computed(() => isPulling.value || isPortalWanted.value);
-  const isFetching = computed(() => isArriving.value && sync.problem === null);
+  /** Five minutes without the hero: the card shows (Play off) and the store keeps pulling */
+  const isStalled = computed(() => isPulling.value && sync.firstPullStalled);
+  const isFetching = computed(() => isArriving.value && sync.problem === null && !isStalled.value);
   const isOffline = computed(() => isArriving.value && sync.problem === "offline");
 
   // --- The count on the line, moved at most once a second (the newest count always gets its turn) ---
@@ -85,8 +89,11 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
   );
   /** The clerk's question about the hero's turn, else the progress line */
   const prompt = computed(() => turnPrompt.value ?? pullPrompt.value);
-  /** The line under the board while the first pull waits for a signal */
-  const footer = computed(() => (isOffline.value ? offlinePrompt(voice.value).lines[0] : ""));
+  /** The line under the board while the first pull waits for a signal, or for a hero the family device has not sent */
+  const footer = computed(() => {
+    if (isOffline.value) return offlinePrompt(voice.value).lines[0];
+    return isStalled.value ? copyFor("family.questsElsewhere", voice.value) : "";
+  });
 
   // --- Opening the portal ---
 
@@ -158,12 +165,16 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
 
   /** Play: the same open as the end of a first pull, asked for by the player */
   const play = (): Promise<void> => openPortal();
-  const isFullPortal = computed(() => sync.isFullPortal);
-  /** The player said Not now: another device plays the hero, and this phone shows its board read-only until Play asks again */
-  const isPlayedElsewhere = computed(() => {
+  /**
+   * What the screen shows: the full game (Play), a pull stalled on its hero (Play shown, off), and a hero another device
+   * plays (the player said Not now: the board shows read-only until Play asks again)
+   */
+  const status = computed(() => {
     const heroId = phone.device?.heroId;
-    return Boolean(heroId) && sync.stateOf(String(heroId)) === "busy";
+    const isPlayedElsewhere = Boolean(heroId) && sync.stateOf(String(heroId)) === "busy";
+    const isFullPortal = sync.isFullPortal;
+    return { canPlay: canPlay.value, isFullPortal, isStalled: isStalled.value, isPlayShown: isFullPortal || isStalled.value, isPlayedElsewhere };
   });
 
-  return { prompt, answer, footer, play, canPlay, isFullPortal, isPlayedElsewhere };
+  return { prompt, answer, footer, play, status };
 }

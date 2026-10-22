@@ -68,6 +68,7 @@ const mockSync = reactive({
   isFullPortal: false,
   problem: null as string | null,
   firstPullProgress: 0,
+  firstPullStalled: false,
   isFamilyDevice: false,
   turns: {} as Record<string, unknown>,
   tookOverNotice: null as string | null,
@@ -174,6 +175,7 @@ describe("HeroPhone", () => {
     mockSync.isFullPortal = false;
     mockSync.problem = null;
     mockSync.firstPullProgress = 0;
+    mockSync.firstPullStalled = false;
     mockSync.turns = {};
     mockPro.isPro = false;
     mockSync.signIn.mockResolvedValue("granted");
@@ -375,6 +377,30 @@ describe("HeroPhone", () => {
       expect(wrapper.find("[data-cy=phone-claim]").exists()).toBe(false);
       expect(wrapper.find("[data-cy=play-button]").exists()).toBe(true);
       expect(lines(wrapper)).toEqual([]);
+    });
+
+    it("a pull that has waited five minutes for its hero shows the card with Play off and the quests-elsewhere footer", async () => {
+      mockUser.users = {};
+      const wrapper = await open();
+      expect(lines(wrapper)).toEqual(["Fetching your family's world…"]);
+
+      mockSync.firstPullStalled = true;
+      await flushPromises();
+
+      expect(lines(wrapper)).toEqual([]);
+      expect(wrapper.find("[data-cy=hero-card]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=play-button]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=play-button]").attributes("disabled")).toBeDefined();
+      expect(wrapper.find("[data-cy=sync-footer]").text()).toBe("Your quests are on the family device.");
+      expect(wrapper.find("[data-cy=quests-elsewhere]").exists()).toBe(false);
+
+      // the store keeps pulling: the hero lands and the pull is done, and the portal opens
+      mockUser.users = { "hero-1": mockHero };
+      mockSync.firstPullStalled = false;
+      mockSync.isFullPortal = true;
+      await flushPromises();
+      expect(mockUser.loginUser).toHaveBeenCalledWith(mockHero);
+      expect(wrapper.find("[data-cy=sync-footer]").exists()).toBe(false);
     });
 
     it("plays on when the turn could not be asked for because there is no signal", async () => {

@@ -5,7 +5,7 @@ import { fetchRecords, putRecords, type ReceivedRecord } from "@/lib/services/sy
 import type { LocalChanges } from "@/lib/services/sync/localChanges";
 import { applyRecords, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
 import { dropItems, dropWhere, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
-import { heroIdOf, SYNC_STORES } from "@/lib/services/sync/syncScopes";
+import { heroIdOf, scopeOf, SYNC_STORES } from "@/lib/services/sync/syncScopes";
 import { batchRecordOf, cursorAfter, emptyOutcome, firstPushRefs, mergeOutcomes, queueAll, recordId, type StoreEntry } from "@/lib/services/sync/syncQueue";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import debug from "@/lib/utils/debug";
@@ -55,6 +55,10 @@ export interface TransferContext {
   succeeded(): void;
   /** A page landed this many records */
   pulled(count: number): void;
+  /** The first push started (0), has sent so many records, or ended (null) */
+  pushing(total: number | null): void;
+  /** A kid phone's own hero's profile is here (its first pull is done only then); always true on a family device */
+  hasArrived(): Promise<boolean>;
   /** Whether a queued record may go now: a family record always, a hero's while this device holds the hero's turn */
   maySend(heroId: string | null): boolean;
   /** Whether this device keeps its changes to the hero (held here, or waiting on the player's busy answer); otherwise a
@@ -163,7 +167,8 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     return settledCount > 0;
   };
 
-  const upload = async (): Promise<void> => {
+  /** Sends the outbox until it is empty; `onSent` hears how many records each batch carried */
+  const upload = async (onSent?: (count: number) => void): Promise<void> => {
     const startedIn = ctx.generation();
     const { deviceId } = await ensureIdentity();
     const mayAsk = ctx.auth() !== null;
@@ -187,6 +192,7 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
       settle(oversize);
       const hasRecords = records.length > 0;
       const hasMoved = hasRecords ? await sendBatch(auth, deviceId, records, startedIn, settle) : hasOversize;
+      if (hasRecords) onSent?.(records.length);
       if (!hasMoved) return;
     }
   };
@@ -199,8 +205,14 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     return !isOwn && ctx.isLocal(record.store, record.key);
   };
 
-  /** A hero record of a hero this device does not play: the device holding the turn wrote it, and it wins */
-  const isWritersCopy = (record: ReceivedRecord): boolean => record.heroId !== null && !ctx.isPlayedHere(record.heroId);
+  /**
+   * A hero record of a hero this device does not play: the device holding the turn wrote it, and it wins. An any-writer
+   * row carries the hero of the phone that wrote it, but no turn: it follows the held-back rule like a family record
+   */
+  const isWritersCopy = (record: ReceivedRecord): boolean => {
+    const isHeroRecord = record.heroId !== null && scopeOf(record.store) === "hero";
+    return isHeroRecord && !ctx.isPlayedHere(record.heroId as string);
+  };
 
   /** The changes a writer's copy landed over leave the outbox: they were made without the turn, and are gone from the store */
   const dropReplaced = async (replaced: (StoreRef & { mark: number | undefined })[], startedIn: number): Promise<void> => {
@@ -277,12 +289,13 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
 
   // --- The first sync ---
 
-  /** A kid phone's first open: the family's save, then the portal may open */
+  /** A kid phone's first open: the family's save, then the portal may open, once its hero has arrived (each round reads on until then) */
   const firstPull = async (): Promise<void> => {
     const startedIn = ctx.generation();
     await upload();
     const isCaughtUp = await readToEnd();
-    if (!isCaughtUp) return;
+    const isDone = isCaughtUp && (await ctx.hasArrived());
+    if (!isDone) return;
     await ctx.update((current) => ({ ...current, firstPullDone: true }), startedIn);
   };
 
@@ -293,14 +306,23 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
    */
   const firstPush = async (): Promise<void> => {
     const startedIn = ctx.generation();
-    await upload();
-    const isCaughtUp = await readToEnd();
-    if (!isCaughtUp) return;
-    const refs = firstPushRefs(await everyEntry(), received, bodyToSend);
-    await ctx.update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()), firstPushDone: true }), startedIn);
-    received.clear();
-    await upload();
-    await download();
+    let total = 0;
+    ctx.pushing(total);
+    try {
+      await upload();
+      const isCaughtUp = await readToEnd();
+      if (!isCaughtUp) return;
+      const refs = firstPushRefs(await everyEntry(), received, bodyToSend);
+      await ctx.update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()), firstPushDone: true }), startedIn);
+      received.clear();
+      await upload((count) => {
+        total += count;
+        ctx.pushing(total);
+      });
+      await download();
+    } finally {
+      ctx.pushing(null);
+    }
   };
 
   const round = async (): Promise<void> => {
@@ -338,5 +360,5 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     await ctx.update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()) }), ctx.generation());
   };
 
-  return { upload, download, round, catchUp, readToEnd, dropHero, queueHero, forget: () => received.clear() };
+  return { upload: () => upload(), download, round, catchUp, readToEnd, dropHero, queueHero, forget: () => received.clear() };
 };

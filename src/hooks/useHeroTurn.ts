@@ -1,8 +1,9 @@
-import { watch } from "vue";
+import { computed, watch } from "vue";
+import type { ActiveRevealPrompt } from "@/components/organisms/RevealPrompt/revealPrompt";
 import { useRouter } from "vue-router";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { voiceFor, type Voice, type VoiceProfile } from "@/lib/services/copy/voices";
-import { busyPrompt, tookOverPrompt } from "@/lib/services/sync/syncPrompts";
+import { busyPrompt, firstPushPrompt, tookOverPrompt } from "@/lib/services/sync/syncPrompts";
 import { useSyncStore } from "@/lib/store/stores/sync";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -14,6 +15,9 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 type SyncStore = ReturnType<typeof useSyncStore>;
 type Ask = (options: ReturnType<typeof busyPrompt>) => Promise<string>;
+
+/** The first push's progress line is one prompt that stays on screen while the count grows */
+const PUSH_KEY = -1;
 
 /** A hero's nickname for the clerk's lines */
 const nickOf = (profile: unknown): string => {
@@ -61,6 +65,7 @@ export function useTurnGate() {
  * answered), the clerk asks whether to play here. Not now rests the hero (the device holding it is the truth) and signs
  * it out of the portal: a family device goes back to the profile picker, a kid phone to the hero's card, where the board
  * shows read-only and Play asks again (spec sections 5 and 7). Nothing of the hero plays on here: no reminder, no ambush.
+ * While a family device's first push runs, the clerk's progress line shows under the questions (spec section 4).
  */
 export function usePortalTurn(heroId: string) {
   const sync = useSyncStore();
@@ -111,5 +116,12 @@ export function usePortalTurn(heroId: string) {
   watch(() => sync.tookOverNotice, talkAboutWhatWaits, { immediate: true });
   watch(() => sync.turns[heroId]?.state, talkAboutWhatWaits, { immediate: true });
 
-  return { prompt, respond: submitAnswer };
+  /** "Sending the family's save to the site…" with the count, while the first push runs; one prompt, so its key never changes */
+  const pushPrompt = computed<ActiveRevealPrompt | null>(() => {
+    const sent = sync.firstPushProgress;
+    const isPushing = typeof sent === "number";
+    return isPushing ? { key: PUSH_KEY, options: firstPushPrompt(sent, voice()) } : null;
+  });
+
+  return { prompt: computed(() => prompt.value ?? pushPrompt.value), respond: submitAnswer };
 }

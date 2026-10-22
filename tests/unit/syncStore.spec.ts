@@ -573,6 +573,7 @@ describe("the sync store", () => {
     expect(sync.problem).toBe("offline");
     expect(sync.isFullPortal).toBe(false);
 
+    fetchRecords.mockResolvedValue([received("__profiles", "h-1", 1, { id: "h-1" }, { heroId: "h-1" })]);
     window.dispatchEvent(new Event("online"));
     await drain();
     expect(sync.state.firstPullDone).toBe(true);
@@ -668,7 +669,7 @@ describe("the sync store", () => {
     expect(sync.state.outbox).toEqual([]);
   });
 
-  it("a kid phone queues only what it may write: its own hero's records and the chat", async () => {
+  it("a kid phone queues only what it may write: its own hero's records and the any-writer stores (chat, quests, beasts)", async () => {
     mockHeroDevice = kidPhone();
     mockSyncState = syncState({ firstPullDone: true, lastSeq: 7 });
     putRecords.mockImplementation(() => new Promise(() => undefined));
@@ -677,12 +678,106 @@ describe("the sync store", () => {
     write("__questLog", "q1", { id: "q1", userId: "h-1" });
     write("__questLog", "q2", { id: "q2", userId: "h-2" });
     write("__beasts", "b1", { id: "b1" });
+    write("__achievements", "tq-1", { id: "tq-1", assignees: ["h-1"] });
+    write("__temples", "t1", { id: "t1" });
     write("__chat", "c1", { id: "c1" });
-    emitStoreRestored({ store: "__beasts", removedKeys: ["b9"] });
+    emitStoreRestored({ store: "__temples", removedKeys: ["t9"] });
     await drain();
 
-    expect(sync.state.outbox.map((item) => `${item.store}/${item.key}`)).toEqual(["__questLog/q1", "__chat/c1"]);
+    expect(sync.state.outbox.map((item) => `${item.store}/${item.key}`)).toEqual([
+      "__questLog/q1",
+      "__beasts/b1",
+      "__achievements/tq-1",
+      "__chat/c1",
+    ]);
   });
+
+  it("an any-writer row a kid phone wrote follows the held-back rule, never the hero's-turn rule", async () => {
+    const sync = await started();
+    write("__achievements", "tq-1", { id: "tq-1", name: "Mine" });
+    await drain();
+    putRecords.mockImplementation(() => new Promise(() => undefined));
+    // the kid's phone wrote the same quest (the site stamps its hero on the row): this device's change is kept from it
+    fetchRecords.mockResolvedValueOnce([received("__achievements", "tq-1", 6, { id: "tq-1", name: "Phone" }, { heroId: "h-1" })]);
+
+    await sync.download();
+
+    expect(mockStores.__achievements["tq-1"]).toEqual({ id: "tq-1", name: "Mine" });
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["tq-1"]);
+  });
+
+  it("a Game Master device that has synced keeps queueing its changes while its Town Hall link is gone", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    mockTownHall.isLinked = false;
+    await drain();
+    expect(sync.isOn).toBe(false);
+
+    write("__beasts", "b1", { id: "b1", name: "Changed while unlinked" });
+    await drain();
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["b1"]);
+
+    // linked again: the change goes up before anything is read, so the family's older copy never lands over it (the
+    // site holds the older copy until the put, this device's after it)
+    const changed = { id: "b1", name: "Changed while unlinked" };
+    putRecords.mockClear();
+    fetchRecords.mockClear();
+    fetchRecords.mockImplementation(async () =>
+      putRecords.mock.calls.length === 0
+        ? [received("__beasts", "b1", 6, { id: "b1", name: "Older" })]
+        : [received("__beasts", "b1", 1000, changed, { deviceId: OWN })]
+    );
+    mockTownHall.isLinked = true;
+    await drain();
+    expect(sent()).toEqual([expect.objectContaining({ key: "b1", body: JSON.stringify(changed) })]);
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(fetchRecords.mock.invocationCallOrder[0]);
+    expect(mockStores.__beasts.b1).toEqual(changed);
+  });
+
+  it("a kid phone's first pull is done only once its hero has arrived; until then each round pulls on, and after five minutes it has stalled", async () => {
+    jest.useFakeTimers();
+    mockSyncState = undefined;
+    mockHeroDevice = kidPhone();
+    fetchRecords.mockImplementation(async (_auth: unknown, since: number) => (since === 0 ? [received("__beasts", "b1", 1)] : []));
+
+    const sync = await started();
+    expect(sync.state.firstPullDone).toBe(false);
+    expect(sync.isFullPortal).toBe(false);
+    expect(sync.firstPullStalled).toBe(false);
+
+    // the family device has not sent the hero yet: the minute rounds pull on
+    fetchRecords.mockClear();
+    await tick(60_000);
+    expect(fetchRecords).toHaveBeenCalledWith({ kind: "hero", key: HERO_KEY }, 1, 100);
+    await tick(4 * 60_000);
+    expect(sync.firstPullStalled).toBe(true);
+    expect(sync.state.firstPullDone).toBe(false);
+
+    // the hero lands on a later round: the pull is done
+    fetchRecords.mockResolvedValueOnce([received("__profiles", "h-1", 2, { id: "h-1", name: { nick: "Mia" } }, { heroId: "h-1" })]);
+    await tick(60_000);
+    expect(sync.state.firstPullDone).toBe(true);
+    expect(sync.isFullPortal).toBe(true);
+    expect(sync.firstPullStalled).toBe(false);
+  });
+
+  it("a family device's first push shows its progress while it runs", async () => {
+    mockSyncState = undefined;
+    mockStores = { __beasts: { b1: { id: "b1" }, b2: { id: "b2" } } };
+    const seen: (number | null)[] = [];
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      seen.push(useSyncStore().firstPushProgress);
+      return acceptAll(auth, device, records);
+    });
+
+    const sync = await started();
+    await drain();
+
+    expect(seen).toEqual([0]);
+    expect(sync.firstPushProgress).toBeNull();
+    expect(sync.state.firstPushDone).toBe(true);
+  });
+
 
   it("an oversize record is dropped from the outbox and logged, and the rest still go", async () => {
     jest.useFakeTimers();

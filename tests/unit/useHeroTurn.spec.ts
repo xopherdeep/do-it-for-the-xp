@@ -11,6 +11,7 @@ const resting: HeroTurn = { state: "resting", busy: null, provisional: false };
 
 const mockSync = reactive({
   isFamilyDevice: true,
+  firstPushProgress: null as number | null,
   turns: {} as Record<string, HeroTurn>,
   tookOverNotice: null as string | null,
   signIn: jest.fn(),
@@ -39,6 +40,7 @@ describe("the clerk's turn questions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSync.isFamilyDevice = true;
+    mockSync.firstPushProgress = null;
     mockSync.turns = {};
     mockSync.tookOverNotice = null;
     mockSync.signIn.mockResolvedValue("granted");
@@ -152,5 +154,29 @@ describe("the clerk's turn questions", () => {
 
     expect(showing(portal.prompt).options.lines[0]).toMatch(/took over Mia's game/);
     expect(mockSync.tookOverNotice).toBeNull();
+  });
+
+  it("the portal of a family device shows the first push line while it runs, and the turn's questions before it", async () => {
+    const portal = withSetup(() => usePortalTurn("h-1"));
+    expect(portal.prompt).toBeNull();
+
+    mockSync.firstPushProgress = 0;
+    await flushPromises();
+    expect(showing(portal.prompt).options.lines).toEqual(["Sending the family's save to the site…"]);
+    expect(showing(portal.prompt).options.choices).toEqual([]);
+    mockSync.firstPushProgress = 50;
+    await flushPromises();
+    expect(showing(portal.prompt).options.lines).toEqual(["Sending the family's save to the site… (50)"]);
+
+    mockSync.turns = { "h-1": busy };
+    await flushPromises();
+    expect(showing(portal.prompt).options.lines[0]).toMatch(/^Mia is still playing/);
+    portal.respond({ id: "play", amount: null });
+    await flushPromises();
+    expect(showing(portal.prompt).options.lines).toEqual(["Sending the family's save to the site… (50)"]);
+
+    mockSync.firstPushProgress = null;
+    await flushPromises();
+    expect(portal.prompt).toBeNull();
   });
 });

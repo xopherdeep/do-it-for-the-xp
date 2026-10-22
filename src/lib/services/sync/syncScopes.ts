@@ -8,7 +8,9 @@
 
 /**
  * `family`: the whole family shares the store; only the parent's device writes it.
- * `family-any`: the whole family shares it and any phone may write it (chat).
+ * `family-any`: the whole family shares it and any phone may write it (chat, the quests a temple run or a quick task makes,
+ * the beasts a hero painted). The site stamps a hero key's rows with its hero and lets it create or rewrite only those;
+ * parents write any row. The app cannot tell whose a row is, so a phone queues every write and the site refuses the rest.
  * `hero`: each record belongs to one hero; a phone writes only its own hero's records.
  */
 export type SyncScope = "family" | "family-any" | "hero";
@@ -48,8 +50,8 @@ const beforeFirstColon = (key: string): string | null => {
 export const SYNC_STORES: readonly SyncStoreRule[] = [
   { store: "__profiles", scope: "hero", heroIdOf: keyIsHero },
   { store: "__achievementCategories", scope: "family" },
-  { store: "__beasts", scope: "family" },
-  { store: "__achievements", scope: "family" },
+  { store: "__beasts", scope: "family-any" },
+  { store: "__achievements", scope: "family-any" },
   { store: "__abilities", scope: "family" },
   { store: "__accessories", scope: "family" },
   { store: "__shops", scope: "family" },
@@ -80,10 +82,10 @@ export const heroIdOf = (store: string, key: string, value: unknown): string | n
   return derive ? derive(key, value) : null;
 };
 
-/** Whether a hero's own phone may write this record: any family-any store, or a hero-scope record of its own hero */
+/** Whether a hero's own phone may write this record: any family-any store (the site keeps it to its own rows), or a hero-scope record of its own hero */
 export const mayPhoneWrite = (store: string, heroId: string | null, ownHeroId: string): boolean => {
   const scope = scopeOf(store);
   const isOwnHeroRecord = scope === "hero" && heroId !== null && heroId === ownHeroId;
-  const mayWrite = scope === "family-any" || isOwnHeroRecord;
-  return mayWrite;
+  const isAnyWriter = scope === "family-any";
+  return isAnyWriter || isOwnHeroRecord;
 };
