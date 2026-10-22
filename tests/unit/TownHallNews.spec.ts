@@ -197,6 +197,28 @@ describe("TownHallNews", () => {
     expect(idle.find('[data-cy="th-trouble"]').exists()).toBe(false);
   });
 
+  it("reads the drafts when the link's powers arrive after the tab mounted", async () => {
+    newsMock.mockResolvedValue({ items: [post(101)], totalPages: 1 });
+    draftsMock.mockResolvedValue([post(201, { title: "Coming soon" })]);
+    const wrapper = await mountNews({ canPublish: false, desk: fakeDesk() });
+
+    expect(draftsMock).not.toHaveBeenCalled();
+    expect(cy(wrapper, "th-draft").exists()).toBe(false);
+
+    await wrapper.setProps({ canPublish: true });
+    await flushPromises();
+
+    expect(draftsMock).toHaveBeenCalledTimes(1);
+    expect(cy(wrapper, "th-draft").text()).toContain("Coming soon");
+    expect(published(wrapper)).toHaveLength(1);
+
+    await wrapper.setProps({ canPublish: false });
+    await flushPromises();
+
+    expect(draftsMock).toHaveBeenCalledTimes(1);
+    expect(cy(wrapper, "th-publish").exists()).toBe(false);
+  });
+
   it("keeps the news when the drafts cannot be read", async () => {
     draftsMock.mockRejectedValue(new Error("no drafts for you"));
     const wrapper = await mountNews({ canPublish: true, desk: fakeDesk() });

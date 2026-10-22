@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonChip, IonIcon, IonImg, IonLabel, IonNote } from "@ionic/vue";
 import { arrowForwardOutline, chatbubblesOutline, chevronUpOutline, createOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
@@ -258,5 +258,14 @@ const openPost = (url: string) => {
 };
 
 onMounted(reload);
+
+/** The link's powers arrive after the tab has mounted: read again when the drafts become the clerk's to see. On a drop the lists stay and the tools go by themselves. */
+watch(
+  () => props.canPublish,
+  (isOn) => {
+    if (isOn) reload();
+  },
+);
+
 defineExpose({ reload });
 </script>
