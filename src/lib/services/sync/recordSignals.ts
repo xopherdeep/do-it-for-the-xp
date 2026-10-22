@@ -1,8 +1,10 @@
 /**
- * Two small signals the storage layer raises for Family Sync: a record was written or removed, and a backup restore rewrote a whole store.
- * DbStorageApi and BackupService only say what happened; the sync store listens. This file imports nothing from stores or databases
- * (DbStorageApi imports it), so no cycle can form. Built with the emitter gameSignals.ts uses: a listener that throws is logged and
- * never breaks the write, nor the listeners after it.
+ * Small signals for Family Sync: a record was written or removed, and a backup restore rewrote a whole store (the storage layer
+ * raises both; the sync store listens), and records another device wrote landed in a store (the sync store raises it after a
+ * download; the copies held in memory, such as a temple run, a notification feed or the chat rooms, read them again).
+ * DbStorageApi and BackupService only say what happened. This file imports nothing from stores or databases (DbStorageApi and
+ * the temple engine import it), so no cycle can form. Built with the emitter gameSignals.ts uses: a listener that throws is
+ * logged and never breaks the write, nor the listeners after it.
  */
 import { makeSignal } from "@/lib/services/multiplayer/gameSignals";
 
@@ -24,10 +26,19 @@ export interface StoreRestored {
   previous?: ReadonlyMap<string, unknown>;
 }
 
+/** Records the family's download landed in one store (written or removed in the raw store, never captured) */
+export interface RecordsLanded {
+  store: string;
+  keys: string[];
+}
+
 const recordWritten = makeSignal<RecordWrite>("recordWritten");
+const recordsLanded = makeSignal<RecordsLanded>("recordsLanded");
 const storeRestored = makeSignal<StoreRestored>("storeRestored");
 
 export const onRecordWritten = recordWritten.on;
 export const emitRecordWritten = recordWritten.emit;
 export const onStoreRestored = storeRestored.on;
 export const emitStoreRestored = storeRestored.emit;
+export const onRecordsLanded = recordsLanded.on;
+export const emitRecordsLanded = recordsLanded.emit;

@@ -3,6 +3,7 @@ import { BACKUP_STORES } from "@/lib/services/core/BackupService";
 import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import { fetchRecords, putRecords, type ReceivedRecord } from "@/lib/services/sync/familySyncClient";
 import type { LocalChanges } from "@/lib/services/sync/localChanges";
+import { emitRecordsLanded } from "@/lib/services/sync/recordSignals";
 import { applyRecords, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
 import { dropItems, dropWhere, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
 import { heroIdOf, scopeOf, SYNC_STORES } from "@/lib/services/sync/syncScopes";
@@ -223,19 +224,26 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     });
   };
 
-  /** Lands a page record by record, stopping before the first one held back; answers what landed and how many */
+  /**
+   * Lands a page record by record, stopping before the first one held back; answers what landed and how many. The keys
+   * that landed are announced per store once the page is in (`recordsLanded`), so the copies held in memory read them again
+   */
   const landPage = async (records: ReceivedRecord[], deviceId: string, startedIn: number): Promise<{ outcome: ApplyOutcome; landed: number }> => {
     const isCollecting = ctx.owes() === "push";
     let outcome = emptyOutcome();
     let landed = 0;
     const replaced: (StoreRef & { mark: number | undefined })[] = [];
+    const landedKeys = new Map<string, string[]>();
     for (const record of records) {
       const isLocal = isChangedHere(record, deviceId);
       const isHeld = isLocal && !isWritersCopy(record);
       if (isHeld) break;
       if (isLocal) replaced.push({ store: record.store, key: record.key, mark: ctx.changes.markOf(record.store, record.key) });
       if (isCollecting) received.set(recordId(record), record.deleted ? null : record.body ?? null);
-      outcome = mergeOutcomes(outcome, await applyRecords([record], deviceId));
+      const applied = await applyRecords([record], deviceId);
+      outcome = mergeOutcomes(outcome, applied);
+      const hasLanded = applied.applied > 0;
+      if (hasLanded) landedKeys.set(record.store, [...(landedKeys.get(record.store) ?? []), record.key]);
       landed += 1;
     }
     const hasReplaced = replaced.length > 0;
@@ -246,6 +254,7 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
       // The records are in the stores; the screens read them on their next visit
       debug.warn("sync: could not refresh the mirrors", error);
     }
+    landedKeys.forEach((keys, store) => emitRecordsLanded({ store, keys }));
     return { outcome, landed };
   };
 

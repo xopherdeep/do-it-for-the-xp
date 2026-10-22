@@ -7,7 +7,7 @@ import { TownHallError } from "@/lib/services/townhall/townHallClient";
 import * as client from "@/lib/services/sync/familySyncClient";
 import type { ReceivedRecord, WireRecord } from "@/lib/services/sync/familySyncClient";
 import * as server from "@/lib/services/multiplayer/familyServer";
-import { emitRecordWritten, emitStoreRestored } from "@/lib/services/sync/recordSignals";
+import { emitRecordWritten, emitStoreRestored, onRecordsLanded, type RecordsLanded } from "@/lib/services/sync/recordSignals";
 import { removePack, type PackDeps, type PackStorage } from "@/lib/services/core/packs/packService";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { emptySyncState, type SyncState } from "@/lib/databases/SyncDb";
@@ -485,6 +485,26 @@ describe("the sync store", () => {
     expect(mockStores.__chat.c1).toEqual({ id: "c1" });
     expect(mockRefreshMirrors).toHaveBeenCalledTimes(2);
     expect(sync.state.lastSeq).toBe(102);
+  });
+
+  it("the records a page lands are announced per store with their keys, so the copies held in memory read them again", async () => {
+    const sync = await started();
+    const landed: RecordsLanded[] = [];
+    const stop = onRecordsLanded((signal) => landed.push(signal));
+    fetchRecords.mockResolvedValueOnce([
+      received("__templeProgress", "h-1:t-1", 6, { userId: "h-1", templeId: "t-1" }, { heroId: "h-1" }),
+      received("__notifications", "h-1", 7, [], { heroId: "h-1" }),
+      received("__templeProgress", "h-1:t-2", 8, { userId: "h-1", templeId: "t-2" }, { heroId: "h-1" }),
+      received("__chat", "m1", 9, { id: "m1" }, { deviceId: OWN }),
+    ]);
+
+    await sync.download();
+    stop();
+
+    expect(landed).toEqual([
+      { store: "__templeProgress", keys: ["h-1:t-1", "h-1:t-2"] },
+      { store: "__notifications", keys: ["h-1"] },
+    ]);
   });
 
   it("a short page that is not empty is followed by another fetch, up to 5 pages a download", async () => {

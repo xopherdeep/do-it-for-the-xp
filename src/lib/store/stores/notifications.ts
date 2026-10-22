@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
-import { reactive } from "vue";
+import { onScopeDispose, reactive } from "vue";
 import { getNotificationsDb } from "@/lib/databases/NotificationsDb";
+import { onRecordsLanded } from "@/lib/services/sync/recordSignals";
 import debug from "@/lib/utils/debug";
 import {
   MAX_NOTIFICATIONS_PER_HERO,
@@ -17,7 +18,9 @@ import type { NewXpNotification, XpNotification } from "@/lib/services/notificat
  * Producers call `push` (quest watch, level-ups, the Game Master's approvals, the shop, the blood moon);
  * the XpNotifications modal reads `forHero` and `unreadCount` and calls `markRead`, `markAllRead`, `clear`.
  * A hero's feed is read from disk once (`load`); pushes made before that read are kept and merged in, so
- * a notification is never lost to the order things start in. Writes made in the same tick coalesce into one.
+ * a notification is never lost to the order things start in. Writes made in the same tick coalesce into one. A feed
+ * another device wrote that lands here (Family Sync) is read again, replacing the one in memory: the device holding the
+ * hero wrote it, so a save from here never puts the stale feed back.
  */
 export const useNotificationsStore = defineStore("notifications", () => {
   const byHero = reactive<Record<string, XpNotification[]>>({});
@@ -66,6 +69,27 @@ export const useNotificationsStore = defineStore("notifications", () => {
     loading.set(key, read);
     return read;
   }
+
+  /** A feed that landed from another device: read again (and its pending save dropped) once it has been read here at all */
+  async function reload(heroId: string): Promise<void> {
+    const key = String(heroId);
+    await loading.get(key);
+    const isFeedLoaded = !!loaded[key];
+    if (!isFeedLoaded) return;
+    try {
+      const stored = await getNotificationsDb().getForHero(key);
+      pendingPersist.delete(key);
+      byHero[key] = sortNewestFirst(stored).slice(0, MAX_NOTIFICATIONS_PER_HERO);
+    } catch (error) {
+      debug.error(`[notifications] failed to read the landed feed of ${key}`, error);
+    }
+  }
+
+  const stopLandings = onRecordsLanded(({ store, keys }) => {
+    const isFeeds = store === "__notifications";
+    if (isFeeds) keys.forEach((heroId) => void reload(heroId));
+  });
+  onScopeDispose(stopLandings);
 
   // --- persistence, coalesced per tick like userStore.persistUser ---
   const pendingPersist = new Set<string>();
