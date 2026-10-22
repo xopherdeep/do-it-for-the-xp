@@ -257,11 +257,14 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("puts the easier monster quests in the rooms nearest the entrance", () => {
-      const monsterDifficulties = combatRooms(graph, "monster")
-        .filter(sealed)
-        .map((room) => templateOf(room).difficulty);
-      expect(monsterDifficulties).toEqual([...monsterDifficulties].sort((a, b) => a - b));
+    it("puts the easier monster quests in the rooms nearest the entrance (a classic temple's mini-boss quests too)", () => {
+      const tiers: QuestTier[] = isClassic ? ["monster", "miniboss"] : ["monster"];
+      for (const tier of tiers) {
+        const difficulties = combatRooms(graph, tier)
+          .filter(sealed)
+          .map((room) => templateOf(room).difficulty);
+        expect({ tier, difficulties }).toEqual({ tier, difficulties: [...difficulties].sort((a, b) => a - b) });
+      }
     });
 
     it("comes to a full temple: the quests add up to the size of the theme map, 21 or more", () => {

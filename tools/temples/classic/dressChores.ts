@@ -6,7 +6,8 @@
  *   rule below leaves in reach (the solver's R4) names the room that keeps it out of reach.
  * - A must-clear room whose door opens straight on the Big Key chest or the Big Chest guards it: a mini-boss. When
  *   the plan lists more mini-bosses than that finds, the must-clear rooms nearest the Big Key chest, then the Big
- *   Chest, are the extra ones; when it lists fewer, the rest stay must-clear monsters.
+ *   Chest, are the extra ones; when it lists fewer, the rest stay must-clear monsters. The mini-bosses take the plan's
+ *   mini-boss chores easiest first in path order, as the must-clear rooms take theirs.
  * - The must-clear monster rooms take the plan's chores in path order from the entrance, easiest first (a stable
  *   sort keeps the plan's order among equals). A plan short of rooms repeats itself; the repeats are reported.
  * - A starter beast beyond the must-clear count (the plan lists starters first) gets a side room of its own, nearest
@@ -144,7 +145,9 @@ export const planChores = (board: Board, plan: ClassicPlan, graph: TempleGraph, 
     const extras = mustClearSlots.filter((slot) => !minibosses.includes(slot)).sort(nearestThePrizes);
     minibosses.push(...extras.slice(0, wanted - minibosses.length));
   }
-  minibosses.sort(nearestFirst).forEach((slot, index) => setRole(slot, "miniboss", plan.minibosses[index], true));
+  // Easiest first in path order, as the must-clear monsters are dealt (a stable sort keeps the plan's order among equals)
+  const easiestMinibosses = [...plan.minibosses].sort((a, b) => a[1] - b[1]);
+  minibosses.sort(nearestFirst).forEach((slot, index) => setRole(slot, "miniboss", easiestMinibosses[index], true));
 
   // The must-clear monsters: easiest first in path order
   const monsters = mustClearSlots.filter((slot) => !minibosses.includes(slot)).sort(nearestFirst);

@@ -434,6 +434,14 @@ describe("dressing a classic dungeon", () => {
       expect(solved(made)).toMatchObject({ solvable: true, reasons: [] });
     });
 
+    it("gives the mini-boss nearest the entrance the easiest quest, whatever the plan's order", () => {
+      const made = dressDungeon(byway(), plan({ minibossRooms: ["Trench"], minibosses: [["under-bed-bogey", 5, "weekly"], ["hoard-drake", 3, "weekly"]] }));
+      const at = roomsOf(made.temple);
+      // The Statue is one door from the entrance, the Trench two
+      expect(at("1F", 0, 1)).toMatchObject({ type: "miniboss", content: { quest: { beastId: "beast-hoard-drake", difficulty: 3 } } });
+      expect(at("1F", 1, 1)).toMatchObject({ type: "miniboss", content: { quest: { beastId: "beast-under-bed-bogey", difficulty: 5 } } });
+    });
+
     it("fights in a named room the converter read no enemies in, in its first screen", () => {
       const made = dressDungeon(byway(), plan({ minibossRooms: ["Armory"] }));
       const at = roomsOf(made.temple);

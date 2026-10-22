@@ -34,7 +34,7 @@ export interface ClassicPlan {
   puzzle: string;
   /** The must-clear chores in priority order (see the top of this file) */
   mustClear: PlanQuest[];
-  /** One per mini-boss room, nearest the entrance first */
+  /** One per mini-boss room: dealt easiest first in path order from the entrance, as the must-clear chores are */
   minibosses: PlanQuest[];
   /**
    * The LTTP rooms that hold mini-bosses whatever the design's rule finds, taken first (the rule fills the rest of
