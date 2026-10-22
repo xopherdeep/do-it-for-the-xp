@@ -284,21 +284,23 @@ export const crossroads = (): ClassicDungeon =>
 /**
  * SHIFTED, a floor 4x4 whose cells all sit on rows 2 and 3 (the converter leaves such grids): the entrance, a key in
  * the pots, a small-key door to the shutter guard of the Boss Key vault, the boss under the vault. Once the floor
- * has moved up, the lock must still sit on the end the hero reaches first (the pots), not on the guard.
+ * has moved up, the lock must still sit on the end the hero reaches first (the pots), not on the guard. With `wideGuard`
+ * the guard has a second screen under it, whose enemy folds into the fight: the report names it where it stands now.
  *
  *   _  _  _  _
  *   _  _  _  _
  *   E  k  ]G  V
- *   _  _  _  B
+ *   _  _  (G) B
  */
-export const shifted = (): ClassicDungeon =>
+export const shifted = (wideGuard = false): ClassicDungeon =>
   dungeon("shifted", [
     floor("1F", 4, 4, [
       cell(2, 0, "Gate", { east: "open" }, { entrance: true }),
       cell(2, 1, "Pots", { west: "open", east: "small-key" }, { potKey: true }),
-      cell(2, 2, "Guard", { west: "small-key", east: "open" }, { enemies: 2, shutter: true }),
+      cell(2, 2, "Guard", { west: "small-key", east: "open", ...(wideGuard ? { south: "open" as const } : {}) }, { enemies: 2, shutter: true }),
       cell(2, 3, "Vault", { west: "open", south: "open" }, { chest: "big-key" }),
       cell(3, 3, "Throne", { north: "open" }, { boss: true }),
+      ...(wideGuard ? [cell(3, 2, "Guard", { north: "open" }, { enemies: 1 })] : []),
     ]),
   ]);
 

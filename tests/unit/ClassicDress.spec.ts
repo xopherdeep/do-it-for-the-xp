@@ -348,6 +348,13 @@ describe("dressing a classic dungeon", () => {
       expect(at("1F", 0, 2)).toMatchObject({ type: "miniboss", sides: { west: "door" } });
       expect(solveTemple(asRegistered(temple))).toMatchObject({ solvable: true, reasons: [] });
     });
+
+    it("names a merged screen where it stands now, not where the converter drew it", () => {
+      const wide = dressDungeon(shifted(true), plan());
+      expect(wide.report.merged).toEqual([expect.objectContaining({ what: "enemies", at: { floor: "1F", row: 1, col: 2 } })]);
+      // The screen with the fight folded out of it is a free cell: the extras take it (the save)
+      expect(roomsOf(wide.temple)("1F", 1, 2)?.type).toBe("save");
+    });
   });
 
   describe("a hole in a passage", () => {

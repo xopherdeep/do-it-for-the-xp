@@ -6,7 +6,7 @@
  * not a shop sells Bombs), so the solver and a hero both pass it with nothing blown by hand.
  */
 import type { ClassicDungeon, ClassicSide } from "./classicDungeon";
-import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, sameCell, slotAt, type Board, type CellRef, type ClassicMove, type Direction, type Slot } from "./dressBoard";
+import { DIRECTIONS, STEP, allSlots, cellKey, describeCell, directionTo, sameCell, slotAt, type Board, type CellRef, type ClassicMove, type Direction, type Slot } from "./dressBoard";
 import { openNear, tryOpenBeside } from "./dressPlace";
 import { convertedHops, convertedKey } from "./dressReach";
 import { buildTempleGraph, reachableFrom, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
@@ -231,7 +231,9 @@ export const demoteShortcutWarps = (board: Board, layoutNow: () => TempleLayout)
     const withTheRideOpen = blockingRooms(graph, mustClear, boss!.key, new Set());
     const opensAWayAround = [...withTheRideCut].some((key) => !withTheRideOpen.has(key));
     if (!opensAWayAround) continue;
-    board.dropped.push({ what: "teleport", at: pair.warp.item!.origin, why: `its ride back from ${describeCell(pair.landing.at)} opens a way around a must-clear room` });
+    // Named at the cell it was converted in, where that cell stands now (a floor may have shifted or grown)
+    const source = board.converted.get(cellKey(pair.warp.item!.origin))?.at ?? pair.warp.at;
+    board.dropped.push({ what: "teleport", at: source, why: `its ride back from ${describeCell(pair.landing.at)} opens a way around a must-clear room` });
     // A dropped warp is listed under `dropped` alone: neither its move out of its cell nor its landing circle stays a move
     const isMoveOfThePair = (move: ClassicMove): boolean => (move.what === "teleport" && sameCell(move.to, pair.warp.at)) || (move.what === "landing circle" && sameCell(move.to, pair.landing.at));
     board.moves = board.moves.filter((move) => !isMoveOfThePair(move));

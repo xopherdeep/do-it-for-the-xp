@@ -247,8 +247,11 @@ const planFights = (dungeon: ClassicDungeon, minibossRooms: readonly string[]): 
   return plans;
 };
 
-/** The things one converted cell holds, in precedence order */
-const itemsOf = (cell: ClassicCell, origin: CellRef, fights: Map<string, FightPlan>, board: Board): Item[] => {
+/**
+ * The things one converted cell holds, in precedence order. `origin` is the cell's own place (what the things came
+ * from), `now` where its room stands on the board (the report names a merged screen there, as it names every room)
+ */
+const itemsOf = (cell: ClassicCell, origin: CellRef, now: CellRef, fights: Map<string, FightPlan>, board: Board): Item[] => {
   const at = origin;
   const base = { origin: at, room: cell.room };
   const items: Item[] = [];
@@ -258,7 +261,8 @@ const itemsOf = (cell: ClassicCell, origin: CellRef, fights: Map<string, FightPl
   const isTheFightCell = Boolean(fight) && sameCell(fight!.at, at);
   if (isTheFightCell) items.push({ ...base, kind: fight!.mustClear ? "mustClearFight" : "sideFight", enemies: cell.enemies, keyDrop: fight!.keyDrop });
   const isMergedScreen = cell.enemies > 0 && !isTheFightCell;
-  if (isMergedScreen) board.merged.push({ what: "enemies", at, why: `merged into the room's fight at ${describeCell(fight!.at)}` });
+  const fightNow = isMergedScreen ? (board.converted.get(cellKey(fight!.at))?.at ?? fight!.at) : at;
+  if (isMergedScreen) board.merged.push({ what: "enemies", at: now, why: `merged into the room's fight at ${describeCell(fightNow)}` });
   // A key dropped where nothing fights lies in the open (a small one) or in a chest (the Big Key)
   const isKeyWithNoFight = Boolean(cell.keyDrop) && !fight;
   if (isKeyWithNoFight) items.push(cell.keyDrop === "big" ? { ...base, kind: "bigKey" } : { ...base, kind: "potKey" });
@@ -354,7 +358,7 @@ export const buildBoard = (dungeon: ClassicDungeon, minibossRooms: readonly stri
   for (const slot of allSlots(board)) {
     // A thing's origin is the cell it was converted from, where the island stood before it was moved beside the rest
     const origin = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
-    const [first, ...rest] = itemsOf(slot.cell!, origin, fights, board);
+    const [first, ...rest] = itemsOf(slot.cell!, origin, slot.at, fights, board);
     const floor = floorOf(board, slot.at.floor)!;
     // A hole on a passage (a screen with ways through it) would cut the floor as a pit: the hole goes to a dead end
     // added beside it and the screen stays an empty room
