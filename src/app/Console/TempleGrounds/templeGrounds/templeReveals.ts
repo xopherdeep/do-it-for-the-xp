@@ -122,10 +122,10 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
   // A chest comes up shut, with Open and Leave; only an empty one opens at once (with Leave alone)
   const isChestClosed = ref(false);
   // What the reveal shows is a beaten beast's drop, not a chest: Take hands it out through claimDropItems
-  let isDropShown = false;
+  const isDropShown = ref(false);
 
   const showChestContentsDialog = () => {
-    isDropShown = false;
+    isDropShown.value = false;
     chestLootShown.value = chestContents.value;
     isChestClosed.value = chestContents.value.length > 0;
     isChestOpen.value = true;
@@ -133,7 +133,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   // The beast's drop comes up open, its rows ticked (the loot rises at once: there is no chest lid to lift)
   const showDropReveal = () => {
-    isDropShown = true;
+    isDropShown.value = true;
     chestLootShown.value = dropContents.value;
     isChestClosed.value = false;
     isChestOpen.value = true;
@@ -148,7 +148,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
     }
     isChestOpen.value = false;
     // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple (a drop has none)
-    const prize = isDropShown ? undefined : currentRoom.value?.content;
+    const prize = isDropShown.value ? undefined : currentRoom.value?.content;
     const pick = prize?.dungeon ? String(prize.dungeon) : '';
     const freesPegasus = prize?.pegasus === true && Boolean(pick) && values.includes(pick);
     const hasKey = values.some((value) => value.toLowerCase().includes('key'));
@@ -159,7 +159,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
     // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
     setHushMessages(freesPegasus);
     try {
-      if (isDropShown) claimDropItems(values);
+      if (isDropShown.value) claimDropItems(values);
       else claimChestItems(values);
     } finally {
       setHushMessages(false);
@@ -174,14 +174,14 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   // An empty chest opens the same way, with nothing inside
   const showEmptyChest = () => {
-    isDropShown = false;
+    isDropShown.value = false;
     chestLootShown.value = [];
     isChestClosed.value = false;
     isChestOpen.value = true;
   };
 
   return {
-    chest: { isChestOpen, chestLootShown, isChestClosed },
+    chest: { isChestOpen, chestLootShown, isChestClosed, isDropShown },
     showChestContentsDialog,
     showDropReveal,
     showEmptyChest,

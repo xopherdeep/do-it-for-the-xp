@@ -1,9 +1,10 @@
 /**
  * Handing out what a temple's loot holds, for useTemple: a chest's rows and a beast's drop go through the same
  * `handOutItems` (gold into the purse, supplies and Bombs into the bag, keys, the map and the compass into the run, a
- * relic unlocked on the hero). A drop is taken whole through `takeDrop`: all of what the hero picked or nothing, then
- * the run remembers it taken (TempleSystem.markDropTaken). A chest keeps what did not fit for a later visit; a drop has
- * no such memory, so a bag that cannot hold it all takes none of it.
+ * relic unlocked on the hero). A drop is taken whole through `takeDrop`: every row it holds or nothing, then the run
+ * remembers it taken (TempleSystem.markDropTaken). A chest keeps what was not taken or did not fit for a later visit; a
+ * drop has one flag and no such memory, so a bag that cannot hold it all takes none of it, and a row the hero did not
+ * tick is handed out with the rest rather than lost (a small key or the Boss Key the temple counts on).
  */
 import type { Ref } from 'vue';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
@@ -133,12 +134,14 @@ export interface DropTaken {
 }
 
 /**
- * The hero takes what they picked of the drop in the room they stand in. The drop is one thing: it goes whole or not at all.
- * If a supply or a Bomb has no room in the bag (or storage, for a supply), nothing is taken and the drop waits. Otherwise the
- * picked rows are handed out as a chest's are, the run is saved and the drop is remembered taken (markDropTaken): the rows
- * the hero did not pick are not kept for later. Only the drop's own rows are handed out.
+ * The hero takes the drop in the room they stand in. The drop is one thing: it goes whole or not at all. A take that ticks
+ * nothing of it takes nothing. Otherwise every row the drop holds is handed out as a chest's are, whatever was ticked (the
+ * drop is one flag, so a row left out would be gone for the run while the temple still counts on it), the run is saved and
+ * the drop is remembered taken (markDropTaken). If a supply or a Bomb has no room in the bag (or storage, for a supply),
+ * nothing is handed out and the drop waits; if handing it out still leaves something behind, the drop is not marked taken
+ * either. Only the drop's own rows are ever handed out.
  * @param rows What the drop holds now (`dropContents`); empty once it is taken
- * @param selected The rows the hero ticked in the reveal
+ * @param selected The rows the hero ticked in the reveal; only whether any of the drop's own rows is among them matters
  */
 export const takeDrop = (deps: DropTake, rows: readonly ChestLoot[], content: RoomDrops | null, selected: string[]): DropTaken => {
   const { templeId, userId, templeSystem, level, position } = deps;
@@ -150,15 +153,18 @@ export const takeDrop = (deps: DropTake, rows: readonly ChestLoot[], content: Ro
   const hasPicked = picked.length > 0;
   if (!hasPicked) return { message: 'You took nothing.', duration: 2000 };
 
-  const bagLoot = userId ? picked.map(bagItemOf).filter((loot) => loot !== null) : [];
+  const bagLoot = userId ? held.map(bagItemOf).filter((loot) => loot !== null) : [];
   const hero = userId ? useUserStore().getUserById(userId) : undefined;
   const isBagFull = !bagHoldsAll(hero, bagLoot);
   if (isBagFull) return { message: BAG_FULL_LINE, duration: 3500 };
 
-  // The room was checked above, so nothing is left behind here
-  const { collected } = handOutItems(deps, picked, content ?? undefined);
+  const { collected, leftBehind } = handOutItems(deps, held, content ?? undefined);
   // The state above was changed directly, so it has to be asked to save
   templeSystem.saveProgress(templeId);
+  // The room was checked above, so nothing should be left behind; if something is, the drop stays for another try
+  const isSomethingLeft = leftBehind.length > 0;
+  if (isSomethingLeft) return { message: BAG_FULL_LINE, duration: 3500 };
+
   templeSystem.markDropTaken(templeId, level, position);
   return { message: `Collected: ${collected.join(', ')}`, duration: 3000 };
 };

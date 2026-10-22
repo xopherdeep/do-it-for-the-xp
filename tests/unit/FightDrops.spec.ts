@@ -14,6 +14,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { BOMB_ITEM, FIGHT_ROOM_TYPES, dropKey, roomDrops } from "@/lib/services/temples/fightDrops";
 import { grantedDungeonItems, grantsBossKey, isBombSource, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 import { bombInPack } from "@/lib/services/temples/ItemUse";
+import { useUserStore } from "@/lib/store/stores/user";
 import { roomPositionKey } from "@/lib/engine/core/dungeons/DungeonManager";
 import { addHero, hero, HERO, makeTemple, temples, wallet } from "./templeFixtures";
 
@@ -401,15 +402,61 @@ describe("taking a beast's drop through the temple screen's hook", () => {
     drop.done();
   });
 
-  it("hands out only what the drop holds: a row it does not hold is ignored", async () => {
-    const drop = await play({ chest: "dungeon", dungeon: "small-key" });
+  it("hands out only what the drop holds: a row it does not hold is never handed out, whatever was ticked", async () => {
+    const stray = await play({ chest: "dungeon", dungeon: "small-key" });
+    stray.take(["master-key"]);
+    expect(temples.hasMasterKey(stray.id)).toBe(false);
+    expect(stray.messages).toEqual(["You took nothing."]);
+    expect(temples.isDropTaken(stray.id, "1F", AT)).toBe(false);
+    stray.done();
 
-    drop.take(["master-key"]);
+    // Ticked beside a row the drop does hold, it is still no part of the take
+    const mixed = await play({ chest: "dungeon", dungeon: "small-key" });
+    mixed.take(["master-key", "key"]);
+    expect(temples.hasMasterKey(mixed.id)).toBe(false);
+    expect(temples.getTempleState(mixed.id)?.playerKeys).toBe(1);
+    expect(mixed.messages).toEqual(["Collected: Small Key"]);
+    mixed.done();
+  });
 
-    expect(temples.hasMasterKey(drop.id)).toBe(false);
-    expect(drop.messages).toEqual(["You took nothing."]);
-    expect(temples.isDropTaken(drop.id, "1F", AT)).toBe(false);
+  it("is all-or-nothing: ticking only the gold of a drop that holds a small key still hands out the key", async () => {
+    const drop = await play({ chest: "dungeon", dungeon: "small-key", gold: 15 });
+    const before = wallet();
+
+    drop.take(["gold:15"]);
+
+    // The drop is one flag: what was not ticked is not left in the room, so it is handed out with the rest
+    expect(temples.getTempleState(drop.id)?.playerKeys).toBe(1);
+    expect(wallet()).toBeGreaterThan(before);
+    expect(temples.isDropTaken(drop.id, "1F", AT)).toBe(true);
+    expect(drop.messages).toEqual([expect.stringMatching(/^Collected: Small Key, \d+ GP$/)]);
+    expect(drop.rows()).toEqual([]);
     drop.done();
+  });
+
+  it("hands out the Boss Key and a Bomb of a drop whose gold alone was ticked", async () => {
+    const drop = await play({ chest: "dungeon", dungeon: "master-key", items: [BOMB_ITEM], gold: 10 });
+
+    drop.take(["gold:10"]);
+
+    expect(temples.hasMasterKey(drop.id)).toBe(true);
+    expect(bombInPack(HERO)?.qty).toBe(1);
+    expect(temples.isDropTaken(drop.id, "1F", AT)).toBe(true);
+    drop.done();
+  });
+
+  it("does not mark the drop taken when handing it out left something behind, and says the bag is full", async () => {
+    // The bag looks free, but the hero's bag refuses the Bomb (a profile that cannot be written to): nothing may be marked
+    const bag = jest.spyOn(useUserStore(), "addInventoryItem").mockReturnValue(false);
+    const drop = await play({ chest: "dungeon", dungeon: "small-key", items: [BOMB_ITEM] });
+
+    drop.take([BOMB_ITEM, "key"]);
+
+    expect(temples.isDropTaken(drop.id, "1F", AT)).toBe(false);
+    expect(drop.messages).toEqual(["Your bag is full. Store something at home first."]);
+    expect(drop.rows()).toEqual([BOMB_ITEM, "key"]);
+    drop.done();
+    bag.mockRestore();
   });
 
   describe("a Bomb", () => {

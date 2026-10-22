@@ -56,7 +56,8 @@ export const bagHoldsAll = (hero: StorageOwner | null | undefined, items: readon
   let storage: unknown[] = Array.isArray(stored) ? [...stored] : [];
   for (const loot of items) {
     const given: StorageOwner = { inventory, storage, storageTier: hero?.storageTier };
-    if (!bagHolds(given, loot)) return false;
+    const isRefused = !bagHolds(given, loot);
+    if (isRefused) return false;
     const isForBag = canCarry(given, loot.item) === 'bag';
     if (isForBag) inventory = [...inventory, loot.item];
     else storage = [...storage, loot.item];

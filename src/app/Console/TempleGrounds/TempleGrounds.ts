@@ -257,7 +257,7 @@ export default defineComponent({
         showTempleCleared,
         setHushMessages
       });
-    const { isChestOpen, chestLootShown, isChestClosed } = chest;
+    const { isChestOpen, chestLootShown, isChestClosed, isDropShown } = chest;
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
     const { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
@@ -423,7 +423,7 @@ export default defineComponent({
       isDoorLocked,
       showRoomActions,
       isChestOpen,
-      isChestClosed,
+      isChestClosed, isDropShown,
       chestLootShown,
       takeChestLoot,
       leaveChest,
