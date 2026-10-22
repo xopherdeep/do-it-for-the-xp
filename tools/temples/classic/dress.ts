@@ -128,7 +128,7 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
 
 /** A converted dungeon as a temple of ours, under `plan`. Pure: the same dungeon and plan give the same temple. */
 export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
-  const board = buildBoard(dungeon);
+  const board = buildBoard(dungeon, plan.minibossRooms);
   // The board as registration reads it, fights plain before the chores are dealt (the doors are all the steps below read)
   const layoutNow = (): TempleLayout => asRegistered(buildRooms(board, plan, drawSides(board)));
   demoteShortcutWarps(board, layoutNow);

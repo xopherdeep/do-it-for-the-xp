@@ -209,14 +209,17 @@ describe("the classic dungeon temples", () => {
       }
     });
 
-    it("seals every must-clear room on entry, and no side room", () => {
+    it("seals every must-clear room on entry, and every room the plan names as a mini-boss's, and no side room", () => {
+      const named = plan.minibossRooms ?? [];
+      for (const name of named) expect({ room: name, type: fightOf(name)?.type }).toEqual({ room: name, type: "miniboss" });
       for (const name of lttpRooms) {
         const fight = fightOf(name);
         const isFightless = !fight || fight.type === "boss";
         if (isFightless) continue;
         const sealed = roomOf(fight).content?.lockOnEnter === true;
-        expect({ room: name, sealed }).toEqual({ room: name, sealed: isMustClearRoom(name) });
-        const isSide = !isMustClearRoom(name);
+        const isSealedRoom = isMustClearRoom(name) || named.includes(name);
+        expect({ room: name, sealed }).toEqual({ room: name, sealed: isSealedRoom });
+        const isSide = !isSealedRoom;
         if (isSide) expect({ room: name, type: fight.type }).toEqual({ room: name, type: "monster" });
       }
       expect(report.mustClear).toBe(report.placements.filter((entry) => entry.type === "monster" && roomOf(entry).content?.lockOnEnter).length);

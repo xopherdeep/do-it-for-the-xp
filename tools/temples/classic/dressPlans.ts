@@ -31,6 +31,14 @@ export interface ClassicPlan {
   mustClear: PlanQuest[];
   /** One per mini-boss room, nearest the entrance first */
   minibosses: PlanQuest[];
+  /**
+   * The LTTP rooms that hold mini-bosses whatever the design's rule finds, taken first (the rule fills the rest of
+   * `minibosses`): the room that keeps the Boss Key out of reach when the rule's choice does not (the solver's R4), or
+   * one whose mini-boss the converter could not read (GT's Lanmolas count as the Quad Pot's enemies, the Ice Armos room
+   * reads none). A named room seals on entry; with no enemies it fights in its screen that holds the Big Key (which
+   * then waits behind the fight), else in its first screen.
+   */
+  minibossRooms?: string[];
   boss: PlanQuest;
 }
 

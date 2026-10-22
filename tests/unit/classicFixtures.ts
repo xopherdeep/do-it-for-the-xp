@@ -347,3 +347,26 @@ export const extras = (): ClassicDungeon =>
       cell(1, 4, "Throne", { west: "open" }, { boss: true }),
     ]),
   ]);
+
+/**
+ * BYWAY, one floor 2x4: the Statue, a shutter fight, opens on the Big Chest vault before the boss, so the design's rule
+ * makes it the mini-boss; but the Boss Key lies down a byway it does not guard: the hall under the entrance, the Trench
+ * (a side fight, no shutter), the Armory (a shutter room the converter read no enemies in, as GT's Ice Armos) and the
+ * Alcove with the Big Key. A plan settles it by naming the room that guards the Boss Key (`minibossRooms`).
+ *
+ *   E  S  C  B
+ *   h  T  A  K
+ */
+export const byway = (): ClassicDungeon =>
+  dungeon("byway", [
+    floor("1F", 2, 4, [
+      cell(0, 0, "Gate", { east: "open", south: "open" }, { entrance: true }),
+      cell(0, 1, "Statue", { west: "open", east: "open" }, { enemies: 2, shutter: true }),
+      cell(0, 2, "Vault", { west: "open", east: "big-key" }, { chest: "big-chest" }),
+      cell(0, 3, "Throne", { west: "big-key" }, { boss: true }),
+      cell(1, 0, "Hall", { north: "open", east: "open" }),
+      cell(1, 1, "Trench", { west: "open", east: "open" }, { enemies: 1 }),
+      cell(1, 2, "Armory", { west: "open", east: "shutter" }, { shutter: true }),
+      cell(1, 3, "Alcove", { west: "shutter" }, { chest: "big-key" }),
+    ]),
+  ]);

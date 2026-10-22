@@ -3,7 +3,8 @@
  * fight, stairs, a chest...), one thing kept per cell and the rest moved, so each cell ends up as one room of ours.
  *
  * One fight per LTTP room (Review Focus 2): the screen with the most enemies fights, the other screens' enemies fold
- * into it. A room with a shutter or a key drop among its screens is must-clear; the key goes with the fight.
+ * into it. A room with a shutter or a key drop among its screens is must-clear; the key goes with the fight. So is a
+ * room the plan names as a mini-boss's (`minibossRooms`), which fights even where the converter read no enemies.
  *
  * Precedence, one thing per cell: entrance > boss > must-clear fight > stairs > Big Key chest > Big Chest > other
  * chests and a key in the open > puzzle > circle > side fight > hole. A must-clear fight outranks the stairs that
@@ -198,8 +199,26 @@ interface FightPlan {
   keyDrop?: "small" | "big";
 }
 
-/** One fight per LTTP room, in the screen with the most enemies; must-clear when a screen shuts or drops a key */
-const planFights = (dungeon: ClassicDungeon): Map<string, FightPlan> => {
+/**
+ * Where a room the plan names as a mini-boss's fights when the converter read no enemies in it: the screen that holds
+ * the Big Key (the chest then waits behind the fight), else its first screen in floor and reading order
+ */
+const quietFightCell = (dungeon: ClassicDungeon, room: string): CellRef => {
+  const screens = dungeon.floors.flatMap((floor) =>
+    [...floor.cells].sort((a, b) => a.row - b.row || a.col - b.col).filter((cell) => cell.room === room).map((cell) => ({ floor: floor.name, cell }))
+  );
+  const isUnknownRoom = screens.length === 0;
+  if (isUnknownRoom) throw new Error(`${dungeon.id}: the plan names a mini-boss room the dungeon does not have: ${room}`);
+  const { floor, cell } = screens.find((screen) => screen.cell.chest === "big-key") ?? screens[0];
+  return { floor, row: cell.row, col: cell.col };
+};
+
+/**
+ * One fight per LTTP room, in the screen with the most enemies; must-clear when a screen shuts or drops a key. A room
+ * the plan names as a mini-boss's (`minibossRooms`) is must-clear whatever its screens say, and fights even with no
+ * enemies read in it (quietFightCell).
+ */
+const planFights = (dungeon: ClassicDungeon, minibossRooms: readonly string[]): Map<string, FightPlan> => {
   const plans = new Map<string, FightPlan>();
   const most = new Map<string, number>();
   for (const floor of dungeon.floors) {
@@ -210,6 +229,11 @@ const planFights = (dungeon: ClassicDungeon): Map<string, FightPlan> => {
         plans.set(cell.room, { at: { floor: floor.name, row: cell.row, col: cell.col }, mustClear: false });
       }
     }
+  }
+  for (const room of minibossRooms) {
+    const isFightless = !plans.has(room);
+    if (isFightless) plans.set(room, { at: quietFightCell(dungeon, room), mustClear: true });
+    plans.get(room)!.mustClear = true;
   }
   for (const floor of dungeon.floors) {
     for (const cell of floor.cells) {
@@ -306,10 +330,13 @@ const settleBossExits = (board: Board, boss: Slot, exits: Displaced[]): void => 
   for (const { floor, source, item } of exits) relocate(board, floor, source, item, { notBeside: boss.at });
 };
 
-/** Read the dungeon into a board: one thing per cell, the rest moved or dropped, the Master Room beside the boss */
-export const buildBoard = (dungeon: ClassicDungeon): Board => {
+/**
+ * Read the dungeon into a board: one thing per cell, the rest moved or dropped, the Master Room beside the boss. The
+ * rooms a plan names as mini-bosses' (`minibossRooms`) fight and seal from the start, so what they hold waits behind them.
+ */
+export const buildBoard = (dungeon: ClassicDungeon, minibossRooms: readonly string[] = []): Board => {
   const board: Board = { dungeon, floors: [], converted: new Map(), moves: [], dropped: [], merged: [], compacted: [], shifted: [], warpPairs: [] };
-  const fights = planFights(dungeon);
+  const fights = planFights(dungeon, minibossRooms);
   const displaced: Displaced[] = [];
   const bossExits: Displaced[] = [];
   for (const level of dungeon.floors) {

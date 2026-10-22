@@ -2,6 +2,8 @@
  * The chores of a dressed dungeon (docs/Quest-Rooms-Spec.md sections 10 and 11, and the design's "Chores"): which
  * fights are the mini-bosses, which are the must-clear monsters, and the quest template each fight room holds.
  *
+ * - The rooms the plan names as mini-bosses' (`minibossRooms`) are mini-bosses first: a dungeon whose Boss Key the
+ *   rule below leaves in reach (the solver's R4) names the room that keeps it out of reach.
  * - A must-clear room whose door opens straight on the Big Key chest or the Big Chest guards it: a mini-boss. When
  *   the plan lists more mini-bosses than that finds, the must-clear rooms nearest the Big Key chest, then the Big
  *   Chest, are the extra ones; when it lists fewer, the rest stay must-clear monsters.
@@ -96,6 +98,18 @@ const nearestFloorWithBeasts = (board: Board, floor: string, lists: Map<string, 
     .filter((name) => (lists.get(name) ?? []).length > 0)
     .sort((a, b) => Math.abs(floorHeight(a) - floorHeight(floor)) - Math.abs(floorHeight(b) - floorHeight(floor)) || floorHeight(a) - floorHeight(b))[0];
 
+/** The fights of the rooms the plan names as mini-bosses' (dressBoard made each one must-clear), in the plan's order */
+const namedMinibosses = (plan: ClassicPlan, mustClearSlots: Slot[]): Slot[] => {
+  const names = plan.minibossRooms ?? [];
+  const isOverNamed = names.length > plan.minibosses.length;
+  if (isOverNamed) throw new Error(`${plan.name}: ${names.length} mini-boss rooms named for ${plan.minibosses.length} mini-bosses in the plan`);
+  return names.map((name) => {
+    const fight = mustClearSlots.find((slot) => slot.item!.room === name);
+    if (!fight) throw new Error(`${plan.name}: the mini-boss room ${name} has no fight on the board`);
+    return fight;
+  });
+};
+
 /** Deal the plan's chores out to the fights of the board. `graph` is the dungeon as built so far, every door open. */
 export const planChores = (board: Board, plan: ClassicPlan, graph: TempleGraph, sides: Map<string, Sides>): ChorePlan => {
   if (!graph.entrance) throw new Error(`${plan.name}: the dungeon has no entrance to walk from`);
@@ -111,7 +125,8 @@ export const planChores = (board: Board, plan: ClassicPlan, graph: TempleGraph, 
   const boss = allSlots(board).find((slot) => slot.item?.kind === "boss");
   if (boss) setRole(boss, "boss", plan.boss, true);
 
-  // The mini-bosses: the must-clear rooms that open on the Boss Key chest or the Big Chest, then the nearest to them
+  // The mini-bosses: the rooms the plan names, then the must-clear rooms that open on the Boss Key chest or the Big
+  // Chest, then the nearest to them
   const mustClearSlots = allSlots(board).filter((slot) => slot.item?.kind === "mustClearFight");
   const { bigKey, bigChest } = prizeSlots(board);
   const toBigKey = bigKey ? hopsFrom(graph, sidesKey(bigKey.at)) : new Map<string, number>();
@@ -120,9 +135,10 @@ export const planChores = (board: Board, plan: ClassicPlan, graph: TempleGraph, 
     const far = Number.MAX_SAFE_INTEGER;
     return (toBigKey.get(sidesKey(a.at)) ?? far) - (toBigKey.get(sidesKey(b.at)) ?? far) || (toBigChest.get(sidesKey(a.at)) ?? far) - (toBigChest.get(sidesKey(b.at)) ?? far) || nearestFirst(a, b);
   };
-  const guards = mustClearSlots.filter((slot) => opensOn(board, sides, slot, bigKey) || opensOn(board, sides, slot, bigChest)).sort(nearestThePrizes);
   const wanted = plan.minibosses.length;
-  const minibosses = guards.slice(0, wanted);
+  const named = namedMinibosses(plan, mustClearSlots);
+  const guards = mustClearSlots.filter((slot) => !named.includes(slot) && (opensOn(board, sides, slot, bigKey) || opensOn(board, sides, slot, bigChest))).sort(nearestThePrizes);
+  const minibosses = [...named, ...guards].slice(0, wanted);
   const isShortOfGuards = minibosses.length < wanted;
   if (isShortOfGuards) {
     const extras = mustClearSlots.filter((slot) => !minibosses.includes(slot)).sort(nearestThePrizes);

@@ -9,7 +9,7 @@ import { buildTempleGraph, solveTemple, type TempleLayout } from "@/lib/engine/d
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { dressDungeon } from "../../tools/temples/classic/dress";
-import { corridor, crack, crossroads, drop, extras, fall, passage, plan, shifted, tower, twoScreens } from "./classicFixtures";
+import { byway, corridor, crack, crossroads, drop, extras, fall, passage, plan, shifted, tower, twoScreens } from "./classicFixtures";
 
 const DIRS = ["north", "east", "south", "west"] as const;
 
@@ -387,6 +387,49 @@ describe("dressing a classic dungeon", () => {
 
     it("passes the solver", () => {
       expect(solveTemple(asRegistered(temple))).toMatchObject({ solvable: true, reasons: [] });
+    });
+  });
+
+  describe("a Boss Key down a byway the design's mini-boss does not guard", () => {
+    const solved = (made: { temple: TempleLayout }) => solveTemple(asRegistered(made.temple));
+
+    it("leaves the Boss Key unguarded (R4) when the plan names no room: the Statue before the Big Chest is the mini-boss", () => {
+      const made = dressDungeon(byway(), plan());
+      expect(roomsOf(made.temple)("1F", 0, 1)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true } });
+      expect(solved(made).reasons).toEqual(["R4: the master key at 1F (1,3) loot can be reached without passing the mini-boss"]);
+    });
+
+    it("makes the room the plan names the mini-boss, sealing a side fight, and the Statue a must-clear monster", () => {
+      const made = dressDungeon(byway(), plan({ minibossRooms: ["Trench"] }));
+      const at = roomsOf(made.temple);
+      expect(at("1F", 1, 1)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true, difficulty: "hard", quest: { beastId: "beast-under-bed-bogey", difficulty: 5 } } });
+      expect(at("1F", 0, 1)).toMatchObject({ type: "monster", content: { lockOnEnter: true, quest: { beastId: "beast-bed-basilisk" } } });
+      expect(made.report.mustClear).toBe(1);
+      expect(solved(made)).toMatchObject({ solvable: true, reasons: [] });
+    });
+
+    it("fights in a named room the converter read no enemies in, in its first screen", () => {
+      const made = dressDungeon(byway(), plan({ minibossRooms: ["Armory"] }));
+      const at = roomsOf(made.temple);
+      expect(at("1F", 1, 2)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true }, sides: { west: "door", east: "door" } });
+      expect(at("1F", 1, 1)?.content?.lockOnEnter).toBeUndefined();
+      expect(solved(made)).toMatchObject({ solvable: true, reasons: [] });
+    });
+
+    it("fights in the screen of a named room that holds the Big Key, and the Boss Key waits behind the fight", () => {
+      const made = dressDungeon(byway(), plan({ minibossRooms: ["Alcove"] }));
+      const at = roomsOf(made.temple);
+      expect(at("1F", 1, 3)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true } });
+      const chest = made.report.moves.find((move) => move.what === "big-key chest")!;
+      expect(chest.from).toEqual({ floor: "1F", row: 1, col: 3 });
+      expect(at(chest.to.floor, chest.to.row, chest.to.col)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" } });
+      expect(openSides(at(chest.to.floor, chest.to.row, chest.to.col))).toBe(1);
+      expect(solved(made)).toMatchObject({ solvable: true, reasons: [] });
+    });
+
+    it("throws on a named room the dungeon does not have, or on more named rooms than the plan has mini-bosses", () => {
+      expect(() => dressDungeon(byway(), plan({ minibossRooms: ["Nowhere"] }))).toThrow(/Nowhere/);
+      expect(() => dressDungeon(byway(), plan({ minibossRooms: ["Trench", "Armory"] }))).toThrow(/2 mini-boss rooms/);
     });
   });
 });
