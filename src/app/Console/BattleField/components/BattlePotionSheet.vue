@@ -17,7 +17,7 @@
           :data-cy="`potion-${potion.id}`"
           @click="drink(potion)"
         >
-          <i class="item-icon fad" :class="`fa-${potion.faIcon}`" aria-hidden="true"></i>
+          <i class="item-icon fad" :class="`fa-${potion.faIcon}`" :style="tintStyle(potion)" aria-hidden="true"></i>
           <span class="item-body">
             <span class="item-title">
               <span class="item-name">{{ potion.name }}</span>
@@ -49,6 +49,17 @@ const emit = defineEmits<{
   (e: "cancel"): void;
   (e: "drink", id: string): void;
 }>();
+
+/** The flask's colours as the duotone variables, when the card carries a tint. */
+const tintStyle = (potion: PotionCard): Record<string, string> => {
+  const tint = potion.tint;
+  if (!tint) return {};
+  return {
+    "--fa-primary-color": `var(--xp-color-${tint.primary})`,
+    "--fa-secondary-color": `var(--xp-color-${tint.secondary})`,
+    "--fa-secondary-opacity": "1",
+  };
+};
 
 /** Latched by a drink: the page closes the sheet next, so nothing else may fire from it before it is gone. */
 const isBusy = ref(false);

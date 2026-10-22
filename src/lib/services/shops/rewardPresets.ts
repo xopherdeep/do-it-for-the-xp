@@ -174,7 +174,7 @@ export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
     description: "A refreshing red elixir that restores 50 HP.",
     basePrice: 50,
     rarity: Rarity.Common,
-    icon: "flask-round-potion",
+    icon: "flask-potion",
   },
   {
     id: "item-mana-potion",

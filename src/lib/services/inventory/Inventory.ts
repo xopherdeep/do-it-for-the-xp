@@ -8,6 +8,8 @@
  * and the result is sorted by name. Nothing here touches a store or the screen.
  */
 
+import { faIconName } from '@/lib/services/items/faIcons';
+
 export type InventoryKind = 'consumable' | 'key' | 'material' | 'misc';
 
 export const INVENTORY_KINDS: readonly InventoryKind[] = ['consumable', 'key', 'material', 'misc'];
@@ -108,8 +110,8 @@ export const toEntry = (item: unknown): InventoryEntry | null => {
     qty: count(raw.qty ?? raw.quantity),
     kind: kindOf(raw),
   };
-  const faIcon = text(raw.faIcon) ?? text(raw.icon);
-  if (faIcon) entry.faIcon = faIcon.replace(/^fa-/, '');
+  const faIcon = faIconName(text(raw.faIcon) ?? text(raw.icon));
+  if (faIcon) entry.faIcon = faIcon;
   const description = text(raw.description) ?? text(raw.blurb);
   if (description) entry.description = description;
   return entry;

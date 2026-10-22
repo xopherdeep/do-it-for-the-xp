@@ -21,6 +21,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { bagUsage, nextStorageTier, storageTierOf, storageUsage, storedOf } from "@/lib/services/inventory/Storage";
 import { storageOffer } from "@/lib/services/gp/bankTeller";
 import type { InventoryEntry, InventoryKind } from "@/lib/services/inventory/Inventory";
+import { potionTintOf } from "@/lib/services/battle/BattlePotions";
+import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { useCopy } from "@/hooks/useVoice";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
@@ -61,6 +63,7 @@ export default defineComponent({
   name: "my-storage",
   components: {
     XpAppBottomNav,
+    XpIcon,
     XpInventoryModal,
   },
   mixins: [ionic],
@@ -85,6 +88,9 @@ export default defineComponent({
     };
 
     const stored = computed(() => storedOf(hero.value));
+    /** Potions share one duotone flask and are told apart by colour (HP red, MP blue, Elixir gold). */
+    const tintOf = (entry: InventoryEntry) => potionTintOf(entry.name);
+
     const listItems = computed(() => {
       const needle = search.value.trim().toLowerCase();
       return stored.value.filter((entry) => {
@@ -175,6 +181,7 @@ export default defineComponent({
       search,
       isLocked,
       listItems,
+      tintOf,
       metaText,
       sectionLabel,
       emptyText,

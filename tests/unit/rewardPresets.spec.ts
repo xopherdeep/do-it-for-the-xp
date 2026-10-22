@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import { AccessoryType } from "@/lib/databases/AccessoriesDb";
 import { ALL_REWARD_PRESETS, BASIC_CONSUMABLE_PRESETS, REAL_REWARD_PRESETS, presetsNotIn, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
 import { WALLET_TIERS } from "@/lib/services/gp/wallet";
@@ -42,6 +44,23 @@ describe("real-life reward presets", () => {
     // The catalogue's presets are the in-game consumables and the real-life rewards together
     expect(ALL_REWARD_PRESETS).toHaveLength(BASIC_CONSUMABLE_PRESETS.length + REAL_REWARD_PRESETS.length);
     expect(presetsNotIn([])).toHaveLength(ALL_REWARD_PRESETS.length);
+  });
+});
+
+describe("preset icons", () => {
+  // The app ships Font Awesome Pro 5.15.4: a Font Awesome 6 name (flask-round-potion) renders as a blank glyph
+  const FA5_CSS = readFileSync(resolve(__dirname, "../../src/assets/fonts/font-awesome/css/all.css"), "utf8");
+  const hasFa5Icon = (name: string) => new RegExp(`\\.fa-${name}:before`).test(FA5_CSS);
+
+  it("gives every preset a glyph the vendored Font Awesome has", () => {
+    for (const preset of ALL_REWARD_PRESETS) {
+      expect({ id: preset.id, icon: preset.icon, found: hasFa5Icon(preset.icon) }).toEqual({ id: preset.id, icon: preset.icon, found: true });
+    }
+  });
+
+  it("pours the Health Potion into the same duotone flask as the other potions", () => {
+    const health = BASIC_CONSUMABLE_PRESETS.find((preset) => preset.id === "item-health-potion");
+    expect(health?.icon).toBe("flask-potion");
   });
 });
 

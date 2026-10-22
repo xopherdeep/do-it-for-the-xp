@@ -36,6 +36,29 @@ export const POTIONS: Record<string, PotionRule> = {
   'Silver Water': { mp: 10, effect: 'Restores 10 MP' },
 };
 
+/** The duotone flask's colours (`--xp-color-*` names, as XpIcon takes them): glass and liquid. */
+export interface PotionTint {
+  primary: string;
+  secondary: string;
+}
+
+const TINT_HP: PotionTint = { primary: 'red', secondary: 'pink' };
+const TINT_MP: PotionTint = { primary: 'blue', secondary: 'lightBlue' };
+const TINT_FULL: PotionTint = { primary: 'yellow', secondary: 'white' };
+
+/** Every potion is the same duotone flask, told apart by colour: HP red, MP blue, a full restore gold. */
+export const potionTint = (rule: PotionRule): PotionTint => {
+  const isFullRestore = Boolean(rule.full);
+  if (isFullRestore) return TINT_FULL;
+  return rule.hp ? TINT_HP : TINT_MP;
+};
+
+/** The tint of a pack entry by its name, or null when it is not a potion. */
+export const potionTintOf = (name: string): PotionTint | null => {
+  const match = findPotionRule(name);
+  return match ? potionTint(match.rule) : null;
+};
+
 /** Match a potion rule by name, case-insensitively and handling spacing/hyphens. */
 export const findPotionRule = (name: string): { key: string; rule: PotionRule } | null => {
   if (!name) return null;
@@ -57,6 +80,8 @@ export interface PotionCard {
   name: string;
   qty: number;
   faIcon: string;
+  /** The flask's colours; the sheet paints the icon with them. */
+  tint?: PotionTint;
   effect: string;
   reason: string | null;
 }
@@ -102,6 +127,7 @@ export const potionShelf = (userId: string): PotionCard[] =>
         name: entry.name,
         qty: entry.qty,
         faIcon: entry.faIcon ?? DEFAULT_ICON,
+        tint: potionTint(rule),
         effect: rule.effect,
         reason: reasonOf(rule, gainOf(rule, userId)),
       };

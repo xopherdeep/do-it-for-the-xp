@@ -20,7 +20,12 @@
           @click="handleEntryClick(entry)"
         >
           <template #leading>
-            <xp-icon :icon="entry.faIcon || 'box'" class="goods-icon" />
+            <xp-icon
+              :icon="entry.faIcon || 'box'"
+              :primary="tintOf(entry)?.primary"
+              :secondary="tintOf(entry)?.secondary"
+              class="goods-icon"
+            />
           </template>
 
           <template v-if="chipsOf(entry).length" #chips>
@@ -90,7 +95,7 @@ import {
 } from "@/lib/services/inventory/Inventory";
 import { storageTierOf } from "@/lib/services/inventory/Storage";
 import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
-import { drinkPotion, potionShelf, type PotionCard } from "@/lib/services/battle/BattlePotions";
+import { drinkPotion, potionShelf, potionTintOf, type PotionCard } from "@/lib/services/battle/BattlePotions";
 
 type Tab = "all" | InventoryKind;
 
@@ -288,6 +293,8 @@ const potionCards = computed<Map<string, PotionCard>>(() => {
 });
 
 const potionOf = (entry: InventoryItemWithRaw): PotionCard | null => potionCards.value.get(entry.id) ?? null;
+/** Potions share one duotone flask and are told apart by colour (HP red, MP blue, Elixir gold). */
+const tintOf = (entry: InventoryEntry) => potionTintOf(entry.name);
 
 const drinkEntry = (entry: InventoryItemWithRaw, card: PotionCard) => {
   const isRefused = Boolean(card.reason);

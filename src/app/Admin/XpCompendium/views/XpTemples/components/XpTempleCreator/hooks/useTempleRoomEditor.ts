@@ -102,10 +102,10 @@ export const CHEST_TYPES = [
 
 // Consumable items from the system
 export const CONSUMABLE_ITEMS = [
-  { id: 'potion', icon: 'fa-flask-round-potion', label: 'Potion' },
+  { id: 'potion', icon: 'fa-flask-potion', label: 'Potion' },
   { id: 'ether', icon: 'fa-flask-potion', label: 'Ether' },
-  { id: 'elixir', icon: 'fa-flask-vial', label: 'Elixir' },
-  { id: 'antidote', icon: 'fa-droplet', label: 'Antidote' },
+  { id: 'elixir', icon: 'fa-flask', label: 'Elixir' },
+  { id: 'antidote', icon: 'fa-tint', label: 'Antidote' },
   { id: 'remedy', icon: 'fa-star-of-life', label: 'Remedy' }
 ];
 

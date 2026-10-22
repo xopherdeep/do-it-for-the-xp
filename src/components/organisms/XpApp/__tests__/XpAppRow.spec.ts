@@ -186,4 +186,9 @@ describe("appIconClass", () => {
     expect(appIconClass("fas fa-hat-wizard fa-flip")).toBe("fa-hat-wizard fa-flip");
     expect(appIconClass(undefined)).toBe("");
   });
+
+  it("renames a Font Awesome 6 name to the glyph the vendored FA 5 font has", () => {
+    expect(appIconClass("flask-round-potion")).toBe("fa-flask-potion");
+    expect(appIconClass("fad fa-flask-round-potion")).toBe("fa-flask-potion");
+  });
 });

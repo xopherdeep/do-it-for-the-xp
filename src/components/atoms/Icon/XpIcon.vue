@@ -1,13 +1,14 @@
 <template>
   <i 
     class="fad" 
-    :class="[`fa-${icon}`, sizeClass]"
+    :class="[`fa-${iconName}`, sizeClass]"
     :style="customStyle"
   ></i>
 </template>
 
 <script lang="ts">
 import { computed, defineComponent } from 'vue';
+import { faIconName } from '@/lib/services/items/faIcons';
 
 export default defineComponent({
   name: 'xp-icon',
@@ -47,9 +48,12 @@ export default defineComponent({
     });
 
     const sizeClass = computed(() => `fa-${props.size}`);
+    /** The glyph the vendored Font Awesome 5 has for this name */
+    const iconName = computed(() => faIconName(props.icon));
 
     return {
       customStyle,
+      iconName,
       sizeClass
     };
   }

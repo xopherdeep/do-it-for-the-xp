@@ -153,7 +153,7 @@ const CONSUMABLE_ITEMS: ItemMetadata[] = [
     id: 'health-potion',
     name: 'Health Potion',
     description: 'A refreshing red elixir that restores 50 HP.',
-    icon: 'flask-round-potion',
+    icon: 'flask-potion',
     category: 'consumable',
     unlockEvent: 'purchase',
     gpCost: 50,

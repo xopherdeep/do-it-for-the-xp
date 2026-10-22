@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { useUserStore } from "@/lib/store/stores/user";
 import { SOUND_HEAL, SOUND_NO } from "@/lib/services/battle/BattleEffects";
-import { drinkPotion, potionShelf } from "@/lib/services/battle/BattlePotions";
+import { POTIONS, drinkPotion, potionShelf, potionTint } from "@/lib/services/battle/BattlePotions";
 
 /**
  * The potions in the hero's pack: the shelf (only potions, merged, with the reason one would do nothing),
@@ -73,11 +73,24 @@ describe("BattlePotions", () => {
         name: "Health Potion",
         qty: 1,
         faIcon: "flask-potion",
+        tint: { primary: "red", secondary: "pink" },
         effect: "Restores 50 HP",
         reason: null,
       });
       expect(mana.effect).toBe("Restores 30 MP");
       expect(mana.faIcon).toBe("bottle-water");
+    });
+
+    it("tints the flask by what it restores: HP red, MP blue, everything gold", () => {
+      expect(potionTint(POTIONS["Health Potion"])).toEqual({ primary: "red", secondary: "pink" });
+      expect(potionTint(POTIONS.Potion)).toEqual({ primary: "red", secondary: "pink" });
+      expect(potionTint(POTIONS.Ether)).toEqual({ primary: "blue", secondary: "lightBlue" });
+      expect(potionTint(POTIONS["Mana Potion"])).toEqual({ primary: "blue", secondary: "lightBlue" });
+      expect(potionTint(POTIONS.Elixir)).toEqual({ primary: "yellow", secondary: "white" });
+      addHero([{ name: "Ether" }, { name: "Elixir" }]);
+      const [elixir, ether] = potionShelf(HERO_ID);
+      expect(ether.tint).toEqual({ primary: "blue", secondary: "lightBlue" });
+      expect(elixir.tint).toEqual({ primary: "yellow", secondary: "white" });
     });
 
     it("lists the Potion and Ether rows exactly as a temple chest writes them", () => {

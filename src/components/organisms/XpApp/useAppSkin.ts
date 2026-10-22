@@ -1,6 +1,7 @@
 import { computed, type ComputedRef } from "vue";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
+import { faIconName } from "@/lib/services/items/faIcons";
 
 /**
  * The phone apps kit (XpApp*). One kit, two skins that follow the Retro / Modern toggle of the profile modal
@@ -62,12 +63,15 @@ const FA_STYLE_CLASSES = new Set([
   "fa-solid", "fa-duotone", "fa-regular", "fa-light", "fa-thin", "fa-brands",
 ]);
 
-/** `box`, `fa-box` or a full class list (`fad fa-box`) become the icon classes that follow `fad` (the kit is duotone). */
+/**
+ * `box`, `fa-box` or a full class list (`fad fa-box`) become the icon classes that follow `fad` (the kit is duotone).
+ * A Font Awesome 6 name is drawn with its FA 5 glyph (`faIconName`).
+ */
 export function appIconClass(icon?: string): string {
   return (icon ?? "")
     .split(/\s+/)
     .filter((token) => token && !FA_STYLE_CLASSES.has(token))
-    .map((token) => (token.startsWith("fa-") ? token : `fa-${token}`))
+    .map((token) => `fa-${faIconName(token)}`)
     .join(" ");
 }
 

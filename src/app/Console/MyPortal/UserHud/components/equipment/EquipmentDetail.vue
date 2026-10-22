@@ -126,8 +126,9 @@ const plainDesc = computed(() => (props.item?.desc ?? "").replace(/^\d+\s*MP\s*\
   }
 }
 
+// Not found yet: greyscale, matching the grid tile
 .is-locked .detail-icon i {
-  filter: brightness(0) opacity(0.55);
+  filter: grayscale(1) opacity(0.5);
 }
 
 .detail-name {

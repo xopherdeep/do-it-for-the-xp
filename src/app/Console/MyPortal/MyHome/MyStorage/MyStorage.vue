@@ -28,9 +28,15 @@
           :key="entry.id"
           :title="entry.name"
           :subtitle="subtitleOf(entry)"
-          :icon="entry.faIcon || 'box'"
           :chevron="false"
         >
+          <template #leading>
+            <xp-icon
+              :icon="entry.faIcon || 'box'"
+              :primary="tintOf(entry)?.primary"
+              :secondary="tintOf(entry)?.secondary"
+            />
+          </template>
           <template #chips>
             <xp-app-chip
               kind="qty"

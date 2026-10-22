@@ -219,13 +219,13 @@ export default defineComponent({
     border-color: var(--ion-color-success);
   }
 
-  // Not found yet: a dark silhouette, so the hero can see there is more to earn
+  // Not found yet: the item in greyscale, so the hero can see what there is to earn (owner 2026-10-21)
   &.is-locked {
     border-style: dashed;
     border-color: rgba(255, 255, 255, 0.1);
 
     .item-inner i {
-      filter: brightness(0) opacity(0.55);
+      filter: grayscale(1) opacity(0.5);
     }
   }
 

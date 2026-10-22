@@ -35,6 +35,11 @@ describe("inventoryOf", () => {
     ]);
   });
 
+  it("reads a bag item saved with a Font Awesome 6 name by its FA 5 glyph", () => {
+    expect(toEntry({ name: "Health Potion", faIcon: "flask-round-potion" })?.faIcon).toBe("flask-potion");
+    expect(toEntry({ name: "Health Potion", icon: "fa-flask-round-potion" })?.faIcon).toBe("flask-potion");
+  });
+
   it("defaults a missing, zero or broken quantity to one", () => {
     expect(toEntry({ name: "Herb", qty: 0 })?.qty).toBe(1);
     expect(toEntry({ name: "Herb", qty: -4 })?.qty).toBe(1);
