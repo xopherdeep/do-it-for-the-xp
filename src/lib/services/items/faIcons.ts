@@ -11,6 +11,16 @@ export const FA_ICON_ALIASES: Readonly<Record<string, string>> = {
   "flask-round-potion": "flask-potion",
   "flask-vial": "flask",
   droplet: "tint",
+  // Class icons that older profiles may still carry (JOB_CLASS_OPTIONS).
+  gun: "raygun",
+  astrology: "moon-stars",
+  samurai: "sword",
+  "dance-ballroom": "user-music",
+  leather: "boot",
+  pickaxe: "digging",
+  // Favourite foods (FOOD_OPTIONS).
+  banana: "lemon",
+  smoothie: "glass-citrus",
 };
 
 /** A duotone icon's two colours, as `--xp-color-*` names (`red`, `lightBlue`): the glass and the liquid of a flask. */

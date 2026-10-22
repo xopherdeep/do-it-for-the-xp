@@ -1,7 +1,7 @@
 export const FOOD_OPTIONS = [
   { value: "Apple", icon: "fa-apple-alt" },
   { value: "Bacon", icon: "fa-bacon" },
-  // { value: "Banana", icon: "fa-banana" },
+  // { value: "Banana", icon: "fa-lemon" },
   // { value: "Beer", icon: "fa-beer" },
   { value: "Bread", icon: "fa-bread-slice" },
   { value: "Burger", icon: "fa-hamburger" },
@@ -33,7 +33,7 @@ export const FOOD_OPTIONS = [
   { value: "Salad", icon: "fa-salad" },
   { value: "Sandwich", icon: "fa-sandwich" },
   { value: "Sausage", icon: "fa-sausage" },
-  { value: "Smoothie", icon: "fa-smoothie" },
+  { value: "Smoothie", icon: "fa-glass-citrus" },
   // { value: "Soda", icon: "fa-glass-cheers" },
   { value: "Steak", icon: "fa-meat" },
   { value: "Taco", icon: "fa-taco" },
