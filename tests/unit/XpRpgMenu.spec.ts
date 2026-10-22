@@ -44,6 +44,16 @@ describe("XpRpgMenu", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  it("columns=\"auto\" fits the column count to the label font; the default stays two equal columns", () => {
+    const grid = (w: ReturnType<typeof mount>) => (w.find(".menu-grid").element as HTMLElement).style.gridTemplateColumns;
+    const byDefault = mount(XpRpgMenu, { props: { actions: [action("attack")] } });
+    expect(grid(byDefault)).toBe("repeat(2, minmax(0, 1fr))");
+    const three = mount(XpRpgMenu, { props: { actions: [action("attack")], columns: 3 } });
+    expect(grid(three)).toBe("repeat(3, minmax(0, 1fr))");
+    const auto = mount(XpRpgMenu, { props: { actions: [action("attack")], columns: "auto" } });
+    expect(grid(auto)).toBe("repeat(auto-fit, minmax(max(120px, 13ch), 1fr))");
+  });
+
   it("a fullWidth action spans both columns", () => {
     const w = mount(XpRpgMenu, { props: { actions: [action("attack", { fullWidth: true }), action("defend")] } });
     expect((w.find("#attack").element.parentElement as HTMLElement).style.gridColumn).toBe("1 / -1");

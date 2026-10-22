@@ -14,7 +14,7 @@
     </div>
 
     <!-- Grid of Actions -->
-    <div class="menu-grid" :style="{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }">
+    <div class="menu-grid" :style="{ gridTemplateColumns }">
       <div v-for="action in actions" :key="action.id || action.label" class="menu-item-col"
         :style="{ gridColumn: action.fullWidth ? '1 / -1' : 'auto' }">
         <button class="menu-item" @click="handleAction(action)" :id="action.id" :disabled="action.disabled"
@@ -36,7 +36,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, PropType, ref } from 'vue';
+import { computed, defineComponent, onBeforeUnmount, PropType, ref } from 'vue';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 export interface RpgMenuAction {
@@ -59,6 +59,15 @@ export interface RpgMenuAction {
 /** How long a tapped row keeps its cursor and highlight (touch has no hover) */
 const CURRENT_MS = 150;
 
+/**
+ * `columns="auto"`: as many columns as the label font allows. A track is never narrower than 13 characters of the
+ * grid's own font (the `ch` unit), so a wide pixel font (Zelda's Tiny5, about 13 px a character) drops to one column
+ * instead of splitting a word, while a narrow one (Apple Kid, 7.5 px) keeps two. The 120px floor keeps a narrow font
+ * to two columns (three would need 3 x 120 + 16 px) and lets Earthbound keep two at 375 px, where a cell is 135 px.
+ * Measured at 375 px: Earthbound 2 columns, Zelda 1.
+ */
+const AUTO_COLUMNS = 'repeat(auto-fit, minmax(max(120px, 13ch), 1fr))';
+
 export default defineComponent({
   name: 'XpRpgMenu',
   props: {
@@ -74,8 +83,9 @@ export default defineComponent({
       type: Array as PropType<RpgMenuAction[]>,
       required: true
     },
+    /** A column count, or "auto" to fit one or two columns to the label font */
     columns: {
-      type: Number,
+      type: [Number, String] as PropType<number | 'auto'>,
       default: 2
     },
     borderless: {
@@ -114,8 +124,13 @@ export default defineComponent({
 
     onBeforeUnmount(clearCurrentTimer);
 
+    const gridTemplateColumns = computed(() =>
+      props.columns === 'auto' ? AUTO_COLUMNS : `repeat(${props.columns}, minmax(0, 1fr))`
+    );
+
     return {
       currentId,
+      gridTemplateColumns,
       rowKey,
       handleAction,
       sanitizeHtml,
@@ -179,6 +194,10 @@ export default defineComponent({
 
   .menu-grid {
     display: grid;
+    // The rows' font and size, so a `ch` track (columns="auto") measures the real label font
+    font-family: var(--gs-font);
+    font-size: 1.5rem;
+    font-size-adjust: var(--gs-font-adjust, none);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 8px 12px 8px;
     gap: 0px 8px;
