@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   pickAuth, parseEnvFile, statusQuery, planFrontPage, linksToCheck, SCREENSHOTS, WpError, isMissingTemplate, frontPageKept,
+  SITE_LINKS, planMenu,
 } from "../../tools/site/publishPlan";
+import { checkMarkup, collectHrefs, renderMarkup } from "../../tools/site/markup";
 
 describe("parseEnvFile", () => {
   it("reads keys, ignores comments, keeps spaces, strips quotes", () => {
@@ -53,5 +57,77 @@ describe("frontPageKept", () => {
     expect(frontPageKept({ show_on_front: "page", page_on_front: 5 }, 5)).toBe(true);
     expect(frontPageKept({ show_on_front: "posts", page_on_front: 5 }, 5)).toBe(false);
     expect(frontPageKept({ show_on_front: "page", page_on_front: 6 }, 5)).toBe(false);
+  });
+});
+
+describe("SITE_LINKS", () => {
+  it("lists the four site links in order", () => {
+    expect(SITE_LINKS).toEqual([
+      { label: "Play now", href: "https://app.doit.forthexp.com" },
+      { label: "Blog", href: "/blog/" },
+      { label: "Boards", href: "/cafeteria-board/feature-requests/" },
+      { label: "GitHub", href: "https://github.com/xopherdeep/do-it-for-the-xp" },
+    ]);
+  });
+});
+
+describe("planMenu", () => {
+  const [play, blog, boards, github] = SITE_LINKS;
+  it("creates all four links, in order, when the menu is empty", () => {
+    expect(planMenu([], SITE_LINKS)).toEqual({
+      update: [],
+      create: [{ link: play, order: 1 }, { link: blog, order: 2 }, { link: boards, order: 3 }, { link: github, order: 4 }],
+      draft: [],
+    });
+  });
+  it("rewrites four existing items in menu_order order", () => {
+    const existing = [{ id: 847, menu_order: 4 }, { id: 835, menu_order: 1 }, { id: 843, menu_order: 3 }, { id: 839, menu_order: 2 }];
+    expect(planMenu(existing, SITE_LINKS)).toEqual({
+      update: [
+        { id: 835, link: play, order: 1 }, { id: 839, link: blog, order: 2 },
+        { id: 843, link: boards, order: 3 }, { id: 847, link: github, order: 4 },
+      ],
+      create: [],
+      draft: [],
+    });
+  });
+  it("updates the first four of six items and drafts the other two, never deleting", () => {
+    const existing = [1, 2, 3, 4, 5, 6].map((n) => ({ id: 100 + n, menu_order: n }));
+    const plan = planMenu(existing, SITE_LINKS);
+    expect(plan.update.map((u) => u.id)).toEqual([101, 102, 103, 104]);
+    expect(plan.create).toEqual([]);
+    expect(plan.draft).toEqual([105, 106]);
+  });
+  it("creates the missing links when fewer items exist than links", () => {
+    const plan = planMenu([{ id: 7, menu_order: 1 }, { id: 8, menu_order: 2 }], SITE_LINKS);
+    expect(plan.update).toEqual([{ id: 7, link: play, order: 1 }, { id: 8, link: blog, order: 2 }]);
+    expect(plan.create).toEqual([{ link: boards, order: 3 }, { link: github, order: 4 }]);
+    expect(plan.draft).toEqual([]);
+  });
+  it("breaks menu_order ties by id and leaves its input alone", () => {
+    const existing = [{ id: 9, menu_order: 0 }, { id: 3, menu_order: 0 }];
+    const plan = planMenu(existing, SITE_LINKS.slice(0, 2));
+    expect(plan.update.map((u) => u.id)).toEqual([3, 9]);
+    expect(existing.map((e) => e.id)).toEqual([9, 3]);
+  });
+});
+
+describe("footer-part.html", () => {
+  const raw = readFileSync(join(__dirname, "../../tools/site/footer-part.html"), "utf8");
+  const html = renderMarkup(raw, { year: "2026" });
+  it("renders clean markup with only the year placeholder", () => {
+    expect(checkMarkup(html)).toEqual([]);
+    expect(() => renderMarkup(raw, {})).toThrow("Unknown placeholder: {{year}}");
+  });
+  it("carries the brand, the four site links and the copyright, and nothing of the theme's terminal block", () => {
+    const text = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    expect(text).toContain("&copy; 2026 Do It For The XP.");
+    expect(text).not.toContain("!");
+    expect(html).not.toMatch(/chemx|mh-terminal-card|mh-cli|About|Services|Portfolio|Team/);
+    const hrefs = collectHrefs(html);
+    expect(hrefs).toEqual(["/", ...SITE_LINKS.map((link) => link.href)]);
+    for (const link of SITE_LINKS) {
+      expect(html).toMatch(new RegExp(`<a href="${link.href.replace(/[./]/g, "\\$&")}"[^>]*>${link.label}</a>`));
+    }
   });
 });

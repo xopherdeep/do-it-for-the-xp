@@ -1,18 +1,20 @@
 // Publishes the Do It For The XP front page to a WordPress site over the REST API.
-// node tools/site/publish-doit.ts --site <url> [--dry-run] [--rollback] [--env-file <path>]
+// node tools/site/publish-doit.ts --site <url> [--dry-run] [--rollback] [--menu] [--env-file <path>]
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkMarkup, collectHrefs, findPlaceholders, renderMarkup } from "./markup.ts";
 import {
-  frontPageKept, isMissingTemplate, linksToCheck, parseEnvFile, pickAuth, planFrontPage, SCREENSHOTS, statusQuery, WpError,
+  frontPageKept, isMissingTemplate, linksToCheck, parseEnvFile, pickAuth, planFrontPage, planMenu, SCREENSHOTS, SITE_LINKS,
+  statusQuery, WpError,
 } from "./publishPlan.ts";
-import type { Auth } from "./publishPlan.ts";
+import type { Auth, MenuPlan, SiteLink } from "./publishPlan.ts";
 
 const SITE_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SITE_DIR, "../..");
 const PAGE_FILE = join(SITE_DIR, "doit-front-page.html");
 const TEMPLATE_FILE = join(SITE_DIR, "front-page-template.html");
+const FOOTER_FILE = join(SITE_DIR, "footer-part.html");
 const REPORT_FILE = join(SITE_DIR, ".doit-publish-report.json");
 const DEFAULT_ENV_FILE = resolve(REPO_ROOT, "../Xophz-COMPASS/.env.local");
 const APP_URL = "https://app.doit.forthexp.com";
@@ -23,8 +25,13 @@ const TEMPLATE_THEME = "xophz-magic-hat";
 const TEMPLATE_SLUG = "front-page";
 const TEMPLATE_TITLE = "Front Page";
 const TEMPLATE_ROUTE = `/wp/v2/templates/${TEMPLATE_THEME}//${TEMPLATE_SLUG}`;
+const FOOTER_SLUG = "footer";
+const FOOTER_TITLE = "Footer";
+const FOOTER_ROUTE = `/wp/v2/template-parts/${TEMPLATE_THEME}//${FOOTER_SLUG}`;
+const MENU_NAME = "Primary Menu";
+const NO_MENU_LINE = "No Primary Menu yet: activate Magic Hat, load the site once, then run --menu";
 const LINK_TIMEOUT_MS = 15000;
-const USAGE = "Usage: node tools/site/publish-doit.ts --site <url> [--dry-run] [--rollback] [--env-file <path>]";
+const USAGE = "Usage: node tools/site/publish-doit.ts --site <url> [--dry-run] [--rollback] [--menu] [--env-file <path>]";
 
 type SiteAuth = Auth & { site: string };
 type Shot = (typeof SCREENSHOTS)[number];
@@ -33,7 +40,8 @@ type NamedMedia = Media & { name: string };
 type MediaStep = NamedMedia & { action: "reused" | "uploaded" | "would upload" };
 type Settings = { show_on_front: string; page_on_front: number };
 type LinkResult = { href: string; status: number };
-type Options = { site: string; dryRun: boolean; rollback: boolean; envFile: string };
+type MenuItem = { id: number; menu_order: number; title: { rendered: string }; url: string };
+type Options = { site: string; dryRun: boolean; rollback: boolean; menu: boolean; envFile: string };
 type Report = {
   site: string;
   at: string;
@@ -41,6 +49,7 @@ type Report = {
   previousFrontPage: number | null;
   page: { id: number; url: string };
   template: { id: string };
+  footer: { id: string };
   media: Record<string, Media>;
   links: LinkResult[];
 };
@@ -65,6 +74,7 @@ function readOptions(args: string[]): Options {
     site: "",
     dryRun: false,
     rollback: false,
+    menu: false,
     envFile: process.env.DOIT_WP_ENV_FILE || DEFAULT_ENV_FILE,
   };
   for (let i = 0; i < args.length; i++) {
@@ -83,6 +93,9 @@ function readOptions(args: string[]): Options {
       case "--rollback":
         options.rollback = true;
         break;
+      case "--menu":
+        options.menu = true;
+        break;
       default:
         throw new Error(`Unknown option ${args[i]}\n${USAGE}`);
     }
@@ -91,11 +104,19 @@ function readOptions(args: string[]): Options {
   if (!siteIsUrl) {
     throw new Error(`--site <url> is required, for example https://doit.forthexp.com\n${USAGE}`);
   }
+  checkFlagCombination(options);
+  return options;
+}
+
+function checkFlagCombination(options: Options): void {
   const asksBoth = options.dryRun && options.rollback;
   if (asksBoth) {
     throw new Error("--dry-run and --rollback cannot be used together");
   }
-  return options;
+  const asksMenuRollback = options.menu && options.rollback;
+  if (asksMenuRollback) {
+    throw new Error("--menu and --rollback cannot be used together");
+  }
 }
 
 function checkShotFiles(): void {
@@ -240,6 +261,12 @@ function renderPage(media: NamedMedia[]): string {
   return html;
 }
 
+function renderFooter(): string {
+  const html = renderMarkup(readFileSync(FOOTER_FILE, "utf8"), { year: String(new Date().getFullYear()) });
+  assertCleanMarkup(html);
+  return html;
+}
+
 // ---- writes ----
 
 async function upsertPage(auth: SiteAuth, slug: string, title: string, html: string): Promise<{ id: number; action: "created" | "updated" }> {
@@ -272,6 +299,22 @@ async function upsertTemplate(auth: SiteAuth): Promise<{ id: string; route: "id"
   return { id: created.id, route: "collection" };
 }
 
+// The footer override takes the same two routes as the template. Deleting it in the Site Editor restores the theme's footer.
+async function upsertTemplatePart(auth: SiteAuth): Promise<{ id: string; route: "id" | "collection" }> {
+  const fields = { content: renderFooter(), title: FOOTER_TITLE, status: "publish", area: "footer" };
+  try {
+    const written = await rest<{ id: string }>(auth, "POST", FOOTER_ROUTE, fields);
+    return { id: written.id, route: "id" };
+  } catch (error) {
+    const themeNotActive = isMissingTemplate(error);
+    if (!themeNotActive) {
+      throw error;
+    }
+  }
+  const created = await rest<{ id: string }>(auth, "POST", "/wp/v2/template-parts", { slug: FOOTER_SLUG, theme: TEMPLATE_THEME, ...fields });
+  return { id: created.id, route: "collection" };
+}
+
 async function writeSettings(auth: SiteAuth, homeId: number): Promise<void> {
   const kept = await rest<Settings>(auth, "POST", "/wp/v2/settings", {
     show_on_front: "page",
@@ -293,6 +336,84 @@ async function draftPrevious(auth: SiteAuth, previousId: number, homeId: number)
   }
   await rest(auth, "POST", `/wp/v2/pages/${toDraft}`, { status: "draft" });
   return toDraft;
+}
+
+// ---- the header menu ----
+
+// The theme creates the classic menu "Primary Menu" on init once it has been active, so a site that never ran Magic Hat has none.
+async function findPrimaryMenu(auth: SiteAuth): Promise<number | null> {
+  const found = await rest<Array<{ id: number; name: string }>>(
+    auth, "GET", `/wp/v2/menus?search=${encodeURIComponent(MENU_NAME)}&per_page=100`);
+  const exact = found.find((menu) => menu.name === MENU_NAME);
+  return exact ? exact.id : null;
+}
+
+function listMenuItems(auth: SiteAuth, menuId: number, statuses: string): Promise<MenuItem[]> {
+  return rest<MenuItem[]>(
+    auth, "GET", `/wp/v2/menu-items?menus=${menuId}&per_page=50&status=${statuses}&orderby=menu_order&order=asc`);
+}
+
+function menuItemFields(link: SiteLink, order: number) {
+  return { title: link.label, url: link.href, type: "custom", object: "custom", status: "publish", menu_order: order };
+}
+
+// Items are updated in place or drafted, never deleted.
+async function applyMenuPlan(auth: SiteAuth, menuId: number, plan: MenuPlan): Promise<void> {
+  for (const item of plan.update) {
+    await rest(auth, "POST", `/wp/v2/menu-items/${item.id}`, menuItemFields(item.link, item.order));
+  }
+  for (const item of plan.create) {
+    await rest(auth, "POST", "/wp/v2/menu-items", { menus: menuId, ...menuItemFields(item.link, item.order) });
+  }
+  for (const id of plan.draft) {
+    await rest(auth, "POST", `/wp/v2/menu-items/${id}`, { status: "draft" });
+  }
+}
+
+function printMenuPlan(plan: MenuPlan): void {
+  for (const item of plan.update) {
+    row("menu", `would update item ${item.id} to ${item.order}. ${item.link.label} (${item.link.href})`);
+  }
+  for (const item of plan.create) {
+    row("menu", `would create ${item.order}. ${item.link.label} (${item.link.href})`);
+  }
+  for (const id of plan.draft) {
+    row("menu", `would set item ${id} to draft`);
+  }
+}
+
+function printMenuLinks(items: MenuItem[]): void {
+  items.forEach((item, i) => row("menu", `${i + 1}. ${item.title.rendered}  ${item.url}`));
+}
+
+// Returns false when the site has no Primary Menu yet.
+async function syncMenu(auth: SiteAuth, dryRun: boolean): Promise<boolean> {
+  const menuId = await findPrimaryMenu(auth);
+  const hasNoMenu = menuId === null;
+  if (hasNoMenu) {
+    row("menu", NO_MENU_LINE);
+    return false;
+  }
+  const plan = planMenu(await listMenuItems(auth, menuId, "publish,draft"), SITE_LINKS);
+  if (dryRun) {
+    printMenuPlan(plan);
+    return true;
+  }
+  row("menu", `${MENU_NAME} (id ${menuId}): ${plan.update.length} to update, ${plan.create.length} to create, ${plan.draft.length} to draft`);
+  await applyMenuPlan(auth, menuId, plan);
+  printMenuLinks(await listMenuItems(auth, menuId, "publish"));
+  return true;
+}
+
+async function runMenu(auth: SiteAuth, dryRun: boolean): Promise<void> {
+  await checkAuth(auth);
+  const found = await syncMenu(auth, dryRun);
+  if (!found) {
+    process.exitCode = 2;
+  }
+  if (dryRun) {
+    say("Dry run: nothing was written.");
+  }
 }
 
 // ---- links ----
@@ -353,20 +474,23 @@ function printPlan(site: string, steps: MediaStep[], html: string, settings: Set
   }
   row("page", `would create or update "${HOME_SLUG}" (publish, comments closed), ${html.length} characters of markup`);
   row("template", `would write ${TEMPLATE_THEME}//${TEMPLATE_SLUG} (through the collection route when the theme is not active yet)`);
+  row("footer", `would write the ${TEMPLATE_THEME}//${FOOTER_SLUG} template part (same two routes)`);
   row("settings", `would set show_on_front=page, page_on_front=<home id>, title, description (now ${settings.show_on_front} / ${settings.page_on_front})`);
   const hasPrevious = settings.page_on_front > 0;
   if (hasPrevious) {
     row("previous", `would draft page ${settings.page_on_front} unless it is the home page`);
   }
   row("links", `would check ${linksToCheck(collectHrefs(html), site).length + 1} links after publishing`);
-  say("Dry run: nothing was written.");
 }
 
-function printSummary(report: Report, steps: MediaStep[], page: string, templateRoute: string, drafted: number | null): void {
+function printSummary(
+  report: Report, steps: MediaStep[], page: string, routes: { template: string; footer: string }, drafted: number | null,
+): void {
   const counts = (action: string) => steps.filter((step) => step.action === action).length;
   row("media", `${counts("uploaded")} uploaded, ${counts("reused")} reused`);
   row("page", `${page} (id ${report.page.id}) ${report.page.url}`);
-  row("template", `written through the ${templateRoute} route (${report.template.id})`);
+  row("template", `written through the ${routes.template} route (${report.template.id})`);
+  row("footer", `written through the ${routes.footer} route (${report.footer.id}); --rollback leaves it, deleting the override restores the theme's footer`);
   row("settings", `front page is now page ${report.page.id} (was ${report.previousShowOnFront} / ${report.previousFrontPage ?? 0})`);
   row("previous", drafted === null ? "left as it was" : `page ${drafted} set to draft`);
   const broken = report.links.filter((link) => link.status !== 200);
@@ -380,16 +504,20 @@ function printSummary(report: Report, steps: MediaStep[], page: string, template
 async function publish(auth: SiteAuth, dryRun: boolean): Promise<void> {
   checkShotFiles();
   renderPage(SCREENSHOTS.map((shot) => ({ name: shot.name, ...standInMedia(auth.site, shot) })));
+  renderFooter();
   await checkAuth(auth);
   const steps = await ensureAllMedia(auth, dryRun);
   const html = renderPage(steps);
   const settings = await rest<Settings>(auth, "GET", "/wp/v2/settings");
   if (dryRun) {
     printPlan(auth.site, steps, html, settings);
+    await syncMenu(auth, true);
+    say("Dry run: nothing was written.");
     return;
   }
   const page = await upsertPage(auth, HOME_SLUG, SITE_TITLE, html);
   const template = await upsertTemplate(auth);
+  const footer = await upsertTemplatePart(auth);
   const remembered = rememberPrevious(settings, page.id, readReport(), auth.site);
   const report: Report = {
     site: auth.site,
@@ -397,6 +525,7 @@ async function publish(auth: SiteAuth, dryRun: boolean): Promise<void> {
     ...remembered,
     page: { id: page.id, url: `${auth.site}/` },
     template: { id: template.id },
+    footer: { id: footer.id },
     media: Object.fromEntries(steps.map((step) => [step.name, { id: step.id, url: step.url }])),
     links: [],
   };
@@ -406,7 +535,8 @@ async function publish(auth: SiteAuth, dryRun: boolean): Promise<void> {
   const drafted = await draftPrevious(auth, remembered.previousFrontPage ?? 0, page.id);
   report.links = await checkLinks(html, auth.site, report.page.url);
   saveReport(report);
-  printSummary(report, steps, page.action, template.route, drafted);
+  printSummary(report, steps, page.action, { template: template.route, footer: footer.route }, drafted);
+  await syncMenu(auth, false);
   const anyLinkBroken = report.links.some((link) => link.status !== 200);
   if (anyLinkBroken) {
     process.exitCode = 1;
@@ -432,7 +562,8 @@ async function rollback(auth: SiteAuth): Promise<void> {
   }
   await rest(auth, "POST", "/wp/v2/settings", { show_on_front: report.previousShowOnFront, page_on_front: previous ?? 0 });
   row("settings", `show_on_front=${report.previousShowOnFront}, page_on_front=${previous ?? 0}`);
-  say("The theme, the media and the home page were not touched. Switch the theme back in Appearance.");
+  say("The theme, the media, the home page, the footer override and the menu were not touched. Switch the theme back in Appearance;");
+  say("deleting the footer override in the Site Editor restores the theme's footer.");
 }
 
 export async function main(): Promise<void> {
@@ -441,8 +572,11 @@ export async function main(): Promise<void> {
     const credentials = pickAuth(options.site, parseEnvFile(readFileSync(options.envFile, "utf8")));
     const auth: SiteAuth = { ...credentials, site: options.site };
     const shouldRollback = options.rollback;
+    const menuOnly = options.menu;
     if (shouldRollback) {
       await rollback(auth);
+    } else if (menuOnly) {
+      await runMenu(auth, options.dryRun);
     } else {
       await publish(auth, options.dryRun);
     }

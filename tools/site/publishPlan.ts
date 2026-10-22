@@ -114,3 +114,36 @@ export const SCREENSHOTS: Array<{ name: string; file: string; alt: string }> = [
   shot("small-key", "A small key found in a temple"),
   shot("my-home", "My Home"),
 ];
+
+export type SiteLink = { label: string; href: string };
+
+// The four links of the site chrome: the footer part shows them and the header's Primary Menu is set to them.
+export const SITE_LINKS: SiteLink[] = [
+  { label: "Play now", href: "https://app.doit.forthexp.com" },
+  { label: "Blog", href: "/blog/" },
+  { label: "Boards", href: "/cafeteria-board/feature-requests/" },
+  { label: "GitHub", href: "https://github.com/xopherdeep/do-it-for-the-xp" },
+];
+
+export type MenuPlan = {
+  update: Array<{ id: number; link: SiteLink; order: number }>;
+  create: Array<{ link: SiteLink; order: number }>;
+  draft: number[];
+};
+
+function byMenuOrder(a: { id: number; menu_order: number }, b: { id: number; menu_order: number }): number {
+  const orderGap = a.menu_order - b.menu_order;
+  const isTied = orderGap === 0;
+  return isTied ? a.id - b.id : orderGap;
+}
+
+// The i-th existing item (by menu_order, then id) takes the i-th link; missing items are created, extra ones are
+// drafted and never deleted.
+export function planMenu(existing: Array<{ id: number; menu_order: number }>, links: SiteLink[]): MenuPlan {
+  const sorted = [...existing].sort(byMenuOrder);
+  return {
+    update: sorted.slice(0, links.length).map((item, i) => ({ id: item.id, link: links[i], order: i + 1 })),
+    create: links.slice(sorted.length).map((link, i) => ({ link, order: sorted.length + i + 1 })),
+    draft: sorted.slice(links.length).map((item) => item.id),
+  };
+}

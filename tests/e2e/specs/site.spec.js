@@ -15,7 +15,17 @@ describe("doit front page", () => {
       cy.get("iframe.mh-phone-iframe").first().should("have.attr", "src", "https://app.doit.forthexp.com");
       cy.get("img").each(($img) => expect($img.attr("alt"), $img.attr("src")).to.not.be.empty);
       cy.document().then((d) => expect(d.documentElement.scrollWidth).to.be.at.most(d.documentElement.clientWidth));
+      // The site chrome: the footer override and the fixed Primary Menu, not the theme's terminal block and placeholder links.
+      cy.get("footer").should("contain", "GitHub").and("not.contain", "chemx");
+      cy.get("#mw-header").should("not.contain", "Portfolio");
       cy.screenshot(`site/front-page-${name}`, { capture: "fullPage" });
+      const isDesktop = name === "desktop";
+      if (isDesktop) {
+        cy.get("nav.mh-desktop-nav").should("contain", "Boards");
+      } else {
+        cy.get("#mh-hamburger").click();
+        cy.get("nav.mh-mobile-nav-body").should("be.visible").and("contain", "Boards");
+      }
     });
   });
   it("stays legible in the dark scheme", () => {
