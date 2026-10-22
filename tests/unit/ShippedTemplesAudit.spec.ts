@@ -25,8 +25,8 @@ import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
-import { generateShipped, renderShippedModule } from "../../tools/temples/regenerate";
-import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic, loadDungeon, renderClassicModule } from "../../tools/temples/classic/dress";
+import { generateShipped, renderShippedModule, SHIPPED_IDS } from "../../tools/temples/regenerate";
+import { CLASSIC_IDS, dressClassic } from "../../tools/temples/classic/dress";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -312,53 +312,11 @@ describe("the shipped temples as quest rooms", () => {
   });
 });
 
-/** The temples dressed from a classic dungeon (tools/temples/classic/dress.ts): the shape of their source and the pieces every temple of ours needs; the dressing's own rules are ClassicTemples.spec.ts's */
-describe("the classic dungeon temples", () => {
-  it("are the shipped temples that have a classic plan, the Storm Temple first", () => expect(CLASSIC).toEqual(expect.arrayContaining(["storm-temple"])));
+// The temples dressed from a classic dungeon (tools/temples/classic/dress.ts) are checked in ClassicTemples.spec.ts
 
-  describe.each(CLASSIC)("%s", (id) => {
-    const layout = registered(id);
-    const graph = buildTempleGraph(layout);
-    const rooms = [...graph.rooms.values()];
-    const plan = CLASSIC_PLANS[id];
-    const dungeon = loadDungeon(id);
-
-    it("keeps the floors of its dungeon bottom to top, enters on 1F, and has the Master Room, its plan's mini-bosses and one boss", () => {
-      expect(graph.floors).toEqual(dungeon.floors.map((floor) => floor.name));
-      expect(graph.floors[shipped[id].entrance[0]]).toBe("1F");
-      // The Master Room registers as the Pegasus chest (`prize`); the module itself names it `master`
-      expect(rooms.filter((room) => room.prize)).toHaveLength(1);
-      expect(Object.values(shipped[id].rooms as Record<string, { type: string }>).filter((room) => room.type === "master")).toHaveLength(1);
-      expect(rooms.filter((room) => room.kind === "miniboss")).toHaveLength(plan.minibosses.length);
-      expect(rooms.filter((room) => room.kind === "boss")).toHaveLength(1);
-    });
-
-    it("hands out as many small keys as its dungeon, at least one per small lock (locked flights of stairs counted)", () => {
-      const keys = rooms.reduce((sum, room) => sum + room.smallKeys, 0);
-      expect(keys).toBeGreaterThanOrEqual(graph.doors.filter((door) => door.lock === "small").length);
-      expect(keys).toBe(dungeon.report.smallKeys);
-    });
-
-    it("keeps the registry's element on its boss and a quest template on every fight", () => {
-      expect(rooms.find((room) => room.kind === "boss")!.room.content?.element).toBe(TEMPLE_METADATA[id].element);
-      const fights = rooms.filter((room) => COMBAT_TYPES.includes(room.kind as QuestTier));
-      expect(fights.length).toBeGreaterThanOrEqual(3);
-      for (const room of fights) expect(room.room.content?.quest?.beastId).toEqual(expect.any(String));
-      expect(classicReport(id).mustClear).toBeGreaterThanOrEqual(1);
-    });
-
-    it("keeps its relic in the Big Chest, and is what tools/temples/classic/dress.ts writes (ClassicTemples.spec checks the rest)", () => {
-      const held = rooms.filter((room) => room.room.type === "loot" && room.room.content?.chest === "dungeon").map((room) => room.room.content?.dungeon);
-      expect(held).toContain(plan.relic);
-      const file = readFileSync(join(__dirname, "../../src/lib/engine/temples", `${id}.ts`), "utf8");
-      expect(file).toBe(renderClassicModule(id, dressClassic(id)));
-    });
-  });
-});
-
-describe("the seven regenerated temples", () => {
-  it("are every shipped temple but the hand-made Wind Temple and the classic dungeon temples", () => {
-    expect(REGENERATED).toHaveLength(7);
+describe("the regenerated temples", () => {
+  it("are every shipped temple but the hand-made Wind Temple and the classic dungeon temples: the ones regenerate.ts plans", () => {
+    expect(REGENERATED.slice().sort()).toEqual(SHIPPED_IDS.slice().sort());
     expect(REGENERATED).not.toContain("storm-temple");
   });
 

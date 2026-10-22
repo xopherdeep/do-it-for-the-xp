@@ -7,7 +7,7 @@
  */
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
 import { floorHeight } from "@/lib/engine/core/dungeons/floorOrder";
-import { allSlots, sameCell, slotsOf, type Board, type CellRef, type Item, type ItemKind, type Slot } from "./dressBoard";
+import { allSlots, linkedSlot, sameCell, slotsOf, type Board, type CellRef, type Item, type ItemKind, type Slot } from "./dressBoard";
 import { sidesKey, type Sides } from "./dressDoors";
 import { templateDifficulty, type FightRole } from "./dressChores";
 import type { ClassicPlan } from "./dressPlans";
@@ -70,23 +70,41 @@ const chestOf = (item: Item, plan: ClassicPlan): RoomContent => {
   return { chest: "dungeon", dungeon: item.chest === "small-key" ? "key" : String(item.chest) };
 };
 
-/** Where a flight or a circle lands now: the cell its link names, or where the stairs or circle of that cell moved to */
-const landingOf = (board: Board, item: Item, kind: "stairs" | "teleport"): CellRef | undefined => {
+/** Where a flight lands now: the twin flight of the cell its link names, wherever that flight moved to, else that cell */
+const landingOf = (board: Board, item: Item): CellRef | undefined => {
   const link = item.link;
   if (!link) return undefined;
   const named = { floor: link.to, row: link.row, col: link.col };
-  const moved = allSlots(board).find((slot) => slot.item?.kind === kind && slot.item.link && sameCell(slot.item.origin, named));
-  return moved?.at ?? named;
+  const moved = allSlots(board).find((slot) => slot.item?.kind === "stairs" && slot.item.link && sameCell(slot.item.origin, named));
+  return moved?.at ?? linkedSlot(board, link)?.at ?? named;
 };
 
-/** The circle a circle leads to: the one its link names when that is a circle, else the circle on that floor that leads back here, else that floor's first circle */
+/** Where a pit drops: the cell the dressing gave it, else the cell its hole named (the antechamber when that is the boss's) */
+const dropTarget = (board: Board, item: Item): CellRef | undefined => {
+  if (item.target) return item.target;
+  const landing = linkedSlot(board, item.link);
+  if (!landing) return item.link ? { floor: item.link.to, row: item.link.row, col: item.link.col } : undefined;
+  const isOntoBoss = landing.item?.kind === "boss" && Boolean(board.antechamber);
+  return isOntoBoss ? board.antechamber!.at : landing.at;
+};
+
+/**
+ * The circle a circle leads to: the one the dressing paired it with, else the cell its link names when that is a
+ * circle (the antechamber when it is the boss's), else the circle on that floor that leads back here, else that
+ * floor's first circle
+ */
 const circleTarget = (board: Board, item: Item): CellRef | undefined => {
+  if (item.target) return item.target;
   const link = item.link;
   if (!link) return undefined;
+  const landing = linkedSlot(board, link);
+  const isOntoCircle = landing?.item?.kind === "teleport";
+  if (isOntoCircle) return landing!.at;
+  const isOntoBoss = landing?.item?.kind === "boss" && Boolean(board.antechamber);
+  if (isOntoBoss) return board.antechamber!.at;
   const circles = allSlots(board).filter((slot) => slot.item?.kind === "teleport" && slot.at.floor === link.to);
-  const named = circles.find((slot) => slot.at.row === link.row && slot.at.col === link.col);
   const back = circles.find((slot) => slot.item!.link && sameCell({ floor: slot.item!.link.to, row: slot.item!.link.row, col: slot.item!.link.col }, item.origin));
-  return (named ?? back ?? circles[0])?.at;
+  return (back ?? circles[0])?.at;
 };
 
 const coordsOf = (at: CellRef): RoomContent => ({ targetLevel: at.floor, targetCoords: { x: at.col, y: at.row } });
@@ -135,7 +153,7 @@ interface ShapeInput {
 }
 
 const stairsShape = ({ board, slot, item }: ShapeInput): RoomShape => {
-  const landing = landingOf(board, item, "stairs");
+  const landing = landingOf(board, item);
   const isUp = floorHeight(item.link!.to) > floorHeight(slot.at.floor);
   const type = isUp ? "stairs-up" : "stairs-down";
   const locked = climbLock(board, item);
@@ -144,7 +162,16 @@ const stairsShape = ({ board, slot, item }: ShapeInput): RoomShape => {
 
 const circleShape = ({ board, item }: ShapeInput): RoomShape => {
   const target = circleTarget(board, item);
-  return { type: "teleport", letter: "teleport", content: target ? coordsOf(target) : { targetLevel: item.link!.to } };
+  if (target) return { type: "teleport", letter: "teleport", content: coordsOf(target) };
+  // A circle with no circle to lead to names its floor and fizzles (R8 says so in the solver)
+  if (item.link) return { type: "teleport", letter: "teleport", content: { targetLevel: item.link.to } };
+  return { type: "teleport", letter: "teleport" };
+};
+
+/** A pit names where it drops (the engine and the solver read it as they read a flight's landing) */
+const pitShape = ({ board, item }: ShapeInput): RoomShape => {
+  const target = dropTarget(board, item);
+  return { type: "pit", letter: "pit", content: target ? coordsOf(target) : undefined };
 };
 
 const fightShapeOf = ({ role, item, plan }: ShapeInput): RoomShape => fightShape(role, item, plan);
@@ -159,7 +186,7 @@ const SHAPES: Record<ItemKind, (input: ShapeInput) => RoomShape> = {
   sideFight: fightShapeOf,
   stairs: stairsShape,
   teleport: circleShape,
-  hole: () => ({ type: "pit", letter: "pit" }),
+  hole: pitShape,
   bigKey: lootShape("boss-key"),
   bigChest: lootShape("relic"),
   chest: ({ item, plan }) => ({ type: "loot", letter: item.chest === "small-key" ? "key" : "loot", content: chestOf(item, plan) }),

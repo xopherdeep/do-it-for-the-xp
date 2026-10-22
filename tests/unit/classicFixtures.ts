@@ -146,49 +146,109 @@ export const tower = (hallShuts = false): ClassicDungeon =>
     ]),
     floor("2F", 1, 5, [
       cell(0, 0, "Throne", { east: "open" }, { boss: true }),
-      cell(0, 1, "Gallery", { west: "open", east: "open" }),
-      cell(0, 2, "Keep", { west: "open", east: "open" }, { enemies: 3, shutter: true, chest: "big-key" }),
+      // LTTP keys the gallery's east door with the Big Key: between two ordinary rooms that is a plain door of ours
+      cell(0, 1, "Gallery", { west: "open", east: "big-key" }),
+      cell(0, 2, "Keep", { west: "big-key", east: "open" }, { enemies: 3, shutter: true, chest: "big-key" }),
       cell(0, 3, "Landing", { west: "open" }, { stairs: { to: "1F", row: 0, col: 3 } }),
     ]),
   ]);
 
 /**
- * CRACK, one floor 1x5: the only way from the entrance to the boss passes a cracked wall between an empty anteroom and
- * the shutter guard of the Boss Key vault.
+ * TWO SCREENS: the tower with its shutter room two screens wide, the stairs up in the screen that fights. The flight
+ * must land next to the fight and never in the room's other screen, which lies beyond the seal.
  *
- *   E  .  |G  V  B
+ *   1F:  E  h  M+U  M'        2F:  B  .  K  D
  */
-export const crack = (): ClassicDungeon =>
-  dungeon("crack", [
-    floor("1F", 1, 5, [
+export const twoScreens = (): ClassicDungeon =>
+  dungeon("two-screens", [
+    floor("1F", 1, 4, [
       cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
-      cell(0, 1, "Ante", { west: "open", east: "bomb" }),
-      cell(0, 2, "Guard", { west: "bomb", east: "open" }, { enemies: 2, shutter: true }),
-      cell(0, 3, "Vault", { west: "open", east: "open" }, { chest: "big-key" }),
-      cell(0, 4, "Throne", { west: "open" }, { boss: true }),
+      cell(0, 1, "Hall", { west: "open", east: "open" }, { enemies: 1 }),
+      cell(0, 2, "Shutter", { west: "open", east: "open" }, { enemies: 2, shutter: true, stairs: { to: "2F", row: 0, col: 3 } }),
+      cell(0, 3, "Shutter", { west: "open" }),
+    ]),
+    floor("2F", 1, 4, [
+      cell(0, 0, "Throne", { east: "open" }, { boss: true }),
+      cell(0, 1, "Gallery", { west: "open", east: "open" }),
+      cell(0, 2, "Keep", { west: "open", east: "open" }, { enemies: 3, shutter: true, chest: "big-key" }),
+      cell(0, 3, "Landing", { west: "open" }, { stairs: { to: "1F", row: 0, col: 2 } }),
     ]),
   ]);
 
 /**
- * DROP, three floors. 1F: the entrance, stairs up sharing their cell with the Boss Key chest, an empty landing, a fairy
- * circle. 2F: a lone hole over the entrance, stairs down sharing their cell with a riddle, a shutter fight sharing its
- * cell with the stairs to the boss floor and a hole into the fairy circle, an empty nook. 3F: the boss alone in its
- * cell with the stairs down (the Tower of Hera's shape).
+ * FALL: the boss's floor is reached by a hole alone (Skull Woods, the Ice Palace). The shutter guard of the Boss Key
+ * vault, then a dead end whose floor drops the hero onto the boss's floor. The dressing lands the fall in an added
+ * room beside the boss, behind the Boss door, with a circle back to one beside the entrance.
  *
- *   1F:  E  U  .  T        2F:  H  D  M  .        3F:  B
+ *   1F:  E  G  V  H        2F:  B
+ */
+export const fall = (): ClassicDungeon =>
+  dungeon("fall", [
+    floor("1F", 1, 4, [
+      cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(0, 1, "Guard", { west: "open", east: "open" }, { enemies: 2, shutter: true }),
+      cell(0, 2, "Vault", { west: "open", east: "open" }, { chest: "big-key" }),
+      cell(0, 3, "Drop", { west: "open" }, { hole: { to: "2F", row: 0, col: 0 } }),
+    ]),
+    floor("2F", 1, 1, [cell(0, 0, "Throne", {}, { boss: true })]),
+  ]);
+
+/**
+ * CRACK, one floor 2x5: the only way from the entrance to the boss passes a cracked wall between an empty anteroom and
+ * the shutter guard of the Boss Key vault; a second crack off the anteroom hides an empty cellar nobody needs to pass.
+ * Locked: a small-key door stands between the yard and the anteroom (the key lies in the pots under the gate), so the
+ * Bomb must wait in the yard, which the hero reaches without the key.
+ *
+ *   E  .  |G  V  B            E  .  ]  .  |G  V  B
+ *   .  |.                     k
+ */
+export const crack = (locked = false): ClassicDungeon => {
+  if (!locked) {
+    return dungeon("crack", [
+      floor("1F", 2, 5, [
+        cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
+        cell(0, 1, "Ante", { west: "open", east: "bomb", south: "bomb" }),
+        cell(0, 2, "Guard", { west: "bomb", east: "open" }, { enemies: 2, shutter: true }),
+        cell(0, 3, "Vault", { west: "open", east: "open" }, { chest: "big-key" }),
+        cell(0, 4, "Throne", { west: "open" }, { boss: true }),
+        cell(1, 1, "Cellar", { north: "bomb" }),
+      ]),
+    ]);
+  }
+  return dungeon("crack-locked", [
+    floor("1F", 2, 6, [
+      cell(0, 0, "Gate", { east: "open", south: "open" }, { entrance: true }),
+      cell(0, 1, "Yard", { west: "open", east: "small-key" }),
+      cell(0, 2, "Ante", { west: "small-key", east: "bomb" }),
+      cell(0, 3, "Guard", { west: "bomb", east: "open" }, { enemies: 2, shutter: true }),
+      cell(0, 4, "Vault", { west: "open", east: "open" }, { chest: "big-key" }),
+      cell(0, 5, "Throne", { west: "open" }, { boss: true }),
+      cell(1, 0, "Pots", { north: "open" }, { potKey: true }),
+    ]),
+  ]);
+};
+
+/**
+ * DROP, three floors. 1F: the entrance, stairs up sharing their cell with the Boss Key chest, an empty landing, and far
+ * off at the end of a ten-column grid a fairy room walled on every side, reached only by a fall, with a circle out.
+ * 2F: a lone hole over the entrance, stairs down sharing their cell with a riddle, a shutter fight sharing its cell
+ * with the stairs to the boss floor and a hole into the fairy room, an empty nook. 3F: the boss alone in its cell with
+ * the stairs down (the Tower of Hera's shape).
+ *
+ *   1F:  E  U  .  _  _  _  _  _  _  T        2F:  H  D  M  .        3F:  B
  */
 export const drop = (): ClassicDungeon =>
   dungeon("drop", [
-    floor("1F", 1, 4, [
+    floor("1F", 1, 10, [
       cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
       cell(0, 1, "Stairs", { west: "open", east: "open" }, { stairs: { to: "2F", row: 0, col: 1 }, chest: "big-key" }),
-      cell(0, 2, "Landing", { west: "open", east: "open" }),
-      cell(0, 3, "Fairies", { west: "open" }, { teleport: { to: "2F", row: 0, col: 2 } }),
+      cell(0, 2, "Landing", { west: "open" }),
+      cell(0, 9, "Fairies", {}, { teleport: { to: "2F", row: 0, col: 2 } }),
     ]),
     floor("2F", 1, 4, [
       cell(0, 0, "Hole", { east: "open" }, { hole: { to: "1F", row: 0, col: 0 } }),
       cell(0, 1, "Riddle", { west: "open", east: "open" }, { puzzle: true, stairs: { to: "1F", row: 0, col: 1 } }),
-      cell(0, 2, "Climb", { west: "open", east: "open" }, { enemies: 2, shutter: true, stairs: { to: "3F", row: 0, col: 0 }, hole: { to: "1F", row: 0, col: 3 } }),
+      cell(0, 2, "Climb", { west: "open", east: "open" }, { enemies: 2, shutter: true, stairs: { to: "3F", row: 0, col: 0 }, hole: { to: "1F", row: 0, col: 9 } }),
       cell(0, 3, "Nook", { west: "open" }),
     ]),
     floor("3F", 1, 1, [cell(0, 0, "Throne", {}, { boss: true, stairs: { to: "2F", row: 0, col: 2 } })]),

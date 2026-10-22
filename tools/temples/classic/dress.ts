@@ -25,14 +25,14 @@ import { buildTempleGraph, type TempleLayout } from "@/lib/engine/dungeons/gener
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { renderModule } from "../renderModule";
 import type { ClassicDungeon } from "./classicDungeon";
-import { allSlots, buildBoard, type Board, type CellRef, type ClassicDrop, type ClassicMove } from "./dressBoard";
+import { allSlots, buildBoard, floorOf, placeNearest, tryOpenBeside, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove } from "./dressBoard";
 import { planChores } from "./dressChores";
-import { drawSides, hopsFrom, placeBombChests, sidesKey } from "./dressDoors";
+import { drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
 import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, type ClassicPlan } from "./dressPlans";
 import { buildRooms, type ClassicPlacement } from "./dressRooms";
 
 export { CLASSIC_IDS, CLASSIC_PLANS, loadDungeon };
-export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, CellRef };
+export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, PlainBigKeyDoor, CellRef };
 
 /** What the dressing did with a dungeon, for the tests and the build report */
 export interface ClassicReport {
@@ -52,6 +52,10 @@ export interface ClassicReport {
   merged: ClassicDrop[];
   /** Where a Bomb waits before a cracked wall on the only way to the boss */
   bombChests: CellRef[];
+  /** Island cells (walled on every side, reached by a link) moved from far off next to their floor's used cells */
+  compacted: ClassicCompaction[];
+  /** Big-Key doors LTTP keyed between two ordinary rooms, drawn as plain doors */
+  plainBigKeyDoors: PlainBigKeyDoor[];
   /** Every room of the temple, what it is and where it came from */
   placements: ClassicPlacement[];
 }
@@ -71,6 +75,8 @@ const asRegistered = (layout: { entrance: number[]; maze: Record<string, string[
 /**
  * The extras in the empty converted cells, nearest the entrance first (path distance over every door, floors in the
  * dungeon's order then reading order among equals): one shop, one save, then one camp per floor, the rest empty rooms.
+ * A dungeon with no empty cell at all (the Tower of Hera) gets one shop added beside the entrance, so every temple
+ * sells Bombs and potions, and no save or camp.
  */
 const placeExtras = (board: Board, plan: ClassicPlan): void => {
   const sides = drawSides(board);
@@ -81,6 +87,15 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
   const free = allSlots(board)
     .filter((slot) => slot.cell && !slot.item)
     .sort((a, b) => (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || floors.indexOf(a.at.floor) - floors.indexOf(b.at.floor) || a.at.row - b.at.row || a.at.col - b.at.col);
+  const hasNoEmptyCell = free.length === 0;
+  if (hasNoEmptyCell) {
+    const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance");
+    if (!entrance) throw new Error(`${plan.name}: no entrance cell`);
+    const shop = tryOpenBeside(board, entrance) ?? placeNearest(board, floorOf(board, entrance.at.floor)!, entrance.at, undefined);
+    shop.item = { kind: "shop", origin: shop.at, room: "" };
+    board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: !shop.cell });
+    return;
+  }
   const kinds: Array<"shop" | "save"> = ["shop", "save"];
   const camped = new Set<string>();
   for (const slot of free) {
@@ -122,6 +137,8 @@ export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): Dresse
     dropped: board.dropped,
     merged: board.merged,
     bombChests,
+    compacted: board.compacted,
+    plainBigKeyDoors: plainBigKeyDoors(board),
     placements: built.placements,
   };
   return { temple, report };

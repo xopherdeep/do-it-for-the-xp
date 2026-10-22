@@ -19,6 +19,7 @@ import { grantedDungeonItems, grantsBossKey, smallKeysGranted } from "@/lib/serv
 import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
+import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
 
 const DIRS = ["north", "east", "south", "west"] as const;
 type Dir = (typeof DIRS)[number];
@@ -26,19 +27,21 @@ const OPPOSITE: Record<Dir, Dir> = { north: "south", south: "north", east: "west
 const STEP: Record<Dir, [number, number]> = { north: [-1, 0], south: [1, 0], east: [0, 1], west: [0, -1] };
 const FIGHTS = ["monster", "miniboss", "boss"];
 
-/** The side table of the design: what each converted side is drawn as (a small-key side is `locked` on one end only) */
+/**
+ * The side table of the design: what each converted side is drawn as (a small-key side is `locked` on one end only;
+ * a big-key side is the Boss lock into the boss room and a plain door between two ordinary rooms)
+ */
 const SIDE_RULE: Record<ClassicSide, string[]> = {
   open: ["door"],
   shutter: ["door"],
   item: ["door"],
   "small-key": ["locked", "door"],
-  "big-key": ["masterlocked"],
+  "big-key": ["masterlocked", "door"],
   bomb: ["bombable"],
   wall: ["wall"],
 };
 
-/** A relocated flight of stairs lands next to the cell it was displaced from, so its twin is not on the same cell (R8's note) */
-const isRelocatedFlightNote = (reason: string): boolean => /^R8: .* has no stairs-(up|down) at /.test(reason);
+const sameCell = (a: { floor: string; row: number; col: number }, b: { floor: string; row: number; col: number }): boolean => a.floor === b.floor && a.row === b.row && a.col === b.col;
 
 /** The layout as registration reads it: the editor's door sides become locks and barriers */
 const asRegistered = (temple: TempleLayout): TempleLayout => ({
@@ -70,6 +73,11 @@ describe("the classic dungeon temples", () => {
     const cells = dungeon.floors.flatMap((level) => level.cells.map((cell) => ({ floor: level.name, cell })));
     const roomAt = (floor: string, row: number, col: number): Room | undefined => rooms[maze[floor]?.[row]?.[col]];
     const placed = (where: { floor: string; row: number; col: number }) => report.placements.find((entry) => entry.at.floor === where.floor && entry.at.row === where.row && entry.at.col === where.col);
+    /** Where a converted cell stands now: its own place, unless it was a far-off island the dressing moved next to the floor's used cells */
+    const nowAt = (floor: string, row: number, col: number): { floor: string; row: number; col: number } =>
+      report.compacted.find((entry) => sameCell(entry.from, { floor, row, col }))?.to ?? { floor, row, col };
+    const bossCell = cells.find(({ cell }) => cell.boss)!;
+    const bossAt = nowAt(bossCell.floor, bossCell.cell.row, bossCell.cell.col);
     const byRoom = (name: string): ClassicPlacement[] => report.placements.filter((entry) => entry.room === name);
     const lttpRooms = [...new Set(cells.map(({ cell }) => cell.room))];
     const cellsOf = (name: string): ClassicCell[] => cells.filter(({ cell }) => cell.room === name).map(({ cell }) => cell);
@@ -88,11 +96,17 @@ describe("the classic dungeon temples", () => {
       expect(file).toContain(dungeon.source);
     });
 
-    it("keeps every converted cell as a room at the same place on a floor of the same name, and enters on 1F", () => {
+    it("keeps every converted cell as a room at the same place on a floor of the same name (a far-off island moves beside the floor's used cells), and enters on 1F", () => {
       expect(Object.keys(maze)).toEqual(dungeon.floors.map((level) => level.name));
       for (const { floor, cell } of cells) {
-        const room = roomAt(floor, cell.row, cell.col);
+        const here = nowAt(floor, cell.row, cell.col);
+        const room = roomAt(here.floor, here.row, here.col);
         expect({ at: `${floor} (${cell.row},${cell.col})`, type: room?.type ?? "missing" }).not.toMatchObject({ type: expect.stringMatching(/^(missing|wall)$/) });
+      }
+      for (const moved of report.compacted) {
+        const island = cells.find(({ floor, cell }) => sameCell({ floor, row: cell.row, col: cell.col }, moved.from))!;
+        expect(DIRS.every((dir) => island.cell.sides[dir] === "wall")).toBe(true);
+        expect(moved.to.floor).toBe(moved.from.floor);
       }
       const entrance = cells.find(({ cell }) => cell.entrance)!;
       expect(entrance.floor).toBe("1F");
@@ -102,12 +116,14 @@ describe("the classic dungeon temples", () => {
 
     it("draws every side by the side table: doors, one-ended small locks, Boss locks, cracked walls and walls", () => {
       for (const { floor, cell } of cells) {
-        const room = roomAt(floor, cell.row, cell.col)!;
+        const here = nowAt(floor, cell.row, cell.col);
+        const room = roomAt(here.floor, here.row, here.col)!;
         for (const dir of DIRS) {
           const drawn = room.sides?.[dir] ?? "door";
           const [dr, dc] = STEP[dir];
-          const beyond = roomAt(floor, cell.row + dr, cell.col + dc);
-          const beyondPlacement = placed({ floor, row: cell.row + dr, col: cell.col + dc });
+          const there = { floor: here.floor, row: here.row + dr, col: here.col + dc };
+          const beyond = roomAt(there.floor, there.row, there.col);
+          const beyondPlacement = placed(there);
           const where = `${floor} (${cell.row},${cell.col}) ${dir}: ${cell.sides[dir]}`;
           // A wall the dressing grew a room behind is a door to it (or the Boss door); every other side keeps the table
           const isGrownBehind = cell.sides[dir] === "wall" && Boolean(beyondPlacement?.grown);
@@ -119,7 +135,57 @@ describe("the classic dungeon temples", () => {
             const facing = beyond?.sides?.[OPPOSITE[dir]];
             expect({ where, ends: [drawn, facing].sort() }).toEqual({ where, ends: ["door", "locked"] });
           }
+          // The Boss lock stays on the boss's doors; between two ordinary rooms a Big-Key door is a plain door, and listed
+          const isBigKey = cell.sides[dir] === "big-key";
+          if (isBigKey) {
+            const touchesBoss = sameCell(here, bossAt) || sameCell(there, bossAt);
+            expect({ where, drawn }).toEqual({ where, drawn: touchesBoss ? "masterlocked" : "door" });
+            const isListed = report.plainBigKeyDoors.some((door) => (sameCell(door.at, here) && door.direction === dir) || (sameCell(door.at, there) && door.direction === OPPOSITE[dir]));
+            expect({ where, listed: isListed }).toEqual({ where, listed: !touchesBoss });
+          }
         }
+      }
+    });
+
+    it("drops through every hole of its dungeon exactly once, where the dungeon says (a fall onto the boss lands beside him, behind the Boss door)", () => {
+      for (const { floor, cell } of cells.filter(({ cell }) => cell.hole)) {
+        const pits = report.placements.filter((entry) => entry.type === "pit" && entry.origin && sameCell(entry.origin, { floor, row: cell.row, col: cell.col }));
+        expect({ at: `${floor} (${cell.row},${cell.col})`, pits: pits.length }).toEqual({ at: `${floor} (${cell.row},${cell.col})`, pits: 1 });
+        const content = roomOf(pits[0]).content!;
+        const link = cell.hole!;
+        expect(content.targetLevel).toBe(link.to);
+        const landing = { floor: String(content.targetLevel), row: Number(content.targetCoords?.y), col: Number(content.targetCoords?.x) };
+        const landsOnBoss = sameCell(nowAt(link.to, link.row, link.col), bossAt);
+        if (landsOnBoss) {
+          expect(Math.abs(landing.row - bossAt.row) + Math.abs(landing.col - bossAt.col)).toBe(1);
+          const toward = DIRS.find((dir) => landing.row + STEP[dir][0] === bossAt.row && landing.col + STEP[dir][1] === bossAt.col)!;
+          expect(roomAt(landing.floor, landing.row, landing.col)?.sides?.[toward]).toBe("masterlocked");
+        } else {
+          expect(landing).toEqual(nowAt(link.to, link.row, link.col));
+        }
+      }
+    });
+
+    it("names a landing on a stairs room of the opposite kind for every flight", () => {
+      const flights = report.placements.filter((entry) => /^stairs-/.test(entry.type));
+      expect(flights.length).toBeGreaterThanOrEqual(2);
+      for (const flight of flights) {
+        const content = roomOf(flight).content!;
+        const landing = roomAt(String(content.targetLevel), Number(content.targetCoords?.y), Number(content.targetCoords?.x));
+        expect({ at: flight.at, lands: landing?.type }).toEqual({ at: flight.at, lands: flight.type === "stairs-up" ? "stairs-down" : "stairs-up" });
+      }
+    });
+
+    it("seals a many-screen must-clear room at the screen that fights: blocking that screen blocks the room as a passage", () => {
+      for (const name of lttpRooms.filter(isMustClearRoom)) {
+        const screens = cellsOf(name).map((screen) => nowAt(dungeon.floors.find((level) => level.cells.includes(screen))!.name, screen.row, screen.col));
+        const isOneScreen = screens.length === 1;
+        if (isOneScreen) continue;
+        const fight = fightOf(name)!;
+        const outside = (keys: string[]) => keys.filter((key) => !screens.some((screen) => roomKey(screen) === key)).sort();
+        const withoutFight = outside(reachableFrom(graph, graph.entrance!, new Set([roomKey(fight.at)])));
+        const withoutRoom = outside(reachableFrom(graph, graph.entrance!, new Set(screens.map(roomKey))));
+        expect({ room: name, beyond: withoutFight }).toEqual({ room: name, beyond: withoutRoom });
       }
     });
 
@@ -209,7 +275,7 @@ describe("the classic dungeon temples", () => {
       expect(missingNames(audit)).toEqual([]);
       expect(audit.passed).toBe(true);
       expect(verdict.solvable).toBe(true);
-      expect(verdict.reasons.filter((reason) => !isRelocatedFlightNote(reason))).toEqual([]);
+      expect(verdict.reasons).toEqual([]);
     });
 
     it("needs the Boss Key to reach the boss", () => {
@@ -240,6 +306,17 @@ describe("the classic dungeon temples", () => {
         const landing = roomAt(room.content!.targetLevel!, Number(target.y), Number(target.x))!;
         expect({ at: flight.at, landing: landing.type, lock: climbLockOf(landing) }).toEqual({ at: flight.at, landing: expect.stringMatching(/^stairs-/), lock: undefined });
       }
+    });
+
+    it("has the mini-bosses of its plan, one boss with the registry's element and a template on every fight, and as many small keys as its dungeon", () => {
+      const kinds = [...graph.rooms.values()];
+      expect(kinds.filter((room) => room.kind === "miniboss")).toHaveLength(plan.minibosses.length);
+      expect(kinds.filter((room) => room.kind === "boss")).toHaveLength(1);
+      expect(kinds.find((room) => room.kind === "boss")!.room.content?.element).toBe(TEMPLE_METADATA[id].element);
+      for (const room of kinds.filter((room) => FIGHTS.includes(room.kind))) expect(room.room.content?.quest?.beastId).toEqual(expect.any(String));
+      const keys = kinds.reduce((sum, room) => sum + room.smallKeys, 0);
+      expect(keys).toBe(dungeon.report.smallKeys);
+      expect(keys).toBeGreaterThanOrEqual(graph.doors.filter((door) => door.lock === "small").length);
     });
 
     it("reports what moved, what merged and what was dropped, each to or from a real cell", () => {
@@ -292,9 +369,9 @@ describe("the Storm Temple from the Tower of Hera", () => {
     expect(report.overflow).toEqual(["toybox-troll"]);
   });
 
-  it("keeps the Lightning Rod in the Big Chest and the compass in the nook under it on 3F", () => {
+  it("keeps the Lightning Rod in the Big Chest and the compass in a nook under the fairy room on 3F", () => {
     expect(at("3F", 1, 1)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "Lightning Rod" } });
-    expect(at("3F", 2, 1)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "compass" } });
+    expect(at("3F", 3, 0)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "compass" } });
     expect(at("1F", 0, 1)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "map" } });
   });
 
@@ -305,8 +382,19 @@ describe("the Storm Temple from the Tower of Hera", () => {
     expect(at("5F", 1, 0)).toMatchObject({ type: "master", sides: { north: "masterlocked" } });
   });
 
-  it("drops into the fairy room by a circle and rides one back", () => {
-    expect(at("4F", 1, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "3F", targetCoords: { x: 0, y: 16 } } });
-    expect(at("3F", 16, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "4F", targetCoords: { x: 0, y: 1 } } });
+  it("moves the fairy room up beside the rest of 3F, falls into it through a pit and rides a circle back up", () => {
+    expect(report.compacted).toEqual([{ from: { floor: "3F", row: 16, col: 0 }, to: { floor: "3F", row: 2, col: 0 } }]);
+    expect(maze["3F"]).toHaveLength(4);
+    expect(at("4F", 0, 2)).toMatchObject({ type: "pit", content: { targetLevel: "3F", targetCoords: { x: 0, y: 2 } } });
+    expect(at("3F", 2, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "4F", targetCoords: { x: 2, y: 1 } } });
+    expect(at("4F", 1, 2)).toMatchObject({ type: "teleport", content: { targetLevel: "3F", targetCoords: { x: 0, y: 2 } } });
+  });
+
+  it("sells Bombs in a shop added beside the lobby, drops the boss's own fall beside his landing, and plays Hera's big-key door as a plain one", () => {
+    expect(at("1F", 2, 0)).toMatchObject({ type: "shop", sides: { north: "door" } });
+    expect(at("5F", 1, 1)).toMatchObject({ type: "pit", content: { targetLevel: "4F", targetCoords: { x: 1, y: 0 } }, sides: { north: "door", west: "wall" } });
+    expect(report.plainBigKeyDoors).toEqual([{ at: { floor: "2F", row: 0, col: 0 }, direction: "south" }]);
+    expect(at("2F", 0, 0)?.sides?.south).toBe("door");
+    expect(report.dropped.map((entry) => entry.what)).toEqual(["puzzle", "puzzle", "teleport", "teleport"]);
   });
 });

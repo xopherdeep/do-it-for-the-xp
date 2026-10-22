@@ -7,22 +7,54 @@
  */
 import type { ClassicCell, ClassicDungeon, ClassicSide } from "./classicDungeon";
 import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, floorOf, openSlot, posKey, slotAt, type Board, type BoardFloor, type CellRef, type Direction, type Slot } from "./dressBoard";
-import { buildTempleGraph, reachableFrom, roomKey, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
+import { buildTempleGraph, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 
 export type SideWord = "door" | "locked" | "masterlocked" | "bombable" | "wall";
 export type Sides = Record<Direction, SideWord>;
 
 export const OPPOSITE: Record<Direction, Direction> = { north: "south", south: "north", east: "west", west: "east" };
 
-/** The side table of the design: a shutter and an item door are plain doors, a big-key door the Boss Lock */
+/**
+ * The side table of the design: a shutter and an item door are plain doors. A big-key door is the Boss lock only on a
+ * boss room's doors (every way into the boss is drawn so below); between two ordinary rooms the engine and the solver
+ * play a Boss lock as a plain door, so it is drawn as one (the Temple Creator would show a skull otherwise) and listed.
+ */
 const SIDE_WORD: Record<ClassicSide, SideWord> = {
   open: "door",
   shutter: "door",
   item: "door",
   "small-key": "locked",
-  "big-key": "masterlocked",
+  "big-key": "door",
   bomb: "bombable",
   wall: "wall",
+};
+
+/** A Big-Key door LTTP keyed between two ordinary rooms, drawn as a plain door: the cell and the side, from one end */
+export interface PlainBigKeyDoor {
+  at: CellRef;
+  direction: Direction;
+}
+
+/** The Big-Key doors drawn as plain doors, one entry per door from the end that comes first (floors in order, reading order) */
+export const plainBigKeyDoors = (board: Board): PlainBigKeyDoor[] => {
+  const boss = allSlots(board).find((slot) => slot.item?.kind === "boss");
+  const listed = new Set<string>();
+  const doors: PlainBigKeyDoor[] = [];
+  for (const slot of allSlots(board)) {
+    if (!slot.cell) continue;
+    for (const direction of DIRECTIONS) {
+      const isBigKey = slot.cell.sides[direction] === "big-key";
+      if (!isBigKey) continue;
+      const there = { floor: slot.at.floor, row: slot.at.row + STEP[direction][0], col: slot.at.col + STEP[direction][1] };
+      const touchesBoss = Boolean(boss) && (slot === boss || (slotAt(board, there) === boss));
+      const pair = [sidesKey(slot.at), sidesKey(there)].sort().join("|");
+      const isNew = !touchesBoss && !listed.has(pair);
+      if (!isNew) continue;
+      listed.add(pair);
+      doors.push({ at: slot.at, direction });
+    }
+  }
+  return doors;
 };
 
 export const sidesKey = (at: CellRef): string => roomKey(at);
@@ -137,14 +169,14 @@ const withCracksClosed = (layout: TempleLayout, opened: ReadonlySet<string>): Te
   return { ...layout, rooms };
 };
 
-/** Steps from `start` to every room in reach, over the graph's doors */
-export const hopsFrom = (graph: TempleGraph, start: string): Map<string, number> => {
+/** Steps from `start` to every room in reach, over the graph's doors `passable` lets through (every door by default) */
+export const hopsFrom = (graph: TempleGraph, start: string, passable: (door: Door) => boolean = () => true): Map<string, number> => {
   const hops = new Map<string, number>([[start, 0]]);
   const queue = [start];
   while (queue.length) {
     const key = queue.shift()!;
     for (const door of graph.out.get(key) ?? []) {
-      const isNew = !hops.has(door.to);
+      const isNew = passable(door) && !hops.has(door.to);
       if (isNew) {
         hops.set(door.to, hops.get(key)! + 1);
         queue.push(door.to);
@@ -154,17 +186,27 @@ export const hopsFrom = (graph: TempleGraph, start: string): Map<string, number>
   return hops;
 };
 
+/** A door no key opens: what the hero passes before any lock */
+const isUnlocked = (door: Door): boolean => door.lock === "none";
+
 const refOf = (key: string): CellRef => {
   const [floor, position] = key.split(":");
   const [row, col] = position.split(",").map(Number);
   return { floor, row, col };
 };
 
-/** A Bomb chest in the nearest empty converted cell the hero can reach before the wall, else in a room added beside it */
-const placeBombChest = (board: Board, floor: BoardFloor, near: CellRef, reachHops: Map<string, number>): CellRef => {
+/**
+ * A Bomb chest in the nearest empty converted cell the hero reaches from the entrance without a key, before the wall
+ * (nearest to the wall's near end, over unlocked doors), else in a room added beside the near end. Never behind a small
+ * lock: the Bomb must be there whatever the hero has done with their keys.
+ */
+const placeBombChest = (board: Board, floor: BoardFloor, near: CellRef, closed: TempleGraph, nearKey: string): CellRef => {
+  const fromEntrance = hopsFrom(closed, closed.entrance!, isUnlocked);
+  const fromWall = hopsFrom(closed, nearKey, isUnlocked);
+  const far = Number.MAX_SAFE_INTEGER;
   const free = allSlots(board)
-    .filter((slot) => slot.cell && !slot.item && reachHops.has(sidesKey(slot.at)))
-    .sort((a, b) => reachHops.get(sidesKey(a.at))! - reachHops.get(sidesKey(b.at))!);
+    .filter((slot) => slot.cell && !slot.item && fromEntrance.has(sidesKey(slot.at)))
+    .sort((a, b) => (fromWall.get(sidesKey(a.at)) ?? far) - (fromWall.get(sidesKey(b.at)) ?? far) || (fromEntrance.get(sidesKey(a.at)) ?? far) - (fromEntrance.get(sidesKey(b.at)) ?? far));
   const slot = free[0] ?? openBeside(board, floor, near);
   slot.item = { kind: "bombChest", origin: slot.at, room: slot.cell?.room ?? "" };
   return slot.at;
@@ -191,10 +233,19 @@ const openBeside = (board: Board, floor: BoardFloor, near: CellRef): Slot => {
   throw new Error(`${board.dungeon.id}: no cell beside ${describeCell(near)} for a Bomb chest`);
 };
 
+/** Whether the boss is in reach from the entrance with the given cracks read as open and every other one as a wall */
+const reachesBossWith = (layout: TempleLayout, opened: ReadonlySet<string>): boolean => {
+  const graph = buildTempleGraph(withCracksClosed(layout, opened));
+  const boss = [...graph.rooms.values()].find((room) => room.kind === "boss");
+  return Boolean(graph.entrance) && Boolean(boss) && hopsFrom(graph, graph.entrance!).has(boss!.key);
+};
+
 /**
- * Bomb chests before the cracked walls on the only way to the boss. With every crack read as a wall, the walls the
- * hero stands before and cannot pass each get a chest in the nearest empty cell they can reach; those cracks then
- * count as open and the walk is tried again, until the boss is in reach. `layoutNow` renders the board as it stands.
+ * Bomb chests before the cracked walls on the only way to the boss (the lead's ruling). With every crack read as a
+ * wall, of the cracks the hero stands before and cannot pass only those whose closing alone cuts the boss off earn a
+ * chest (a crack beside the way does not); when none does alone yet the boss is still out of reach (two cracks side by
+ * side), the nearest one does. A crack with a chest then counts as open and the walk is tried again, until the boss is
+ * in reach. `layoutNow` renders the board as it stands.
  */
 export const placeBombChests = (board: Board, layoutNow: () => TempleLayout): CellRef[] => {
   const chests: CellRef[] = [];
@@ -206,19 +257,22 @@ export const placeBombChests = (board: Board, layoutNow: () => TempleLayout): Ce
     const entrance = closed.entrance;
     if (!entrance) return chests;
     const reach = hopsFrom(closed, entrance);
-    const boss = [...closed.rooms.values()].find((room) => room.kind === "boss");
-    const isBossInReach = Boolean(boss) && reach.has(boss!.key);
+    const isBossInReach = reachesBossWith(layout, opened);
     if (isBossInReach) return chests;
-    const frontier = open.doors.filter((door) => door.lock === "bomb" && reach.has(door.from) && !reach.has(door.to) && !opened.has(crackKey(door.from, door.to)));
+    const cracks = open.doors.filter((door) => door.lock === "bomb");
+    const frontier = cracks.filter((door) => reach.has(door.from) && !reach.has(door.to) && !opened.has(crackKey(door.from, door.to)));
     const isStuckElsewhere = frontier.length === 0;
     if (isStuckElsewhere) return chests;
-    for (const door of frontier) {
+    const everyOtherCrack = (door: Door): Set<string> => new Set(cracks.map((crack) => crackKey(crack.from, crack.to)).filter((key) => key !== crackKey(door.from, door.to)));
+    const cutting = frontier.filter((door) => !reachesBossWith(layout, everyOtherCrack(door)));
+    const nearest = [...frontier].sort((a, b) => reach.get(a.from)! - reach.get(b.from)!)[0];
+    const chosen = cutting.length ? cutting : [nearest];
+    for (const door of chosen) {
       const isAlreadyOpened = opened.has(crackKey(door.from, door.to));
       if (isAlreadyOpened) continue;
       opened.add(crackKey(door.from, door.to));
       const near = refOf(door.from);
-      const before = hopsFrom(closed, door.from);
-      chests.push(placeBombChest(board, floorOf(board, near.floor)!, near, before));
+      chests.push(placeBombChest(board, floorOf(board, near.floor)!, near, closed, door.from));
     }
   }
   return chests;

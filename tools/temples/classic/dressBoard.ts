@@ -15,6 +15,7 @@
  * nowhere to go is dropped and listed. Every move, drop and merge goes in the report.
  */
 import type { ClassicCell, ClassicDungeon, ClassicLink } from "./classicDungeon";
+import { compactIslands, placeAntechamber, placeLandingCircles } from "./dressLinks";
 
 export interface CellRef {
   floor: string;
@@ -57,9 +58,17 @@ export interface Item {
   /** The LTTP room it belongs to */
   room: string;
   link?: ClassicLink;
+  /** Where a circle or a pit the dressing made leads: a cell of the board (an added room has no link to name) */
+  target?: CellRef;
   chest?: ClassicCell["chest"];
   keyDrop?: "small" | "big";
   enemies?: number;
+}
+
+/** A far-off island cell (walls on every side, reached by a link alone) moved next to its floor's used cells */
+export interface ClassicCompaction {
+  from: CellRef;
+  to: CellRef;
 }
 
 /** One position of a floor's grid that is a room: a converted cell, or one the dressing added */
@@ -97,16 +106,27 @@ export interface ClassicDrop {
 export interface Board {
   dungeon: ClassicDungeon;
   floors: BoardFloor[];
+  /** Every converted cell's slot, by the cell's own position (where it stands now may differ: `compacted`) */
+  converted: Map<string, Slot>;
   moves: ClassicMove[];
   dropped: ClassicDrop[];
   merged: ClassicDrop[];
+  compacted: ClassicCompaction[];
+  /** The added room a fall or a ride onto the boss lands in, beside him behind the Boss door */
+  antechamber?: Slot;
 }
 
 export const posKey = (row: number, col: number): string => `${row},${col}`;
 
+export const cellKey = (at: CellRef): string => `${at.floor}:${at.row},${at.col}`;
+
 export const sameCell = (a: CellRef, b: CellRef): boolean => a.floor === b.floor && a.row === b.row && a.col === b.col;
 
 export const describeCell = (at: CellRef): string => `${at.floor} (${at.row},${at.col})`;
+
+/** The slot a link names: the converted cell at that position, wherever it stands now */
+export const linkedSlot = (board: Board, link: ClassicLink | undefined): Slot | undefined =>
+  link ? board.converted.get(cellKey({ floor: link.to, row: link.row, col: link.col })) : undefined;
 
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
@@ -126,11 +146,11 @@ export const slotsOf = (floor: BoardFloor): Slot[] => [...floor.slots.values()].
 /** Every slot of the board, floors in the dungeon's order, each in reading order */
 export const allSlots = (board: Board): Slot[] => board.floors.flatMap(slotsOf);
 
-const distance = (a: CellRef, b: CellRef): number => Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+export const distance = (a: CellRef, b: CellRef): number => Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
 
-/** The slots orthogonally next to a position that hold a room */
+/** The slots orthogonally next to a position that hold a room an added room can open on (a pit drops whoever walks in, so it is no door to anything) */
 const occupiedNeighbours = (floor: BoardFloor, at: CellRef): Slot[] =>
-  DIRECTIONS.map((direction) => floor.slots.get(posKey(at.row + STEP[direction][0], at.col + STEP[direction][1]))).filter((slot): slot is Slot => Boolean(slot?.item));
+  DIRECTIONS.map((direction) => floor.slots.get(posKey(at.row + STEP[direction][0], at.col + STEP[direction][1]))).filter((slot): slot is Slot => Boolean(slot?.item) && slot!.item!.kind !== "hole");
 
 // --- reading the cells -----------------------------------------------------------------------------------------
 
@@ -182,7 +202,8 @@ const planFights = (dungeon: ClassicDungeon): Map<string, FightPlan> => {
 };
 
 /** The things one converted cell holds, in precedence order */
-const itemsOf = (cell: ClassicCell, at: CellRef, fights: Map<string, FightPlan>, board: Board): Item[] => {
+const itemsOf = (cell: ClassicCell, origin: CellRef, fights: Map<string, FightPlan>, board: Board): Item[] => {
+  const at = origin;
   const base = { origin: at, room: cell.room };
   const items: Item[] = [];
   if (cell.entrance) items.push({ ...base, kind: "entrance" });
@@ -266,54 +287,68 @@ export const openSlot = (floor: BoardFloor, candidate: Candidate, source: CellRe
   return slot;
 };
 
+/** What narrows where a displaced thing may go */
+export interface PlacementLimits {
+  /** Never a cell of this LTTP room: a flight displaced from a must-clear fight must not land in a screen beyond the seal */
+  avoidRoom?: string;
+  /** Never a position that touches this cell: a pit beside the boss would be a second door into his room */
+  notBeside?: CellRef;
+}
+
 /**
  * Where a displaced thing goes: a free converted cell of the same LTTP room, else a free converted cell of the floor,
  * else a wall position inside the grid, else a grown row or column; the nearest of the first tier that has one.
  */
-export const placeNearest = (board: Board, floor: BoardFloor, source: CellRef, room: string | undefined): Slot => {
-  const free = freeConvertedSlots(floor);
+export const placeNearest = (board: Board, floor: BoardFloor, source: CellRef, room: string | undefined, limits: PlacementLimits = {}): Slot => {
+  const free = freeConvertedSlots(floor).filter((slot) => !limits.avoidRoom || slot.cell?.room !== limits.avoidRoom);
+  const allowed = (candidate: Candidate): boolean => !limits.notBeside || distance(candidate.at, limits.notBeside) !== 1;
   const tiers: Candidate[][] = [
     free.filter((slot) => slot.cell?.room === room).map((slot) => ({ at: slot.at, slot })),
     free.map((slot) => ({ at: slot.at, slot })),
     wallPositions(floor),
     growthPositions(floor),
-  ];
+  ].map((candidates) => candidates.filter(allowed));
   const tier = tiers.find((candidates) => candidates.length > 0);
   if (!tier) throw new Error(`${board.dungeon.id}: no room for what ${describeCell(source)} holds`);
   const chosen = nearestTo(source, tier)!;
   return chosen.slot ?? openSlot(floor, chosen, source);
 };
 
-const relocate = (board: Board, floor: BoardFloor, source: Slot, item: Item): void => {
-  const slot = placeNearest(board, floor, source.at, item.room);
+export const relocate = (board: Board, floor: BoardFloor, source: Slot, item: Item, limits: PlacementLimits = {}): Slot => {
+  const slot = placeNearest(board, floor, source.at, item.room, limits);
   slot.item = item;
   board.moves.push({ what: describeItem(item), from: source.at, to: slot.at, grown: !slot.cell });
+  return slot;
 };
 
 const drop = (board: Board, source: Slot, item: Item, why: string): void => {
   board.dropped.push({ what: describeItem(item), at: source.at, why });
 };
 
-/** A hole or a circle whose landing is a circle is kept as a circle in another cell: the ride comes back. Any other is dropped. */
-const relocateLink = (board: Board, floor: BoardFloor, source: Slot, item: Item): void => {
-  const landing = item.link && slotAt(board, { floor: item.link.to, row: item.link.row, col: item.link.col });
-  const landsOnCircle = landing?.item?.kind === "teleport";
-  if (landsOnCircle) relocate(board, floor, source, { ...item, kind: "teleport" });
+/** A circle whose landing is a circle is kept as a circle in another cell: the ride comes back. Any other displaced circle is dropped. */
+const relocateCircle = (board: Board, floor: BoardFloor, source: Slot, item: Item): void => {
+  const landsOnCircle = linkedSlot(board, item.link)?.item?.kind === "teleport";
+  if (landsOnCircle) relocate(board, floor, source, item);
   else drop(board, source, item, `its landing at ${item.link ? describeCell({ floor: item.link.to, row: item.link.row, col: item.link.col }) : "nowhere"} is no circle`);
 };
 
+/**
+ * What a displaced thing becomes: a hole is never dropped (it is a pit where it lands, named by its link), a flight
+ * displaced from a must-clear fight never lands in a screen of that room beyond the seal, a riddle is dropped.
+ */
 const settleDisplaced = (board: Board, floor: BoardFloor, source: Slot, item: Item): void => {
-  switch (item.kind) {
-    case "hole":
-    case "teleport":
-      relocateLink(board, floor, source, item);
-      return;
-    case "puzzle":
-      drop(board, source, item, `displaced by the ${describeItem(source.item!)}`);
-      return;
-    default:
-      relocate(board, floor, source, item);
+  const isCircle = item.kind === "teleport";
+  if (isCircle) {
+    relocateCircle(board, floor, source, item);
+    return;
   }
+  const isRiddle = item.kind === "puzzle";
+  if (isRiddle) {
+    drop(board, source, item, `displaced by the ${describeItem(source.item!)}`);
+    return;
+  }
+  const isFlightOutOfASeal = item.kind === "stairs" && source.item?.kind === "mustClearFight";
+  relocate(board, floor, source, item, isFlightOutOfASeal ? { avoidRoom: item.room } : {});
 };
 
 // --- the Master Room ---------------------------------------------------------------------------------------------
@@ -324,19 +359,28 @@ const isDeadEndBeside = (slot: Slot, boss: CellRef): boolean => {
   return Boolean(slot.cell) && !slot.item && DIRECTIONS.every((direction) => direction === towardBoss || slot.cell!.sides[direction] === "wall");
 };
 
-/** The Master Room (the Pegasus chest) in a free cell next to the boss, growing the floor by a row or a column if none is free */
-const placeMaster = (board: Board): void => {
-  const boss = allSlots(board).find((slot) => slot.item?.kind === "boss");
-  if (!boss) throw new Error(`${board.dungeon.id}: no boss cell`);
-  const floor = floorOf(board, boss.at.floor)!;
-  const beside = (candidate: Candidate): boolean => distance(candidate.at, boss.at) === 1;
-  const nooks = freeConvertedSlots(floor).filter((slot) => isDeadEndBeside(slot, boss.at)).map((slot) => ({ at: slot.at, slot }));
-  const tiers: Candidate[][] = [nooks, wallPositions(floor).filter(beside), growthPositions(floor).filter(beside)];
+/**
+ * A room the dressing adds in a free cell next to `beside`, opening on it alone (the Master Room, the antechamber of a
+ * fall, a landing circle): a dead-end empty cell, else a wall position inside the grid, else a grown row or column;
+ * undefined when nothing touches `beside`.
+ */
+export const tryOpenBeside = (board: Board, beside: Slot): Slot | undefined => {
+  const floor = floorOf(board, beside.at.floor)!;
+  const touching = (candidate: Candidate): boolean => distance(candidate.at, beside.at) === 1;
+  const nooks = freeConvertedSlots(floor).filter((slot) => isDeadEndBeside(slot, beside.at)).map((slot) => ({ at: slot.at, slot }));
+  const tiers: Candidate[][] = [nooks, wallPositions(floor).filter(touching), growthPositions(floor).filter(touching)];
   const tier = tiers.find((candidates) => candidates.length > 0);
-  if (!tier) throw new Error(`${board.dungeon.id}: no free cell next to the boss at ${describeCell(boss.at)} for the Master Room`);
-  const chosen = nearestTo(boss.at, tier)!;
-  const slot = chosen.slot ?? openSlot(floor, chosen, boss.at, boss.at);
-  slot.anchor = boss.at;
+  if (!tier) return undefined;
+  const chosen = nearestTo(beside.at, tier)!;
+  const slot = chosen.slot ?? openSlot(floor, chosen, beside.at, beside.at);
+  slot.anchor = beside.at;
+  return slot;
+};
+
+/** The Master Room (the Pegasus chest) in a free cell next to the boss, growing the floor by a row or a column if none is free */
+const placeMaster = (board: Board, boss: Slot): void => {
+  const slot = tryOpenBeside(board, boss);
+  if (!slot) throw new Error(`${board.dungeon.id}: no free cell next to the boss at ${describeCell(boss.at)} for the Master Room`);
   slot.item = { kind: "master", origin: slot.at, room: "" };
 };
 
@@ -348,11 +392,25 @@ interface Displaced {
   item: Item;
 }
 
+/**
+ * The boss room's own exits (the hole and the warp LTTP leaves a beaten boss's room by) are settled last, once the
+ * landing and the Master Room stand beside him: the hole is a pit that never touches the boss cell (that would be a
+ * second door into his room), the warp keeps the rule every displaced circle has.
+ */
+const settleBossExits = (board: Board, boss: Slot, exits: Displaced[]): void => {
+  for (const { floor, source, item } of exits) {
+    const isHole = item.kind === "hole";
+    if (isHole) relocate(board, floor, source, item, { notBeside: boss.at });
+    else relocateCircle(board, floor, source, item);
+  }
+};
+
 /** Read the dungeon into a board: one thing per cell, the rest moved or dropped, the Master Room beside the boss */
 export const buildBoard = (dungeon: ClassicDungeon): Board => {
-  const board: Board = { dungeon, floors: [], moves: [], dropped: [], merged: [] };
+  const board: Board = { dungeon, floors: [], converted: new Map(), moves: [], dropped: [], merged: [], compacted: [] };
   const fights = planFights(dungeon);
   const displaced: Displaced[] = [];
+  const bossExits: Displaced[] = [];
   for (const level of dungeon.floors) {
     const floor: BoardFloor = { name: level.name, rows: level.rows, cols: level.cols, slots: new Map() };
     board.floors.push(floor);
@@ -360,13 +418,29 @@ export const buildBoard = (dungeon: ClassicDungeon): Board => {
       const at = { floor: level.name, row: cell.row, col: cell.col };
       const slot: Slot = { at, cell };
       floor.slots.set(posKey(cell.row, cell.col), slot);
-      const [first, ...rest] = itemsOf(cell, at, fights, board);
-      slot.item = first;
-      for (const item of rest) displaced.push({ floor, source: slot, item });
+      board.converted.set(cellKey(at), slot);
     }
   }
-  // Every cell's own thing is known before anything moves, so a hole knows whether it lands on a circle
+  compactIslands(board);
+  for (const slot of allSlots(board)) {
+    // A thing's origin is the cell it was converted from, where the island stood before it was moved beside the rest
+    const origin = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
+    const [first, ...rest] = itemsOf(slot.cell!, origin, fights, board);
+    slot.item = first;
+    const floor = floorOf(board, slot.at.floor)!;
+    const isBossCell = first?.kind === "boss";
+    for (const item of rest) {
+      const isBossExit = isBossCell && (item.kind === "hole" || item.kind === "teleport");
+      (isBossExit ? bossExits : displaced).push({ floor, source: slot, item });
+    }
+  }
+  // Every cell's own thing is known before anything moves, so a circle knows whether it lands on a circle
   for (const { floor, source, item } of displaced) settleDisplaced(board, floor, source, item);
-  placeMaster(board);
+  const boss = allSlots(board).find((slot) => slot.item?.kind === "boss");
+  if (!boss) throw new Error(`${board.dungeon.id}: no boss cell`);
+  placeAntechamber(board, boss);
+  placeMaster(board, boss);
+  settleBossExits(board, boss, bossExits);
+  placeLandingCircles(board);
   return board;
 };
