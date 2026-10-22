@@ -30,7 +30,8 @@ Commit `0e86a8f31f20ecad4eaa5741ff061af88767f7fb`. Licence: `vendor/LICENSE-TheV
 |---|---|---|
 | `LoZ_1.dot` | `The Legend of Zelda/Graph Processed/LoZ_1.dot` | `730d56e56ec29de7e6cc` |
 
-Used by Task 6 (the Wind temple); copied here so every classic source sits in one place.
+Read by `loz_eagle.py` (the Wind temple: Level 1's rooms are matched onto the Eagle's cells and written as `dungeons/wind-temple.json`);
+copied here so every classic source sits in one place.
 
 ## sporchia/alttp_vt_randomizer (vanilla chest contents)
 
