@@ -22,6 +22,8 @@ jest.mock("@ionic/vue", () => ({
   actionSheetController: {},
   alertController: {},
   onIonViewWillEnter: (hook: () => unknown) => mockViewEnters.push(hook),
+  // Once shown, a battle return opens a won fight's drop (useTempleEntry); no page here is shown after a battle
+  onIonViewDidEnter: () => undefined,
 }));
 jest.mock("@/lib/engine/core/dungeons/TempleAdapter", () => ({
   registerAllTemples: () => mockRegisterTemples(),
