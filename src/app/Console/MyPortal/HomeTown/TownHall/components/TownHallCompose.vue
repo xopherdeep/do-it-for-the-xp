@@ -86,7 +86,7 @@
           :disabled="blocked"
           @click="send('draft')"
         >
-          Save draft
+          Draft
         </button>
         <button type="button" class="th-compose__send" data-cy="th-send" :disabled="blocked" @click="send('publish')">
           <i class="fad fa-paper-plane" aria-hidden="true"></i>
@@ -228,7 +228,11 @@ const draftFor = (status: NewsStatus): ComposeDraft => {
   const kind = props.kind;
   const trimmedTitle = title.value.trim();
   const trimmedBody = body.value.trim();
-  if (kind === "news") return { kind, title: trimmedTitle, body: trimmedBody, category: pickedCategory.value, status };
+  if (kind === "news") {
+    // Patch Notes is filed under only while the picker offers it; otherwise the post is news
+    const category = hasCategoryPicker.value ? pickedCategory.value : "news";
+    return { kind, title: trimmedTitle, body: trimmedBody, category, status };
+  }
   if (kind === "edit") return { kind, title: trimmedTitle, body: trimmedBody };
   const postId = props.postId ?? props.initial?.postId;
   const hasTitle = hasTitleField.value && trimmedTitle.length > 0;
@@ -414,7 +418,7 @@ const send = (status: NewsStatus) => {
     --fa-secondary-color: #{$eb-color-medium-purple};
   }
 
-  // Save draft sits above Publish: the same shape and ring, outlined instead of filled
+  // Draft sits above Publish: the same shape and ring, outlined instead of filled
   &.is-secondary {
     margin-bottom: 8px;
     color: $eb-color-cream;

@@ -232,6 +232,7 @@ describe("news and edits", () => {
       { kind: "news", title: "Harvest", body: "Bring chores.", category: "news", status: "publish" },
     ]);
     expect(sendButton(wrapper).text()).toContain("Publish");
+    expect(cy(wrapper, "th-save-draft").text()).toBe("Draft");
   });
   it("offers Patch Notes only when the site has them, and starts on the category it was opened for", async () => {
     const wrapper = compose({ kind: "news", patchNotesAvailable: true, newsCategory: "patch-notes" });
@@ -241,6 +242,14 @@ describe("news and edits", () => {
     await cy(wrapper, "th-body").setValue("B");
     await sendButton(wrapper).trigger("click");
     expect(sent(wrapper)[0]).toMatchObject({ category: "news" });
+  });
+  it("writes news, not a patch note, when the site has no Patch Notes category even if it was opened for one", async () => {
+    const wrapper = compose({ kind: "news", newsCategory: "patch-notes" });
+    expect(cy(wrapper, "th-pick-patch-notes").exists()).toBe(false);
+    await cy(wrapper, "th-title").setValue("T");
+    await cy(wrapper, "th-body").setValue("B");
+    await sendButton(wrapper).trigger("click");
+    expect(sent(wrapper)[0]).toMatchObject({ category: "news", status: "publish" });
   });
   it("wants a title for news before it lets anything go", async () => {
     const wrapper = compose({ kind: "news" });
