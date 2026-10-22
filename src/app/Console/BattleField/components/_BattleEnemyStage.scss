@@ -39,12 +39,13 @@ $outline: -2px -2px 0 $ink, 0 -2px 0 $ink, 2px -2px 0 $ink, -2px 0 0 $ink, 2px 0
   line-height: 1.35;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: $eb-color-cream;
+  color: var(--gs-text);
+  text-shadow: var(--gs-text-shadow);
   transition: color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 
   // The box's four rings, in alarm colours
   &.is-critical {
-    color: #ff6b6b;
+    color: var(--gs-danger);
     background-color: #3a0c24;
     box-shadow: 0 0 0 5px #5a1228, 0 0 0 10px #ff4a4a, 0 0 0 12px #ffc2b8, 0 0 0 16px #4a1830;
   }

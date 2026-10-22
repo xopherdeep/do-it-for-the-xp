@@ -14,7 +14,7 @@
     </div>
 
     <!-- Grid of Actions -->
-    <div class="menu-grid" :style="{ gridTemplateColumns: `repeat(${columns}, 1fr)` }">
+    <div class="menu-grid" :style="{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }">
       <div v-for="action in actions" :key="action.id || action.label" class="menu-item-col"
         :style="{ gridColumn: action.fullWidth ? '1 / -1' : 'auto' }">
         <button class="menu-item" @click="handleAction(action)" :id="action.id" :disabled="action.disabled"
@@ -22,8 +22,10 @@
           <div class="item-inner">
             <i v-if="action.faIcon || action.icon" class="fad"
               :class="[`fa-${((action.faIcon || action.icon) as string).replace('fa-', '')}`, action.iconClass]"></i>
-            <span class="item-label">{{ action.label }}</span>
-            <span v-if="action.note" class="item-note">{{ action.note }}</span>
+            <span class="item-text">
+              <span class="item-label">{{ action.label }}</span>
+              <span v-if="action.note" class="item-note">{{ action.note }}</span>
+            </span>
             <span v-if="action.badge" class="item-badge">{{ action.badge }}</span>
           </div>
         </button>
@@ -177,13 +179,19 @@ export default defineComponent({
 
   .menu-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 8px 12px 8px;
     gap: 0px 8px;
   }
 
+  // A phone-width box never grows to its widest row: the cells shrink and the text inside ellipsizes
+  .menu-item-col {
+    min-width: 0;
+  }
+
   .menu-item {
     width: 100%;
+    min-width: 0;
     background: transparent;
     border: none;
     color: inherit;
@@ -234,6 +242,7 @@ export default defineComponent({
       align-items: center;
       gap: 12px;
       width: 100%;
+      min-width: 0;
     }
 
     .fad {
@@ -243,7 +252,17 @@ export default defineComponent({
       --fa-secondary-opacity: 0.4;
     }
 
+    // The label with its note under it
+    .item-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
     .item-label {
+      max-width: 100%;
       font-family: "Apple Kid", sans-serif;
       white-space: nowrap;
       overflow: hidden;
@@ -253,14 +272,14 @@ export default defineComponent({
     }
 
     .item-note {
-      margin-left: auto;
+      max-width: 100%;
+      line-height: 1.1;
       font-family: "StatusPlz", monospace;
       font-size: 0.85em;
       color: var(--gs-text-dim);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 40%;
     }
 
     .item-badge {
@@ -275,11 +294,6 @@ export default defineComponent({
       line-height: 1.2rem;
       text-align: center;
       box-shadow: 0 0 0 2px var(--gs-window-color);
-    }
-
-    // The note already pushes itself to the edge; the badge follows it there
-    .item-note + .item-badge {
-      margin-left: 0;
     }
   }
 

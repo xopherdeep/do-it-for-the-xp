@@ -170,8 +170,16 @@ describe("Battle Field under a Game Style", () => {
       if (fabStyle === "modern") {
         waitForMenu();
         cy.get("[data-cy=action-attack] .pill-note").should("have.text", "3 chores");
+        // Zelda's pixel font is wide: the cluster still fits the 390 px phone
+        cy.get(".radial-cluster").invoke("outerWidth").should("be.lte", 390);
+        cy.get("[data-cy=action-run]").then(($el) => expect($el[0].getBoundingClientRect().right).to.be.at.most(390));
       } else {
         cy.get("#attack", { timeout: 30000 }).should("be.visible").find(".item-note").should("have.text", "3 chores");
+        // A note never runs past the frame of the message box
+        cy.get("[data-cy=battle-dialog]").then(($box) => {
+          const frameRight = $box[0].getBoundingClientRect().right;
+          cy.get("#powers .item-note").then(($note) => expect($note[0].getBoundingClientRect().right).to.be.at.most(frameRight));
+        });
       }
       shot(`20-zelda-${fabStyle}-menu`);
       cy.get(fabStyle === "modern" ? "[data-cy=action-attack]" : "#attack").click();

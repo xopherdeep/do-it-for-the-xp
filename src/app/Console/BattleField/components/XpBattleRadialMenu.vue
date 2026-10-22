@@ -298,6 +298,10 @@ const onCenterTap = () => {
   color: var(--gs-accent);
   text-shadow: var(--gs-text-shadow);
   text-align: center;
+  // A long question wraps inside the phone instead of running off both edges (ion-label is one line by default)
+  white-space: normal;
+  max-width: 100%;
+  padding: 0 8px;
   margin-bottom: 6px;
   animation: prompt-fade 0.25s ease-out;
 }
@@ -341,6 +345,7 @@ const onCenterTap = () => {
     align-items: flex-end;
     gap: 8px;
     flex: 1;
+    min-width: 0;
     padding-right: 6px;
   }
 
@@ -356,6 +361,7 @@ const onCenterTap = () => {
     align-items: flex-start;
     gap: 8px;
     flex: 1;
+    min-width: 0;
     padding-left: 6px;
   }
 }
@@ -427,7 +433,13 @@ const onCenterTap = () => {
   border-radius: 24px;
   font-family: var(--gs-font);
   font-size: 1.15rem;
-  letter-spacing: 0.5px;
+  // Ionic's button adds .06em of tracking, more than a wide pixel font can spare
+  letter-spacing: 0;
+  // The pill hugs its text and shrinks to its slot: a wide Game Style font never pushes it off the phone
+  --padding-start: 10px;
+  --padding-end: 10px;
+  min-width: 0;
+  max-width: 100%;
   min-height: 40px;
   margin: 0;
   transition: transform 0.12s ease-out;
@@ -444,11 +456,16 @@ const onCenterTap = () => {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
     line-height: 1.05;
   }
 
   .pill-label {
     margin: 0 4px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-weight: bold;
     text-shadow: var(--gs-text-shadow);
   }
@@ -474,7 +491,6 @@ const onCenterTap = () => {
   }
 
   &.pill-attack {
-    min-width: 130px;
     box-shadow: 0 0 0 2px var(--gs-accent), 0 3px 8px rgba(0, 0, 0, 0.6);
 
     .pill-icon {
@@ -482,19 +498,11 @@ const onCenterTap = () => {
     }
   }
 
-  &.pill-powers,
-  &.pill-defend,
-  &.pill-goods,
-  &.pill-run {
-    min-width: 104px;
-  }
-
   &.pill-run .pill-icon {
     color: var(--gs-text-dim);
   }
 
   &.pill-keep-fighting {
-    min-width: 130px;
     box-shadow: 0 0 0 2px var(--gs-good), 0 3px 8px rgba(0, 0, 0, 0.6);
 
     .pill-icon {
@@ -503,7 +511,6 @@ const onCenterTap = () => {
   }
 
   &.pill-run-confirm {
-    min-width: 110px;
     box-shadow: 0 0 0 2px var(--gs-danger), 0 3px 8px rgba(0, 0, 0, 0.6);
 
     .pill-icon {
