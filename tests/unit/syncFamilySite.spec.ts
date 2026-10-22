@@ -89,10 +89,9 @@ jest.mock("@/lib/store/stores/sync/syncSignals", () => ({
 
 // --- The shared site ---
 
-interface SiteRow extends ReceivedRecord {}
 const mockSite = {
   seq: 0,
-  rows: new Map<string, SiteRow>(),
+  rows: new Map<string, ReceivedRecord>(),
   /** heroId -> the device holding its turn */
   turns: new Map<string, string>(),
   labels: new Map<string, string>(),
