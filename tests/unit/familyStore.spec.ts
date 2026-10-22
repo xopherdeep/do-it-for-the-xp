@@ -147,6 +147,10 @@ jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallS
 const mockUsers = reactive<Record<string, any>>({});
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ users: mockUsers }) }));
 
+/** Family Sync, as the family store sees it: on for a Pro family, and whether this device is one of its family devices */
+const mockSync = reactive({ isOn: false, isFamilyDevice: false, init: jest.fn(), reset: jest.fn() });
+jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
+
 const bindFamily = server.bindFamily as jest.Mock;
 const moveHome = server.moveHome as jest.Mock;
 const getFamily = server.getFamily as jest.Mock;
@@ -260,6 +264,10 @@ describe("family store", () => {
     mockTownHall.auth = PARENT;
     mockTownHall.init.mockResolvedValue(undefined);
     mockTownHall.forgetLink.mockResolvedValue(undefined);
+    mockSync.isOn = false;
+    mockSync.isFamilyDevice = false;
+    mockSync.init.mockResolvedValue(undefined);
+    mockSync.reset.mockResolvedValue(undefined);
     (require("@/lib/services/pro/familyIdentity").ensureIdentity as jest.Mock).mockResolvedValue({ familyId: FAMILY, deviceId: DEVICE });
     bindFamily.mockResolvedValue("created");
     moveHome.mockResolvedValue(undefined);
@@ -385,6 +393,41 @@ describe("family store", () => {
       await settle();
       expect(bindFamily).toHaveBeenCalledTimes(1);
       expect(store.home).toBe("home");
+    });
+
+    it("starts the sync store once it listens", async () => {
+      await started();
+      expect(mockSync.init).toHaveBeenCalledTimes(1);
+    });
+
+    it("a Pro family device queues events although it is not home, and is not asked the home question", async () => {
+      mockSync.isOn = true;
+      mockSync.isFamilyDevice = true;
+      mockState = { ...emptyState(), home: "home-elsewhere", lastCards: cardsAlreadySent() };
+      bindFamily.mockRejectedValue(new TownHallError("offline"));
+      const store = await started();
+      expect(store.home).toBe("home-elsewhere");
+
+      emitQuestPaid(paidQuest());
+      await settle();
+      expect(mockState.outbox.map((e) => `${e.kind} ${e.heroId}`)).toEqual(["quest.done h-1"]);
+
+      bindFamily.mockResolvedValue("home-elsewhere");
+      await store.bind();
+      expect(store.home).toBe("home");
+      expect(mockState.home).toBe("home");
+      expect(store.problem).toBeNull();
+    });
+
+    it("a free family is asked the home question as before", async () => {
+      bindFamily.mockResolvedValue("home-elsewhere");
+      mockState = { ...emptyState(), lastCards: cardsAlreadySent() };
+      const store = await started();
+      expect(store.home).toBe("home-elsewhere");
+
+      emitQuestPaid(paidQuest());
+      await settle();
+      expect(mockState.outbox).toEqual([]);
     });
 
     it("a second bind while one is running joins it", async () => {
@@ -970,6 +1013,7 @@ describe("family store", () => {
       expect(store.device?.card?.level).toBe(5);
       expect(bindFamily).not.toHaveBeenCalled();
       expect(saveHero).not.toHaveBeenCalled();
+      expect(mockSync.init).toHaveBeenCalledTimes(1);
     });
 
     it("claim saves the device, calls adoptFamily, sets isKidMode and device", async () => {
@@ -1035,6 +1079,8 @@ describe("family store", () => {
       expect(mockClearDevice).toHaveBeenCalledTimes(1);
       expect(store.device).toBeNull();
       expect(store.isKidMode).toBe(false);
+      // Family Sync's queue, numbers and turns belong to the link that is gone
+      expect(mockSync.reset).toHaveBeenCalledTimes(1);
     });
 
     it("linkCode asks makeLinkCode with parent auth", async () => {
@@ -1257,6 +1303,39 @@ describe("family store", () => {
       const passAt = mockBuildHeroSheet.mock.invocationCallOrder[0];
       expect(readAt).toBeLessThan(passAt);
       expect(kindsOf(mockState.outbox)).toEqual(["hero.sheet h-1"]);
+    });
+
+    it("the periodic tick does not read the phone list on a device that sends no sheets", async () => {
+      bindFamily.mockResolvedValue("home-elsewhere");
+      listPhones.mockResolvedValue([]);
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      expect(store.home).toBe("home-elsewhere");
+      await tick(120_000);
+      await tick(0);
+      expect(listPhones).not.toHaveBeenCalled();
+    });
+
+    it("a Pro family's 2 minute round stands down: the sync store's minute tick runs it", async () => {
+      mockSync.isOn = true;
+      mockSync.isFamilyDevice = true;
+      listPhones.mockResolvedValue([]);
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      fetchEvents.mockClear();
+      await tick(120_000);
+      expect(fetchEvents).not.toHaveBeenCalled();
+
+      await store.downloadRound();
+      expect(fetchEvents).toHaveBeenCalledTimes(1);
     });
   });
 });

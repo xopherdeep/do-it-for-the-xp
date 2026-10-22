@@ -39,6 +39,7 @@ import debug from "@/lib/utils/debug";
 import { createCardQueue } from "./family/familyCards";
 import { createFamilySender } from "./family/familySender";
 import { createHeroPhoneSync } from "./family/heroPhoneSync";
+import { useSyncStore } from "./sync";
 
 /** Where each answer of the site leaves this device: `created` and `home` both mean this device is the family's home */
 const HOME_OF_ANSWER: Record<BindAnswer, HomeStatus> = {
@@ -183,8 +184,14 @@ export const useFamilyStore = defineStore("family", () => {
 
   // --- Game events: what goes in the send queue, and sending it (MP12) ---
 
-  /** Events are queued and sent only with the flag on, while this device is the family's home */
-  const canQueue = (): boolean => enabled.value && home.value === "home";
+  /**
+   * Events are queued and sent only with the flag on, while this device is the family's home or, for a Pro family, one of
+   * its family devices (every Game Master device is one; the site takes their events wherever home is)
+   */
+  const canQueue = (): boolean => {
+    const isHomeOrFamilyDevice = home.value === "home" || useSyncStore().isFamilyDevice;
+    return enabled.value && isHomeOrFamilyDevice;
+  };
 
   /** What the device keeps, loaded */
   async function loaded(): Promise<FamilyEventsState> {
@@ -532,7 +539,11 @@ export const useFamilyStore = defineStore("family", () => {
       const { familyId, deviceId } = await ensureIdentity();
       const answer = await bindFamily(auth, familyId, deviceId);
       problem.value = null;
-      await setHome(HOME_OF_ANSWER[answer] ?? "unknown");
+      const answered = HOME_OF_ANSWER[answer] ?? "unknown";
+      await setHome(answered);
+      // A Pro family is not asked the home question: every Game Master device is a family device (the sync spec, section 8)
+      const isProFamilyDevice = answered === "home-elsewhere" && useSyncStore().isOn;
+      if (isProFamilyDevice) await setHome("home");
       await registerHeroes();
       // Home, and the site took the heroes: the cards that changed (all of them, the first time) go in the queue
       const isHomeAndWell = home.value === "home" && problem.value === null;
@@ -661,11 +672,12 @@ export const useFamilyStore = defineStore("family", () => {
     }
   }
 
-  /** Clears the device record and leaves kid mode */
+  /** Clears the device record and leaves kid mode; Family Sync's queue, numbers and turns go with the link */
   async function forgetDevice(): Promise<void> {
     await getHeroDeviceDb().clearDevice();
     await phone.clear();
     device.value = null;
+    await useSyncStore().reset();
   }
 
   /** Generates a new link code for a hero */
@@ -707,6 +719,24 @@ export const useFamilyStore = defineStore("family", () => {
   }
 
   // --- Starting ---
+
+  /** One download round: the events, then the phone list, then the sheets */
+  function downloadRound(): Promise<void> {
+    return (
+      download()
+        // A phone linked since the last round must be in the list before the sheets are compared (read only where they are sent)
+        .then(() => (canQueue() ? loadPhones() : undefined))
+        // Quests open and close with the clock, so the sheets are compared on every round too
+        .then(() => queueSheets())
+    );
+  }
+
+  /** Starts Family Sync; a failure to load what it kept is logged and never stops the family store */
+  async function startSync(): Promise<void> {
+    await useSyncStore()
+      .init()
+      .catch((error) => debug.warn("family: could not start the sync", error));
+  }
 
   /** Everything init started listening to, stopped when the store goes */
   const stops: (() => void)[] = [];
@@ -791,12 +821,10 @@ export const useFamilyStore = defineStore("family", () => {
       stops.push(() => document.removeEventListener("visibilitychange", onVisibilityChange));
     }
     const interval = setInterval(() => {
-      download()
-        // A phone linked since the last round must be in the list before the sheets are compared
-        .then(() => loadPhones())
-        // Quests open and close with the clock, so the sheets are compared on every round too
-        .then(() => queueSheets())
-        .catch((error) => debug.warn("family: periodic download failed", error));
+      // A Pro family's round rides on the sync store's minute tick: one tick for both
+      const isOnSyncTick = useSyncStore().isOn;
+      if (isOnSyncTick) return;
+      downloadRound().catch((error) => debug.warn("family: periodic download failed", error));
     }, DOWNLOAD_INTERVAL_MS);
     stops.push(() => clearInterval(interval));
   }
@@ -839,6 +867,7 @@ export const useFamilyStore = defineStore("family", () => {
         if (isKidDevice) {
           await refreshCard().catch((error) => debug.warn("family: could not refresh card", error));
           await phone.load();
+          await startSync();
           listenAsPhone();
           phone.sync().catch((error) => debug.warn("family: the first phone sync failed", error));
           return;
@@ -846,6 +875,7 @@ export const useFamilyStore = defineStore("family", () => {
         await townHall.init();
         await load();
         listen();
+        await startSync();
         started = true;
         bind()
           .then(() => flush())
@@ -894,6 +924,7 @@ export const useFamilyStore = defineStore("family", () => {
     queueCards,
     flush,
     download,
+    downloadRound,
     claim,
     refreshCard,
     forgetDevice,
