@@ -20,8 +20,14 @@ export interface TurnContext {
   /** Reads to the newest record from inside the lane (a confirm, before a send); false when it could not get there */
   readHere(): Promise<boolean>;
   flush(): Promise<void>;
-  /** Drops every queued record of the hero and its change marks: they can never be written */
+  /** Drops every queued record of the hero and its change marks (the pending claims among them go again, phone-style) */
   dropHero(heroId: string): Promise<void>;
+  /**
+   * The hero was granted here (section 5, "The holder's copy is the truth"): when this device changed it without the turn
+   * (its records wait here: offline play, Play here, the sync off), every record of the hero it holds is queued, so its
+   * copy goes up whole and nothing of the site's lands over it; answers whether it did
+   */
+  ownCopy(heroId: string): Promise<boolean>;
   /** A turn changed: the store saves what a restart needs (`storedTurnsOf`) */
   turnsChanged(): void;
   /** The site answered a turn call */
@@ -48,6 +54,8 @@ export interface HeroTurns {
   keepsLocal(heroId: string): boolean;
   /** Whether a queued record may go now: a family record always, a hero's while held here and confirmed by the site */
   maySendNow(heroId: string | null): boolean;
+  /** The player said Not now to the hero's busy turn here: this device knows another device holds it, until it is asked again */
+  isDeclined(heroId: string): boolean;
   signIn(heroId: string): Promise<TurnAnswer>;
   takeOver(heroId: string): Promise<void>;
   rest(heroId: string): Promise<void>;

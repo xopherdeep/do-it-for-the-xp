@@ -5,7 +5,7 @@ import { fetchRecords, putRecords, type ReceivedRecord } from "@/lib/services/sy
 import type { LocalChanges } from "@/lib/services/sync/localChanges";
 import { applyRecords, readRawEntries, readRawRecord, refreshMirrors, type ApplyOutcome } from "@/lib/services/sync/recordApply";
 import { dropItems, dropWhere, nextBatch, settlePut, type BatchRecord } from "@/lib/services/sync/recordOutbox";
-import { SYNC_STORES } from "@/lib/services/sync/syncScopes";
+import { heroIdOf, SYNC_STORES } from "@/lib/services/sync/syncScopes";
 import { batchRecordOf, cursorAfter, emptyOutcome, firstPushRefs, mergeOutcomes, queueAll, recordId, type StoreEntry } from "@/lib/services/sync/syncQueue";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import debug from "@/lib/utils/debug";
@@ -84,6 +84,8 @@ export interface RecordTransfer {
   readToEnd(): Promise<boolean>;
   /** A hero was taken over: its queued records leave the outbox for good, and stop holding the download back; answers them */
   dropHero(heroId: string): Promise<OutboxItem[]>;
+  /** Every record of the hero this device holds goes in the outbox: its copy goes up whole (the holder's copy is the truth) */
+  queueHero(heroId: string): Promise<void>;
   /** The device left the family: the bodies kept for the first push go */
   forget(): void;
 }
@@ -329,5 +331,12 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     return dropped;
   };
 
-  return { upload, download, round, catchUp, readToEnd, dropHero, forget: () => received.clear() };
+  const queueHero = async (heroId: string): Promise<void> => {
+    const refs = (await everyEntry())
+      .filter(({ store, key, value }) => heroIdOf(store, key, value) === heroId)
+      .map(({ store, key }) => ({ store, key, heroId }));
+    await ctx.update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()) }), ctx.generation());
+  };
+
+  return { upload, download, round, catchUp, readToEnd, dropHero, queueHero, forget: () => received.clear() };
 };

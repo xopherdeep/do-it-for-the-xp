@@ -1496,12 +1496,14 @@ describe("the sync store", () => {
     expect(restHero).not.toHaveBeenCalled();
   });
 
-  it("an offline hold the site answers busy keeps its play until the player answers: Not now yields, Play here sends", async () => {
+  it("an offline hold the site answers busy keeps its play until the player answers: Not now drops it, Play here sends it whole", async () => {
     jest.useFakeTimers();
     const sync = await started();
     playHero.mockRejectedValue(new TownHallError("offline"));
     await sync.signIn("h-1");
     await sync.signIn("h-2");
+    // h-2 had an older record before the offline play; it is part of the copy that becomes the truth
+    mockStores.__questLog = { q5: { id: "q5", userId: "h-2", status: "before" } };
     const offlinePlay = { id: "q1", userId: "h-1", status: "offline play" };
     write("__questLog", "q1", offlinePlay);
     write("__questLog", "q2", { id: "q2", userId: "h-2", status: "offline play" });
@@ -1525,17 +1527,40 @@ describe("the sync store", () => {
     expect(mockStores.__questLog.q1).toEqual(offlinePlay);
     expect(sync.state.lastSeq).toBe(5);
 
-    // Not now: the holder's copy lands and the offline change is dropped
+    // Not now: the device holding the hero is the truth; the offline play goes at once, and the holder's copy lands
     await sync.rest("h-1");
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q2"]);
     fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 6, fromPhone, { heroId: "h-1" })]);
     await sync.download();
     expect(mockStores.__questLog.q1).toEqual(fromPhone);
-    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q2"]);
 
-    // Play here: the offline play goes up
+    // Play here: this device's copy of h-2 is the truth: all of it goes up before anything is read, and the read lands
+    // only what this device does not hold (the tablet's new q6); its own rows come back and are skipped
+    const order: string[] = [];
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      order.push(`put ${records.map((record) => record.key).sort().join(",")}`);
+      return acceptAll(auth, device, records);
+    });
+    const fromTablet = { id: "q6", userId: "h-2", status: "tablet" };
+    fetchRecords.mockImplementation(async () => {
+      order.push("read");
+      return [];
+    });
+    fetchRecords.mockImplementationOnce(async () => {
+      order.push("read");
+      return [
+        received("__questLog", "q2", 1000, { id: "q2", userId: "h-2", status: "offline play" }, { heroId: "h-2", deviceId: OWN }),
+        received("__questLog", "q6", 1002, fromTablet, { heroId: "h-2" }),
+      ];
+    });
     await sync.takeOver("h-2");
     expect(sync.turns["h-2"]).toEqual({ state: "held", busy: null, provisional: false });
-    expect(sent().map((record) => record.key)).toEqual(["q2"]);
+    expect(order[0]).toBe("put q2,q5");
+    expect(order[1]).toBe("read");
+    expect(mockStores.__questLog.q2).toEqual({ id: "q2", userId: "h-2", status: "offline play" });
+    expect(mockStores.__questLog.q5).toEqual({ id: "q5", userId: "h-2", status: "before" });
+    expect(mockStores.__questLog.q6).toEqual(fromTablet);
+    expect(sync.state.outbox).toEqual([]);
   });
 
   it("a hero the site does not know loses its queued records once this device no longer has it", async () => {
@@ -2067,13 +2092,33 @@ describe("the sync store", () => {
     expect(sync.state.waitingEvents).toEqual({});
   });
 
-  it("a confirm that cannot catch up does not grant or send; one that can lands what came meanwhile over the offline play, then sends", async () => {
+  it("a confirmed offline hold is the truth: its whole copy goes up before anything is read, and nothing of the site's lands over it", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    mockStores.__questLog = { q0: { id: "q0", userId: "h-1", status: "before" } };
+    playHero.mockRejectedValue(new TownHallError("offline"));
+    expect(await sync.signIn("h-1")).toBe("offline");
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "offline play" });
+    await drain();
+
+    // back online: granted. No read first: the offline play is the hero's copy now
+    playHero.mockReset();
+    playHero.mockResolvedValue({ answer: "granted" });
+    fetchRecords.mockClear();
+    window.dispatchEvent(new Event("online"));
+    await tick(0);
+
+    expect(sync.turns["h-1"]).toMatchObject({ state: "held", provisional: false });
+    expect(putRecords.mock.calls[0][2].map((record: WireRecord) => record.key).sort()).toEqual(["q0", "q1"]);
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(fetchRecords.mock.invocationCallOrder[0]);
+    expect(mockStores.__questLog.q1).toEqual({ id: "q1", userId: "h-1", status: "offline play" });
+  });
+
+  it("a confirmed hold with nothing played offline reads to the newest record first, and stays provisional until it can", async () => {
     jest.useFakeTimers();
     const sync = await started();
     playHero.mockRejectedValue(new TownHallError("offline"));
     expect(await sync.signIn("h-1")).toBe("offline");
-    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "offline play" });
-    write("__questLog", "q2", { id: "q2", userId: "h-1", status: "offline play" });
 
     // the site answers again, but the read breaks off before the newest record
     playHero.mockReset();
@@ -2082,20 +2127,16 @@ describe("the sync store", () => {
     fetchRecords.mockResolvedValueOnce([received("__beasts", "b1", 6)]).mockRejectedValue(new TownHallError("offline"));
     window.dispatchEvent(new Event("online"));
     await tick(0);
-
     expect(sync.turns["h-1"]).toMatchObject({ state: "held", provisional: true });
-    expect(sent().map((record) => record.key)).toEqual([]);
 
-    // the read gets through: the tablet's copy of q1, written while this device played offline, lands over it first
+    // the read gets through: the tablet's copy, written while this device held the hero offline, lands, then it is held
     const fromTablet = { id: "q1", userId: "h-1", status: "tablet" };
     fetchRecords.mockReset();
     fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 7, fromTablet, { heroId: "h-1" })]).mockResolvedValue([]);
     window.dispatchEvent(new Event("online"));
     await tick(0);
-
     expect(sync.turns["h-1"]).toMatchObject({ state: "held", provisional: false });
     expect(mockStores.__questLog.q1).toEqual(fromTablet);
-    expect(sent().map((record) => record.key)).toEqual(["q2"]);
   });
 
   it("a fresh phone whose first reads are empty marks the moment before them, so a claim received since is taken", async () => {

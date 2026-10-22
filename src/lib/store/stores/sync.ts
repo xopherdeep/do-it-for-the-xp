@@ -267,6 +267,12 @@ export const useSyncStore = defineStore("sync", () => {
     flush,
     // The pending claims a takeover drops unsent go again, phone-style (sync/verdicts.ts)
     dropHero: async (heroId) => verdicts.resendDropped(await transfer.dropHero(heroId)),
+    ownCopy: async (heroId) => {
+      await writing;
+      const isPlayedWithoutTurn = waitingHeroes().includes(heroId);
+      if (isPlayedWithoutTurn) await transfer.queueHero(heroId);
+      return isPlayedWithoutTurn;
+    },
     // Saved for a restart only when what a restart needs changed (held or not), never for each ask; worked out as the save
     // runs, against what was saved before it, so a quick held, resting, held never leaves the middle one saved
     turnsChanged: () => {
@@ -281,7 +287,7 @@ export const useSyncStore = defineStore("sync", () => {
       pauses.connectionBack();
     },
     notPro: (error) => void noteFailure(error),
-    waiting: () => Array.from(new Set(state.value.outbox.flatMap((item) => (item.heroId === null ? [] : [item.heroId])))),
+    waiting: () => waitingHeroes(),
     current: () => currentHero(),
     hasHero: (heroId) => Boolean(user.users?.[heroId]),
     mayLend: () => isOn.value && !pauses.isPaused(),
@@ -301,6 +307,9 @@ export const useSyncStore = defineStore("sync", () => {
     tellPhone: (heroId, settled) => family.tellPhone(heroId, settled),
     retakeEvents: (events) => family.retakeEvents(events),
   });
+
+  /** The heroes whose records wait in the outbox, in queue order */
+  const waitingHeroes = (): string[] => Array.from(new Set(state.value.outbox.flatMap((item) => (item.heroId === null ? [] : [item.heroId]))));
 
   /** The hero signed in on this device, if any; before the profiles load, the one the app will sign in again */
   const currentHero = (): string | null => {
