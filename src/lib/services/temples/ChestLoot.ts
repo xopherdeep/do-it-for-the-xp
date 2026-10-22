@@ -143,6 +143,7 @@ const KNOWN: Record<string, LootFace> = {
   potion: { name: 'Potion', icon: 'flask-potion', blurb: 'Restores HP. Goes in your bag.', tier: 'supply' },
   ether: { name: 'Ether', icon: 'flask', blurb: 'Restores MP. Goes in your bag.', tier: 'supply' },
   elixir: { name: 'Elixir', icon: 'flask-poison', blurb: 'Restores HP and MP. Goes in your bag.', tier: 'supply' },
+  bomb: { name: 'Bomb', icon: 'bomb', blurb: 'Blows open a cracked wall. Goes in your bag.', tier: 'supply' },
 };
 
 /** The relics behind each temple's boss, by the name the temple gives them. */

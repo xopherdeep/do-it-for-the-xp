@@ -366,6 +366,17 @@ describe("contentAfterTypeChange", () => {
     expect(contentAfterTypeChange("miniboss", "monster", monster)).toEqual(monster);
   });
 
+  it("keeps what a beast drops between combat rooms, so a retype or a quest swap to another tier does not wipe it", () => {
+    const drops = { chest: "dungeon", dungeon: "master-key", items: ["Bomb"], gold: 30 };
+    const monster: RoomContent = { beasts: ["b1"], drops };
+    expect(contentAfterTypeChange("monster", "miniboss", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("miniboss", "monster", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("monster", "boss", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("boss", "monster", monster).drops).toEqual(drops);
+    // ...and it never rides into a room that does not fight
+    expect(contentAfterTypeChange("monster", "loot", monster)).not.toHaveProperty("drops");
+  });
+
   it("seals a boss and lets go of the seal when the room stops being one: the boss template put it there, not the Game Master", () => {
     expect(contentAfterTypeChange("monster", "boss", { beasts: ["b1"], lockOnEnter: false }).lockOnEnter).toBe(true);
     expect(contentAfterTypeChange("empty", "boss", {}).lockOnEnter).toBe(true);

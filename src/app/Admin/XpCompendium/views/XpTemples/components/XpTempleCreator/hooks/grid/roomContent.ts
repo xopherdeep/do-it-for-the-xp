@@ -132,7 +132,7 @@ const SHARED_TOKEN_TYPES = ["wall", "entrance"];
 const CARRIED_WITHIN_FAMILY: { types: readonly string[]; keys: readonly string[] }[] = [
   {
     types: COMBAT_ROOM_TYPES,
-    keys: ["difficulty", "xp", "gp", "ap", "lockOnEnter", "quest", "questId", "questIds"],
+    keys: ["difficulty", "xp", "gp", "ap", "lockOnEnter", "quest", "questId", "questIds", "drops"],
   },
   { types: PEGASUS_ROOM_TYPES, keys: ["dungeon"] },
 ];
@@ -142,7 +142,8 @@ const copyOf = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 /**
  * The content a room has once its type changes from `fromType` to `toType`: built from the new type's template, so
  * it keeps only what the new type owns. The name always stays; beasts stay in a combat room; the fight (rewards, seal,
- * quest) stays between combat rooms and the Pegasus pick between the egg rooms. A seal never outlives a fight, and
+ * quest) and what its beast drops stay between combat rooms (a quest swapped to another tier retypes the room, and
+ * the drop stays with the fight) and the Pegasus pick between the egg rooms. A seal never outlives a fight, and
  * leaving the boss lets go of the one the boss template put there; a boss is always sealed. A chest never moves to
  * another type, so a Boss Key cannot ride along into a miniboss that the audit then counts. The wall and the entrance
  * start empty. The same type keeps all of its content. The content given is not changed.
