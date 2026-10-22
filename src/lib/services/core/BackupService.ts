@@ -21,6 +21,7 @@ import { notificationsStorage } from "@/lib/databases/NotificationsDb";
 import { saveBackupFile, type SavedBackupFile } from "@/lib/services/core/backupFile";
 import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
 import { canRestoreHere } from "@/lib/services/core/restoreAccess";
+import { emitStoreRestored } from "@/lib/services/sync/recordSignals";
 import { RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -245,6 +246,12 @@ const replaceEntries = async (storage: BackupStorage, entries: readonly BackupEn
   await writeEntries(storage, entries);
 };
 
+/** The keys a store held before a restore that the restored records do not carry */
+const keysDroppedBy = (before: readonly BackupEntry[], after: readonly BackupEntry[]): string[] => {
+  const kept = new Set(after.map((entry) => entry.key));
+  return before.filter((entry) => !kept.has(entry.key)).map((entry) => entry.key);
+};
+
 const parseEntries = (store: string, entries: unknown): BackupEntry[] => {
   if (!Array.isArray(entries)) {
     throw new BackupFormatError(`"${store}" must be a list of entries.`);
@@ -449,6 +456,12 @@ export class BackupService {
         failed.name,
         notRestored.length === 0
       );
+    }
+
+    // Announced only now, so a restore that was rolled back announces nothing. A merge keeps every record, so it removed none
+    for (const store of plan) {
+      const removedKeys = mode === "merge" ? [] : keysDroppedBy(snapshots.get(store.name) ?? [], backup.stores[store.name]);
+      emitStoreRestored({ store: store.name, removedKeys });
     }
 
     // 4. Only now that every store is written: refresh mirrored copies, then rebuild the user store

@@ -31,6 +31,7 @@ import { familySettingsStorage } from "@/lib/databases/FamilySettingsDb";
 import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
 import { notificationsStorage } from "@/lib/databases/NotificationsDb";
 import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
+import { onStoreRestored, type StoreRestored } from "@/lib/services/sync/recordSignals";
 
 // Every database module is swapped for a sentinel storage: the registry spec only has to see WHICH
 // storage sits on which line. All behaviour specs inject in-memory fakes through the constructor.
@@ -839,6 +840,65 @@ describe("restoreBackup in merge mode", () => {
       BackupPermissionError
     );
     await expect(service.restoreBackup("not json", { mode: "merge" })).rejects.toBeInstanceOf(BackupFormatError);
+    expect(fakes.__beasts.contents()).toEqual(seed.__beasts);
+  });
+});
+
+describe("restoreBackup announces what it did to each store", () => {
+  const seed = { __beasts: { a: { id: "a" }, b: { id: "b" } } };
+  const fileWithOnlyA = backupOf({ __beasts: [["a", { id: "a", name: "From the file" }]] });
+
+  /** Collects every storeRestored signal until stop() */
+  const listen = () => {
+    const heard: StoreRestored[] = [];
+    const stop = onStoreRestored((restored) => heard.push(restored));
+    return { heard, stop };
+  };
+
+  it("a replace restore emits storeRestored with the keys the file did not carry", async () => {
+    const { service } = makeWorld(seed);
+    const { heard, stop } = listen();
+
+    await service.restoreBackup(fileWithOnlyA);
+    stop();
+
+    expect(heard).toEqual([{ store: "__beasts", removedKeys: ["b"] }]);
+  });
+
+  it("a merge restore emits none removed", async () => {
+    const { service } = makeWorld(seed);
+    const { heard, stop } = listen();
+
+    await service.restoreBackup(fileWithOnlyA, { mode: "merge" });
+    stop();
+
+    expect(heard).toEqual([{ store: "__beasts", removedKeys: [] }]);
+  });
+
+  it("announces each store the file carries, in restore order, and none it leaves alone", async () => {
+    const { service } = makeWorld({ ...seed, __questLog: { q1: { id: "q1" } } });
+    const { heard, stop } = listen();
+
+    await service.restoreBackup(backupOf({ __questLog: [], __beasts: [["a", { id: "a" }]] }));
+    stop();
+
+    expect(heard).toEqual([
+      { store: "__beasts", removedKeys: ["b"] },
+      { store: "__questLog", removedKeys: ["q1"] },
+    ]);
+  });
+
+  it("announces nothing when a store fails and the earlier ones are put back", async () => {
+    const { service, fakes } = makeWorld({ ...seed, __questLog: { q1: { id: "q1" } } });
+    fakes.__questLog.failSetOnCall = 1;
+    const { heard, stop } = listen();
+
+    await expect(
+      service.restoreBackup(backupOf({ __beasts: [["a", { id: "a" }]], __questLog: [["q2", { id: "q2" }]] }))
+    ).rejects.toBeInstanceOf(BackupStorageError);
+    stop();
+
+    expect(heard).toEqual([]);
     expect(fakes.__beasts.contents()).toEqual(seed.__beasts);
   });
 });

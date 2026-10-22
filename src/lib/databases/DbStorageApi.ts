@@ -1,5 +1,15 @@
 import { Storage } from "@ionic/storage"
 import { toastController } from "@ionic/vue";
+import { emitRecordWritten } from "@/lib/services/sync/recordSignals";
+
+/**
+ * What the sync layer calls this store: the name the Storage was created with. Ionic Storage 4 keeps its config private (`_config`) and
+ * has no public getter, so it is read from there; a storage that cannot tell gives "".
+ */
+const storeNameOf = (storage: Storage): string => {
+  const { _config: config } = storage as unknown as { _config?: { name?: string } };
+  return config?.name ?? "";
+};
 
 export class DbStorageApi {
   constructor(public storage: Storage) {
@@ -14,7 +24,9 @@ export class DbStorageApi {
   }
 
   public async set(key: string, value: any) {
-    await this.storage.set(key, this.flatten(value));
+    const flat = this.flatten(value);
+    await this.storage.set(key, flat);
+    emitRecordWritten({ store: storeNameOf(this.storage), key, value: flat });
   }
 
   public async get(key: string) {
@@ -23,10 +35,15 @@ export class DbStorageApi {
 
   public async remove(key: string) {
     await this.storage.remove(key);
+    emitRecordWritten({ store: storeNameOf(this.storage), key, value: null });
   }
 
   public async clear() {
+    // The keys are read first: once the store is empty there is nothing left to name
+    const keys = await this.storage.keys();
     await this.storage.clear();
+    const store = storeNameOf(this.storage);
+    keys.forEach((key) => emitRecordWritten({ store, key, value: null }));
   }
 
   public async keys() {
