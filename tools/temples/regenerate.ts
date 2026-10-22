@@ -83,15 +83,6 @@ const PLANS: Record<string, Plan> = {
     },
     trap: ["moonquake", 5], puzzle: "generic", relics: ["Lunar Pendant", "Moon Shard"],
   },
-  "shadow-temple": {
-    name: "Shadow Temple", theme: "swamps", element: "shadow", floors: 3,
-    quests: {
-      monsters: [["plate-pixie", 1, "daily"], ["gravy-ghoul", 1, "daily"], ["mug-thug", 1, "daily"], ["crumb-gremlin", 1, "daily"], ["cupboard-kobold", 2, "daily am"], ["dish-goblin", 2, "daily"], ["garbage-gargoyle", 2, "weekly"]],
-      minibosses: [["stickyfoot-slime", 5, "weekly"]],
-      boss: ["grease-gorgon", 8, "weekly"],
-    },
-    trap: ["voidTrap", 8], puzzle: "shadowReflection", shop: "ShadowVeil", relics: ["Void Dagger"],
-  },
 };
 
 /** The seed is the temple's id; the rest is what makes the layout short and kind: a handful of rooms a floor, one lock a floor pair. */

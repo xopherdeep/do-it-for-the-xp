@@ -99,6 +99,31 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibossRooms: ["Swamp Trench 2 Blocks"],
     boss: ["potty-poltergeist", 8, "weekly"],
   },
+  // The Palace of Darkness (the swamps keep it; Misery Mire was offered and not chosen): kitchen chores. Five must-clear
+  // rooms take today's four starters (set and clear the table, the crumbs, the dishwasher), then the Mug Thug; the
+  // rest leave. The Arena before the Big Chest leaves the Big Key in reach, so the Stickyfoot Slime takes the Middle
+  // Cage, the one sealed room it lies behind; the Grease Gorgon waits in the basement.
+  "shadow-temple": {
+    name: "Shadow Temple",
+    theme: "swamps",
+    element: "shadow",
+    relic: "Void Dagger",
+    shop: "ShadowVeil",
+    trap: ["voidTrap", 8],
+    puzzle: "shadowReflection",
+    mustClear: [
+      ["plate-pixie", 1, "daily"],
+      ["gravy-ghoul", 1, "daily"],
+      ["crumb-gremlin", 1, "daily"],
+      ["dish-goblin", 2, "daily"],
+      ["mug-thug", 1, "daily"],
+      ["cupboard-kobold", 2, "daily am"],
+      ["garbage-gargoyle", 2, "weekly"],
+    ],
+    minibosses: [["stickyfoot-slime", 5, "weekly"]],
+    minibossRooms: ["PoD Middle Cage"],
+    boss: ["grease-gorgon", 8, "weekly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);

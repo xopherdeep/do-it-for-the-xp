@@ -186,16 +186,43 @@ describe("the classic dungeon temples", () => {
       }
     });
 
-    it("seals a many-screen must-clear room at the screen that fights: blocking that screen blocks the room as a passage", () => {
+    /** The converted cells the JSON reaches from the entrance, never entering `blocked` (locks ignored, stairs both ways, holes and warps one way) */
+    const jsonReach = (blocked: ReadonlySet<string>): Set<string> => {
+      const byKey = new Map(cells.map((entry) => [roomKey({ floor: entry.floor, row: entry.cell.row, col: entry.cell.col }), entry]));
+      const start = cells.find(({ cell }) => cell.entrance)!;
+      const seen = new Set([roomKey({ floor: start.floor, row: start.cell.row, col: start.cell.col })]);
+      const queue = [...seen];
+      while (queue.length) {
+        const { floor, cell } = byKey.get(queue.shift()!)!;
+        const ways = DIRS.filter((dir) => cell.sides[dir] !== "wall").map((dir) => ({ floor, row: cell.row + STEP[dir][0], col: cell.col + STEP[dir][1] }));
+        const links = [cell.stairs, cell.hole, cell.teleport].filter((link) => Boolean(link)).map((link) => ({ floor: link!.to, row: link!.row, col: link!.col }));
+        for (const next of [...ways, ...links].map(roomKey)) {
+          const isNew = byKey.has(next) && !seen.has(next) && !blocked.has(next);
+          if (isNew) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return seen;
+    };
+
+    // The Palace of Darkness's Middle Cage opens both its screens on the lobby: its second screen and the stairs in it
+    // are reached without the fight in the JSON itself, so the dressed temple is held to the JSON, not to a sealed room
+    it("seals a many-screen must-clear room at the screen that fights: blocking that screen opens no more of the dungeon around the room than the JSON does", () => {
+      const convertedOf = new Map(cells.map(({ floor, cell }) => [roomKey(nowAt(floor, cell.row, cell.col)), roomKey({ floor, row: cell.row, col: cell.col })]));
+      const dressedReach = (blocked: Set<string>): Set<string> =>
+        new Set(reachableFrom(graph, graph.entrance!, blocked).flatMap((key) => (convertedOf.has(key) ? [convertedOf.get(key)!] : [])));
       for (const name of lttpRooms.filter(isMustClearRoom)) {
-        const screens = cellsOf(name).map((screen) => nowAt(dungeon.floors.find((level) => level.cells.includes(screen))!.name, screen.row, screen.col));
+        const screens = cells.filter(({ cell }) => cell.room === name);
         const isOneScreen = screens.length === 1;
         if (isOneScreen) continue;
+        const own = screens.map(({ floor, cell }) => roomKey({ floor, row: cell.row, col: cell.col }));
         const fight = fightOf(name)!;
-        const outside = (keys: string[]) => keys.filter((key) => !screens.some((screen) => roomKey(screen) === key)).sort();
-        const withoutFight = outside(reachableFrom(graph, graph.entrance!, new Set([roomKey(fight.at)])));
-        const withoutRoom = outside(reachableFrom(graph, graph.entrance!, new Set(screens.map(roomKey))));
-        expect({ room: name, beyond: withoutFight }).toEqual({ room: name, beyond: withoutRoom });
+        const around = (withoutFight: Set<string>, withoutRoom: Set<string>): string[] => [...withoutFight].filter((key) => !withoutRoom.has(key) && !own.includes(key));
+        const dressed = around(dressedReach(new Set([roomKey(fight.at)])), dressedReach(new Set(screens.map(({ floor, cell }) => roomKey(nowAt(floor, cell.row, cell.col))))));
+        const converted = around(jsonReach(new Set([roomKey(fight.origin!)])), jsonReach(new Set(own)));
+        expect({ room: name, beyond: dressed.filter((key) => !converted.includes(key)).sort() }).toEqual({ room: name, beyond: [] });
       }
     });
 
