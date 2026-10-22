@@ -5,6 +5,8 @@ import {
   emitStoreRestored,
   onRecordWritten,
   onStoreRestored,
+  trackWrite,
+  writesSettled,
   type RecordWrite,
   type StoreRestored,
 } from "@/lib/services/sync/recordSignals";
@@ -189,5 +191,28 @@ describe("the record signals", () => {
     expect(debug.error).toHaveBeenCalled();
     stopBad();
     stopNext();
+  });
+
+  it("notes every write while it is on its way: writesSettled waits for a set and a remove, and for a failed one too", async () => {
+    const api = await openApi("__beasts");
+    let isDone = false;
+    const writing = api.set("w", { id: "w" }).then(() => (isDone = true));
+    await writesSettled();
+    expect(isDone).toBe(true);
+    await writing;
+
+    let release!: () => void;
+    const held = trackWrite(new Promise<void>((resolve) => (release = resolve)));
+    let isSettled = false;
+    const waiting = writesSettled().then(() => (isSettled = true));
+    await Promise.resolve();
+    expect(isSettled).toBe(false);
+    release();
+    await held;
+    await waiting;
+    expect(isSettled).toBe(true);
+
+    void trackWrite(Promise.reject(new Error("disk full"))).catch(() => undefined);
+    await expect(writesSettled()).resolves.toBeUndefined();
   });
 });

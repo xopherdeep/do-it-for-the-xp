@@ -1,6 +1,6 @@
 import { Storage } from "@ionic/storage"
 import { toastController } from "@ionic/vue";
-import { emitRecordWritten } from "@/lib/services/sync/recordSignals";
+import { emitRecordWritten, trackWrite } from "@/lib/services/sync/recordSignals";
 import { isSyncedStore } from "@/lib/services/sync/syncScopes";
 
 /**
@@ -24,17 +24,26 @@ export class DbStorageApi {
     return JSON.parse(JSON.stringify(value))
   }
 
-  public async set(key: string, value: any) {
+  /** Every write is noted while it is on its way (Family Sync's rest waits for it), then announced */
+  public set(key: string, value: any): Promise<void> {
     const flat = this.flatten(value);
-    await this.storage.set(key, flat);
-    emitRecordWritten({ store: storeNameOf(this.storage), key, value: flat });
+    return trackWrite(
+      (async () => {
+        await this.storage.set(key, flat);
+        emitRecordWritten({ store: storeNameOf(this.storage), key, value: flat });
+      })()
+    );
   }
 
   public async get(key: string) {
     return this.storage.get(key);
   }
 
-  public async remove(key: string) {
+  public remove(key: string): Promise<void> {
+    return trackWrite(this.removeNow(key));
+  }
+
+  private async removeNow(key: string) {
     const store = storeNameOf(this.storage);
     // Only a store Family Sync carries is read first (once the record is gone there is nothing left to name its hero from);
     // the others (claim photos, this device's settings) are never read for it

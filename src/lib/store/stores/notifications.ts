@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { onScopeDispose, reactive } from "vue";
 import { getNotificationsDb } from "@/lib/databases/NotificationsDb";
-import { onRecordsLanded } from "@/lib/services/sync/recordSignals";
+import { onRecordsLanded, trackWrite } from "@/lib/services/sync/recordSignals";
 import debug from "@/lib/utils/debug";
 import {
   MAX_NOTIFICATIONS_PER_HERO,
@@ -113,7 +113,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     pendingPersist.add(String(heroId));
     if (persistScheduled) return;
     persistScheduled = true;
-    queueMicrotask(() => void flushPersist());
+    // Noted as on its way from now: a hero's turn is not given back before a notice written a moment ago is saved
+    void trackWrite(new Promise<void>((resolve) => queueMicrotask(() => void flushPersist().then(resolve, resolve))));
   }
 
   // --- actions ---

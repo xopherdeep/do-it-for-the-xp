@@ -2,7 +2,8 @@
  * Small signals for Family Sync: a record was written or removed, and a backup restore rewrote a whole store (the storage layer
  * raises both; the sync store listens), and records another device wrote landed in a store (the sync store raises it after a
  * download; the copies held in memory, such as a temple run, a notification feed or the chat rooms, read them again).
- * DbStorageApi and BackupService only say what happened. This file imports nothing from stores or databases (DbStorageApi and
+ * DbStorageApi and BackupService only say what happened. The writes still on their way are noted too (`trackWrite`), so a
+ * rest can wait for a change made a moment ago before it gives a hero's turn back. This file imports nothing from stores or databases (DbStorageApi and
  * the temple engine import it), so no cycle can form. Built with the emitter gameSignals.ts uses: a listener that throws is
  * logged and never breaks the write, nor the listeners after it.
  */
@@ -42,3 +43,21 @@ export const onStoreRestored = storeRestored.on;
 export const emitStoreRestored = storeRestored.emit;
 export const onRecordsLanded = recordsLanded.on;
 export const emitRecordsLanded = recordsLanded.emit;
+
+/** Writes to the stores still on their way (a save scheduled for the end of the tick, a storage call not answered yet) */
+const writesInFlight = new Set<Promise<unknown>>();
+
+/** Notes a write on its way, until it settles; answers the same promise */
+export const trackWrite = <T>(write: Promise<T>): Promise<T> => {
+  writesInFlight.add(write);
+  const forget = (): void => {
+    writesInFlight.delete(write);
+  };
+  write.then(forget, forget);
+  return write;
+};
+
+/** Resolves once every write on its way has settled (and those they started): a rest waits for it before it uploads */
+export const writesSettled = async (): Promise<void> => {
+  while (writesInFlight.size > 0) await Promise.allSettled(Array.from(writesInFlight));
+};

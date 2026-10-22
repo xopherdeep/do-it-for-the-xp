@@ -7,7 +7,7 @@ import { TownHallError } from "@/lib/services/townhall/townHallClient";
 import * as client from "@/lib/services/sync/familySyncClient";
 import type { ReceivedRecord, WireRecord } from "@/lib/services/sync/familySyncClient";
 import * as server from "@/lib/services/multiplayer/familyServer";
-import { emitRecordWritten, emitStoreRestored, onRecordsLanded, type RecordsLanded } from "@/lib/services/sync/recordSignals";
+import { emitRecordWritten, emitStoreRestored, onRecordsLanded, trackWrite, type RecordsLanded } from "@/lib/services/sync/recordSignals";
 import { removePack, type PackDeps, type PackStorage } from "@/lib/services/core/packs/packService";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { emptySyncState, type SyncState } from "@/lib/databases/SyncDb";
@@ -1514,6 +1514,22 @@ describe("the sync store", () => {
     expect(putRecords.mock.invocationCallOrder[1]).toBeLessThan(restHero.mock.invocationCallOrder[0]);
     expect(sync.turns["h-1"].state).toBe("resting");
     expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("a rest waits for a write still on its way to storage, so a change made a moment ago goes before the turn is given back", async () => {
+    const sync = await started();
+    await sync.signIn("h-1");
+    // a Game Master's bonus: the profile's save is still on its way when the borrowed turn rests
+    const gate = held();
+    void trackWrite(gate.promise.then(() => write("__profiles", "h-1", { id: "h-1", stats: { gp: 50 } })));
+    const resting = sync.rest("h-1");
+    await drain();
+    expect(restHero).not.toHaveBeenCalled();
+
+    gate.release();
+    await resting;
+    expect(sent().map((record) => record.key)).toEqual(["h-1"]);
+    expect(putRecords.mock.invocationCallOrder[0]).toBeLessThan(restHero.mock.invocationCallOrder[0]);
   });
 
   it("a rest while a pause runs sends nothing and keeps the hero held; the player picking the hero again keeps it", async () => {

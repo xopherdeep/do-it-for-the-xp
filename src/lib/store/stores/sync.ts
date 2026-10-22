@@ -6,7 +6,7 @@ import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { storedTurnsOf, type HeroTurn, type TurnState } from "@/lib/services/sync/heroTurn";
-import { onRecordWritten, onStoreRestored } from "@/lib/services/sync/recordSignals";
+import { onRecordWritten, onStoreRestored, writesSettled } from "@/lib/services/sync/recordSignals";
 import { createWorkLane, type Work } from "@/lib/services/sync/workLane";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useFamilyStore } from "@/lib/store/stores/family";
@@ -269,8 +269,9 @@ export const useSyncStore = defineStore("sync", () => {
     isOn: () => isOn.value,
     auth: () => (isOn.value ? syncAuth() : null),
     label: () => deviceLabel.value,
-    // Waits for the writes just queued (a verdict's pay, the last move before Save & Quit), then sends
+    // Waits for the writes on their way and just queued (a verdict's pay, a bonus, the last move before Save & Quit), then sends
     upload: async () => {
+      await writesSettled();
       await writing;
       await upload();
     },
