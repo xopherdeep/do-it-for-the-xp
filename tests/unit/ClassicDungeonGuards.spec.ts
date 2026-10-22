@@ -265,10 +265,9 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
     it("puts whatever leaves a sealed fight's cell where the hero walks only through that fight, or in front of it when a link brings the hero in", () => {
       for (const move of report.moves.filter((entry) => !ADDED_OF_ITS_OWN.has(entry.what) && temple.sealed.has(keyOf(entry.from)))) {
         const [fight, room] = [keyOf(move.from), keyOf(move.to)];
-        // Handed out by the fight itself (a boxed-in fight's drops), or a flight or a circle that LTTP landed the hero in the fight by
-        const isHandedOut = room === fight;
-        const facesTheFight = !isHandedOut && arrivesFromBefore(temple, room, fight);
-        const placed = isHandedOut || (facesTheFight ? standsInFront(dungeon, temple, room, fight) : !reachedOnFootWithout(temple.graph, room, fight));
+        // A flight or a circle that LTTP landed the hero in the fight by (a chest a boxed-in fight hands out is no move)
+        const facesTheFight = arrivesFromBefore(temple, room, fight);
+        const placed = facesTheFight ? standsInFront(dungeon, temple, room, fight) : !reachedOnFootWithout(temple.graph, room, fight);
         expect({ what: move.what, fight, room, facesTheFight, placed }).toEqual({ what: move.what, fight, room, facesTheFight, placed: true });
       }
     });

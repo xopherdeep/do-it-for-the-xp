@@ -99,7 +99,7 @@ export interface BoardFloor {
 export interface ClassicMove {
   what: string;
   from: CellRef;
-  /** Where it went; the cell it came from when a boxed-in sealed fight hands it out once won (its drops) */
+  /** Where it went (a chest a boxed-in sealed fight hands out once won stays in its cell, in the drops: no move) */
   to: CellRef;
   /** The thing went to a room the dressing added (a wall position or a grown row or column) */
   grown: boolean;

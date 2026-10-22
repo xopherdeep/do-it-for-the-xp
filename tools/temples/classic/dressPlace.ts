@@ -372,14 +372,17 @@ const placeFor = (board: Board, floor: BoardFloor, source: Slot, item: Item, lim
 
 /**
  * Move a displaced thing where placeFor says, and report it. When placeFor hands back the source itself (a boxed-in
- * sealed fight), the fight keeps the chest or key as what it hands out once won, and the move reads from the fight to
- * the fight.
+ * sealed fight), the fight keeps the chest or key as what it hands out once won (its drops): nothing moved, so nothing
+ * is reported.
  */
 export const relocate = (board: Board, floor: BoardFloor, source: Slot, item: Item, limits: PlacementLimits = {}): Slot => {
   const slot = placeFor(board, floor, source, item, limits);
   const isHandedOut = slot === source;
-  if (isHandedOut) source.item!.holds = [...(source.item!.holds ?? []), item];
-  else slot.item = item;
+  if (isHandedOut) {
+    source.item!.holds = [...(source.item!.holds ?? []), item];
+    return slot;
+  }
+  slot.item = item;
   board.moves.push({ what: describeItem(item), from: source.at, to: slot.at, grown: !slot.cell });
   return slot;
 };

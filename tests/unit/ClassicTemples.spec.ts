@@ -384,7 +384,9 @@ describe("the classic dungeon temples", () => {
       }
     });
 
-    it("reports what moved, what merged and what was dropped, each to or from a real cell", () => {
+    it("reports what moved, what merged and what was dropped, each to or from a real cell, and no move to its own cell", () => {
+      // A chest a boxed-in fight hands out stays in its cell, in the fight's drops: no move
+      expect(report.moves.filter((move) => sameCell(move.from, move.to)).map((move) => `${move.what} ${roomKey(move.from)}`)).toEqual([]);
       for (const move of report.moves) {
         expect(roomAt(move.to.floor, move.to.row, move.to.col)?.type).not.toBe("wall");
         expect(roomAt(move.from.floor, move.from.row, move.from.col)?.type).not.toBe("wall");
