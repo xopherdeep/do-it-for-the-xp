@@ -5,7 +5,7 @@
  * - hand-made ClassicDungeon fixtures, small enough to reason about, one per dress rule.
  */
 import type { ClassicCell, ClassicDungeon, ClassicFloor, ClassicSide } from "../../tools/temples/classic/classicDungeon";
-import type { ClassicPlan } from "../../tools/temples/classic/dressPlans";
+import type { ClassicPlan, HandRoom } from "../../tools/temples/classic/dressPlans";
 
 /** The Storm Temple seed from before the Tower of Hera (src/lib/engine/temples/storm-temple.ts at 337a2dd0), verbatim */
 export const stormBeforeHera = {
@@ -414,3 +414,34 @@ export const aerie = (): ClassicDungeon =>
       cell(1, 2, "Steps", { west: "open" }, { puzzle: true, teleport: { to: "B1", row: 0, col: 0 } }),
     ]),
   ]);
+
+/**
+ * AERIE's own rooms, drawn by hand as the owner drew Wind's east wing: a row under the floor that the dungeon does not
+ * have, reached only by the circle in it, which rides to the basement. A key in the pantry, the circle, the fight that
+ * guards the Boss Key, the Boss Key.
+ *
+ *   1F row 2:  _  k  T  F  K
+ */
+export const AERIE_HAND_ROOMS: HandRoom[] = [
+  { floor: "1F", ...cell(2, 1, "Owner's Pantry", { east: "open" }, { potKey: true }) },
+  { floor: "1F", ...cell(2, 2, "Owner's Circle", { west: "open", east: "open" }, { teleport: { to: "B1", row: 0, col: 0 } }) },
+  { floor: "1F", ...cell(2, 3, "Owner's Fight", { west: "open", east: "open" }, { enemies: 1 }) },
+  { floor: "1F", ...cell(2, 4, "Owner's Key", { west: "open" }, { chest: "big-key" }) },
+];
+
+/**
+ * AERIE's plan, the Eagle's in miniature: its own rooms, the shop in the hermit's room, the hall's fight over the
+ * compass, every chore kept (one must-clear room, the Sentry, for two chores), the guard and the owner's fight the
+ * mini-bosses
+ */
+export const aeriePlan = (overrides: Partial<ClassicPlan> = {}): ClassicPlan =>
+  plan({
+    mustClear: [["mess-hog", 2, "daily"], ["piece-poltergeist", 2, "weekly"]],
+    minibosses: [["under-bed-bogey", 5, "weekly"], ["hoard-drake", 3, "weekly"]],
+    minibossRooms: ["Guard", "Owner's Fight"],
+    handRooms: AERIE_HAND_ROOMS,
+    shopAt: { floor: "1F", row: 0, col: 0 },
+    guardedChests: true,
+    keepsEveryChore: true,
+    ...overrides,
+  });

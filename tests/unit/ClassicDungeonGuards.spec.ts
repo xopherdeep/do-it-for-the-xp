@@ -363,7 +363,7 @@ describe("every classic JSON, dressed in memory under its plan", () => {
       solvable: false,
       audit: ["Boss Key"],
       reasons: [
-        "R2: the master key is out of reach after opening 1F (5,2) entrance -> 1F (4,2) monster, then 1F (1,2) monster -> 1F (0,2) miniboss, then 1F (0,2) miniboss -> 1F (0,1) puzzle, then 1F (2,2) loot -> 1F (2,3) loot, then 1F (3,1) monster -> 1F (2,1) monster: 1 key in hand, no locked door in reach",
+        "R2: the master key is out of reach after opening 1F (5,2) entrance -> 1F (4,2) monster, then 1F (1,2) monster -> 1F (0,2) miniboss, then 1F (0,2) miniboss -> 1F (0,1) teleport, then 1F (2,2) loot -> 1F (2,3) loot, then 1F (3,1) monster -> 1F (2,1) monster: 1 key in hand, no locked door in reach",
         "R4: no master key",
       ],
     },

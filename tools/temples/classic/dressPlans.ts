@@ -10,8 +10,18 @@
  */
 import { readFileSync } from "fs";
 import { join } from "path";
-import type { ClassicDungeon } from "./classicDungeon";
+import type { ClassicCell, ClassicDungeon } from "./classicDungeon";
+import type { CellRef } from "./dressBoard";
 import type { PlanQuest } from "../questPlan";
+
+/**
+ * A room the plan draws onto the dungeon itself, in the converter's own schema (a cell and the floor it stands on): the
+ * dress step reads it as one more cell of that floor (withHandRooms), so it is dressed by the same rules. The Wind
+ * Temple keeps the owner's four east rooms so, his way to his Boss Key, which Zelda's Eagle does not have.
+ */
+export interface HandRoom extends ClassicCell {
+  floor: string;
+}
 
 export interface ClassicPlan {
   /** "Storm Temple": the name the Temple Creator lists the temple under */
@@ -45,6 +55,24 @@ export interface ClassicPlan {
    */
   minibossRooms?: string[];
   boss: PlanQuest;
+  /** Rooms of the temple's own beyond the dungeon's (HandRoom), each where the dungeon has no cell */
+  handRooms?: HandRoom[];
+  /**
+   * The converted cell the shop stands in, by its own position, when the dungeon names a room for it (the Eagle's old
+   * man's room), wherever it lies; without it the shop takes the first empty cell the hero reaches with nothing in hand
+   */
+  shopAt?: CellRef;
+  /**
+   * A side fight that shares its cell with a plain chest (a map, a compass, a key, gold) keeps the cell and hands the
+   * chest out once won, as Zelda 1 leaves an item in the room its enemies stand in; without it the chest keeps the cell
+   * and the fight moves
+   */
+  guardedChests?: boolean;
+  /**
+   * Every chore of `mustClear` the must-clear rooms leave takes a side room of its own, nearest the entrance first,
+   * starter or not (`overflow`); without it only a starter does and the rest leave (`left`)
+   */
+  keepsEveryChore?: boolean;
 }
 
 export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
@@ -209,3 +237,30 @@ export const DUNGEON_DIR = "tools/temples/classic/dungeons";
 
 /** The converted dungeon of a temple, as convert.py wrote it */
 export const loadDungeon = (id: string): ClassicDungeon => JSON.parse(readFileSync(join(process.cwd(), DUNGEON_DIR, `${id}.json`), "utf8")) as ClassicDungeon;
+
+/** A cell that hands out a small key: a key chest, a key drop, a key in the pots */
+const isSmallKeyCell = (cell: ClassicCell): boolean => cell.chest === "small-key" || cell.keyDrop === "small" || Boolean(cell.potKey);
+
+/**
+ * The dungeon the dress step reads: the converter's, with the plan's own rooms (`handRooms`) added to their floors, each
+ * floor grown to hold them, and the report counting them. A copy: the converter's dungeon is left as it was, and comes
+ * back itself when the plan draws none. A hand room on a converted cell, or on a floor the dungeon lacks, throws.
+ */
+export const withHandRooms = (dungeon: ClassicDungeon, plan: Pick<ClassicPlan, "handRooms">): ClassicDungeon => {
+  const hand = plan.handRooms ?? [];
+  const isDrawnAsIs = hand.length === 0;
+  if (isDrawnAsIs) return dungeon;
+  const floors = dungeon.floors.map((level) => ({ ...level, cells: [...level.cells] }));
+  for (const { floor, ...cell } of hand) {
+    const level = floors.find((entry) => entry.name === floor);
+    if (!level) throw new Error(`${dungeon.id}: the hand room ${cell.room} names the floor ${floor}, which the dungeon does not have`);
+    const isOnACell = level.cells.some((other) => other.row === cell.row && other.col === cell.col);
+    if (isOnACell) throw new Error(`${dungeon.id}: the hand room ${cell.room} stands on the converted cell ${floor} (${cell.row},${cell.col})`);
+    level.cells.push(cell);
+    level.rows = Math.max(level.rows, cell.row + 1);
+    level.cols = Math.max(level.cols, cell.col + 1);
+  }
+  const cellsPerFloor = Object.fromEntries(floors.map((level) => [level.name, level.cells.length]));
+  const smallKeys = dungeon.report.smallKeys + hand.filter(isSmallKeyCell).length;
+  return { ...dungeon, floors, report: { ...dungeon.report, cellsPerFloor, smallKeys } };
+};

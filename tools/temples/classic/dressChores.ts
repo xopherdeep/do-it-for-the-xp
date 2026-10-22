@@ -11,7 +11,8 @@
  * - The must-clear monster rooms take the plan's chores in path order from the entrance, easiest first (a stable
  *   sort keeps the plan's order among equals). A plan short of rooms repeats itself; the repeats are reported.
  * - A starter beast beyond the must-clear count (the plan lists starters first) gets a side room of its own, nearest
- *   the entrance, so the family's first chores still fill rooms (`overflow`); any other extra leaves (`left`).
+ *   the entrance, so the family's first chores still fill rooms (`overflow`); any other extra leaves (`left`), unless
+ *   the plan keeps every chore (`keepsEveryChore`: the Wind Temple keeps the nine the owner gave it).
  * - The other side rooms cycle through the beasts of their floor's must-clear rooms, a floor with none borrowing the
  *   nearest floor's, so a side room never adds a chore of its own.
  */
@@ -40,7 +41,7 @@ export interface ChorePlan {
   mustClear: number;
   /** Beasts a must-clear room had to repeat */
   repeats: string[];
-  /** Starter beasts given a side room because the must-clear rooms ran out */
+  /** Starter beasts given a side room because the must-clear rooms ran out (any spare beast, when the plan keeps every chore) */
   overflow: string[];
   /** Plan beasts that found no room */
   left: string[];
@@ -161,7 +162,8 @@ export const planChores = (board: Board, plan: ClassicPlan, graph: TempleGraph, 
     .filter((slot) => slot.item?.kind === "sideFight")
     .sort(nearestFirst);
   const spare = plan.mustClear.slice(monsters.length);
-  const overflowStarters = plan.mustClear.length > monsters.length ? spare.filter(isStarter) : [];
+  const isKept = (quest: PlanQuest): boolean => isStarter(quest) || Boolean(plan.keepsEveryChore);
+  const overflowStarters = plan.mustClear.length > monsters.length ? spare.filter(isKept) : [];
   const placedStarters = overflowStarters.slice(0, sideSlots.length);
   placedStarters.forEach((quest, index) => setRole(sideSlots[index], "monster", quest, false));
   report.overflow = placedStarters.map(([slug]) => slug);

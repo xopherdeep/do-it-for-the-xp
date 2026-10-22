@@ -25,15 +25,15 @@ import { buildTempleGraph, type Door, type TempleGraph, type TempleLayout } from
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { renderModule } from "../renderModule";
 import type { ClassicDungeon } from "./classicDungeon";
-import { allSlots, buildBoard, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift, type Slot } from "./dressBoard";
+import { allSlots, buildBoard, cellKey, describeCell, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift, type Slot } from "./dressBoard";
 import { planChores } from "./dressChores";
 import { demoteShortcutWarps, drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
-import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, type ClassicPlan } from "./dressPlans";
+import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, withHandRooms, type ClassicPlan, type HandRoom } from "./dressPlans";
 import { openInFront } from "./dressPlace";
 import { buildRooms, type ClassicPlacement } from "./dressRooms";
 
-export { CLASSIC_IDS, CLASSIC_PLANS, loadDungeon };
-export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef };
+export { CLASSIC_IDS, CLASSIC_PLANS, loadDungeon, withHandRooms };
+export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef, HandRoom };
 
 /** What the dressing did with a dungeon, for the tests and the build report */
 export interface ClassicReport {
@@ -41,7 +41,7 @@ export interface ClassicReport {
   mustClear: number;
   /** Beasts a must-clear room had to repeat */
   repeats: string[];
-  /** Starter beasts given a side room because the must-clear rooms ran out */
+  /** Starter beasts given a side room because the must-clear rooms ran out (any spare beast, when the plan keeps every chore) */
   overflow: string[];
   /** Plan beasts that found no room */
   left: string[];
@@ -120,17 +120,28 @@ const placeExtraRelics = (board: Board, plan: ClassicPlan, graph: TempleGraph): 
   relics.forEach((relic, index) => (golds[index].item!.relic = relic));
 };
 
+/** The shop in the converted cell the plan names (`shopAt`, by its own position): it must be a free one */
+const pinShop = (board: Board, at: CellRef): void => {
+  const slot = board.converted.get(cellKey(at));
+  const isFree = Boolean(slot) && !slot!.item;
+  if (!isFree) throw new Error(`${board.dungeon.id}: the plan pins the shop on ${describeCell(at)}, which is no free converted cell`);
+  slot!.item = { kind: "shop", origin: slot!.at, room: slot!.cell!.room };
+};
+
 /**
  * The extras in the empty converted cells, nearest the entrance first (path distance over every door, floors in the
- * dungeon's order then reading order among equals): the shop (placeShop), one save, then one camp per floor, the rest
- * empty rooms. A dungeon with no empty cell the hero reaches on its entrance floor with nothing in hand has the shop
- * added (the Tower of Hera's sits beside the lobby's flight up); one with no empty cell at all has no save or camp.
+ * dungeon's order then reading order among equals): the shop (placeShop, or the cell the plan pins it in), one save,
+ * then one camp per floor, the rest empty rooms. A dungeon with no empty cell the hero reaches on its entrance floor
+ * with nothing in hand has the shop added (the Tower of Hera's sits beside the lobby's flight up); one with no empty
+ * cell at all has no save or camp.
  */
 const placeExtras = (board: Board, plan: ClassicPlan): void => {
   const graphNow = (): TempleGraph => buildTempleGraph(asRegistered(buildRooms(board, plan, drawSides(board))));
   const hopsIn = (graph: TempleGraph): Map<string, number> => (graph.entrance ? hopsFrom(graph, graph.entrance) : new Map<string, number>());
   const before = graphNow();
-  placeShop(board, before, hopsIn(before));
+  const isShopPinned = Boolean(plan.shopAt);
+  if (isShopPinned) pinShop(board, plan.shopAt!);
+  else placeShop(board, before, hopsIn(before));
   // Read again: a shop added beside an entrance on the grid's edge may have grown the floor by a line before the first
   const free = allSlots(board)
     .filter((slot) => slot.cell && !slot.item)
@@ -146,9 +157,12 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
   }
 };
 
-/** A converted dungeon as a temple of ours, under `plan`. Pure: the same dungeon and plan give the same temple. */
+/**
+ * A converted dungeon as a temple of ours, under `plan`, with the plan's own rooms joined to it (withHandRooms). Pure:
+ * the same dungeon and plan give the same temple.
+ */
 export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
-  const board = buildBoard(dungeon, plan.minibossRooms);
+  const board = buildBoard(withHandRooms(dungeon, plan), plan);
   // The board as registration reads it, fights plain before the chores are dealt (the doors are all the steps below read)
   const layoutNow = (): TempleLayout => asRegistered(buildRooms(board, plan, drawSides(board)));
   demoteShortcutWarps(board, layoutNow);
@@ -203,10 +217,20 @@ export const dressClassic = (id: string): GeneratedTemple => dressDungeon(loadDu
 export const classicReport = (id: string): ClassicReport => dressDungeon(loadDungeon(id), planOf(id)).report;
 
 /** The temple as a module in the shape wind-temple.ts has, under a header naming the dress step and the dungeon's source */
+/** The header line naming the plan's own rooms (handRooms), when it draws any */
+const handRoomsLine = (id: string): string[] => {
+  const hand = CLASSIC_PLANS[id]?.handRooms ?? [];
+  const isDrawnAsIs = hand.length === 0;
+  if (isDrawnAsIs) return [];
+  const named = hand.map((room) => `${room.room} ${room.floor} (${room.row},${room.col})`).join(", ");
+  return [`// plus rooms of its own the dungeon does not have (dressPlans.ts, handRooms): ${named}.`];
+};
+
 export const renderClassicModule = (id: string, temple: GeneratedTemple): string =>
   renderModule(id, temple, [
     `// Generated by tools/temples/classic/dress.ts from ${DUNGEON_DIR}/${id}.json: change the plan there or the JSON and run it again instead of editing this file.`,
     `// source: ${JSON.stringify(loadDungeon(id).source)}`,
+    ...handRoomsLine(id),
     "// Floors run bottom to top (a basement first); every flight of stairs and every circle names the floor and the cell it lands on.",
     '// "_" is a wall; each other token is one room. The Master Room holds the Pegasus chest and sits right behind the boss.',
   ]);

@@ -10,7 +10,8 @@
  * chests and a key in the open > circle > puzzle > side fight > hole. A must-clear fight outranks the stairs that
  * share its screen because the fight is what gates the doors there; the stairs land next door instead (a flight can
  * name its landing, `targetCoords`). A circle outranks a riddle as a flight does: it is the way on (Zelda 1's push
- * block hides the stairway it shares a screen with), and a displaced riddle is only dropped. What loses its cell moves, and dressPlace says where: what a sealed fight held
+ * block hides the stairway it shares a screen with), and a displaced riddle is only dropped. A plan that guards its
+ * chests (Zelda 1's) lets a side fight keep the cell it shares with a plain chest and hand the chest out once won. What loses its cell moves, and dressPlace says where: what a sealed fight held
  * goes beside the fight, else beside a room the hero reaches only through it (a chest or a key with no such room is
  * handed out by the fight), except a flight or a circle whose other end the hero reaches without the fight, which
  * stands beside it or in front of every seal (GT's Bob's Torch's flight, its twin in the lobby, stands beside Speed
@@ -70,7 +71,10 @@ export interface Item {
   chest?: ClassicCell["chest"];
   keyDrop?: "small" | "big";
   enemies?: number;
-  /** A sealed fight boxed in on every side: the chests and keys of its cell it hands out once won (its drops) */
+  /**
+   * What a fight hands out once won (its drops) besides its key drop: the chests and keys of its cell, when a sealed
+   * fight is boxed in on every side, or the chest a side fight stands over (the plan's `guardedChests`)
+   */
   holds?: Item[];
   /** An `other` chest that holds one of the plan's relics beyond the first in place of its gold (dress.ts) */
   relic?: string;
@@ -338,13 +342,35 @@ const settleBossExits = (board: Board, boss: Slot, exits: Displaced[]): void => 
   for (const { floor, source, item } of exits) relocate(board, floor, source, item, { notBeside: boss.at });
 };
 
+/** What the plan asks of the board beyond the dungeon's own reading (dressPlans.ts, ClassicPlan) */
+export interface BoardOptions {
+  /** The rooms that hold mini-bosses whatever the design's rule finds */
+  minibossRooms?: readonly string[];
+  /** A side fight keeps the cell it shares with a plain chest and hands the chest out once won */
+  guardedChests?: boolean;
+}
+
+/**
+ * A side fight that shares its cell with a plain chest (the first of the cell's things) keeps the cell when the plan
+ * guards its chests: the chest is what it hands out once won (`holds`), as Zelda 1 leaves an item in the room its
+ * enemies stand in. Any other cell's things come back as read.
+ */
+const guardChest = (items: Item[], guarded: boolean): Item[] => {
+  const [first, ...rest] = items;
+  const fight = rest.find((item) => item.kind === "sideFight");
+  const isGuardedChest = guarded && first?.kind === "chest" && Boolean(fight);
+  if (!isGuardedChest) return items;
+  return [{ ...fight!, holds: [first] }, ...rest.filter((item) => item !== fight)];
+};
+
 /**
  * Read the dungeon into a board: one thing per cell, the rest moved or dropped, the Master Room beside the boss. The
- * rooms a plan names as mini-bosses' (`minibossRooms`) fight and seal from the start, so what they hold waits behind them.
+ * rooms a plan names as mini-bosses' (`minibossRooms`) fight and seal from the start, so what they hold waits behind
+ * them; with `guardedChests`, a side fight stands over the chest of its cell (guardChest).
  */
-export const buildBoard = (dungeon: ClassicDungeon, minibossRooms: readonly string[] = []): Board => {
+export const buildBoard = (dungeon: ClassicDungeon, options: BoardOptions = {}): Board => {
   const board: Board = { dungeon, floors: [], converted: new Map(), moves: [], dropped: [], merged: [], compacted: [], shifted: [], warpPairs: [] };
-  const fights = planFights(dungeon, minibossRooms);
+  const fights = planFights(dungeon, options.minibossRooms ?? []);
   const displaced: Displaced[] = [];
   const bossExits: Displaced[] = [];
   for (const level of dungeon.floors) {
@@ -362,7 +388,7 @@ export const buildBoard = (dungeon: ClassicDungeon, minibossRooms: readonly stri
   for (const slot of allSlots(board)) {
     // A thing's origin is the cell it was converted from, where the island stood before it was moved beside the rest
     const origin = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
-    const [first, ...rest] = itemsOf(slot.cell!, origin, slot.at, fights, board);
+    const [first, ...rest] = guardChest(itemsOf(slot.cell!, origin, slot.at, fights, board), Boolean(options.guardedChests));
     const floor = floorOf(board, slot.at.floor)!;
     // A hole on a passage (a screen with ways through it) would cut the floor as a pit: the hole goes to a dead end
     // added beside it and the screen stays an empty room
