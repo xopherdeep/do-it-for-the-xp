@@ -12,11 +12,12 @@ import { useUserStore } from "@/lib/store/stores/user";
 jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn() }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockRoute = reactive({ name: "my-home", params: { userId: "hero-1" } as Record<string, string> });
 
 jest.mock("vue-router", () => ({
   ...jest.requireActual("vue-router"),
-  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useRoute: () => mockRoute,
 }));
 
@@ -31,6 +32,7 @@ describe("MyHome", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockPush.mockClear();
+    mockReplace.mockClear();
     mockRoute.params.userId = "hero-1";
 
     const userStore = useUserStore();
@@ -60,5 +62,17 @@ describe("MyHome", () => {
     goOutside(wrapper);
     expect(mockPush).toHaveBeenCalledWith({ name: "home-town", params: { userId: "hero-2" } });
     expect(mockPush).not.toHaveBeenCalledWith({ name: "home-town", params: { userId: "hero-1" } });
+  });
+
+  it("Save & Quit signs the hero out, so their Family Sync turn rests, and opens the profile picker", () => {
+    const userStore = useUserStore();
+    userStore.loginUser(userStore.users["hero-1"]);
+    const wrapper = mountHome();
+
+    (wrapper.vm as any).confirmSaveQuit();
+    (wrapper.vm as any).closeSaveQuitModal();
+
+    expect(userStore.currentUser.id).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith({ name: "xp-profile" });
   });
 });

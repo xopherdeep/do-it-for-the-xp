@@ -192,7 +192,10 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
   /** The changes a writer's copy landed over leave the outbox: they were made without the turn, and are gone from the store */
   const dropReplaced = async (replaced: (StoreRef & { mark: number | undefined })[], startedIn: number): Promise<void> => {
     await ctx.update((current) => ({ ...current, outbox: dropItems(current.outbox, replaced) }), startedIn);
-    replaced.forEach((ref) => ctx.changes.settled(ref.store, ref.key, ref.mark));
+    replaced.forEach((ref) => {
+      ctx.changes.settled(ref.store, ref.key, ref.mark);
+      debug.warn(`[sync] ${ref.store}/${ref.key} was changed here without its hero's turn; the copy of the device holding it replaced it`);
+    });
   };
 
   /** Lands a page record by record, stopping before the first one held back; answers what landed and how many */

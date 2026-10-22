@@ -18,6 +18,10 @@ import debug from "@/lib/utils/debug";
  *   asks again first (`confirm`, from inside the lane), so a hiccup can never make the site refuse them as a takeover.
  * - A turn borrowed by `withTurn` (a verdict paid for a hero nobody plays) is given back at the end, unless the player
  *   signed the hero in meanwhile.
+ * - After every round, each hero whose records wait here goes up on a borrowed turn (`lendWaiting`): free, the turn is
+ *   taken without force, the records go, the turn is given back; busy, they wait (the holder's copies replace them as
+ *   they land). The hero signed in here is never borrowed. This is how a family device's first push sends its heroes.
+ * - A give-back the site did not hear (offline) is owed, and sent again before the next borrowing pass.
  *
  * Bound to the sync store the way the transfer is (sync/recordTransfer.ts). `upload`, `download` and `flush` are the
  * store's lane: never call `signIn`, `takeOver`, `rest` or `withTurn` from inside a transfer.
@@ -42,6 +46,12 @@ export interface TurnContext {
   answered(): void;
   /** The site said the family is not Pro: the store turns the sync off, as for any call */
   notPro(error: unknown): void;
+  /** The heroes whose records wait in the outbox, in queue order */
+  waiting(): string[];
+  /** The hero signed in on this device, if any: never borrowed */
+  current(): string | null;
+  /** Whether a borrowing pass may run now: the sync on, and no pause after a failure */
+  mayLend(): boolean;
 }
 
 /** What asking for the turn came to: this device's, another device holds it, or the site could not be asked */
@@ -66,6 +76,8 @@ export interface HeroTurns {
   hidden(heroId: string | null): boolean;
   /** The app came back to the front: the hero the background rested signs in again (silent when granted) */
   visible(heroId: string | null): void;
+  /** After a round: each hero whose records wait here, and whom nobody here plays, sends them on a borrowed turn */
+  lendWaiting(): Promise<void>;
   /** The device left the family: nothing in flight is remembered */
   forget(): void;
 }
@@ -81,6 +93,10 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
   const lent = new Map<string, number>();
   /** The hero the background rested, signed in again when the app is back */
   let restedByBackground: string | null = null;
+  /** Heroes rested here whose give-back the site did not hear: it still thinks this device plays them */
+  const owedRests = new Set<string>();
+  /** The borrowing pass running, so a second round joins it instead of borrowing the same hero twice */
+  let lending: Promise<void> | null = null;
 
   const turnOf = (heroId: string): HeroTurn => ctx.turns.value[heroId] ?? initialTurn();
   const stateOf = (heroId: string): HeroTurn["state"] => turnOf(heroId).state;
@@ -134,7 +150,9 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     try {
       const { deviceId } = await ensureIdentity();
       await restHero(auth, heroId, deviceId);
+      owedRests.delete(heroId);
     } catch (error) {
+      owedRests.add(heroId);
       failed(error);
     }
   };
@@ -176,9 +194,10 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
 
   // --- What the player and the app do ---
 
-  /** The player plays the hero here: a turn borrowed by withTurn is not given back at its end */
+  /** The player plays the hero here: a turn borrowed by withTurn is not given back at its end, nor an old one owed */
   const claim = (heroId: string): void => {
     lent.delete(heroId);
+    owedRests.delete(heroId);
   };
 
   /** What a turn already settled here answers */
@@ -317,6 +336,48 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     }
   };
 
+  /** Gives back again what the site did not hear, for heroes still resting here */
+  const payOwedRests = async (): Promise<void> => {
+    for (const heroId of Array.from(owedRests)) {
+      const isResting = stateOf(heroId) === "resting";
+      if (isResting) await giveBack(heroId);
+      else owedRests.delete(heroId);
+    }
+  };
+
+  /** A hero whose records wait here, whom this device does not play and is not signed in as: its free turn is borrowed */
+  const mayBorrow = (heroId: string): boolean => {
+    const isFree = stateOf(heroId) === "resting";
+    const isSignedIn = heroId === ctx.current();
+    const isStillWaiting = ctx.waiting().includes(heroId);
+    return isFree && !isSignedIn && isStillWaiting;
+  };
+
+  const lendPass = async (): Promise<void> => {
+    await payOwedRests();
+    for (const heroId of ctx.waiting()) {
+      const isLendable = ctx.mayLend() && mayBorrow(heroId);
+      // Nothing to run: taking the turn flushes the hero's records, and giving it back uploads what is left
+      if (isLendable) await withTurn(heroId, async () => undefined);
+    }
+  };
+
+  const startLending = (): Promise<void> => {
+    const pass = lendPass()
+      .catch((error) => debug.warn("sync: a borrowed turn failed", error))
+      .finally(() => {
+        lending = null;
+      });
+    lending = pass;
+    return pass;
+  };
+
+  const lendWaiting = (): Promise<void> => {
+    const mayLend = ctx.mayLend();
+    if (!mayLend) return Promise.resolve();
+    return lending ?? startLending();
+  };
+
   const switched = (previous: string | null, next: string | null): void => {
     if (previous) rest(previous).catch((error) => debug.warn("sync: could not rest the hero", error));
     if (next) signIn(next).catch((error) => debug.warn("sync: could not sign the hero in", error));
@@ -343,9 +404,10 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     asking.clear();
     catchingUp.clear();
     lent.clear();
+    owedRests.clear();
     restedByBackground = null;
     ctx.tookOverNotice.value = null;
   };
 
-  return { holds, maySendNow, signIn, takeOver, rest, withTurn, confirm, lost, switched, hidden, visible, forget };
+  return { holds, maySendNow, signIn, takeOver, rest, withTurn, confirm, lost, switched, hidden, visible, lendWaiting, forget };
 };

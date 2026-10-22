@@ -140,4 +140,19 @@ describe("XpFabUserHud - notification badge on avatar circle", () => {
     );
     expect(notifAction?.badge).toBe("99+");
   });
+
+  it("Save & Quit signs the hero out, so their Family Sync turn rests, and opens the profile picker", async () => {
+    const replace = jest.spyOn(router, "replace").mockResolvedValue(undefined);
+    const wrapper = mountHud();
+    const userStore = useUserStore();
+    userStore.loginUser(userStore.users[HERO_ID]);
+    expect(userStore.currentUser.id).toBe(HERO_ID);
+
+    (wrapper.vm as any).confirmSaveQuit();
+    (wrapper.vm as any).closeSaveQuitModal();
+    await flushPromises();
+
+    expect(userStore.currentUser.id).toBeNull();
+    expect(replace).toHaveBeenCalledWith({ name: "xp-profile" });
+  });
 });

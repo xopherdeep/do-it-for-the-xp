@@ -248,8 +248,13 @@ export const useSyncStore = defineStore("sync", () => {
   /** Uploads what waits, then downloads (the first push or pull while one is owed) */
   const flush = (): Promise<void> => lane.request("round");
 
+  /** Asks the lane for the work; after a round, the heroes whose records wait here go on borrowed turns */
   function requestNow(work: Work): void {
-    lane.request(work).catch((error) => debug.warn(`sync: the ${work} failed`, error));
+    const isRound = work === "round";
+    lane
+      .request(work)
+      .then(() => (isRound ? heroTurns.lendWaiting() : undefined))
+      .catch((error) => debug.warn(`sync: the ${work} failed`, error));
   }
 
   // --- The hero's turn (sync/heroTurns.ts) ---
@@ -273,6 +278,9 @@ export const useSyncStore = defineStore("sync", () => {
       pauses.connectionBack();
     },
     notPro: (error) => void noteFailure(error),
+    waiting: () => Array.from(new Set(state.value.outbox.flatMap((item) => (item.heroId === null ? [] : [item.heroId])))),
+    current: () => currentHero(),
+    mayLend: () => isOn.value && !pauses.isPaused(),
   });
 
   /** The hero signed in on this device, if any */
@@ -302,6 +310,7 @@ export const useSyncStore = defineStore("sync", () => {
   function onTick(): void {
     if (!isOn.value) return;
     flush()
+      .then(() => heroTurns.lendWaiting())
       .then(() => (isFamilyDevice.value ? family.downloadRound() : undefined))
       .catch((error) => debug.warn("sync: the minute round failed", error));
   }
