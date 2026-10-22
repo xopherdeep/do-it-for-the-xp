@@ -52,6 +52,11 @@ ion-app#marioRpg {
     font-size: 25px;
   }
 
+  // Accent (red) on the orange button fails contrast: the primary confirm reads in the text colour here
+  .battlefield .rpg-button.is-primary {
+    color: var(--gs-text);
+  }
+
   // The star spins instead of bobbing
   ion-card ion-item:hover::before,
   ion-card ion-item.ion-focused::before,
