@@ -72,41 +72,6 @@ export const hexToRgb = (hex: string): [number, number, number] => {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };
 
-/** Is the face of `box` on `axis` (positive side if `positive`) hidden by one of `others`? */
-const isHidden = (box: Box, axis: Axis, positive: boolean, others: Box[]): boolean => {
-  const plane = positive ? hi(box, axis) : lo(box, axis);
-  const u = ((axis + 1) % 3) as Axis;
-  const v = ((axis + 2) % 3) as Axis;
-  for (const o of others) {
-    const isSelf = o === box;
-    if (isSelf) continue;
-    const touching = Math.abs((positive ? lo(o, axis) : hi(o, axis)) - plane) < EPS;
-    const swallowing = lo(o, axis) < plane - EPS && hi(o, axis) > plane + EPS;
-    const cannotHideFace = !touching && !swallowing;
-    if (cannotHideFace) continue;
-    const isFaceCovered =
-      lo(o, u) <= lo(box, u) + EPS &&
-      hi(o, u) >= hi(box, u) - EPS &&
-      lo(o, v) <= lo(box, v) + EPS &&
-      hi(o, v) >= hi(box, v) - EPS;
-    if (isFaceCovered) {
-      return true;
-    }
-  }
-  return false;
-};
-
-/** Which faces of `box` survive culling against `others`: [axis, positive][] */
-export const visibleFaces = (box: Box, others: Box[]): Array<[Axis, boolean]> => {
-  const out: Array<[Axis, boolean]> = [];
-  for (const axis of AXES) {
-    for (const positive of [true, false]) {
-      if (!isHidden(box, axis, positive, others)) out.push([axis, positive]);
-    }
-  }
-  return out;
-};
-
 /** Largest cell a touched face is cut into, in world units: the width of the occlusion band at a contact */
 const AO_CELL = 1;
 /**
@@ -171,6 +136,64 @@ const bucketed = (boxes: Box[]): ((min: number[], max: number[]) => Box[]) => {
     return found;
   };
 };
+
+/** How far past a face the boxes that could hide it are looked for: one that touches or swallows the plane reaches in */
+const HIDE_REACH = 0.01;
+
+/** The face's own rectangle thickened into a thin slab on its plane: a hiding box starts on the plane or crosses it */
+const faceSlab = (box: Box, axis: Axis, positive: boolean): [number[], number[]] => {
+  const plane = positive ? hi(box, axis) : lo(box, axis);
+  const u = ((axis + 1) % 3) as Axis;
+  const v = ((axis + 2) % 3) as Axis;
+  const min = [0, 0, 0];
+  const max = [0, 0, 0];
+  min[axis] = positive ? plane : plane - HIDE_REACH;
+  max[axis] = positive ? plane + HIDE_REACH : plane;
+  min[u] = lo(box, u);
+  max[u] = hi(box, u);
+  min[v] = lo(box, v);
+  max[v] = hi(box, v);
+  return [min, max];
+};
+
+/** Is the face of `box` on `axis` (positive side if `positive`) hidden by a box `near` finds beside it? */
+const isHidden = (box: Box, axis: Axis, positive: boolean, near: ReturnType<typeof bucketed>): boolean => {
+  const plane = positive ? hi(box, axis) : lo(box, axis);
+  const u = ((axis + 1) % 3) as Axis;
+  const v = ((axis + 2) % 3) as Axis;
+  const [min, max] = faceSlab(box, axis, positive);
+  for (const o of near(min, max)) {
+    const isSelf = o === box;
+    if (isSelf) continue;
+    const touching = Math.abs((positive ? lo(o, axis) : hi(o, axis)) - plane) < EPS;
+    const swallowing = lo(o, axis) < plane - EPS && hi(o, axis) > plane + EPS;
+    const cannotHideFace = !touching && !swallowing;
+    if (cannotHideFace) continue;
+    const isFaceCovered =
+      lo(o, u) <= lo(box, u) + EPS &&
+      hi(o, u) >= hi(box, u) - EPS &&
+      lo(o, v) <= lo(box, v) + EPS &&
+      hi(o, v) >= hi(box, v) - EPS;
+    if (isFaceCovered) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/** Which faces of `box` survive culling against the boxes `near` finds: [axis, positive][] */
+const visibleFacesNear = (box: Box, near: ReturnType<typeof bucketed>): Array<[Axis, boolean]> => {
+  const out: Array<[Axis, boolean]> = [];
+  for (const axis of AXES) {
+    for (const positive of [true, false]) {
+      if (!isHidden(box, axis, positive, near)) out.push([axis, positive]);
+    }
+  }
+  return out;
+};
+
+/** Which faces of `box` survive culling against `others`: [axis, positive][] */
+export const visibleFaces = (box: Box, others: Box[]): Array<[Axis, boolean]> => visibleFacesNear(box, bucketed(others));
 
 /** Equal steps from lo to hi, none longer than AO_CELL */
 const steps = (from: number, to: number): number[] => {
@@ -354,12 +377,14 @@ const shadeFace = (box: Box, axis: Axis, positive: boolean, near: (min: number[]
  * they shade the contact and stop a bevel, but never hide a face.
  */
 export const buildMeshData = (boxes: Box[], occluders: Box[] = []): MeshData => {
-  const near = bucketed(occluders.length ? [...boxes, ...occluders] : boxes);
+  // Only the part's own boxes hide a face; the occluders join them to shade it
+  const own = bucketed(boxes);
+  const near = occluders.length ? bucketed([...boxes, ...occluders]) : own;
   const quads: Quad[] = [];
   for (const box of boxes) {
     const isEmptyBox = box.w <= 0 || box.h <= 0 || box.d <= 0;
     if (isEmptyBox) continue;
-    for (const [axis, positive] of visibleFaces(box, boxes)) quads.push(...shadeFace(box, axis, positive, near));
+    for (const [axis, positive] of visibleFacesNear(box, own)) quads.push(...shadeFace(box, axis, positive, near));
   }
 
   const positions = new Float32Array(quads.length * 12);

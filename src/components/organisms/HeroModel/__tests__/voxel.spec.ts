@@ -78,6 +78,16 @@ describe("box culling", () => {
     expect(buildMeshData([a, b]).faceCount).toBe(10);
   });
 
+  it("ignores empty boxes and keeps a face whose neighbour sits beside it, not behind it", () => {
+    const a = box(0, 0, 0, 1, 1, 1, "#ff0000");
+    const beside = box(1, 0, 0, 2, 1, 1, "#ff0000"); // touches a's +x face from the far side: hides it
+    const flush = box(0, 0, 1, 1, 1, 2, "#ff0000"); // shares a's +z plane only by its own -z face: hides a's +z, not a's +x
+    const empty = { x: 0, y: 0, z: 0, w: 0, h: 1, d: 1, color: "#ff0000" };
+    expect(buildMeshData([a, beside, flush, empty]).faceCount).toBe(14);
+    expect(visibleFaces(a, [a, beside, flush, empty]).map(([axis, positive]) => `${axis}${positive ? "+" : "-"}`).sort())
+      .toEqual(["0-", "1+", "1-", "2-"]);
+  });
+
   it("drops faces swallowed by a bigger box but keeps ones that poke out", () => {
     const big = box(0, 0, 0, 4, 4, 4, "#00ff00");
     const inner = box(1, 1, 1, 2, 2, 2, "#ff0000");

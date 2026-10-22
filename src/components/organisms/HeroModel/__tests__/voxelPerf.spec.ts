@@ -1,11 +1,13 @@
 import { DEFAULT_LOOK, FACE_STYLES, HAIR_STYLES, HAT_STYLES, SKIN_TONES } from "@/lib/hero-look/types";
 import type { SkinTone } from "@/lib/hero-look/types";
+import { assembleHero } from "../voxel/assemble";
 import { BENCH_LOOKS } from "../voxel/benchLooks";
 import { hair } from "../voxel/hair";
 import { hat } from "../voxel/hats";
 import { HEAD, head } from "../voxel/head";
 import { GEAR_BY_ICON, held } from "../voxel/held";
 import { formatMeasure, measureHero } from "../voxel/measure";
+import { buildMeshData } from "../voxel/mesh";
 import { PART_NAMES } from "../voxel/shape";
 import type { Box } from "../voxel/shape";
 import { BENCH_SIGNATURES, HAT_BOUNDS, HELD_BOUNDS } from "./fixtures/voxelBaselines";
@@ -131,4 +133,33 @@ describe("head rules", () => {
       for (const box of hair(style, "#aa5500", { covered: true })) expect(box.y + box.h).toBeLessThanOrEqual(14.5 + 1e-6);
     }
   });
+});
+
+/** Every box split into n x n x n equal same-colour sub-boxes */
+const subdivide = (boxes: Box[], n: number): Box[] => {
+  const out: Box[] = [];
+  for (const b of boxes) {
+    const [w, h, d] = [b.w / n, b.h / n, b.d / n];
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++)
+        for (let k = 0; k < n; k++) out.push({ x: b.x + i * w, y: b.y + j * h, z: b.z + k * d, w, h, d, color: b.color });
+  }
+  return out;
+};
+
+/** Milliseconds to mesh the default hero with every box split n x n x n */
+const buildAt = (n: number): number => {
+  const parts = assembleHero(DEFAULT_LOOK);
+  const start = performance.now();
+  for (const p of parts) buildMeshData(subdivide(p.boxes, n), []);
+  return performance.now() - start;
+};
+
+describe("linear culling", () => {
+  it("builds an 8x hero in well under twelve times a 4x hero (quadratic culling takes over twenty)", () => {
+    buildAt(2); // warm the JIT
+    const t4 = buildAt(4);
+    const t8 = buildAt(8);
+    expect(t8 / t4).toBeLessThan(12);
+  }, 60000);
 });
