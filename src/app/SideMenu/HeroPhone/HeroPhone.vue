@@ -51,10 +51,16 @@
 
             <!-- Two-phone play: the hero's numbers and quests from the family device, and their claims -->
             <hero-phone-board v-if="!isUnlinked && hasSheet" />
+
+            <!-- A Pro phone's first pull waiting for a signal: the clerk's line under the board -->
+            <ion-text v-if="syncFooter" class="sync-footer" data-cy="sync-footer">{{ syncFooter }}</ion-text>
           </ion-col>
         </ion-row>
       </ion-grid>
     </ion-content>
+
+    <!-- The clerk: the first pull's progress line, and the question when another device plays the hero -->
+    <xp-reveal-prompt :prompt="prompt" @respond="answer" />
   </ion-page>
 </template>
 

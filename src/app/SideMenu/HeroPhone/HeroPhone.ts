@@ -18,7 +18,9 @@ import {
   IonToolbar,
 } from "@ionic/vue";
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import HeroPhoneBoard from "./components/HeroPhoneBoard.vue";
+import { useFirstPull } from "./useFirstPull";
 import { useCopy } from "@/hooks/useVoice";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import debug from "@/lib/utils/debug";
@@ -42,6 +44,7 @@ export const HeroPhone = defineComponent({
     IonTitle,
     IonToolbar,
     XpHeroModel,
+    XpRevealPrompt,
     "xp-hero-model": XpHeroModel,
     "hero-phone-board": HeroPhoneBoard,
   },
@@ -49,6 +52,8 @@ export const HeroPhone = defineComponent({
     const router = useRouter();
     const family = useFamilyStore();
     const t = useCopy();
+    // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal
+    const { prompt, answer, footer: syncFooter } = useFirstPull(family, router);
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
@@ -94,12 +99,15 @@ export const HeroPhone = defineComponent({
     });
 
     return {
+      answer,
       card,
       hasSheet,
       handleStartFresh,
       isUnlinked,
       pageTitle,
+      prompt,
       questsElsewhereText,
+      syncFooter,
       unlinkedText,
     };
   },
