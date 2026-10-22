@@ -27,6 +27,8 @@ const AO_STRENGTH = 1;
 const AO_DIRECT = 0.6;
 /** Bevel width in world units; it never drops under ~1.25 pixels so small models still get a crisp rim */
 const EDGE_WIDTH = 0.09;
+/** The bevel never takes more than this fraction of a quad's shorter side, so a small box keeps a face between its rims */
+const BEVEL_MAX_FRACTION = 0.2;
 /** How much lighter the bevel is than the face */
 const EDGE_LIGHT = 0.22;
 /** How far a cell's brightness strays either way, and how far its hue leans warm or cool */
@@ -82,6 +84,7 @@ const BEVEL_RIM_FRAGMENT = /* glsl */ `
   vec2 size = vVoxelUv.zw;
   vec2 px = max(fwidth(uv), vec2(1e-4));
   vec2 width = max(vec2(${EDGE_WIDTH.toFixed(3)}), px * 1.25);
+  width = min(width, vec2(${BEVEL_MAX_FRACTION.toFixed(3)} * min(size.x, size.y)));
   vec4 dist = vec4(uv.x, size.x - uv.x, uv.y, size.y - uv.y);
   vec4 near = (1.0 - smoothstep(width.xxyy - px.xxyy, width.xxyy, dist)) * vVoxelEdges;
   float bevel = max(max(near.x, near.y), max(near.z, near.w));
