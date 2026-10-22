@@ -12,6 +12,7 @@ import { quoteBedRest } from "@/lib/services/hometown/Lodging";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useBedRest } from "./useBedRest";
+import { goAfterSignOut } from "@/router/signOutRoute";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -90,7 +91,7 @@ export default defineComponent({
         shouldNavigateToProfile.value = false;
         // Signing out rests the hero's turn (the sync store watches who is signed in): what waits goes up first
         userStore.logoutUser();
-        router.replace({ name: 'xp-profile' });
+        goAfterSignOut(router);
       }
     };
 

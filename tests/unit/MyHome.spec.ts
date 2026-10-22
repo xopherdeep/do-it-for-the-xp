@@ -2,6 +2,7 @@ import { shallowMount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive } from "vue";
 import MyHome from "@/app/Console/MyPortal/MyHome/MyHome.vue";
+import { useFamilyStore } from "@/lib/store/stores/family";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
@@ -74,5 +75,19 @@ describe("MyHome", () => {
 
     expect(userStore.currentUser.id).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith({ name: "xp-profile" });
+  });
+
+  it("Save & Quit on a kid phone signs the hero out and returns to the hero-phone screen, not the picker", () => {
+    const userStore = useUserStore();
+    useFamilyStore().device = { heroId: "hero-1", label: "Arthur's phone" } as never;
+    userStore.loginUser(userStore.users["hero-1"]);
+    const wrapper = mountHome();
+
+    (wrapper.vm as any).confirmSaveQuit();
+    (wrapper.vm as any).closeSaveQuitModal();
+
+    expect(userStore.currentUser.id).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith({ name: "hero-phone" });
+    expect(mockReplace).not.toHaveBeenCalledWith({ name: "xp-profile" });
   });
 });

@@ -2,6 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createMemoryHistory, createRouter } from "vue-router";
 import XpFabUserHud from "@/app/Console/MyPortal/UserHud/components/XpFabUserHud.vue";
+import { useFamilyStore } from "@/lib/store/stores/family";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { useUserStore } from "@/lib/store/stores/user";
 import { USER_MENU_CONFIG } from "@/constants";
@@ -154,5 +155,21 @@ describe("XpFabUserHud - notification badge on avatar circle", () => {
 
     expect(userStore.currentUser.id).toBeNull();
     expect(replace).toHaveBeenCalledWith({ name: "xp-profile" });
+  });
+
+  it("Save & Quit on a kid phone signs the hero out and returns to the hero-phone screen, not the picker", async () => {
+    const replace = jest.spyOn(router, "replace").mockResolvedValue(undefined);
+    useFamilyStore().device = { heroId: HERO_ID, label: "Link's phone" } as never;
+    const wrapper = mountHud();
+    const userStore = useUserStore();
+    userStore.loginUser(userStore.users[HERO_ID]);
+
+    (wrapper.vm as any).confirmSaveQuit();
+    (wrapper.vm as any).closeSaveQuitModal();
+    await flushPromises();
+
+    expect(userStore.currentUser.id).toBeNull();
+    expect(replace).toHaveBeenCalledWith({ name: "hero-phone" });
+    expect(replace).not.toHaveBeenCalledWith({ name: "xp-profile" });
   });
 });
