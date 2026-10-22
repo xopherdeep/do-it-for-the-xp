@@ -87,7 +87,7 @@ const moonTemple = {
     "O003": { type: "loot", content: { chest: "dungeon", dungeon: "map" }, sides: { north: "wall", east: "wall", south: "wall", west: "door" } },
     "D001": { type: "stairs-down", content: { targetLevel: "B2", targetCoords: { x: 0, y: 1 } }, sides: { north: "door", east: "wall", south: "door", west: "wall" } },
     "O004": { type: "loot", content: { chest: "gold", gold: 25 }, sides: { north: "wall", east: "wall", south: "door", west: "wall" } },
-    "O005": { type: "loot", content: { chest: "gold", gold: 25 }, sides: { north: "wall", east: "door", south: "wall", west: "wall" } },
+    "O005": { type: "loot", content: { chest: "dungeon", dungeon: "Moon Shard" }, sides: { north: "wall", east: "door", south: "wall", west: "wall" } },
     "M006": { type: "monster", content: { lockOnEnter: true, difficulty: "easy", theme: "moon", quest: { beastId: "beast-sniffle-sprite", difficulty: 1, basicSchedule: "daily", dueByTime: "08:00" } }, sides: { north: "door", east: "door", south: "door", west: "door" } },
     "m005": { type: "monster", content: { difficulty: "easy", theme: "moon", quest: { beastId: "beast-pajama-pooka", difficulty: 1, basicSchedule: "daily", dueByTime: "08:00" } }, sides: { north: "wall", east: "wall", south: "wall", west: "door" } },
     "k005": { type: "key", sides: { north: "door", east: "locked", south: "wall", west: "wall" } },
