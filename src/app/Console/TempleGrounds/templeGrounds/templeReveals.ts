@@ -101,7 +101,10 @@ export const usePegasusReveal = (leaveTemple: () => void) => {
 };
 
 export interface ChestRevealDeps
-  extends Pick<TempleState, 'chestContents' | 'currentRoom' | 'showTempleMessage' | 'claimChestItems'> {
+  extends Pick<
+    TempleState,
+    'chestContents' | 'dropContents' | 'currentRoom' | 'showTempleMessage' | 'claimChestItems' | 'claimDropItems'
+  > {
   props: TempleGroundsProps;
   progressHeroId: string | undefined;
   showTempleCleared: ReturnType<typeof usePegasusReveal>['showTempleCleared'];
@@ -110,18 +113,29 @@ export interface ChestRevealDeps
 }
 
 export const useChestReveal = (deps: ChestRevealDeps) => {
-  const { props, progressHeroId, chestContents, currentRoom, showTempleMessage, claimChestItems, showTempleCleared, setHushMessages } =
-    deps;
+  const { props, progressHeroId, chestContents, dropContents, currentRoom, showTempleMessage, showTempleCleared, setHushMessages } = deps;
+  const { claimChestItems, claimDropItems } = deps;
 
   // The chest reveal. It shows what the chest held when it opened, so the rows stay put while it closes
   const isChestOpen = ref(false);
   const chestLootShown = ref<ChestLoot[]>([]);
   // A chest comes up shut, with Open and Leave; only an empty one opens at once (with Leave alone)
   const isChestClosed = ref(false);
+  // What the reveal shows is a beaten beast's drop, not a chest: Take hands it out through claimDropItems
+  let isDropShown = false;
 
   const showChestContentsDialog = () => {
+    isDropShown = false;
     chestLootShown.value = chestContents.value;
     isChestClosed.value = chestContents.value.length > 0;
+    isChestOpen.value = true;
+  };
+
+  // The beast's drop comes up open, its rows ticked (the loot rises at once: there is no chest lid to lift)
+  const showDropReveal = () => {
+    isDropShown = true;
+    chestLootShown.value = dropContents.value;
+    isChestClosed.value = false;
     isChestOpen.value = true;
   };
 
@@ -133,8 +147,8 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
       return;
     }
     isChestOpen.value = false;
-    // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple
-    const prize = currentRoom.value?.content;
+    // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple (a drop has none)
+    const prize = isDropShown ? undefined : currentRoom.value?.content;
     const pick = prize?.dungeon ? String(prize.dungeon) : '';
     const freesPegasus = prize?.pegasus === true && Boolean(pick) && values.includes(pick);
     const hasKey = values.some((value) => value.toLowerCase().includes('key'));
@@ -145,7 +159,8 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
     // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
     setHushMessages(freesPegasus);
     try {
-      claimChestItems(values);
+      if (isDropShown) claimDropItems(values);
+      else claimChestItems(values);
     } finally {
       setHushMessages(false);
     }
@@ -159,6 +174,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   // An empty chest opens the same way, with nothing inside
   const showEmptyChest = () => {
+    isDropShown = false;
     chestLootShown.value = [];
     isChestClosed.value = false;
     isChestOpen.value = true;
@@ -167,6 +183,7 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
   return {
     chest: { isChestOpen, chestLootShown, isChestClosed },
     showChestContentsDialog,
+    showDropReveal,
     showEmptyChest,
     claimChestLoot: takeChestLoot,
     closeChest: leaveChest

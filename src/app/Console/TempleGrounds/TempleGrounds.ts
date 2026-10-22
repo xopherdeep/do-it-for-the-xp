@@ -155,12 +155,12 @@ export default defineComponent({
       moveIcons,
       stepTo,
       isDoorLocked,
-      claimChestItems,
+      claimChestItems, claimDropItems,
       handleTeleport,
       toggleMap,
       showTempleMessage,
       registerMessageDisplay,
-      chestContents,
+      chestContents, dropContents,
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
@@ -246,14 +246,14 @@ export default defineComponent({
       useChoiceReveal();
     const { pegasusReveal, showTempleCleared, completeTempleCleared: finishTempleCleared } = usePegasusReveal(leaveTemple);
     const { isPegasusRevealOpen, pegasusShown, pegasusReward, pegasusLevelUp } = pegasusReveal;
-    const { chest, showChestContentsDialog, showEmptyChest, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
+    const { chest, showChestContentsDialog, showEmptyChest, showDropReveal, claimChestLoot: takeChestLoot, closeChest: leaveChest } =
       useChestReveal({
         props,
         progressHeroId,
-        chestContents,
+        chestContents, dropContents,
         currentRoom,
         showTempleMessage,
-        claimChestItems,
+        claimChestItems, claimDropItems,
         showTempleCleared,
         setHushMessages
       });
@@ -296,7 +296,7 @@ export default defineComponent({
       leaveTemple,
       showTempleCleared,
       showChestContentsDialog,
-      showEmptyChest,
+      showEmptyChest, showDropReveal,
       openChoiceReveal,
       beastCard,
       activeMonster,
