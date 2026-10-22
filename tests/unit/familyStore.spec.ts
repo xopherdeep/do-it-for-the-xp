@@ -38,6 +38,14 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
   };
 });
 
+/** The sheet the family device builds for a hero (the board behind it is not under test here) */
+const mockBuildHeroSheet = jest.fn();
+jest.mock("@/lib/services/multiplayer/phoneClaimIntake", () => ({
+  __esModule: true,
+  ...jest.requireActual("@/lib/services/multiplayer/phoneClaimIntake"),
+  buildHeroSheet: (...args: any[]) => mockBuildHeroSheet(...args),
+}));
+
 jest.mock("@/lib/services/pro/familyIdentity", () => ({
   __esModule: true,
   ensureIdentity: jest.fn(),
@@ -1220,6 +1228,35 @@ describe("family store", () => {
       expect(fetchEvents).not.toHaveBeenCalled();
       await tick(1);
       expect(fetchEvents).toHaveBeenCalled();
+    });
+
+    it("the periodic tick reads the phone list before the sheet pass", async () => {
+      const linked = [{ id: 1, heroId: "h-1", label: "Mia's iPhone", createdAt: "2026-10-22T12:00:00Z", lastSeenAt: null }];
+      // No phone is linked when the app starts; one is linked a minute later
+      listPhones.mockResolvedValueOnce([]);
+      listPhones.mockResolvedValue(linked);
+      mockBuildHeroSheet.mockResolvedValue({
+        stats: { level: 2, xp: 5, nextLevelXp: 100, gp: 3, ap: 1, hp: 9, maxHp: 10, mp: 1, maxMp: 2 },
+        quests: [],
+      });
+      mockState.lastCards = cardsAlreadySent();
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      expect(store.phones).toEqual([]);
+      expect(mockBuildHeroSheet).not.toHaveBeenCalled();
+      const readsBefore = listPhones.mock.calls.length;
+      await tick(120_000);
+      await tick(0);
+      expect(listPhones).toHaveBeenCalledTimes(readsBefore + 1);
+      expect(store.phones).toEqual(linked);
+      const readAt = listPhones.mock.invocationCallOrder[readsBefore];
+      const passAt = mockBuildHeroSheet.mock.invocationCallOrder[0];
+      expect(readAt).toBeLessThan(passAt);
+      expect(kindsOf(mockState.outbox)).toEqual(["hero.sheet h-1"]);
     });
   });
 });

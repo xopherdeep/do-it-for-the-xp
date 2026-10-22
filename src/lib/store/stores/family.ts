@@ -792,6 +792,8 @@ export const useFamilyStore = defineStore("family", () => {
     }
     const interval = setInterval(() => {
       download()
+        // A phone linked since the last round must be in the list before the sheets are compared
+        .then(() => loadPhones())
         // Quests open and close with the clock, so the sheets are compared on every round too
         .then(() => queueSheets())
         .catch((error) => debug.warn("family: periodic download failed", error));
