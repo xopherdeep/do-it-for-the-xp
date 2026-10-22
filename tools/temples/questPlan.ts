@@ -1,7 +1,7 @@
 /**
- * The quest plan words every temple tool shares: how a chore's schedule is spelled in a plan (section 11 of
- * docs/Quest-Rooms-Spec.md) and the quest template a plan entry stands for. `regenerate.ts` deals these out to the
- * generator's rooms, `classic/dress.ts` to the rooms of a converted dungeon; the words mean the same in both.
+ * The quest plan words of the temple tools: how a chore's schedule is spelled in a plan (section 11 of
+ * docs/Quest-Rooms-Spec.md) and the quest template a plan entry stands for. `classic/dress.ts` deals these out to the
+ * rooms of a converted dungeon (the generator's shipped temples, which shared them, all follow a classic dungeon now).
  */
 import type { RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
 

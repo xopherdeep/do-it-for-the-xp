@@ -32,7 +32,7 @@ FLOOR_DIR = os.path.join(ROOT, "src", "assets", "images", "backgrounds")
 
 def load_maze(temple):
     """The temple's floors (1F, 2F, ...) as grids of room tokens, and each token's room type, read from the file
-    tools/temples/regenerate.ts writes."""
+    tools/temples/classic/dress.ts writes (the Wind Temple's is made by hand)."""
     src = open(os.path.join(TEMPLE_DIR, f"{temple}.ts")).read()
     maze = src[src.index("maze: {"): src.index("rooms: {")]
     floors = [[re.findall(r'"([^"]+)"', line) for line in body.splitlines() if line.strip().startswith("[")]

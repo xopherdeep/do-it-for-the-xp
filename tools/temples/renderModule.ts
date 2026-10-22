@@ -1,7 +1,7 @@
 /**
  * A temple layout as a module of src/lib/engine/temples, in the shape wind-temple.ts has: id, name, entrance, floors
- * of tokens, the rooms table. `regenerate.ts` writes the generator's temples through it and `classic/dress.ts` the
- * converted dungeons; each hands over its own header lines, so a module says what made it and from what.
+ * of tokens, the rooms table. `classic/dress.ts` writes the converted dungeons through it and hands over its own
+ * header lines, so a module says what made it and from what.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
 

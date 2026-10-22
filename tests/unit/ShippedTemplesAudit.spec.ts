@@ -2,10 +2,10 @@
  * The nine temples that ship with the app (src/lib/engine/temples) can all be finished.
  *
  * Each one is registered the way the engine registers it (TempleAdapter.registerTemple, so a Master Room becomes the
- * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver. The eight
- * temples written by the generator (tools/temples/regenerate.ts) must also keep to the shape they were made in:
- * two or three floors joined by stairs, a short critical path, every rule of the Temple Generation Contract.
- * The Wind Temple is authored by hand and only has to be finishable. It is the one temple that asks for a Bomb: its
+ * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver. Eight follow
+ * a classic dungeon, dressed from its JSON (tools/temples/classic/dress.ts), and ClassicTemples.spec.ts holds them to
+ * the dressing's rules; here they and the Wind Temple only have to be finishable and full of the right quests.
+ * The Wind Temple is authored by hand. It is the one temple that asks for a Bomb: its
  * Boss Key lies past a cracked wall, and its own shop, in reach of the entrance without one, sells Bombs. It is read
  * here as shipped, no wall blown by hand: the shop is a Bomb source, so the solver opens the cracked wall itself once
  * the hero has reached the shop (WindTemple.spec.ts checks the shop really comes first).
@@ -25,23 +25,13 @@ import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
-import { generateShipped, renderShippedModule, SHIPPED_IDS } from "../../tools/temples/regenerate";
 import { CLASSIC_IDS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 const shipped = temples as Record<string, any>;
 const IDS = Object.keys(shipped);
 const HAND_MADE = ["wind-temple"];
-/** The temples dressed from a classic dungeon's JSON (tools/temples/classic/dress.ts), one at a time as they move over */
+/** The temples dressed from a classic dungeon's JSON (tools/temples/classic/dress.ts): every shipped temple but Wind's */
 const CLASSIC = IDS.filter((id) => CLASSIC_IDS.includes(id));
-const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.includes(id));
-
-/** Floors each regenerated temple was spread over (none left: every shipped temple follows a classic dungeon or is made by hand) */
-const FLOORS: Record<string, number> = {};
-
-/** The relics each regenerated temple keeps in a chest */
-const RELICS: Record<string, string[]> = {};
 
 /**
  * Quest Rooms (docs/Quest-Rooms-Spec.md sections 10 and 11): the combat rooms of each temple as (monster, miniboss, boss)
@@ -124,12 +114,14 @@ const registered = (id: string) => {
   return { id, entrance: dungeon.entrance, maze: dungeon.maze, rooms: dungeon.rooms };
 };
 
-const roomsOn = (graph: TempleGraph, floor: string) => [...graph.rooms.values()].filter((room) => room.ref.floor === floor);
-
 describe("the shipped temples", () => {
   it("are the nine of the registry", () => {
     expect(IDS.sort()).toEqual(Object.keys(TEMPLE_METADATA).sort());
     expect(IDS).toHaveLength(9);
+  });
+
+  it("are the hand-made Wind Temple and the temples that follow a classic dungeon, and no other", () => {
+    expect(IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.includes(id))).toEqual([]);
   });
 
   describe.each(IDS)("%s", (id) => {
@@ -292,85 +284,8 @@ describe("the shipped temples as quest rooms", () => {
   });
 });
 
-// The temples dressed from a classic dungeon (tools/temples/classic/dress.ts) are checked in ClassicTemples.spec.ts
-
-describe("the regenerated temples", () => {
-  it("are every shipped temple but the hand-made Wind Temple and the classic dungeon temples: the ones regenerate.ts plans", () => {
-    expect(REGENERATED.slice().sort()).toEqual(SHIPPED_IDS.slice().sort());
-    expect(REGENERATED).not.toContain("storm-temple");
-  });
-
-  // Every shipped temple follows a classic dungeon or is made by hand now, and jest refuses an empty table: the rules
-  // below run for whatever regenerate.ts plans again
-  const hasRegenerated = REGENERATED.length > 0;
-  if (hasRegenerated) describe.each(REGENERATED)("%s", (id) => {
-    const layout = registered(id);
-    const graph = buildTempleGraph(layout);
-    const rooms = [...graph.rooms.values()];
-
-    it("is spread over several floors with a short run on each", () => {
-      expect(graph.floors).toHaveLength(FLOORS[id]);
-      for (const floor of graph.floors) {
-        const count = roomsOn(graph, floor).length;
-        expect(count).toBeGreaterThanOrEqual(8);
-        expect(count).toBeLessThanOrEqual(14);
-      }
-    });
-
-    it("starts on the ground floor, and a flight of stairs joins each floor to the next", () => {
-      expect(shipped[id].entrance).toHaveLength(3);
-      expect(shipped[id].entrance[0]).toBe(0);
-      graph.floors.slice(0, -1).forEach((floor, index) => {
-        const next = graph.floors[index + 1];
-        const up = graph.doors.filter((door) => door.kind === "stairs" && graph.rooms.get(door.from)!.ref.floor === floor && graph.rooms.get(door.to)!.ref.floor === next);
-        const down = graph.doors.filter((door) => door.kind === "stairs" && graph.rooms.get(door.from)!.ref.floor === next && graph.rooms.get(door.to)!.ref.floor === floor);
-        expect(up.length).toBeGreaterThanOrEqual(1);
-        expect(down.length).toBeGreaterThanOrEqual(1);
-      });
-    });
-
-    it("keeps the Master Room under its own name and the mini-boss on the way", () => {
-      const placed = Object.values(shipped[id].maze as Record<string, string[][]>)
-        .flat(2)
-        .map((token) => shipped[id].rooms[token]?.type);
-      expect(placed.filter((type) => type === "master")).toHaveLength(1);
-      expect(placed.filter((type) => type === "miniboss")).toHaveLength(1);
-      expect(placed.filter((type) => type === "boss")).toHaveLength(1);
-    });
-
-    it("hands out at least as many small keys as it has small locks", () => {
-      const keys = rooms.reduce((sum, room) => sum + room.smallKeys, 0);
-      const locks = graph.doors.filter((door) => door.lock === "small").length;
-      expect(locks).toBeGreaterThanOrEqual(1);
-      expect(keys).toBeGreaterThanOrEqual(locks);
-    });
-
-    it("keeps the registry's element on its boss and a quest template on every monster room", () => {
-      const boss = rooms.find((room) => room.kind === "boss")!;
-      expect(boss.room.content?.element).toBe(TEMPLE_METADATA[id].element);
-      const monsters = rooms.filter((room) => room.kind === "monster");
-      expect(monsters.length).toBeGreaterThanOrEqual(3);
-      for (const room of monsters) expect(room.room.content?.quest?.beastId).toEqual(expect.any(String));
-    });
-
-    it("keeps its relic in a chest", () => {
-      const held = rooms.filter((room) => room.room.type === "loot" && room.room.content?.chest === "dungeon").map((room) => room.room.content?.dungeon);
-      expect(held).toEqual(expect.arrayContaining(RELICS[id]));
-    });
-
-    it("is exactly what tools/temples/regenerate.ts writes from its seed", () => {
-      const file = readFileSync(join(__dirname, "../../src/lib/engine/temples", `${id}.ts`), "utf8");
-      expect(file).toBe(renderShippedModule(id, generateShipped(id)));
-      expect(file).toContain(`// seed: "${id}"`);
-    });
-
-    it("breaks no rule of the Temple Generation Contract", () => {
-      expect(solveTemple(layout).reasons).toEqual([]);
-    });
-  });
-});
-
-describe("the generator defaults the shipped temples are made with", () => {
+// The generator no longer makes a shipped temple; the Temple Creator's Generate still uses it with these defaults
+describe("the generator's defaults (the Temple Creator's Generate)", () => {
   const options = { theme: "Kitchen", size: "small" as const, floors: 2 as const, locks: 1 as const };
   const typed = (temple: { rooms: Record<string, { type: string }> }, type: string) => Object.values(temple.rooms).filter((room) => room.type === type);
   const keyInMiniboss = (temple: { rooms: Record<string, { type: string; content?: Record<string, any> }> }) =>

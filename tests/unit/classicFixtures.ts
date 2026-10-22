@@ -1,6 +1,6 @@
 /**
  * Fixtures for the classic dungeon dress step (tools/temples/classic/dress.ts):
- * - `stormBeforeHera`: the Storm Temple as tools/temples/regenerate.ts wrote it before the Tower of Hera replaced it,
+ * - `stormBeforeHera`: the Storm Temple as tools/temples/regenerate.ts (since removed) wrote it before the Tower of Hera replaced it,
  *   an unedited copy of the old seed, for the layout-switch test (a hero's saved run on the old rooms);
  * - hand-made ClassicDungeon fixtures, small enough to reason about, one per dress rule.
  */

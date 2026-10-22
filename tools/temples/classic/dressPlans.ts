@@ -1,7 +1,7 @@
 /**
  * The chore plan of each classic temple: the theme's beasts the dress step deals out to the rooms of the converted
  * dungeon (tools/temples/classic/dungeons/<id>.json), with the temple's relic, riddle and trap. One entry per temple
- * that has moved from tools/temples/regenerate.ts to the classic dungeons; the eight are added one temple at a time.
+ * that follows a classic dungeon: every shipped temple but the hand-made Wind Temple (its plan comes with Task 9).
  *
  * `mustClear` lists the candidates for the must-clear monster rooms in priority order: the beasts of today's starter
  * quests first (STARTER_QUESTS, so a family's first chores fill rooms at once), then the rest of the theme. A dungeon
