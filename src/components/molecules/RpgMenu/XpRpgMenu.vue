@@ -190,6 +190,11 @@ export default defineComponent({
     padding-right: 0;
   }
 
+  // ... and the icon sits a little closer to its label
+  &:not(.rpg-box) .menu-item .item-inner {
+    gap: 8px;
+  }
+
   // A phone-width box never grows to its widest row: the cells shrink and a label wraps inside its cell
   .menu-item-col {
     min-width: 0;
@@ -246,7 +251,7 @@ export default defineComponent({
     .item-inner {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       width: 100%;
       min-width: 0;
     }

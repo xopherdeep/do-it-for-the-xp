@@ -43,11 +43,11 @@ $outline: -2px -2px 0 $ink, 0 -2px 0 $ink, 2px -2px 0 $ink, -2px 0 0 $ink, 2px 0
   text-shadow: var(--gs-text-shadow);
   transition: color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 
-  // The box's four rings, in alarm colours
+  // The text keeps reading on the theme's own window; the alarm is in the rings
   &.is-critical {
-    color: var(--gs-danger);
-    background-color: #3a0c24;
-    box-shadow: 0 0 0 5px #5a1228, 0 0 0 10px #ff4a4a, 0 0 0 12px #ffc2b8, 0 0 0 16px #4a1830;
+    color: var(--gs-text);
+    background-color: var(--gs-window-color);
+    box-shadow: 0 0 0 5px var(--gs-window-color), 0 0 0 10px var(--gs-danger), 0 0 0 12px var(--gs-text), 0 0 0 16px var(--gs-danger);
   }
 }
 

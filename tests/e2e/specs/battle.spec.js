@@ -171,7 +171,7 @@ describe("Battle Field under a Game Style", () => {
         waitForMenu();
         cy.get("[data-cy=action-attack] .pill-note").should("have.text", "3 chores");
         // Zelda's pixel font is wide: the cluster still fits the 390 px phone
-        cy.get(".radial-cluster").invoke("outerWidth").should("be.lte", 390);
+        cy.get(".radial-cluster").then(($el) => expect($el[0].scrollWidth).to.be.at.most($el[0].clientWidth));
         cy.get("[data-cy=action-run]").then(($el) => expect($el[0].getBoundingClientRect().right).to.be.at.most(390));
       } else {
         cy.get("#attack", { timeout: 30000 }).should("be.visible").find(".item-note").should("have.text", "3 chores");

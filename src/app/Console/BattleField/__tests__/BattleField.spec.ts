@@ -416,6 +416,10 @@ describe("BattleField: a free fight", () => {
     await wrapper.find("#run-away").trigger("click");
     expect(wrapper.find(".dialog-prompt").text()).toBe("Run away? Your finished chores won't count.");
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Keep fighting", "Run"]);
+    // Each answer is a full-width row, so a long label never has to share a narrow column
+    const spansBothColumns = wrapper.findAll(".menu-item-col").map((col) => col.attributes("style") ?? "");
+    expect(spansBothColumns).toHaveLength(2);
+    spansBothColumns.forEach((style) => expect(style).toContain("grid-column: 1 / -1"));
     await wrapper.find("#keep-fighting").trigger("click");
     expect(menu()).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
 

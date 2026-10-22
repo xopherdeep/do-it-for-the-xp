@@ -589,6 +589,7 @@ export default defineComponent({
             id: "keep-fighting",
             label: "Keep fighting",
             faIcon: "fist-raised",
+            fullWidth: true,
             click: () => {
               audio.playSound("no");
               runConfirm.value = false;
@@ -598,6 +599,7 @@ export default defineComponent({
             id: "run",
             label: "Run",
             faIcon: "running",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
@@ -611,6 +613,7 @@ export default defineComponent({
             id: "bribe-full",
             label: `Bribe (${quotes.fullCost} GP)`,
             faIcon: "coins",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
@@ -625,6 +628,7 @@ export default defineComponent({
             id: "bribe-low",
             label: `Cheap Bribe (${quotes.lowCost} GP)`,
             faIcon: "badge-percent",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
