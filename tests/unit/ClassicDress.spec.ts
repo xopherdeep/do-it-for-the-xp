@@ -5,11 +5,16 @@
  * checked as a whole in ClassicTemples.spec.ts.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
-import { solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
+import { buildTempleGraph, solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { dressDungeon } from "../../tools/temples/classic/dress";
-import { corridor, crack, drop, extras, fall, plan, tower, twoScreens } from "./classicFixtures";
+import { corridor, crack, crossroads, drop, extras, fall, plan, tower, twoScreens } from "./classicFixtures";
+
+const DIRS = ["north", "east", "south", "west"] as const;
+
+/** How many sides of a room are not walls */
+const openSides = (room: Room | undefined): number => DIRS.filter((dir) => room?.sides?.[dir] !== "wall").length;
 
 type Maze = Record<string, string[][]>;
 
@@ -196,14 +201,34 @@ describe("dressing a classic dungeon", () => {
     const { temple, report } = dressDungeon(fall(), plan());
     const at = roomsOf(temple);
 
-    it("lands the fall in an added room beside the boss, behind the Boss door, with a circle back to one beside the entrance", () => {
+    it("lands the fall in an added room beside the boss, behind the Boss door, with a circle back beside the room the hero fell from", () => {
       expect(at("1F", 0, 3)).toMatchObject({ type: "pit", content: { targetLevel: "2F", targetCoords: { x: 1, y: 0 } } });
-      expect(at("2F", 0, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 0, y: 1 } }, sides: { west: "masterlocked" } });
+      expect(at("2F", 0, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 2, y: 1 } }, sides: { west: "masterlocked" } });
       expect(at("2F", 0, 0)).toMatchObject({ type: "boss", sides: { east: "masterlocked", south: "masterlocked" } });
       expect(at("2F", 1, 0)?.type).toBe("master");
-      expect(at("1F", 1, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "2F", targetCoords: { x: 1, y: 0 } }, sides: { north: "door" } });
-      // ... and, the dungeon having no empty cell, the one shop in the nearest free position to the entrance
-      expect(report.placements.filter((entry) => entry.grown).map((entry) => `${entry.type} ${entry.at.floor} (${entry.at.row},${entry.at.col})`).sort()).toEqual(["master 2F (1,0)", "shop 1F (1,1)", "teleport 1F (1,0)", "teleport 2F (0,1)"]);
+      // The way back lands under the vault, the room the hero steps into the drop from: never a shortcut from the entrance
+      expect(at("1F", 1, 2)).toMatchObject({ type: "teleport", content: { targetLevel: "2F", targetCoords: { x: 1, y: 0 } }, sides: { north: "door", west: "wall" } });
+      expect(at("1F", 0, 2)?.sides?.south).toBe("door");
+      // ... and, the dungeon having no empty cell, the one shop beside the entrance
+      expect(report.placements.filter((entry) => entry.grown).map((entry) => `${entry.type} ${entry.at.floor} (${entry.at.row},${entry.at.col})`).sort()).toEqual(["master 2F (1,0)", "shop 1F (1,0)", "teleport 1F (1,2)", "teleport 2F (0,1)"]);
+    });
+
+    it("keeps the dungeon's route: the ride back from the boss is no shorter a way to him than the fall", () => {
+      const graph = buildTempleGraph(asRegistered(temple));
+      const hops = new Map<string, number>([[graph.entrance!, 0]]);
+      const queue = [graph.entrance!];
+      while (queue.length) {
+        const key = queue.shift()!;
+        for (const door of graph.out.get(key) ?? []) {
+          const isNew = !hops.has(door.to);
+          if (isNew) {
+            hops.set(door.to, hops.get(key)! + 1);
+            queue.push(door.to);
+          }
+        }
+      }
+      // Gate, guard, vault, drop, the antechamber: four doors to the Boss door, and the circle back adds no shorter way
+      expect(hops.get("2F:0,1")).toBe(4);
     });
 
     it("needs the Boss Key to reach the boss, and clears with it", () => {
@@ -230,6 +255,12 @@ describe("dressing a classic dungeon", () => {
     it("drops a riddle displaced by stairs and says so, and drops nothing else", () => {
       expect(at("2F", 0, 1)?.type).toBe("stairs-down");
       expect(report.dropped).toEqual([expect.objectContaining({ what: "puzzle", at: { floor: "2F", row: 0, col: 1 } })]);
+    });
+
+    it("puts a hole that left its cell in a dead end of its own, so no one walks into the drop on the way somewhere", () => {
+      for (const pit of report.placements.filter((entry) => entry.type === "pit")) {
+        expect({ at: pit.at, openSides: openSides(at(pit.at.floor, pit.at.row, pit.at.col)) }).toEqual({ at: pit.at, openSides: 1 });
+      }
     });
 
     it("moves the far fairy room next to the floor's used cells and points every link at it", () => {
@@ -267,6 +298,26 @@ describe("dressing a classic dungeon", () => {
       const verdict = solveTemple(asRegistered(temple));
       expect(verdict.solvable).toBe(true);
       expect(verdict.reasons.filter((reason) => reason.startsWith("R8"))).toEqual([]);
+    });
+  });
+
+  describe("a hole and a circle pushed out of a crossroads", () => {
+    const { temple, report } = dressDungeon(crossroads(), plan());
+    const at = roomsOf(temple);
+
+    it("puts the hole in the dead end of its own room, never in the passage, with its drop named", () => {
+      expect(at("1F", 0, 3)).toMatchObject({ type: "pit", content: { targetLevel: "B1", targetCoords: { x: 0, y: 0 } } });
+      expect(at("1F", 0, 2)?.type).not.toBe("pit");
+      expect(report.moves).toEqual(expect.arrayContaining([{ what: "hole", from: { floor: "1F", row: 0, col: 1 }, to: { floor: "1F", row: 0, col: 3 }, grown: false }]));
+    });
+
+    it("keeps the circle too, beside its source when its room has no dead end left, pointed at its landing circle", () => {
+      const circle = report.placements.find((entry) => entry.type === "teleport" && entry.origin?.floor === "1F" && entry.origin.col === 1)!;
+      expect(circle).toMatchObject({ grown: true });
+      expect(Math.abs(circle.at.row - 0) + Math.abs(circle.at.col - 1)).toBe(1);
+      expect(at(circle.at.floor, circle.at.row, circle.at.col)?.content).toMatchObject({ targetLevel: "B1", targetCoords: { x: 1, y: 0 } });
+      expect(at("B1", 0, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: circle.at.col, y: circle.at.row } } });
+      expect(report.dropped.map((entry) => entry.what)).toEqual([]);
     });
   });
 

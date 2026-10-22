@@ -255,6 +255,31 @@ export const drop = (): ClassicDungeon =>
   ]);
 
 /**
+ * CROSSROADS, a floor 1x4 over a basement 1x2. The second cell is a crossroads of one LTTP room that also holds the
+ * stairs up, a hole into the cellar and a circle to the cellar's circle: the stairs stay, the hole must go to the room's
+ * dead end at the east, never to the passage between, and the circle is kept beside its source. The boss sits upstairs.
+ *
+ *   1F:  E  X  .  .        2F:  D  B        B1:  .  T
+ */
+export const crossroads = (): ClassicDungeon =>
+  dungeon("crossroads", [
+    floor("B1", 1, 2, [
+      cell(0, 0, "Cellar", { east: "open" }),
+      cell(0, 1, "Cellar Circle", { west: "open" }, { teleport: { to: "1F", row: 0, col: 1 } }),
+    ]),
+    floor("1F", 1, 4, [
+      cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(0, 1, "Cross", { west: "open", east: "open" }, { stairs: { to: "2F", row: 0, col: 1 }, hole: { to: "B1", row: 0, col: 0 }, teleport: { to: "B1", row: 0, col: 1 } }),
+      cell(0, 2, "Cross", { west: "open", east: "open" }),
+      cell(0, 3, "Cross", { west: "open" }),
+    ]),
+    floor("2F", 1, 2, [
+      cell(0, 0, "Throne", { east: "open" }, { boss: true }),
+      cell(0, 1, "Landing", { west: "open" }, { stairs: { to: "1F", row: 0, col: 1 } }),
+    ]),
+  ]);
+
+/**
  * EXTRAS, a floor 2x5 and a basement 1x3: more empty cells than the dressing has extras for, side fights on both
  * floors, one must-clear hall and the mini-boss guard of the vault. Nearest the entrance first: the north nook gets the
  * shop, the cellar's east end the save (a basement cell wins a tie), the north end the 1F camp; the antechamber stays

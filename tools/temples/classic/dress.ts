@@ -25,14 +25,14 @@ import { buildTempleGraph, type TempleLayout } from "@/lib/engine/dungeons/gener
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { renderModule } from "../renderModule";
 import type { ClassicDungeon } from "./classicDungeon";
-import { allSlots, buildBoard, floorOf, placeNearest, tryOpenBeside, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove } from "./dressBoard";
+import { allSlots, buildBoard, openNear, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift } from "./dressBoard";
 import { planChores } from "./dressChores";
 import { drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
 import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, type ClassicPlan } from "./dressPlans";
 import { buildRooms, type ClassicPlacement } from "./dressRooms";
 
 export { CLASSIC_IDS, CLASSIC_PLANS, loadDungeon };
-export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, PlainBigKeyDoor, CellRef };
+export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef };
 
 /** What the dressing did with a dungeon, for the tests and the build report */
 export interface ClassicReport {
@@ -54,6 +54,8 @@ export interface ClassicReport {
   bombChests: CellRef[];
   /** Island cells (walled on every side, reached by a link) moved from far off next to their floor's used cells */
   compacted: ClassicCompaction[];
+  /** Floors whose cells all moved up and left once their empty leading rows and columns were cut */
+  shifted: FloorShift[];
   /** Big-Key doors LTTP keyed between two ordinary rooms, drawn as plain doors */
   plainBigKeyDoors: PlainBigKeyDoor[];
   /** Every room of the temple, what it is and where it came from */
@@ -91,7 +93,7 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
   if (hasNoEmptyCell) {
     const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance");
     if (!entrance) throw new Error(`${plan.name}: no entrance cell`);
-    const shop = tryOpenBeside(board, entrance) ?? placeNearest(board, floorOf(board, entrance.at.floor)!, entrance.at, undefined);
+    const shop = openNear(board, entrance);
     shop.item = { kind: "shop", origin: shop.at, room: "" };
     board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: !shop.cell });
     return;
@@ -138,6 +140,7 @@ export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): Dresse
     merged: board.merged,
     bombChests,
     compacted: board.compacted,
+    shifted: board.shifted,
     plainBigKeyDoors: plainBigKeyDoors(board),
     placements: built.placements,
   };

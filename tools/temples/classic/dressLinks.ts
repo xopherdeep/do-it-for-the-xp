@@ -11,7 +11,7 @@
  *   gets a circle added beside its landing, pointed back at it.
  */
 import type { ClassicCell } from "./classicDungeon";
-import { DIRECTIONS, allSlots, describeCell, distance, floorOf, linkedSlot, placeNearest, posKey, slotsOf, tryOpenBeside, type Board, type CellRef, type Slot } from "./dressBoard";
+import { DIRECTIONS, STEP, allSlots, cellKey, distance, linkedSlot, openNear, posKey, slotAt, slotsOf, type Board, type CellRef, type Slot } from "./dressBoard";
 
 /** A cell walled on every side: reached by a link alone */
 const isIsland = (cell: ClassicCell): boolean => DIRECTIONS.every((direction) => cell.sides[direction] === "wall");
@@ -70,48 +70,94 @@ export const compactIslands = (board: Board): void => {
   }
 };
 
+/**
+ * Once the islands have moved, a floor whose cells all start past the first row or column (the Ice Palace's B6 began
+ * on row 13) moves up and left so no empty rows or columns lead it. Every slot keeps its cell and its origin; the
+ * shift is reported so a reader can find a cell's new place from the dungeon's.
+ */
+export const shiftFloors = (board: Board): void => {
+  for (const floor of board.floors) {
+    const slots = slotsOf(floor);
+    if (!slots.length) continue;
+    const rows = Math.min(...slots.map((slot) => slot.at.row));
+    const cols = Math.min(...slots.map((slot) => slot.at.col));
+    const isFlush = rows === 0 && cols === 0;
+    if (isFlush) continue;
+    floor.slots.clear();
+    for (const slot of slots) {
+      slot.at = { floor: floor.name, row: slot.at.row - rows, col: slot.at.col - cols };
+      floor.slots.set(posKey(slot.at.row, slot.at.col), slot);
+    }
+    for (const moved of board.compacted.filter((entry) => entry.to.floor === floor.name)) moved.to = { floor: floor.name, row: moved.to.row - rows, col: moved.to.col - cols };
+    floor.rows -= rows;
+    floor.cols -= cols;
+    board.shifted.push({ floor: floor.name, rows, cols });
+  }
+};
+
 /** Whether a thing of the board leads (by its link) onto `slot` */
 const leadsTo = (board: Board, item: Slot["item"], slot: Slot): boolean => Boolean(item?.link) && linkedSlot(board, item!.link) === slot;
 
 /**
  * The antechamber of a fall or a ride onto the boss: an added circle beside him (the Boss door between), paired with a
- * circle added beside the entrance. Pits and circles that named the boss's cell land in it (dressRooms reads
- * `board.antechamber`). Nothing is added when no link lands on the boss.
+ * circle added beside the room the hero fell from, so the ride back lands on the dungeon's own route and never
+ * shortcuts it. Pits and circles that named the boss's cell land in it (dressRooms reads `board.antechamber`).
+ * Nothing is added when no link lands on the boss.
  */
 export const placeAntechamber = (board: Board, boss: Slot): void => {
   const arrivals = allSlots(board).filter((slot) => (slot.item?.kind === "hole" || slot.item?.kind === "teleport") && leadsTo(board, slot.item, boss));
   const isReachedByDoorsOrStairs = arrivals.length === 0;
   if (isReachedByDoorsOrStairs) return;
-  addAntechamber(board, boss);
+  addAntechamber(board, boss, arrivals[0]);
 };
 
-const fail = (message: string): never => {
-  throw new Error(message);
+/**
+ * The room the hero takes the fall from: the cell the hole was converted in when the pit was pushed out of it (that
+ * cell holds the thing that stayed), else the converted neighbour the hole's cell opens on (the way the hero comes),
+ * else, for a hole in an island, the entrance.
+ */
+const fallSource = (board: Board, arrival: Slot): Slot => {
+  const origin = board.converted.get(cellKey(arrival.item!.origin));
+  const isPushedOut = Boolean(origin) && origin !== arrival;
+  if (isPushedOut) return origin!;
+  const way = DIRECTIONS.map((direction) => {
+    const isOpen = arrival.cell?.sides[direction] !== "wall";
+    return isOpen ? slotAt(board, { floor: arrival.at.floor, row: arrival.at.row + STEP[direction][0], col: arrival.at.col + STEP[direction][1] }) : undefined;
+  }).find((slot): slot is Slot => Boolean(slot?.item) && slot!.item!.kind !== "hole");
+  return way ?? allSlots(board).find((slot) => slot.item?.kind === "entrance") ?? arrival;
 };
 
 /** The antechamber and its circle back, once a fall or a ride is known to land on the boss */
-const addAntechamber = (board: Board, boss: Slot): void => {
-  const antechamber = tryOpenBeside(board, boss) ?? fail(`${board.dungeon.id}: no free cell next to the boss at ${describeCell(boss.at)} for the antechamber of the fall onto him`);
-  const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance") ?? fail(`${board.dungeon.id}: no entrance cell`);
-  const back = placeNearest(board, floorOf(board, entrance.at.floor)!, entrance.at, undefined);
+const addAntechamber = (board: Board, boss: Slot, arrival: Slot): void => {
+  const antechamber = openNear(board, boss);
+  const source = fallSource(board, arrival);
+  const back = openNear(board, source);
   antechamber.item = { kind: "teleport", origin: antechamber.at, room: "", target: back.at };
   back.item = { kind: "teleport", origin: back.at, room: "", target: antechamber.at };
   board.antechamber = antechamber;
   board.moves.push({ what: "antechamber", from: boss.at, to: antechamber.at, grown: true });
-  board.moves.push({ what: "circle back from the boss", from: entrance.at, to: back.at, grown: !back.cell });
+  board.moves.push({ what: "circle back from the boss", from: source.at, to: back.at, grown: !back.cell });
 };
 
-/** A circle whose landing is no circle gets one added beside its landing, each pointed at the other */
+/**
+ * A circle whose landing is no circle is paired with the circle on that floor that leads back to it, else gets one
+ * added beside its landing; each is pointed at the other.
+ */
 export const placeLandingCircles = (board: Board): void => {
   const circles = allSlots(board).filter((slot) => slot.item?.kind === "teleport" && slot.item.link && !slot.item.target);
   for (const circle of circles) {
+    const isPairedMeanwhile = Boolean(circle.item!.target);
+    if (isPairedMeanwhile) continue;
     const landing = linkedSlot(board, circle.item!.link);
     if (!landing) continue;
     const isCircleOrBoss = landing.item?.kind === "teleport" || landing.item?.kind === "boss";
     if (isCircleOrBoss) continue;
-    const added = tryOpenBeside(board, landing) ?? placeNearest(board, floorOf(board, landing.at.floor)!, landing.at, undefined);
-    added.item = { kind: "teleport", origin: added.at, room: "", target: circle.at };
-    circle.item!.target = added.at;
-    board.moves.push({ what: "landing circle", from: landing.at, to: added.at, grown: !added.cell });
+    const back = allSlots(board).find((other) => other.item?.kind === "teleport" && other.at.floor === landing.at.floor && other.item.link && linkedSlot(board, other.item.link) === circle && !other.item.target);
+    const partner = back ?? openNear(board, landing);
+    const isAdded = !back;
+    if (isAdded) partner.item = { kind: "teleport", origin: partner.at, room: "", target: circle.at };
+    else partner.item!.target = circle.at;
+    circle.item!.target = partner.at;
+    if (isAdded) board.moves.push({ what: "landing circle", from: landing.at, to: partner.at, grown: !partner.cell });
   }
 };

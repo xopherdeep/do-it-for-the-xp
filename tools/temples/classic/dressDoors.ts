@@ -6,7 +6,7 @@
  * not a shop sells Bombs), so the solver and a hero both pass it with nothing blown by hand.
  */
 import type { ClassicCell, ClassicDungeon, ClassicSide } from "./classicDungeon";
-import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, floorOf, openSlot, posKey, slotAt, type Board, type BoardFloor, type CellRef, type Direction, type Slot } from "./dressBoard";
+import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, openNear, slotAt, tryOpenBeside, type Board, type CellRef, type Direction, type Slot } from "./dressBoard";
 import { buildTempleGraph, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 
 export type SideWord = "door" | "locked" | "masterlocked" | "bombable" | "wall";
@@ -197,40 +197,30 @@ const refOf = (key: string): CellRef => {
 
 /**
  * A Bomb chest in the nearest empty converted cell the hero reaches from the entrance without a key, before the wall
- * (nearest to the wall's near end, over unlocked doors), else in a room added beside the near end. Never behind a small
- * lock: the Bomb must be there whatever the hero has done with their keys.
+ * (nearest to the wall's near end, over unlocked doors). Never behind a small lock: the Bomb must be there whatever
+ * the hero has done with their keys. With no such cell, a room is added beside the nearest reachable room on the
+ * entrance side that has a free side (the near end first), and the addition is reported.
  */
-const placeBombChest = (board: Board, floor: BoardFloor, near: CellRef, closed: TempleGraph, nearKey: string): CellRef => {
+const placeBombChest = (board: Board, near: CellRef, closed: TempleGraph, nearKey: string): CellRef => {
   const fromEntrance = hopsFrom(closed, closed.entrance!, isUnlocked);
   const fromWall = hopsFrom(closed, nearKey, isUnlocked);
   const far = Number.MAX_SAFE_INTEGER;
+  const byHops = (a: CellRef, b: CellRef): number => (fromWall.get(sidesKey(a)) ?? far) - (fromWall.get(sidesKey(b)) ?? far) || (fromEntrance.get(sidesKey(a)) ?? far) - (fromEntrance.get(sidesKey(b)) ?? far);
   const free = allSlots(board)
     .filter((slot) => slot.cell && !slot.item && fromEntrance.has(sidesKey(slot.at)))
-    .sort((a, b) => (fromWall.get(sidesKey(a.at)) ?? far) - (fromWall.get(sidesKey(b.at)) ?? far) || (fromEntrance.get(sidesKey(a.at)) ?? far) - (fromEntrance.get(sidesKey(b.at)) ?? far));
-  const slot = free[0] ?? openBeside(board, floor, near);
+    .sort((a, b) => byHops(a.at, b.at));
+  const slot = free[0] ?? addBombChestNear(board, near, [...fromWall.keys()].filter((key) => fromEntrance.has(key)).map(refOf).sort(byHops));
   slot.item = { kind: "bombChest", origin: slot.at, room: slot.cell?.room ?? "" };
   return slot.at;
 };
 
-/** How the grid has to grow for a position: a new column, a new row, or not at all (inside the grid) */
-const growthFor = (floor: BoardFloor, at: CellRef): "row" | "col" | undefined => {
-  const isNewColumn = at.col === floor.cols;
-  if (isNewColumn) return "col";
-  const isNewRow = at.row === floor.rows;
-  if (isNewRow) return "row";
-  return undefined;
-};
-
-/** A room added next to `near`, on a wall position inside the grid or on a grown row or column */
-const openBeside = (board: Board, floor: BoardFloor, near: CellRef): Slot => {
-  for (const direction of DIRECTIONS) {
-    const at = { floor: near.floor, row: near.row + STEP[direction][0], col: near.col + STEP[direction][1] };
-    const isInside = at.row >= 0 && at.col >= 0 && at.row <= floor.rows && at.col <= floor.cols;
-    const isFree = isInside && !floor.slots.has(posKey(at.row, at.col));
-    if (!isFree) continue;
-    return openSlot(floor, { at, grows: growthFor(floor, at) }, near, near);
-  }
-  throw new Error(`${board.dungeon.id}: no cell beside ${describeCell(near)} for a Bomb chest`);
+/** A room added beside the first of `rooms` (the wall's near end first) that has a free side, else the nearest added room to the near end */
+const addBombChestNear = (board: Board, near: CellRef, rooms: CellRef[]): Slot => {
+  const slots = [near, ...rooms].map((ref) => slotAt(board, ref)).filter((slot): slot is Slot => Boolean(slot?.item));
+  const beside = slots.map((slot) => tryOpenBeside(board, slot)).find((slot): slot is Slot => Boolean(slot));
+  const slot = beside ?? openNear(board, slotAt(board, near)!);
+  board.moves.push({ what: "Bomb chest", from: near, to: slot.at, grown: true });
+  return slot;
 };
 
 /** Whether the boss is in reach from the entrance with the given cracks read as open and every other one as a wall */
@@ -271,8 +261,7 @@ export const placeBombChests = (board: Board, layoutNow: () => TempleLayout): Ce
       const isAlreadyOpened = opened.has(crackKey(door.from, door.to));
       if (isAlreadyOpened) continue;
       opened.add(crackKey(door.from, door.to));
-      const near = refOf(door.from);
-      chests.push(placeBombChest(board, floorOf(board, near.floor)!, near, closed, door.from));
+      chests.push(placeBombChest(board, refOf(door.from), closed, door.from));
     }
   }
   return chests;
