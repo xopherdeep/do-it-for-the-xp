@@ -1,10 +1,11 @@
 import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
-import { getQuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
+import { getQuestLogDb, type QuestLogEntry, type QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { OutboxItem, PendingVerdict, SyncState, WaitingEvent } from "@/lib/databases/SyncDb";
 import { claimSettledEvent, questClaimedEvent, type ClaimSettled, type ClaimSettledStatus, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import { approveCompletion, paidQuestRewards, rejectCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { withHuntBonus } from "@/lib/services/quests/huntBonus";
+import { tellHeroOfVerdict } from "@/lib/services/quests/verdictNotices";
 import { rawTargetFor, readRawRecord } from "@/lib/services/sync/recordApply";
 import type { BatchRecord } from "@/lib/services/sync/recordOutbox";
 import { applyVerdict, type VerdictDeps, type VerdictResult } from "@/lib/services/sync/verdictApply";
@@ -24,7 +25,9 @@ import debug from "@/lib/utils/debug";
  *   and is tried again after each round (`retry`); it leaves, with its `verdictsSent` line, once its entry is settled
  *   here, by this device or by the holder's copy landing. One whose entry never comes (an answer to a phone claim that
  *   was turned away) goes after a week. `applyVerdict` reads the entry first, so nothing is paid twice.
- * - The device that applies a verdict on a claim taken from a phone tells that phone, with what the hero was paid.
+ * - The device that applies a verdict tells the hero in their feed ("Quest approved!" with the pay, or "Quest sent back"
+ *   with the note): it holds the hero, so the feed is its to write. On a claim taken from a phone it also tells that
+ *   phone, with what the hero was paid.
  * - A takeover (`resendClaims`, `resendDropped`): a claim entry the site refused because another device took the hero,
  *   or one the takeover dropped from the outbox unsent, still `pending`, goes again as a phone-style `quest.claimed` (no
  *   `synced` mark, the time the hero made it) for the holder to take, and this device's copy goes: the holder writes the
@@ -157,22 +160,28 @@ export const createVerdicts = (ctx: VerdictContext): Verdicts => {
   let retrying: Promise<void> | null = null;
 
   /** A claim taken from a phone hears the verdict from the device that applied it, with what the hero was paid */
-  const tellPhone = async (applied: QuestLogEntry | null): Promise<void> => {
-    const claimId = applied?.phoneClaimId;
+  const tellPhone = async (entry: QuestLogEntry, paid: QuestRewards): Promise<void> => {
+    const claimId = entry.phoneClaimId;
+    if (!claimId) return;
+    const status = entry.status as ClaimSettledStatus;
+    await ctx.tellPhone(entry.userId, { claimId, questId: String(entry.questId), status, note: entry.note ?? "", ...paid });
+  };
+
+  /** A verdict applied here: the hero hears it in their feed, and a claim taken from a phone hears it too */
+  const settledHere = async (applied: QuestLogEntry | null): Promise<void> => {
     const isSettled = applied?.status === "approved" || applied?.status === "rejected";
-    const mayTell = Boolean(claimId) && isSettled;
-    if (!mayTell) return;
+    if (!isSettled) return;
     const entry = applied as QuestLogEntry;
     const isPaid = entry.status === "approved";
     const paid = isPaid ? paidQuestRewards(entry.userId, withHuntBonus(entry)) : { xp: 0, gp: 0, ap: 0 };
-    const status = entry.status as ClaimSettledStatus;
-    await ctx.tellPhone(entry.userId, { claimId: claimId as string, questId: String(entry.questId), status, note: entry.note ?? "", ...paid });
+    tellHeroOfVerdict(entry, paid);
+    await tellPhone(entry, paid);
   };
 
   const deps: VerdictDeps = {
     entry: entryOf,
-    approve: async (id) => tellPhone(await approveCompletion(id)),
-    reject: async (id, note) => tellPhone(await rejectCompletion(id, undefined, note || undefined)),
+    approve: async (id) => settledHere(await approveCompletion(id)),
+    reject: async (id, note) => settledHere(await rejectCompletion(id, undefined, note || undefined)),
   };
 
   /** One verdict job at a time, in order; a failed one is logged and never stops the next */

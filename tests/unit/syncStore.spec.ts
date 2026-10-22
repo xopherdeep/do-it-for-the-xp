@@ -125,6 +125,19 @@ jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
   rejectCompletion: jest.fn(async (id: string, _reviewer: unknown, note?: string) => mockReview(id, { status: "rejected", note })),
 }));
 
+/** The heroes' feeds: what each device wrote there, as notices */
+const mockNotify = jest.fn();
+jest.mock("@/lib/services/notifications/notify", () => ({
+  __esModule: true,
+  notify: (...args: unknown[]) => mockNotify(...args),
+  settleWaiting: jest.fn(),
+}));
+const mockRefreshWaiting = jest.fn(async () => 0);
+jest.mock("@/lib/services/quests/waitingClaims", () => ({
+  __esModule: true,
+  refreshWaitingClaims: () => mockRefreshWaiting(),
+}));
+
 /** The quest log reads the raw store the download lands in */
 jest.mock("@/lib/databases/QuestLogDb", () => ({
   __esModule: true,
@@ -1969,6 +1982,59 @@ describe("the sync store", () => {
     expect(mockStores.__questLog.e2).toEqual(fromPhone);
     expect(sync.state.pendingVerdicts).toEqual({});
     expect(sync.state.verdictsSent).toEqual({});
+  });
+
+  it("the device that applies a verdict tells the hero in their feed: Approved with the pay, or Sent back with the note", async () => {
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}" } });
+    const sync = await started();
+    mockStores.__questLog = { e1: claimEntry("e1"), e2: claimEntry("e2", { questName: "Trash" }) };
+
+    await sync.sendVerdict(verdictOf("e1"), "h-1");
+    await drain();
+    await sync.sendVerdict(verdictOf("e2", "rejected", "Under the bed too"), "h-1");
+    await drain();
+
+    expect(mockNotify.mock.calls.map(([notice]) => notice)).toEqual([
+      expect.objectContaining({ heroId: "h-1", kind: "approved", refId: "e1", body: '"Dishes" earned you +30 XP · +40 GP · +2 AP.' }),
+      expect.objectContaining({ heroId: "h-1", kind: "rejected", refId: "e2", body: '"Trash" was not approved: Under the bed too' }),
+    ]);
+  });
+
+  it("a held claim another device logged lands on a Game Master device: the Game Master playing here hears of it once, and the count is read again", async () => {
+    mockUser.users = { "gm-1": { id: "gm-1", isAdult: true, name: { nick: "Dad" } }, "gm-2": { id: "gm-2", isAdult: true }, "h-1": { id: "h-1", name: { nick: "Mia" } } };
+    const sync = await started();
+    await sync.signIn("gm-1");
+    mockNotify.mockClear();
+    fetchRecords.mockResolvedValueOnce([
+      received("__questLog", "e1", 6, claimEntry("e1"), { heroId: "h-1" }),
+      received("__questLog", "e0", 7, claimEntry("e0", { status: "approved" }), { heroId: "h-1" }),
+    ]);
+
+    await sync.download();
+    await drain();
+
+    // gm-2 is not played here: its feed is the device holding it's to write
+    expect(mockNotify.mock.calls.map(([notice]) => notice)).toEqual([
+      expect.objectContaining({ heroId: "gm-1", kind: "claim-waiting", refId: "e1", body: 'Mia says "Dishes" is done. Approve it to pay the reward.' }),
+    ]);
+    expect(mockRefreshWaiting).toHaveBeenCalled();
+
+    // the same claim landing again (rewritten by the phone) is not announced twice
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "e1", 8, claimEntry("e1", { note: "again" }), { heroId: "h-1" })]);
+    await sync.download();
+    await drain();
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+    mockUser.users = {};
+  });
+
+  it("a kid phone does not announce landed claims", async () => {
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    const sync = await started();
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "e1", 6, claimEntry("e1"), { heroId: "h-1" })]);
+    await sync.download();
+    await drain();
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it("a verdict for an entry not yet here waits in pendingVerdicts and applies after the download", async () => {

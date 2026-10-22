@@ -1,9 +1,10 @@
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
-import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
+import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { emitQuestClaimed, emitQuestReviewed } from "@/lib/services/multiplayer/gameSignals";
 import { claimWaitingNotification, approvedNotification, rejectedNotification } from "@/lib/services/notifications/Notifications";
 import { notify, settleWaiting } from "@/lib/services/notifications/notify";
 import { withHuntBonus } from "@/lib/services/quests/huntBonus";
+import { rewardLineOf } from "@/lib/services/quests/verdictNotices";
 import { approveCompletion, paidQuestRewards, rejectCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { approversFor, canReviewClaim } from "@/lib/services/quests/approvalRouting";
 import { refreshWaitingClaims } from "@/lib/services/quests/waitingClaims";
@@ -22,9 +23,7 @@ import debug from "@/lib/utils/debug";
  * or this device on a turn borrowed while nobody holds it, applies it and pays.
  */
 
-/** "+120 XP · +30 GP · +2 AP" */
-export const rewardLineOf = (rewards: QuestRewards): string =>
-  `+${rewards.xp} XP · +${rewards.gp} GP · +${rewards.ap} AP`;
+export { rewardLineOf };
 
 const nameOf = (heroId: string): string => {
   const hero = useUserStore().users[heroId];

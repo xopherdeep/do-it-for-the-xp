@@ -21,6 +21,7 @@ import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
 import { createSyncProgress } from "./sync/syncProgress";
 import { listenToDevice } from "./sync/syncSignals";
+import { listenForLandedClaims } from "./sync/landedClaims";
 import { createVerdicts } from "./sync/verdicts";
 
 /** A change is sent this long after the last one, so a burst of writes goes in one put */
@@ -387,6 +388,8 @@ export const useSyncStore = defineStore("sync", () => {
     );
     // A profile switch, a sign-in or a sign-out: the hero who played rests, the next one signs in
     stops.push(watch(currentHero, (next, previous) => heroTurns.switched(previous ?? null, next)));
+    // A held claim another device logged lands: the Game Master playing here hears of it (sync/landedClaims.ts)
+    stops.push(listenForLandedClaims({ isFamilyDevice: () => isFamilyDevice.value, holds: (heroId) => heroTurns.holds(heroId) }));
     // The connection back, the app to the front or the background, the minute round (sync/syncSignals.ts)
     stops.push(listenToDevice({ online: roundNow, visibility: onVisibilityChange, tick: onTick }, TICK_MS));
     // A kid phone's first pull waiting on its hero: after five minutes the card shows, and the rounds keep pulling
