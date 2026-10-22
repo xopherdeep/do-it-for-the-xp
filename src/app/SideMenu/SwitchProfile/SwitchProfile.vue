@@ -428,12 +428,15 @@ export default defineComponent({
     };
 
     // Navigation functions
+    /** An open under way: a second tap meanwhile does nothing */
+    let isOpening = false;
+    /**
+     * A tap is answered at once: the loading modal shows while the hero's turn is asked for (a device that sat for days
+     * reads to the newest record first), and steps aside for the clerk's busy question. Not now leaves the picker.
+     */
     const navigateToUserPortal = async (profile: User) => {
-      // Not now on the clerk's question: the hero stays with the other device, and the picker stays
-      const isPlayingHere = await requestTurn(profile);
-      if (!isPlayingHere) return;
-
-      // Create and present the loading modal
+      if (isOpening) return;
+      isOpening = true;
       const loadingModal = await modalController.create({
         component: ProfileLoadingModal,
         componentProps: {
@@ -443,13 +446,13 @@ export default defineComponent({
         cssClass: 'profile-loading-modal',
         backdropDismiss: false
       });
-
       await loadingModal.present();
 
       try {
+        const isPlayingHere = await requestTurn(profile, () => loadingModal.dismiss());
+        if (!isPlayingHere) return;
         // Login the user first and wait for it to complete
         await userStore.loginUser(profile);
-
         // Then go to the screen they chose to land on (Settings > General), My Home unless they picked another
         await ionRouter.navigate(landingPathFor(profile, landingChoiceOf(String(profile.id))), "root");
       } catch (error) {
@@ -462,6 +465,7 @@ export default defineComponent({
         });
         await toast.present();
       } finally {
+        isOpening = false;
         // Dismiss the modal after a short delay to ensure smooth transition
         setTimeout(async () => {
           await loadingModal.dismiss();

@@ -31,9 +31,10 @@ jest.mock("@/hooks/useBackupRestore", () => ({
   __esModule: true,
   useBackupRestore: () => ({ isBackupBusy: false, selectRestoreFile: jest.fn() }),
 }));
+const mockRequestTurn = jest.fn();
 jest.mock("@/hooks/useHeroTurn", () => ({
   __esModule: true,
-  useTurnGate: () => ({ prompt: { value: null }, respond: jest.fn(), requestTurn: jest.fn().mockResolvedValue(true) }),
+  useTurnGate: () => ({ prompt: { value: null }, respond: jest.fn(), requestTurn: (...args: unknown[]) => mockRequestTurn(...args) }),
 }));
 
 const mockFamily = reactive({
@@ -94,7 +95,50 @@ describe("the profile picker (File Select)", () => {
     mockFamily.isKidMode = false;
     mockFamily.device = null;
     mockUserStore.loadUsers.mockReset();
+    mockRequestTurn.mockReset();
+    mockRequestTurn.mockResolvedValue(true);
     fill(hero("h-1", "Mia"), hero("h-2", "Bo"), hero("gm-1", "Mom", true));
+  });
+
+  it("answers a tap at once: the loading modal shows while the hero's turn is asked for, and a second tap meanwhile does nothing", async () => {
+    const { modalController } = jest.requireMock("@ionic/vue") as { modalController: { create: jest.Mock } };
+    const modal = { present: jest.fn(), dismiss: jest.fn() };
+    modalController.create.mockResolvedValue(modal);
+    let answer!: (isHere: boolean) => void;
+    mockRequestTurn.mockImplementation(() => new Promise<boolean>((resolve) => (answer = resolve)));
+    const wrapper = await open();
+    const picker = wrapper.vm as unknown as { selectProfile: (profile: unknown) => Promise<void> };
+
+    void picker.selectProfile(mockUsers["h-1"]);
+    await flushPromises();
+    expect(modal.present).toHaveBeenCalled();
+    expect(mockRequestTurn).toHaveBeenCalledTimes(1);
+    expect(modal.present.mock.invocationCallOrder[0]).toBeLessThan(mockRequestTurn.mock.invocationCallOrder[0]);
+
+    void picker.selectProfile(mockUsers["h-1"]);
+    await flushPromises();
+    expect(mockRequestTurn).toHaveBeenCalledTimes(1);
+
+    answer(true);
+    await flushPromises();
+    expect(mockUserStore.loginUser).toHaveBeenCalledWith(mockUsers["h-1"]);
+  });
+
+  it("the loading modal steps aside for the clerk's busy question, and Not now leaves the picker as it was", async () => {
+    const { modalController } = jest.requireMock("@ionic/vue") as { modalController: { create: jest.Mock } };
+    const modal = { present: jest.fn(), dismiss: jest.fn() };
+    modalController.create.mockResolvedValue(modal);
+    mockRequestTurn.mockImplementation(async (_profile: unknown, beforeAsking: () => Promise<unknown>) => {
+      await beforeAsking();
+      return false;
+    });
+    mockUserStore.loginUser.mockClear();
+    const wrapper = await open();
+    await (wrapper.vm as unknown as { selectProfile: (profile: unknown) => Promise<void> }).selectProfile(mockUsers["h-2"]);
+    await flushPromises();
+
+    expect(modal.dismiss).toHaveBeenCalled();
+    expect(mockUserStore.loginUser).not.toHaveBeenCalled();
   });
 
   describe("on a kid phone", () => {

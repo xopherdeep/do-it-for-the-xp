@@ -75,6 +75,24 @@ describe("the clerk's turn questions", () => {
     expect(mockSync.rest).toHaveBeenCalledWith("h-1");
   });
 
+  it("the picker's loading line steps aside before the busy question, and never for a granted hero", async () => {
+    const gate = withSetup(() => useTurnGate());
+    const beforeAsking = jest.fn(async () => undefined);
+    expect(await gate.requestTurn({ id: "h-1" }, beforeAsking)).toBe(true);
+    expect(beforeAsking).not.toHaveBeenCalled();
+
+    mockSync.signIn.mockImplementation(async (heroId: string) => {
+      mockSync.turns = { ...mockSync.turns, [heroId]: busy };
+      return "busy";
+    });
+    const asking = gate.requestTurn({ id: "h-1" }, beforeAsking);
+    await flushPromises();
+    expect(beforeAsking).toHaveBeenCalledTimes(1);
+    expect(gate.prompt).not.toBeNull();
+    gate.respond({ id: "later", amount: null });
+    expect(await asking).toBe(false);
+  });
+
   it("the portal says once that the hero was taken over, then asks; Not now on a family device goes back to the picker", async () => {
     mockSync.signIn.mockImplementation(async (heroId: string) => {
       mockSync.turns = { ...mockSync.turns, [heroId]: busy };

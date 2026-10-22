@@ -42,17 +42,19 @@ const askToPlayHere = async (sync: SyncStore, heroId: string, nick: string, ask:
 /**
  * The profile picker on a family device: the hero's turn is asked for before the portal opens. `requestTurn` resolves
  * true to play here (granted, offline, or Play here anyway) and false for Not now (the hero rests, the picker stays).
- * The clerk speaks in the picked hero's voice.
+ * The clerk speaks in the picked hero's voice. `beforeAsking` runs before the busy question shows (the picker's loading
+ * line steps aside for it).
  */
 export function useTurnGate() {
   const sync = useSyncStore();
   const { prompt, showPrompt, submitAnswer } = useRevealPrompt();
 
-  const requestTurn = async (profile: VoiceProfile & { id: string | number }): Promise<boolean> => {
+  const requestTurn = async (profile: VoiceProfile & { id: string | number }, beforeAsking?: () => Promise<unknown>): Promise<boolean> => {
     const heroId = String(profile.id);
     const answer = await sync.signIn(heroId);
     const isBusy = answer === "busy";
     if (!isBusy) return true;
+    await beforeAsking?.();
     return askToPlayHere(sync, heroId, nickOf(profile), showPrompt, voiceFor(profile));
   };
 
