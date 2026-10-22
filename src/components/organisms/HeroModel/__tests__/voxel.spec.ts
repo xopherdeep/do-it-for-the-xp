@@ -78,14 +78,21 @@ describe("box culling", () => {
     expect(buildMeshData([a, b]).faceCount).toBe(10);
   });
 
-  it("ignores empty boxes and keeps a face whose neighbour sits beside it, not behind it", () => {
+  it("lets a zero-size box hide nothing, a coplanar neighbour hide only the face it covers, and a box ending on a face from inside hide nothing", () => {
     const a = box(0, 0, 0, 1, 1, 1, "#ff0000");
     const beside = box(1, 0, 0, 2, 1, 1, "#ff0000"); // touches a's +x face from the far side: hides it
     const flush = box(0, 0, 1, 1, 1, 2, "#ff0000"); // shares a's +z plane only by its own -z face: hides a's +z, not a's +x
+    const inside = box(0.5, 0, 0, 1, 1, 1, "#ff0000"); // ends on a's +x plane from inside: covers that face but neither touches nor swallows it
     const empty = { x: 0, y: 0, z: 0, w: 0, h: 1, d: 1, color: "#ff0000" };
-    expect(buildMeshData([a, beside, flush, empty]).faceCount).toBe(14);
-    expect(visibleFaces(a, [a, beside, flush, empty]).map(([axis, positive]) => `${axis}${positive ? "+" : "-"}`).sort())
+    const all = [a, beside, flush, inside, empty];
+    // a keeps 0-, 1+, 1-, 2- (4); beside keeps all but -x (5); flush all but -z (5); inside loses +x to beside, -x to a
+    // (which swallows that plane) and +z to flush, and keeps +y, -y, -z (3)
+    expect(buildMeshData(all).faceCount).toBe(17);
+    expect(visibleFaces(a, all).map(([axis, positive]) => `${axis}${positive ? "+" : "-"}`).sort())
       .toEqual(["0-", "1+", "1-", "2-"]);
+    // beside already hides a's +x, so inside alone has to leave it showing
+    const isPlusXShowing = visibleFaces(a, [a, inside]).some(([axis, positive]) => axis === 0 && positive);
+    expect(isPlusXShowing).toBe(true);
   });
 
   it("drops faces swallowed by a bigger box but keeps ones that poke out", () => {

@@ -7,8 +7,8 @@ import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
  *
  * - Baked ambient occlusion (mesh.ts) darkens the light from the sky in creases and under overhangs, and the sun a
  *   little, so contacts read without real shadows.
- * - Convex edges get a thin bevel highlight, a pixel or two wide whatever the zoom: the blocks read as blocks, like a
- *   painted SNES sprite, instead of flat cut-outs.
+ * - Convex edges get a thin bevel highlight, a pixel or two wide whatever the zoom and never more than a fifth of a
+ *   small face: the blocks read as blocks, like a painted SNES sprite, instead of flat cut-outs.
  * - Each unit cell is tinted a touch lighter or darker, warmer or cooler, so big faces read as textured blocks.
  * - Side faces seen almost edge on pick up a soft cool rim, so a silhouette separates from a dark background.
  *

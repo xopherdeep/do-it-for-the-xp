@@ -5,7 +5,8 @@
  * (16 units tall, origin at the feet centre, +Y up, +Z toward the camera). Fractions are fine.
  *
  * Faces that can never be seen are dropped: a face is hidden when another box of the same part either has the
- * opposite face on the same plane covering it (touching voxels), or swallows it (the plane lies inside that box).
+ * opposite face on the same plane covering it (touching voxels), or swallows it (the plane lies inside that box). An
+ * empty box, or one thinner than the tolerance, hides nothing.
  *
  * Every face also carries what the voxel shader (organisms/voxel/voxelMaterial.ts) needs to shade it, baked here once:
  * - ambient occlusion per corner: how many of the four spots just above the surface round that corner are solid. A

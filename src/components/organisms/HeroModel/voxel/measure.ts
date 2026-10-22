@@ -33,8 +33,9 @@ export const meshSignature = (data: MeshData): string => {
 };
 
 /**
- * Assembles a look and meshes every part, timing the pair. No cache and no three.js: the number is what a cold build
- * costs, and a test can run it in node.
+ * Assembles a look and meshes every part, timing the pair. No cache and no three.js, so a test can run it in node. The
+ * number is what assembling and meshing the look cost: it leaves out the cache key, the BufferGeometry and the scene
+ * graph, and it includes the signature sum.
  */
 export const measureHero = (look: HeroLook): HeroMeasure => {
   const start = performance.now();
