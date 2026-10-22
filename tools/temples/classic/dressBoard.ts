@@ -70,6 +70,8 @@ export interface Item {
   enemies?: number;
   /** A sealed fight boxed in on every side: the chests and keys of its cell it hands out once won (its drops) */
   holds?: Item[];
+  /** An `other` chest that holds one of the plan's relics beyond the first in place of its gold (dress.ts) */
+  relic?: string;
 }
 
 /** A far-off island cell (walls on every side, reached by a link alone) moved next to its floor's used cells */

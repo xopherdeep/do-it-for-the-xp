@@ -57,12 +57,17 @@ const TOKEN_LETTER: Record<string, string> = {
   empty: "N",
 };
 
-/** What a chest holds: the Boss Key, the relic, a Bomb, 25 gold for an "other" chest, else the dungeon item of its kind */
+/**
+ * What a chest holds: the Boss Key, the relic, a Bomb, a relic beyond the plan's first or else 25 gold for an "other"
+ * chest, else the dungeon item of its kind
+ */
 const chestOf = (item: Item, plan: ClassicPlan): RoomContent => {
   const isBossKey = item.kind === "bigKey";
   if (isBossKey) return { chest: "dungeon", dungeon: "master-key" };
   const isRelic = item.kind === "bigChest";
   if (isRelic) return { chest: "dungeon", dungeon: plan.relic };
+  const isExtraRelic = Boolean(item.relic);
+  if (isExtraRelic) return { chest: "dungeon", dungeon: item.relic };
   const isBomb = item.kind === "bombChest";
   if (isBomb) return { chest: "consumable", items: ["Bomb"] };
   const isGold = item.chest === "other";

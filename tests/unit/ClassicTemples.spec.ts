@@ -286,10 +286,13 @@ describe("the classic dungeon temples", () => {
       expect(all.filter(grantsBossKey)).toHaveLength(1);
       // A fight boxed in on every side hands its cell's chests out as its drops (dressPlace): they count where they are handed out
       expect(all.filter((room) => (room.type === "loot" && room.content?.dungeon === plan.relic) || roomDrops(room)?.dungeon === plan.relic)).toHaveLength(1);
+      // The plan's relics beyond the first each take an `other` chest's gold
+      const extraRelics = plan.extraRelics ?? [];
+      for (const relic of extraRelics) expect({ relic, chests: all.filter((room) => grantedDungeonItems(room).includes(relic)).length }).toEqual({ relic, chests: 1 });
       const smallKeys = cells.filter(({ cell }) => cell.chest === "small-key" || cell.keyDrop === "small" || cell.potKey).length;
       expect(all.reduce((sum, room) => sum + smallKeysGranted(room), 0)).toBe(smallKeys);
       const goldOf = (room: Room): number => Number(room.type === "loot" && room.content?.chest === "gold" ? room.content.gold : 0) + Number(roomDrops(room)?.gold ?? 0);
-      expect(all.reduce((sum, room) => sum + goldOf(room), 0)).toBe(25 * cells.filter(({ cell }) => cell.chest === "other").length);
+      expect(all.reduce((sum, room) => sum + goldOf(room), 0)).toBe(25 * (cells.filter(({ cell }) => cell.chest === "other").length - extraRelics.length));
       expect(report.dropped.map((entry) => entry.what)).not.toEqual(expect.arrayContaining([expect.stringMatching(/chest|key|map|compass|relic/)]));
     });
 

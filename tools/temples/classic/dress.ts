@@ -25,7 +25,7 @@ import { buildTempleGraph, type Door, type TempleGraph, type TempleLayout } from
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { renderModule } from "../renderModule";
 import type { ClassicDungeon } from "./classicDungeon";
-import { allSlots, buildBoard, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift } from "./dressBoard";
+import { allSlots, buildBoard, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift, type Slot } from "./dressBoard";
 import { planChores } from "./dressChores";
 import { demoteShortcutWarps, drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
 import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, type ClassicPlan } from "./dressPlans";
@@ -97,6 +97,29 @@ const placeShop = (board: Board, graph: TempleGraph, hops: Map<string, number>):
   if (isAdded) board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: true });
 };
 
+/** Rooms nearest the entrance first: path distance over every door (`hops`), floors in the dungeon's order then reading order among equals */
+const nearestTheEntrance = (board: Board, hops: Map<string, number>) => (a: Slot, b: Slot): number => {
+  const far = Number.MAX_SAFE_INTEGER;
+  const floors = board.floors.map((floor) => floor.name);
+  return (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || floors.indexOf(a.at.floor) - floors.indexOf(b.at.floor) || a.at.row - b.at.row || a.at.col - b.at.col;
+};
+
+/**
+ * The plan's relics beyond the first (`extraRelics`), in order, each in place of the gold of the dungeon's `other`
+ * chest nearest the entrance (nearestTheEntrance). A gold chest a boxed-in fight holds is not one of them: the fight
+ * hands out one Dungeon Item at most, and its gold besides.
+ */
+const placeExtraRelics = (board: Board, plan: ClassicPlan, graph: TempleGraph): void => {
+  const relics = plan.extraRelics ?? [];
+  const hops = graph.entrance ? hopsFrom(graph, graph.entrance) : new Map<string, number>();
+  const golds = allSlots(board)
+    .filter((slot) => slot.item?.kind === "chest" && slot.item.chest === "other")
+    .sort(nearestTheEntrance(board, hops));
+  const isShortOfChests = golds.length < relics.length;
+  if (isShortOfChests) throw new Error(`${board.dungeon.id}: ${relics.length} relics beyond the first for ${golds.length} \`other\` chests`);
+  relics.forEach((relic, index) => (golds[index].item!.relic = relic));
+};
+
 /**
  * The extras in the empty converted cells, nearest the entrance first (path distance over every door, floors in the
  * dungeon's order then reading order among equals): the shop (placeShop), one save, then one camp per floor, the rest
@@ -109,12 +132,9 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
   const before = graphNow();
   placeShop(board, before, hopsIn(before));
   // Read again: a shop added beside an entrance on the grid's edge may have grown the floor by a line before the first
-  const hops = hopsIn(graphNow());
-  const floors = board.floors.map((floor) => floor.name);
-  const far = Number.MAX_SAFE_INTEGER;
   const free = allSlots(board)
     .filter((slot) => slot.cell && !slot.item)
-    .sort((a, b) => (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || floors.indexOf(a.at.floor) - floors.indexOf(b.at.floor) || a.at.row - b.at.row || a.at.col - b.at.col);
+    .sort(nearestTheEntrance(board, hopsIn(graphNow())));
   const kinds: Array<"save"> = ["save"];
   const camped = new Set<string>();
   for (const slot of free) {
@@ -134,9 +154,11 @@ export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): Dresse
   demoteShortcutWarps(board, layoutNow);
   const bombChests = placeBombChests(board, layoutNow);
   placeExtras(board, plan);
+  const graphNow = buildTempleGraph(layoutNow());
+  placeExtraRelics(board, plan, graphNow);
   // The chores come last: roles are keyed by where a fight stands, and a Bomb chest or a shop may still grow a line
   // before a floor's first and move every room of it
-  const chores = planChores(board, plan, buildTempleGraph(layoutNow()), drawSides(board));
+  const chores = planChores(board, plan, graphNow, drawSides(board));
   const built = buildRooms(board, plan, drawSides(board), chores.roles);
   const temple: GeneratedTemple = {
     id: dungeon.id,

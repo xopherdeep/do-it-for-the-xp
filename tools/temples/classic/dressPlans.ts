@@ -21,6 +21,11 @@ export interface ClassicPlan {
   element: string;
   /** What the Big Chest holds: the temple's relic */
   relic: string;
+  /**
+   * The temple's relics beyond the first (a dungeon has one Big Chest): in order, each in place of the gold of the
+   * dungeon's `other` chest nearest the entrance by path distance (every door open), the next for the next
+   */
+  extraRelics?: string[];
   /** What the shop (the first empty cell from the entrance) stocks, when the temple has one */
   shop?: string;
   /** The temple's trap, kept for the plan's shape: no converted cell is a trap today */

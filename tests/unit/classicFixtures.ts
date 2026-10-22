@@ -351,6 +351,26 @@ export const extras = (): ClassicDungeon =>
   ]);
 
 /**
+ * TREASURY, one floor 2x5: the entrance, a hoard of gold (an `other` chest) on the way, the shutter guard of the Boss
+ * Key vault, the vault, the boss; a second gold chest in a cellar under the vault, farther from the entrance. A plan's
+ * relics beyond the first take the `other` chests nearest the entrance, in order.
+ *
+ *   E  o  G  V  B
+ *   _  _  _  o  _
+ */
+export const treasury = (): ClassicDungeon =>
+  dungeon("treasury", [
+    floor("1F", 2, 5, [
+      cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(0, 1, "Hoard", { west: "open", east: "open" }, { chest: "other" }),
+      cell(0, 2, "Guard", { west: "open", east: "open" }, { enemies: 2, shutter: true }),
+      cell(0, 3, "Vault", { west: "open", east: "open", south: "open" }, { chest: "big-key" }),
+      cell(0, 4, "Throne", { west: "open" }, { boss: true }),
+      cell(1, 3, "Cellar", { north: "open" }, { chest: "other" }),
+    ]),
+  ]);
+
+/**
  * BYWAY, one floor 2x4: the Statue, a shutter fight, opens on the Big Chest vault before the boss, so the design's rule
  * makes it the mini-boss; but the Boss Key lies down a byway it does not guard: the hall under the entrance, the Trench
  * (a side fight, no shutter), the Armory (a shutter room the converter read no enemies in, as GT's Ice Armos) and the

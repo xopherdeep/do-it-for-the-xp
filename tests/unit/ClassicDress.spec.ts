@@ -9,7 +9,7 @@ import { buildTempleGraph, solveTemple, type TempleLayout } from "@/lib/engine/d
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { dressDungeon } from "../../tools/temples/classic/dress";
-import { byway, corridor, crack, crossroads, drop, extras, fall, passage, plan, shifted, tower, twoScreens } from "./classicFixtures";
+import { byway, corridor, crack, crossroads, drop, extras, fall, passage, plan, shifted, tower, treasury, twoScreens } from "./classicFixtures";
 
 const DIRS = ["north", "east", "south", "west"] as const;
 
@@ -394,6 +394,25 @@ describe("dressing a classic dungeon", () => {
 
     it("passes the solver", () => {
       expect(solveTemple(asRegistered(temple))).toMatchObject({ solvable: true, reasons: [] });
+    });
+  });
+
+  describe("a plan with more than one relic", () => {
+    it("keeps every gold chest gold when the plan has one relic", () => {
+      const at = roomsOf(dressDungeon(treasury(), plan()).temple);
+      expect([at("1F", 0, 1)?.content, at("1F", 1, 3)?.content]).toEqual([{ chest: "gold", gold: 25 }, { chest: "gold", gold: 25 }]);
+    });
+
+    it("puts the relics beyond the first, in order, into the `other` chests nearest the entrance", () => {
+      const one = roomsOf(dressDungeon(treasury(), plan({ extraRelics: ["Moon Shard"] })).temple);
+      expect(one("1F", 0, 1)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "Moon Shard" } });
+      expect(one("1F", 1, 3)?.content).toEqual({ chest: "gold", gold: 25 });
+      const two = roomsOf(dressDungeon(treasury(), plan({ extraRelics: ["Moon Shard", "Star Shard"] })).temple);
+      expect([two("1F", 0, 1)?.content?.dungeon, two("1F", 1, 3)?.content?.dungeon]).toEqual(["Moon Shard", "Star Shard"]);
+    });
+
+    it("throws when the dungeon has fewer `other` chests than the plan has relics beyond the first", () => {
+      expect(() => dressDungeon(treasury(), plan({ extraRelics: ["Moon Shard", "Star Shard", "Sun Shard"] }))).toThrow(/3 relics beyond the first for 2/);
     });
   });
 

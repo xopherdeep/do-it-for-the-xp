@@ -293,7 +293,7 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
     it("hands out every chest and key of its dungeon exactly once, a boxed-in fight's drops among them", () => {
       const all = Object.values(dressedIn(id).temple.rooms as Record<string, Room>);
       const cells = dungeon.floors.flatMap((level) => level.cells);
-      const relic = planFor(id).relic;
+      const { relic, extraRelics = [] } = planFor(id);
       const holding = (item: string): number => all.filter((room) => grantedDungeonItems(room).includes(item)).length;
       const goldOf = (room: Room): number => Number(room.type === "loot" && room.content?.chest === "gold" ? room.content.gold : 0) + Number(roomDrops(room)?.gold ?? 0);
       const handedOut = {
@@ -301,16 +301,19 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
         compass: holding("compass"),
         bossKey: all.filter(grantsBossKey).length,
         relic: all.filter((room) => (room.type === "loot" && room.content?.dungeon === relic) || roomDrops(room)?.dungeon === relic).length,
+        extraRelics: extraRelics.map(holding),
         smallKeys: all.reduce((sum, room) => sum + smallKeysGranted(room), 0),
         gold: all.reduce((sum, room) => sum + goldOf(room), 0),
       };
+      // The plan's relics beyond the first each take an `other` chest's gold
       expect(handedOut).toEqual({
         map: cells.filter((cell) => cell.chest === "map").length,
         compass: cells.filter((cell) => cell.chest === "compass").length,
         bossKey: cells.filter((cell) => cell.chest === "big-key" || cell.keyDrop === "big").length,
         relic: cells.filter((cell) => cell.chest === "big-chest").length,
+        extraRelics: extraRelics.map(() => 1),
         smallKeys: cells.filter((cell) => cell.chest === "small-key" || cell.keyDrop === "small" || cell.potKey).length,
-        gold: 25 * cells.filter((cell) => cell.chest === "other").length,
+        gold: 25 * (cells.filter((cell) => cell.chest === "other").length - extraRelics.length),
       });
     });
 
