@@ -50,7 +50,7 @@
             </ion-card>
 
             <!-- Two-phone play: the hero's numbers and quests from the family device, and their claims -->
-            <hero-phone-board v-if="isBoardShown" />
+            <hero-phone-board v-if="isBoardShown" :read-only="isBoardReadOnly" />
 
             <!-- A Pro phone's first pull waiting for a signal: the clerk's line under the board -->
             <ion-text v-if="syncFooter" class="sync-footer" data-cy="sync-footer">{{ syncFooter }}</ion-text>

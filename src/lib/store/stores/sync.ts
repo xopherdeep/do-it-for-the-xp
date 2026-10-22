@@ -445,8 +445,11 @@ export const useSyncStore = defineStore("sync", () => {
     pauses.clear();
   });
 
-  /** What this device knows of a hero's turn, or null with none on record: the gate of the reminders and the encounter clock reads it (sync/watchGate.ts) */
-  const stateOf = (heroId: string): TurnState | null => turns.value[heroId]?.state ?? null;
+  /**
+   * What this device knows of a hero's turn, or null with none on record: the gate of the reminders and the encounter clock
+   * reads it (sync/watchGate.ts). A hero whose busy turn the player declined reads busy: it is known to be played elsewhere
+   */
+  const stateOf = (heroId: string): TurnState | null => (heroTurns.isDeclined(heroId) ? "busy" : turns.value[heroId]?.state ?? null);
 
   return {
     state,

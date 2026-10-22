@@ -74,6 +74,8 @@ const mockSync = reactive({
   signIn: jest.fn(),
   takeOver: jest.fn(),
   rest: jest.fn(),
+  // What the phone knows of its hero's turn: a busy answer the player said Not now to reads "busy"
+  stateOf: (heroId: string) => (mockSync.turns[heroId] as { state?: string } | undefined)?.state ?? null,
 });
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
@@ -355,7 +357,8 @@ describe("HeroPhone", () => {
         mockSync.turns = { [heroId]: { state: "busy", busy: BUSY_ON_IPAD, provisional: false } };
         return "busy";
       });
-      mockFamily.phoneState = waitingSheet;
+      const quest = { questId: "q1", name: "Feed the cat", difficulty: 2, xp: 20, gp: 10, ap: 1, needsApproval: true, photo: false, overdue: false };
+      mockFamily.phoneState = { ...waitingSheet, sheet: { ...waitingSheet.sheet, quests: [quest] } };
       const wrapper = await open();
       mockSync.isFullPortal = true;
       await flushPromises();
@@ -367,7 +370,9 @@ describe("HeroPhone", () => {
       expect(mockSync.takeOver).not.toHaveBeenCalled();
       expect(mockUser.loginUser).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
-      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(false);
+      // the hero is played elsewhere: the phone shows its board, read-only (nothing to claim from here), and Play
+      expect(wrapper.find("[data-cy=hero-phone-board]").exists()).toBe(true);
+      expect(wrapper.find("[data-cy=phone-claim]").exists()).toBe(false);
       expect(wrapper.find("[data-cy=play-button]").exists()).toBe(true);
       expect(lines(wrapper)).toEqual([]);
     });

@@ -58,8 +58,9 @@ export function useTurnGate() {
 /**
  * The portal of a hero: when another device took the hero over while this one played, the clerk says so once and the
  * turn is asked for again; when the hero's turn is busy (the app came back to the front, a hold made offline was
- * answered), the clerk asks whether to play here. Not now on a family device signs out to the profile picker; on a kid
- * phone the hero rests here (its read-only board is Task 20's).
+ * answered), the clerk asks whether to play here. Not now rests the hero (the device holding it is the truth) and signs
+ * it out of the portal: a family device goes back to the profile picker, a kid phone to the hero's card, where the board
+ * shows read-only and Play asks again (spec sections 5 and 7). Nothing of the hero plays on here: no reminder, no ambush.
  */
 export function usePortalTurn(heroId: string) {
   const sync = useSyncStore();
@@ -85,10 +86,9 @@ export function usePortalTurn(heroId: string) {
 
   const askBusy = async (): Promise<void> => {
     const isHere = await askToPlayHere(sync, heroId, nick(), showPrompt, voice());
-    const isBackToPicker = !isHere && sync.isFamilyDevice;
-    if (!isBackToPicker) return;
+    if (isHere) return;
     userStore.logoutUser();
-    await router.replace({ name: "xp-profile" });
+    await router.replace({ name: sync.isFamilyDevice ? "xp-profile" : "hero-phone" });
   };
 
   const afterTakeover = async (): Promise<void> => {

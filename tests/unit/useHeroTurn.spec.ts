@@ -97,7 +97,7 @@ describe("the clerk's turn questions", () => {
     expect(mockRouter.replace).toHaveBeenCalledWith({ name: "xp-profile" });
   });
 
-  it("a busy turn in the portal of a kid phone rests the hero there; Play here takes it over", async () => {
+  it("Not now in the portal of a kid phone rests the hero, signs it out and goes to the hero's card; Play here takes it over", async () => {
     mockSync.isFamilyDevice = false;
     mockSync.turns = { "h-1": busy };
     const portal = withSetup(() => usePortalTurn("h-1"));
@@ -105,14 +105,37 @@ describe("the clerk's turn questions", () => {
     portal.respond({ id: "later", amount: null });
     await flushPromises();
     expect(mockSync.rest).toHaveBeenCalledWith("h-1");
-    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockUser.logoutUser).toHaveBeenCalled();
+    expect(mockSync.rest.mock.invocationCallOrder[0]).toBeLessThan(mockUser.logoutUser.mock.invocationCallOrder[0]);
+    expect(mockRouter.replace).toHaveBeenCalledWith({ name: "hero-phone" });
 
+    jest.clearAllMocks();
     mockSync.turns = { "h-1": busy };
+    const again = withSetup(() => usePortalTurn("h-1"));
     await flushPromises();
-    portal.respond({ id: "play", amount: null });
+    again.respond({ id: "play", amount: null });
     await flushPromises();
     expect(mockSync.takeOver).toHaveBeenCalledWith("h-1");
-    expect(portal.prompt).toBeNull();
+    expect(again.prompt).toBeNull();
+    expect(mockUser.logoutUser).not.toHaveBeenCalled();
+  });
+
+  it("the took-over line on a kid phone, then Not now, also signs the hero out to the hero's card", async () => {
+    mockSync.isFamilyDevice = false;
+    mockSync.signIn.mockImplementation(async (heroId: string) => {
+      mockSync.turns = { ...mockSync.turns, [heroId]: busy };
+      return "busy";
+    });
+    const portal = withSetup(() => usePortalTurn("h-1"));
+    mockSync.tookOverNotice = "h-1";
+    await flushPromises();
+    portal.respond({ id: "ok", amount: null });
+    await flushPromises();
+    portal.respond({ id: "later", amount: null });
+    await flushPromises();
+    expect(mockSync.rest).toHaveBeenCalledWith("h-1");
+    expect(mockUser.logoutUser).toHaveBeenCalled();
+    expect(mockRouter.replace).toHaveBeenCalledWith({ name: "hero-phone" });
   });
 
   it("a took-over notice that arrives while the busy question is open is said once the question closes", async () => {

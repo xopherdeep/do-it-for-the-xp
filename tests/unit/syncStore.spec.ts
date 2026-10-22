@@ -1563,6 +1563,28 @@ describe("the sync store", () => {
     expect(sync.state.outbox).toEqual([]);
   });
 
+  it("Not now on a kid phone leaves the hero known to be played elsewhere: no reminder or ambush watches it, until it is asked for again", async () => {
+    const { isHeroWatched } = jest.requireActual("@/lib/services/sync/watchGate");
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    const sync = await started();
+    playHero.mockResolvedValue(BUSY);
+    expect(await sync.signIn("h-1")).toBe("busy");
+
+    await sync.rest("h-1");
+
+    expect(sync.holds("h-1")).toBe(false);
+    expect(sync.stateOf("h-1")).toBe("busy");
+    expect(isHeroWatched("h-1", sync, "h-1")).toBe(false);
+    expect(isHeroWatched("h-1", sync, null)).toBe(false);
+
+    // Play asks again: granted, the hero is this phone's again
+    playHero.mockResolvedValue({ answer: "granted" });
+    expect(await sync.signIn("h-1")).toBe("granted");
+    expect(sync.stateOf("h-1")).toBe("held");
+    expect(isHeroWatched("h-1", sync, "h-1")).toBe(true);
+  });
+
   it("a hero the site does not know loses its queued records once this device no longer has it", async () => {
     jest.useFakeTimers();
     const sync = await started();

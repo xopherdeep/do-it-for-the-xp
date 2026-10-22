@@ -55,17 +55,19 @@ export const HeroPhone = defineComponent({
     const family = useFamilyStore();
     const t = useCopy();
     // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal; Play opens it later
-    const { prompt, answer, footer: syncFooter, play, canPlay, isFullPortal } = useFirstPull(family, router);
+    const { prompt, answer, footer: syncFooter, play, canPlay, isFullPortal, isPlayedElsewhere } = useFirstPull(family, router);
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
     /** The family device sent this hero's sheet: the board shows it (two-phone play) */
     const hasSheet = computed(() => Boolean(family.phoneState?.sheet));
-    /** The board is for a phone that is not the full game: the portal has the real quest book */
+    /** The board is for a phone that is not the full game (the portal has the real quest book), or one whose hero another device plays */
     const isBoardShown = computed(() => {
-      const isBoardPhone = !isUnlinked.value && !isFullPortal.value;
+      const isBoardPhone = !isUnlinked.value && (!isFullPortal.value || isPlayedElsewhere.value);
       return isBoardPhone && hasSheet.value;
     });
+    /** A full-game phone shows the board only while another device plays the hero: read-only, nothing is claimed from it */
+    const isBoardReadOnly = computed(() => isFullPortal.value);
     /** The notice that the quests are on the family device, for a card with no board and no portal */
     const isElsewhereShown = computed(() => !hasSheet.value && !isFullPortal.value);
     const isPlayShown = computed(() => isFullPortal.value && !isUnlinked.value);
@@ -115,6 +117,7 @@ export const HeroPhone = defineComponent({
       card,
       handleStartFresh,
       isBoardShown,
+      isBoardReadOnly,
       isElsewhereShown,
       isPlayShown,
       isUnlinked,

@@ -159,6 +159,11 @@ export function useFirstPull(phone: PhoneOwner, router: Pick<Router, "replace">)
   /** Play: the same open as the end of a first pull, asked for by the player */
   const play = (): Promise<void> => openPortal();
   const isFullPortal = computed(() => sync.isFullPortal);
+  /** The player said Not now: another device plays the hero, and this phone shows its board read-only until Play asks again */
+  const isPlayedElsewhere = computed(() => {
+    const heroId = phone.device?.heroId;
+    return Boolean(heroId) && sync.stateOf(String(heroId)) === "busy";
+  });
 
-  return { prompt, answer, footer, play, canPlay, isFullPortal };
+  return { prompt, answer, footer, play, canPlay, isFullPortal, isPlayedElsewhere };
 }
