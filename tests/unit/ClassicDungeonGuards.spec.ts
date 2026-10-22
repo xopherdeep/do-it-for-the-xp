@@ -367,9 +367,9 @@ describe("every classic JSON, dressed in memory under its plan", () => {
     // Under their own plans
     "earth-temple": { solvable: true, audit: [], reasons: [] },
     "light-temple": { solvable: true, audit: [], reasons: [] },
+    // The entrance's key chest waits beside the locked flight it opens; Trench 2 Blocks, named, guards the Boss Key
+    "water-temple": { solvable: true, audit: [], reasons: [] },
     // Under the stand-in
-    // The entrance's key chest waits beside the locked flight it opens (it took the Swamp Attic, behind that flight, before)
-    "water-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (5,2) loot can be reached without passing the mini-boss"] },
     "shadow-temple": { solvable: true, audit: [], reasons: ["R4: the master key at 1F (4,0) loot can be reached without passing the mini-boss"] },
     "ice-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (0,3) loot can be reached without passing the mini-boss"] },
     "fire-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (3,1) loot can be reached without passing the mini-boss"] },

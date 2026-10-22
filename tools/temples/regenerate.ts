@@ -73,15 +73,6 @@ const PLANS: Record<string, Plan> = {
     },
     trap: ["iceSpikes", 6], puzzle: "mirrorIce", shop: "FrostResistPotion", relics: ["Frost Wand"],
   },
-  "water-temple": {
-    name: "Water Temple", theme: "islands", element: "water", floors: 2,
-    quests: {
-      monsters: [["soggy-slug", 1, "daily"], ["bare-roll-imp", 1, "daily"], ["toothpaste-serpent", 2, "daily bed"], ["puddle-phantom", 2, "daily"], ["smudge-specter", 2, "weekly"]],
-      minibosses: [["drain-drake", 5, "weekly"]],
-      boss: ["potty-poltergeist", 8, "weekly"],
-    },
-    trap: ["whirlpool", 5], puzzle: "waterLevels", shop: "WaterBreathingPotion", relics: ["Trident of Tides"],
-  },
   "moon-temple": {
     name: "Moon Temple", theme: "moon", element: "moon", floors: 3,
     // The table lists the twos before the ones; the rule "easiest first" wins, the ones lead

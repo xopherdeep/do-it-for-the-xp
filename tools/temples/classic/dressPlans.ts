@@ -83,6 +83,22 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibosses: [["homework-hydra", 5, "school"]],
     boss: ["pop-quiz-poltergeist", 8, "weekly"],
   },
+  // The Swamp Palace: bathroom chores. Three must-clear rooms take today's three easiest beasts (no starter quest has
+  // a water beast); the rest of today's plan leaves. No sealed room stands before the Big Key, so the Drain Drake takes
+  // Trench 2 Blocks, the one fight in front of its alcove; the Potty Poltergeist waits at the top of the palace.
+  "water-temple": {
+    name: "Water Temple",
+    theme: "islands",
+    element: "water",
+    relic: "Trident of Tides",
+    shop: "WaterBreathingPotion",
+    trap: ["whirlpool", 5],
+    puzzle: "waterLevels",
+    mustClear: [["soggy-slug", 1, "daily"], ["bare-roll-imp", 1, "daily"], ["toothpaste-serpent", 2, "daily bed"], ["puddle-phantom", 2, "daily"], ["smudge-specter", 2, "weekly"]],
+    minibosses: [["drain-drake", 5, "weekly"]],
+    minibossRooms: ["Swamp Trench 2 Blocks"],
+    boss: ["potty-poltergeist", 8, "weekly"],
+  },
 };
 
 export const CLASSIC_IDS = Object.keys(CLASSIC_PLANS);
