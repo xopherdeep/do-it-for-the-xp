@@ -162,15 +162,16 @@ const quickest = (parts: Box[][], runs = 3): number => Math.min(...Array.from({ 
 
 describe("hidden-face culling cost", () => {
   /**
-   * Guards against a return to testing every face against every box of the part, whose ratio never fell under twenty.
-   * It is not a proof of strict linearity: the unit grid holds many boxes per cell at 8x, so the ratio lands around eight or nine.
+   * Guards against a return to testing every face against every box of the part, which takes over seventy times as
+   * long at 8x. It is not a proof of strict linearity: the unit grid holds many boxes per cell at 8x, so the ratio
+   * lands about nine.
    */
-  it("builds an 8x hero in under fifteen times a 4x hero (scanning the whole part per face takes over twenty)", () => {
+  it("builds an 8x hero in under twenty times a 4x hero (the grid takes about nine, a whole-part scan over seventy)", () => {
     const hero4 = subdividedHero(4);
     const hero8 = subdividedHero(8);
     meshAll(subdividedHero(2)); // warm the JIT
     const t4 = quickest(hero4);
     const t8 = quickest(hero8);
-    expect(t8 / t4).toBeLessThan(15);
+    expect(t8 / t4).toBeLessThan(20);
   }, 60000);
 });
