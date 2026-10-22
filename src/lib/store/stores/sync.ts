@@ -6,6 +6,7 @@ import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import type { ClaimSettled } from "@/lib/services/multiplayer/familyEvents";
 import { familyProblem, retryAfterMs, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
+import type { HeroTurn } from "@/lib/services/sync/heroTurn";
 import { readRawEntries } from "@/lib/services/sync/recordApply";
 import { onRecordWritten, onStoreRestored, type RecordWrite, type StoreRestored } from "@/lib/services/sync/recordSignals";
 import { heroIdOf, isSyncedStore, mayPhoneWrite } from "@/lib/services/sync/syncScopes";
@@ -22,11 +23,6 @@ const UPLOAD_DELAY_MS = 5_000;
 const TICK_MS = 60_000;
 /** A 429 that names no wait pauses the sync this long */
 const RATE_LIMIT_PAUSE_MS = 60_000;
-
-/** A hero's turn on this device. Task 17 replaces it with heroTurn.ts's HeroTurn */
-interface TurnPlaceholder {
-  state: string;
-}
 
 /**
  * Family Sync on this device (section 4 of the family sync spec): every write to a synced store is queued and uploaded,
@@ -48,7 +44,7 @@ export const useSyncStore = defineStore("sync", () => {
   /** Records downloaded so far by a kid phone's first pull, for its clerk line */
   const firstPullProgress = ref(0);
   /** heroId -> the hero's turn on this device (Task 17 fills it) */
-  const turns = ref<Record<string, TurnPlaceholder>>({});
+  const turns = ref<Record<string, HeroTurn>>({});
   /** The site said the family is not Pro: off until the licence says Pro again */
   const proRefused = ref(false);
 
