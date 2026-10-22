@@ -112,6 +112,24 @@ describe("the Tower of Hera reaching a device that holds the old Storm Temple", 
     expect(saved).toMatchObject({ currentLevel: "1F", currentPosition: [1, 0], playerKeys: 0, hasMasterKey: false, openedChests: [], keyItems: ["Pegasus"] });
   });
 
+  it("leaves every run alone when the sync has nothing to switch: a layout already current, or one the Game Master edited", async () => {
+    const fresh = (await progress.getProgress(HERO, ID))!;
+    await progress.saveProgress({ ...fresh, playerKeys: 2, openedChests: ["1F:0,1"] });
+
+    expect((await importAllTempleLayouts())[ID]).toBe("current");
+    expect(await progress.getProgress(HERO, ID)).toMatchObject({ playerKeys: 2, openedChests: ["1F:0,1"] });
+
+    const stored = (await db.getTempleById(ID))!;
+    const edited = JSON.parse(JSON.stringify(stored.dungeonLayout));
+    const [token] = Object.entries(edited.rooms).find(([, room]) => (room as { type: string }).type === "monster")!;
+    edited.rooms[token] = { type: "shop" };
+    await db.setTemple({ ...stored, dungeonLayout: edited });
+    expect((await importAllTempleLayouts())[ID]).toBe("edited");
+    expect(await progress.getProgress(HERO, ID)).toMatchObject({ playerKeys: 2, openedChests: ["1F:0,1"] });
+    // Back to the unedited copy for the tests that follow
+    await db.setTemple(stored);
+  });
+
   it("drops a run the engine still holds in memory on the old rooms, so it is not saved over the fresh start", async () => {
     temples.forgetTempleRun(ID);
     await storeOldSeed();

@@ -6,6 +6,7 @@ import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSy
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { ensureTempleFresh } from '@/lib/engine/core/dungeons/templeFreshness';
+import { ensureBuiltInTemples } from '@/lib/engine/core/dungeons/importAllTemples';
 import { canEnter } from '@/lib/engine/core/dungeons/templeSystem/floors';
 import { isBarrierKind } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
@@ -93,6 +94,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   });
 
   const openTemple = async (): Promise<boolean> => {
+    // The shipped temples are synced into the TempleDb once per session (app start): a run must not open on a copy
+    // the sync is about to replace, since a refresh starts every run in that temple over (importAllTemples)
+    await ensureBuiltInTemples();
     await ensureTempleFresh(templeId);
     if (isUnmounted) return false;
     const isTempleReady = initTemple();

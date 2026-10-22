@@ -10,7 +10,8 @@
  *   If it differs, the temple audit decides: a copy that passes it is a finished temple of the Game Master's
  *   own (a hand-built one) and is kept; a copy that fails it can not be finished, so it is a stale old seed
  *   (missing its Master Room or Boss Key, say) and is refreshed like an unedited one.
- * Hero progress lives in another store (`__templeProgress`) and is never read or written here.
+ * Hero progress lives in another store (`__templeProgress`). It is touched here in one case only: a refresh puts a
+ * different temple under the same id, so every hero's run in it starts over on the new entrance (startRunsOver).
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';

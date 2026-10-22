@@ -198,21 +198,14 @@ describe("importAllTempleLayouts", () => {
     expect(record.seedSignature).toBe(layoutSignature(shippedTemple()));
   });
 
-  it("touches no hero progress but the runs of a temple whose layout it switched (ClassicTempleRefresh.spec)", async () => {
-    const progress = fakeStorage();
-    progress.data.set("kid-1:wind-temple", { looted: ["R002"], keys: 1 });
-    const before = JSON.stringify([...progress.data.entries()]);
-
+  // What the sync does with hero progress (nothing, but for the runs of a temple whose layout it switched) is
+  // ClassicTempleRefresh.spec's, on the real progress store
+  it("keeps temple records only in the temple store", async () => {
     await sync({ "wind-temple": shippedTemple(), "fire-temple": shippedTemple() }); // create
     await sync({ "wind-temple": shippedTemple(true), "fire-temple": shippedTemple() }); // refresh
     await db.setTemple({ ...(await stored("fire-temple")), dungeonLayout: layoutOf(shippedTemple(true)) });
     await sync({ "wind-temple": shippedTemple(true), "fire-temple": shippedTemple() }); // edited
 
-    expect(JSON.stringify([...progress.data.entries()])).toBe(before);
-    expect(progress.set).not.toHaveBeenCalled();
-    expect(progress.remove).not.toHaveBeenCalled();
-    expect(progress.clear).not.toHaveBeenCalled();
-    // the temple store holds temple records only
     expect([...storage.data.keys()].sort()).toEqual(["fire-temple", "wind-temple"]);
   });
 
