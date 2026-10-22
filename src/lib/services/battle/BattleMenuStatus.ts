@@ -1,5 +1,5 @@
 import type { BattlePowerEntry } from '@/lib/services/battle/BattlePowers';
-import { REASON_NOT_HELD, type BattleItemCard, type BattleBagRole } from '@/lib/services/battle/BattleItems';
+import { REASON_NO_BOMBS, REASON_NOT_HELD, type BattleItemCard, type BattleBagRole } from '@/lib/services/battle/BattleItems';
 import { REASON_FULL_STRENGTH, REASON_MP_FULL, type PotionCard } from '@/lib/services/battle/BattlePotions';
 import { REASON_HP_FULL, REASON_NO_MP, REASON_STRIKE_WAITING, REASON_USED } from '@/lib/services/battle/BattleEffects';
 
@@ -28,6 +28,7 @@ const SHORT_REASONS: Record<string, string | undefined> = {
   [REASON_HP_FULL]: 'HP full',
   [REASON_STRIKE_WAITING]: 'wait',
   [REASON_NOT_HELD]: 'not held',
+  [REASON_NO_BOMBS]: 'no bombs',
   [REASON_MP_FULL]: 'MP full',
   [REASON_FULL_STRENGTH]: 'full',
 };

@@ -1,6 +1,6 @@
 import { battleMenuStatus, shortReason } from "@/lib/services/battle/BattleMenuStatus";
 import { REASON_HP_FULL, REASON_NO_MP, REASON_STRIKE_WAITING, REASON_USED } from "@/lib/services/battle/BattleEffects";
-import { REASON_NOT_HELD } from "@/lib/services/battle/BattleItems";
+import { REASON_NO_BOMBS, REASON_NOT_HELD } from "@/lib/services/battle/BattleItems";
 import { REASON_FULL_STRENGTH, REASON_MP_FULL } from "@/lib/services/battle/BattlePotions";
 
 const power = (mp: number, reason: string | null = null) => ({ ability: { id: `p${mp}` } as never, card: { mp, effect: "", reason } });
@@ -33,6 +33,7 @@ describe("battleMenuStatus", () => {
     expect(shortReason(REASON_HP_FULL)).toBe("HP full");
     expect(shortReason(REASON_STRIKE_WAITING)).toBe("wait");
     expect(shortReason(REASON_NOT_HELD)).toBe("not held");
+    expect(shortReason(REASON_NO_BOMBS)).toBe("no bombs");
     expect(shortReason(REASON_MP_FULL)).toBe("MP full");
     expect(shortReason(REASON_FULL_STRENGTH)).toBe("full");
   });
@@ -40,7 +41,7 @@ describe("battleMenuStatus", () => {
   it("shortReason falls back to the first word in lower case, cut to nine characters", () => {
     expect(shortReason("Locked until you free a Pegasus.")).toBe("locked");
     expect(shortReason("Extraordinarily unusable")).toBe("extraordi");
-    expect(shortReason("Out of bombs.")).toBe("out");
+    expect(shortReason("Out of puff.")).toBe("out");
   });
 
   it("Goods counts usable effect tiles plus potion quantities", () => {
@@ -59,6 +60,10 @@ describe("battleMenuStatus", () => {
     expect(battleMenuStatus({ ...base, goods: [card(REASON_NOT_HELD)], potions: [potion(1, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "HP full" });
     // The first potion that has a reason speaks, whatever follows it
     expect(battleMenuStatus({ ...base, potions: [potion(1, REASON_MP_FULL), potion(1, REASON_HP_FULL)] }).goods).toEqual({ enabled: false, note: "MP full" });
+  });
+
+  it("Goods says 'no bombs' for a held Bombs tile with none in the pack", () => {
+    expect(battleMenuStatus({ ...base, goods: [card(REASON_NO_BOMBS)] }).goods).toEqual({ enabled: false, note: "no bombs" });
   });
 
   it("Goods says 'not held' for tools out of hand when the hero has no potions", () => {
