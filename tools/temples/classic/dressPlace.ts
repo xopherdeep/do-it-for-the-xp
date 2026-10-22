@@ -4,20 +4,22 @@
  * (its anchor), so it never shortcuts a lock. The rules, by what moves and where from:
  * - out of a sealed fight (its flight first, then its chests, holes and circles): beside the fight, else beside a
  *   room the hero walks to only through it, a chest or a key handed out by the fight itself when there is none; a
- *   flight or a circle whose other end the hero reaches without the fight stands beside it or in front of it. Never
- *   anywhere the hero walks without the fight;
+ *   flight or a circle whose other end the hero reaches without the fight stands beside it or in front of every seal.
+ *   Never anywhere else the hero walks without the fight;
  * - a hole or a circle: a dead end of its own LTTP room, else beside its cell (a pit on a passage would cut it);
  * - a chest or a key: beside its cell, else the nearest room the hero walks to from there with nothing in hand (no
  *   key, no Bomb, no seal), so it never ends up behind the lock it opens;
  * - anything else (a flight, a side fight): the nearest free cell of its LTTP room, else of its floor, else a wall
  *   position inside the grid, else a grown row or column;
  * - a landing circle (dressLinks) and the shop: beside its landing (the entrance), else beside a room walked to from
- *   there with nothing in hand; in front of a sealed fight a warp lands on, never beyond it.
+ *   there with nothing in hand; for a warp onto a sealed fight, beside the fight or beside a room in front of every
+ *   seal (what the converted dungeon reaches with every must-clear fight and the boss shut, or, when the warp's own cell
+ *   lies past a seal, from that cell without crossing one), never beyond it.
  * When the room something must stand beside lies on the grid's top or left edge with every other side taken, the
  * floor grows a row or a column before its first (the last resort; `shifted` reports the move).
  */
-import { DIRECTIONS, STEP, describeCell, describeItem, distance, floorOf, posKey, sameCell, slotsOf, type Board, type BoardFloor, type CellRef, type Item, type ItemKind, type Slot } from "./dressBoard";
-import { convertedHops, convertedKey, isLandedOn, isSeal, ownCell, walkFrom, walksThrough } from "./dressReach";
+import { DIRECTIONS, STEP, allSlots, describeCell, describeItem, distance, floorOf, posKey, sameCell, slotsOf, type Board, type BoardFloor, type CellRef, type Item, type ItemKind, type Slot } from "./dressBoard";
+import { convertedHops, convertedKey, convertedWalk, isLandedOn, isSeal, ownCell, walkFrom, walksThrough } from "./dressReach";
 
 /** A row or a column the grid grows by to open a room: after the last one, or before the first (the floor then moves down or right) */
 type Growth = "row" | "col" | "rowBefore" | "colBefore";
@@ -242,16 +244,43 @@ const canHandOut = (fight: Slot, item: Item): boolean => {
   return TREASURE.has(item.kind) && (isKeyOrGold(item) || !holdsADungeonItem);
 };
 
+/** The converted cell a flight or a circle leads to (its twin, its landing) */
+const linkEnd = (item: Item): CellRef | undefined => (item.link ? { floor: item.link.to, row: item.link.row, col: item.link.col } : undefined);
+
+/** A converted cell's key by its own position, as the dungeon's links name it */
+const ownKey = (slot: Slot): string => convertedKey(slot.at.floor, slot.cell!.row, slot.cell!.col);
+
 /**
- * The room beside the nearest room the hero walks to from `from` with nothing in hand and no seal passed, on the entry
- * side of `from` when it is a sealed fight (rooms the hero walks to without it); undefined when there is none
+ * The converted cells in front of every seal: what the hero reaches from the entrance with every must-clear fight and
+ * the boss shut. For a link whose far end (the twin flight, the circle the hero rides in from) lies past a seal, what the
+ * hero reaches from that end without crossing one, and not from the entrance (its ride back must not open it).
  */
-const besideInFront = (board: Board, from: Slot): Slot | undefined => {
+const frontCells = (board: Board, farEnd?: CellRef): Set<string> => {
+  const barred = new Set(allSlots(board).filter(isSeal).map((slot) => convertedKey(slot.item!.origin.floor, slot.item!.origin.row, slot.item!.origin.col)));
+  const fromEntrance = convertedWalk(board.dungeon, { barred });
+  const farKey = farEnd ? convertedKey(farEnd.floor, farEnd.row, farEnd.col) : undefined;
+  const isFarPastASeal = Boolean(farKey) && !fromEntrance.has(farKey!);
+  if (!isFarPastASeal) return new Set(fromEntrance.keys());
+  return new Set([...convertedWalk(board.dungeon, { from: farEnd, barred }).keys()].filter((key) => !fromEntrance.has(key)));
+};
+
+/**
+ * The room beside the nearest room in front: beside a sealed fight, in front of every seal (frontCells), first the
+ * rooms the hero walks to from it (its walk crosses locks, as the dungeon reads them: GT's Bob's Torch is boxed in,
+ * and the Hope Room beyond its small lock stands in front), else those of its floor nearest it; beside any other room,
+ * the rooms walked to from it with nothing in hand and no seal passed. Undefined when there is none. A room the
+ * dressing added beside a sealed fight stands beyond it, and so does whatever opens on such a room.
+ */
+const besideInFront = (board: Board, from: Slot, farEnd?: CellRef): Slot | undefined => {
   const isSealed = from.item?.kind === "mustClearFight";
-  const isBefore = isSealed ? sideOf(board, from).isBefore : () => true;
-  // A room the dressing added beside a sealed fight stands beyond it, and so does whatever opens on such a room
-  const isInFront = (slot: Slot): boolean => !isSeal(slot) && (slot.cell ? isBefore(slot) : !isSealed || !sameCell(slot.anchor!, from.at));
-  return firstAlong(board, walkFrom(board, from, isInFront).slice(1), () => false);
+  const front = isSealed ? frontCells(board, farEnd) : undefined;
+  const isFrontCell = (slot: Slot): boolean => Boolean(slot.cell) && (!front || front.has(ownKey(slot)));
+  const isInFront = (slot: Slot): boolean => !isSeal(slot) && (slot.cell ? isFrontCell(slot) : !isSealed || !sameCell(slot.anchor!, from.at));
+  const walk = walkFrom(board, from, isInFront, isSealed).slice(1);
+  const nearest = slotsOf(floorOf(board, from.at.floor)!)
+    .filter((slot) => isSealed && isFrontCell(slot) && !isSeal(slot) && !walk.includes(slot))
+    .sort((a, b) => distance(from.at, a.at) - distance(from.at, b.at));
+  return firstAlong(board, [...walk, ...nearest], () => false);
 };
 
 /**
@@ -268,7 +297,7 @@ const placeBeyondSeal = (board: Board, fight: Slot, item: Item): Slot => {
   const besideTheFight = tryOpenBeside(board, fight);
   if (besideTheFight) return besideTheFight;
   const facesTheFight = side.arrivesFromBefore(item);
-  if (facesTheFight) return tryOpenBeside(board, fight, { leading: true }) ?? openInFront(board, fight);
+  if (facesTheFight) return tryOpenBeside(board, fight, { leading: true }) ?? openInFront(board, fight, linkEnd(item));
   const isBeyond = (slot: Slot): boolean => !side.isBefore(slot) && !side.arrivesFromBefore(slot.item);
   const passesNoSeal = (slot: Slot): boolean => isBeyond(slot) && !isSeal(slot);
   const passesFights = (slot: Slot): boolean => isBeyond(slot) && slot.item?.kind !== "boss";
@@ -285,13 +314,13 @@ const placeBeyondSeal = (board: Board, fight: Slot, item: Item): Slot => {
 };
 
 /**
- * A room added beside `from`, else beside the nearest room the hero walks to from it with nothing in hand and no seal
- * passed: a landing circle, the shop, a flight that brought the hero into a sealed fight. When `from` is a sealed
- * fight, only on its entry side (the rooms the hero walks to without it), never beyond it; elsewhere, with no such
- * room, the nearest room the dressing can add.
+ * A room added beside `from`, else beside the nearest room in front of every seal (besideInFront): a landing circle,
+ * the shop, a flight that brought the hero into a sealed fight. `farEnd` is the converted cell the link comes from (the
+ * warp the hero rides in on, the twin flight). Never beyond a seal; with no such room beside a sealed fight it throws,
+ * elsewhere the nearest room the dressing can add.
  */
-export const openInFront = (board: Board, from: Slot): Slot => {
-  const opened = tryOpenBeside(board, from) ?? besideInFront(board, from) ?? tryOpenBeside(board, from, { leading: true });
+export const openInFront = (board: Board, from: Slot, farEnd?: CellRef): Slot => {
+  const opened = tryOpenBeside(board, from) ?? besideInFront(board, from, farEnd) ?? tryOpenBeside(board, from, { leading: true });
   if (opened) return opened;
   const isSealed = from.item?.kind === "mustClearFight";
   if (isSealed) throw new Error(`${board.dungeon.id}: no room in front of the sealed fight at ${describeCell(from.at)}`);

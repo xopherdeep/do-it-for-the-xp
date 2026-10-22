@@ -157,7 +157,8 @@ export const placeLandingCircles = (board: Board): void => {
     const isCircleOrBoss = landing.item?.kind === "teleport" || landing.item?.kind === "boss";
     if (isCircleOrBoss) continue;
     const back = allSlots(board).find((other) => other.item?.kind === "teleport" && other.at.floor === landing.at.floor && other.item.link && linkedSlot(board, other.item.link) === circle && !other.item.target);
-    const partner = back ?? openInFront(board, landing);
+    // The hero rides in from the warp's own cell: in front of every seal as the dungeon reads it from there
+    const partner = back ?? openInFront(board, landing, circle.item!.origin);
     const isAdded = !back;
     if (isAdded) partner.item = { kind: "teleport", origin: partner.at, room: "", target: circle.at };
     else partner.item!.target = circle.at;

@@ -129,11 +129,14 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
 /** A converted dungeon as a temple of ours, under `plan`. Pure: the same dungeon and plan give the same temple. */
 export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
   const board = buildBoard(dungeon);
-  demoteShortcutWarps(board, () => asRegistered(buildRooms(board, plan, drawSides(board))));
-  const provisional = buildRooms(board, plan, drawSides(board));
-  const chores = planChores(board, plan, buildTempleGraph(asRegistered(provisional)), drawSides(board));
-  const bombChests = placeBombChests(board, () => asRegistered(buildRooms(board, plan, drawSides(board), chores.roles)));
+  // The board as registration reads it, fights plain before the chores are dealt (the doors are all the steps below read)
+  const layoutNow = (): TempleLayout => asRegistered(buildRooms(board, plan, drawSides(board)));
+  demoteShortcutWarps(board, layoutNow);
+  const bombChests = placeBombChests(board, layoutNow);
   placeExtras(board, plan);
+  // The chores come last: roles are keyed by where a fight stands, and a Bomb chest or a shop may still grow a line
+  // before a floor's first and move every room of it
+  const chores = planChores(board, plan, buildTempleGraph(layoutNow()), drawSides(board));
   const built = buildRooms(board, plan, drawSides(board), chores.roles);
   const temple: GeneratedTemple = {
     id: dungeon.id,

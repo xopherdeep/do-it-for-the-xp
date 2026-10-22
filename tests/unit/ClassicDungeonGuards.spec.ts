@@ -71,12 +71,12 @@ const jsonGraph = (dungeon: ClassicDungeon): Map<string, string[]> => {
   return out;
 };
 
-const reachedFrom = (graph: Map<string, string[]>, start: string, blocked: string): Set<string> => {
+const reachedFrom = (graph: Map<string, string[]>, start: string, blocked: ReadonlySet<string>): Set<string> => {
   const seen = new Set<string>([start]);
   const queue = [start];
   while (queue.length) {
     for (const next of graph.get(queue.shift()!) ?? []) {
-      const isNew = !seen.has(next) && next !== blocked;
+      const isNew = !seen.has(next) && !blocked.has(next);
       if (isNew) {
         seen.add(next);
         queue.push(next);
@@ -107,7 +107,23 @@ const sealsOnTheWay = (dungeon: ClassicDungeon): At[] => {
   const cells = dungeon.floors.flatMap((level) => level.cells.map((cell) => ({ at: { floor: level.name, row: cell.row, col: cell.col }, cell })));
   const entrance = keyOf(cells.find(({ cell }) => cell.entrance)!.at);
   const boss = keyOf(cells.find(({ cell }) => cell.boss)!.at);
-  return mustClearFights(dungeon).filter((fight) => !reachedFrom(graph, entrance, keyOf(fight)).has(boss));
+  return mustClearFights(dungeon).filter((fight) => !reachedFrom(graph, entrance, new Set([keyOf(fight)])).has(boss));
+};
+
+/**
+ * The converted cells in front of every seal: what the hero reaches from the entrance with every must-clear fight and
+ * the boss blocked; for a link whose far end (`farEnd`, a converted cell) lies past a seal, what the hero reaches from
+ * that end without crossing one, and not from the entrance
+ */
+const frontOf = (dungeon: ClassicDungeon, farEnd?: string): Set<string> => {
+  const cells = dungeon.floors.flatMap((level) => level.cells.map((cell) => ({ at: { floor: level.name, row: cell.row, col: cell.col }, cell })));
+  const entrance = keyOf(cells.find(({ cell }) => cell.entrance)!.at);
+  const seals = new Set([...mustClearFights(dungeon), cells.find(({ cell }) => cell.boss)!.at].map(keyOf));
+  const graph = jsonGraph(dungeon);
+  const fromEntrance = reachedFrom(graph, entrance, seals);
+  const isFarPastASeal = Boolean(farEnd) && !fromEntrance.has(farEnd!);
+  if (!isFarPastASeal) return fromEntrance;
+  return new Set([...reachedFrom(graph, farEnd!, seals)].filter((key) => !fromEntrance.has(key)));
 };
 
 // --- the dressed temple ------------------------------------------------------------------------------------------
@@ -116,10 +132,14 @@ interface Dressed {
   graph: TempleGraph;
   rooms: (at: At) => Room | undefined;
   boss: string;
-  /** Where the fight converted at a cell stands now */
+  /** Where the fight converted at a cell stands now, while it still seals (a fight dressed as a side room is no seal) */
   fightFrom: (cell: At) => At | undefined;
   /** The sealed fights, by where they stand now */
   sealed: Set<string>;
+  /** The converted cell (its own place, as the JSON names it) each room the dungeon had stands for, by where it stands now */
+  convertedAt: Map<string, string>;
+  /** The converted cell each room's content came from (a moved flight's or circle's own cell), by where it stands now */
+  originAt: Map<string, string>;
 }
 
 const readDressed = (id: string): Dressed => {
@@ -129,9 +149,21 @@ const readDressed = (id: string): Dressed => {
   const rooms = (at: At): Room | undefined => all[maze[at.floor]?.[at.row]?.[at.col]];
   const graph = buildTempleGraph(asRegistered(temple));
   const boss = [...graph.rooms.values()].find((room) => room.kind === "boss")!.key;
-  const fightFrom = (cell: At): At | undefined => report.placements.find((entry) => (entry.type === "monster" || entry.type === "miniboss") && entry.origin && sameCell(entry.origin, cell))?.at;
-  const sealed = new Set(report.placements.filter((entry) => (entry.type === "monster" || entry.type === "miniboss") && rooms(entry.at)?.content?.lockOnEnter).map((entry) => keyOf(entry.at)));
-  return { graph, rooms, boss, fightFrom, sealed };
+  const isFight = (type: string): boolean => type === "monster" || type === "miniboss";
+  const fightFrom = (cell: At): At | undefined => report.placements.find((entry) => isFight(entry.type) && entry.origin && sameCell(entry.origin, cell) && rooms(entry.at)?.content?.lockOnEnter)?.at;
+  const sealed = new Set(report.placements.filter((entry) => isFight(entry.type) && rooms(entry.at)?.content?.lockOnEnter).map((entry) => keyOf(entry.at)));
+  // A converted cell stands at its own place less its floor's shift, unless it was a far-off island moved beside the rest
+  const convertedAt = new Map<string, string>();
+  for (const level of loadDungeon(id).floors) {
+    for (const cell of level.cells) {
+      const own = { floor: level.name, row: cell.row, col: cell.col };
+      const shift = report.shifted.find((entry) => entry.floor === level.name) ?? { rows: 0, cols: 0 };
+      const now = report.compacted.find((entry) => sameCell(entry.from, own))?.to ?? { floor: level.name, row: cell.row - shift.rows, col: cell.col - shift.cols };
+      convertedAt.set(keyOf(now), keyOf(own));
+    }
+  }
+  const originAt = new Map(report.placements.filter((entry) => entry.origin).map((entry) => [keyOf(entry.at), keyOf(entry.origin!)] as const));
+  return { graph, rooms, boss, fightFrom, sealed, convertedAt, originAt };
 };
 
 /** The doors a link takes into a room (a flight, a circle, a fall): closed when asking what reaches it on foot */
@@ -166,14 +198,30 @@ const ADDED_OF_ITS_OWN = new Set(["landing circle", "circle back from the boss",
 const KEPT_IN_REACH = new Set(["small-key chest", "pot key", "big-key chest", "map chest", "compass chest", "big-chest"]);
 
 /**
- * Whether a room stands in front of a sealed fight: it opens on the fight alone, or only on the fight and rooms of its
- * entry side (walked to from the fight's doors with nothing in hand, and reached from the entrance without the fight)
+ * Whether a room stands in front of a sealed fight (the lead's ruling, read on the converted dungeon, not on the dressed
+ * temple that already holds the room): every converted cell it reaches on foot, past no seal, lies in front of every
+ * seal (frontOf), as read from the entrance or from its link's far end; a room that opens on the fight alone reaches none
  */
-const standsInFront = (dressedTemple: Dressed, room: string, fight: string): boolean => {
-  const before = new Set(reachableFrom(dressedTemple.graph, dressedTemple.graph.entrance!, new Set([fight])));
-  const entrySide = [...reachedEmptyHanded(dressedTemple, fight, true)].filter((key) => before.has(key));
-  const opensOn = (dressedTemple.graph.out.get(room) ?? []).filter((door) => door.kind === "door").map((door) => door.to);
-  return opensOn.length > 0 && opensOn.every((key) => key === fight || entrySide.includes(key));
+const standsInFront = (dungeon: ClassicDungeon, dressedTemple: Dressed, room: string, fight: string): boolean => {
+  const { graph } = dressedTemple;
+  // The link's far end: the twin flight, or the circle the hero rides in from, by the converted cell it came from
+  const farRoom = (graph.out.get(room) ?? []).find((door) => door.kind === "stairs" || door.kind === "teleport")?.to;
+  const front = frontOf(dungeon, farRoom ? dressedTemple.originAt.get(farRoom) : undefined);
+  // Every converted cell the room reaches on foot, locks read open as the dungeon reads them, the seals and the boss shut
+  const shut = new Set([...dressedTemple.sealed, dressedTemple.boss, fight]);
+  const onFoot = new Set([room]);
+  const queue = [room];
+  while (queue.length) {
+    for (const door of graph.out.get(queue.shift()!) ?? []) {
+      const isNew = door.kind === "door" && !shut.has(door.to) && !onFoot.has(door.to);
+      if (isNew) {
+        onFoot.add(door.to);
+        queue.push(door.to);
+      }
+    }
+  }
+  const cells = [...onFoot].map((key) => dressedTemple.convertedAt.get(key)).filter((cell): cell is string => Boolean(cell));
+  return cells.every((cell) => front.has(cell));
 };
 
 /** A flight or a circle whose other end (the twin flight, the circle it rides to and back from) the hero reaches without the fight */
@@ -204,13 +252,20 @@ describe("the classic JSONs, dressed in memory under the stand-in plan", () => {
       expect({ id, lost: lost.map(keyOf) }).toEqual({ id, lost: [] });
     });
 
+    it("opens no way past its seals: with every sealed fight and the boss blocked, the hero reaches no cell of the dungeon it does not reach so", () => {
+      const before = frontOf(dungeon);
+      const blocked = new Set([...temple.sealed, temple.boss]);
+      const reached = reachableFrom(temple.graph, temple.graph.entrance!, blocked).map((key) => temple.convertedAt.get(key)).filter((cell): cell is string => Boolean(cell));
+      expect({ id, extra: reached.filter((cell) => !before.has(cell)).sort() }).toEqual({ id, extra: [] });
+    });
+
     it("puts whatever leaves a sealed fight's cell where the hero walks only through that fight, or in front of it when a link brings the hero in", () => {
       for (const move of report.moves.filter((entry) => !ADDED_OF_ITS_OWN.has(entry.what) && temple.sealed.has(keyOf(entry.from)))) {
         const [fight, room] = [keyOf(move.from), keyOf(move.to)];
         // Handed out by the fight itself (a boxed-in fight's drops), or a flight or a circle that LTTP landed the hero in the fight by
         const isHandedOut = room === fight;
         const facesTheFight = !isHandedOut && arrivesFromBefore(temple, room, fight);
-        const placed = isHandedOut || (facesTheFight ? standsInFront(temple, room, fight) : !reachedOnFootWithout(temple.graph, room, fight));
+        const placed = isHandedOut || (facesTheFight ? standsInFront(dungeon, temple, room, fight) : !reachedOnFootWithout(temple.graph, room, fight));
         expect({ what: move.what, fight, room, facesTheFight, placed }).toEqual({ what: move.what, fight, room, facesTheFight, placed: true });
       }
     });
@@ -218,7 +273,7 @@ describe("the classic JSONs, dressed in memory under the stand-in plan", () => {
     it("lands a warp onto a sealed fight in front of it: beside the fight, or beside a room on its entry side", () => {
       for (const move of report.moves.filter((entry) => entry.what === "landing circle" && temple.sealed.has(keyOf(entry.from)))) {
         const [fight, landing] = [keyOf(move.from), keyOf(move.to)];
-        expect({ fight, landing, inFront: standsInFront(temple, landing, fight) }).toEqual({ fight, landing, inFront: true });
+        expect({ fight, landing, inFront: standsInFront(dungeon, temple, landing, fight) }).toEqual({ fight, landing, inFront: true });
       }
     });
 

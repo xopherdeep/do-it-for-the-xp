@@ -255,15 +255,15 @@ describe("dressing a classic dungeon", () => {
     const maze = temple.maze as Maze;
 
     it("makes a lone hole a pit that names where it drops, and a chest that shares a cell with stairs moves to the empty cell next door", () => {
-      expect(at("2F", 0, 0)).toMatchObject({ type: "pit", content: { targetLevel: "1F", targetCoords: { x: 0, y: 0 } } });
-      expect(at("1F", 0, 1)).toMatchObject({ type: "stairs-up", content: { targetLevel: "2F", targetCoords: { x: 1, y: 0 } } });
+      expect(at("2F", 1, 0)).toMatchObject({ type: "pit", content: { targetLevel: "1F", targetCoords: { x: 0, y: 0 } } });
+      expect(at("1F", 0, 1)).toMatchObject({ type: "stairs-up", content: { targetLevel: "2F", targetCoords: { x: 1, y: 1 } } });
       expect(at("1F", 0, 2)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" } });
       expect(report.moves).toEqual(expect.arrayContaining([{ what: "big-key chest", from: { floor: "1F", row: 0, col: 1 }, to: { floor: "1F", row: 0, col: 2 }, grown: false }]));
     });
 
     it("drops a riddle displaced by stairs and says so, and drops nothing else", () => {
-      expect(at("2F", 0, 1)?.type).toBe("stairs-down");
-      expect(report.dropped).toEqual([expect.objectContaining({ what: "puzzle", at: { floor: "2F", row: 0, col: 1 } })]);
+      expect(at("2F", 1, 1)?.type).toBe("stairs-down");
+      expect(report.dropped).toEqual([expect.objectContaining({ what: "puzzle", at: { floor: "2F", row: 1, col: 1 } })]);
     });
 
     it("puts a hole that left its cell in a dead end of its own, so no one walks into the drop on the way somewhere", () => {
@@ -279,23 +279,24 @@ describe("dressing a classic dungeon", () => {
       const fallen = report.placements.find((entry) => entry.type === "pit" && entry.at.floor === "2F" && entry.origin?.col === 2)!;
       expect(fallen).toMatchObject({ origin: { floor: "2F", row: 0, col: 2 }, grown: true });
       expect(at("2F", fallen.at.row, fallen.at.col)?.content).toMatchObject({ targetLevel: "1F", targetCoords: { x: 3, y: 0 } });
-      expect(report.moves).toEqual(expect.arrayContaining([expect.objectContaining({ what: "hole", from: { floor: "2F", row: 0, col: 2 }, grown: true })]));
+      expect(report.moves).toEqual(expect.arrayContaining([expect.objectContaining({ what: "hole", from: { floor: "2F", row: 1, col: 2 }, grown: true })]));
     });
 
-    it("gives a circle that lands on no circle one beside its landing, in front of the seal when the landing fights, and points it back", () => {
+    it("gives a circle that lands on no circle one beside its landing, never where its ride back opens a cell past a seal, and points it back", () => {
       const circles = report.placements.filter((entry) => entry.type === "teleport" && entry.at.floor === "2F");
       expect(circles).toHaveLength(1);
       const circle = at("2F", circles[0].at.row, circles[0].at.col)!;
       expect(circle.content).toMatchObject({ targetLevel: "1F", targetCoords: { x: 3, y: 0 } });
       expect(at("1F", 0, 3)).toMatchObject({ type: "teleport", content: { targetLevel: "2F", targetCoords: { x: circles[0].at.col, y: circles[0].at.row } } });
-      expect(Math.abs(circles[0].at.row - 0) + Math.abs(circles[0].at.col - 2)).toBeLessThanOrEqual(2);
-      // The climb's sides are taken by what it held, so the fairies land on the riddle's side of it, never past the seal
-      expect(circles[0].at).toEqual({ floor: "2F", row: 1, col: 1 });
-      expect(circle.sides).toEqual({ north: "door", east: "wall", south: "wall", west: "wall" });
+      // The fairies ride in from a room past the climb's seal: on the riddle's side their circle's ride back would open the
+      // fairy room with every seal shut, so it opens on the climb alone, in a row grown above 2F (every 2F room moved down)
+      expect(circles[0].at).toEqual({ floor: "2F", row: 0, col: 2 });
+      expect(circle.sides).toEqual({ north: "wall", east: "wall", south: "door", west: "wall" });
+      expect(report.shifted).toEqual([{ floor: "2F", rows: -1, cols: 0 }]);
     });
 
     it("keeps the must-clear fight on its cell, relocates its stairs next door and locks that climb with the Boss Key", () => {
-      expect(at("2F", 0, 2)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true } });
+      expect(at("2F", 1, 2)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true } });
       const flight = report.placements.find((entry) => entry.type === "stairs-up" && entry.at.floor === "2F")!;
       expect(flight.origin).toEqual({ floor: "2F", row: 0, col: 2 });
       const stairs = at("2F", flight.at.row, flight.at.col)!;
@@ -305,10 +306,10 @@ describe("dressing a classic dungeon", () => {
     it("lands the climb beside the boss behind the Boss door, with the Pegasus on the other side", () => {
       expect(maze["3F"]).toEqual([[expect.any(String), expect.any(String)], [expect.any(String), "_"]]);
       expect(at("3F", 0, 0)?.type).toBe("boss");
-      expect(at("3F", 0, 1)).toMatchObject({ type: "stairs-down", content: { targetLevel: "2F", targetCoords: { x: 3, y: 0 } }, sides: { west: "masterlocked" } });
+      expect(at("3F", 0, 1)).toMatchObject({ type: "stairs-down", content: { targetLevel: "2F", targetCoords: { x: 3, y: 1 } }, sides: { west: "masterlocked" } });
       // The flight out of the sealed climb takes the nook that opens on the fight alone, before the hole takes a side of it
-      expect(at("2F", 0, 3)).toMatchObject({ type: "stairs-up", sides: { north: "wall", east: "wall", south: "wall", west: "door" } });
-      expect(report.placements.find((entry) => entry.type === "stairs-up" && entry.at.floor === "2F")).toMatchObject({ at: { floor: "2F", row: 0, col: 3 }, grown: false });
+      expect(at("2F", 1, 3)).toMatchObject({ type: "stairs-up", sides: { north: "wall", east: "wall", south: "wall", west: "door" } });
+      expect(report.placements.find((entry) => entry.type === "stairs-up" && entry.at.floor === "2F")).toMatchObject({ at: { floor: "2F", row: 1, col: 3 }, grown: false });
       expect(at("3F", 1, 0)).toMatchObject({ type: "master", sides: { north: "masterlocked" } });
       const verdict = solveTemple(asRegistered(temple));
       expect(verdict.solvable).toBe(true);

@@ -9,8 +9,10 @@
  * chests and a key in the open > puzzle > circle > side fight > hole. A must-clear fight outranks the stairs that
  * share its screen because the fight is what gates the doors there; the stairs land next door instead (a flight can
  * name its landing, `targetCoords`). What loses its cell moves, and dressPlace says where: what a sealed fight held
- * goes beside the fight, else beside a room the hero reaches only through it, so a flight pushed out of a sealed fight
- * still waits behind it; a hole or a circle goes to a dead end (a pit cuts a passage); a chest or a key stays within
+ * goes beside the fight, else beside a room the hero reaches only through it (a chest or a key with no such room is
+ * handed out by the fight), except a flight or a circle whose other end the hero reaches without the fight, which
+ * stands beside it or in front of every seal (GT's Bob's Torch's flight, its twin in the lobby, stands beside Speed
+ * Torch Upper); a hole or a circle goes to a dead end (a pit cuts a passage); a chest or a key stays within
  * reach of its cell with nothing in hand; anything else takes the nearest free cell. A room the dressing adds opens on
  * one neighbour only (its anchor), so it never shortcuts a lock. Only a displaced riddle is dropped and listed. Every
  * move, drop and merge goes in the report.

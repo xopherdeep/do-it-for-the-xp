@@ -188,6 +188,8 @@ const placeBombChest = (board: Board, near: CellRef, closed: TempleGraph, nearKe
 
 /** A room added beside the first of `rooms` (the wall's near end first) that has a free side, else the nearest added room to the near end */
 const addBombChestNear = (board: Board, near: CellRef, rooms: CellRef[]): Slot => {
+  // The near end's own place, which moves with it when a line grows before a floor's first (the move reads it after)
+  const nearSlot = slotAt(board, near)!;
   const slots = [near, ...rooms].map((ref) => slotAt(board, ref)).filter((slot): slot is Slot => Boolean(slot?.item));
   // One try at a time: each hit adds a room, so the search stops at the first
   let beside: Slot | undefined;
@@ -195,8 +197,8 @@ const addBombChestNear = (board: Board, near: CellRef, rooms: CellRef[]): Slot =
     beside = tryOpenBeside(board, candidate);
     if (beside) break;
   }
-  const slot = beside ?? openNear(board, slotAt(board, near)!);
-  board.moves.push({ what: "Bomb chest", from: near, to: slot.at, grown: true });
+  const slot = beside ?? openNear(board, nearSlot);
+  board.moves.push({ what: "Bomb chest", from: nearSlot.at, to: slot.at, grown: true });
   return slot;
 };
 

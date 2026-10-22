@@ -21,12 +21,24 @@ export const ownCell = (slot: Slot): CellRef => ({ floor: slot.at.floor, row: sl
  * How many steps from the entrance each converted cell is, locks ignored: every side but a wall open, each cell's own
  * stairs, hole and warp taken (stairs come back by the other end's link). `without` is a cell never entered.
  */
-export const convertedHops = (dungeon: ClassicDungeon, without?: CellRef): Map<string, number> => {
+export const convertedHops = (dungeon: ClassicDungeon, without?: CellRef): Map<string, number> =>
+  convertedWalk(dungeon, { barred: new Set(without ? [convertedKey(without.floor, without.row, without.col)] : []) });
+
+/** Where a walk of the converted dungeon starts (the entrance unless named) and the cells it never enters */
+export interface ConvertedWalk {
+  from?: CellRef;
+  barred: ReadonlySet<string>;
+}
+
+/** Steps from `from` (the entrance by default) to each converted cell, locks ignored, never entering a `barred` cell */
+export const convertedWalk = (dungeon: ClassicDungeon, walk: ConvertedWalk): Map<string, number> => {
   const cells = new Map(dungeon.floors.flatMap((floor) => floor.cells.map((cell) => [convertedKey(floor.name, cell.row, cell.col), { floor: floor.name, cell }] as const)));
-  const barred = without ? convertedKey(without.floor, without.row, without.col) : undefined;
-  const start = [...cells.entries()].find(([, entry]) => entry.cell.entrance)?.[0];
+  const barred = walk.barred;
+  const named = walk.from ? convertedKey(walk.from.floor, walk.from.row, walk.from.col) : undefined;
+  const start = named ?? [...cells.entries()].find(([, entry]) => entry.cell.entrance)?.[0];
   const hops = new Map<string, number>();
-  const isStartBarred = !start || start === barred;
+  // A walk named to start on a barred cell (a warp out of a sealed fight) leaves it; the entrance itself is never left barred
+  const isStartBarred = !start || !cells.has(start) || (!named && barred.has(start));
   if (isStartBarred) return hops;
   hops.set(start, 0);
   const queue = [start];
@@ -36,7 +48,7 @@ export const convertedHops = (dungeon: ClassicDungeon, without?: CellRef): Map<s
     const sides = DIRECTIONS.filter((direction) => cell.sides[direction] !== "wall").map((direction) => convertedKey(floor, cell.row + STEP[direction][0], cell.col + STEP[direction][1]));
     const links = [cell.stairs, cell.hole, cell.teleport].filter((link) => Boolean(link)).map((link) => convertedKey(link!.to, link!.row, link!.col));
     for (const other of [...sides, ...links]) {
-      const isNew = cells.has(other) && !hops.has(other) && other !== barred;
+      const isNew = cells.has(other) && !hops.has(other) && !barred.has(other);
       if (isNew) {
         hops.set(other, hops.get(key)! + 1);
         queue.push(other);
@@ -58,12 +70,13 @@ const EMPTY_HANDED: ReadonlySet<ClassicSide> = new Set<ClassicSide>(["open", "sh
 /** Whether a converted side lets the hero through with nothing in hand: no wall, small lock or cracked wall */
 export const walksThrough = (side: ClassicSide): boolean => EMPTY_HANDED.has(side);
 
-/** The slots one step from `slot` on foot with nothing in hand */
-const stepsFrom = (board: Board, slot: Slot): Slot[] => {
+/** The slots one step from `slot` on foot: with nothing in hand, or through any side but a wall when `crossesLocks` */
+const stepsFrom = (board: Board, slot: Slot, crossesLocks: boolean): Slot[] => {
   const floor = floorOf(board, slot.at.floor)!;
   const found: Slot[] = [];
   for (const direction of DIRECTIONS) {
-    const isWay = Boolean(slot.cell) && walksThrough(slot.cell!.sides[direction]);
+    const side = slot.cell?.sides[direction];
+    const isWay = Boolean(side) && (crossesLocks ? side !== "wall" : walksThrough(side!));
     const there = isWay ? floor.slots.get(posKey(slot.at.row + STEP[direction][0], slot.at.col + STEP[direction][1])) : undefined;
     if (there?.cell) found.push(there);
   }
@@ -77,14 +90,15 @@ const stepsFrom = (board: Board, slot: Slot): Slot[] => {
 };
 
 /**
- * The slots a hero walks to from `start` with nothing in hand, nearest first (`start` first), entering only the slots
- * `enters` lets in and never a pit
+ * The slots a hero walks to from `start` with nothing in hand (through small locks and cracked walls too when
+ * `crossesLocks`: the converted dungeon's own reading, locks ignored), nearest first (`start` first), entering only the
+ * slots `enters` lets in and never a pit
  */
-export const walkFrom = (board: Board, start: Slot, enters: (slot: Slot) => boolean): Slot[] => {
+export const walkFrom = (board: Board, start: Slot, enters: (slot: Slot) => boolean, crossesLocks = false): Slot[] => {
   const seen = new Set<Slot>([start]);
   const order = [start];
   for (let index = 0; index < order.length; index++) {
-    for (const next of stepsFrom(board, order[index])) {
+    for (const next of stepsFrom(board, order[index], crossesLocks)) {
       const isNew = !seen.has(next) && !isPit(next) && enters(next);
       if (isNew) {
         seen.add(next);
