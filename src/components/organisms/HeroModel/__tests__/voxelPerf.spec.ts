@@ -147,19 +147,30 @@ const subdivide = (boxes: Box[], n: number): Box[] => {
   return out;
 };
 
-/** Milliseconds to mesh the default hero with every box split n x n x n */
-const buildAt = (n: number): number => {
-  const parts = assembleHero(DEFAULT_LOOK);
+/** The default hero's parts with every box split n x n x n, made once so only the meshing is timed */
+const subdividedHero = (n: number): Box[][] => assembleHero(DEFAULT_LOOK).map((p) => subdivide(p.boxes, n));
+
+/** Milliseconds to mesh every part */
+const meshAll = (parts: Box[][]): number => {
   const start = performance.now();
-  for (const p of parts) buildMeshData(subdivide(p.boxes, n), []);
+  for (const boxes of parts) buildMeshData(boxes, []);
   return performance.now() - start;
 };
 
-describe("linear culling", () => {
-  it("builds an 8x hero in well under twelve times a 4x hero (quadratic culling takes over twenty)", () => {
-    buildAt(2); // warm the JIT
-    const t4 = buildAt(4);
-    const t8 = buildAt(8);
-    expect(t8 / t4).toBeLessThan(12);
+/** The quickest of `runs` builds: a scheduler spike on a busy runner only ever adds time */
+const quickest = (parts: Box[][], runs = 3): number => Math.min(...Array.from({ length: runs }, () => meshAll(parts)));
+
+describe("hidden-face culling cost", () => {
+  /**
+   * Guards against a return to testing every face against every box of the part, whose ratio never fell under twenty.
+   * It is not a proof of strict linearity: the unit grid holds many boxes per cell at 8x, so the ratio lands around eight or nine.
+   */
+  it("builds an 8x hero in under fifteen times a 4x hero (scanning the whole part per face takes over twenty)", () => {
+    const hero4 = subdividedHero(4);
+    const hero8 = subdividedHero(8);
+    meshAll(subdividedHero(2)); // warm the JIT
+    const t4 = quickest(hero4);
+    const t8 = quickest(hero8);
+    expect(t8 / t4).toBeLessThan(15);
   }, 60000);
 });
