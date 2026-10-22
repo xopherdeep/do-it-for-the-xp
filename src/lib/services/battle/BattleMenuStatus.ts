@@ -1,6 +1,7 @@
 import type { BattlePowerEntry } from '@/lib/services/battle/BattlePowers';
 import type { BattleItemCard, BattleBagRole } from '@/lib/services/battle/BattleItems';
 import type { PotionCard } from '@/lib/services/battle/BattlePotions';
+import { REASON_HP_FULL, REASON_NO_MP, REASON_STRIKE_WAITING, REASON_USED } from '@/lib/services/battle/BattleEffects';
 
 export interface MenuSlotStatus { enabled: boolean; note: string }
 export interface BattleMenuStatus { tackle: MenuSlotStatus; powers: MenuSlotStatus; goods: MenuSlotStatus }
@@ -20,30 +21,65 @@ export const battleMenuStatus = (input: BattleMenuStatusInput): BattleMenuStatus
   return { tackle, powers, goods };
 };
 
+/** A menu note is a few letters wide: the engine's sentences ("Not enough MP") become the words a row can hold. */
+const SHORT_REASONS: Record<string, string | undefined> = {
+  [REASON_NO_MP]: 'no MP',
+  [REASON_USED]: 'used',
+  [REASON_HP_FULL]: 'HP full',
+  [REASON_STRIKE_WAITING]: 'wait',
+};
+const NOTE_WORD_MAX = 9;
+
+export const shortReason = (reason: string): string => {
+  const firstWord = reason.trim().split(/\s+/)[0].toLowerCase().slice(0, NOTE_WORD_MAX);
+  return SHORT_REASONS[reason] ?? firstWord;
+};
+
+const TACKLE_NOTES: Record<number, string | undefined> = { 0: 'all done', 1: '1 chore' };
+
 const getTackleStatus = (choresLeft: number): MenuSlotStatus => {
-  const note = choresLeft === 0 ? 'all done' : choresLeft === 1 ? '1 chore' : `${choresLeft} chores`;
-  return { enabled: true, note };
+  return { enabled: true, note: TACKLE_NOTES[choresLeft] ?? `${choresLeft} chores` };
 };
 
 const getPowersStatus = (powers: BattlePowerEntry[]): MenuSlotStatus => {
   const castable = powers.filter(p => p.card.reason === null);
 
-  if (castable.length === 0) {
-    const note = powers.length === 0 ? 'none' : powers[0].card.reason || 'none';
-    return { enabled: false, note };
+  const isCastable = castable.length > 0;
+  if (isCastable) {
+    const minMp = Math.min(...castable.map(p => p.card.mp));
+    return { enabled: true, note: `${minMp} MP` };
   }
 
-  const minMp = Math.min(...castable.map(p => p.card.mp));
-  return { enabled: true, note: `${minMp} MP` };
+  const firstReason = powers[0]?.card.reason ?? null;
+  const hasNoPowers = firstReason === null;
+  if (hasNoPowers) return { enabled: false, note: 'none' };
+  return { enabled: false, note: shortReason(firstReason) };
+};
+
+const isUsableEffectTile = (tile: MenuGoodsTile): boolean => tile.role === 'effect' && tile.card !== null && tile.card.reason === null;
+
+const effectTileReason = (tile: MenuGoodsTile): string | null => {
+  const isEffectTile = tile.role === 'effect';
+  if (!isEffectTile) return null;
+  return tile.card?.reason ?? null;
+};
+
+/** Why the first potion (else the first effect tile) the hero owns cannot be used; null when there is nothing to explain. */
+const firstGoodsReason = (goods: MenuGoodsTile[], potions: PotionCard[]): string | null => {
+  const reasons = [...potions.map(p => p.reason), ...goods.map(effectTileReason)];
+  return reasons.find(reason => reason !== null) ?? null;
 };
 
 const getGoodsStatus = (goods: MenuGoodsTile[], potions: PotionCard[]): MenuSlotStatus => {
-  const usableEffectTiles = goods.filter(
-    tile => tile.role === 'effect' && tile.card !== null && tile.card.reason === null
-  ).length;
-
+  const usableEffectTiles = goods.filter(isUsableEffectTile).length;
   const usablePotions = potions.filter(p => p.reason === null).reduce((sum, p) => sum + p.qty, 0);
 
   const count = usableEffectTiles + usablePotions;
-  return { enabled: count > 0, note: count > 0 ? `x${count}` : 'empty' };
+  const isUsable = count > 0;
+  if (isUsable) return { enabled: true, note: `x${count}` };
+
+  const reason = firstGoodsReason(goods, potions);
+  const hasNothing = reason === null;
+  if (hasNothing) return { enabled: false, note: 'empty' };
+  return { enabled: false, note: shortReason(reason) };
 };

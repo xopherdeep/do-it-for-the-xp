@@ -577,7 +577,7 @@ describe("BattleField: a free fight", () => {
     // 10 MP: neither Power (20 and 25 MP) can be cast, the Ice Wand (10 MP) can, and there are no bottles
     let notes = menuNotes();
     expect(notes).toMatchObject({ attack: "2 chores", defend: undefined, item: "x1", "run-away": undefined });
-    expect(notes.powers).toBeTruthy();
+    expect(notes.powers).toBe("no MP");
     expect([isDimmed("attack"), isDimmed("defend"), isDimmed("powers"), isDimmed("item"), isDimmed("run-away")]).toEqual([
       false, false, true, false, false,
     ]);
@@ -766,8 +766,8 @@ describe("BattleField: a free fight", () => {
     expect(hero.inventory).toEqual([]);
     await readUntilMenu();
 
-    // The last bottle is gone: Goods says so and dims, so there is no empty sheet to open
-    expect(menuNotes().item).toBe("empty");
+    // The last bottle is gone and no tool is in a hand: Goods dims and says why (hold one), so there is no empty sheet to open
+    expect(menuNotes().item).toBe("hold");
     expect(isDimmed("item")).toBe(true);
     await wrapper.find("#item").trigger("click");
     expect(bagOpen()).toBe(false);
