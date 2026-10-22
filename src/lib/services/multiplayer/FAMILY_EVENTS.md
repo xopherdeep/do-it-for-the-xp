@@ -91,8 +91,8 @@ contract it keeps:
 
 ### Under Family Sync: the `synced` claim and verdicts on the hero's turn
 
-A Pro family's devices sync the save as records (`docs/superpowers/specs/2026-10-22-family-sync-design.md`, sections 5
-and 6), so `quest.claimed` carries one more kept field, `synced` (boolean, in `EVENT_KINDS` and the plugin's
+A Pro family's devices sync the save as records (`docs/superpowers/specs/2026-10-22-family-sync-design.md`: the records in
+sections 2 and 4, a hero's turn in sections 3 and 5, verdicts and claims in section 6), so `quest.claimed` carries one more kept field, `synced` (boolean, in `EVENT_KINDS` and the plugin's
 `KINDS`): a device that syncs sets it on every claim it queues, and the intake (`isPhoneClaim`) skips a synced claim,
 since its quest log entry arrives as a record. A free kid phone's claim, and a claim sent again after a takeover (a
 pending entry the site refused with `xp_family_turn`), carry no mark and are taken as above, by the device holding the
