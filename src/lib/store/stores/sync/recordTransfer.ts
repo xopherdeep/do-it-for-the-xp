@@ -78,8 +78,10 @@ export interface RecordTransfer {
   download(): Promise<PullResult>;
   /** The first pull or push while one is owed, otherwise upload then download */
   round(): Promise<void>;
-  /** A hero was taken over: its queued records leave the outbox for good, and stop holding the download back */
-  dropHero(heroId: string): Promise<void>;
+  /** A round that reads on until this device has the newest record (a hero's turn just taken); false when it could not get there */
+  catchUp(): Promise<boolean>;
+  /** A hero was taken over: its queued records leave the outbox for good, and stop holding the download back; answers them */
+  dropHero(heroId: string): Promise<OutboxItem[]>;
   /** The device left the family: the bodies kept for the first push go */
   forget(): void;
 }
@@ -307,12 +309,23 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     await download();
   };
 
-  const dropHero = (heroId: string): Promise<void> =>
-    ctx.update((current) => {
+  const catchUp = async (): Promise<boolean> => {
+    const isOwed = ctx.owes() !== null;
+    if (isOwed) await round();
+    else await upload();
+    return readToEnd();
+  };
+
+  const dropHero = async (heroId: string): Promise<OutboxItem[]> => {
+    let dropped: OutboxItem[] = [];
+    await ctx.update((current) => {
       const isHeros = (item: OutboxItem): boolean => item.heroId === heroId;
-      current.outbox.filter(isHeros).forEach((item) => ctx.changes.settled(item.store, item.key, ctx.changes.markOf(item.store, item.key)));
+      dropped = current.outbox.filter(isHeros);
+      dropped.forEach((item) => ctx.changes.settled(item.store, item.key, ctx.changes.markOf(item.store, item.key)));
       return { ...current, outbox: dropWhere(current.outbox, isHeros) };
     }, ctx.generation());
+    return dropped;
+  };
 
-  return { upload, download, round, dropHero, forget: () => received.clear() };
+  return { upload, download, round, catchUp, dropHero, forget: () => received.clear() };
 };

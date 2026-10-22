@@ -11,6 +11,8 @@ import { emitRecordWritten, emitStoreRestored } from "@/lib/services/sync/record
 import { removePack, type PackDeps, type PackStorage } from "@/lib/services/core/packs/packService";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { emptySyncState, type SyncState } from "@/lib/databases/SyncDb";
+import { questClaimedEvent } from "@/lib/services/multiplayer/familyEvents";
+import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { FamilyEventsState } from "@/lib/databases/FamilyEventsDb";
 import type { HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import debug from "@/lib/utils/debug";
@@ -51,10 +53,13 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
   };
 });
 
+/** Taking one phone claim (the completion service behind it is not under test here) */
+const mockTakePhoneClaim = jest.fn();
 jest.mock("@/lib/services/multiplayer/phoneClaimIntake", () => ({
   __esModule: true,
   ...jest.requireActual("@/lib/services/multiplayer/phoneClaimIntake"),
   buildHeroSheet: jest.fn(async () => ({ stats: {}, quests: [] })),
+  takePhoneClaim: (...args: unknown[]) => mockTakePhoneClaim(...args),
 }));
 
 jest.mock("@/lib/services/pro/familyIdentity", () => ({
@@ -115,6 +120,7 @@ jest.mock("@/lib/databases/FamilyEventsDb", () => ({
 jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
   __esModule: true,
   applyQuestRewards: jest.fn(),
+  paidQuestRewards: (_heroId: string, rewards: unknown) => rewards,
   approveCompletion: jest.fn(async (id: string) => mockReview(id, { status: "approved", rewardsApplied: true })),
   rejectCompletion: jest.fn(async (id: string, _reviewer: unknown, note?: string) => mockReview(id, { status: "rejected", note })),
 }));
@@ -127,6 +133,16 @@ jest.mock("@/lib/databases/QuestLogDb", () => ({
     getEntries: async () => Object.values(mockStores.__questLog ?? {}),
     getAll: async () => Object.values(mockStores.__questLog ?? {}),
     get: async (id: string) => mockStores.__questLog?.[id] ?? null,
+    logCompletion: async (input: Record<string, unknown>) => {
+      const entry = { id: `log-${Object.keys(mockStores.__questLog ?? {}).length + 1}`, rewardsApplied: false, ...input };
+      (mockStores.__questLog ??= {})[entry.id] = entry;
+      return entry;
+    },
+    updateEntry: async (id: string, patch: Record<string, unknown>) => {
+      const entry = { ...(mockStores.__questLog?.[id] as Record<string, unknown>), ...patch };
+      (mockStores.__questLog ??= {})[id] = entry;
+      return entry;
+    },
   }),
 }));
 
@@ -346,6 +362,8 @@ describe("the sync store", () => {
     mockSyncSaves.length = 0;
     mockStores = {};
     mockPays.length = 0;
+    mockTakePhoneClaim.mockReset();
+    mockTakePhoneClaim.mockImplementation(async (e: { id: string }) => ({ claimId: e.id, questId: "q-dishes", status: "pending", note: "", xp: 0, gp: 0, ap: 0 }));
     mockOnApply = null;
     nextSeq = 1000;
     ensureIdentity.mockResolvedValue({ familyId: FAMILY, deviceId: OWN });
@@ -1740,17 +1758,178 @@ describe("the sync store", () => {
     await sync.signIn("h-1");
     write("__questLog", "e1", claimEntry("e1"));
     write("__questLog", "e2", claimEntry("e2", { questId: "q-trash", status: "approved", rewardsApplied: true }));
+    // a long offline stretch: the refused put carries 50 records, and the takeover drops the rest of the hero's queue unsent
+    for (let n = 0; n < 48; n++) write("__questLog", `f${n}`, { id: `f${n}`, userId: "h-1", status: "local" });
+    write("__questLog", "e3", claimEntry("e3", { questId: "q-laundry", completedAt: "2026-10-22T08:15:00.000Z" }));
     putRecords.mockImplementationOnce(refuseTurn);
 
     await tick(5_000);
 
     expect(sync.tookOverNotice).toBe("h-1");
-    // the held claim goes again as a phone-style claim for the device now holding the hero; the paid one is not re-paid
-    const claims = queuedEvents().filter((e) => e.kind === "quest.claimed");
-    expect(claims).toEqual([{ kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-dishes", difficulty: 1, requiresApproval: true } }]);
-    // this device's copy of the claim goes: the holder writes the claim's entry when it takes it
+    expect(sent().map((record) => record.key)).not.toContain("e3");
+    // each held claim goes again as a phone-style claim, dated when the hero made it, for the device now holding the
+    // hero; the paid one is not re-paid
+    const claims = mockFamilyState.outbox.filter((e) => e.kind === "quest.claimed").map(({ kind, heroId, deviceId, data, at }) => ({ kind, heroId, deviceId, data, at }));
+    expect(claims).toEqual([
+      { kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-dishes", difficulty: 1, requiresApproval: true }, at: "2026-10-22T09:00:00.000Z" },
+      { kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-laundry", difficulty: 1, requiresApproval: true }, at: "2026-10-22T08:15:00.000Z" },
+    ]);
+    // this device's copies of the claims go: the holder writes each claim's entry when it takes it
     expect(mockStores.__questLog.e1).toBeUndefined();
+    expect(mockStores.__questLog.e3).toBeUndefined();
     expect(mockStores.__questLog.e2).toBeDefined();
+  });
+
+  it("a kid phone sends its hero's approval-loop events with its own key", async () => {
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    await started();
+    const sendEvents = server.sendEvents as jest.Mock;
+    sendEvents.mockClear();
+
+    await useFamilyStore().queueApprovalEvent("h-1", (deviceId) => questClaimedEvent("h-1", deviceId, { questId: "q-dishes", difficulty: 2, requiresApproval: true }));
+    await drain();
+
+    expect(sendEvents).toHaveBeenCalledTimes(1);
+    const [auth, events] = sendEvents.mock.calls[0];
+    expect(auth).toEqual({ kind: "hero", key: HERO_KEY });
+    expect(events).toEqual([expect.objectContaining({ kind: "quest.claimed", heroId: "h-1", deviceId: OWN, data: { questId: "q-dishes", difficulty: 2, requiresApproval: true } })]);
+  });
+
+  /** A claim made on another device with no synced mark (Part 1's, or a takeover's re-send), received by the site at `receivedAt` */
+  const claimEvent = (seq: number, id: string, heroId = "h-1", receivedAt = new Date(Date.now() + 60_000).toISOString()) => ({
+    seq,
+    id,
+    heroId,
+    deviceId: OTHER,
+    kind: "quest.claimed" as const,
+    scope: "family" as const,
+    at: "2026-10-22T09:00:00.000Z",
+    receivedAt,
+    data: { questId: "q-dishes", difficulty: 2, requiresApproval: true },
+  });
+  const monthAgo = () => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  it("an old unmarked claim event from another device is not taken on a freshly linked phone; a claim received after the mark is", async () => {
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    // the phone reads its hero's events from the beginning: a month-old claim from the family device, and a new one
+    fetchEvents.mockResolvedValueOnce([claimEvent(3, "c-old", "h-1", monthAgo()), claimEvent(4, "c-new")]);
+
+    const sync = await started();
+    await drain();
+
+    expect(sync.state.claimsSince).toEqual(expect.any(String));
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-new"]);
+  });
+
+  it("a newly bound Game Master device skips the family's history the same way; a device that has read the events takes what it has not", async () => {
+    fetchEvents.mockResolvedValueOnce([claimEvent(3, "c-old", "h-1", monthAgo()), claimEvent(4, "c-new")]);
+    await started();
+    await drain();
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-new"]);
+
+    freshDevice();
+    mockFamilyState = familyState({ lastSeq: 2 });
+    mockTakePhoneClaim.mockClear();
+    fetchEvents.mockReset();
+    fetchEvents.mockResolvedValueOnce([claimEvent(3, "c-old", "h-1", monthAgo())]).mockResolvedValue([]);
+    const sync = await started();
+    await drain();
+    expect(sync.state.claimsSince).toBeNull();
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-old"]);
+  });
+
+  it("a device 12 pages behind catches up fully before applying; one that cannot catch up applies nothing and rests the turn", async () => {
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}", "h-2": "{}" } });
+    const sync = await started();
+    mockStores.__questLog = { e1: claimEntry("e1"), e2: claimEntry("e2", { userId: "h-2" }) };
+    // the holder approved e1 and paid it; its copy is the twelfth page this device has not read yet
+    const paidCopy = claimEntry("e1", { status: "approved", rewardsApplied: true });
+    const pages = Array.from({ length: 12 }, (_, page) => [received("__beasts", `b${page}`, 10 + page)]);
+    pages[11] = [received("__questLog", "e1", 21, paidCopy, { heroId: "h-1" })];
+    fetchRecords.mockReset();
+    fetchRecords.mockImplementation(async (_auth: unknown, since: number) => pages.find((page) => page[0].seq > since) ?? []);
+
+    await sync.sendVerdict(verdictOf("e1"), "h-1");
+    await drain();
+
+    expect(fetchRecords.mock.calls.length).toBeGreaterThanOrEqual(13);
+    expect(mockStores.__questLog.e1).toEqual(paidCopy);
+    expect(mockPays).toEqual([]);
+    expect(sync.state.pendingVerdicts).toEqual({});
+
+    // the connection drops in the middle of the catch-up: nothing is applied, the borrowed turn is given back, the verdict waits
+    fetchRecords.mockReset();
+    fetchRecords.mockResolvedValueOnce([received("__beasts", "b99", 40)]).mockRejectedValue(new TownHallError("offline"));
+    restHero.mockClear();
+    await sync.sendVerdict(verdictOf("e2"), "h-2");
+    await drain();
+
+    expect(mockPays).toEqual([]);
+    expect(mockStores.__questLog.e2).toMatchObject({ status: "pending" });
+    expect(restHero).toHaveBeenCalledWith(PARENT, "h-2", OWN);
+    expect(sync.turns["h-2"].state).toBe("resting");
+    expect(sync.state.pendingVerdicts.e2).toMatchObject({ claimId: "e2", heroId: "h-2" });
+  });
+
+  it("the device that applies a verdict on a claim taken from a phone tells the phone, with the pay", async () => {
+    mockFamilyState = familyState({ lastCards: { "h-1": "{}" } });
+    const sync = await started();
+    mockStores.__questLog = { e1: claimEntry("e1", { source: "phone", phoneClaimId: "pc-1" }) };
+
+    await sync.sendVerdict(verdictOf("e1"), "h-1");
+    await drain();
+
+    expect(mockPays).toEqual(["e1"]);
+    expect(queuedEvents()).toEqual([
+      { kind: "claim.settled", heroId: "h-1", deviceId: OWN, data: verdictOf("e1") },
+      { kind: "claim.settled", heroId: "h-1", deviceId: OWN, data: { claimId: "pc-1", questId: "q-dishes", status: "approved", note: "", xp: 30, gp: 40, ap: 2 } },
+    ]);
+  });
+
+  it("a phone claim or a reward left for a busy holder is kept, and taken once the hero is free", async () => {
+    mockFamilyState = familyState({ lastSeq: 9, lastCards: { "h-2": "{}" } });
+    const sync = await started();
+    playHero.mockResolvedValue(BUSY);
+    const reward = { ...claimEvent(11, "r-2", "h-2"), kind: "reward.granted" as const, deviceId: "srv", data: { xp: 50, ap: 3, reason: "Quest Together bonus" } };
+    fetchEvents.mockResolvedValueOnce([claimEvent(10, "c-2", "h-2"), reward]);
+
+    await useFamilyStore().download();
+
+    expect(mockTakePhoneClaim).not.toHaveBeenCalled();
+    expect(Object.keys(sync.state.waitingEvents).sort()).toEqual(["c-2", "r-2"]);
+    expect(sync.state.waitingEvents["c-2"]).toMatchObject({ heroId: "h-2", keptAt: expect.any(String) });
+
+    // the holder rested before it read them: the next round finds the hero free, and this device takes both
+    playHero.mockResolvedValue({ answer: "granted" });
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-2"]);
+    expect(applyQuestRewards).toHaveBeenCalledWith("h-2", { xp: 50, gp: 0, ap: 3 }, "party:r-2");
+    expect(sync.state.waitingEvents).toEqual({});
+    expect(queuedEvents().filter((e) => e.kind === "claim.settled").map((e) => e.data.claimId)).toEqual(["c-2"]);
+  });
+
+  it("a kept claim the holder answers (even turned away, with no entry anywhere) is let go without asking for the turn again", async () => {
+    mockFamilyState = familyState({ lastSeq: 9 });
+    const sync = await started();
+    playHero.mockResolvedValue(BUSY);
+    fetchEvents.mockResolvedValueOnce([claimEvent(10, "c-2", "h-2")]);
+    await useFamilyStore().download();
+    expect(Object.keys(sync.state.waitingEvents)).toEqual(["c-2"]);
+
+    const turnedAway = { ...settledEvent(12, "c-2", "h-2", "rejected"), data: { ...verdictOf("c-2", "rejected", "Already done today") } };
+    fetchEvents.mockResolvedValueOnce([turnedAway]);
+    await useFamilyStore().download();
+    playHero.mockClear();
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(sync.state.waitingEvents).toEqual({});
+    expect(mockTakePhoneClaim).not.toHaveBeenCalled();
+    expect(playHero).not.toHaveBeenCalledWith(PARENT, "h-2", OWN, "the family computer", false);
   });
 
   it("a Pro kid phone holding its hero applies the verdict from its own event download", async () => {

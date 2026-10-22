@@ -100,3 +100,12 @@ export const turnReducer = (turn: HeroTurn, e: TurnEvent): HeroTurn => {
 
 /** Only the device holding the turn may send this hero's records; a provisional hold plays local-first and sends too */
 export const maySend = (turn: HeroTurn): boolean => turn.state === "held";
+
+/** What a restart needs of the turns: a hero held here (or waiting on the player's busy answer) is `held`, any other `resting` */
+export const storedTurnsOf = (turns: Record<string, HeroTurn>): Record<string, "held" | "resting"> =>
+  Object.fromEntries(
+    Object.entries(turns).map(([heroId, turn]) => {
+      const isKept = turn.state === "held" || turn.state === "busy";
+      return [heroId, isKept ? "held" : "resting"];
+    })
+  );

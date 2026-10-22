@@ -1,6 +1,7 @@
 import { Drivers, Storage } from "@ionic/storage";
 import DbStorageApi from "./DbStorageApi";
 import type { ClaimSettled, ClaimSettledStatus } from "@/lib/services/multiplayer/familyEvents";
+import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 
 /**
  * What this device keeps for Family Sync: the records waiting to be sent, how far it has read the site's records, whether
@@ -35,6 +36,9 @@ const STORED_TURNS: StoredTurn[] = ["held", "resting"];
  */
 export type PendingVerdict = ClaimSettled & { heroId: string; seq: number; at?: string };
 
+/** A phone claim or a server reward left for the device holding its hero, kept (since `keptAt`) in case that device never reads it */
+export type WaitingEvent = ReceivedEvent & { keptAt: string };
+
 export interface SyncState {
   outbox: OutboxItem[];
   /** The newest record number this device has applied */
@@ -47,6 +51,14 @@ export interface SyncState {
   verdictsSent: Record<string, { approved: boolean; at: string }>;
   /** claimId -> a verdict not applied yet (its quest log entry has not come, or another device holds the hero), until its entry is settled */
   pendingVerdicts: Record<string, PendingVerdict>;
+  /**
+   * When this device started reading the family's events from their beginning (ISO, this device's clock): under Family
+   * Sync a phone claim or a server reward the site received before it is history, never taken here. Null when the
+   * device read the events as they came.
+   */
+  claimsSince: string | null;
+  /** event id -> a phone claim or a server reward another device's turn kept from being taken here, tried again each round */
+  waitingEvents: Record<string, WaitingEvent>;
 }
 
 export const emptySyncState = (): SyncState => ({
@@ -57,6 +69,8 @@ export const emptySyncState = (): SyncState => ({
   turns: {},
   verdictsSent: {},
   pendingVerdicts: {},
+  claimsSince: null,
+  waitingEvents: {},
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -87,6 +101,12 @@ const isPendingVerdict = (value: unknown): value is PendingVerdict => {
   return hasIds && hasWords && hasNumbers;
 };
 
+const isWaitingEvent = (value: unknown): value is WaitingEvent => {
+  if (!isRecord(value)) return false;
+  const hasIds = [value.id, value.heroId, value.kind, value.keptAt].every((field) => typeof field === "string");
+  return hasIds && typeof value.seq === "number" && isRecord(value.data);
+};
+
 /** The entries of a stored map that pass the check; a map of the wrong shape has none */
 const entriesWhere = <T>(value: unknown, isEntry: (entry: unknown) => entry is T): Record<string, T> => {
   if (!isRecord(value)) return {};
@@ -109,6 +129,8 @@ export const readSyncState = (stored: unknown): SyncState => {
     turns: entriesWhere(saved.turns, isStoredTurn),
     verdictsSent: entriesWhere(saved.verdictsSent, isSentVerdict),
     pendingVerdicts: entriesWhere(saved.pendingVerdicts, isPendingVerdict),
+    claimsSince: typeof saved.claimsSince === "string" ? saved.claimsSince : empty.claimsSince,
+    waitingEvents: entriesWhere(saved.waitingEvents, isWaitingEvent),
   };
 };
 

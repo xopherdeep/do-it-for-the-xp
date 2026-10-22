@@ -1,7 +1,7 @@
 import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import type { SheetQuest } from "@/lib/services/multiplayer/heroSheet";
 import { sheetEvent, sheetFromEvent, sheetKey, statsOf, MAX_SHEET_QUESTS } from "@/lib/services/multiplayer/heroSheet";
-import { isPhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
+import { isHistory, isPhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
 import {
   addClaim,
   applyReceived,
@@ -151,6 +151,13 @@ describe("the family device's intake", () => {
   it("takes a claim made on another device, never its own", () => {
     expect(isPhoneClaim(claimFrom("PHONE", { questId: "q1", difficulty: 2, requiresApproval: true }), "HOME")).toBe(true);
     expect(isPhoneClaim(claimFrom("HOME", { questId: "q1", difficulty: 2, requiresApproval: true }), "HOME")).toBe(false);
+  });
+
+  it("history is what the site received before the device started reading the events; nothing is without a mark", () => {
+    const at = (receivedAt: string): ReceivedEvent => ({ ...claimFrom("PHONE", { questId: "q1" }), receivedAt });
+    expect(isHistory(at("2026-10-22T08:59:59.000Z"), "2026-10-22T09:00:00.000Z")).toBe(true);
+    expect(isHistory(at("2026-10-22T09:00:00.000Z"), "2026-10-22T09:00:00.000Z")).toBe(false);
+    expect(isHistory(at("2026-10-01T09:00:00.000Z"), null)).toBe(false);
   });
 
   it("a synced claim is not taken as a phone claim", () => {

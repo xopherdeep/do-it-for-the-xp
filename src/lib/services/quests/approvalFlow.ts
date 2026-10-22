@@ -87,13 +87,15 @@ const isWrittenElsewhere = (heroId: string): boolean => {
 
 /**
  * A verdict for the device holding the hero's turn: sent with no pay (the holder computes it), multiplayer told as today,
- * and the Game Masters' notices settled (their word is given; the entry here stays pending until the holder's copy lands)
+ * and the Game Masters' notices settled (their word is given; the entry here stays pending until the holder's copy lands).
+ * A claim taken from a phone hears the verdict from the device that applies it, with the pay (sync/verdicts.ts), so no
+ * phone claim id goes with the signal here.
  */
 const sendVerdict = async (entry: QuestLogEntry, approved: boolean, note: string): Promise<ReviewOutcome> => {
   const questId = String(entry.questId);
   const status = approved ? "approved" : "rejected";
   await useSyncStore().sendVerdict({ claimId: entry.id, questId, status, note, xp: 0, gp: 0, ap: 0 }, entry.userId);
-  emitQuestReviewed({ heroId: entry.userId, questId, approved, note, ...phoneOf(entry) });
+  emitQuestReviewed({ heroId: entry.userId, questId, approved, note });
   settleWaiting(entry.id);
   return { ok: true, entry, line: "", remote: true };
 };

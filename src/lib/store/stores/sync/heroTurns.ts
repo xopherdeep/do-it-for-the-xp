@@ -2,7 +2,6 @@ import type { Ref } from "vue";
 import { familyProblem } from "@/lib/services/multiplayer/familyServer";
 import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import { playHero, restHero, type PlayAnswer } from "@/lib/services/sync/familySyncClient";
-import type { StoredTurn } from "@/lib/databases/SyncDb";
 import { initialTurn, maySend, turnReducer, type HeroTurn, type TurnEvent } from "@/lib/services/sync/heroTurn";
 import { TownHallError, type TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import debug from "@/lib/utils/debug";
@@ -13,9 +12,11 @@ import { createTurnLending } from "./turnLending";
  * answer, the offline hold and the takeover. Every change of a turn goes through `turnReducer` (services/sync/heroTurn.ts);
  * this file makes the calls and feeds it what the site answered.
  *
- * - A granted turn first downloads while the hero is still `asking`, so the copies of the device that played the hero
- *   last land over anything changed here without the turn (the transfer lets a hero record of a hero this device does
- *   not play land, and drops the change it replaces); then the turn is `held` and the store flushes (upload, download).
+ * - A granted turn first catches up while the hero is still `asking` (it sends what waits, then reads to the newest
+ *   record), so the copies of the device that played the hero last land over anything changed here without the turn (the
+ *   transfer lets a hero record of a hero this device does not play land, and drops the change it replaces); then the
+ *   turn is `held` and the store flushes. A grant this device cannot catch up on (offline, or a read held back) is given
+ *   back by a borrow, which then runs nothing; the player plays on as offline, its records waiting for the site.
  * - One ask per hero at a time: a sign-in joins an ask still waiting for its answer (an answered one is let finish, then
  *   looked at again), and a grant is given back only by the latest ask, and only when the hero is not held here.
  * - A rest uploads first; a sign-in meanwhile claims the hero and waits for it, and the rest then leaves it held.
@@ -45,7 +46,8 @@ export interface TurnContext {
   label(): string;
   /** Sends what waits, including what was written a moment ago */
   upload(): Promise<void>;
-  download(): Promise<void>;
+  /** Sends what waits, then reads to the newest record; false when it could not get there */
+  catchUp(): Promise<boolean>;
   flush(): Promise<void>;
   /** Drops every queued record of the hero and its change marks: they can never be written */
   dropHero(heroId: string): Promise<void>;
@@ -104,15 +106,6 @@ interface AskInFlight {
   done: Promise<TurnAnswer>;
   isAnswered: boolean;
 }
-
-/** What a restart needs of the turns: a hero held here (or waiting on the player's busy answer) is `held` */
-export const storedTurnsOf = (turns: Record<string, HeroTurn>): Record<string, StoredTurn> =>
-  Object.fromEntries(
-    Object.entries(turns).map(([heroId, turn]) => {
-      const isKept = turn.state === "held" || turn.state === "busy";
-      return [heroId, isKept ? "held" : "resting"];
-    })
-  );
 
 /** The site has no such hero (removed, or not registered yet) */
 const isUnknownHero = (error: unknown): boolean => error instanceof TownHallError && error.status === 404;
@@ -224,6 +217,13 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     dispatch(heroId, isBorrow ? { type: "signOut" } : { type: "busy", device });
   };
 
+  /** Granted, but the newest record could not be read: a borrow gives the turn back, the player holds it as offline */
+  const behind = async (heroId: string, isBorrow: boolean): Promise<TurnAnswer> => {
+    dispatch(heroId, isBorrow ? { type: "signOut" } : { type: "offline" });
+    if (isBorrow) await giveBack(heroId);
+    return "offline";
+  };
+
   /** The hero is `asking`: POST play, then the answer through the reducer. A borrow never shows busy or holds offline */
   const take = (heroId: string, force: boolean, isBorrow = false): Promise<TurnAnswer> => {
     const number = (askNumbers.get(heroId) ?? 0) + 1;
@@ -248,7 +248,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
         return "busy";
       }
       // Granted: catch up while the hero is still asking, so the last player's copies land over changes made here without the turn
-      if (isAsking()) await ctx.download();
+      const isCaughtUp = isAsking() ? await ctx.catchUp() : true;
       const isWanted = isAsking();
       if (!isWanted) {
         // Signed out meanwhile: the site must not think this device plays the hero, unless a later ask holds it here
@@ -257,6 +257,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
         if (mayGiveBack) await giveBack(heroId);
         return "granted";
       }
+      if (!isCaughtUp) return behind(heroId, isQuiet());
       dispatch(heroId, { type: "granted" });
       await ctx.flush();
       return "granted";
@@ -437,7 +438,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
       // The catch-up runs after the transfer that heard the refusal; `takenOver` has one exit, however it ends
       const caughtUp = ctx
         .dropHero(heroId)
-        .then(() => ctx.download())
+        .then(() => ctx.catchUp())
         .catch((error) => debug.warn(`sync: catching up after ${heroId} was taken over failed`, error))
         .then(() => {
           dispatch(heroId, { type: "caughtUp" });

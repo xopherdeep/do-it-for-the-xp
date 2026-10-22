@@ -1,4 +1,5 @@
 import { mount } from "@vue/test-utils";
+import { nextTick, reactive } from "vue";
 import ApprovalClaimRow from "@/app/Admin/XpApprovals/components/ApprovalClaimRow.vue";
 import ApprovalPurchaseRow from "@/app/Admin/XpApprovals/components/ApprovalPurchaseRow.vue";
 import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
@@ -6,7 +7,7 @@ import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { useSentVerdicts } from "@/app/Admin/XpApprovals/useSentVerdicts";
 
 /** The verdicts this device sent to the devices holding their heroes, as the sync store keeps them */
-const mockSync = { state: { verdictsSent: {} as Record<string, { approved: boolean; at: string }> } };
+const mockSync = reactive({ state: { verdictsSent: {} as Record<string, { approved: boolean; at: string }> } });
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
 /** A purchase waiting on the Game Master, as the Accessories tab lists it */
@@ -117,9 +118,23 @@ describe("the line of a verdict sent to the hero's device", () => {
       "entry-1": { approved: true, at: "2026-10-22T10:00:00.000Z" },
       "entry-2": { approved: false, at: "2026-10-22T10:00:00.000Z" },
     };
-    const sentLine = useSentVerdicts();
+    const sentLine = useSentVerdicts(() => undefined);
     expect(sentLine(entry("entry-1"), "Mia")).toBe("Approved · paying on Mia's device");
     expect(sentLine(entry("entry-2"), "Mia")).toBe("Not this time · sent");
     expect(sentLine(entry("entry-3"), "Mia")).toBe("");
+  });
+
+  it("a verdict applied (it leaves verdictsSent) has the screen read its claims again; a new one does not", async () => {
+    mockSync.state.verdictsSent = { "entry-1": { approved: true, at: "2026-10-22T10:00:00.000Z" } };
+    const landed = jest.fn();
+    useSentVerdicts(landed);
+
+    mockSync.state.verdictsSent = { ...mockSync.state.verdictsSent, "entry-2": { approved: false, at: "2026-10-22T10:01:00.000Z" } };
+    await nextTick();
+    expect(landed).not.toHaveBeenCalled();
+
+    mockSync.state.verdictsSent = { "entry-2": { approved: false, at: "2026-10-22T10:01:00.000Z" } };
+    await nextTick();
+    expect(landed).toHaveBeenCalledTimes(1);
   });
 });

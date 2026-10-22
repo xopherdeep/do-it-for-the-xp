@@ -189,8 +189,9 @@
       const userStore = useUserStore();
       // Follows the profile's Retro / Modern toggle, like the other phone apps
       const { rootClass, rootStyle } = useAppSkin("quests");
-      // A verdict on a hero another device holds goes to that device (family sync); the row says so until its copy lands
-      const sentLineOf = useSentVerdicts();
+      // A verdict on a hero another device holds goes to that device (family sync); the row says so until it is applied,
+      // then the claims are read again
+      const sentLineOf = useSentVerdicts(() => void loadApprovals());
       const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
       const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
         "achievements"

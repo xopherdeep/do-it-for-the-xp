@@ -157,12 +157,16 @@ jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: ()
  */
 const mockSync = reactive({
   isOn: false,
+  isCapturing: false,
   isFamilyDevice: false,
   isFullPortal: false,
+  state: { claimsSince: null as string | null },
   init: jest.fn(),
   reset: jest.fn(),
   withTurn: jest.fn(),
   takeVerdicts: jest.fn(),
+  keepEvents: jest.fn(),
+  markHistory: jest.fn(),
 });
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
@@ -289,6 +293,10 @@ describe("family store", () => {
       return true;
     });
     mockSync.takeVerdicts.mockResolvedValue(undefined);
+    mockSync.keepEvents.mockResolvedValue(undefined);
+    mockSync.markHistory.mockResolvedValue(undefined);
+    mockSync.isCapturing = false;
+    mockSync.state.claimsSince = null;
     (require("@/lib/services/pro/familyIdentity").ensureIdentity as jest.Mock).mockResolvedValue({ familyId: FAMILY, deviceId: DEVICE });
     bindFamily.mockResolvedValue("created");
     moveHome.mockResolvedValue(undefined);
@@ -1402,6 +1410,42 @@ describe("family store", () => {
       expect(mockState.takenClaims.map((claim) => claim.id)).toEqual(["c-1"]);
       expect(mockState.outbox.filter((e) => e.kind === "claim.settled").map((e) => e.data.claimId)).toEqual(["c-1"]);
       expect(mockState.lastSeq).toBe(3);
+      // the family's cursor has moved past it: kept in the sync store, tried again each round
+      expect(mockSync.keepEvents.mock.calls.flat(2).map((e: ReceivedEvent) => e.id)).toEqual(["c-2"]);
+    });
+
+    it("history is skipped: a claim or reward the site received before this device started reading the events", async () => {
+      mockSync.isOn = true;
+      mockSync.state.claimsSince = "2026-10-22T09:30:00.000Z";
+      mockTakePhoneClaim.mockImplementation(async (e: ReceivedEvent) => ({ claimId: e.id, questId: "q-1", status: "pending", note: "", xp: 0, gp: 0, ap: 0 }));
+      const before = { receivedAt: "2026-10-22T09:00:01.000Z" };
+      const after = { receivedAt: "2026-10-22T10:00:01.000Z" };
+      fetchEvents.mockResolvedValueOnce([
+        { ...phoneClaimEvent(1, "c-old"), ...before },
+        { ...phoneClaimEvent(2, "c-new"), ...after },
+        sampleRewardEvent({ seq: 3, id: "r-old", ...before }),
+        sampleRewardEvent({ seq: 4, id: "r-new", ...after }),
+      ]);
+      const store = await started();
+      await store.download();
+
+      expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-new"]);
+      expect(mockApplyQuestRewards.mock.calls.map(([, , questId]) => questId)).toEqual(["party:r-new"]);
+      expect(mockState.lastSeq).toBe(4);
+    });
+
+    it("a device reading the family's events from their beginning marks the moment; one that has read them does not", async () => {
+      let store = await started();
+      await store.download();
+      expect(mockSync.markHistory).toHaveBeenCalled();
+
+      (getActivePinia() as unknown as { _s: Map<string, { $dispose: () => void }> })._s.forEach((running) => running.$dispose());
+      setActivePinia(createPinia());
+      mockSync.markHistory.mockClear();
+      mockState = { ...emptyState(), lastSeq: 40 };
+      store = await started();
+      await store.download();
+      expect(mockSync.markHistory).not.toHaveBeenCalled();
     });
 
     it("a server reward is paid on its hero's turn; one for a hero played elsewhere is left to that device", async () => {
@@ -1434,12 +1478,12 @@ describe("family store", () => {
       expect(mockSync.takeVerdicts).toHaveBeenCalledWith([verdict]);
     });
 
-    it("a claim made here is marked synced while the sync is on", async () => {
+    it("a claim made here is marked synced while this device captures its records (Pro lapsed or not loaded yet too)", async () => {
       mockState = { ...emptyState(), lastCards: cardsAlreadySent() };
       const store = await started();
       emitQuestClaimed({ heroId: "h-1", questId: "q-1", difficulty: 3, requiresApproval: true });
       await settle();
-      mockSync.isOn = true;
+      mockSync.isCapturing = true;
       emitQuestClaimed({ heroId: "h-1", questId: "q-2", difficulty: 3, requiresApproval: true });
       await settle();
 

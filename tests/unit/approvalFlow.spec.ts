@@ -189,6 +189,17 @@ describe("a family that syncs (family sync, section 6)", () => {
     expect(log.find((candidate) => candidate.id === second.entry.id)?.status).toBe("pending");
   });
 
+  it("a remote verdict on a claim taken from a phone does not answer the phone: the device that applies it does, with the pay", async () => {
+    mockSync.isOn = true;
+    const { entry } = await completeQuest(chore(), "kid", "phone", { phoneClaimId: "phone-claim-1" });
+    expect(entry.phoneClaimId).toBe("phone-claim-1");
+
+    await approveClaim(entry.id, "mum");
+
+    expect(mockSync.sendVerdict).toHaveBeenCalledWith(expect.objectContaining({ claimId: entry.id, status: "approved" }), "kid");
+    expect(reviewed).toEqual([{ heroId: "kid", questId: "q1", approved: true, note: "" }]);
+  });
+
   it("a verdict for a held hero is written as before", async () => {
     mockSync.isOn = true;
     mockSync.holds.mockReturnValue(true);

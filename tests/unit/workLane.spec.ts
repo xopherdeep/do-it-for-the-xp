@@ -20,6 +20,14 @@ describe("mergeWork", () => {
     expect(mergeWork("round", "upload")).toBe("round");
     expect(mergeWork("download", "round")).toBe("round");
   });
+
+  it("a catch-up (upload, then read to the newest record) takes in any work it is joined with", () => {
+    const others: Work[] = ["upload", "download", "round", "catchUp"];
+    others.forEach((other) => {
+      expect(mergeWork("catchUp", other)).toBe("catchUp");
+      expect(mergeWork(other, "catchUp")).toBe("catchUp");
+    });
+  });
 });
 
 describe("createWorkLane", () => {

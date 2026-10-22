@@ -5,7 +5,7 @@ import { emptySyncState, getSyncDb, type SyncState } from "@/lib/databases/SyncD
 import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
-import type { HeroTurn, TurnState } from "@/lib/services/sync/heroTurn";
+import { storedTurnsOf, type HeroTurn, type TurnState } from "@/lib/services/sync/heroTurn";
 import { createLocalChanges } from "@/lib/services/sync/localChanges";
 import { readRawEntries } from "@/lib/services/sync/recordApply";
 import { onRecordWritten, onStoreRestored, type RecordWrite, type StoreRestored } from "@/lib/services/sync/recordSignals";
@@ -18,7 +18,7 @@ import { useProStore } from "@/lib/store/stores/pro";
 import { useUserStore } from "@/lib/store/stores/user";
 import { getSavedUserId } from "@/lib/store/stores/user/session";
 import debug from "@/lib/utils/debug";
-import { createHeroTurns, storedTurnsOf } from "./sync/heroTurns";
+import { createHeroTurns } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
 import { createVerdicts } from "./sync/verdicts";
@@ -232,7 +232,16 @@ export const useSyncStore = defineStore("sync", () => {
     },
   });
 
-  const WORK: Record<Work, () => Promise<unknown>> = { upload: transfer.upload, download: transfer.download, round: transfer.round };
+  /** Whether the last catch-up reached the newest record */
+  let caughtUp = false;
+  const WORK: Record<Work, () => Promise<unknown>> = {
+    upload: transfer.upload,
+    download: transfer.download,
+    round: transfer.round,
+    catchUp: async () => {
+      caughtUp = await transfer.catchUp();
+    },
+  };
 
   /** One job of the lane; what went wrong lands in `problem`, and the job never rejects */
   async function runWork(work: Work): Promise<void> {
@@ -251,6 +260,13 @@ export const useSyncStore = defineStore("sync", () => {
   const download = (): Promise<void> => lane.request("download");
   /** Uploads what waits, then downloads (the first push or pull while one is owed) */
   const flush = (): Promise<void> => lane.request("round");
+  /** Sends what waits, then reads to the newest record; false when it could not get there (offline, a read held back, a failure) */
+  const catchUp = async (): Promise<boolean> => {
+    caughtUp = false;
+    await writing;
+    await lane.request("catchUp");
+    return caughtUp;
+  };
 
   /** After a round, outside the lane: the heroes whose records wait here go on borrowed turns, then the verdicts that wait are tried */
   const afterRound = (): Promise<void> => heroTurns.lendWaiting().then(() => verdicts.retry());
@@ -277,9 +293,10 @@ export const useSyncStore = defineStore("sync", () => {
       await writing;
       await upload();
     },
-    download,
+    catchUp,
     flush,
-    dropHero: (heroId) => transfer.dropHero(heroId),
+    // The pending claims a takeover drops unsent go again, phone-style (sync/verdicts.ts)
+    dropHero: async (heroId) => verdicts.resendDropped(await transfer.dropHero(heroId)),
     turnsChanged: () => {
       // Saved for a restart only when what a restart needs changed (held or not), never for each ask
       const kept = storedTurnsOf(turns.value);
@@ -308,6 +325,8 @@ export const useSyncStore = defineStore("sync", () => {
     generation: () => generation,
     withTurn: (heroId, fn) => heroTurns.withTurn(heroId, fn),
     queueEvent: (heroId, build) => family.queueApprovalEvent(heroId, build),
+    tellPhone: (heroId, settled) => family.tellPhone(heroId, settled),
+    retakeEvents: (events) => family.retakeEvents(events),
   });
 
   /** The hero signed in on this device, if any; before the profiles load, the one the app will sign in again */
@@ -454,6 +473,7 @@ export const useSyncStore = defineStore("sync", () => {
     turns,
     tookOverNotice,
     isOn,
+    isCapturing,
     isFamilyDevice,
     isFullPortal,
     deviceLabel,
@@ -472,5 +492,8 @@ export const useSyncStore = defineStore("sync", () => {
     // A Game Master's verdict on a hero this device does not hold, and the verdicts among the family's events (sync/verdicts.ts)
     sendVerdict: verdicts.send,
     takeVerdicts: verdicts.take,
+    // Phone claims and rewards kept for the next round, and the moment this device started reading the family's events
+    keepEvents: verdicts.keepEvents,
+    markHistory: verdicts.markHistory,
   };
 });

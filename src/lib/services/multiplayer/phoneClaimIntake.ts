@@ -43,6 +43,15 @@ export const isPhoneClaim = (e: ReceivedEvent, ownDeviceId: string): boolean => 
   return isClaim && !isOwn && !isSynced;
 };
 
+/**
+ * Under Family Sync, whether the site received an event before `since`, the moment this device started reading the
+ * family's events from their beginning: history, which the device that read it then has taken; never taken again here
+ */
+export const isHistory = (e: ReceivedEvent, since: string | null): boolean => {
+  const hasMark = since !== null;
+  return hasMark && Date.parse(e.receivedAt) < Date.parse(since as string);
+};
+
 const answer = (claimId: string, questId: string, status: ClaimSettled["status"], note = "", paid = { xp: 0, gp: 0, ap: 0 }): ClaimSettled => ({
   claimId,
   questId,

@@ -6,7 +6,7 @@ import { getFamilyEventsDb, type FamilyEventsState, type HomeStatus } from "@/li
 import { getHeroDeviceDb, type HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
 import { normalizeCode, phoneLabel } from "@/lib/services/multiplayer/deviceLink";
-import { markPaid, newestSeq, rewardsToPay, trimPaid, type RewardToPay } from "@/lib/services/multiplayer/eventInbox";
+import { markPaid, newestSeq, trimPaid } from "@/lib/services/multiplayer/eventInbox";
 import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
 import { claimSettledEvent, questClaimedEvent, questDoneEvent, questReviewedEvent, type ClaimSettled, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import {
@@ -28,7 +28,6 @@ import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { sheetEvent, sheetKey } from "@/lib/services/multiplayer/heroSheet";
 import { buildHeroSheet, isPhoneClaim, takePhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
-import { payServerReward } from "@/lib/services/multiplayer/serverRewards";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
@@ -38,6 +37,7 @@ import debug from "@/lib/utils/debug";
 import { createCardQueue } from "./family/familyCards";
 import { createFamilySender } from "./family/familySender";
 import { createHeroPhoneSync } from "./family/heroPhoneSync";
+import { createTurnIntake, underTurn } from "./family/turnIntake";
 import { useSyncStore } from "./sync";
 
 /** Where each answer of the site leaves this device: `created` and `home` both mean this device is the family's home */
@@ -267,32 +267,22 @@ export const useFamilyStore = defineStore("family", () => {
   // --- Two-phone play: claims from hero phones, and the sheets those phones show (FAMILY_EVENTS.md) ---
 
   /**
-   * Runs what writes a hero's game. A Pro family runs it on the hero's turn (family sync, section 6): here when this
-   * device holds the hero, on the turn borrowed for the moment when nobody does, and not at all (false) when another
-   * device holds it, which does it on its own download. Otherwise at once, as the home device always has.
-   */
-  async function underTurn(heroId: string, fn: () => Promise<void>): Promise<boolean> {
-    const sync = useSyncStore();
-    if (sync.isOn) return sync.withTurn(heroId, fn);
-    await fn();
-    return true;
-  }
-
-  /**
    * Takes the claims heroes made on their phones, each once: logged here like a claim on this device (held or paid),
    * answered with `claim.settled` in the same save that remembers it was taken. A claim this device already took (its
    * id in takenClaims, or an entry in the log with its id) is not logged again. In a Pro family a claim is taken on its
-   * hero's turn; one for a hero another device holds is left for that device, and not marked taken here.
+   * hero's turn; one for a hero another device holds is left for that device, not marked taken here, and answered.
    */
-  async function takePhoneClaims(events: ReceivedEvent[]): Promise<void> {
+  async function takePhoneClaims(events: ReceivedEvent[]): Promise<ReceivedEvent[]> {
     const { deviceId } = await ensureIdentity();
     const taken = new Set((await loaded()).takenClaims.map((claim) => claim.id));
     const claims = events.filter((e) => isPhoneClaim(e, deviceId) && !taken.has(e.id));
+    const left: ReceivedEvent[] = [];
     for (const claim of claims) {
       let answer: ClaimSettled | null = null;
-      await underTurn(claim.heroId, async () => {
+      const isRun = await underTurn(claim.heroId, async () => {
         answer = await takePhoneClaim(claim);
       });
+      if (!isRun) left.push(claim);
       const settled = answer as ClaimSettled | null;
       if (!settled) continue;
       const at = new Date().toISOString();
@@ -300,8 +290,9 @@ export const useFamilyStore = defineStore("family", () => {
         takenClaims: [...current.takenClaims.filter((t) => Date.now() - Date.parse(t.at) < TAKEN_CLAIMS_MS), { id: claim.id, at }],
       }));
     }
-    const hasTaken = claims.length > 0;
+    const hasTaken = claims.length > left.length;
     if (hasTaken) queueSheetsSoon();
+    return left;
   }
 
   /** The heroes with a linked phone, as the last phone list read says */
@@ -352,41 +343,24 @@ export const useFamilyStore = defineStore("family", () => {
     }, CARDS_DELAY_MS);
   }
 
-  /** A Game Master settled a claim that came from the hero's phone: the phone hears the verdict */
-  async function queueVerdictForPhone(review: QuestReviewed): Promise<void> {
-    const claimId = review.phoneClaimId;
-    const mayQueue = canQueue() && Boolean(claimId);
+  /** The verdict on a claim taken from a hero's phone, with what the hero was paid: the phone hears it (never sent by a kid phone) */
+  async function tellPhone(heroId: string, settled: ClaimSettled): Promise<void> {
+    const mayQueue = canQueue();
     if (!mayQueue) return;
     const { deviceId } = await ensureIdentity();
+    await queueEvents([claimSettledEvent(heroId, deviceId, settled)]);
+  }
+
+  /** A Game Master settled a claim that came from the hero's phone, here: the phone hears the verdict */
+  async function queueVerdictForPhone(review: QuestReviewed): Promise<void> {
+    const claimId = review.phoneClaimId;
+    if (!claimId) return;
     const paid = review.approved ? review.paid ?? { xp: 0, gp: 0, ap: 0 } : { xp: 0, gp: 0, ap: 0 };
     const status = review.approved ? "approved" : "rejected";
-    await queueEvents([claimSettledEvent(review.heroId, deviceId, { claimId: claimId as string, questId: review.questId, status, note: review.note, ...paid })]);
+    await tellPhone(review.heroId, { claimId, questId: review.questId, status, note: review.note, ...paid });
   }
 
-  /** Server rewards, each once (serverRewards.ts) and on its hero's turn; answers the ids paid here, or found paid */
-  async function payRewards(rewards: RewardToPay[]): Promise<string[]> {
-    const paid: string[] = [];
-    for (const reward of rewards) {
-      const isPaid = await underTurn(reward.heroId, () => payServerReward(reward));
-      if (isPaid) paid.push(reward.id);
-    }
-    return paid;
-  }
-
-  /** A Pro family: the Game Masters' verdicts among the events, applied on their heroes' turns (sync/verdicts.ts) */
-  async function takeVerdicts(events: ReceivedEvent[]): Promise<void> {
-    const sync = useSyncStore();
-    if (sync.isOn) await sync.takeVerdicts(events);
-  }
-
-  /** A Pro kid phone in the full portal plays its hero: the hero's server rewards, re-sent claims and verdicts are taken here */
-  async function takeOnPhone(events: ReceivedEvent[]): Promise<void> {
-    const isFullPortal = useSyncStore().isFullPortal;
-    if (!isFullPortal) return;
-    await payRewards(rewardsToPay(events, []));
-    await takePhoneClaims(events);
-    await takeVerdicts(events);
-  }
+  const intake = createTurnIntake({ takePhoneClaims });
 
   let downloading: Promise<void> | null = null;
 
@@ -401,6 +375,9 @@ export const useFamilyStore = defineStore("family", () => {
     try {
       await load();
       let currentSeq = (await loaded()).lastSeq;
+      // A device reading the family's events from their beginning: what came before now is history (family sync)
+      const isFromStart = currentSeq === 0;
+      if (isFromStart) await useSyncStore().markHistory();
 
       for (;;) {
         const stillHome = home.value === "home";
@@ -414,9 +391,7 @@ export const useFamilyStore = defineStore("family", () => {
         if (hasNoEvents) break;
 
         const currentState = await loaded();
-        const newlyPaidIds = await payRewards(rewardsToPay(events, currentState.paidRewards));
-        await takePhoneClaims(events);
-        await takeVerdicts(events);
+        const newlyPaidIds = await intake.takeEvents(events, currentState.paidRewards);
 
         const nextSeq = newestSeq(events, currentSeq);
         const now = new Date();
@@ -621,7 +596,7 @@ export const useFamilyStore = defineStore("family", () => {
       device.value = marked;
       await getHeroDeviceDb().saveDevice(marked);
     },
-    received: takeOnPhone,
+    received: (events, since) => intake.takeOnPhone(events, since),
   });
 
   /** Trades a link code for a hero key, keeps the device, and adopts the family */
@@ -804,8 +779,9 @@ export const useFamilyStore = defineStore("family", () => {
         // A claim taken from the hero's phone: the phone already sent its own quest.claimed
         const isFromPhone = Boolean(claim.phoneClaimId);
         if (isFromPhone) return;
-        // A device that syncs marks its claims: their entries arrive as records, so no device takes them as phone claims
-        const synced = useSyncStore().isOn;
+        // A device that syncs (or has, and queues its records) marks its claims: their entries arrive as records, so no
+        // device takes them as phone claims
+        const synced = useSyncStore().isCapturing;
         queueApprovalEvent(claim.heroId, (deviceId) => questClaimedEvent(claim.heroId, deviceId, { ...claim, synced })).catch((error) =>
           debug.warn("family: could not queue a claim", error)
         );
@@ -953,6 +929,8 @@ export const useFamilyStore = defineStore("family", () => {
     removePhone,
     queueSheets,
     queueApprovalEvent,
+    tellPhone,
+    retakeEvents: intake.retakeEvents,
     /** The hero phone's claims and sheet, for the Hero Phone screen */
     phoneState: phone.state,
     phoneProblem: phone.problem,
