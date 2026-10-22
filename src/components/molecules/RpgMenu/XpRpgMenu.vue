@@ -94,11 +94,10 @@ export default defineComponent({
     const currentId = ref<string | null>(null);
     let currentTimer: number | undefined;
 
+    // clearTimeout(undefined) is a no-op: the handle is cleared by name
     const clearCurrentTimer = () => {
-      if (currentTimer !== undefined) {
-        window.clearTimeout(currentTimer);
-        currentTimer = undefined;
-      }
+      window.clearTimeout(currentTimer);
+      currentTimer = undefined;
     };
 
     const handleAction = (action: RpgMenuAction) => {
@@ -134,7 +133,7 @@ export default defineComponent({
   width: 100%;
   background: transparent; // borderless: the box behind it shows through
   color: var(--gs-text);
-  font-family: "Apple Kid", "StatusPlz", monospace;
+  font-family: var(--gs-font);
   line-height: 1.1;
 
   &.rpg-box {
@@ -160,7 +159,8 @@ export default defineComponent({
     }
 
     .menu-title {
-      font-family: "Apple Kid", "Twoson", sans-serif;
+      font-family: var(--gs-font-title);
+      font-size-adjust: var(--gs-font-adjust, none);
       font-size: 1.5rem;
       font-weight: normal;
       text-transform: uppercase;
@@ -206,7 +206,8 @@ export default defineComponent({
     background: transparent;
     border: none;
     color: inherit;
-    font-family: "Apple Kid", sans-serif;
+    font-family: var(--gs-font);
+    font-size-adjust: var(--gs-font-adjust, none);
     font-size: 1.5rem;
     // room on the left for the theme's cursor
     padding: 2px 8px 2px calc(8px + var(--gs-cursor-w, 20px));
@@ -246,6 +247,10 @@ export default defineComponent({
     &[disabled] {
       color: var(--gs-text-dim);
       cursor: default;
+
+      .fad {
+        opacity: 0.45;
+      }
     }
 
     .item-inner {
@@ -260,6 +265,7 @@ export default defineComponent({
       font-size: 1.4rem;
       min-width: 25px;
       text-align: center;
+      font-size-adjust: none; // an icon font keeps its own size
       --fa-secondary-opacity: 0.4;
     }
 
@@ -275,20 +281,22 @@ export default defineComponent({
     .item-label {
       min-width: 0;
       max-width: 100%;
-      font-family: "Apple Kid", sans-serif;
+      font-family: var(--gs-font);
+      font-size-adjust: var(--gs-font-adjust, none);
       // A label never loses a word: under a wide Game Style font it wraps to a second line (the row grows)
       white-space: normal;
       overflow-wrap: anywhere;
       line-height: 1.1;
       margin-top: 4px; // Slight adjustment for Earthbound font baseline
-      letter-spacing: 2px;
+      letter-spacing: 1px;
     }
 
     .item-note {
       max-width: 100%;
       line-height: 1.1;
       font-family: "StatusPlz", monospace;
-      font-size: 0.85em;
+      font-size-adjust: none; // the status font is not the theme's
+      font-size: 0.95rem;
       color: var(--gs-text-dim);
       white-space: nowrap;
       overflow: hidden;
@@ -301,8 +309,9 @@ export default defineComponent({
       padding: 1px 6px;
       border-radius: 10px;
       background: var(--gs-danger);
-      color: var(--gs-text);
+      color: var(--gs-window-color);
       font-family: "StatusPlz", monospace;
+      font-size-adjust: none;
       font-size: 0.75rem;
       line-height: 1.2rem;
       text-align: center;

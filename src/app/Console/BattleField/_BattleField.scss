@@ -106,7 +106,8 @@
     color: var(--gs-text);
 
     .dialog-content {
-      font-family: "Apple Kid", "StatusPlz", monospace;
+      font-family: var(--gs-font);
+      font-size-adjust: var(--gs-font-adjust, none);
       font-size: 1.55rem;
       line-height: 1.45;
       padding-right: 22px;

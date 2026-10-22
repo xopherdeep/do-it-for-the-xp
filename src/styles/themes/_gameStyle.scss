@@ -51,6 +51,10 @@ $gs-star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
   pointer-events: none;
   z-index: 2;
   animation: gs-cursor-bob 0.6s steps(2, end) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 @keyframes gs-cursor-bob {

@@ -21,6 +21,8 @@ describe("XpRpgMenu", () => {
     expect(row.attributes("disabled")).toBeDefined();
     await row.trigger("click");
     await row.trigger("keydown.enter");
+    // The browser swallows a click on a disabled button, so call the handler itself: it refuses too
+    (w.vm as any).handleAction(powers);
     expect(powers.click).not.toHaveBeenCalled();
     expect(w.emitted("action-click")).toBeUndefined();
   });
@@ -37,6 +39,7 @@ describe("XpRpgMenu", () => {
   it("clears the current-row timer on unmount", async () => {
     const w = mount(XpRpgMenu, { props: { actions: [action("attack")] } });
     await w.find("#attack").trigger("click");
+    expect(jest.getTimerCount()).toBe(1);
     w.unmount();
     expect(jest.getTimerCount()).toBe(0);
   });
