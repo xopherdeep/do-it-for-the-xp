@@ -1,20 +1,26 @@
 <template>
   <div class="th-news">
-    <xp-loading v-if="isLoading && !items.length" />
+    <xp-loading v-if="isReadingFirst" />
 
     <!-- The courier is late and nothing has arrived yet: the clerk said so; this is the gap that stays -->
-    <ion-card v-else-if="failed && !items.length" class="th-late" data-cy="th-late">
+    <ion-card v-else-if="isLate" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
         <p>The news hasn't arrived.</p>
         <ion-button size="small" color="rpg" @click="reload">Try again</ion-button>
       </ion-card-content>
     </ion-card>
 
-    <ion-card v-else-if="!items.length">
+    <ion-card v-else-if="hasNoCards">
       <ion-card-content class="ion-text-center">No news yet</ion-card-content>
     </ion-card>
 
-    <ion-card v-for="news in items" :key="news.id" class="th-post" data-cy="th-post">
+    <ion-card
+      v-for="news in cards"
+      :key="`${news.isDraft ? 'draft' : 'post'}-${news.id}`"
+      class="th-post"
+      :class="{ 'is-draft': news.isDraft }"
+      :data-cy="news.isDraft ? 'th-draft' : 'th-post'"
+    >
       <div v-if="news.imageUrl" class="th-post__image">
         <ion-img :src="news.imageUrl" alt="" />
       </div>
@@ -23,6 +29,9 @@
         <ion-card-title v-html="sanitizeHtml(news.title)"></ion-card-title>
       </ion-card-header>
       <ion-card-content>
+        <ion-chip v-if="news.isDraft" class="th-chip is-draft" data-cy="th-chip">
+          <ion-label>Draft</ion-label>
+        </ion-chip>
         <div class="th-post__excerpt" v-html="sanitizeHtml(news.excerpt)"></div>
         <div v-if="news.categories.length" class="th-post__tags">
           <ion-chip v-for="category in news.categories" :key="category">
@@ -30,32 +39,47 @@
           </ion-chip>
         </div>
         <div class="th-post__actions">
-          <ion-button
-            size="small"
-            fill="clear"
-            color="rpg"
-            data-cy="th-comments-toggle"
-            :aria-expanded="isOpen(news.id)"
-            @click="toggleComments(news.id)"
-          >
-            Comments
-            <ion-icon slot="end" :icon="isOpen(news.id) ? chevronUpOutline : chatbubblesOutline"></ion-icon>
-          </ion-button>
-          <ion-button
-            size="small"
-            fill="clear"
-            color="rpg"
-            data-cy="th-comment"
-            @click="emit('comment', { postId: news.id, title: plainText(news.title) })"
-          >
-            Add comment
-            <ion-icon slot="end" :icon="createOutline"></ion-icon>
-          </ion-button>
-          <ion-button size="small" fill="clear" color="rpg" @click="openPost(news.link)">
-            Read more
-            <ion-icon slot="end" :icon="arrowForwardOutline"></ion-icon>
-          </ion-button>
+          <!-- A draft is not on the site yet: nothing to read or answer, only the clerk's tools -->
+          <template v-if="!news.isDraft">
+            <ion-button
+              size="small"
+              fill="clear"
+              color="rpg"
+              data-cy="th-comments-toggle"
+              :aria-expanded="isOpen(news.id)"
+              @click="toggleComments(news.id)"
+            >
+              {{ commentsLabel(news.id) }}
+              <ion-icon slot="end" :icon="isOpen(news.id) ? chevronUpOutline : chatbubblesOutline"></ion-icon>
+            </ion-button>
+            <ion-button
+              size="small"
+              fill="clear"
+              color="rpg"
+              data-cy="th-comment"
+              @click="emit('comment', { postId: news.id, title: plainText(news.title) })"
+            >
+              Add comment
+              <ion-icon slot="end" :icon="createOutline"></ion-icon>
+            </ion-button>
+            <ion-button size="small" fill="clear" color="rpg" @click="openPost(news.link)">
+              Read more
+              <ion-icon slot="end" :icon="arrowForwardOutline"></ion-icon>
+            </ion-button>
+          </template>
+          <template v-if="canPublish">
+            <ion-button v-if="news.isDraft" size="small" color="rpg" data-cy="th-publish" :disabled="isBusy(news.id)" @click="publish(news.id)">
+              Publish
+            </ion-button>
+            <ion-button size="small" color="rpg" data-cy="th-edit" :disabled="isBusy(news.id)" @click="emit('edit', { type: 'post', id: news.id })">
+              Edit
+            </ion-button>
+            <ion-button size="small" fill="outline" color="rpg" data-cy="th-bin" :disabled="isBusy(news.id)" @click="bin(news)">Bin</ion-button>
+          </template>
         </div>
+        <p v-if="troubleOf(news.id)" class="th-trouble" data-cy="th-trouble">{{ troubleOf(news.id) }}</p>
+
+        <town-hall-held-comments v-if="canModerate" :comments="heldFor(news.id)" :desk="desk" />
 
         <div v-if="isOpen(news.id)" class="th-comments" data-cy="th-comments">
           <p v-if="commentsOf[news.id]?.status === 'loading'" class="th-comments__note">Reading the comments...</p>
@@ -81,23 +105,73 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonChip, IonIcon, IonImg, IonLabel, IonNote } from "@ionic/vue";
 import { arrowForwardOutline, chatbubblesOutline, chevronUpOutline, createOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
-import { fetchComments, fetchNews, type CommentItem, type NewsItem } from "@/lib/services/townhall/townHallFeed";
+import type { EditableType } from "@/lib/services/townhall/townHallDesk";
+import { fetchComments, fetchDrafts, fetchNews, type CommentItem, type HeldComment, type NewsItem } from "@/lib/services/townhall/townHallFeed";
 import debug from "@/lib/utils/debug";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { formatTownDate, plainText, type CommentTarget } from "./townHallShared";
+import TownHallHeldComments from "./TownHallHeldComments.vue";
+import type { DeskActions } from "./useTownHallDesk";
 import { useTownHallLoad } from "./useTownHallLoad";
 
-/** The news, a page at a time, each post with its comments a tap away (and a way to add one). The Patch Notes have their own tab. */
-const emit = defineEmits<{ (event: "trouble"): void; (event: "comment", target: CommentTarget): void }>();
+/**
+ * The news, a page at a time, each post with its comments a tap away (and a way to add one). The Patch Notes have their own tab.
+ * To a hero that is all of it. To a Game Master's link there is more: the drafts first (publish one, edit it, bin it), Edit
+ * and Bin on the published posts, and the comments the site holds under the post they answer. Every tool goes through the desk.
+ */
+const props = withDefaults(
+  defineProps<{ canPublish?: boolean; canModerate?: boolean; heldComments?: HeldComment[]; desk?: DeskActions }>(),
+  { canPublish: false, canModerate: false, heldComments: () => [], desk: undefined },
+);
+const emit = defineEmits<{
+  (event: "trouble"): void;
+  (event: "comment", target: CommentTarget): void;
+  (event: "edit", target: { type: EditableType; id: number }): void;
+}>();
+
+/** A link without a desk (a hero's) has no tools to show; this keeps the template from asking whether there is one */
+const NO_DESK: DeskActions = {
+  publish: async () => false,
+  bin: async () => false,
+  approve: async () => false,
+  resolve: async () => false,
+  isBusy: () => false,
+  troubleOf: () => null,
+};
+const desk = computed<DeskActions>(() => props.desk ?? NO_DESK);
+
+/** A post on the page: one the site has published, or a draft of the clerk's that it has not */
+interface Card extends NewsItem {
+  isDraft: boolean;
+}
 
 const items = ref<NewsItem[]>([]);
+const drafts = ref<NewsItem[]>([]);
 const page = ref(1);
 const hasMore = ref(false);
 const { isLoading, failed, run } = useTownHallLoad(() => emit("trouble"));
+
+const cards = computed<Card[]>(() => [
+  ...drafts.value.map((draft) => ({ ...draft, isDraft: true })),
+  ...items.value.map((item) => ({ ...item, isDraft: false })),
+]);
+const hasNoCards = computed(() => cards.value.length === 0);
+const isReadingFirst = computed(() => {
+  const isReading = isLoading.value;
+  const isEmpty = hasNoCards.value;
+  const isFirstRead = isReading && isEmpty;
+  return isFirstRead;
+});
+const isLate = computed(() => {
+  const hasFailed = failed.value;
+  const isEmpty = hasNoCards.value;
+  const isStillWaiting = hasFailed && isEmpty;
+  return isStillWaiting;
+});
 
 const loadPage = async (next: number) => {
   const result = await fetchNews(next);
@@ -106,8 +180,51 @@ const loadPage = async (next: number) => {
   hasMore.value = next < result.totalPages;
 };
 
-const reload = () => run(() => loadPage(1));
+/** The drafts are the clerk's extra: if the site will not show them the news still stands and the tab is not failed */
+const loadDrafts = async () => {
+  try {
+    drafts.value = await fetchDrafts("news");
+  } catch (error) {
+    debug.error("Town Hall could not read the drafts:", error);
+    drafts.value = [];
+  }
+};
+
+const reload = () =>
+  run(async () => {
+    const reads = [loadPage(1)];
+    if (props.canPublish) reads.push(loadDrafts());
+    await Promise.all(reads);
+  });
 const loadMore = () => run(() => loadPage(page.value + 1));
+
+const isBusy = (postId: number): boolean => desk.value.isBusy("post", postId);
+const troubleOf = (postId: number): string | null => desk.value.troubleOf("post", postId);
+
+/** Published, the draft is a post like any other: read the news again so it shows once, and in its place */
+const publish = async (postId: number) => {
+  const isPublished = await desk.value.publish("post", postId);
+  if (isPublished) await reload();
+};
+
+const removeCard = (card: Card) => {
+  if (card.isDraft) drafts.value = drafts.value.filter((draft) => draft.id !== card.id);
+  else items.value = items.value.filter((item) => item.id !== card.id);
+};
+
+/** The desk asks the clerk first when the post is on the site; the card goes only when the desk says it was binned */
+const bin = async (card: Card) => {
+  const isBinned = await desk.value.bin("post", card.id, !card.isDraft);
+  if (isBinned) removeCard(card);
+};
+
+const heldFor = (postId: number): HeldComment[] => props.heldComments.filter((held) => held.postId === postId);
+
+const commentsLabel = (postId: number): string => {
+  const heldCount = props.canModerate ? heldFor(postId).length : 0;
+  const hasHeld = heldCount > 0;
+  return hasHeld ? `Comments (${heldCount} held)` : "Comments";
+};
 
 interface CommentState {
   status: "loading" | "ready" | "failed";

@@ -4,6 +4,7 @@ $th-cream: #e7e6b3;
 $th-yellow: #f7e8a8;
 $th-minty: #68d0b8;
 $th-rose: #ffb4b4;
+$th-amber: #ffd27f;
 
 .town-hall {
   // The tabs and the board picker: a dark menu bar under the page, ringed in the same mint as the cards
@@ -127,6 +128,77 @@ $th-rose: #ffb4b4;
 
   .th-more {
     margin: 1rem 1.25rem 0;
+  }
+
+  // A small tag on a card: what kind of thing it is or what it waits for (a draft, a held comment, something pending or new)
+  .th-chip {
+    --color: #{$th-purple};
+    margin: 0 8px 8px 0;
+    height: auto;
+    min-height: 28px;
+    border: 1px solid transparent;
+
+    ion-label {
+      white-space: normal;
+    }
+
+    &.is-draft {
+      --background: #{$th-yellow};
+      border-color: $th-yellow;
+    }
+
+    &.is-pending {
+      --background: #{$th-minty};
+      border-color: $th-minty;
+    }
+
+    &.is-held {
+      --background: #{$th-rose};
+      border-color: $th-rose;
+    }
+
+    &.is-new {
+      --background: #{$th-amber};
+      border-color: $th-amber;
+    }
+  }
+
+  // What the site said when the clerk's last try on an item did not go through
+  .th-trouble {
+    margin: 8px 0 0;
+    color: $th-rose;
+    font-style: italic;
+    overflow-wrap: anywhere;
+  }
+
+  // The comments the site holds for the Game Master, under the card they answer
+  .th-held {
+    margin-top: 8px;
+    border-top: 1px solid $th-rose;
+
+    .th-held__comment {
+      padding: 8px 0;
+
+      p {
+        margin: 4px 0 0;
+      }
+    }
+
+    .th-held__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .th-held__actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
   }
 
   // The hero's own posts the site does not have yet, above the Board
