@@ -126,12 +126,48 @@ interface RoomShape {
   content?: RoomContent;
 }
 
+/** What a fight hands out, counted: its one Dungeon Item, its small keys and its gold */
+interface Handouts {
+  dungeon?: string;
+  keys: number;
+  gold: number;
+}
+
+/** Add one chest or key a boxed-in fight holds (dressPlace) to what it hands out */
+const handOut = (sum: Handouts, held: Item, plan: ClassicPlan): Handouts => {
+  const isSmallKey = held.kind === "potKey" || held.chest === "small-key";
+  if (isSmallKey) return { ...sum, keys: sum.keys + 1 };
+  const chest = chestOf(held, plan);
+  return { ...sum, dungeon: chest.dungeon ?? sum.dungeon, gold: sum.gold + Number(chest.gold ?? 0) };
+};
+
+/**
+ * What a fight hands out once won (its drops), read as a chest is: the key its room dropped in LTTP, and the chests
+ * and keys of its cell it was left holding when it was boxed in. One Dungeon Item (a small key when there is none),
+ * any further keys as "key" rows, the gold summed.
+ */
+const dropsOf = (item: Item, plan: ClassicPlan): RoomContent => {
+  const dropped: Handouts = { dungeon: item.keyDrop === "big" ? "master-key" : undefined, keys: item.keyDrop === "small" ? 1 : 0, gold: 0 };
+  const sum = (item.holds ?? []).reduce((total, held) => handOut(total, held, plan), dropped);
+  const isNothing = !sum.dungeon && sum.keys === 0 && sum.gold === 0;
+  if (isNothing) return {};
+  const dungeon = sum.dungeon ?? (sum.keys > 0 ? "key" : undefined);
+  const rows = sum.keys - (sum.dungeon ? 0 : Math.min(1, sum.keys));
+  const drops: RoomContent = { chest: dungeon ? "dungeon" : "gold" };
+  if (dungeon) drops.dungeon = dungeon;
+  const hasKeyRows = rows > 0;
+  if (hasKeyRows) drops.items = Array.from({ length: rows }, () => "key");
+  const hasGold = sum.gold > 0;
+  if (hasGold) drops.gold = sum.gold;
+  return { drops };
+};
+
 const fightShape = (role: FightRole | undefined, item: Item, plan: ClassicPlan): RoomShape => {
   // Before the chores are dealt a fight is a plain room of its kind, enough for the graph to walk (the boss stays the boss: its doors are Boss doors)
   const isUndealtBoss = !role && item.kind === "boss";
   if (isUndealtBoss) return { type: "boss", letter: "boss", content: { lockOnEnter: true, difficulty: "boss", element: plan.element } };
   if (!role) return { type: "monster", letter: item.kind === "mustClearFight" ? "must-clear" : "side", content: { difficulty: "easy", theme: plan.theme } };
-  const drops: RoomContent = item.keyDrop ? { drops: { chest: "dungeon", dungeon: item.keyDrop === "big" ? "master-key" : "key" } } : {};
+  const drops = dropsOf(item, plan);
   const sealed: RoomContent = role.sealed ? { lockOnEnter: true } : {};
   switch (role.type) {
     case "boss":

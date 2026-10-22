@@ -47,10 +47,10 @@ const starterBeasts = new Set(STARTER_QUESTS.map((quest) => quest.beastId).filte
 
 const isStarter = ([slug]: PlanQuest): boolean => starterBeasts.has(`beast-${slug}`);
 
-/** Where the Boss Key and the relic wait: a chest, or the fight that drops the Boss Key */
+/** Where the Boss Key and the relic wait: a chest, or the fight that drops the Boss Key or hands either out (dressPlace) */
 const prizeSlots = (board: Board): { bigKey?: Slot; bigChest?: Slot } => ({
-  bigKey: allSlots(board).find((slot) => slot.item?.kind === "bigKey" || slot.item?.keyDrop === "big"),
-  bigChest: allSlots(board).find((slot) => slot.item?.kind === "bigChest"),
+  bigKey: allSlots(board).find((slot) => slot.item?.kind === "bigKey" || slot.item?.keyDrop === "big" || Boolean(slot.item?.holds?.some((held) => held.kind === "bigKey"))),
+  bigChest: allSlots(board).find((slot) => slot.item?.kind === "bigChest" || Boolean(slot.item?.holds?.some((held) => held.kind === "bigChest"))),
 });
 
 /** A fight room with a door straight into the cell that holds `prize` */

@@ -8,10 +8,12 @@
  *   ordinary rooms it does not). The room is a circle paired with one added beside the entrance: a way back out once
  *   the boss is beaten, which the solver wants;
  * - a circle whose landing is no circle (LTTP warps the hero onto a plain floor; our circles ride circle to circle)
- *   gets a circle added beside its landing, pointed back at it.
+ *   gets a circle added beside its landing, else beside a room walked to from it with nothing in hand, pointed back at
+ *   it; a landing on a sealed fight gets it in front of the fight, never beyond it (dressPlace.openInFront).
  */
 import type { ClassicCell } from "./classicDungeon";
-import { DIRECTIONS, STEP, allSlots, cellKey, distance, linkedSlot, openNear, posKey, slotAt, slotsOf, type Board, type CellRef, type Slot } from "./dressBoard";
+import { DIRECTIONS, STEP, allSlots, cellKey, distance, linkedSlot, posKey, slotAt, slotsOf, type Board, type CellRef, type Slot } from "./dressBoard";
+import { openInFront, openNear } from "./dressPlace";
 
 /** A cell walled on every side: reached by a link alone */
 const isIsland = (cell: ClassicCell): boolean => DIRECTIONS.every((direction) => cell.sides[direction] === "wall");
@@ -65,7 +67,8 @@ export const compactIslands = (board: Board): void => {
       floor.slots.set(posKey(to.row, to.col), island);
       floor.rows = Math.max(floor.rows, to.row + 1);
       floor.cols = Math.max(floor.cols, to.col + 1);
-      board.compacted.push({ from, to });
+      // A copy: the report keeps where the island went, while the slot's own place may move again (shiftFloors, a grown line)
+      board.compacted.push({ from, to: { ...to } });
     }
   }
 };
@@ -141,7 +144,8 @@ const addAntechamber = (board: Board, boss: Slot, arrival: Slot): void => {
 
 /**
  * A circle whose landing is no circle is paired with the circle on that floor that leads back to it, else gets one
- * added beside its landing; each is pointed at the other.
+ * added in front of its landing (openInFront: beside it, else beside a room walked to from it; never beyond the seal
+ * of a fight it lands on); each is pointed at the other.
  */
 export const placeLandingCircles = (board: Board): void => {
   const circles = allSlots(board).filter((slot) => slot.item?.kind === "teleport" && slot.item.link && !slot.item.target);
@@ -153,7 +157,7 @@ export const placeLandingCircles = (board: Board): void => {
     const isCircleOrBoss = landing.item?.kind === "teleport" || landing.item?.kind === "boss";
     if (isCircleOrBoss) continue;
     const back = allSlots(board).find((other) => other.item?.kind === "teleport" && other.at.floor === landing.at.floor && other.item.link && linkedSlot(board, other.item.link) === circle && !other.item.target);
-    const partner = back ?? openNear(board, landing);
+    const partner = back ?? openInFront(board, landing);
     const isAdded = !back;
     if (isAdded) partner.item = { kind: "teleport", origin: partner.at, room: "", target: circle.at };
     else partner.item!.target = circle.at;

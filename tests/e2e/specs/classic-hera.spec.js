@@ -248,10 +248,10 @@ describe.skip("The Storm Temple: the Tower of Hera, cleared", () => {
     step("east");
     expectAt("1F", 1, 1);
     climb();
-    // The flight lands under the Beetles room (the fight keeps the screen it was converted in); a star-tile pit lies west
-    expectAt("2F", 2, 1);
+    // The flight lands east of the Beetles room and opens on it alone (the fight keeps the screen it was converted in)
+    expectAt("2F", 1, 2);
     shot("06-arrived-on-2f");
-    step("north");
+    step("west");
     winFight("Bed Basilisk", ["2F", 1, 1]);
     step("west");
     winFight("Shoe Shrew", ["2F", 1, 0]);

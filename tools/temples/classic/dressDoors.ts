@@ -5,8 +5,10 @@
  * the only way to the boss gets a Bomb in the nearest reachable empty cell before it (the lead's ruling: whether or
  * not a shop sells Bombs), so the solver and a hero both pass it with nothing blown by hand.
  */
-import type { ClassicCell, ClassicDungeon, ClassicSide } from "./classicDungeon";
-import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, openNear, slotAt, tryOpenBeside, type Board, type CellRef, type Direction, type Slot } from "./dressBoard";
+import type { ClassicDungeon, ClassicSide } from "./classicDungeon";
+import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, sameCell, slotAt, type Board, type CellRef, type ClassicMove, type Direction, type Slot } from "./dressBoard";
+import { openNear, tryOpenBeside } from "./dressPlace";
+import { convertedHops, convertedKey } from "./dressReach";
 import { buildTempleGraph, reachableFrom, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 
 export type SideWord = "door" | "locked" | "masterlocked" | "bombable" | "wall";
@@ -61,37 +63,6 @@ export const sidesKey = (at: CellRef): string => roomKey(at);
 
 const walls = (): Sides => ({ north: "wall", east: "wall", south: "wall", west: "wall" });
 
-const cellKey = (floor: string, row: number, col: number): string => `${floor}:${row},${col}`;
-
-/** How many steps from the entrance each converted cell is, every side but a wall open and every link taken */
-const convertedDistances = (dungeon: ClassicDungeon): Map<string, number> => {
-  const cells = new Map<string, { floor: string; cell: ClassicCell }>();
-  for (const floor of dungeon.floors) for (const cell of floor.cells) cells.set(cellKey(floor.name, cell.row, cell.col), { floor: floor.name, cell });
-  const start = [...cells.entries()].find(([, entry]) => entry.cell.entrance);
-  const hops = new Map<string, number>();
-  if (!start) return hops;
-  hops.set(start[0], 0);
-  const queue = [start[0]];
-  while (queue.length) {
-    const key = queue.shift()!;
-    const { floor, cell } = cells.get(key)!;
-    const next: string[] = [];
-    for (const direction of DIRECTIONS) {
-      const isWay = cell.sides[direction] !== "wall";
-      if (isWay) next.push(cellKey(floor, cell.row + STEP[direction][0], cell.col + STEP[direction][1]));
-    }
-    for (const link of [cell.stairs, cell.hole, cell.teleport]) if (link) next.push(cellKey(link.to, link.row, link.col));
-    for (const other of next) {
-      const isNew = cells.has(other) && !hops.has(other);
-      if (isNew) {
-        hops.set(other, hops.get(key)! + 1);
-        queue.push(other);
-      }
-    }
-  }
-  return hops;
-};
-
 /** Floors in the dungeon's order, then reading order: the tie-break of two cells as far from the entrance */
 const readingOrder = (dungeon: ClassicDungeon, at: CellRef): number => dungeon.floors.findIndex((floor) => floor.name === at.floor) * 1e6 + at.row * 1e3 + at.col;
 
@@ -103,8 +74,8 @@ const smallLockEnd = (board: Board, hops: Map<string, number>, slot: Slot, direc
   // The distances are by the converted cells' own positions, which a shifted floor's slots no longer stand on
   const here = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
   const there = { floor: here.floor, row: here.row + STEP[direction][0], col: here.col + STEP[direction][1] };
-  const hereHops = hops.get(cellKey(here.floor, here.row, here.col)) ?? Infinity;
-  const thereHops = hops.get(cellKey(there.floor, there.row, there.col)) ?? Infinity;
+  const hereHops = hops.get(convertedKey(here.floor, here.row, here.col)) ?? Infinity;
+  const thereHops = hops.get(convertedKey(there.floor, there.row, there.col)) ?? Infinity;
   const isNearEnd = hereHops < thereHops || (hereHops === thereHops && readingOrder(board.dungeon, here) < readingOrder(board.dungeon, there));
   return isNearEnd ? "locked" : "door";
 };
@@ -120,7 +91,7 @@ const convertedSides = (board: Board, hops: Map<string, number>, slot: Slot): Si
 
 /** The sides of every room of the board, by room key (floor:row,col) */
 export const drawSides = (board: Board): Map<string, Sides> => {
-  const hops = convertedDistances(board.dungeon);
+  const hops = convertedHops(board.dungeon);
   const sides = new Map<string, Sides>();
   for (const slot of allSlots(board)) sides.set(sidesKey(slot.at), slot.cell ? convertedSides(board, hops, slot) : walls());
 
@@ -259,6 +230,9 @@ export const demoteShortcutWarps = (board: Board, layoutNow: () => TempleLayout)
     const opensAWayAround = [...withTheRideCut].some((key) => !withTheRideOpen.has(key));
     if (!opensAWayAround) continue;
     board.dropped.push({ what: "teleport", at: pair.warp.item!.origin, why: `its ride back from ${describeCell(pair.landing.at)} opens a way around a must-clear room` });
+    // A dropped warp is listed under `dropped` alone: neither its move out of its cell nor its landing circle stays a move
+    const isMoveOfThePair = (move: ClassicMove): boolean => (move.what === "teleport" && sameCell(move.to, pair.warp.at)) || (move.what === "landing circle" && sameCell(move.to, pair.landing.at));
+    board.moves = board.moves.filter((move) => !isMoveOfThePair(move));
     asEmptyRoom(pair.warp);
     asEmptyRoom(pair.landing);
   }

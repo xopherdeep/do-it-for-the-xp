@@ -101,11 +101,13 @@ describe("dressing a classic dungeon", () => {
     const { temple, report } = dressDungeon(tower(), plan());
     const at = roomsOf(temple);
 
-    it("moves the keep's Boss Key chest into the empty gallery next door, which makes the keep the mini-boss", () => {
-      expect(at("2F", 0, 1)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" } });
-      expect(at("2F", 0, 2)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true } });
+    it("moves the keep's Boss Key chest into a room added beside the keep, behind its seal, which makes the keep the mini-boss", () => {
+      expect(at("2F", 1, 2)).toMatchObject({ type: "loot", content: { chest: "dungeon", dungeon: "master-key" }, sides: { north: "door", east: "wall", south: "wall", west: "wall" } });
+      expect(at("2F", 0, 2)).toMatchObject({ type: "miniboss", content: { lockOnEnter: true }, sides: { south: "door" } });
+      // The gallery the chest no longer takes is the save (the shop stays on the entrance floor)
+      expect(at("2F", 0, 1)?.type).toBe("save");
       expect(report.moves).toEqual([
-        { what: "big-key chest", from: { floor: "2F", row: 0, col: 2 }, to: { floor: "2F", row: 0, col: 1 }, grown: false },
+        { what: "big-key chest", from: { floor: "2F", row: 0, col: 2 }, to: { floor: "2F", row: 1, col: 2 }, grown: true },
         // The tower has no empty cell left, so the one shop is added beside the entrance
         { what: "shop", from: { floor: "1F", row: 0, col: 0 }, to: { floor: "1F", row: 1, col: 0 }, grown: true },
       ]);
@@ -141,13 +143,13 @@ describe("dressing a classic dungeon", () => {
       expect(solveTemple(asRegistered(wide))).toMatchObject({ solvable: true, reasons: [] });
     });
 
-    it("trims the empty column the converter wrote and grows a row for the Master Room under the boss", () => {
+    it("trims the empty column the converter wrote, grows a row for the Boss Key chest and puts the Master Room under the boss", () => {
       const maze = temple.maze as Maze;
       expect(maze["2F"]).toHaveLength(2);
       expect(maze["2F"][0]).toHaveLength(4);
       expect(at("2F", 1, 0)).toMatchObject({ type: "master", sides: { north: "masterlocked" } });
       expect(at("2F", 0, 0)?.sides?.south).toBe("masterlocked");
-      expect(maze["2F"][1].slice(1)).toEqual(["_", "_", "_"]);
+      expect([maze["2F"][1][1], maze["2F"][1][3]]).toEqual(["_", "_"]);
     });
 
     it("passes the solver", () => {
@@ -181,19 +183,25 @@ describe("dressing a classic dungeon", () => {
     it("puts a Bomb chest in the nearest reachable empty cell before the wall, and none for a crack that cuts nothing off", () => {
       expect(at("1F", 0, 1)).toMatchObject({ type: "loot", content: { chest: "consumable", items: ["Bomb"] } });
       expect(report.bombChests).toEqual([{ floor: "1F", row: 0, col: 1 }]);
-      expect(at("1F", 1, 1)?.type).toBe("shop");
+    });
+
+    it("sells before any cracked wall: the cellar behind one is no shop, a room added beside the entrance is", () => {
+      expect(at("1F", 1, 1)?.type).toBe("save");
+      expect(at("1F", 1, 0)).toMatchObject({ type: "shop", sides: { north: "door", east: "wall", south: "wall", west: "wall" } });
+      expect(report.placements.find((entry) => entry.type === "shop")).toMatchObject({ at: { floor: "1F", row: 1, col: 0 }, grown: true });
     });
 
     it("is then solvable with no wall blown by hand", () => {
       expect(solveTemple(asRegistered(temple))).toMatchObject({ solvable: true, reasons: [] });
     });
 
-    it("never hides the Bomb behind a small lock: the yard before the locked door gets it, not the nearer anteroom", () => {
+    it("never hides the Bomb or the shop behind a small lock: the yard before the locked door gets the Bomb, the shop opens beside it", () => {
       const locked = dressDungeon(crack(true), plan());
       const atLocked = roomsOf(locked.temple);
       expect(locked.report.bombChests).toEqual([{ floor: "1F", row: 0, col: 1 }]);
       expect(atLocked("1F", 0, 1)).toMatchObject({ type: "loot", content: { chest: "consumable", items: ["Bomb"] } });
-      expect(atLocked("1F", 0, 2)?.type).toBe("shop");
+      expect(atLocked("1F", 0, 2)?.type).toBe("save");
+      expect(atLocked("1F", 1, 1)).toMatchObject({ type: "shop", sides: { north: "door", east: "wall", south: "wall", west: "wall" } });
       expect(solveTemple(asRegistered(locked.temple))).toMatchObject({ solvable: true, reasons: [] });
     });
   });
@@ -274,13 +282,16 @@ describe("dressing a classic dungeon", () => {
       expect(report.moves).toEqual(expect.arrayContaining([expect.objectContaining({ what: "hole", from: { floor: "2F", row: 0, col: 2 }, grown: true })]));
     });
 
-    it("gives a circle that lands on no circle one beside its landing, and points it back", () => {
+    it("gives a circle that lands on no circle one beside its landing, in front of the seal when the landing fights, and points it back", () => {
       const circles = report.placements.filter((entry) => entry.type === "teleport" && entry.at.floor === "2F");
       expect(circles).toHaveLength(1);
       const circle = at("2F", circles[0].at.row, circles[0].at.col)!;
       expect(circle.content).toMatchObject({ targetLevel: "1F", targetCoords: { x: 3, y: 0 } });
       expect(at("1F", 0, 3)).toMatchObject({ type: "teleport", content: { targetLevel: "2F", targetCoords: { x: circles[0].at.col, y: circles[0].at.row } } });
       expect(Math.abs(circles[0].at.row - 0) + Math.abs(circles[0].at.col - 2)).toBeLessThanOrEqual(2);
+      // The climb's sides are taken by what it held, so the fairies land on the riddle's side of it, never past the seal
+      expect(circles[0].at).toEqual({ floor: "2F", row: 1, col: 1 });
+      expect(circle.sides).toEqual({ north: "door", east: "wall", south: "wall", west: "wall" });
     });
 
     it("keeps the must-clear fight on its cell, relocates its stairs next door and locks that climb with the Boss Key", () => {
@@ -294,9 +305,10 @@ describe("dressing a classic dungeon", () => {
     it("lands the climb beside the boss behind the Boss door, with the Pegasus on the other side", () => {
       expect(maze["3F"]).toEqual([[expect.any(String), expect.any(String)], [expect.any(String), "_"]]);
       expect(at("3F", 0, 0)?.type).toBe("boss");
-      // The flight out of the sealed climb is an added room (the hole took the one side beside the fight, so it is the nearest added one)
-      expect(at("3F", 0, 1)).toMatchObject({ type: "stairs-down", content: { targetLevel: "2F", targetCoords: { x: expect.any(Number), y: expect.any(Number) } }, sides: { west: "masterlocked" } });
-      expect(report.placements.find((entry) => entry.type === "stairs-up" && entry.at.floor === "2F")).toMatchObject({ grown: true });
+      expect(at("3F", 0, 1)).toMatchObject({ type: "stairs-down", content: { targetLevel: "2F", targetCoords: { x: 3, y: 0 } }, sides: { west: "masterlocked" } });
+      // The flight out of the sealed climb takes the nook that opens on the fight alone, before the hole takes a side of it
+      expect(at("2F", 0, 3)).toMatchObject({ type: "stairs-up", sides: { north: "wall", east: "wall", south: "wall", west: "door" } });
+      expect(report.placements.find((entry) => entry.type === "stairs-up" && entry.at.floor === "2F")).toMatchObject({ at: { floor: "2F", row: 0, col: 3 }, grown: false });
       expect(at("3F", 1, 0)).toMatchObject({ type: "master", sides: { north: "masterlocked" } });
       const verdict = solveTemple(asRegistered(temple));
       expect(verdict.solvable).toBe(true);
