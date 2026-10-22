@@ -166,30 +166,41 @@ export const nothingOnTheBoard = (voice: Voice = 'adventure'): string => copyFor
 export const CLERK = 'Town Clerk';
 
 /** The ids of the clerk's menu. */
-export type ClerkMenuId = 'board' | 'bug' | 'registration' | 'never';
+export type ClerkMenuId = 'board' | 'bug' | 'registration' | 'write-news' | 'write-patch-note' | 'never';
 
 /** What the clerk can take down, with the words the board will use for it. */
 export const CLERK_ERRANDS: Record<Exclude<ClerkMenuId, 'never'>, string> = {
   board: 'Posting on the Board',
   bug: 'Bug reports',
   registration: 'Family registration',
+  'write-news': 'Writing the news',
+  'write-patch-note': 'Writing a patch note',
 };
 
-/** The clerk's menu: what to do at the board, then never mind. Registering the family is for a Game Master. */
-export const clerkMenuChoices = (isGameMaster: boolean): RevealChoice[] => [
+/**
+ * The clerk's menu: what to do at the board, then never mind. Registering the family is for a Game Master. The writers
+ * (news and patch notes) are offered only to a link that can publish (`canPublish`), after the hero's errands.
+ */
+export const clerkMenuChoices = (isGameMaster: boolean, canPublish = false): RevealChoice[] => [
   { id: 'board', label: 'Post on the Board', icon: 'thumbtack' },
   { id: 'bug', label: 'Report a Bug', icon: 'bug' },
   ...(isGameMaster ? [{ id: 'registration', label: 'Family Registration', icon: 'file-signature' }] : []),
+  ...(canPublish
+    ? [
+        { id: 'write-news', label: 'Write news', icon: 'pen' },
+        { id: 'write-patch-note', label: 'Write a patch note', icon: 'pen' },
+      ]
+    : []),
   { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' as const },
 ];
 
 /** The clerk asks what to do at the board, with the stone tablet rising. */
-export const clerkMenuPrompt = (isGameMaster: boolean, voice: Voice = 'adventure'): RevealPromptOptions => ({
+export const clerkMenuPrompt = (isGameMaster: boolean, voice: Voice = 'adventure', canPublish = false): RevealPromptOptions => ({
   speaker: CLERK,
   accent: 'townHall',
   sprite: 'tablet',
   lines: [copyFor('clerk.welcome', voice)],
-  choices: clerkMenuChoices(isGameMaster),
+  choices: clerkMenuChoices(isGameMaster, canPublish),
   cancelId: 'never',
 });
 
@@ -204,6 +215,19 @@ export const courierLatePrompt = (): RevealPromptOptions => ({
     { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
   ],
   cancelId: 'never',
+});
+
+/** The clerk asks once before taking a post down: it goes to the city's bin ('take-down') or stays up ('leave'). */
+export const binPrompt = (): RevealPromptOptions => ({
+  speaker: CLERK,
+  accent: 'townHall',
+  sprite: 'tablet',
+  lines: ["Take it down? It goes to the city's bin; the site can bring it back for thirty days."],
+  choices: [
+    { id: 'take-down', label: 'Take it down', icon: 'trash', tone: 'primary' },
+    { id: 'leave', label: 'Leave it', icon: 'times', tone: 'ghost' },
+  ],
+  cancelId: 'leave',
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -282,6 +306,22 @@ const POSTED_LINES: Record<PostedOutcome, string> = {
 
 /** What the clerk says once a post is kept: where it goes next, or that it waits for the family to be registered. */
 export const postedNotice = (outcome: PostedOutcome): RevealPromptOptions => clerkNotice(POSTED_LINES[outcome]);
+
+/** The city has taken back the family's keys (the site's rights were withdrawn). */
+export const keysTakenNotice = (): RevealPromptOptions =>
+  clerkNotice("The city has taken back your keys. Register again if that's a mistake.");
+
+/** What became of a job at the clerk's desk: put up for everyone, kept as a draft on the site, or saved here. */
+export type DeskOutcome = 'published' | 'drafted' | 'saved';
+
+const DESK_LINES: Record<DeskOutcome, string> = {
+  published: "*pins it to the wall* It's up for everyone.",
+  drafted: '*files it* Kept as a draft on the site.',
+  saved: '*stamps it* Saved.',
+};
+
+/** What the clerk says once a desk job is done. */
+export const deskNotice = (outcome: DeskOutcome): RevealPromptOptions => clerkNotice(DESK_LINES[outcome]);
 
 /** The site no longer accepts the family's registration (the link was given up). */
 export const registerAgainPrompt = (): RevealPromptOptions =>
