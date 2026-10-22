@@ -1,7 +1,7 @@
 /**
  * The guards of the dress step (tools/temples/classic/dress.ts) on every classic JSON: each dressed in memory under its
  * own plan (dressPlans.ts) once it has one, else under the Storm plan as a stand-in, and checked against its own
- * converted dungeon:
+ * converted dungeon, the plan's own rooms joined to it (withHandRooms: Wind's owner's four):
  * - every must-clear fight that blocks the boss in the dungeon still blocks him in the temple (the seals pin);
  * - whatever the dressing pushes out of a sealed fight is reached only through that fight, a warp that lands on a
  *   sealed fight lands in front of it, and a chest or a key that leaves its cell is reached from that cell with
@@ -13,7 +13,7 @@
 import { readdirSync } from "fs";
 import { join } from "path";
 import type { ClassicDungeon } from "../../tools/temples/classic/classicDungeon";
-import { CLASSIC_IDS, CLASSIC_PLANS, dressDungeon, loadDungeon, type ClassicPlan, type DressedTemple } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, CLASSIC_PLANS, dressDungeon, loadDungeon, withHandRooms, type ClassicPlan, type DressedTemple } from "../../tools/temples/classic/dress";
 import { DUNGEON_DIR } from "../../tools/temples/classic/dressPlans";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph, reachableFrom, roomKey, solveTemple, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator";
@@ -43,6 +43,9 @@ const asRegistered = (temple: TempleLayout): TempleLayout => ({
 
 /** The plan a JSON is dressed under: its own once it has one, else the Storm plan as a stand-in */
 const planFor = (id: string): ClassicPlan => CLASSIC_PLANS[id] ?? { ...CLASSIC_PLANS["storm-temple"], name: `${id} (in memory)` };
+
+/** The dungeon a JSON is dressed from: its cells and its plan's own rooms */
+const dungeonOf = (id: string): ClassicDungeon => withHandRooms(loadDungeon(id), planFor(id));
 
 /** Each JSON dressed once, under its plan */
 const dressed = new Map<string, DressedTemple>();
@@ -157,7 +160,7 @@ const readDressed = (id: string): Dressed => {
   const sealed = new Set(report.placements.filter((entry) => isFight(entry.type) && rooms(entry.at)?.content?.lockOnEnter).map((entry) => keyOf(entry.at)));
   // A converted cell stands at its own place less its floor's shift, unless it was a far-off island moved beside the rest
   const convertedAt = new Map<string, string>();
-  for (const level of loadDungeon(id).floors) {
+  for (const level of dungeonOf(id).floors) {
     for (const cell of level.cells) {
       const own = { floor: level.name, row: cell.row, col: cell.col };
       const shift = report.shifted.find((entry) => entry.floor === level.name) ?? { rows: 0, cols: 0 };
@@ -242,7 +245,7 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
   });
 
   describe.each(ALL_NINE)("%s", (id) => {
-    const dungeon = loadDungeon(id);
+    const dungeon = dungeonOf(id);
     const { report } = dressedIn(id);
     const temple = readDressed(id);
 
@@ -279,11 +282,14 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
       }
     });
 
-    it("sells on the entrance floor before any key, Bomb or seal", () => {
+    it("sells on the entrance floor before any key, Bomb or seal, or where the plan pins the shop", () => {
       const shops = report.placements.filter((entry) => entry.type === "shop");
       expect(shops).toHaveLength(1);
       const entrance = temple.graph.rooms.get(temple.graph.entrance!)!;
-      expect({ floor: shops[0].at.floor, reached: reachedEmptyHanded(temple, temple.graph.entrance!).has(keyOf(shops[0].at)) }).toEqual({ floor: entrance.ref.floor, reached: true });
+      // Wind's is the Eagle's old man's room, past two locks, a seal and the cracked wall Zelda hides him behind
+      const pinned = planFor(id).shopAt;
+      const isWhereItShould = pinned ? sameCell(shops[0].at, pinned) : reachedEmptyHanded(temple, temple.graph.entrance!).has(keyOf(shops[0].at));
+      expect({ floor: shops[0].at.floor, reached: isWhereItShould }).toEqual({ floor: entrance.ref.floor, reached: true });
     });
 
     it("lists a dropped warp under dropped alone: every move lands on the thing it moved", () => {
@@ -352,22 +358,13 @@ describe("the classic JSONs, dressed in memory under their plans", () => {
 
 /**
  * What the tool makes of each JSON under its plan, pinned per temple (builds, solves, the solver's exact reasons, the
- * audit's missing names): a temple with its own plan is clean; one still under the stand-in shows what the tool makes of
- * it today, and any regression of the tool turns a line red. Wind is the one left under the stand-in (Task 9 plans it):
- * its JSON is the Eagle (Zelda 1), no Big Key, so no Boss Key chest under the stand-in.
+ * audit's missing names): every temple has its own plan now, and each is clean; any regression of the tool turns a line
+ * red. (A JSON with no plan yet would be dressed under the Storm plan as a stand-in and pinned as it fails.)
  */
 describe("every classic JSON, dressed in memory under its plan", () => {
   const PINNED: Record<string, { solvable: boolean; reasons: string[]; audit: string[] }> = {
-    // Under the stand-in
-    "wind-temple": {
-      solvable: false,
-      audit: ["Boss Key"],
-      reasons: [
-        "R2: the master key is out of reach after opening 1F (5,2) entrance -> 1F (4,2) monster, then 1F (1,2) monster -> 1F (0,2) miniboss, then 1F (0,2) miniboss -> 1F (0,1) teleport, then 1F (2,2) loot -> 1F (2,3) loot, then 1F (3,1) monster -> 1F (2,1) monster: 1 key in hand, no locked door in reach",
-        "R4: no master key",
-      ],
-    },
-    // Under their own plans
+    // The Eagle (Zelda 1) has no Big Key: the owner's own Boss Key room, behind his Cobweb Widow, holds the temple's
+    "wind-temple": { solvable: true, audit: [], reasons: [] },
     "earth-temple": { solvable: true, audit: [], reasons: [] },
     "light-temple": { solvable: true, audit: [], reasons: [] },
     // The entrance's key chest waits beside the locked flight it opens; Trench 2 Blocks, named, guards the Boss Key

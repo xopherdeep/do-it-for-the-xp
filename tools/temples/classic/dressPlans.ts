@@ -1,12 +1,13 @@
 /**
  * The chore plan of each classic temple: the theme's beasts the dress step deals out to the rooms of the converted
- * dungeon (tools/temples/classic/dungeons/<id>.json), with the temple's relic, riddle and trap. One entry per temple
- * that follows a classic dungeon: every shipped temple but the hand-made Wind Temple (its plan comes with Task 9).
+ * dungeon (tools/temples/classic/dungeons/<id>.json), with the temple's relic, riddle and trap. One entry per shipped
+ * temple: eight follow an LTTP palace, the Wind Temple Zelda 1's Eagle with the owner's own east rooms.
  *
  * `mustClear` lists the candidates for the must-clear monster rooms in priority order: the beasts of today's starter
  * quests first (STARTER_QUESTS, so a family's first chores fill rooms at once), then the rest of the theme. A dungeon
  * takes as many as it has must-clear rooms; a starter beyond that count gets a side room of its own (classicReport's
- * `overflow`), any other extra leaves the temple (`left`), and a plan shorter than the count repeats (`repeats`).
+ * `overflow`), any other extra leaves the temple (`left`) unless the plan keeps every chore, and a plan shorter than
+ * the count repeats (`repeats`).
  */
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -74,6 +75,22 @@ export interface ClassicPlan {
    */
   keepsEveryChore?: boolean;
 }
+
+/** Every side a door, as the owner drew his east rooms in the Temple Creator */
+const OPEN_ALL_ROUND: ClassicCell["sides"] = { north: "open", east: "open", south: "open", west: "open" };
+
+/**
+ * The owner's four east rooms of the Wind Temple (src/lib/engine/temples/wind-temple.ts at 61d7b718), kept as he drew
+ * them, every side a door: his Boss Key chest (L0503), the key room (M0404), the Cobweb Widow's mini-boss room (m0504)
+ * and his circle (T0505). Zelda's Eagle has no Big Key: his is the temple's Boss Key. His circle rides to the bow's
+ * basement, as the Eagle's stairway at (0,1) does, so the dressing adds it a circle there beside the Wind Whistle.
+ */
+const WIND_EAST_ROOMS: HandRoom[] = [
+  { floor: "1F", row: 3, col: 5, room: "Owner's Boss Key Room", sides: OPEN_ALL_ROUND, enemies: 0, chest: "big-key" },
+  { floor: "1F", row: 4, col: 4, room: "Owner's Key Room", sides: OPEN_ALL_ROUND, enemies: 0, potKey: true },
+  { floor: "1F", row: 4, col: 5, room: "Owner's Mini-boss Room", sides: OPEN_ALL_ROUND, enemies: 1 },
+  { floor: "1F", row: 5, col: 5, room: "Owner's Circle", sides: OPEN_ALL_ROUND, enemies: 0, teleport: { to: "B1", row: 0, col: 0 } },
+];
 
 export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
   // The Tower of Hera: bedroom and clutter chores. Three starters (bed, shoes, toys), then the rest of today's plan.
@@ -227,6 +244,36 @@ export const CLASSIC_PLANS: Record<string, ClassicPlan> = {
     minibosses: [["stinkwisp", 5, "daily"], ["glowleech", 3, "daily bed"]],
     minibossRooms: ["GT Quad Pot", "GT Ice Armos"],
     boss: ["night-owlbear", 8, "daily bed"],
+  },
+  // Zelda 1's Level 1, the Eagle, with the owner's four east rooms (WIND_EAST_ROOMS): quick, easy chores, today's nine.
+  // His way to his Boss Key: the Eagle's key drops open its locked doors up to the push-block steps at (0,1), whose
+  // circle rides down to the Wind Whistle in the bow's basement; a second circle there rides on to his circle at (5,5),
+  // past the Cobweb Widow. Five must-clear rooms (the Eagle's key drops but the one before the boss door) take five
+  // chores, the Spill Sprite the side room behind the entrance's locked door, where it stood (keepsEveryChore); the
+  // Dust Bunny King fights in the key room before the boss door, the Fluffalo waits behind it. The old man's room is
+  // the shop (sells Bombs, as today); the side fights stand over the map, the compass and the boomerang's gold.
+  "wind-temple": {
+    name: "Wind Temple",
+    theme: "plains",
+    element: "wind",
+    relic: "Wind Whistle",
+    trap: ["gust", 4],
+    puzzle: "generic",
+    mustClear: [
+      ["cushion-croc", 1, "daily"],
+      ["mustwisp", 1, "daily am"],
+      ["mailbox-mimic", 1, "daily"],
+      ["gravel-gnome", 2, "weekly"],
+      ["crumb-crawler", 2, "daily"],
+      ["spill-sprite", 1, "daily"],
+    ],
+    minibosses: [["dust-bunny-king", 3, "weekly"], ["cobweb-widow", 3, "weekly"]],
+    minibossRooms: ["Eagle (2,4)", "Owner's Mini-boss Room"],
+    boss: ["fluffalo", 8, "weekly"],
+    handRooms: WIND_EAST_ROOMS,
+    shopAt: { floor: "1F", row: 2, col: 0 },
+    guardedChests: true,
+    keepsEveryChore: true,
   },
 };
 

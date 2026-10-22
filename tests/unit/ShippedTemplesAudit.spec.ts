@@ -2,13 +2,11 @@
  * The nine temples that ship with the app (src/lib/engine/temples) can all be finished.
  *
  * Each one is registered the way the engine registers it (TempleAdapter.registerTemple, so a Master Room becomes the
- * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver. Eight follow
- * a classic dungeon, dressed from its JSON (tools/temples/classic/dress.ts), and ClassicTemples.spec.ts holds them to
- * the dressing's rules; here they and the Wind Temple only have to be finishable and full of the right quests.
- * The Wind Temple is authored by hand. It is the one temple that asks for a Bomb: its
- * Boss Key lies past a cracked wall, and its own shop, in reach of the entrance without one, sells Bombs. It is read
- * here as shipped, no wall blown by hand: the shop is a Bomb source, so the solver opens the cracked wall itself once
- * the hero has reached the shop (WindTemple.spec.ts checks the shop really comes first).
+ * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver, no wall
+ * blown by hand. Every one follows a classic dungeon, dressed from its JSON (tools/temples/classic/dress.ts): eight an
+ * LTTP palace, the Wind Temple Zelda 1's Eagle with the owner's own east rooms (WindTemple.spec.ts).
+ * ClassicTemples.spec.ts holds them to the dressing's rules; here they only have to be finishable and full of the
+ * right quests.
  *
  * Quest Rooms (docs/Quest-Rooms-Spec.md section 11): every combat room of the nine holds a quest template from the
  * chore library, bound to a beast of the temple's theme, and the templates add up to a full temple (21 or more).
@@ -29,32 +27,21 @@ import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic } from "../../t
 
 const shipped = temples as Record<string, any>;
 const IDS = Object.keys(shipped);
-const HAND_MADE = ["wind-temple"];
-/** The temples dressed from a classic dungeon's JSON (tools/temples/classic/dress.ts): every shipped temple but Wind's */
-const CLASSIC = IDS.filter((id) => CLASSIC_IDS.includes(id));
 
 /**
  * Quest Rooms (docs/Quest-Rooms-Spec.md sections 10 and 11): the combat rooms of each temple as (monster, miniboss, boss)
- * counts, and the size its quest templates add up to. A full temple is 21 or more. A classic temple's counts and size
- * follow its dungeon (`dressed`); only the size's floor of 21 is pinned for it.
+ * counts, and the size its quest templates add up to. A full temple is 21 or more. Each temple's counts and size follow
+ * its dungeon, read from its dressed rooms (side rooms, repeats of a must-clear beast, count too); only the size's floor
+ * of 21 is pinned.
  */
-const COMBAT_ROOMS: Record<string, [number, number, number]> = {
-  "wind-temple": [6, 2, 1],
-};
-
-const TEMPLE_SIZE: Record<string, number> = {
-  "wind-temple": 22,
-};
-
-/** A classic temple's combat rooms and size, read from its dressed rooms (side rooms, repeats of a must-clear beast, count too) */
 const dressed = (id: string): { counts: [number, number, number]; size: number } => {
   const rooms = Object.values(dressClassic(id).rooms);
   const count = (type: string) => rooms.filter((room) => room.type === type).length;
   const quests = rooms.filter((room) => room.content?.quest).map((room) => ({ difficulty: Number(room.content!.quest!.difficulty), dormant: true }));
   return { counts: [count("monster"), count("miniboss"), count("boss")], size: templeSize(quests).total };
 };
-const combatCountsOf = (id: string): [number, number, number] => (CLASSIC.includes(id) ? dressed(id).counts : COMBAT_ROOMS[id]);
-const sizeOf = (id: string): number => (CLASSIC.includes(id) ? dressed(id).size : TEMPLE_SIZE[id]);
+const combatCountsOf = (id: string): [number, number, number] => dressed(id).counts;
+const sizeOf = (id: string): number => dressed(id).size;
 
 /**
  * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
@@ -107,7 +94,7 @@ const followsScheduleRules = (template: RoomQuestTemplate): boolean => {
   }
 };
 
-/** The temple as the engine holds it after registration, cracked walls and all (the Wind Temple's shop is the Bomb that opens its wall) */
+/** The temple as the engine holds it after registration, cracked walls and all */
 const registered = (id: string) => {
   registerTemple(id, shipped[id], { force: true });
   const dungeon = DungeonManager.getInstance().getDungeon(id)!;
@@ -120,8 +107,8 @@ describe("the shipped temples", () => {
     expect(IDS).toHaveLength(9);
   });
 
-  it("are the hand-made Wind Temple and the temples that follow a classic dungeon, and no other", () => {
-    expect(IDS.filter((id) => !HAND_MADE.includes(id) && !CLASSIC.includes(id))).toEqual([]);
+  it("all follow a classic dungeon, each dressed from its JSON under its plan", () => {
+    expect(IDS.filter((id) => !CLASSIC_IDS.includes(id))).toEqual([]);
   });
 
   describe.each(IDS)("%s", (id) => {
@@ -174,12 +161,6 @@ describe("the shipped temples", () => {
 });
 
 describe("the shipped temples as quest rooms", () => {
-  it("name the size each temple should come to, from section 11 (a classic temple's follows its dungeon)", () => {
-    const pinned = IDS.filter((id) => !CLASSIC.includes(id)).sort();
-    expect(Object.keys(TEMPLE_SIZE).sort()).toEqual(pinned);
-    expect(Object.keys(COMBAT_ROOMS).sort()).toEqual(pinned);
-  });
-
   describe.each(IDS)("%s", (id) => {
     const layout = registered(id);
     const graph = buildTempleGraph(layout);
@@ -187,11 +168,10 @@ describe("the shipped temples as quest rooms", () => {
     const theme = id.replace("-temple", "");
     const rooms = COMBAT_TYPES.flatMap((tier) => combatRooms(graph, tier));
     const templates = rooms.map(templateOf);
-    const isClassic = CLASSIC.includes(id);
-    /** A classic temple's side rooms repeat a must-clear beast: the rules of "once" and "easiest first" read its sealed rooms */
-    const sealed = (room: GraphRoom): boolean => !isClassic || room.room.content?.lockOnEnter === true;
-    /** The beasts a classic temple's must-clear rooms had to repeat, its theme being short of beasts (classicReport) */
-    const repeats = isClassic ? classicReport(id).repeats.map((slug) => `beast-${slug}`) : [];
+    /** A temple's side rooms repeat a must-clear beast: the rules of "once" and "easiest first" read its sealed rooms */
+    const sealed = (room: GraphRoom): boolean => room.room.content?.lockOnEnter === true;
+    /** The beasts a temple's must-clear rooms had to repeat, its theme being short of beasts (classicReport) */
+    const repeats = classicReport(id).repeats.map((slug) => `beast-${slug}`);
 
     it("has the combat rooms of the theme map: monsters, minibosses and one boss", () => {
       expect(combatRooms(graph, "monster")).toHaveLength(monsterCount);
@@ -211,7 +191,7 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("keeps to the theme: every beast is a library beast of this temple's theme, used once (a classic temple: once per sealed room, but its reported repeats)", () => {
+    it("keeps to the theme: every beast is a library beast of this temple's theme, used once per sealed room (but its reported repeats)", () => {
       const once = rooms
         .filter(sealed)
         .map((room) => templateOf(room).beastId)
@@ -249,8 +229,8 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("puts the easier monster quests in the rooms nearest the entrance (a classic temple's mini-boss quests too)", () => {
-      const tiers: QuestTier[] = isClassic ? ["monster", "miniboss"] : ["monster"];
+    it("puts the easier monster and mini-boss quests in the rooms nearest the entrance", () => {
+      const tiers: QuestTier[] = ["monster", "miniboss"];
       for (const tier of tiers) {
         const difficulties = combatRooms(graph, tier)
           .filter(sealed)
@@ -278,18 +258,18 @@ describe("the shipped temples as quest rooms", () => {
       const filled = rooms
         .map((room) => resolveRoomQuest(room.room, "hero", [], STARTER_QUESTS))
         .flatMap((resolution) => (resolution.kind === "quest" ? [resolution.quest.id] : []));
-      // A classic temple's side rooms repeat a beast, so one starter quest can fill several rooms
+      // A temple's side rooms repeat a beast, so one starter quest can fill several rooms
       expect([...new Set(filled)].sort()).toEqual([...wanted].sort());
     });
   });
 });
 
 /**
- * A classic temple repeats a must-clear beast only when its theme is short of beasts: its plan then lists every beast of
- * the theme its mini-bosses and boss leave, so a plan short by mistake fails here instead of repeating quietly
+ * A temple repeats a must-clear beast only when its theme is short of beasts: its plan then lists every beast of the
+ * theme its mini-bosses and boss leave, so a plan short by mistake fails here instead of repeating quietly
  */
-describe("the classic temples' plans", () => {
-  it.each(CLASSIC)("%s repeats a beast only when its plan lists every beast of its theme", (id) => {
+describe("the temples' plans", () => {
+  it.each(IDS)("%s repeats a beast only when its plan lists every beast of its theme", (id) => {
     const plan = CLASSIC_PLANS[id];
     const listed = new Set([...plan.mustClear, ...plan.minibosses, plan.boss].map(([slug]) => slug));
     const theme = id.replace("-temple", "");

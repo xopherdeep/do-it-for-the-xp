@@ -5,13 +5,13 @@
  * every converted cell is a room at the same place, every side follows the side table, one fight per LTTP room, a
  * seal on every must-clear room, distinct theme beasts in the must-clear rooms and repeats of them in the side rooms,
  * key drops in `drops`, the Boss door on every way into the boss, and a temple the audit and the solver both clear with
- * no wall blown by hand. The rules themselves are checked on small hand-made dungeons in ClassicDress.spec.ts, and
- * every classic JSON dressed in memory (the temples still to come) in ClassicDungeonGuards.spec.ts.
+ * no wall blown by hand. A converted cell here is the JSON's or one of the plan's own rooms (Wind's owner's four). The
+ * rules are checked on hand-made dungeons in ClassicDress(Eagle).spec.ts, the JSONs' guards in ClassicDungeonGuards.
  */
 import { readFileSync } from "fs";
 import { join } from "path";
 import type { ClassicCell, ClassicDungeon, ClassicSide } from "../../tools/temples/classic/classicDungeon";
-import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic, loadDungeon, renderClassicModule } from "../../tools/temples/classic/dress";
+import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic, loadDungeon, renderClassicModule, withHandRooms } from "../../tools/temples/classic/dress";
 import type { ClassicPlacement } from "../../tools/temples/classic/dress";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { buildTempleGraph, reachableFrom, roomKey, solveTemple, type TempleLayout } from "@/lib/engine/dungeons/generator";
@@ -65,8 +65,8 @@ describe("the classic dungeon temples", () => {
   });
 
   describe.each(CLASSIC_IDS)("%s", (id) => {
-    const dungeon: ClassicDungeon = loadDungeon(id);
     const plan = CLASSIC_PLANS[id];
+    const dungeon: ClassicDungeon = withHandRooms(loadDungeon(id), plan); // the converter's cells and the plan's own rooms
     const temple = dressClassic(id);
     const report = classicReport(id);
     const maze = temple.maze as Record<string, string[][]>;
@@ -139,7 +139,8 @@ describe("the classic dungeon temples", () => {
           const isIntoBoss = beyond?.type === "boss" || room.type === "boss";
           const allowed = isGrownBehind ? ["door", "masterlocked", "wall"] : isIntoBoss && cell.sides[dir] !== "wall" ? ["masterlocked"] : SIDE_RULE[cell.sides[dir]];
           expect({ where, drawn: allowed.includes(drawn) ? "ok" : drawn }).toEqual({ where, drawn: "ok" });
-          const isSmallLock = cell.sides[dir] === "small-key";
+          // A small-key door into the boss (Zelda 1 keys the Eagle's so) is his Boss door, held to it just above
+          const isSmallLock = cell.sides[dir] === "small-key" && !isIntoBoss;
           if (isSmallLock) {
             const facing = beyond?.sides?.[OPPOSITE[dir]];
             expect({ where, ends: [drawn, facing].sort() }).toEqual({ where, ends: ["door", "locked"] });
@@ -267,10 +268,10 @@ describe("the classic dungeon temples", () => {
       const sides = report.placements.filter((entry) => entry.type === "monster" && !roomOf(entry).content?.lockOnEnter);
       for (const side of sides) {
         const beastId = roomOf(side).content!.quest!.beastId;
-        const isOverflowStarter = report.overflow.includes(slugOf(beastId)) && starterBeasts.has(beastId);
-        expect({ at: side.at, beastId, fromMustClear: mustClearBeasts.has(beastId) || isOverflowStarter }).toEqual({ at: side.at, beastId, fromMustClear: true });
+        const isOverflow = report.overflow.includes(slugOf(beastId)) && (starterBeasts.has(beastId) || Boolean(plan.keepsEveryChore));
+        expect({ at: side.at, beastId, fromMustClear: mustClearBeasts.has(beastId) || isOverflow }).toEqual({ at: side.at, beastId, fromMustClear: true });
       }
-      for (const slug of report.overflow) expect(starterBeasts.has(`beast-${slug}`)).toBe(true);
+      for (const slug of report.overflow) expect(starterBeasts.has(`beast-${slug}`) || Boolean(plan.keepsEveryChore)).toBe(true);
     });
 
     it("hands out every key drop in the fight's drops, and loses no chest, key, map, compass, Boss Key or relic", () => {
