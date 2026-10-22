@@ -65,8 +65,11 @@ jest.mock("@/lib/services/sync/recordSignals", () => {
   };
   const emit = (kind: string) => (payload: unknown) =>
     lists[kind].filter((listener) => listener.device === activeId()).forEach((listener) => listener.fn(payload));
+  const actual = jest.requireActual("@/lib/services/sync/recordSignals");
   return {
     __esModule: true,
+    trackWrite: actual.trackWrite,
+    writesSettled: actual.writesSettled,
     onRecordWritten: on("written"),
     emitRecordWritten: emit("written"),
     onStoreRestored: on("restored"),
