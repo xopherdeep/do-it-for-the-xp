@@ -578,27 +578,6 @@ export default defineComponent({
       // Additional cleanup if needed
     });
 
-    // Retro view computed: transform users into RPG menu actions
-    const retroMenuActions = computed(() => {
-      const actions = users.value.map((user, index) => ({
-        id: user.id,
-        label: `${index + 1}: ${user.name.nick || user.name.full}${user.isAdult ? " [GM]" : ""} - LVL ${user?.stats?.level || 1
-          }`,
-        click: () => selectProfile(user),
-      }));
-      // Add "Start New Game" option
-      actions.push({
-        id: "new-game",
-        label: "Start New Game",
-        click: () => openNewProfileModal(),
-      });
-      return actions;
-    });
-
-    const handleRetroAction = () => {
-      // action.click() is now handled internally by XpRpgMenu
-    };
-
     return {
       isLoading,
       users,
@@ -622,8 +601,6 @@ export default defineComponent({
       isRetroView,
       gridOutline,
       listOutline,
-      retroMenuActions,
-      handleRetroAction,
       isMultiplayerEnabled,
       openLinkPhone,
       isBackupBusy,

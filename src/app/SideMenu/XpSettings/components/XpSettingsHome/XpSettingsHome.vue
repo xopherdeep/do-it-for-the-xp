@@ -33,6 +33,7 @@
               :key="item.id"
               button
               :detail="!item.action"
+              :disabled="isRowBusy(item)"
               lines="full"
               :router-link="item.action ? undefined : item.route"
               class="settings-row"

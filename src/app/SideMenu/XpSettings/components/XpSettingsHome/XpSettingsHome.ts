@@ -4,6 +4,7 @@ import ionic from "@/lib/mixins/ionic";
 import { PRO_ITEM, sectionsFor, type SettingsItem } from "./settingsSections";
 import { useUnlinkPhone } from "./useUnlinkPhone";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { useUserStore } from "@/lib/store/stores/user";
 import XpBackupNudge from "../XpBackupNudge.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 const requireIconImg = require.context("@/assets/icons/", false, /\.svg$/);
@@ -22,11 +23,17 @@ export default defineComponent({
     const family = useFamilyStore();
     // A kid phone lists its own pages and the way to unlink (family sync spec, section 7)
     const sections = computed(() => sectionsFor({ isKidMode: family.isKidMode }));
-    const { prompt, respond, unlinkThisPhone } = useUnlinkPhone(useRouter());
+    const userStore = useUserStore();
+    const { prompt, respond, unlinkThisPhone, isUnlinking } = useUnlinkPhone(useRouter(), userStore.logoutUser);
     /** A row that does something instead of opening a page */
     const runRow = (item: SettingsItem): void => {
       const isUnlink = item.action === "unlink-phone";
       if (isUnlink) void unlinkThisPhone();
+    };
+    /** The Unlink row dims from the tap until the phone is unlinked */
+    const isRowBusy = (item: SettingsItem): boolean => {
+      const isUnlink = item.action === "unlink-phone";
+      return isUnlink && isUnlinking.value;
     };
 
     return {
@@ -37,6 +44,7 @@ export default defineComponent({
       sections,
       isKidMode: computed(() => family.isKidMode),
       runRow,
+      isRowBusy,
       prompt,
       respond,
       proItem: PRO_ITEM,

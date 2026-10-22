@@ -15,6 +15,10 @@ jest.mock("@/lib/store/stores/family", () => ({ __esModule: true, useFamilyStore
 const mockSync = { rest: jest.fn() };
 jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
+const calls: string[] = [];
+const mockUserStore = { logoutUser: jest.fn() };
+jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => mockUserStore }));
+
 /** The clerk's dialog, reduced to its lines and one button per choice */
 const PromptStub = defineComponent({
   props: ["prompt"],
@@ -49,9 +53,19 @@ describe("the Settings page", () => {
   beforeEach(() => {
     mockFamily.isKidMode = true;
     mockFamily.device = { heroId: "hero-1", label: "Mia's phone" };
-    mockFamily.forgetDevice.mockReset().mockResolvedValue(undefined);
-    mockSync.rest.mockReset().mockResolvedValue(undefined);
-    mockReplace.mockReset();
+    calls.length = 0;
+    mockFamily.forgetDevice.mockReset().mockImplementation(async () => {
+      calls.push("forget");
+    });
+    mockSync.rest.mockReset().mockImplementation(async (heroId: string) => {
+      calls.push(`rest:${heroId}`);
+    });
+    mockUserStore.logoutUser.mockReset().mockImplementation(() => {
+      calls.push("logout");
+    });
+    mockReplace.mockReset().mockImplementation(async (path: string) => {
+      calls.push(`replace:${path}`);
+    });
   });
 
   it("on a kid phone lists no Game Master page and ends This device with Unlink this phone", async () => {
@@ -72,7 +86,7 @@ describe("the Settings page", () => {
     expect(wrapper.find("[data-cy='backup-nudge-stub']").exists()).toBe(true);
   });
 
-  it("asks before it unlinks, and a Yes rests the hero, forgets the phone and opens the picker", async () => {
+  it("asks before it unlinks, and a Yes rests the hero, forgets the phone, signs the hero out and opens the picker", async () => {
     const wrapper = await open();
 
     await wrapper.find("[data-test='settings-unlink-phone']").trigger("click");
@@ -82,9 +96,34 @@ describe("the Settings page", () => {
     await wrapper.find("[data-cy='prompt-yes']").trigger("click");
     await flushPromises();
 
-    expect(mockSync.rest).toHaveBeenCalledWith("hero-1");
-    expect(mockFamily.forgetDevice).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith("/xp-profile");
+    expect(calls).toEqual(["rest:hero-1", "forget", "logout", "replace:/xp-profile"]);
+  });
+
+  it("dims the row while the hero rests, and a second tap meanwhile asks nothing", async () => {
+    let finishRest: () => void = () => undefined;
+    mockSync.rest.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishRest = resolve;
+        })
+    );
+    const wrapper = await open();
+    const row = () => wrapper.find("[data-test='settings-unlink-phone']");
+    const isDimmed = (): boolean => Boolean((row().element as unknown as { disabled?: boolean }).disabled);
+    expect(isDimmed()).toBe(false);
+
+    await row().trigger("click");
+    await wrapper.find("[data-cy='prompt-yes']").trigger("click");
+    await flushPromises();
+    expect(isDimmed()).toBe(true);
+
+    await row().trigger("click");
+    expect(wrapper.find("[data-cy='prompt']").exists()).toBe(false);
+
+    finishRest();
+    await flushPromises();
+    expect(isDimmed()).toBe(false);
+    expect(mockSync.rest).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the phone linked on No", async () => {
@@ -94,8 +133,6 @@ describe("the Settings page", () => {
     await wrapper.find("[data-cy='prompt-no']").trigger("click");
     await flushPromises();
 
-    expect(mockSync.rest).not.toHaveBeenCalled();
-    expect(mockFamily.forgetDevice).not.toHaveBeenCalled();
-    expect(mockReplace).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
   });
 });
