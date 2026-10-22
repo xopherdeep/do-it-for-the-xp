@@ -4,6 +4,7 @@ import { effectiveDeadline, isSchedulePaused } from "@/lib/engine/quests/QuestSc
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { useSyncStore } from "@/lib/store/stores/sync";
 import debug from "@/lib/utils/debug";
 import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
@@ -113,9 +114,24 @@ export const bookHeroReminders = async (heroId: string, now: Date = new Date()):
   return scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
 };
 
-/** One pass of the watch for a hero: read the board, push what is due into the feed. */
-export const runQuestWatch = async (heroId: string, now: Date = new Date()): Promise<QuestWatchRun> => {
-  const id = String(heroId);
+/** What the watch reads of Family Sync: whether it is on, and whether this device holds a hero's turn (the sync store fits). */
+export interface WatchTurns {
+  isOn: boolean;
+  holds(heroId: string): boolean;
+}
+
+/**
+ * The heroes this device's clocks run for: every hero when Family Sync is off, and only the heroes whose turn this
+ * device holds when it is on. A penalty is charged, a deadline watched and an alert sent by one device only (the one
+ * in the hero's hand), so the family's other devices neither charge twice nor ring for a hero who is playing elsewhere.
+ */
+export const heroesToWatch = (allHeroIds: string[], sync: WatchTurns): string[] => {
+  if (!sync.isOn) return allHeroIds;
+  return allHeroIds.filter((heroId) => sync.holds(heroId));
+};
+
+/** One hero's board read and pushed into the feed: overdue and due-soon notes, late penalties, the weekly recap. */
+const watchHeroBoard = async (id: string, now: Date): Promise<number> => {
   const userStore = useUserStore();
   const notifications = useNotificationsStore();
   const effects = userStore.getUserById(id)?.questEffects as HeroQuestEffects | undefined;
@@ -136,6 +152,18 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   }
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;
+  return pushed;
+};
+
+/**
+ * One pass of the watch for a hero: read the board, push what is due into the feed. With Family Sync on, a hero this
+ * device does not hold is left to the device that does (heroesToWatch): no penalty, no alert, no recap from here.
+ * The sweep of old claim photos is the device's own and runs either way.
+ */
+export const runQuestWatch = async (heroId: string, now: Date = new Date()): Promise<QuestWatchRun> => {
+  const id = String(heroId);
+  const isWatched = heroesToWatch([id], useSyncStore()).length > 0;
+  const pushed = isWatched ? await watchHeroBoard(id, now) : 0;
   await runClaimPhotoPurge(now.getTime());
   return { pushed };
 };
