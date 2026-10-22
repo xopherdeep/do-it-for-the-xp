@@ -161,11 +161,13 @@ export const tower = (hallShuts = false): ClassicDungeon =>
  */
 export const twoScreens = (): ClassicDungeon =>
   dungeon("two-screens", [
-    floor("1F", 1, 4, [
+    floor("1F", 1, 5, [
       cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
       cell(0, 1, "Hall", { west: "open", east: "open" }, { enemies: 1 }),
       cell(0, 2, "Shutter", { west: "open", east: "open" }, { enemies: 2, shutter: true, stairs: { to: "2F", row: 0, col: 3 } }),
-      cell(0, 3, "Shutter", { west: "open" }),
+      cell(0, 3, "Shutter", { west: "open", east: "open" }),
+      // An empty closet beyond the seal: the nearest free cell of the floor, which the flight must not take
+      cell(0, 4, "Closet", { west: "open" }),
     ]),
     floor("2F", 1, 4, [
       cell(0, 0, "Throne", { east: "open" }, { boss: true }),
@@ -276,6 +278,43 @@ export const crossroads = (): ClassicDungeon =>
     floor("2F", 1, 2, [
       cell(0, 0, "Throne", { east: "open" }, { boss: true }),
       cell(0, 1, "Landing", { west: "open" }, { stairs: { to: "1F", row: 0, col: 1 } }),
+    ]),
+  ]);
+
+/**
+ * SHIFTED, a floor 4x4 whose cells all sit on rows 2 and 3 (the converter leaves such grids): the entrance, a key in
+ * the pots, a small-key door to the shutter guard of the Boss Key vault, the boss under the vault. Once the floor
+ * has moved up, the lock must still sit on the end the hero reaches first (the pots), not on the guard.
+ *
+ *   _  _  _  _
+ *   _  _  _  _
+ *   E  k  ]G  V
+ *   _  _  _  B
+ */
+export const shifted = (): ClassicDungeon =>
+  dungeon("shifted", [
+    floor("1F", 4, 4, [
+      cell(2, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(2, 1, "Pots", { west: "open", east: "small-key" }, { potKey: true }),
+      cell(2, 2, "Guard", { west: "small-key", east: "open" }, { enemies: 2, shutter: true }),
+      cell(2, 3, "Vault", { west: "open", south: "open" }, { chest: "big-key" }),
+      cell(3, 3, "Throne", { north: "open" }, { boss: true }),
+    ]),
+  ]);
+
+/**
+ * PASSAGE, a floor 1x3 over a cellar: the hole lies in the passage between the entrance and the boss (two open sides),
+ * so a pit there would cut the floor. The hole goes to a dead end added beside it; the passage stays a room.
+ *
+ *   1F:  E  H  B        B1:  .
+ */
+export const passage = (): ClassicDungeon =>
+  dungeon("passage", [
+    floor("B1", 1, 1, [cell(0, 0, "Cellar", {}, { stairs: { to: "1F", row: 0, col: 1 } })]),
+    floor("1F", 1, 3, [
+      cell(0, 0, "Gate", { east: "open" }, { entrance: true }),
+      cell(0, 1, "Passage", { west: "open", east: "open" }, { hole: { to: "B1", row: 0, col: 0 } }),
+      cell(0, 2, "Throne", { west: "open" }, { boss: true }),
     ]),
   ]);
 

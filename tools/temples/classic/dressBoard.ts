@@ -10,9 +10,10 @@
  * share its screen because the fight is what gates the doors there; the stairs land next door instead (a flight can
  * name its landing, `targetCoords`). What loses its cell moves: to the nearest free cell of the same LTTP room, else
  * the nearest free cell of the floor, else a wall position inside the grid, else the grid grows by a row or a column.
- * A room the dressing adds this way opens on one neighbour only (its anchor), so it never shortcuts a lock. Holes and
- * circles only move when their landing is a circle (the ride comes back); a riddle, a hole or a circle that has
- * nowhere to go is dropped and listed. Every move, drop and merge goes in the report.
+ * A room the dressing adds this way opens on one neighbour only (its anchor), so it never shortcuts a lock. A hole or
+ * a circle that leaves its cell goes to a dead end of its own room, else beside its source (a pit cuts a passage); a
+ * flight pushed out of a sealed fight lands beside it; only a displaced riddle is dropped and listed. Every move,
+ * drop and merge goes in the report.
  */
 import type { ClassicCell, ClassicDungeon, ClassicLink } from "./classicDungeon";
 import { compactIslands, placeAntechamber, placeLandingCircles, shiftFloors } from "./dressLinks";
@@ -115,6 +116,13 @@ export interface Board {
   shifted: FloorShift[];
   /** The added room a fall or a ride onto the boss lands in, beside him behind the Boss door */
   antechamber?: Slot;
+  /** Warps whose landing was no circle and got one added: judged for the shortcut their ride back may open */
+  warpPairs: WarpPair[];
+}
+
+export interface WarpPair {
+  warp: Slot;
+  landing: Slot;
 }
 
 /** A floor whose cells all moved up and left by this much, once its empty leading rows and columns were cut */
@@ -303,6 +311,8 @@ export interface PlacementLimits {
   notBeside?: CellRef;
   /** Only a room the dressing adds (a wall position, a grown row or column): never a converted cell */
   addedOnly?: boolean;
+  /** A room added beside the source first, else the nearest added room: a flight out of a seal stays with its fight */
+  besideFirst?: boolean;
 }
 
 /**
@@ -341,9 +351,16 @@ const placeInDeadEnd = (board: Board, floor: BoardFloor, source: Slot, item: Ite
   return beside ?? placeNearest(board, floor, source.at, undefined, { ...limits, addedOnly: true });
 };
 
-export const relocate = (board: Board, floor: BoardFloor, source: Slot, item: Item, limits: PlacementLimits = {}): Slot => {
+/** Where a displaced thing goes: links to a dead end, a flight out of a seal beside its fight, anything else the nearest free cell */
+const placeFor = (board: Board, floor: BoardFloor, source: Slot, item: Item, limits: PlacementLimits): Slot => {
   const isLink = item.kind === "hole" || item.kind === "teleport";
-  const slot = isLink ? placeInDeadEnd(board, floor, source, item, limits) : placeNearest(board, floor, source.at, item.room, limits);
+  if (isLink) return placeInDeadEnd(board, floor, source, item, limits);
+  if (limits.besideFirst) return tryOpenBeside(board, source, { addedOnly: true }) ?? placeNearest(board, floor, source.at, undefined, { ...limits, addedOnly: true });
+  return placeNearest(board, floor, source.at, item.room, limits);
+};
+
+export const relocate = (board: Board, floor: BoardFloor, source: Slot, item: Item, limits: PlacementLimits = {}): Slot => {
+  const slot = placeFor(board, floor, source, item, limits);
   slot.item = item;
   board.moves.push({ what: describeItem(item), from: source.at, to: slot.at, grown: !slot.cell });
   return slot;
@@ -365,8 +382,11 @@ const settleDisplaced = (board: Board, floor: BoardFloor, source: Slot, item: It
     return;
   }
   const isFlightOutOfASeal = item.kind === "stairs" && source.item?.kind === "mustClearFight";
-  relocate(board, floor, source, item, isFlightOutOfASeal ? { avoidRoom: item.room } : {});
+  relocate(board, floor, source, item, isFlightOutOfASeal ? { besideFirst: true, avoidRoom: item.room } : {});
 };
+
+/** How many sides of a converted cell are not walls */
+const openSidesOf = (cell: ClassicCell): number => DIRECTIONS.filter((direction) => cell.sides[direction] !== "wall").length;
 
 // --- the Master Room ---------------------------------------------------------------------------------------------
 
@@ -394,7 +414,11 @@ export const tryOpenBeside = (board: Board, beside: Slot, limits: Pick<Placement
   return slot;
 };
 
-/** A room added beside `beside` when a side of it is free, else the nearest room the dressing can add (never throws) */
+/**
+ * A room added beside `beside` when a side of it is free, else the nearest room the dressing can add. It never fails:
+ * a floor that holds a room always has a position to grow on next to one (placeNearest's last tier), and no limit
+ * narrows it here.
+ */
 export const openNear = (board: Board, beside: Slot): Slot => tryOpenBeside(board, beside) ?? placeNearest(board, floorOf(board, beside.at.floor)!, beside.at, undefined, { addedOnly: true });
 
 /** The Master Room (the Pegasus chest) in a free cell next to the boss, growing the floor by a row or a column if none is free */
@@ -422,7 +446,7 @@ const settleBossExits = (board: Board, boss: Slot, exits: Displaced[]): void => 
 
 /** Read the dungeon into a board: one thing per cell, the rest moved or dropped, the Master Room beside the boss */
 export const buildBoard = (dungeon: ClassicDungeon): Board => {
-  const board: Board = { dungeon, floors: [], converted: new Map(), moves: [], dropped: [], merged: [], compacted: [], shifted: [] };
+  const board: Board = { dungeon, floors: [], converted: new Map(), moves: [], dropped: [], merged: [], compacted: [], shifted: [], warpPairs: [] };
   const fights = planFights(dungeon);
   const displaced: Displaced[] = [];
   const bossExits: Displaced[] = [];
@@ -442,8 +466,12 @@ export const buildBoard = (dungeon: ClassicDungeon): Board => {
     // A thing's origin is the cell it was converted from, where the island stood before it was moved beside the rest
     const origin = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
     const [first, ...rest] = itemsOf(slot.cell!, origin, fights, board);
-    slot.item = first;
     const floor = floorOf(board, slot.at.floor)!;
+    // A hole on a passage (a screen with ways through it) would cut the floor as a pit: the hole goes to a dead end
+    // added beside it and the screen stays an empty room
+    const isHoleOnAPassage = first?.kind === "hole" && openSidesOf(slot.cell!) >= 2;
+    slot.item = isHoleOnAPassage ? { kind: "empty", origin, room: slot.cell!.room } : first;
+    if (isHoleOnAPassage) displaced.push({ floor, source: slot, item: first });
     const isBossCell = first?.kind === "boss";
     for (const item of rest) {
       const isBossExit = isBossCell && (item.kind === "hole" || item.kind === "teleport");

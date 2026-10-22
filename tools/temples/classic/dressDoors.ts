@@ -7,7 +7,7 @@
  */
 import type { ClassicCell, ClassicDungeon, ClassicSide } from "./classicDungeon";
 import { DIRECTIONS, STEP, allSlots, describeCell, directionTo, openNear, slotAt, tryOpenBeside, type Board, type CellRef, type Direction, type Slot } from "./dressBoard";
-import { buildTempleGraph, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
+import { buildTempleGraph, reachableFrom, roomKey, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 
 export type SideWord = "door" | "locked" | "masterlocked" | "bombable" | "wall";
 export type Sides = Record<Direction, SideWord>;
@@ -100,7 +100,8 @@ const readingOrder = (dungeon: ClassicDungeon, at: CellRef): number => dungeon.f
  * plain door from the other end: the two ends never both ask for a key.
  */
 const smallLockEnd = (board: Board, hops: Map<string, number>, slot: Slot, direction: Direction): SideWord => {
-  const here = slot.at;
+  // The distances are by the converted cells' own positions, which a shifted floor's slots no longer stand on
+  const here = { floor: slot.at.floor, row: slot.cell!.row, col: slot.cell!.col };
   const there = { floor: here.floor, row: here.row + STEP[direction][0], col: here.col + STEP[direction][1] };
   const hereHops = hops.get(cellKey(here.floor, here.row, here.col)) ?? Infinity;
   const thereHops = hops.get(cellKey(there.floor, there.row, there.col)) ?? Infinity;
@@ -217,10 +218,50 @@ const placeBombChest = (board: Board, near: CellRef, closed: TempleGraph, nearKe
 /** A room added beside the first of `rooms` (the wall's near end first) that has a free side, else the nearest added room to the near end */
 const addBombChestNear = (board: Board, near: CellRef, rooms: CellRef[]): Slot => {
   const slots = [near, ...rooms].map((ref) => slotAt(board, ref)).filter((slot): slot is Slot => Boolean(slot?.item));
-  const beside = slots.map((slot) => tryOpenBeside(board, slot)).find((slot): slot is Slot => Boolean(slot));
+  // One try at a time: each hit adds a room, so the search stops at the first
+  let beside: Slot | undefined;
+  for (const candidate of slots) {
+    beside = tryOpenBeside(board, candidate);
+    if (beside) break;
+  }
   const slot = beside ?? openNear(board, slotAt(board, near)!);
   board.moves.push({ what: "Bomb chest", from: near, to: slot.at, grown: true });
   return slot;
+};
+
+// --- one-way warps ------------------------------------------------------------------------------------------------
+
+/** The must-clear rooms the boss cannot be reached without, in a graph with every door open but `closed` */
+const blockingRooms = (graph: TempleGraph, mustClear: string[], boss: string, closed: ReadonlySet<string>): Set<string> =>
+  new Set(mustClear.filter((key) => !reachableFrom(graph, graph.entrance!, new Set([key]), closed).includes(boss)));
+
+const asEmptyRoom = (slot: Slot): void => {
+  slot.item = { kind: "empty", origin: slot.item!.origin, room: slot.item!.room };
+};
+
+/**
+ * LTTP's warp tiles ride one way; our circles ride both. A warp whose landing was no circle got a landing circle added
+ * (dressLinks), and the ride back it opens must not go around a must-clear room: when a room that blocks the boss with
+ * the ride back cut no longer blocks it with the ride back open, both ends of the pair become empty rooms (the rooms
+ * stay: a compass may hang off one) and the warp is listed as dropped. Pairs are judged one at a time, in the order
+ * they were added, each with the pairs before it as they ended up. `layoutNow` renders the board as it stands.
+ */
+export const demoteShortcutWarps = (board: Board, layoutNow: () => TempleLayout): void => {
+  for (const pair of board.warpPairs) {
+    const graph = buildTempleGraph(layoutNow());
+    const boss = [...graph.rooms.values()].find((room) => room.kind === "boss");
+    const isUnwalkable = !graph.entrance || !boss;
+    if (isUnwalkable) return;
+    const mustClear = allSlots(board).filter((slot) => slot.item?.kind === "mustClearFight").map((slot) => sidesKey(slot.at));
+    const rideBack = new Set([`${sidesKey(pair.landing.at)}>${sidesKey(pair.warp.at)}`]);
+    const withTheRideCut = blockingRooms(graph, mustClear, boss!.key, rideBack);
+    const withTheRideOpen = blockingRooms(graph, mustClear, boss!.key, new Set());
+    const opensAWayAround = [...withTheRideCut].some((key) => !withTheRideOpen.has(key));
+    if (!opensAWayAround) continue;
+    board.dropped.push({ what: "teleport", at: pair.warp.item!.origin, why: `its ride back from ${describeCell(pair.landing.at)} opens a way around a must-clear room` });
+    asEmptyRoom(pair.warp);
+    asEmptyRoom(pair.landing);
+  }
 };
 
 /** Whether the boss is in reach from the entrance with the given cracks read as open and every other one as a wall */

@@ -325,13 +325,26 @@ describe("the classic dungeon temples", () => {
       expect(keys).toBeGreaterThanOrEqual(graph.doors.filter((door) => door.lock === "small").length);
     });
 
-    it("drops nothing but riddles, and puts a hole that left its cell in a dead end", () => {
-      expect(report.dropped.map((entry) => entry.what).filter((what) => what !== "puzzle")).toEqual([]);
+    it("drops nothing but riddles and warps whose ride back would go around a seal, and every pit lies in a dead end", () => {
+      expect(report.dropped.map((entry) => entry.what).filter((what) => what !== "puzzle" && what !== "teleport")).toEqual([]);
       for (const pit of report.placements.filter((entry) => entry.type === "pit")) {
-        const isInItsOwnCell = Boolean(pit.origin) && sameCell(nowAt(pit.origin!.floor, pit.origin!.row, pit.origin!.col), pit.at);
-        if (isInItsOwnCell) continue;
         const open = DIRS.filter((dir) => roomOf(pit).sides?.[dir] !== "wall").length;
         expect({ at: pit.at, openSides: open }).toEqual({ at: pit.at, openSides: 1 });
+      }
+    });
+
+    it("keeps every must-clear room that blocks the boss when warps ride one way: no kept warp opens a way around it", () => {
+      const boss = [...graph.rooms.values()].find((room) => room.kind === "boss")!;
+      const sealed = report.placements.filter((entry) => FIGHTS.includes(entry.type) && entry.type !== "boss" && roomOf(entry).content?.lockOnEnter).map((entry) => roomKey(entry.at));
+      // LTTP's warps ride one way: a converted circle whose landing is no circle takes no ride back in the comparison
+      const isCircleCell = (link: { to: string; row: number; col: number }) => cells.some(({ floor, cell }) => floor === link.to && cell.row === link.row && cell.col === link.col && Boolean(cell.teleport));
+      const oneWayWarps = cells.filter(({ cell }) => cell.teleport && !isCircleCell(cell.teleport!));
+      const warpRooms = new Set(oneWayWarps.flatMap(({ floor, cell }) => report.placements.filter((entry) => entry.type === "teleport" && entry.origin && sameCell(entry.origin, { floor, row: cell.row, col: cell.col })).map((entry) => roomKey(entry.at))));
+      const rideBacks = new Set(graph.doors.filter((door) => door.kind === "teleport" && warpRooms.has(door.to)).map((door) => door.id));
+      const blocks = (room: string, closed: Set<string>) => !reachableFrom(graph, graph.entrance!, new Set([room]), closed).includes(boss.key);
+      for (const room of sealed) {
+        const blocksOneWay = blocks(room, rideBacks);
+        if (blocksOneWay) expect({ room, blocksTheBoss: blocks(room, new Set()) }).toEqual({ room, blocksTheBoss: true });
       }
     });
 
@@ -347,9 +360,49 @@ describe("the classic dungeon temples", () => {
 });
 
 /**
- * The tool on the temples that follow (Task 8 writes their plans and modules): their JSON dressed in memory under a
- * stand-in plan must build, clear the solver and the audit, and keep the Boss Key between the hero and the boss. A
- * boss reached by a fall (both) lands the hero beside him, and the ride back lands beside the room they fell from.
+ * The guard for the temples that follow: every classic JSON dressed in memory under the Storm plan as a stand-in, with
+ * what the tool makes of it today pinned per temple (builds, solves, the solver's exact reasons). Task 8 flips each
+ * line to clean as it dresses that temple with its own plan; any regression of the tool turns a line red. The Wind
+ * JSON is the Eagle (Zelda 1): no Big Key, so no Boss Key chest under any plan; the Water Palace's locked flight at
+ * 1F (0,8) wants a key the stand-in plan does not place; the R4 notes are the mini-boss of each plan, still to choose.
+ */
+describe("every classic JSON, dressed in memory under the stand-in plan", () => {
+  const PINNED: Record<string, { solvable: boolean; reasons: string[]; audit: string[] }> = {
+    "wind-temple": {
+      solvable: false,
+      audit: ["Boss Key"],
+      reasons: [
+        "R2: the master key is out of reach after opening 1F (5,2) entrance -> 1F (4,2) monster, then 1F (1,2) monster -> 1F (0,2) miniboss, then 1F (0,2) miniboss -> 1F (0,1) puzzle, then 1F (2,2) loot -> 1F (2,3) loot, then 1F (3,1) monster -> 1F (2,1) monster: 1 key in hand, no locked door in reach",
+        "R4: no master key",
+      ],
+    },
+    "earth-temple": { solvable: true, audit: [], reasons: [] },
+    "light-temple": { solvable: true, audit: [], reasons: [] },
+    "water-temple": {
+      solvable: false,
+      audit: [],
+      reasons: ["R2: the master key is out of reach: 0 keys in hand, 1 locked door in reach (1F (0,8) stairs-down -> B1 (5,8) stairs-up)", "R4: the master key at B1 (5,2) loot can be reached without passing the mini-boss"],
+    },
+    "shadow-temple": { solvable: true, audit: [], reasons: ["R4: the master key at 1F (7,2) loot can be reached without passing the mini-boss"] },
+    "ice-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (1,1) loot can be reached without passing the mini-boss"] },
+    "fire-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B1 (3,1) loot can be reached without passing the mini-boss"] },
+    "moon-temple": { solvable: true, audit: [], reasons: ["R4: the master key at B2 (0,1) loot can be reached without passing the mini-boss"] },
+  };
+
+  describe.each(Object.keys(PINNED))("%s", (id) => {
+    it("builds, and solves exactly as pinned", () => {
+      const { temple } = dressDungeon(loadDungeon(id), { ...CLASSIC_PLANS["storm-temple"], name: `${id} (in memory)` });
+      const verdict = solveTemple(asRegistered(temple));
+      expect({ solvable: verdict.solvable, reasons: verdict.reasons, audit: missingNames(auditTemple(temple)) }).toEqual(PINNED[id]);
+    });
+  });
+});
+
+/**
+ * The tool on the two temples that follow Storm (Task 8 writes their plans and modules): their JSON dressed in memory
+ * under a stand-in plan must build, clear the solver and the audit, and keep the Boss Key between the hero and the
+ * boss. A boss reached by a fall (both) lands the hero beside him, and the ride back lands beside the room they fell
+ * from.
  */
 describe("the next temples, dressed in memory", () => {
   describe.each(["earth-temple", "ice-temple"])("%s", (id) => {
@@ -452,19 +505,21 @@ describe("the Storm Temple from the Tower of Hera", () => {
     expect(at("4F", 2, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "3F", targetCoords: { x: 0, y: 2 } } });
   });
 
-  it("keeps Hera's two warps as circles with a landing circle each, drops the boss's own fall beside his landing, sells in the one empty screen, and plays the big-key door as a plain one", () => {
-    // The warp of the Big Chest's screen (3F) rides to a circle beside the locked flight on 1F; the boss's warp, beside his landing, to one beside the 3F stairs
-    expect(at("3F", 3, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "1F", targetCoords: { x: 0, y: 2 } } });
-    expect(at("1F", 2, 0)).toMatchObject({ type: "teleport", content: { targetLevel: "3F", targetCoords: { x: 0, y: 3 } }, sides: { north: "door" } });
+  it("drops the Big Chest screen's warp (its ride back would skip the star-tile seals), keeps the boss's, sells beside the lobby, and plays the big-key door as a plain one", () => {
+    // The 3F warp's two rooms stay as empty rooms (the compass hangs off the lower one); the boss's warp rides to a circle beside the 3F stairs
+    expect(at("3F", 3, 0)?.type).toBe("empty");
+    expect(at("1F", 2, 0)).toMatchObject({ type: "empty", sides: { north: "door" } });
+    expect(at("3F", 3, 1)).toMatchObject({ type: "loot", content: { dungeon: "compass" }, sides: { west: "door" } });
     expect(at("5F", 1, 1)).toMatchObject({ type: "teleport", content: { targetLevel: "3F", targetCoords: { x: 2, y: 0 } }, sides: { north: "door", west: "wall" } });
     expect(at("3F", 0, 2)).toMatchObject({ type: "teleport", content: { targetLevel: "5F", targetCoords: { x: 1, y: 1 } } });
     expect(at("5F", 0, 2)).toMatchObject({ type: "pit", content: { targetLevel: "4F", targetCoords: { x: 1, y: 0 } }, sides: { west: "door", south: "wall" } });
-    // The one empty screen left (the 4F hall whose beasts merged into the room's fight) is the shop
-    expect(at("4F", 1, 0)?.type).toBe("shop");
-    expect(report.placements.filter((entry) => entry.type === "shop")).toHaveLength(1);
+    // The shop is added beside the lobby (no empty screen on 1F before a seal); the one empty screen on 4F is the save
+    expect(at("1F", 2, 1)).toMatchObject({ type: "shop", sides: { north: "door" } });
+    expect(report.placements.filter((entry) => entry.type === "shop")).toEqual([expect.objectContaining({ at: { floor: "1F", row: 2, col: 1 }, grown: true })]);
+    expect(at("4F", 1, 0)?.type).toBe("save");
     expect(report.plainBigKeyDoors).toEqual([{ at: { floor: "2F", row: 0, col: 0 }, direction: "south" }]);
     expect(at("2F", 0, 0)?.sides?.south).toBe("door");
-    expect(report.dropped.map((entry) => entry.what)).toEqual(["puzzle", "puzzle"]);
+    expect(report.dropped.map((entry) => `${entry.what} ${entry.at.floor} (${entry.at.row},${entry.at.col})`)).toEqual(["puzzle B1 (0,0)", "puzzle B1 (1,1)", "teleport 3F (0,0)"]);
     expect(report.shifted).toEqual([]);
   });
 });

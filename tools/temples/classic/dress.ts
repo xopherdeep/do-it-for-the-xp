@@ -21,13 +21,13 @@ import { writeFileSync } from "fs";
 import { join } from "path";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import type { GeneratedTemple } from "@/lib/engine/dungeons/generator/templeGenerator";
-import { buildTempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
+import { buildTempleGraph, reachableFrom, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
 import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 import { renderModule } from "../renderModule";
 import type { ClassicDungeon } from "./classicDungeon";
 import { allSlots, buildBoard, openNear, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift } from "./dressBoard";
 import { planChores } from "./dressChores";
-import { drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
+import { demoteShortcutWarps, drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
 import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, loadDungeon, type ClassicPlan } from "./dressPlans";
 import { buildRooms, type ClassicPlacement } from "./dressRooms";
 
@@ -75,30 +75,42 @@ const asRegistered = (layout: { entrance: number[]; maze: Record<string, string[
 });
 
 /**
+ * The shop: on the entrance floor, in the empty converted cell nearest the entrance that the hero reaches without
+ * passing a must-clear seal (the sealed fights and the boss blocked); with none, a room added beside the entrance. So
+ * every temple sells Bombs and potions before its first fight.
+ */
+const placeShop = (board: Board, graph: TempleGraph, hops: Map<string, number>): void => {
+  const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance");
+  if (!entrance) throw new Error(`${board.dungeon.id}: no entrance cell`);
+  const sealed = new Set(allSlots(board).filter((slot) => slot.item?.kind === "mustClearFight" || slot.item?.kind === "boss").map((slot) => sidesKey(slot.at)));
+  const beforeAnySeal = new Set(graph.entrance ? reachableFrom(graph, graph.entrance, sealed) : []);
+  const far = Number.MAX_SAFE_INTEGER;
+  const free = allSlots(board)
+    .filter((slot) => slot.cell && !slot.item && slot.at.floor === entrance.at.floor && beforeAnySeal.has(sidesKey(slot.at)))
+    .sort((a, b) => (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || a.at.row - b.at.row || a.at.col - b.at.col);
+  const shop = free[0] ?? openNear(board, entrance);
+  shop.item = { kind: "shop", origin: shop.at, room: shop.cell?.room ?? "" };
+  const isAdded = !shop.cell;
+  if (isAdded) board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: true });
+};
+
+/**
  * The extras in the empty converted cells, nearest the entrance first (path distance over every door, floors in the
- * dungeon's order then reading order among equals): one shop, one save, then one camp per floor, the rest empty rooms.
- * A dungeon with no empty cell at all (the Tower of Hera) gets one shop added beside the entrance, so every temple
- * sells Bombs and potions, and no save or camp.
+ * dungeon's order then reading order among equals): the shop (placeShop), one save, then one camp per floor, the rest
+ * empty rooms. A dungeon with no empty cell at all (the Tower of Hera) has the shop added beside its entrance and no
+ * save or camp.
  */
 const placeExtras = (board: Board, plan: ClassicPlan): void => {
   const sides = drawSides(board);
   const graph = buildTempleGraph(asRegistered(buildRooms(board, plan, sides)));
   const hops = graph.entrance ? hopsFrom(graph, graph.entrance) : new Map<string, number>();
+  placeShop(board, graph, hops);
   const floors = board.floors.map((floor) => floor.name);
   const far = Number.MAX_SAFE_INTEGER;
   const free = allSlots(board)
     .filter((slot) => slot.cell && !slot.item)
     .sort((a, b) => (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || floors.indexOf(a.at.floor) - floors.indexOf(b.at.floor) || a.at.row - b.at.row || a.at.col - b.at.col);
-  const hasNoEmptyCell = free.length === 0;
-  if (hasNoEmptyCell) {
-    const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance");
-    if (!entrance) throw new Error(`${plan.name}: no entrance cell`);
-    const shop = openNear(board, entrance);
-    shop.item = { kind: "shop", origin: shop.at, room: "" };
-    board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: !shop.cell });
-    return;
-  }
-  const kinds: Array<"shop" | "save"> = ["shop", "save"];
+  const kinds: Array<"save"> = ["save"];
   const camped = new Set<string>();
   for (const slot of free) {
     const next = kinds.shift();
@@ -112,6 +124,7 @@ const placeExtras = (board: Board, plan: ClassicPlan): void => {
 /** A converted dungeon as a temple of ours, under `plan`. Pure: the same dungeon and plan give the same temple. */
 export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
   const board = buildBoard(dungeon);
+  demoteShortcutWarps(board, () => asRegistered(buildRooms(board, plan, drawSides(board))));
   const provisional = buildRooms(board, plan, drawSides(board));
   const chores = planChores(board, plan, buildTempleGraph(asRegistered(provisional)), drawSides(board));
   const bombChests = placeBombChests(board, () => asRegistered(buildRooms(board, plan, drawSides(board), chores.roles)));

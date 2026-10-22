@@ -159,5 +159,7 @@ export const placeLandingCircles = (board: Board): void => {
     else partner.item!.target = circle.at;
     circle.item!.target = partner.at;
     if (isAdded) board.moves.push({ what: "landing circle", from: landing.at, to: partner.at, grown: !partner.cell });
+    // A warp that rode one way in LTTP now rides back too: dressDoors judges whether that ride goes around a seal
+    if (isAdded) board.warpPairs.push({ warp: circle, landing: partner });
   }
 };
