@@ -479,10 +479,9 @@ describe("TempleSolver", () => {
     expect(next.doors).toEqual([]);
   });
 
+  // Every shipped temple follows a classic dungeon now (the Wind Temple Zelda's Eagle, with the owner's own rooms): none
+  // is hand-made any more, so none is let off a rule
   describe("R12 Shipped temples pass", () => {
-    /** The Wind Temple is the owner's own, edited in the Temple Creator: a rule it breaks shows in the title, it does not fail the suite */
-    const HAND_MADE = ["wind-temple"];
-
     /** The layout as registration reads it: the editor's door sides (`sides`) become locks */
     const asRegistered = (temple: TempleLayout): TempleLayout => ({
       ...temple,
@@ -491,9 +490,7 @@ describe("TempleSolver", () => {
 
     for (const [id, temple] of Object.entries(temples)) {
       const result = solveTemple(asRegistered(temple as TempleLayout));
-      const test = HAND_MADE.includes(id) && result.reasons.length ? it.skip : it;
-      const title = test === it.skip ? `${id} fails the solver: ${result.reasons.join(" | ")}` : `${id} passes the solver`;
-      test(title, () => {
+      it(`${id} passes the solver`, () => {
         expect(result.reasons).toEqual([]);
         expect(result.solvable).toBe(true);
       });

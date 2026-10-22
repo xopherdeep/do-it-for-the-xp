@@ -11,14 +11,15 @@
  * share its screen because the fight is what gates the doors there; the stairs land next door instead (a flight can
  * name its landing, `targetCoords`). A circle outranks a riddle as a flight does: it is the way on (Zelda 1's push
  * block hides the stairway it shares a screen with), and a displaced riddle is only dropped. A plan that guards its
- * chests (Zelda 1's) lets a side fight keep the cell it shares with a plain chest and hand the chest out once won. What loses its cell moves, and dressPlace says where: what a sealed fight held
- * goes beside the fight, else beside a room the hero reaches only through it (a chest or a key with no such room is
- * handed out by the fight), except a flight or a circle whose other end the hero reaches without the fight, which
- * stands beside it or in front of every seal (GT's Bob's Torch's flight, its twin in the lobby, stands beside Speed
- * Torch Upper); a hole or a circle goes to a dead end (a pit cuts a passage); a chest or a key stays within
- * reach of its cell with nothing in hand; anything else takes the nearest free cell. A room the dressing adds opens on
- * one neighbour only (its anchor), so it never shortcuts a lock. Only a displaced riddle is dropped and listed. Every
- * move, drop and merge goes in the report.
+ * chests (Zelda 1's) lets a side fight keep the cell it shares with a plain chest and hand the chest out once won.
+ *
+ * What loses its cell moves, and dressPlace says where: what a sealed fight held goes beside the fight, else beside a
+ * room the hero reaches only through it (a chest or a key with no such room is handed out by the fight), except a
+ * flight or a circle whose other end the hero reaches without the fight, which stands beside it or in front of every
+ * seal (GT's Bob's Torch's flight, its twin in the lobby, stands beside Speed Torch Upper); a hole or a circle goes to
+ * a dead end (a pit cuts a passage); a chest or a key stays within reach of its cell with nothing in hand; anything
+ * else takes the nearest free cell. A room the dressing adds opens on one neighbour only (its anchor), so it never
+ * shortcuts a lock. Only a displaced riddle is dropped and listed. Every move, drop and merge goes in the report.
  */
 import type { ClassicCell, ClassicDungeon, ClassicLink } from "./classicDungeon";
 import { compactIslands, placeAntechamber, placeLandingCircles, shiftFloors } from "./dressLinks";
