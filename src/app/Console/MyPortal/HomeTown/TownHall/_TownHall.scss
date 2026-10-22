@@ -201,6 +201,33 @@ $th-amber: #ffd27f;
     }
   }
 
+  // The bug reports the site holds open, on the Updates tab for the Game Master
+  .th-bug {
+    padding: 8px 0;
+    border-top: 1px solid $th-minty;
+
+    p {
+      margin: 4px 0 0;
+      overflow-wrap: anywhere;
+    }
+
+    .th-bug__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .th-bug__actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+  }
+
   // The hero's own posts the site does not have yet, above the Board
   .th-waiting__body {
     margin: 0 0 8px;
