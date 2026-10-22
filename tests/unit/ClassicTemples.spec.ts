@@ -210,7 +210,9 @@ describe("the classic dungeon temples", () => {
     // The Palace of Darkness's Middle Cage opens both its screens on the lobby: its second screen and the stairs in it
     // are reached without the fight in the JSON itself, so the dressed temple is held to the JSON, not to a sealed room
     it("seals a many-screen must-clear room at the screen that fights: blocking that screen opens no more of the dungeon around the room than the JSON does", () => {
-      const convertedOf = new Map(cells.map(({ floor, cell }) => [roomKey(nowAt(floor, cell.row, cell.col)), roomKey({ floor, row: cell.row, col: cell.col })]));
+      // The converted cell each room stands for: its own, or for a room added to hold what moved, the cell it left (a room added of its own, its origin itself, stands for none)
+      const movedInto = report.placements.filter((entry) => entry.grown && entry.origin && !sameCell(entry.origin, entry.at)).map((entry) => [roomKey(entry.at), roomKey(entry.origin!)] as const);
+      const convertedOf = new Map([...cells.map(({ floor, cell }) => [roomKey(nowAt(floor, cell.row, cell.col)), roomKey({ floor, row: cell.row, col: cell.col })] as const), ...movedInto]);
       const dressedReach = (blocked: Set<string>): Set<string> =>
         new Set(reachableFrom(graph, graph.entrance!, blocked).flatMap((key) => (convertedOf.has(key) ? [convertedOf.get(key)!] : [])));
       for (const name of lttpRooms.filter(isMustClearRoom)) {
