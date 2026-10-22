@@ -37,7 +37,7 @@ import debug from "@/lib/utils/debug";
 import { createCardQueue } from "./family/familyCards";
 import { createFamilySender } from "./family/familySender";
 import { createHeroPhoneSync } from "./family/heroPhoneSync";
-import { createTurnIntake, underTurn } from "./family/turnIntake";
+import { createTurnIntake } from "./family/turnIntake";
 import { useSyncStore } from "./sync";
 
 /** Where each answer of the site leaves this device: `created` and `home` both mean this device is the family's home */
@@ -268,31 +268,28 @@ export const useFamilyStore = defineStore("family", () => {
 
   /**
    * Takes the claims heroes made on their phones, each once: logged here like a claim on this device (held or paid),
-   * answered with `claim.settled` in the same save that remembers it was taken. A claim this device already took (its
-   * id in takenClaims, or an entry in the log with its id) is not logged again. In a Pro family a claim is taken on its
-   * hero's turn; one for a hero another device holds is left for that device, not marked taken here, and answered.
+   * answered with `claim.settled` in the same save that remembers it was taken. The caller runs it on the claims' hero's
+   * turn (family/turnIntake.ts) and hands in only claims not taken yet (`phoneClaimsIn`); a claim with an entry in the
+   * log under its id is answered from that entry, never logged again.
    */
-  async function takePhoneClaims(events: ReceivedEvent[]): Promise<ReceivedEvent[]> {
+  async function takePhoneClaims(claims: ReceivedEvent[]): Promise<void> {
     const { deviceId } = await ensureIdentity();
-    const taken = new Set((await loaded()).takenClaims.map((claim) => claim.id));
-    const claims = events.filter((e) => isPhoneClaim(e, deviceId) && !taken.has(e.id));
-    const left: ReceivedEvent[] = [];
     for (const claim of claims) {
-      let answer: ClaimSettled | null = null;
-      const isRun = await underTurn(claim.heroId, async () => {
-        answer = await takePhoneClaim(claim);
-      });
-      if (!isRun) left.push(claim);
-      const settled = answer as ClaimSettled | null;
-      if (!settled) continue;
+      const settled = await takePhoneClaim(claim);
       const at = new Date().toISOString();
       await queueEvents([claimSettledEvent(claim.heroId, deviceId, settled)], (current) => ({
         takenClaims: [...current.takenClaims.filter((t) => Date.now() - Date.parse(t.at) < TAKEN_CLAIMS_MS), { id: claim.id, at }],
       }));
     }
-    const hasTaken = claims.length > left.length;
+    const hasTaken = claims.length > 0;
     if (hasTaken) queueSheetsSoon();
-    return left;
+  }
+
+  /** The claims among the events made on a hero's phone that this device has not taken yet (its id in takenClaims) */
+  async function phoneClaimsIn(events: ReceivedEvent[]): Promise<ReceivedEvent[]> {
+    const { deviceId } = await ensureIdentity();
+    const taken = new Set((await loaded()).takenClaims.map((claim) => claim.id));
+    return events.filter((e) => isPhoneClaim(e, deviceId) && !taken.has(e.id));
   }
 
   /** The heroes with a linked phone, as the last phone list read says */
@@ -360,7 +357,7 @@ export const useFamilyStore = defineStore("family", () => {
     await tellPhone(review.heroId, { claimId, questId: review.questId, status, note: review.note, ...paid });
   }
 
-  const intake = createTurnIntake({ takePhoneClaims });
+  const intake = createTurnIntake({ phoneClaimsIn, takePhoneClaims });
 
   let downloading: Promise<void> | null = null;
 
@@ -596,7 +593,8 @@ export const useFamilyStore = defineStore("family", () => {
       device.value = marked;
       await getHeroDeviceDb().saveDevice(marked);
     },
-    received: (events, since) => intake.takeOnPhone(events, since),
+    fromStart: () => useSyncStore().markHistory(),
+    received: (events) => intake.takeOnPhone(events),
   });
 
   /** Trades a link code for a hero key, keeps the device, and adopts the family */

@@ -1898,18 +1898,96 @@ describe("the sync store", () => {
     await useFamilyStore().download();
 
     expect(mockTakePhoneClaim).not.toHaveBeenCalled();
+    // one ask for the hero's turn covers both
+    expect(playHero.mock.calls.filter(([, heroId]) => heroId === "h-2")).toHaveLength(1);
     expect(Object.keys(sync.state.waitingEvents).sort()).toEqual(["c-2", "r-2"]);
     expect(sync.state.waitingEvents["c-2"]).toMatchObject({ heroId: "h-2", keptAt: expect.any(String) });
 
-    // the holder rested before it read them: the next round finds the hero free, and this device takes both
+    // the holder rested before it read them: the next round finds the hero free, and this device takes both on one turn
+    playHero.mockClear();
     playHero.mockResolvedValue({ answer: "granted" });
     window.dispatchEvent(new Event("online"));
     await drain();
+    expect(playHero.mock.calls.filter(([, heroId]) => heroId === "h-2")).toHaveLength(1);
 
     expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-2"]);
     expect(applyQuestRewards).toHaveBeenCalledWith("h-2", { xp: 50, gp: 0, ap: 3 }, "party:r-2");
     expect(sync.state.waitingEvents).toEqual({});
     expect(queuedEvents().filter((e) => e.kind === "claim.settled").map((e) => e.data.claimId)).toEqual(["c-2"]);
+  });
+
+  it("a kept claim is not taken on a provisional hold: it waits until the site has confirmed the hold", async () => {
+    const keptAt = new Date().toISOString();
+    mockSyncState = syncState({ firstPushDone: true, lastSeq: 5, waitingEvents: { "c-2": { ...claimEvent(10, "c-2", "h-2"), keptAt } } });
+    // the site cannot be asked for turns: the first round's borrow gets nothing, and the player signs in as an offline hold
+    playHero.mockRejectedValue(new TownHallError("offline"));
+    const sync = await started();
+    expect(mockTakePhoneClaim).not.toHaveBeenCalled();
+    expect(await sync.signIn("h-2")).toBe("offline");
+    expect(sync.turns["h-2"]).toMatchObject({ state: "held", provisional: true });
+    expect(await sync.withTurn("h-2", async () => undefined)).toBe(false);
+
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(mockTakePhoneClaim).not.toHaveBeenCalled();
+    expect(Object.keys(sync.state.waitingEvents)).toEqual(["c-2"]);
+
+    // confirmed (and caught up): the next round takes it on the hold
+    playHero.mockReset();
+    playHero.mockResolvedValue({ answer: "granted" });
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(sync.turns["h-2"]).toMatchObject({ state: "held", provisional: false });
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-2"]);
+    expect(sync.state.waitingEvents).toEqual({});
+  });
+
+  it("a confirm that cannot catch up does not grant or send; one that can lands what came meanwhile over the offline play, then sends", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    playHero.mockRejectedValue(new TownHallError("offline"));
+    expect(await sync.signIn("h-1")).toBe("offline");
+    write("__questLog", "q1", { id: "q1", userId: "h-1", status: "offline play" });
+    write("__questLog", "q2", { id: "q2", userId: "h-1", status: "offline play" });
+
+    // the site answers again, but the read breaks off before the newest record
+    playHero.mockReset();
+    playHero.mockResolvedValue({ answer: "granted" });
+    fetchRecords.mockReset();
+    fetchRecords.mockResolvedValueOnce([received("__beasts", "b1", 6)]).mockRejectedValue(new TownHallError("offline"));
+    window.dispatchEvent(new Event("online"));
+    await tick(0);
+
+    expect(sync.turns["h-1"]).toMatchObject({ state: "held", provisional: true });
+    expect(sent().map((record) => record.key)).toEqual([]);
+
+    // the read gets through: the tablet's copy of q1, written while this device played offline, lands over it first
+    const fromTablet = { id: "q1", userId: "h-1", status: "tablet" };
+    fetchRecords.mockReset();
+    fetchRecords.mockResolvedValueOnce([received("__questLog", "q1", 7, fromTablet, { heroId: "h-1" })]).mockResolvedValue([]);
+    window.dispatchEvent(new Event("online"));
+    await tick(0);
+
+    expect(sync.turns["h-1"]).toMatchObject({ state: "held", provisional: false });
+    expect(mockStores.__questLog.q1).toEqual(fromTablet);
+    expect(sent().map((record) => record.key)).toEqual(["q2"]);
+  });
+
+  it("a fresh phone whose first reads are empty marks the moment before them, so a claim received since is taken", async () => {
+    mockHeroDevice = kidPhone();
+    mockSyncState = syncState({ firstPullDone: true, lastSeq: 5 });
+    const sync = await started();
+    await drain();
+    expect(sync.state.claimsSince).toEqual(expect.any(String));
+    const afterLink = new Date().toISOString();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    fetchEvents.mockResolvedValueOnce([claimEvent(1, "c-new", "h-1", afterLink)]);
+    await useFamilyStore().syncPhone();
+    await drain();
+
+    expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-new"]);
   });
 
   it("a kept claim the holder answers (even turned away, with no entry anywhere) is let go without asking for the turn again", async () => {

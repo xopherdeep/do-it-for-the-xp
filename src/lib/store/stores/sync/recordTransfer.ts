@@ -80,6 +80,8 @@ export interface RecordTransfer {
   round(): Promise<void>;
   /** A round that reads on until this device has the newest record (a hero's turn just taken); false when it could not get there */
   catchUp(): Promise<boolean>;
+  /** Reads until this device has the newest record, from inside a lane job (a confirm before a send); false when it could not */
+  readToEnd(): Promise<boolean>;
   /** A hero was taken over: its queued records leave the outbox for good, and stop holding the download back; answers them */
   dropHero(heroId: string): Promise<OutboxItem[]>;
   /** The device left the family: the bodies kept for the first push go */
@@ -327,5 +329,5 @@ export const createRecordTransfer = (ctx: TransferContext): RecordTransfer => {
     return dropped;
   };
 
-  return { upload, download, round, catchUp, dropHero, forget: () => received.clear() };
+  return { upload, download, round, catchUp, readToEnd, dropHero, forget: () => received.clear() };
 };

@@ -232,13 +232,14 @@ export const useSyncStore = defineStore("sync", () => {
     },
   });
 
-  /** Whether the last catch-up reached the newest record */
+  /** Whether the last catch-up job reached the newest record (reset as the job starts, so one that throws answers false) */
   let caughtUp = false;
   const WORK: Record<Work, () => Promise<unknown>> = {
     upload: transfer.upload,
     download: transfer.download,
     round: transfer.round,
     catchUp: async () => {
+      caughtUp = false;
       caughtUp = await transfer.catchUp();
     },
   };
@@ -262,7 +263,6 @@ export const useSyncStore = defineStore("sync", () => {
   const flush = (): Promise<void> => lane.request("round");
   /** Sends what waits, then reads to the newest record; false when it could not get there (offline, a read held back, a failure) */
   const catchUp = async (): Promise<boolean> => {
-    caughtUp = false;
     await writing;
     await lane.request("catchUp");
     return caughtUp;
@@ -294,6 +294,7 @@ export const useSyncStore = defineStore("sync", () => {
       await upload();
     },
     catchUp,
+    readHere: () => transfer.readToEnd(),
     flush,
     // The pending claims a takeover drops unsent go again, phone-style (sync/verdicts.ts)
     dropHero: async (heroId) => verdicts.resendDropped(await transfer.dropHero(heroId)),
@@ -489,10 +490,9 @@ export const useSyncStore = defineStore("sync", () => {
     takeOver: heroTurns.takeOver,
     rest: heroTurns.rest,
     withTurn: heroTurns.withTurn,
-    // A Game Master's verdict on a hero this device does not hold, and the verdicts among the family's events (sync/verdicts.ts)
+    // Verdicts sent and taken, claims and rewards kept for the next round, the start of the events read (sync/verdicts.ts)
     sendVerdict: verdicts.send,
     takeVerdicts: verdicts.take,
-    // Phone claims and rewards kept for the next round, and the moment this device started reading the family's events
     keepEvents: verdicts.keepEvents,
     markHistory: verdicts.markHistory,
   };

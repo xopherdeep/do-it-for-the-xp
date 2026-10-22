@@ -9,17 +9,19 @@ import { useSyncStore } from "../sync";
  * hero's turn under Family Sync (family sync spec, sections 5 and 6). Bound to the family store the way the sender and
  * the card queue are: the store hands over how it takes its phone claims.
  *
- * - Under Family Sync a write runs on the hero's turn: here when this device holds the hero, on the turn borrowed for the
- *   moment when nobody does, and not at all when another device holds it (that device does it on its own download).
- *   Without it, at once, as the home device always has.
+ * - Under Family Sync a write runs on the hero's turn, asked for once per hero for all its events: here when this device
+ *   holds the hero (confirmed, not an offline hold), on the turn borrowed for the moment when nobody does, and not at all
+ *   when another device holds it (that device does it on its own download). Without it, at once, as the home device
+ *   always has.
  * - Under Family Sync, history (what the site received before this device started reading the events) is skipped, and a
  *   claim or reward another device's turn kept from this one waits in the sync store, tried again each round.
- * - A kid phone reading its events from the beginning marks the moment; a Pro kid phone in the full portal plays its
- *   hero, so its hero's rewards, re-sent claims and verdicts are taken there.
+ * - A Pro kid phone in the full portal plays its hero, so its hero's rewards, re-sent claims and verdicts are taken there.
  */
 export interface TurnIntakeContext {
-  /** Takes the phone claims among the events; answers those left for the device holding their hero */
-  takePhoneClaims(events: ReceivedEvent[]): Promise<ReceivedEvent[]>;
+  /** The phone claims among the events this device has not taken yet */
+  phoneClaimsIn(events: ReceivedEvent[]): Promise<ReceivedEvent[]>;
+  /** Takes phone claims at once (the caller is on their hero's turn) */
+  takePhoneClaims(claims: ReceivedEvent[]): Promise<void>;
 }
 
 export interface TurnIntake {
@@ -27,56 +29,60 @@ export interface TurnIntake {
   takeEvents(events: ReceivedEvent[], paidBefore: { id: string }[]): Promise<string[]>;
   /** Kept claims and rewards tried again after a round (sync/verdicts.ts); answers the ids still left for another device */
   retakeEvents(events: ReceivedEvent[]): Promise<string[]>;
-  /** A page of the phone's events, `since` being the cursor before it */
-  takeOnPhone(events: ReceivedEvent[], since: number): Promise<void>;
+  /** A page of a kid phone's events */
+  takeOnPhone(events: ReceivedEvent[]): Promise<void>;
 }
 
 /** Runs what writes a hero's game on the hero's turn under Family Sync, otherwise at once; false when another device holds it */
-export const underTurn = async (heroId: string, fn: () => Promise<void>): Promise<boolean> => {
+const underTurn = async (heroId: string, fn: () => Promise<void>): Promise<boolean> => {
   const sync = useSyncStore();
   if (sync.isOn) return sync.withTurn(heroId, fn);
   await fn();
   return true;
 };
 
-/** Server rewards, each once (serverRewards.ts) and on its hero's turn; answers the ids paid here, or found paid */
-const payRewards = async (rewards: RewardToPay[]): Promise<string[]> => {
-  const paid: string[] = [];
-  for (const reward of rewards) {
-    const isPaid = await underTurn(reward.heroId, () => payServerReward(reward));
-    if (isPaid) paid.push(reward.id);
-  }
-  return paid;
-};
-
 export const createTurnIntake = (ctx: TurnIntakeContext): TurnIntake => {
+  /**
+   * One turn per hero for all its rewards (each once, serverRewards.ts) and phone claims; answers the reward ids paid
+   * (or found paid) and the ids of what was left for the device holding its hero
+   */
+  const takeOnTurns = async (rewards: RewardToPay[], claims: ReceivedEvent[]): Promise<{ paidIds: string[]; leftIds: string[] }> => {
+    const paidIds: string[] = [];
+    const leftIds: string[] = [];
+    const heroes = new Set([...rewards.map((reward) => reward.heroId), ...claims.map((claim) => claim.heroId)]);
+    for (const heroId of heroes) {
+      const heroRewards = rewards.filter((reward) => reward.heroId === heroId);
+      const heroClaims = claims.filter((claim) => claim.heroId === heroId);
+      const isRun = await underTurn(heroId, async () => {
+        for (const reward of heroRewards) await payServerReward(reward);
+        await ctx.takePhoneClaims(heroClaims);
+      });
+      const rewardIds = heroRewards.map((reward) => reward.id);
+      if (isRun) paidIds.push(...rewardIds);
+      else leftIds.push(...rewardIds, ...heroClaims.map((claim) => claim.id));
+    }
+    return { paidIds, leftIds };
+  };
+
   const takeEvents = async (events: ReceivedEvent[], paidBefore: { id: string }[]): Promise<string[]> => {
     const sync = useSyncStore();
     const isSyncing = sync.isOn;
     const since = isSyncing ? sync.state.claimsSince : null;
     const fresh = events.filter((e) => !isHistory(e, since));
-    const rewards = rewardsToPay(fresh, paidBefore);
-    const paidIds = await payRewards(rewards);
-    const leftClaims = await ctx.takePhoneClaims(fresh);
+    const { paidIds, leftIds } = await takeOnTurns(rewardsToPay(fresh, paidBefore), await ctx.phoneClaimsIn(fresh));
     if (!isSyncing) return paidIds;
-    const leftRewards = fresh.filter((e) => rewards.some((reward) => reward.id === e.id) && !paidIds.includes(e.id));
-    await sync.keepEvents([...leftRewards, ...leftClaims]);
+    await sync.keepEvents(fresh.filter((e) => leftIds.includes(e.id)));
     await sync.takeVerdicts(events);
     return paidIds;
   };
 
   const retakeEvents = async (events: ReceivedEvent[]): Promise<string[]> => {
-    const rewards = rewardsToPay(events, []);
-    const paidIds = await payRewards(rewards);
-    const leftClaims = await ctx.takePhoneClaims(events);
-    return [...rewards.map((reward) => reward.id).filter((id) => !paidIds.includes(id)), ...leftClaims.map((e) => e.id)];
+    const { leftIds } = await takeOnTurns(rewardsToPay(events, []), await ctx.phoneClaimsIn(events));
+    return leftIds;
   };
 
-  const takeOnPhone = async (events: ReceivedEvent[], since: number): Promise<void> => {
-    const sync = useSyncStore();
-    const isFromStart = since === 0;
-    if (isFromStart) await sync.markHistory();
-    const isFullPortal = sync.isFullPortal;
+  const takeOnPhone = async (events: ReceivedEvent[]): Promise<void> => {
+    const isFullPortal = useSyncStore().isFullPortal;
     if (isFullPortal) await takeEvents(events, []);
   };
 
