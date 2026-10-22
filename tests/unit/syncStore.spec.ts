@@ -173,6 +173,8 @@ jest.mock("@/lib/services/sync/familySyncClient", () => ({
 }));
 
 let mockSyncState: unknown = undefined;
+/** A save waits for this while it is set (a test holds a save on its way) */
+let mockSaveGate: Promise<void> | null = null;
 /** Every state the sync store saved, in order */
 const mockSyncSaves: SyncState[] = [];
 const mockClearSyncState = jest.fn();
@@ -184,6 +186,7 @@ jest.mock("@/lib/databases/SyncDb", () => {
     getSyncDb: () => ({
       getState: async () => actual.readSyncState(JSON.parse(JSON.stringify(mockSyncState ?? null))),
       saveState: async (state: SyncState) => {
+        await mockSaveGate;
         mockSyncState = JSON.parse(JSON.stringify(state));
         mockSyncSaves.push(JSON.parse(JSON.stringify(state)));
       },
@@ -360,6 +363,7 @@ describe("the sync store", () => {
     mockHeroDevice = null;
     mockSyncState = syncState({ firstPushDone: true, lastSeq: 5 });
     mockSyncSaves.length = 0;
+    mockSaveGate = null;
     mockStores = {};
     mockPays.length = 0;
     mockTakePhoneClaim.mockReset();
@@ -1261,7 +1265,7 @@ describe("the sync store", () => {
     expect(sent().map((record) => record.key)).toEqual(["q1"]);
   });
 
-  it("a borrowed turn is given back after a failed send, and again when the site did not hear it", async () => {
+  it("a borrowed turn stays here while its send fails, and is given back once the send goes; again when the site did not hear it", async () => {
     jest.useFakeTimers();
     const sync = await started();
     putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
@@ -1269,24 +1273,144 @@ describe("the sync store", () => {
       if (carriesHero) throw failWith(503);
       return acceptAll(auth, device, records);
     });
-    restHero.mockRejectedValueOnce(new TownHallError("offline"));
     write("__questLog", "q1", { id: "q1", userId: "h-1" });
     write("__beasts", "b1", { id: "b1" });
     await tick(5_000);
 
+    // the record did not reach the site: the turn is not given back, so no other device plays the hero without it
     expect(sent().map((record) => record.key)).toEqual(["b1", "q1"]);
-    expect(restHero).toHaveBeenCalledTimes(1);
-    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(restHero).not.toHaveBeenCalled();
+    expect(sync.holds("h-1")).toBe(true);
     expect(sync.state.outbox.map((item) => item.key)).toEqual(["q1"]);
 
-    // the pause after the failure ends: the give-back goes again first, then the hero's record on a new borrow
+    // the pause after the failure ends: the round sends the record on the turn still held here, then the rest owed gives
+    // the turn back; the site does not hear it the first time, so the same pass gives it back again
     putRecords.mockImplementation(acceptAll);
+    restHero.mockRejectedValueOnce(new TownHallError("offline"));
     await tick(5_000);
-    expect(restHero.mock.calls.map(([, heroId]) => heroId)).toEqual(["h-1", "h-1", "h-1"]);
-    expect(restHero.mock.invocationCallOrder[1]).toBeLessThan(playHero.mock.invocationCallOrder[1]);
     expect(sent().map((record) => record.key)).toEqual(["b1", "q1", "q1"]);
+    expect(restHero.mock.calls.map(([, heroId]) => heroId)).toEqual(["h-1", "h-1"]);
+    expect(putRecords.mock.invocationCallOrder[2]).toBeLessThan(restHero.mock.invocationCallOrder[0]);
     expect(sync.state.outbox).toEqual([]);
     expect(sync.turns["h-1"].state).toBe("resting");
+
+    // heard: nothing is owed any more
+    window.dispatchEvent(new Event("online"));
+    await drain();
+    expect(restHero).toHaveBeenCalledTimes(2);
+  });
+
+  it("a rest whose send fails keeps the hero held on the site, and sends then rests after the next good round", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    await sync.signIn("h-1");
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    putRecords.mockRejectedValueOnce(failWith(503));
+
+    await sync.rest("h-1");
+
+    expect(restHero).not.toHaveBeenCalled();
+    expect(sync.turns["h-1"]).toEqual({ state: "held", busy: null, provisional: false });
+    expect(sync.state.outbox.map((item) => item.key)).toEqual(["q1"]);
+
+    // the pause ends: the round sends the record, and the rest still owed gives the turn back after it
+    await tick(5_000);
+    expect(sent().map((record) => record.key)).toEqual(["q1", "q1"]);
+    expect(restHero).toHaveBeenCalledWith(PARENT, "h-1", OWN);
+    expect(putRecords.mock.invocationCallOrder[1]).toBeLessThan(restHero.mock.invocationCallOrder[0]);
+    expect(sync.turns["h-1"].state).toBe("resting");
+    expect(sync.state.outbox).toEqual([]);
+  });
+
+  it("a rest while a pause runs sends nothing and keeps the hero held; the player picking the hero again keeps it", async () => {
+    jest.useFakeTimers();
+    const sync = await started();
+    await sync.signIn("h-1");
+    // a family record's send fails: a pause starts
+    putRecords.mockRejectedValueOnce(failWith(503));
+    write("__beasts", "b1", { id: "b1" });
+    await tick(5_000);
+    expect(putRecords).toHaveBeenCalledTimes(1);
+
+    // the app goes to the background during the pause: nothing can go, so the turn stays here
+    write("__questLog", "q1", { id: "q1", userId: "h-1" });
+    await sync.rest("h-1");
+    expect(putRecords).toHaveBeenCalledTimes(1);
+    expect(restHero).not.toHaveBeenCalled();
+    expect(sync.holds("h-1")).toBe(true);
+
+    // the player is back on the hero before the pause ends: it plays on, and no rest is owed any more
+    expect(await sync.signIn("h-1")).toBe("granted");
+    await tick(5_000);
+    expect(sent().map((record) => record.key).sort()).toEqual(["b1", "b1", "q1"]);
+    expect(restHero).not.toHaveBeenCalled();
+    expect(sync.holds("h-1")).toBe(true);
+  });
+
+  it("a hero the site no longer knows ends its restored hold and is not asked about again", async () => {
+    jest.useFakeTimers();
+    mockSyncState = syncState({ firstPushDone: true, lastSeq: 5, turns: { "h-9": "held" } });
+    playHero.mockRejectedValue(failWith(404, "xp_family_no_hero"));
+    restHero.mockRejectedValue(failWith(404, "xp_family_no_hero"));
+    const sync = await started();
+    await drain();
+    expect(sync.turns["h-9"].state).toBe("resting");
+    const asked = playHero.mock.calls.length;
+    const givenBack = restHero.mock.calls.length;
+
+    write("__beasts", "b1", { id: "b1" });
+    await tick(5_000);
+    window.dispatchEvent(new Event("online"));
+    await drain();
+
+    expect(playHero.mock.calls.length).toBe(asked);
+    expect(restHero.mock.calls.length).toBe(givenBack);
+    const said = (debug.warn as jest.Mock).mock.calls.filter(([line]) => String(line).includes("hero h-9"));
+    expect(said).toHaveLength(1);
+  });
+
+  it("the saved turns follow the last change even while a save is still on its way", async () => {
+    const sync = await started();
+    await sync.signIn("h-1");
+    expect((mockSyncState as SyncState).turns).toEqual({ "h-1": "held" });
+
+    // the resting save is held on its way; meanwhile the hero is held again (the sync off: Play here plays locally)
+    const gate = held();
+    mockSaveGate = gate.promise;
+    await sync.rest("h-1");
+    mockPro.isPro = false;
+    await sync.takeOver("h-1");
+    expect(sync.holds("h-1")).toBe(true);
+    mockSaveGate = null;
+    gate.release();
+    await drain();
+
+    expect((mockSyncState as SyncState).turns).toEqual({ "h-1": "held" });
+  });
+
+  it("work still waiting on the lane when the device leaves the family does nothing afterwards", async () => {
+    const sync = await started();
+    const gate = held();
+    putRecords.mockImplementation(async (auth: unknown, device: string, records: WireRecord[]) => {
+      await gate.promise;
+      return acceptAll(auth, device, records);
+    });
+    write("__beasts", "b1", { id: "b1" });
+    const uploading = sync.upload();
+    await drain();
+    expect(putRecords).toHaveBeenCalledTimes(1);
+    fetchRecords.mockClear();
+    fetchRecords.mockResolvedValue([received("__beasts", "b2", 9)]);
+    const downloading = sync.download();
+
+    await sync.reset();
+    gate.release();
+    await uploading;
+    await downloading;
+    await drain();
+
+    expect(fetchRecords).not.toHaveBeenCalled();
+    expect(mockStores.__beasts?.b2).toBeUndefined();
   });
 
   // --- Fix round 1 ---

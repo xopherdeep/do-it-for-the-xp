@@ -5,8 +5,9 @@ import debug from "@/lib/utils/debug";
  * The borrowing pass of the hero's turn engine (sync/heroTurns.ts), run after every round: each hero whose records wait
  * on this device, whom this device does not play and is not signed in as, sends them on its free turn, borrowed through
  * `withTurn` and given back (busy: they keep waiting, and the holder's copies replace them as they land). Before the
- * borrowing, the pass settles two leftovers: a give-back the site did not hear is sent again, and the heroes held again
- * after a restart that the player is not on are rested (sent, then given back).
+ * borrowing, the pass settles three leftovers: the heroes held again after a restart that the player is not on are rested
+ * (sent, then given back), a rest kept held because its records did not reach the site is tried again, and a give-back
+ * the site did not hear is sent again (never for a hero whose records still wait: the borrowing sends them first).
  */
 export interface LendingContext {
   stateOf(heroId: string): TurnState;
@@ -20,6 +21,8 @@ export interface LendingContext {
   rest(heroId: string): Promise<void>;
   /** POST rest for a hero already resting here */
   giveBack(heroId: string): Promise<void>;
+  /** The rests kept held because the hero's records did not reach the site, tried again (sync/heroTurnRest.ts) */
+  retryRests(): Promise<void>;
 }
 
 export interface TurnLending {
@@ -42,12 +45,13 @@ export const createTurnLending = (ctx: LendingContext): TurnLending => {
   /** The pass running, so a second round joins it instead of borrowing the same hero twice */
   let lending: Promise<void> | null = null;
 
-  /** Gives back again what the site did not hear, for heroes still resting here */
+  /** Gives back again what the site did not hear, for heroes still resting here whose records have all gone */
   const payOwedRests = async (): Promise<void> => {
     for (const heroId of Array.from(owedRests)) {
       const isResting = ctx.stateOf(heroId) === "resting";
-      if (isResting) await ctx.giveBack(heroId);
-      else owedRests.delete(heroId);
+      const isUnsent = ctx.waiting().includes(heroId);
+      if (!isResting) owedRests.delete(heroId);
+      else if (!isUnsent) await ctx.giveBack(heroId);
     }
   };
 
@@ -70,6 +74,7 @@ export const createTurnLending = (ctx: LendingContext): TurnLending => {
 
   const lendPass = async (): Promise<void> => {
     await settleRestored();
+    await ctx.retryRests();
     await payOwedRests();
     for (const heroId of ctx.waiting()) {
       const isLendable = ctx.mayLend() && mayLendHero(heroId);

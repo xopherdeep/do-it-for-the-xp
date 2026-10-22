@@ -1,9 +1,7 @@
-import { familyProblem } from "@/lib/services/multiplayer/familyServer";
-import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
-import { playHero, restHero, type PlayAnswer } from "@/lib/services/sync/familySyncClient";
 import { initialTurn, maySend, turnReducer, type HeroTurn, type TurnEvent } from "@/lib/services/sync/heroTurn";
-import { TownHallError } from "@/lib/services/townhall/townHallClient";
 import debug from "@/lib/utils/debug";
+import { createTurnCalls } from "./heroTurnCalls";
+import { createTurnRests } from "./heroTurnRest";
 import type { HeroTurns, TurnAnswer, TurnContext } from "./heroTurnTypes";
 import { createTurnLending } from "./turnLending";
 
@@ -19,7 +17,9 @@ import { createTurnLending } from "./turnLending";
  *   back by a borrow, which then runs nothing; the player plays on as offline, its records waiting for the site.
  * - One ask per hero at a time: a sign-in joins an ask still waiting for its answer (an answered one is let finish, then
  *   looked at again), and a grant is given back only by the latest ask, and only when the hero is not held here.
- * - A rest uploads first; a sign-in meanwhile claims the hero and waits for it, and the rest then leaves it held.
+ * - A rest uploads first; a sign-in meanwhile claims the hero and waits for it, and the rest then leaves it held. A rest
+ *   never gives the turn back while the hero's records still wait here (sync/heroTurnRest.ts): the hero stays held, and
+ *   the rest is tried again after the next good round.
  * - A hold made offline (`provisional`) plays on, but its records go only once the site has confirmed it: every upload
  *   asks again first (`confirm`, from inside the lane), so a hiccup can never make the site refuse them as a takeover. A
  *   granted confirm first reads to the newest record (the hero's offline changes yield to copies written meanwhile); one
@@ -31,7 +31,8 @@ import { createTurnLending } from "./turnLending";
  *   rested by the first borrowing pass.
  * - After every round, each hero whose records wait here goes up on a borrowed free turn (`lendWaiting`, in
  *   sync/turnLending.ts, with the owed give-backs and the restored holds); the hero signed in here is never borrowed.
- * - A hero the site does not know and this device no longer has (removed) loses its queued records.
+ * - A hero the site does not know and this device no longer has (removed) loses its queued records, its hold and any
+ *   give-back owed (sync/heroTurnCalls.ts makes the two calls).
  *
  * Bound to the sync store the way the transfer is (sync/recordTransfer.ts; the context's shape is in heroTurnTypes.ts).
  * `upload`, `catchUp` and `flush` are the store's lane: never call `signIn`, `takeOver`, `rest` or `withTurn` from inside
@@ -39,34 +40,23 @@ import { createTurnLending } from "./turnLending";
  */
 export type { HeroTurns, TurnAnswer, TurnContext } from "./heroTurnTypes";
 
-type Answer = PlayAnswer | { answer: "offline" } | { answer: "unknown" };
-
 /** An ask in flight; `isAnswered` once the site's answer is in (a sign-in may join it only before) */
 interface AskInFlight {
   done: Promise<TurnAnswer>;
   isAnswered: boolean;
 }
 
-/** The site has no such hero (removed, or not registered yet) */
-const isUnknownHero = (error: unknown): boolean => error instanceof TownHallError && error.status === 404;
-
 export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
   /** heroId -> the ask in flight, so a second sign-in joins it */
   const asking = new Map<string, AskInFlight>();
   /** heroId -> the number of the latest ask: only that one may give a grant back */
   const askNumbers = new Map<string, number>();
-  /** heroId -> the rest in flight; a sign-in waits for it */
-  const resting = new Map<string, Promise<void>>();
-  /** heroId -> how many times the player claimed the hero: a rest that sees a new claim after its upload leaves it held */
-  const claims = new Map<string, number>();
   /** heroId -> the catch-up after a takeover; a sign-in waits for it */
   const catchingUp = new Map<string, Promise<void>>();
   /** heroId -> how many withTurn calls borrow the turn; a claim takes the hero for the player */
   const lent = new Map<string, number>();
   /** The hero the background rested, signed in again when the app is back */
   let restedByBackground: string | null = null;
-  /** Heroes the site did not know, said once */
-  const unknownSaid = new Set<string>();
   /** Offline holds the site has just granted, reading to the newest record: their changes yield to the copies that land */
   const yielding = new Set<string>();
   /** The borrowing pass, the owed give-backs and the heroes held again after a restart (sync/turnLending.ts) */
@@ -78,7 +68,20 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     withTurn: (heroId, fn) => withTurn(heroId, fn),
     rest: (heroId) => rest(heroId),
     giveBack: (heroId) => giveBack(heroId),
+    retryRests: () => rests.retryOwed(ctx.current()),
   });
+  /** POST play and POST rest (sync/heroTurnCalls.ts) */
+  const calls = createTurnCalls({
+    auth: () => ctx.auth(),
+    label: () => ctx.label(),
+    answered: () => ctx.answered(),
+    notPro: (error) => ctx.notPro(error),
+    hasHero: (heroId) => ctx.hasHero(heroId),
+    dropHero: (heroId) => ctx.dropHero(heroId),
+    owe: (heroId) => lending.owe(heroId),
+    forgive: (heroId) => lending.forgive(heroId),
+  });
+  const { ask, giveBack, failed } = calls;
 
   const turnOf = (heroId: string): HeroTurn => ctx.turns.value[heroId] ?? initialTurn();
   const stateOf = (heroId: string): HeroTurn["state"] => turnOf(heroId).state;
@@ -108,64 +111,22 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
 
   // --- The calls ---
 
-  /** A turn call failed: the hero plays on (local-first); offline is expected, anything else is logged */
-  const failed = (error: unknown): void => {
-    const found = familyProblem(error);
-    const isNotPro = found === "pro-required";
-    const isUnexpected = !isNotPro && found !== "offline";
-    if (isNotPro) ctx.notPro(error);
-    if (isUnexpected) debug.warn("sync: a turn call failed", error);
-  };
-
-  /** The site does not know the hero: a hero this device no longer has loses its queued records (said once) */
-  const unknownHero = async (heroId: string): Promise<void> => {
-    const isRemoved = !ctx.hasHero(heroId);
-    const isFirstTime = !unknownSaid.has(heroId);
-    unknownSaid.add(heroId);
-    if (isFirstTime) debug.warn(`sync: the site does not know hero ${heroId}${isRemoved ? "; its queued records are dropped" : "; its records wait"}`);
-    if (isRemoved) await ctx.dropHero(heroId);
-  };
-
-  /** POST play; a failure of any kind is an ask that could not be made (local-first: the hero plays on) */
-  const ask = async (heroId: string, force: boolean): Promise<Answer> => {
-    const auth = ctx.auth();
-    if (!auth) return { answer: "offline" };
-    try {
-      const { deviceId } = await ensureIdentity();
-      const answer = await playHero(auth, heroId, deviceId, ctx.label(), force);
-      ctx.answered();
-      return answer;
-    } catch (error) {
-      const isUnknown = isUnknownHero(error);
-      if (isUnknown) return { answer: "unknown" };
-      failed(error);
-      return { answer: "offline" };
-    }
-  };
-
-  /** POST rest: the site clears the turn only if this device holds it, so a late or repeated one is harmless */
-  const giveBack = async (heroId: string): Promise<void> => {
-    const auth = ctx.auth();
-    if (!auth) return;
-    try {
-      const { deviceId } = await ensureIdentity();
-      await restHero(auth, heroId, deviceId);
-      lending.forgive(heroId);
-    } catch (error) {
-      lending.owe(heroId);
-      failed(error);
-    }
-  };
-
   /** A busy answer: the player is asked (a busy turn keeps their changes until the answer), or a borrow simply rests */
   const heardBusy = (heroId: string, device: { label: string; lastSeenAt: string | null }, isBorrow: boolean): void => {
     dispatch(heroId, isBorrow ? { type: "signOut" } : { type: "busy", device });
   };
 
-  /** Granted, but the newest record could not be read: a borrow gives the turn back, the player holds it as offline */
+  /**
+   * Granted, but the newest record could not be read: the player holds it as offline. A borrow gives the turn back, unless
+   * the hero's records did not reach the site: then it holds it as offline too, and the rest is owed
+   */
   const behind = async (heroId: string, isBorrow: boolean): Promise<TurnAnswer> => {
-    dispatch(heroId, isBorrow ? { type: "signOut" } : { type: "offline" });
-    if (isBorrow) await giveBack(heroId);
+    const isUnsent = ctx.waiting().includes(heroId);
+    const mayGiveBack = isBorrow && !isUnsent;
+    dispatch(heroId, mayGiveBack ? { type: "signOut" } : { type: "offline" });
+    if (mayGiveBack) await giveBack(heroId);
+    const isLoanKept = isBorrow && isUnsent;
+    if (isLoanKept) rests.owe(heroId);
     return "offline";
   };
 
@@ -181,7 +142,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
       const answer = await ask(heroId, force);
       entry.isAnswered = true;
       const isUnknown = answer.answer === "unknown";
-      if (isUnknown) await unknownHero(heroId);
+      if (isUnknown) await calls.unknownHero(heroId);
       const isNoAnswer = isUnknown || answer.answer === "offline";
       if (isNoAnswer) {
         dispatch(heroId, isQuiet() ? { type: "signOut" } : { type: "offline" });
@@ -196,9 +157,10 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
       const isCaughtUp = isAsking() ? await ctx.catchUp() : true;
       const isWanted = isAsking();
       if (!isWanted) {
-        // Signed out meanwhile: the site must not think this device plays the hero, unless a later ask holds it here
+        // Signed out meanwhile: the site must not think this device plays the hero, unless a later ask holds it here or
+        // its records did not reach the site (the borrowing pass then sends them, and gives the turn back)
         const isLatest = askNumbers.get(heroId) === number;
-        const mayGiveBack = isLatest && !holds(heroId);
+        const mayGiveBack = isLatest && !holds(heroId) && !ctx.waiting().includes(heroId);
         if (mayGiveBack) await giveBack(heroId);
         return "granted";
       }
@@ -221,7 +183,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
 
   /** The player wants the hero here: a rest under way leaves it held, a borrow is not given back, an old rest is not owed */
   const claim = (heroId: string): void => {
-    claims.set(heroId, (claims.get(heroId) ?? 0) + 1);
+    rests.claim(heroId);
     lent.delete(heroId);
     lending.forgive(heroId);
   };
@@ -255,7 +217,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
   const signIn = async (heroId: string): Promise<TurnAnswer> => {
     if (!ctx.isOn()) return "granted";
     claim(heroId);
-    await resting.get(heroId);
+    await rests.inFlight(heroId);
     await catchingUp.get(heroId);
     return answerFor(heroId);
   };
@@ -275,38 +237,18 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
     else dispatch(heroId, { type: "offline" });
   };
 
-  /** Held: what waits goes up, the turn ends here (unless the player claimed it meanwhile), then the site is told */
-  const restNow = async (heroId: string): Promise<void> => {
-    const isHeldOnline = stateOf(heroId) === "held" && ctx.isOn();
-    if (!isHeldOnline) {
-      // Asking, busy (Not now: the holder's copies may land now), or the sync off: the hero simply rests here
-      dispatch(heroId, { type: "signOut" });
-      return;
-    }
-    const claimedAt = claims.get(heroId) ?? 0;
-    await ctx.upload();
-    const isClaimedAgain = (claims.get(heroId) ?? 0) !== claimedAt;
-    if (isClaimedAgain) return;
-    // Rested before the site hears it, so no upload can send a record the site would refuse as a takeover (and a busy
-    // the upload's confirm heard for a provisional hold ends here too: nothing is held back for a resting hero)
-    dispatch(heroId, { type: "signOut" });
-    await giveBack(heroId);
-  };
-
-  /** One rest per hero at a time; a second waits for the first (failed or not), then looks again */
-  const rest = (heroId: string): Promise<void> => {
-    const before = resting.get(heroId) ?? Promise.resolve();
-    const run = before.then(() => restNow(heroId));
-    // What waits on the rest (the next rest, a sign-in) never sees it fail
-    const settled = run.catch((error) => debug.warn("sync: could not rest the hero", error));
-    resting.set(heroId, settled);
-    const forgetRest = (): void => {
-      const isThisRest = resting.get(heroId) === settled;
-      if (isThisRest) resting.delete(heroId);
-    };
-    void settled.then(forgetRest);
-    return run;
-  };
+  /** Giving the turn back (sync/heroTurnRest.ts): never while the hero's records wait here */
+  const rests = createTurnRests({
+    stateOf: (heroId) => stateOf(heroId),
+    dispatch: (heroId, event) => dispatch(heroId, event),
+    isOn: () => ctx.isOn(),
+    upload: () => ctx.upload(),
+    waiting: () => ctx.waiting(),
+    giveBack: (heroId) => giveBack(heroId),
+    // Not now: the hero simply rests here, and the holder's copies land
+    decline: async (heroId) => dispatch(heroId, { type: "signOut" }),
+  });
+  const { rest } = rests;
 
   /** Ends a borrow: given back when nobody borrows the hero any more and the player has not claimed it */
   const returnLoan = async (heroId: string): Promise<void> => {
@@ -328,7 +270,7 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
       return true;
     }
     await catchingUp.get(heroId);
-    await resting.get(heroId);
+    await rests.inFlight(heroId);
     await asking.get(heroId)?.done;
     const isLent = lent.has(heroId);
     // An offline hold is not owned yet: the work waits until the site has confirmed it and this device has caught up
@@ -388,8 +330,15 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
       if (isCaughtUp) dispatch(heroId, { type: "granted" });
       // The offline play waits for the player's answer, never dropped before it
       if (isBusy) heardBusy(heroId, answer.device, false);
-      if (isUnknown) await unknownHero(heroId);
+      if (isUnknown) await forgetUnknown(heroId);
     }
+  };
+
+  /** A hold the site does not know the hero of: a hero removed here holds nothing any more, and is never asked again */
+  const forgetUnknown = async (heroId: string): Promise<void> => {
+    await calls.unknownHero(heroId);
+    const isRemoved = !ctx.hasHero(heroId);
+    if (isRemoved) dispatch(heroId, { type: "signOut" });
   };
 
   const lost = (heroIds: string[]): void => {
@@ -447,11 +396,11 @@ export const createHeroTurns = (ctx: TurnContext): HeroTurns => {
 
   const forget = (): void => {
     asking.clear();
-    resting.clear();
+    rests.forget();
     catchingUp.clear();
     lent.clear();
     lending.forget();
-    unknownSaid.clear();
+    calls.forget();
     restedByBackground = null;
     ctx.tookOverNotice.value = null;
   };

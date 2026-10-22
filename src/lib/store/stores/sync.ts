@@ -6,11 +6,7 @@ import { familyDeviceLabel } from "@/lib/services/multiplayer/deviceLink";
 import { familyProblem, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { storedTurnsOf, type HeroTurn, type TurnState } from "@/lib/services/sync/heroTurn";
-import { createLocalChanges } from "@/lib/services/sync/localChanges";
-import { readRawEntries } from "@/lib/services/sync/recordApply";
-import { onRecordWritten, onStoreRestored, type RecordWrite, type StoreRestored } from "@/lib/services/sync/recordSignals";
-import { heroIdOf, isSyncedStore, mayPhoneWrite } from "@/lib/services/sync/syncScopes";
-import { queueAll, type QueueRef } from "@/lib/services/sync/syncQueue";
+import { onRecordWritten, onStoreRestored } from "@/lib/services/sync/recordSignals";
 import { createWorkLane, type Work } from "@/lib/services/sync/workLane";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useFamilyStore } from "@/lib/store/stores/family";
@@ -18,6 +14,7 @@ import { useProStore } from "@/lib/store/stores/pro";
 import { useUserStore } from "@/lib/store/stores/user";
 import { getSavedUserId } from "@/lib/store/stores/user/session";
 import debug from "@/lib/utils/debug";
+import { createChangeCapture } from "./sync/changeCapture";
 import { createHeroTurns } from "./sync/heroTurns";
 import { createRecordTransfer } from "./sync/recordTransfer";
 import { createSyncPauses } from "./sync/syncPauses";
@@ -107,13 +104,18 @@ export const useSyncStore = defineStore("sync", () => {
     return loading;
   }
 
-  /** Saves a change; `startedIn` is the generation the work began in, and a reset since then drops the change */
+  /**
+   * Saves a change; `startedIn` is the generation the work began in, and a reset since then drops the change. A change
+   * that answers the very state it was given saves nothing
+   */
   function update(change: (current: SyncState) => SyncState, startedIn = generation): Promise<void> {
     const run = writing.then(async () => {
       const isStale = startedIn !== generation;
       if (isStale) return;
       await load();
       const next = change(state.value);
+      const isUnchanged = next === state.value;
+      if (isUnchanged) return;
       await getSyncDb().saveState(next);
       state.value = next;
     });
@@ -152,50 +154,15 @@ export const useSyncStore = defineStore("sync", () => {
     return mayGo ? syncAuth() : null;
   };
 
-  // --- Change capture ---
+  // --- Change capture (sync/changeCapture.ts) ---
 
-  const changes = createLocalChanges();
-
-  function queue(refs: QueueRef[]): void {
-    update((current) => ({ ...current, outbox: queueAll(current.outbox, refs, new Date()) }))
-      .then(() => uploadSoon())
-      .catch((error) => debug.warn("sync: could not queue a record", error));
-  }
-
-  /** A kid phone sends only what the site lets it write: its own hero's records and the chat */
-  const isRefusedOnPhone = (store: string, heroId: string | null): boolean => {
-    const phone = family.device;
-    return phone !== null && !mayPhoneWrite(store, heroId, phone.heroId);
-  };
-
-  /** A record was written here: a synced one goes in the outbox. An announced null is a removal, never a stored record */
-  function onWrite(write: RecordWrite): void {
-    const isCarried = isCapturing.value && isSyncedStore(write.store);
-    if (!isCarried) return;
-    const isRemoval = write.value === null || write.value === undefined;
-    const heroId = heroIdOf(write.store, write.key, isRemoval ? write.previous : write.value);
-    const isRefused = isRefusedOnPhone(write.store, heroId);
-    if (isRefused) return;
-    // Known at once, before anything awaits: a page landing meanwhile must not overwrite it
-    changes.touch(write.store, write.key);
-    queue([{ store: write.store, key: write.key, heroId }]);
-  }
-
-  /** A restore rewrote a store without announcing its records: all it holds now goes again, and each key it removed as a tombstone */
-  async function onRestored(restored: StoreRestored): Promise<void> {
-    const isCarried = isCapturing.value && isSyncedStore(restored.store);
-    if (!isCarried) return;
-    const { store, removedKeys, previous } = restored;
-    const held = await readRawEntries(store);
-    const refs = [
-      ...removedKeys.map((key) => ({ store, key, heroId: heroIdOf(store, key, previous?.get(key)) })),
-      ...held.map(({ key, value }) => ({ store, key, heroId: heroIdOf(store, key, value) })),
-    ].filter((ref) => !isRefusedOnPhone(ref.store, ref.heroId));
-    const hasNothing = refs.length === 0;
-    if (hasNothing) return;
-    refs.forEach((ref) => changes.touch(ref.store, ref.key));
-    queue(refs);
-  }
+  const capture = createChangeCapture({
+    isCapturing: () => isCapturing.value,
+    phoneHero: () => family.device?.heroId ?? null,
+    update: (change) => update(change),
+    queued: () => uploadSoon(),
+  });
+  const { changes } = capture;
 
   // --- Sending and reading: one lane (sync/recordTransfer.ts does the work) ---
 
@@ -253,7 +220,9 @@ export const useSyncStore = defineStore("sync", () => {
     }
   }
 
-  let lane = createWorkLane(runWork);
+  /** A lane of this generation: a job still waiting on it when a reset swaps the lane never starts */
+  const laneOf = (born: number) => createWorkLane((work) => (born === generation ? runWork(work) : Promise.resolve()));
+  let lane = laneOf(generation);
 
   /** Sends what waits */
   const upload = (): Promise<void> => lane.request("upload");
@@ -298,11 +267,14 @@ export const useSyncStore = defineStore("sync", () => {
     flush,
     // The pending claims a takeover drops unsent go again, phone-style (sync/verdicts.ts)
     dropHero: async (heroId) => verdicts.resendDropped(await transfer.dropHero(heroId)),
+    // Saved for a restart only when what a restart needs changed (held or not), never for each ask; worked out as the save
+    // runs, against what was saved before it, so a quick held, resting, held never leaves the middle one saved
     turnsChanged: () => {
-      // Saved for a restart only when what a restart needs changed (held or not), never for each ask
-      const kept = storedTurnsOf(turns.value);
-      const isSame = JSON.stringify(kept) === JSON.stringify(state.value.turns);
-      if (!isSame) update((current) => ({ ...current, turns: kept })).catch((error) => debug.warn("sync: could not save the turns", error));
+      update((current) => {
+        const kept = storedTurnsOf(turns.value);
+        const isSame = JSON.stringify(kept) === JSON.stringify(current.turns);
+        return isSame ? current : { ...current, turns: kept };
+      }).catch((error) => debug.warn("sync: could not save the turns", error));
     },
     answered: () => {
       succeeded();
@@ -382,10 +354,10 @@ export const useSyncStore = defineStore("sync", () => {
   }
 
   function listen(): void {
-    stops.push(onRecordWritten(onWrite));
+    stops.push(onRecordWritten(capture.onWrite));
     stops.push(
       onStoreRestored((restored) => {
-        onRestored(restored).catch((error) => debug.warn("sync: could not queue a restore", error));
+        capture.onRestored(restored).catch((error) => debug.warn("sync: could not queue a restore", error));
       })
     );
     // Turned on (a bind answered, a phone linked, Pro bought or back): the first push or pull, or a round; the hero signs in
@@ -444,7 +416,7 @@ export const useSyncStore = defineStore("sync", () => {
     changes.clear();
     transfer.forget();
     // A request still out for the old link must not hold up the new one
-    lane = createWorkLane(runWork);
+    lane = laneOf(generation);
     heroTurns.forget();
     turns.value = {};
     problem.value = null;
