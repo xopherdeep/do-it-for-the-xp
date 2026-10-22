@@ -78,17 +78,21 @@ SHOPS = {
         clerk="Francis the Rancher, a cheerful rancher with a wide brown cowboy hat, a bushy moustache, a plaid shirt and "
               "a leather vest, standing behind a wooden counter"),
     # Boobeedeedle's balloon has no room of its own: the shop draws the world he is visiting behind this picture, so
-    # the window is painted flat magenta and --install turns it see-through (see key_out_window)
+    # the window behind him is painted flat magenta and --install turns it see-through (see key_out_window). He stands
+    # centred behind his counter like every other clerk; the installed picture is take 2 of 2026-10-21.
     "traveling-merchant": dict(
         name="Traveling Merchant's Balloon", region="wherever he has landed today", cutout=True,
-        room="the inside of the wicker basket of a patched red-and-cream striped hot air balloon, seen from within: the "
-             "big striped balloon canopy and its burner hang across the top of the picture, thick rope rigging and wooden "
-             "posts run down both sides, a woven wicker basket wall and a plank counter run along the bottom, crates, "
-             "sacks, bottles, a brass telescope and a few hanging lanterns pile up in the lower corners. The whole open "
-             "middle of the picture, between the canopy, the rigging and the counter, is ONE flat solid pure magenta "
-             "(#FF00FF) window with no sky, no ground, no clouds, no horizon and no outline of its own",
-        clerk="Boobeedeedle, a plump cheerful peddler in flight goggles, a patched brown coat and a floppy hat, leaning on "
-              "the counter at the lower right corner of the picture, small, looking at the viewer"),
+        room="the inside of the wicker basket of a patched red-and-cream striped hot air balloon, seen from within as a tiny "
+             "flying shop: the big striped balloon canopy with its burner flame and rope rigging hangs across the top of the "
+             "picture, thick ropes and wooden posts run down both sides with warm hanging lanterns, and wicker shelves and "
+             "stacked crates, barrels, sacks, potion bottles, a brass telescope, rolled maps, a birdcage and bundles of goods "
+             "fill the left and right sides. A plank counter with goods on it runs across the lower middle and the woven "
+             "wicker basket wall and floor fill the bottom. The open space behind and above the shopkeeper, between the "
+             "canopy, the side rigging and the counter, is ONE flat solid pure magenta (#FF00FF) window with no sky, no "
+             "ground, no clouds, no horizon and no outline of its own",
+        clerk="Boobeedeedle, a plump cheerful peddler with a round red nose, flight goggles pushed up on a floppy brown hat, "
+              "a patched brown coat with many pockets and a big backpack of trinkets, standing in the middle of the picture "
+              "behind the plank counter, in front of the magenta window, looking at the viewer with a big grin"),
     # Home Town's general store; any shop without a picture of its own shows it too
     "hometown-market": dict(
         name="Hometown Market", region="Home Town", dest=os.path.join(ROOT, "src", "assets", "images", "midjourney", "shop.webp"),
@@ -109,7 +113,7 @@ SHOPS = {
 }
 
 CUTOUT_NOTE = """
-This picture is a FRAME that goes in front of another picture: keep the middle of the picture, between the canopy, the rigging and the counter, completely empty and flat pure magenta (#FF00FF) with hard edges. Do not paint anything in it, do not use magenta anywhere else, and put the shopkeeper at the edge as described, not in the middle. Ignore the instruction above about a shopkeeper in the middle and an open floor patch."""
+This picture is a FRAME that goes in front of another picture: the open space behind and above the shopkeeper, between the canopy, the side rigging and the counter, is completely empty flat pure magenta (#FF00FF) with hard edges. Paint no sky, clouds, ground or horizon in it, do not use magenta anywhere else, and keep the shopkeeper's outline crisp against it. The shopkeeper stays in the middle behind the counter as in the attached picture; the magenta window replaces the back wall and its shelves."""
 
 PROMPT = """The attached picture is the Snow Shack, a shop interior from our retro 16-bit SNES-era fantasy RPG for a portrait phone screen. Paint a NEW shop interior for the same game, the {name} in {region}.
 Match the attached picture exactly in: art style (crisp pixel art with the same pixel size, outlines, dithering and shading), the top-down three-quarter view, the level of detail, the warm lantern lighting and the composition: shelves and goods along the back wall and both sides, the shopkeeper in the middle of the picture behind a counter, curved or angled counters with goods at the lower left and lower right, and an open patch of floor at the bottom centre where the customer stands.

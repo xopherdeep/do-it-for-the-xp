@@ -126,7 +126,8 @@ const worldBackground = (world: string): string => {
   }
 };
 
-// Boobeedeedle's balloon: transparent where the world should show through (tools/art/merchant_frame.py)
+// Boobeedeedle's balloon: transparent where the world should show through (painted by tools/art/shop_interiors.py;
+// tools/art/merchant_frame.py draws a plain fallback)
 const MERCHANT_FRAME = require("@/assets/images/backgrounds/shops/traveling-merchant.webp");
 
 export default defineComponent({
