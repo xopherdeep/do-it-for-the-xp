@@ -184,7 +184,13 @@ export default defineComponent({
     gap: 0px 8px;
   }
 
-  // A phone-width box never grows to its widest row: the cells shrink and the text inside ellipsizes
+  // Inside a message box (borderless) the box already pads the sides: the columns take that room back for the labels
+  &:not(.rpg-box) .menu-grid {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  // A phone-width box never grows to its widest row: the cells shrink and a label wraps inside its cell
   .menu-item-col {
     min-width: 0;
   }
@@ -240,7 +246,7 @@ export default defineComponent({
     .item-inner {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       width: 100%;
       min-width: 0;
     }
@@ -262,11 +268,13 @@ export default defineComponent({
     }
 
     .item-label {
+      min-width: 0;
       max-width: 100%;
       font-family: "Apple Kid", sans-serif;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      // A label never loses a word: under a wide Game Style font it wraps to a second line (the row grows)
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.1;
       margin-top: 4px; // Slight adjustment for Earthbound font baseline
       letter-spacing: 2px;
     }

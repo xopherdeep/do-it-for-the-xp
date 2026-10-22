@@ -369,12 +369,20 @@ const onCenterTap = () => {
 .cluster-confirm {
   justify-content: center;
   padding-top: 38px;
+  // The long confirm labels (Keep fighting, Cheap Bribe (11 GP)) get every pixel the phone can spare,
+  // so a label only wraps when its font really is too wide for one line
+  padding-left: 4px;
+  padding-right: 4px;
 
+  // When even that is not enough (a wide pixel font), the right column, with its two long bribe labels, gives way first:
+  // Keep fighting keeps room to wrap between its two words instead of inside one
   .slot-left {
-    flex: 0 1 auto;
+    flex: 0 0.5 auto;
+    padding-right: 3px;
   }
   .slot-right {
     flex: 0 1 auto;
+    padding-left: 3px;
   }
 }
 
@@ -463,9 +471,11 @@ const onCenterTap = () => {
   .pill-label {
     margin: 0 4px;
     max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    // A label never loses a word: under a wide Game Style font it wraps to a second line (the pill grows)
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.05;
     font-weight: bold;
     text-shadow: var(--gs-text-shadow);
   }
