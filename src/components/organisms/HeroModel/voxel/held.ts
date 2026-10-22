@@ -137,9 +137,6 @@ const book = (): Box[] => [
   box(-1.6, 0.25, 0.6, 1.6, 0.55, 4.8, "#6b3fa0"),
   box(-1.65, -0.55, 0.6, -1.4, 0.55, 4.8, shade("#6b3fa0", 0.8)),
   box(-0.5, 0.55, 2.0, 0.5, 0.7, 3.4, GOLD),
-  // a gold clasp over the fore-edge: its strap lies on the label cover and its tongue fills the gap between the covers
-  box(1.0, 0.55, 2.4, 1.6, 0.65, 3.0, GOLD),
-  box(1.4, -0.25, 2.4, 1.6, 0.25, 3.0, GOLD),
 ];
 
 const hammer = (): Box[] => [
