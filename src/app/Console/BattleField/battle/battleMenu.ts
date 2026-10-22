@@ -41,6 +41,9 @@ export const DEFAULT_TACKLE_ICON = "fist-raised";
 export const tackleIcon = (jobClass: unknown): string =>
   (typeof jobClass === "string" && CLASS_WEAPON_ICONS[classKey(jobClass)]) || DEFAULT_TACKLE_ICON;
 
+/** The status slot each command reads; any other command has none. */
+const STATUS_SLOT_OF: Record<string, keyof BattleMenuStatus | undefined> = { attack: "tackle", powers: "powers", item: "goods" };
+
 /**
  * Puts the status of Tackle, Powers and Goods on the normal command layout: each gets its note and disabled flag,
  * and Tackle leads the list across both columns. Any other action, and a layout with no `attack` (the confirm pairs),
@@ -49,15 +52,12 @@ export const tackleIcon = (jobClass: unknown): string =>
 export const applyMenuStatus = (actions: BattleMenuAction[], status: BattleMenuStatus): BattleMenuAction[] => {
   if (!actions.some((action) => action.id === "attack")) return actions;
   return actions.map((action) => {
-    switch (action.id) {
-      case "attack":
-        return { ...action, fullWidth: true, note: status.tackle.note, disabled: !status.tackle.enabled };
-      case "powers":
-        return { ...action, note: status.powers.note, disabled: !status.powers.enabled };
-      case "item":
-        return { ...action, note: status.goods.note, disabled: !status.goods.enabled };
-      default:
-        return action;
-    }
+    const slotName = STATUS_SLOT_OF[action.id];
+    const hasNoStatus = slotName === undefined;
+    if (hasNoStatus) return action;
+    const slot = status[slotName];
+    const isTackle = action.id === "attack";
+    const leads = isTackle ? { fullWidth: true } : {};
+    return { ...action, ...leads, note: slot.note, disabled: !slot.enabled };
   });
 };
