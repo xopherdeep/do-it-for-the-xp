@@ -269,12 +269,17 @@ export default defineComponent({
       padding: 1px 6px;
       border-radius: 10px;
       background: var(--gs-danger);
-      color: #fff;
+      color: var(--gs-text);
       font-family: "StatusPlz", monospace;
       font-size: 0.75rem;
       line-height: 1.2rem;
       text-align: center;
       box-shadow: 0 0 0 2px var(--gs-window-color);
+    }
+
+    // The note already pushes itself to the edge; the badge follows it there
+    .item-note + .item-badge {
+      margin-left: 0;
     }
   }
 
