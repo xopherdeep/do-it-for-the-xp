@@ -46,7 +46,7 @@ const GENERIC_HELD = ["sword", "shield", "wand", "book", "axe", "hammer", "bow",
 describe("measureHero", () => {
   it("counts the default hero's boxes and quads and times the build", () => {
     const m = measureHero(DEFAULT_LOOK);
-    expect(m.boxes).toBe(46);
+    expect(m.boxes).toBe(52);
     expect(m.quads).toBeGreaterThan(400);
     expect(m.ms).toBeGreaterThanOrEqual(0);
     expect(Object.keys(m.parts).sort()).toEqual([...PART_NAMES].sort());
@@ -95,7 +95,7 @@ describe("pinned geometry", () => {
 });
 
 describe("head rules", () => {
-  it("keeps the head inside its block, ears to 3.9, nothing past z 4.0, paint at most 0.25 thick on the face", () => {
+  it("keeps the head inside its block, ears to 3.9, nothing past z 4.0, paint at most 0.25 thick and within x 3 of the face", () => {
     for (const skin of Object.keys(SKIN_TONES)) {
       for (const face of FACE_STYLES) {
         const boxes = head(skin as SkinTone, face, "#222233");
@@ -109,6 +109,8 @@ describe("head rules", () => {
         for (const box of boxes) {
           const isFacePaint = box.z >= HEAD.z - 1e-6 && box.d <= 0.25 + 1e-6;
           if (isFacePaint) expect(box.z + box.d).toBeLessThanOrEqual(HEAD.z + 0.5 + 1e-6);
+          // the block's vertical edges are cut by half a unit, so the face plane is 6 wide
+          if (isFacePaint) expect(Math.max(Math.abs(box.x), Math.abs(box.x + box.w))).toBeLessThanOrEqual(HEAD.x - 0.5 + 1e-6);
         }
       }
     }
@@ -141,6 +143,31 @@ describe("head rules", () => {
     for (const style of HAIR_STYLES) {
       for (const box of hair(style, "#aa5500", { covered: true })) expect(box.y + box.h).toBeLessThanOrEqual(14.5 + 1e-6);
     }
+  });
+});
+
+/** A box obeys the half-unit floor when its two larger sides are at least 0.5 and its smallest is at least 0.5 or at most 0.25 (paint) */
+const obeysFloor = (b: Box): boolean => {
+  const [a, mid] = [b.w, b.h, b.d].sort((p, q) => p - q);
+  const isMidWholeEnough = mid >= 0.5 - 1e-6;
+  const isSmallestOnGrid = a >= 0.5 - 1e-6 || a <= 0.25 + 1e-6;
+  return isMidWholeEnough && isSmallestOnGrid;
+};
+
+/** The labels of the boxes of `boxes` that break the floor, as `label#index` */
+const breaking = (boxes: Box[], label: string): string[] => boxes.flatMap((b, i) => (obeysFloor(b) ? [] : [`${label}#${i}`]));
+
+describe("half-unit floor", () => {
+  it("builds the head, every hair and every hat from half-unit boxes and quarter-unit paint", () => {
+    const offenders: string[] = [];
+    for (const face of FACE_STYLES) offenders.push(...breaking(head("peach", face, "#222233"), `head/${face}`));
+    for (const style of HAIR_STYLES) {
+      for (const covered of [false, true]) {
+        offenders.push(...breaking(hair(style, "#aa5500", { covered }), `hair/${style}${covered ? "/covered" : ""}`));
+      }
+    }
+    for (const style of HAT_STYLES) offenders.push(...breaking(hat(style, "#aa0000"), `hat/${style}`));
+    expect(offenders).toEqual([]);
   });
 });
 

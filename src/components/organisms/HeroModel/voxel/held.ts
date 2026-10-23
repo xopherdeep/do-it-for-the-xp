@@ -50,9 +50,13 @@ export const GEAR_BY_ICON: Record<string, GearKind> = {
 
 const STEEL = PALETTE.steel;
 const STEEL_D = shade(PALETTE.steel, 0.72);
+const EDGE = lighten(PALETTE.steel, 0.45);
 const WOOD = "#7a4a25";
 const WOOD_L = "#9a6a3a";
 const GOLD = PALETTE.gold;
+const GOLD_D = shade(PALETTE.gold, 0.75);
+/** Leather wraps, bindings and lashings round a wooden shaft */
+const WOOD_D = shade(WOOD, 0.6);
 
 /** Which shape an icon name asks for. Order matters: first match wins. */
 const KINDS: Array<[RegExp, HeldKind]> = [
@@ -93,6 +97,14 @@ const shield = (): Box[] => {
     out.push(box(-half + 0.5, y0 + (y0 === -2.5 ? 0.3 : 0), 1.75, half - 0.5, y1 - (y1 === 2.5 ? 0.5 : 0), 2.0, "#2f5fb3"));
   });
   out.push(box(-0.3, -1.3, 2.0, 0.3, 1.8, 2.2, GOLD), box(-1.1, 0.4, 2.0, 1.1, 1.0, 2.2, GOLD));
+  // gold studs riveted through the rim: the two top corners and the two shoulders, each a half-unit square
+  const studs: Array<[number, number]> = [
+    [-2.0, 2.0],
+    [1.5, 2.0],
+    [-1.75, 0.0],
+    [1.25, 0.0],
+  ];
+  studs.forEach(([x, y]) => out.push(box(x, y, 1.75, x + 0.5, y + 0.5, 2.0, GOLD)));
   out.push(box(-0.5, -0.5, 0.2, 0.5, 0.5, 1, WOOD));
   return out;
 };
@@ -100,7 +112,11 @@ const shield = (): Box[] => {
 const sword = (): Box[] => [
   box(-0.4, -0.4, -0.8, 0.4, 0.4, 1.2, WOOD),
   box(-0.5, -0.5, -1.2, 0.5, 0.5, -0.8, GOLD),
-  box(-1.6, -0.4, 1.2, 1.6, 0.4, 1.8, GOLD),
+  // the guard: a gold bar with darker half-unit tips, and a ruby set in its middle on the side the camera sees
+  box(-1.1, -0.4, 1.2, 1.1, 0.4, 1.8, GOLD),
+  box(-1.6, -0.4, 1.2, -1.1, 0.4, 1.8, GOLD_D),
+  box(1.1, -0.4, 1.2, 1.6, 0.4, 1.8, GOLD_D),
+  box(-0.25, -0.5, 1.25, 0.25, -0.4, 1.75, "#d83a3a"),
   box(-0.55, -0.3, 1.8, 0.55, 0.3, 6.6, STEEL),
   box(-0.12, -0.35, 1.8, 0.12, 0.35, 6.6, lighten(STEEL, 0.55)),
   box(-0.3, -0.25, 6.6, 0.3, 0.25, 7.4, STEEL),
@@ -108,6 +124,7 @@ const sword = (): Box[] => [
 
 const wand = (): Box[] => [
   box(-0.35, -0.35, -0.8, 0.35, 0.35, 4, WOOD),
+  box(-0.45, -0.45, 1.0, 0.45, 0.45, 1.5, WOOD_D), // a leather wrap above the fist
   box(-0.45, -0.45, 3.4, 0.45, 0.45, 3.8, GOLD),
   box(-0.7, -0.7, 4, 0.7, 0.7, 5.4, "#f2d34a"),
   box(-1.3, -0.3, 4.4, 1.3, 0.3, 5, "#f7e58a"),
@@ -125,6 +142,7 @@ const book = (): Box[] => [
 const hammer = (): Box[] => [
   box(-0.4, -0.4, -1, 0.4, 0.4, 4.8, WOOD),
   box(-0.5, -0.5, -1.1, 0.5, 0.5, -0.5, WOOD_L),
+  box(-0.5, -0.5, 3.7, 0.5, 0.5, 4.2, STEEL_D), // an iron collar under the head
   box(-1.6, -1, 4.2, 1.6, 1, 5.8, STEEL),
   box(-1.6, -1, 4.2, 1.6, -0.6, 5.8, STEEL_D),
 ];
@@ -132,9 +150,13 @@ const hammer = (): Box[] => [
 const axe = (): Box[] => [
   box(-0.4, -0.4, -1, 0.4, 0.4, 5.2, WOOD),
   box(-0.5, -0.5, -1.1, 0.5, 0.5, -0.5, WOOD_L),
+  box(-0.5, -0.5, 3.3, 0.5, 0.5, 3.8, WOOD_D), // the lashing under the head
   box(-0.7, -1.2, 3.8, 0.7, 1.2, 5.4, STEEL_D),
-  box(-0.4, 1.2, 4, 0.4, 2.2, 5.6, STEEL),
-  box(-0.4, -2.2, 3.8, 0.4, -1.2, 5.4, STEEL),
+  // each blade is a steel body with its honed edge, a lighter half-unit strip at the outer end
+  box(-0.4, 1.2, 4, 0.4, 1.7, 5.6, STEEL),
+  box(-0.4, 1.7, 4, 0.4, 2.2, 5.6, EDGE),
+  box(-0.4, -1.7, 3.8, 0.4, -1.2, 5.4, STEEL),
+  box(-0.4, -2.2, 3.8, 0.4, -1.7, 5.4, EDGE),
 ];
 
 const bow = (): Box[] => [
@@ -146,18 +168,23 @@ const bow = (): Box[] => [
   box(-0.3, -2.8, 1.2, 0.3, -1.6, 1.9, WOOD),
   box(-0.3, -3.5, 0.7, 0.3, -2.8, 1.3, WOOD),
   box(-0.08, -3.5, 0.5, 0.08, 3.5, 0.62, lighten("#e8d5a8", 0.3)),
+  // leather bindings where the limbs leave the riser, each lined up with the fist's top and bottom
+  box(-0.4, 0.6, 0.65, 0.4, 1.1, 1.5, WOOD_D),
+  box(-0.4, -1.15, 0.65, 0.4, -0.65, 1.5, WOOD_D),
 ];
 
 const potion = (): Box[] => [
   box(-0.9, -0.9, 0.8, 0.9, 0.9, 2.6, "#c54a8a"),
   box(-0.9, -0.9, 0.8, 0.9, 0.9, 1.2, lighten("#c54a8a", 0.3)),
   box(-0.45, -0.45, 2.6, 0.45, 0.45, 3.4, "#d9e7ee"),
+  box(-0.55, -0.55, 2.9, 0.55, 0.55, 3.4, "#f1e6c8"), // a string tied round the neck under the cork
   box(-0.55, -0.55, 3.4, 0.55, 0.55, 3.9, WOOD_L),
   box(-0.12, -0.95, 1.5, 0.12, -0.9, 2.2, "#ffffff"),
 ];
 
 const torch = (): Box[] => [
   box(-0.4, -0.4, -1, 0.4, 0.4, 3.8, WOOD),
+  box(-0.5, -0.5, 2.6, 0.5, 0.5, 3.1, WOOD_D), // a cord binding on the handle
   box(-0.7, -0.7, 3.8, 0.7, 0.7, 4.4, shade(WOOD, 0.7)),
   box(-0.7, -0.7, 4.4, 0.7, 0.7, 5.6, "#e3732c"),
   box(-0.4, -0.4, 5.6, 0.4, 0.4, 6.4, "#f7d34a"),

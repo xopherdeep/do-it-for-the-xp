@@ -39,6 +39,19 @@ export const box = (x0: number, y0: number, z0: number, x1: number, y1: number, 
   color,
 });
 
+/** How much a rounded block's vertical edges are cut away: half a unit, the smallest step a box may take */
+const CUT = 0.5;
+
+/**
+ * A block with its four vertical edges cut by half a unit, as three boxes that do not overlap: the middle at full depth
+ * and a stub beside it on each side. A stub's face against the middle is hidden and no top or bottom is drawn twice.
+ */
+export const cutBlock = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string): Box[] => [
+  box(x0 + CUT, y0, z0, x1 - CUT, y1, z1, color),
+  box(x0, y0, z0 + CUT, x0 + CUT, y1, z1 - CUT, color),
+  box(x1 - CUT, y0, z0 + CUT, x1, y1, z1 - CUT, color),
+];
+
 export const mirrorX = (boxes: Box[]): Box[] => boxes.map((b) => ({ ...b, x: -(b.x + b.w) }));
 /** The boxes plus their reflection across the x = 0 plane */
 export const both = (boxes: Box[]): Box[] => [...boxes, ...mirrorX(boxes)];
