@@ -1,3 +1,5 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
 // Battle Field page: the three-zone layout, the message box and the shared motion.
 // The beast, the hero card, the sheets (checklist, potions, Powers), the bag and the victory card style themselves.
 
@@ -99,28 +101,18 @@
     justify-content: center;
     position: relative; // for the more indicator
 
-    // Theme the inner Ionic components with a clear background and RPG yellow text
-    --ion-color-primary: transparent;
-    --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
-    --ion-color-primary-contrast: var(--ion-color-rpg);
-    --ion-color-primary-shade: transparent;
-    --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
-
-    border-radius: 1px;
-    box-shadow:
-      0 0 0 5px #383050, // medium purple
-      0 0 0 10px #68d0b8, // minty blue
-      0 0 0 12px #f7e8a8, // pale yellow
-      0 0 0 16px #3d3c55; // slate
-    background-color: #280828; // dark purple
-    color: var(--ion-color-rpg); // rpg yellow text
+    // The window, frame, radius and text come from the Game Style tokens
+    @include eb-box();
+    color: var(--gs-text);
 
     .dialog-content {
-      font-family: "Apple Kid", "StatusPlz", monospace;
-      font-size: 1.55rem;
+      font-family: var(--gs-font);
+      font-size-adjust: var(--gs-font-adjust, none);
+      // 1.55rem from 414px wide; smaller phones scale the type down to 1.2rem at 320px so a line keeps its words
+      font-size: clamp(1.2rem, 6vw, 1.55rem);
       line-height: 1.45;
       padding-right: 22px;
-      max-height: 260px;
+      max-height: min(260px, 30vh); // a long line scrolls inside the box instead of pushing the arena away
       overflow-y: auto;
       cursor: pointer;
       // Tapping the box never selects text or zooms
@@ -156,7 +148,7 @@
       right: 15px;
       font-size: 20px;
       animation: bounce 0.5s infinite alternate;
-      color: var(--ion-color-rpg);
+      color: var(--gs-accent);
     }
 
     // A hint or a question above the command menu
@@ -165,7 +157,8 @@
       font-family: "StatusPlz", monospace;
       font-size: 1.15rem;
       letter-spacing: 1px;
-      color: #e7e6b3;
+      color: var(--gs-accent);
+      text-shadow: var(--gs-text-shadow);
       opacity: 0.9;
     }
 
@@ -188,6 +181,99 @@
 
     > * {
       pointer-events: auto;
+    }
+  }
+}
+
+// ============================================
+// Short phones (iPhone 8 / SE, 360x640 Androids): the hero card, the box and the menu rows tighten so the beast
+// keeps a real size. Widths are handled by the fluid type above and by the radial menu itself.
+// ============================================
+@media (max-height: 700px) {
+  .battlefield {
+    .battle-ui-container .battle-zone {
+      &--hero {
+        padding: 8px 20px 4px;
+
+        // One rule for every Game Style's card (battleHud.scss sizes them differently): draw it at 85%
+        .battle-hero-card {
+          zoom: 0.85;
+        }
+      }
+
+      &--actions {
+        min-height: 150px;
+      }
+    }
+
+    .battle-dialog {
+      margin: 12px 20px 18px;
+      padding: 10px 16px 12px;
+      min-height: 80px;
+
+      .dialog-prompt {
+        margin-bottom: 4px;
+      }
+
+      .dialog-menu .menu-item {
+        min-height: 46px;
+      }
+    }
+  }
+}
+
+@media (max-height: 600px) {
+  .battlefield {
+    .battle-ui-container .battle-zone--hero .battle-hero-card {
+      zoom: 0.78;
+    }
+
+    // The arena gives 20px, so the retro skin's three menu rows (with their notes) still end above the edge
+    .battle-ui-container .battle-zone--middle {
+      min-height: 160px;
+    }
+
+    .battle-dialog {
+      .dialog-content {
+        max-height: 24vh;
+      }
+
+      .dialog-menu .menu-item {
+        min-height: 42px;
+      }
+    }
+  }
+}
+
+// 320px phones: the retro list's auto columns measure 13 characters of the label font against a 120px track floor and
+// fall to one column (five rows) under 360px. The box takes 12px side margins and padding (256px inside, its rings
+// 4px from the screen edge) and the rows' type steps down to 1.2rem, so two 120px tracks and their gap fit again.
+@media (max-width: 359px) {
+  .battlefield .battle-dialog {
+    width: calc(100% - 24px);
+    margin-left: 12px;
+    margin-right: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+
+    .dialog-menu {
+      .menu-grid,
+      .menu-item {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+// A phone held sideways (the web build cannot lock the orientation): the three zones no longer fit one screen,
+// so the page scrolls instead of hiding the command menu below the edge.
+@media (orientation: landscape) and (max-height: 520px) {
+  .battlefield {
+    overflow-y: auto;
+
+    .battle-ui-container {
+      height: auto;
+      min-height: 100%;
     }
   }
 }

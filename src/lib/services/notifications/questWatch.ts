@@ -4,6 +4,8 @@ import { effectiveDeadline, isSchedulePaused } from "@/lib/engine/quests/QuestSc
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { useSyncStore } from "@/lib/store/stores/sync";
+import { heroesToWatch, isHeroWatched } from "@/lib/services/sync/watchGate";
 import debug from "@/lib/utils/debug";
 import { byClockCopy, questBoardLink, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
@@ -12,6 +14,10 @@ import { chargeLatePenalties, latePenaltyNotification, lockedNoticesFor } from "
 import { scheduleDueReminders } from "./deviceReminders";
 import { runWeeklyRecapWatch } from "./weeklyRecapWatch";
 import type { DueReminder, ReminderResult } from "./deviceReminders";
+
+// The gate lives in a pure module (the encounter guard reads it too); the watch's callers keep importing it from here
+export { heroesToWatch } from "@/lib/services/sync/watchGate";
+export type { WatchTurns } from "@/lib/services/sync/watchGate";
 
 /**
  * The quest watch: what on the hero's board deserves a nudge right now. The portal shell runs it on
@@ -105,17 +111,23 @@ export interface QuestWatchRun {
  * Book the phone's reminders for one hero's open quests that still lie ahead, and take back the ones for quests no
  * longer ahead. Reads the board only (no feed notes, no penalties), so the app shell can run it for every hero on the
  * device whether or not that hero's portal is open. Idempotent: the same hero and quest keep the same device id.
+ * With Family Sync on, the hero signed in here keeps their reminders unless the device knows another device holds them
+ * (isHeroWatched: busy, or taken over), because their turn passes through resting and asking on every hide and show of
+ * the app; any other hero on the device is booked only while this device holds their turn. A hero the device does not
+ * watch rings on the device that does: nothing is booked here for them and what was booked before is taken back.
  */
 export const bookHeroReminders = async (heroId: string, now: Date = new Date()): Promise<ReminderResult> => {
   const id = String(heroId);
-  const effects = useUserStore().getUserById(id)?.questEffects as HeroQuestEffects | undefined;
+  const userStore = useUserStore();
+  const isWatched = isHeroWatched(id, useSyncStore(), userStore.currentUser?.id);
+  if (!isWatched) return scheduleDueReminders(id, [], now);
+  const effects = userStore.getUserById(id)?.questEffects as HeroQuestEffects | undefined;
   const board = await getQuestEngine().getQuestBoardForUser(id, now, undefined, effects);
   return scheduleDueReminders(id, remindersOf(board, effects, now, id), now);
 };
 
-/** One pass of the watch for a hero: read the board, push what is due into the feed. */
-export const runQuestWatch = async (heroId: string, now: Date = new Date()): Promise<QuestWatchRun> => {
-  const id = String(heroId);
+/** One hero's board read and pushed into the feed: overdue and due-soon notes, late penalties, the weekly recap. */
+const watchHeroBoard = async (id: string, now: Date): Promise<number> => {
   const userStore = useUserStore();
   const notifications = useNotificationsStore();
   const effects = userStore.getUserById(id)?.questEffects as HeroQuestEffects | undefined;
@@ -136,6 +148,18 @@ export const runQuestWatch = async (heroId: string, now: Date = new Date()): Pro
   }
   const isRecapPushed = await runWeeklyRecapWatch(id, now);
   if (isRecapPushed) pushed += 1;
+  return pushed;
+};
+
+/**
+ * One pass of the watch for a hero: read the board, push what is due into the feed. With Family Sync on, a hero this
+ * device does not hold is left to the device that does (heroesToWatch): no penalty, no alert, no recap from here.
+ * The sweep of old claim photos is the device's own and runs either way.
+ */
+export const runQuestWatch = async (heroId: string, now: Date = new Date()): Promise<QuestWatchRun> => {
+  const id = String(heroId);
+  const isWatched = heroesToWatch([id], useSyncStore()).length > 0;
+  const pushed = isWatched ? await watchHeroBoard(id, now) : 0;
   await runClaimPhotoPurge(now.getTime());
   return { pushed };
 };

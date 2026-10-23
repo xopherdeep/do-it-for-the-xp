@@ -3,6 +3,7 @@ import { join } from "path";
 import {
   MAX_NOTE_LENGTH,
   awardAmounts,
+  awardEach,
   awardResult,
   canAward,
   gmGpNote,
@@ -107,5 +108,21 @@ describe("the sheet", () => {
   it("hands the award result back when it closes", () => {
     expect(sheet).toContain("modalController.dismiss(result)");
     expect(sheet).toContain("gmGpNote(gp, this.notes)");
+  });
+
+  it("awards each hero on the hero's turn, and leaves out a hero whose turn another device holds", async () => {
+    const awarded: string[] = [];
+    const writeHero = jest.fn(async (heroId: string, fn: () => Promise<void>) => {
+      const isPlayedElsewhere = heroId === "h-2";
+      if (isPlayedElsewhere) return false;
+      await fn();
+      return true;
+    });
+
+    const done = await awardEach(["h-1", "h-2", "h-3"], async (heroId) => void awarded.push(heroId), writeHero);
+
+    expect(done).toEqual(["h-1", "h-3"]);
+    expect(awarded).toEqual(["h-1", "h-3"]);
+    expect(sheet).toContain("awardEach(");
   });
 });

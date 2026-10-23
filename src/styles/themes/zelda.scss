@@ -32,6 +32,10 @@ ion-app#zelda {
 
   --gs-divider: rgba(80, 104, 168, 0.55);
   --gs-select: rgba(248, 208, 48, 0.10);
+  --gs-good: #48b048;
+  --gs-danger: #e83030;
+  --gs-button: #203060;
+  --gs-button-edge: #000000;
   --gs-cursor: #{$gs-heart-cursor};
   --gs-cursor-w: 16px;
   --gs-cursor-h: 14px;

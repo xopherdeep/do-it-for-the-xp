@@ -1,4 +1,5 @@
 @use "sass:color";
+@use "gameStyle" as *;
 // Earthbound Theme Variables
 
 // Fonts
@@ -34,6 +35,34 @@ $eb-color-white: #ffffff;
   --ion-color-contrast-rgb: var(--ion-color-rpg-contrast-rgb);
   --ion-color-shade: var(--ion-color-rpg-shade);
   --ion-color-tint: var(--ion-color-rpg-tint);
+}
+
+// Earthbound sets the same Game Style tokens as the other themes, with the values its boxes have always used
+ion-app#earthbound {
+  --gs-font: "Apple Kid", "StatusPlz", sans-serif;
+  --gs-font-title: "Apple Kid", "Twoson", sans-serif;
+  --gs-text: #{$eb-color-cream};
+  --gs-text-dim: rgba(231, 230, 179, 0.6);
+  --gs-accent: #{$eb-color-pale-yellow};
+  --gs-text-shadow: none;
+  --gs-page-color: #{$eb-color-dark-purple};
+  --gs-page: #{$eb-color-dark-purple};
+  --gs-window-color: #{$eb-color-dark-purple};
+  --gs-window: #{$eb-color-dark-purple};
+  --gs-radius: 1px;
+  --gs-frame: 0 0 0 5px #{$eb-color-medium-purple}, 0 0 0 10px #{$eb-color-minty-blue}, 0 0 0 12px #{$eb-color-pale-yellow}, 0 0 0 16px #{$eb-color-slate};
+  --gs-bar: #{$eb-color-slate};
+  --gs-bar-frame: var(--gs-frame);
+  --gs-bar-frame-top: var(--gs-frame);
+  --gs-divider: rgba(231, 230, 179, 0.15);
+  --gs-select: rgba(231, 230, 179, 0.08);
+  --gs-cursor: #{gs-arrow-cursor("f7e8a8")};
+  --gs-cursor-w: 8px;
+  --gs-cursor-h: 12px;
+  --gs-good: #{$eb-color-mint-green};
+  --gs-danger: #ff4a4a;
+  --gs-button: #4a2a4a;
+  --gs-button-edge: #1a0a1a;
 }
 
 // Mixins

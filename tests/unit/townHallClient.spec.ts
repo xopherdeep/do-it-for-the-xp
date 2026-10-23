@@ -54,6 +54,19 @@ describe("townHallClient", () => {
     expect(init.body).toBe(JSON.stringify({ post: 1 }));
   });
 
+  it("puts JSON", async () => {
+    const fetchImpl = jest.fn(async (_url: string, _init?: RequestInit) => reply(200, {}));
+    await townHallFetch("xp-family/v1/records", {
+      root: ROOT,
+      method: "PUT",
+      body: { records: [] },
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const init = fetchImpl.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe("PUT");
+    expect(init.body).toBe(JSON.stringify({ records: [] }));
+  });
+
   it("sends the auth headers it was given", async () => {
     const fetchImpl = jest.fn(async (_url: string, _init?: RequestInit) => reply(200, {}));
     await townHallFetch("wp/v2/users/me", {

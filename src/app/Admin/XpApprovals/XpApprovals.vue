@@ -47,6 +47,7 @@
             :entry="entry"
             :hero-name="heroName(entry.userId)"
             :avatar="heroAvatar(entry.userId)"
+            :sent-line="sentLine(entry)"
             @approve="approveItem"
             @reject="rejectItem"
           />
@@ -113,6 +114,8 @@
         </ion-list>
       </template>
     </ion-content>
+    <!-- Family Sync: the clerk says when a purchase's hero is played on another device, and nothing was changed -->
+    <xp-hero-write-gate ref="heroGate" />
   </ion-page>
 </template>
 
@@ -131,7 +134,10 @@
   import ApprovalPhoto from "./components/ApprovalPhoto.vue";
   import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
   import ApprovalPurchaseRow from "./components/ApprovalPurchaseRow.vue";
+  import XpHeroWriteGate from "@/components/organisms/HeroWriteGate/XpHeroWriteGate.vue";
+  import { saveHeroEdit, type HeroWriteGate } from "@/hooks/useHeroWrite";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
+  import { useSentVerdicts } from "./useSentVerdicts";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
   import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
@@ -182,11 +188,19 @@
       ApprovalPhoto,
       ApprovalClaimRow,
       ApprovalPurchaseRow,
+      XpHeroWriteGate,
     },
     setup() {
       const userStore = useUserStore();
       // Follows the profile's Retro / Modern toggle, like the other phone apps
       const { rootClass, rootStyle } = useAppSkin("quests");
+      // A verdict on a hero another device holds goes to that device (family sync); the row says so until it is applied,
+      // then the claims are read again
+      const sentLineOf = useSentVerdicts(() => void loadApprovals());
+      // A purchase is fulfilled or refunded on its hero's turn (family sync): not at all while another device plays the hero
+      const heroGate = ref<HeroWriteGate | null>(null);
+      const writeHero = (heroId: string, change: () => Promise<void>): Promise<boolean> =>
+        saveHeroEdit(heroGate.value ?? undefined, heroId, change);
       const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
       const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
         "achievements"
@@ -233,6 +247,9 @@
           return ""; // avatar file missing; the template falls back to an icon
         }
       };
+
+      /** The line for a claim whose verdict went to the device holding the hero's turn; "" while it waits on this Game Master */
+      const sentLine = (entry: QuestLogEntry): string => sentLineOf(entry, heroName(entry.userId));
 
       const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -405,7 +422,9 @@
           reviewing.delete(entry.id);
         }
         await loadApprovals();
-        void showToast(outcome.message, outcome.color);
+        // A verdict sent to the hero's device has no toast: its row says so
+        const hasMessage = outcome.message !== "";
+        if (hasMessage) void showToast(outcome.message, outcome.color);
       };
 
       const unsettled = (reason: Extract<ReviewOutcome, { ok: false }>["reason"]): ReviewMessage =>
@@ -443,6 +462,7 @@
                   const isUnsettled = !result.ok;
                   if (isUnsettled) return unsettled(result.reason);
                   play$fx("select");
+                  if (result.remote) return { message: "" };
                   return {
                     message: `Approved! ${hero} earned ${result.line}`,
                   };
@@ -480,6 +500,7 @@
                   const result = await rejectClaim(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
                   const isUnsettled = !result.ok;
                   if (isUnsettled) return unsettled(result.reason);
+                  if (result.remote) return { message: "" };
                   return {
                     message: `Sent back. "${entry.questName}" is open again for ${hero}.`,
                     color: "medium",
@@ -509,9 +530,13 @@
               text: "Fulfil",
               handler: () => {
                 void runReview(entry, async () => {
-                  let fulfilled: PurchaseLogEntry | null;
+                  const done: { entry: PurchaseLogEntry | null } = { entry: null };
                   try {
-                    fulfilled = await fulfillPurchase(entry.id, userStore.currentUser.id ?? undefined);
+                    const isWritten = await writeHero(entry.userId, async () => {
+                      done.entry = await fulfillPurchase(entry.id, userStore.currentUser.id ?? undefined);
+                    });
+                    // The clerk said why: another device plays the hero
+                    if (!isWritten) return { message: "" };
                   } catch (error) {
                     // A held game item that has no room in the bag stays waiting, and says why
                     const isBagFull = error instanceof PurchaseError && error.code === "bag-full";
@@ -520,7 +545,7 @@
                     if (isPurchaseRefusal) return { message: error.message, color: "warning" };
                     throw error;
                   }
-                  const isFulfilled = fulfilled?.status === "fulfilled";
+                  const isFulfilled = done.entry?.status === "fulfilled";
                   if (!isFulfilled) {
                     return {
                       message: "That purchase is no longer waiting for delivery.",
@@ -570,11 +595,13 @@
               handler: (data) => {
                 const note = String(data?.note ?? "").trim();
                 void runReview(entry, async () => {
-                  const refunded = await refundPurchase(
-                    entry.id,
-                    userStore.currentUser.id ?? undefined,
-                    note || undefined
-                  );
+                  const done: { entry: PurchaseLogEntry | null } = { entry: null };
+                  const isWritten = await writeHero(entry.userId, async () => {
+                    done.entry = await refundPurchase(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
+                  });
+                  // The clerk said why: another device plays the hero
+                  if (!isWritten) return { message: "" };
+                  const refunded = done.entry;
                   const isRefunded = refunded?.status === "refunded";
                   if (!isRefunded) {
                     return {
@@ -595,6 +622,7 @@
       };
 
       return {
+        heroGate,
         rootClass,
         rootStyle,
         activeSegment,
@@ -604,6 +632,7 @@
         historyRows,
         heroName,
         heroAvatar,
+        sentLine,
         formatDate,
         approveItem,
         rejectItem,
