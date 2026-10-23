@@ -32,6 +32,9 @@ function mountTab(schedule: Record<string, unknown>) {
       provide: {
         [Symbol.for("mock-achievement-form") as unknown as string]: {
           achievement,
+          // The ambush hint under the due time reads the family's quests and heroes
+          achievements: ref([]),
+          users: ref([]),
           startsModalOpen: ref(false),
           endsModalOpen: ref(false),
           dueModalOpen: ref(false),
