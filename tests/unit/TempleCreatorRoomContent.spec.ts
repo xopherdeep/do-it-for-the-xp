@@ -193,6 +193,18 @@ describe("seedTravelTargets", () => {
     }
   });
 
+  it("clears the old seed of a pit too: a pit never drops to its own floor", () => {
+    const content: RoomContent = { targetLevel: "2F", targetCoords: { x: 0, y: 0 } };
+    seedTravelTargets(content, "pit", "2F");
+    expect(content).toEqual({});
+  });
+
+  it("leaves a pit's target on a lower floor alone: a classic dungeon's hole names where it drops", () => {
+    const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 0, y: 0 } };
+    seedTravelTargets(content, "pit", "2F");
+    expect(content).toEqual({ targetLevel: "1F", targetCoords: { x: 0, y: 0 } });
+  });
+
   it("keeps the cell a Game Master picked when it clears the own-floor target of a stairs room", () => {
     const content: RoomContent = { targetLevel: "1F", targetCoords: { x: 2, y: 1 } };
     seedTravelTargets(content, "stairs-up", "1F");
@@ -364,6 +376,17 @@ describe("contentAfterTypeChange", () => {
     const monster: RoomContent = { beasts: ["b1"], xp: 100, gp: 10, ap: 1, difficulty: "hard", lockOnEnter: true, quest, questId: "q1" };
     expect(contentAfterTypeChange("monster", "miniboss", monster)).toEqual(monster);
     expect(contentAfterTypeChange("miniboss", "monster", monster)).toEqual(monster);
+  });
+
+  it("keeps what a beast drops between combat rooms, so a retype or a quest swap to another tier does not wipe it", () => {
+    const drops = { chest: "dungeon", dungeon: "master-key", items: ["Bomb"], gold: 30 };
+    const monster: RoomContent = { beasts: ["b1"], drops };
+    expect(contentAfterTypeChange("monster", "miniboss", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("miniboss", "monster", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("monster", "boss", monster).drops).toEqual(drops);
+    expect(contentAfterTypeChange("boss", "monster", monster).drops).toEqual(drops);
+    // ...and it never rides into a room that does not fight
+    expect(contentAfterTypeChange("monster", "loot", monster)).not.toHaveProperty("drops");
   });
 
   it("seals a boss and lets go of the seal when the room stops being one: the boss template put it there, not the Game Master", () => {

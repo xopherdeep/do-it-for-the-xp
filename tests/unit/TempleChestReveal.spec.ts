@@ -380,6 +380,44 @@ describe("TempleChestReveal", () => {
     });
   });
 
+  describe("a beast's drop (whole)", () => {
+    const drop = chestLoot({ chest: "dungeon", dungeon: "key", gold: 12 }).map((row) => ({ ...row, checked: true }));
+
+    it("comes with every row ticked, whatever the rows say, and takes them all", async () => {
+      const reveal = show({ loot: chestLoot({ chest: "dungeon", dungeon: "key", gold: 12 }), whole: true });
+      await playOut(reveal);
+
+      expect(reveal.findAll(".loot-row.is-picked")).toHaveLength(2);
+      expect(reveal.get('[data-cy="chest-take"]').text()).toBe("Take all");
+
+      await reveal.get('[data-cy="chest-take"]').trigger("click");
+      expect(reveal.emitted("take")).toEqual([[["key", "gold:12"]]]);
+    });
+
+    it("offers no unticking: a tap on a row changes nothing and the rows say they cannot be toggled", async () => {
+      const reveal = show({ loot: drop, whole: true });
+      await playOut(reveal);
+
+      await reveal.get('[data-cy="chest-loot-key"]').trigger("click");
+
+      expect(reveal.findAll(".loot-row.is-picked")).toHaveLength(2);
+      expect(reveal.get('[data-cy="chest-loot-key"]').attributes("aria-disabled")).toBe("true");
+      expect(reveal.get('[data-cy="chest-take"]').text()).toBe("Take all");
+      await reveal.get('[data-cy="chest-take"]').trigger("click");
+      expect(reveal.emitted("take")).toEqual([[["key", "gold:12"]]]);
+    });
+
+    it("leaves an ordinary chest as it was: rows still untick", async () => {
+      const reveal = show({ loot: drop });
+      await playOut(reveal);
+
+      await reveal.get('[data-cy="chest-loot-key"]').trigger("click");
+
+      expect(reveal.findAll(".loot-row.is-picked")).toHaveLength(1);
+      expect(reveal.get('[data-cy="chest-loot-key"]').attributes("aria-disabled")).toBeUndefined();
+    });
+  });
+
   describe("an empty chest", () => {
     it("opens by itself, showing the open empty chest, with only Leave", async () => {
       const reveal = show({ loot: [] });

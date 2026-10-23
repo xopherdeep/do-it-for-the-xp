@@ -40,7 +40,7 @@ import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
 import { getTempleWorldLocation, useTempleMeta } from './templeGrounds/useTempleMeta';
 import { useTempleLayout } from './templeGrounds/useTempleLayout';
 import { useTempleEntry } from './templeGrounds/useTempleEntry';
-import { useChestReveal, useChoiceReveal, useDoorReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
+import { useChestReveal, useChoiceReveal, useDoorReveal, useDropReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
@@ -156,11 +156,13 @@ export default defineComponent({
       stepTo,
       isDoorLocked,
       claimChestItems,
+      claimDropItems,
       handleTeleport,
       toggleMap,
       showTempleMessage,
       registerMessageDisplay,
       chestContents,
+      dropContents,
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
@@ -254,10 +256,11 @@ export default defineComponent({
         currentRoom,
         showTempleMessage,
         claimChestItems,
+        claimDropItems,
         showTempleCleared,
         setHushMessages
       });
-    const { isChestOpen, chestLootShown, isChestClosed } = chest;
+    const { showDropReveal } = useDropReveal({ chest, dropContents });
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
     const { isCombatRoomCleared, isLootSearched, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
@@ -297,6 +300,7 @@ export default defineComponent({
       showTempleCleared,
       showChestContentsDialog,
       showEmptyChest,
+      showDropReveal,
       openChoiceReveal,
       beastCard,
       activeMonster,
@@ -361,9 +365,9 @@ export default defineComponent({
       isEquipmentOpen.value = true;
     };
 
-    // What happens as the hero walks in: the blood moon notice and each floor's first wake, told in the game's own prompt
+    // What happens as the hero walks in: the blood moon notice, each floor's first wake, a won fight's drop on the battle return
     const entry = { temple: props.temple, heroId: progressHeroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx };
-    const { floorWakePrompt, answerFloorWake } = useTempleEntry(entry);
+    const { floorWakePrompt, answerFloorWake } = useTempleEntry({ ...entry, returnsTo: startPosition, liveContext, showDropReveal });
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {
@@ -422,9 +426,7 @@ export default defineComponent({
       templeElement,
       isDoorLocked,
       showRoomActions,
-      isChestOpen,
-      isChestClosed,
-      chestLootShown,
+      ...chest,
       takeChestLoot,
       leaveChest,
       choiceReveal,

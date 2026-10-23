@@ -1,5 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
+import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { MapVisibility, TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/TempleSystem";
 import {
   answerRiddle,
@@ -14,6 +16,7 @@ import {
   type RoomOutcome,
 } from "@/lib/services/temples/RoomInteractions";
 import { bombInPack, useItem } from "@/lib/services/temples/ItemUse";
+import { isRoomSpent } from "@/lib/services/temples/roomInteractions/treasure";
 import { useUserStore } from "@/lib/store/stores/user";
 import { addHero, contextAt, dice, dungeons, enter, HERO, hero, hp, makeTemple, mp, temples, wallet } from "./templeFixtures";
 
@@ -862,6 +865,142 @@ describe("stairs and pits", () => {
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
   });
 
+  describe("a flight of stairs with a lock on it (#1484)", () => {
+    const SMALL_LOCK = "A small lock bars the way.";
+    const BOSS_LOCK = "The Boss Door's lock bars the way.";
+    const lockedTower = (locked: "small" | "master") =>
+      makeTemple(
+        { E: { type: "entrance" }, U: { type: "stairs-up", content: { locked } }, D: { type: "stairs-down" }, F: { type: "empty" } },
+        { "1F": [["E", "U"]], "2F": [["F", "D"]] }
+      );
+    const keys = (id: string): number => temples.getTempleState(id)!.playerKeys;
+    /** The sheet of the stairs at [0,1] on the floor the hero stands on (the test has opened the temple already) */
+    const stairsSheet = (id: string) => roomActions(dungeons.getRoom(id, [0, 1], temples.getTempleState(id)!.currentLevel), contextAt(id, [0, 1]));
+    const giveKeys = (id: string, count: number) => {
+      for (let i = 0; i < count; i++) temples.addKey(id);
+    };
+
+    it("says the way is barred and offers no Climb to a hero with no key", () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      const sheet = stairsSheet(id);
+
+      expect(sheet).toMatchObject({ header: "Stairs lead up.", subHeader: SMALL_LOCK, actions: [] });
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
+    });
+
+    it("offers Unlock and climb to a hero with a key: one key is spent and the hero is upstairs", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+
+      const sheet = stairsSheet(id);
+      expect(labels(sheet)).toEqual(["Unlock and climb"]);
+      const outcome = await run(sheet);
+
+      expect(outcome).toMatchObject({ message: "Unlocked! You climb up to 2F.", sound: "useKey", moved: true });
+      expect(keys(id)).toBe(1);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 1] });
+    });
+
+    it("climbs there again in the same run for free: no second key is spent", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+      await run(stairsSheet(id));
+      expect(keys(id)).toBe(1);
+      temples.changeLevel(id, "1F", [0, 1]);
+
+      const again = stairsSheet(id);
+      expect(again).toMatchObject({ header: "Stairs lead up.", actions: [expect.objectContaining({ label: "Climb" })] });
+      const outcome = await run(again);
+
+      expect(outcome).toMatchObject({ message: "You climb up to 2F.", sound: "steps", moved: true });
+      expect(keys(id)).toBe(1);
+    });
+
+    it("lets the landing climb back down with no key", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1], "2F");
+
+      const outcome = await run(stairsSheet(id));
+
+      expect(outcome).toMatchObject({ message: "You climb down to 1F.", moved: true });
+      expect(keys(id)).toBe(0);
+    });
+
+    it("turns a hero with no key back from the same stairs when the sheet is stale", async () => {
+      const id = lockedTower("small");
+      enter(id, [0, 1]);
+      giveKeys(id, 1);
+      const stale = stairsSheet(id);
+      temples.getTempleState(id)!.playerKeys = 0; // the key is spent elsewhere before the tap
+
+      expect(await run(stale)).toEqual({ message: SMALL_LOCK, sound: "error" });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
+    });
+
+    it("needs the Boss Key for a master lock, and a small key does not do", () => {
+      const id = lockedTower("master");
+      enter(id, [0, 1]);
+      giveKeys(id, 3);
+
+      expect(stairsSheet(id)).toMatchObject({ header: "Stairs lead up.", subHeader: BOSS_LOCK, actions: [] });
+    });
+
+    it("opens a master lock with the Boss Key and does not spend it", async () => {
+      const id = lockedTower("master");
+      enter(id, [0, 1]);
+      giveKeys(id, 2);
+      temples.grantMasterKey(id);
+
+      const sheet = stairsSheet(id);
+      expect(labels(sheet)).toEqual(["Unlock and climb"]);
+      const outcome = await run(sheet);
+
+      expect(outcome).toMatchObject({ message: "The big lock falls away. You climb up to 2F.", sound: "useKey", moved: true });
+      expect(temples.hasMasterKey(id)).toBe(true);
+      expect(keys(id)).toBe(2);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+    });
+
+    it("finds rubble before it takes a key: stairs to no floor stay shut and the key stays in the bag", async () => {
+      const { id, room, ctx } = withRoom({ type: "stairs-up", content: { locked: "small" } });
+      giveKeys(id, 1);
+
+      const outcome = await run(roomActions(room, ctx));
+
+      expect(outcome).toEqual({ message: "The stairs are blocked by rubble.", sound: "error" });
+      expect(keys(id)).toBe(1);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+    });
+
+    it("keeps the stairs open with the saved run, and a blood moon locks them again", async () => {
+      const id = lockedTower("small");
+      temples.initTemple(id, [0, 1], undefined, HERO);
+      await temples.whenProgressReady(id);
+      giveKeys(id, 1);
+      await run(stairsSheet(id));
+      temples.changeLevel(id, "1F", [0, 1]);
+
+      await temples.flushProgress();
+      temples.forgetTempleRun(id);
+      temples.initTemple(id, [0, 1], undefined, HERO);
+      await temples.whenProgressReady(id);
+      temples.changeLevel(id, "1F", [0, 1]);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(true);
+      expect(labels(stairsSheet(id))).toEqual(["Climb"]);
+
+      await temples.bloodMoon(id, HERO);
+      await temples.whenProgressReady(id);
+      temples.changeLevel(id, "1F", [0, 1]);
+      expect(temples.isClimbUnlocked(id, "1F", [0, 1])).toBe(false);
+      expect(stairsSheet(id)).toMatchObject({ subHeader: SMALL_LOCK, actions: [] });
+    });
+  });
+
   it("drops a hero through a pit to the floor below, 5 HP lighter", () => {
     const upper = makeTemple(
       { E: { type: "entrance" }, P: { type: "pit" }, F: { type: "empty" } },
@@ -874,6 +1013,79 @@ describe("stairs and pits", () => {
     expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", sound: "damage", moved: true });
     expect(hp()).toBe(25);
     expect(temples.getTempleState(upper)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
+  });
+
+  // A pit may name its landing (content.targetLevel / targetCoords, as stairs do): the dress step writes where a
+  // classic dungeon's hole really drops the hero, any lower floor, any cell. One that names none drops as before.
+  it("drops a hero through a pit that names its landing onto that cell, two floors down when it says so", () => {
+    const pit: Room = { type: "pit", content: { targetLevel: "1F", targetCoords: { x: 2, y: 0 } } };
+    const id = makeTemple({ E: { type: "entrance" }, P: pit, F: { type: "empty" } }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "F"]], "3F": [["F", "P", "F"]] });
+    enter(id, [0, 1], "3F");
+
+    const outcome = onEnterRoom(dungeons.getRoom(id, [0, 1], "3F"), contextAt(id, [0, 1]))!;
+
+    expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", sound: "damage", moved: true });
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+  });
+
+  it("drops a hero through a pit that names a one-room floor onto that room", () => {
+    const pit: Room = { type: "pit", content: { targetLevel: "B1", targetCoords: { x: 0, y: 0 } } };
+    const id = makeTemple({ E: { type: "entrance" }, P: pit, F: { type: "empty" } }, { "1F": [["E", "F", "P"]], B1: [["F"]] });
+    enter(id, [0, 2], "1F");
+
+    const outcome = onEnterRoom(dungeons.getRoom(id, [0, 2], "1F"), contextAt(id, [0, 2]))!;
+
+    expect(outcome).toMatchObject({ message: "You fall to B1: -5 HP", moved: true });
+    expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "B1", currentPosition: [0, 0] });
+  });
+
+  // Until 2026-10-13 the Temple Creator seeded every new pit with its own floor and cell 0,0. A pit's named floor
+  // counts only when the temple has it and it stands below the pit; anything else drops as an unnamed pit always did.
+  describe("a pit whose named floor is not below it drops by the plain rule", () => {
+    const named = (targetLevel: string): Room => ({ type: "pit", content: { targetLevel, targetCoords: { x: 0, y: 0 } } });
+    const fallFrom = (id: string, level: string, position: [number, number]) => {
+      enter(id, position, level);
+      return onEnterRoom(dungeons.getRoom(id, position, level), contextAt(id, position))!;
+    };
+
+    it("only bruises a hero, and only once, on an old-seed pit in a one-floor temple", () => {
+      const id = makeTemple({ W: { type: "wall" }, E: { type: "entrance" }, P: named("1F") }, [["W", "E", "P"]]);
+
+      const outcome = fallFrom(id, "1F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You land hard at the bottom: -5 HP", sound: "damage", shake: true });
+      expect(outcome.moved).toBeUndefined();
+      expect(hp()).toBe(25);
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+      expect(onEnterRoom(dungeons.getRoom(id, [0, 2], "1F"), contextAt(id, [0, 2]))).toBeNull();
+    });
+
+    it("drops a hero through an old-seed pit to the same cell of the floor below, not to cell 0,0", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("2F") }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "P"]] });
+
+      const outcome = fallFrom(id, "2F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+
+    it("drops a hero through a pit naming a floor the temple lacks to the next floor down, its cell unread", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("B3") }, { "1F": [["E", "F", "F"]], "2F": [["F", "F", "P"]] });
+
+      const outcome = fallFrom(id, "2F", [0, 2]);
+
+      expect(outcome).toMatchObject({ message: "You fall to 1F: -5 HP", moved: true });
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
+
+    it("only bruises a hero on a ground-floor pit naming the floor above", () => {
+      const id = makeTemple({ E: { type: "entrance" }, F: { type: "empty" }, P: named("2F") }, { "1F": [["E", "F", "P"]], "2F": [["F", "F", "F"]] });
+
+      const outcome = fallFrom(id, "1F", [0, 2]);
+
+      expect(outcome.moved).toBeUndefined();
+      expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 2] });
+    });
   });
 
   describe("in a temple whose basement was drawn after its upper floors (maze keys 1F, 2F, B1; task #1380)", () => {
@@ -1199,5 +1411,177 @@ describe("what the hero takes stays taken after the app is closed", () => {
     const again = await reload(id);
 
     expect(roomActions(again.room, again.ctx).header).toBe("The glyphs have faded.");
+  });
+});
+
+describe("what a beaten beast leaves behind (a fight room's drop)", () => {
+  const SMALL_KEY_DROP = { chest: "dungeon", dungeon: "small-key" };
+  const GLINT = "Something glints where the beast fell.";
+  const labelsOf = (room: Room, ctx: RoomContext) => labels(roomActions(room, ctx));
+
+  // Monday 12 October 2026, ten in the morning
+  const NOW = new Date(2026, 9, 12, 10, 0, 0);
+
+  const quest = (overrides: Partial<Achievement> = {}): Achievement =>
+    ({
+      id: "q1",
+      achievementName: "Wash the dishes",
+      type: "individual",
+      assignee: [HERO],
+      basicSchedule: "daily",
+      customFrequency: 1,
+      customPeriodType: "day",
+      customPeriodNumber: 1,
+      repeatOnDays: [],
+      startsOn: "2026-01-01T00:00:00",
+      endsOn: "",
+      dueByTime: "18:00",
+      difficulty: 2,
+      beastId: "beast-dish-goblin",
+      ...overrides,
+    }) as unknown as Achievement;
+
+  const row = (q: Achievement, status: QuestBoardItem["status"] = "open", extra: Partial<QuestBoardItem> = {}): QuestBoardItem =>
+    ({ quest: q, status, progress: null, pending: false, overdue: false, ...extra }) as QuestBoardItem;
+
+  /** A monster quest room that drops a small key, the hero standing in it, with the board the run keeps */
+  const questRoomWith = (board: QuestBoardItem | undefined, liveQuests: Achievement[] = [quest()]) => {
+    const room: Room = { type: "monster", content: { lockOnEnter: true, questId: "q1", drops: SMALL_KEY_DROP } };
+    const { id, room: placed } = withRoom(room);
+    jest.spyOn(temples, "getQuestBoard").mockImplementation((templeId: string) =>
+      templeId === id ? { heroId: HERO, board: board ? [board] : [], liveQuests } : undefined
+    );
+    return { id, room: placed, ctx: { ...contextAt(id, [0, 1]), now: NOW } };
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it("is not offered while the beast lurks: the fight comes first", () => {
+    const { room, ctx } = questRoomWith(row(quest()));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("A Monster approaches!");
+    expect(labels(sheet)).toEqual(["Fight"]);
+    expect(sheet.drop).toBeUndefined();
+    expect(sheet.body).not.toContain(GLINT);
+  });
+
+  it("waits in the room once the chore is done: Take it, then the search", async () => {
+    const { room, ctx } = questRoomWith(row(quest(), "done"));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("Nothing left here but the smell.");
+    expect(labels(sheet)).toEqual(["Take it", "Search the room"]);
+    expect(sheet.drop).toBe("waiting");
+    expect(sheet.body).toBe(`Wash the dishes · Back tomorrow. ${GLINT}`);
+    expect(await run(sheet)).toEqual({ intent: "takeDrop" });
+  });
+
+  it("waits for a hero whose claim the Game Master is still checking: the beast is down", () => {
+    const { room, ctx } = questRoomWith(row(quest(), "done", { pending: true }));
+
+    const sheet = roomActions(room, ctx);
+
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("waits for a hero whose beast is asleep in another hero's quest (not yours): there is no fight there", () => {
+    const mias = quest({ assignee: ["hero-2"] });
+    useUserStore().users["hero-2"] = { id: "hero-2", name: { nick: "Mia", full: "Mia" }, stats: {} };
+    const { room, ctx } = questRoomWith(undefined, [mias]);
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("Mia's Dish Goblin sleeps here.");
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("waits for a hero whose beast is away until its day (away): there is no fight there", () => {
+    const saturdays = quest({ basicSchedule: "weekly", repeatOnDays: ["sat"] });
+    const { room, ctx } = questRoomWith(row(saturdays, "notDue"), [saturdays]);
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("The lair is empty.");
+    expect(labels(sheet)).toEqual(["Take it"]);
+    expect(sheet.drop).toBe("waiting");
+  });
+
+  it("is taken once: Take it goes, the search stays, and the two are filed apart", async () => {
+    const { id, room, ctx } = questRoomWith(row(quest(), "done"));
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(false);
+
+    temples.markDropTaken(id, "1F", [0, 1]);
+
+    const sheet = roomActions(room, ctx);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(true);
+    expect(labels(sheet)).toEqual(["Search the room"]);
+    expect(sheet.drop).toBeUndefined();
+    expect(sheet.body).toBe("Wash the dishes · Back tomorrow.");
+    // The keys are separate: taking the drop does not spend the search, and searching does not take the drop
+    expect(isRoomSpent(ctx)).toBe(false);
+    await run(roomActions(room, { ...ctx, rng: dice(0.9) }));
+    expect(isRoomSpent(ctx)).toBe(true);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(true);
+  });
+
+  it("is not taken by searching the room", async () => {
+    const { id, room, ctx } = questRoomWith(row(quest(), "done"));
+
+    await run(roomActions(room, { ...ctx, rng: dice(0.9) }), 1); // "Search the room"
+
+    expect(isRoomSpent(ctx)).toBe(true);
+    expect(temples.isDropTaken(id, "1F", [0, 1])).toBe(false);
+    expect(labels(roomActions(room, ctx))).toEqual(["Take it"]);
+  });
+
+  describe("in a classic room", () => {
+    const classic = (type = "monster") =>
+      withRoom({ type, content: { beasts: ["beast-socktopus"], drops: SMALL_KEY_DROP } });
+
+    it.each(["monster", "miniboss", "boss"])("a %s room's drop is not offered before the fight is won", (type) => {
+      const { room, ctx } = classic(type);
+
+      const sheet = roomActions(room, ctx);
+
+      expect(labels(sheet)).toEqual(["Fight"]);
+      expect(sheet.drop).toBeUndefined();
+    });
+
+    it.each(["monster", "miniboss", "boss"])("a %s room's drop waits once the fight is won", async (type) => {
+      const { id, room, ctx } = classic(type);
+      temples.markRoomCleared(id, "1F", [0, 1]);
+
+      const sheet = roomActions(room, ctx);
+
+      expect(sheet.header).toBe("Nothing left here but the smell.");
+      expect(labels(sheet)).toEqual(["Take it", "Search the room"]);
+      expect(sheet.drop).toBe("waiting");
+      expect(sheet.body).toBe(GLINT);
+      expect(sheet.beastDefeated).toBe(true);
+      expect(await run(sheet)).toEqual({ intent: "takeDrop" });
+    });
+
+    it("is gone from the sheet once taken", () => {
+      const { id, room, ctx } = classic();
+      temples.markRoomCleared(id, "1F", [0, 1]);
+      temples.markDropTaken(id, "1F", [0, 1]);
+
+      expect(labelsOf(room, ctx)).toEqual(["Search the room"]);
+      expect(roomActions(room, ctx).body).toBeUndefined();
+    });
+
+    it("offers nothing in a fight room that drops nothing, nor for drops written under another kind of room", () => {
+      const bare = withRoom({ type: "monster", content: { beasts: ["beast-socktopus"] } });
+      temples.markRoomCleared(bare.id, "1F", [0, 1]);
+      expect(labelsOf(bare.room, bare.ctx)).toEqual(["Search the room"]);
+
+      const loot = withRoom({ type: "loot", content: { chest: "loot", items: ["Potion"], drops: SMALL_KEY_DROP } });
+      expect(labelsOf(loot.room, loot.ctx)).toEqual(["Open Chest"]);
+    });
   });
 });

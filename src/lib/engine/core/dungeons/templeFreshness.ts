@@ -13,6 +13,7 @@
  */
 import { DungeonManager } from './DungeonManager';
 import { registerTemple, registerTempleRecord } from './TempleAdapter';
+import { TempleSystem } from './TempleSystem';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import type { TempleInterface } from '@/lib/databases/TempleDb';
 import shippedTemples from '@/lib/engine/temples';
@@ -67,13 +68,18 @@ let stopListening: (() => void) | undefined;
 
 /**
  * E2E seam, development builds only (like window.__xp in main.ts): tests/e2e/specs/temple-edit.spec.js saves a temple
- * the way the temple editor does (TempleDb.setTemple) without driving the editor screens.
+ * the way the temple editor does (TempleDb.setTemple) without driving the editor screens, and classic-hera.spec.js
+ * reads where a hero's run stands (`state`: the floor and the cell, as the engine holds them) to follow a long walk.
  */
 function exposeDevSeam(): void {
   const isUnavailable = process.env.NODE_ENV === 'production' || typeof window === 'undefined';
   if (isUnavailable) return;
   (window as unknown as { __xpTemples: unknown }).__xpTemples = {
-    save: (record: TempleInterface) => new TempleDb(templeStorage).setTemple(record)
+    save: (record: TempleInterface) => new TempleDb(templeStorage).setTemple(record),
+    state: (templeId: string) => {
+      const run = TempleSystem.getInstance().getTempleState(templeId);
+      return run ? { currentLevel: run.currentLevel, currentPosition: [...run.currentPosition], playerKeys: run.playerKeys, hasMasterKey: run.hasMasterKey } : null;
+    }
   };
 }
 

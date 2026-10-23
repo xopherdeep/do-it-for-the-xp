@@ -1,0 +1,257 @@
+/**
+ * The dress step: a converted classic dungeon (tools/temples/classic/dungeons/<id>.json, written by convert.py) as a
+ * playable temple module of ours, src/lib/engine/temples/<id>.ts, under the game's rules and the temple's chore plan
+ * (dressPlans.ts). Design: docs/superpowers/specs/2026-10-18-classic-dungeon-temples-design.md, "Dressing".
+ *
+ *   node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/bin/esbuild tools/temples/classic/dress.ts \
+ *     --bundle --platform=node --format=cjs --outfile=/tmp/dress-temples.cjs && node /tmp/dress-temples.cjs [id]
+ *
+ * (esbuild reads the "@/" paths from tsconfig.json; use the esbuild version that sits in node_modules/.pnpm.)
+ *
+ * The same JSON and plan give the same temple, so the module's header is enough to rebuild it. To change a temple,
+ * change its plan (or the converter's overrides) and run the script; `chemx test tests/unit/ClassicTemples.spec.ts`
+ * then says whether the new layout still keeps every rule.
+ *
+ * The steps, each in its own module: the board (dressBoard: one thing per cell, the rest moved, the Master Room beside
+ * the boss), the doors (dressDoors: the side table, the Boss door, Bomb chests before cracked walls on the only way),
+ * the chores (dressChores: mini-bosses, must-clear monsters, side rooms), the rooms (dressRooms: tokens, content, the
+ * maze), and here the extras in the empty cells and the module itself.
+ */
+import { writeFileSync } from "fs";
+import { join } from "path";
+import type { Room } from "@/lib/engine/core/dungeons/types";
+import type { GeneratedTemple } from "@/lib/engine/dungeons/generator/templeGenerator";
+import { buildTempleGraph, type Door, type TempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator/templeGraph";
+import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
+import { renderModule } from "../renderModule";
+import type { ClassicDungeon } from "./classicDungeon";
+import { allSlots, buildBoard, cellKey, describeCell, type Board, type CellRef, type ClassicCompaction, type ClassicDrop, type ClassicMove, type FloorShift, type Slot } from "./dressBoard";
+import { planChores } from "./dressChores";
+import { demoteShortcutWarps, drawSides, hopsFrom, placeBombChests, plainBigKeyDoors, sidesKey, type PlainBigKeyDoor } from "./dressDoors";
+import { CLASSIC_IDS, CLASSIC_PLANS, DUNGEON_DIR, asPlanned, loadDungeon, withHandRooms, type ClassicPlan, type HandRoom, type OpenedSide } from "./dressPlans";
+import { openInFront } from "./dressPlace";
+import { buildRooms, type ClassicPlacement } from "./dressRooms";
+
+export { CLASSIC_IDS, CLASSIC_PLANS, asPlanned, loadDungeon, withHandRooms };
+export type { ClassicPlan, ClassicPlacement, ClassicMove, ClassicDrop, ClassicCompaction, FloorShift, PlainBigKeyDoor, CellRef, HandRoom, OpenedSide };
+
+/** What the dressing did with a dungeon, for the tests and the build report */
+export interface ClassicReport {
+  /** Must-clear monster rooms (mini-bosses not counted) */
+  mustClear: number;
+  /** Beasts a must-clear room had to repeat */
+  repeats: string[];
+  /** Starter beasts given a side room because the must-clear rooms ran out (any spare beast, when the plan keeps every chore) */
+  overflow: string[];
+  /** Plan beasts that found no room */
+  left: string[];
+  /** Content that left the cell it was converted in, and where it went */
+  moves: ClassicMove[];
+  /** Content with nowhere to go (a riddle, a hole or a circle displaced from its cell) */
+  dropped: ClassicDrop[];
+  /** Enemies of a screen folded into their LTTP room's one fight */
+  merged: ClassicDrop[];
+  /** Where a Bomb waits before a cracked wall on the only way to the boss */
+  bombChests: CellRef[];
+  /** Island cells (walled on every side, reached by a link) moved from far off next to their floor's used cells */
+  compacted: ClassicCompaction[];
+  /** Floors whose cells all moved: up and left once their empty leading rows and columns were cut, down or right (negative) for a line grown before the first */
+  shifted: FloorShift[];
+  /** Big-Key doors LTTP keyed between two ordinary rooms, drawn as plain doors */
+  plainBigKeyDoors: PlainBigKeyDoor[];
+  /** Every room of the temple, what it is and where it came from */
+  placements: ClassicPlacement[];
+}
+
+export interface DressedTemple {
+  temple: GeneratedTemple;
+  report: ClassicReport;
+}
+
+/** The layout as registration reads it: the drawn sides become locks and barriers, which is what the graph walks */
+const asRegistered = (layout: { entrance: number[]; maze: Record<string, string[][]>; rooms: Record<string, Room> }): TempleLayout => ({
+  entrance: layout.entrance,
+  maze: layout.maze,
+  rooms: Object.fromEntries(Object.entries(layout.rooms).map(([token, room]) => [token, lockedFromSides(room)])),
+});
+
+/**
+ * The shop: on the entrance floor, in the empty converted cell nearest the entrance that the hero reaches with nothing
+ * in hand (no key, no Bomb, no must-clear seal or boss passed); with none, a room added beside the entrance, else
+ * beside the nearest room walked to from it that way. So every temple sells Bombs and potions before its first fight
+ * (Skull Woods' empty screen behind the entrance's cracked wall is no shop).
+ */
+const placeShop = (board: Board, graph: TempleGraph, hops: Map<string, number>): void => {
+  const entrance = allSlots(board).find((slot) => slot.item?.kind === "entrance");
+  if (!entrance) throw new Error(`${board.dungeon.id}: no entrance cell`);
+  const sealed = new Set(allSlots(board).filter((slot) => slot.item?.kind === "mustClearFight" || slot.item?.kind === "boss").map((slot) => sidesKey(slot.at)));
+  const isEmptyHanded = (door: Door): boolean => door.lock === "none" && !sealed.has(door.to);
+  const emptyHanded = graph.entrance ? hopsFrom(graph, graph.entrance, isEmptyHanded) : new Map<string, number>();
+  const far = Number.MAX_SAFE_INTEGER;
+  const free = allSlots(board)
+    .filter((slot) => slot.cell && !slot.item && slot.at.floor === entrance.at.floor && emptyHanded.has(sidesKey(slot.at)))
+    .sort((a, b) => (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || a.at.row - b.at.row || a.at.col - b.at.col);
+  const shop = free[0] ?? openInFront(board, entrance);
+  shop.item = { kind: "shop", origin: shop.at, room: shop.cell?.room ?? "" };
+  const isAdded = !shop.cell;
+  if (isAdded) board.moves.push({ what: "shop", from: entrance.at, to: shop.at, grown: true });
+};
+
+/** Rooms nearest the entrance first: path distance over every door (`hops`), floors in the dungeon's order then reading order among equals */
+const nearestTheEntrance = (board: Board, hops: Map<string, number>) => (a: Slot, b: Slot): number => {
+  const far = Number.MAX_SAFE_INTEGER;
+  const floors = board.floors.map((floor) => floor.name);
+  return (hops.get(sidesKey(a.at)) ?? far) - (hops.get(sidesKey(b.at)) ?? far) || floors.indexOf(a.at.floor) - floors.indexOf(b.at.floor) || a.at.row - b.at.row || a.at.col - b.at.col;
+};
+
+/**
+ * The plan's relics beyond the first (`extraRelics`), in order, each in place of the gold of the dungeon's `other`
+ * chest nearest the entrance (nearestTheEntrance). A gold chest a boxed-in fight holds is not one of them: the fight
+ * hands out one Dungeon Item at most, and its gold besides.
+ */
+const placeExtraRelics = (board: Board, plan: ClassicPlan, graph: TempleGraph): void => {
+  const relics = plan.extraRelics ?? [];
+  const hops = graph.entrance ? hopsFrom(graph, graph.entrance) : new Map<string, number>();
+  const golds = allSlots(board)
+    .filter((slot) => slot.item?.kind === "chest" && slot.item.chest === "other")
+    .sort(nearestTheEntrance(board, hops));
+  const isShortOfChests = golds.length < relics.length;
+  if (isShortOfChests) throw new Error(`${board.dungeon.id}: ${relics.length} relics beyond the first for ${golds.length} \`other\` chests`);
+  relics.forEach((relic, index) => (golds[index].item!.relic = relic));
+};
+
+/** The shop in the converted cell the plan names (`shopAt`, by its own position): it must be a free one */
+const pinShop = (board: Board, at: CellRef): void => {
+  const slot = board.converted.get(cellKey(at));
+  const isFree = Boolean(slot) && !slot!.item;
+  if (!isFree) throw new Error(`${board.dungeon.id}: the plan pins the shop on ${describeCell(at)}, which is no free converted cell`);
+  slot!.item = { kind: "shop", origin: slot!.at, room: slot!.cell!.room };
+};
+
+/**
+ * The extras in the empty converted cells, nearest the entrance first (path distance over every door, floors in the
+ * dungeon's order then reading order among equals): the shop (placeShop, or the cell the plan pins it in), one save,
+ * then one camp per floor, the rest empty rooms. A dungeon with no empty cell the hero reaches on its entrance floor
+ * with nothing in hand has the shop added (the Tower of Hera's sits beside the lobby's flight up); one with no empty
+ * cell at all has no save or camp.
+ */
+const placeExtras = (board: Board, plan: ClassicPlan): void => {
+  const graphNow = (): TempleGraph => buildTempleGraph(asRegistered(buildRooms(board, plan, drawSides(board))));
+  const hopsIn = (graph: TempleGraph): Map<string, number> => (graph.entrance ? hopsFrom(graph, graph.entrance) : new Map<string, number>());
+  const before = graphNow();
+  const isShopPinned = Boolean(plan.shopAt);
+  if (isShopPinned) pinShop(board, plan.shopAt!);
+  else placeShop(board, before, hopsIn(before));
+  // Read again: a shop added beside an entrance on the grid's edge may have grown the floor by a line before the first
+  const free = allSlots(board)
+    .filter((slot) => slot.cell && !slot.item)
+    .sort(nearestTheEntrance(board, hopsIn(graphNow())));
+  const kinds: Array<"save"> = ["save"];
+  const camped = new Set<string>();
+  for (const slot of free) {
+    const next = kinds.shift();
+    const kind = next ?? (camped.has(slot.at.floor) ? "empty" : "camp");
+    const isCamp = kind === "camp";
+    if (isCamp) camped.add(slot.at.floor);
+    slot.item = { kind, origin: slot.at, room: slot.cell!.room };
+  }
+};
+
+/**
+ * A converted dungeon as a temple of ours, under `plan`, read as the plan has it (asPlanned: the sides it opens open,
+ * its own rooms joined). Pure: the same dungeon and plan give the same temple.
+ */
+export const dressDungeon = (dungeon: ClassicDungeon, plan: ClassicPlan): DressedTemple => {
+  const board = buildBoard(asPlanned(dungeon, plan), plan);
+  // The board as registration reads it, fights plain before the chores are dealt (the doors are all the steps below read)
+  const layoutNow = (): TempleLayout => asRegistered(buildRooms(board, plan, drawSides(board)));
+  demoteShortcutWarps(board, layoutNow);
+  const bombChests = placeBombChests(board, layoutNow);
+  placeExtras(board, plan);
+  const graphNow = buildTempleGraph(layoutNow());
+  placeExtraRelics(board, plan, graphNow);
+  // The chores come last: roles are keyed by where a fight stands, and a Bomb chest or a shop may still grow a line
+  // before a floor's first and move every room of it
+  const chores = planChores(board, plan, graphNow, drawSides(board));
+  const built = buildRooms(board, plan, drawSides(board), chores.roles);
+  const temple: GeneratedTemple = {
+    id: dungeon.id,
+    name: plan.name,
+    entrance: built.entrance,
+    maze: built.maze,
+    rooms: built.rooms,
+    visitedPositions: new Set<string>(),
+    seed: dungeon.id,
+    themeId: plan.theme,
+    element: plan.element,
+    criticalPath: [],
+    attempts: 1,
+  };
+  const report: ClassicReport = {
+    mustClear: chores.mustClear,
+    repeats: chores.repeats,
+    overflow: chores.overflow,
+    left: chores.left,
+    moves: board.moves,
+    dropped: board.dropped,
+    merged: board.merged,
+    bombChests,
+    compacted: board.compacted,
+    shifted: board.shifted,
+    plainBigKeyDoors: plainBigKeyDoors(board),
+    placements: built.placements,
+  };
+  return { temple, report };
+};
+
+const planOf = (id: string): ClassicPlan => {
+  const plan = CLASSIC_PLANS[id];
+  if (!plan) throw new Error(`${id} has no classic plan (dressPlans.ts)`);
+  return plan;
+};
+
+/** The temple of a classic dungeon, dressed under its plan */
+export const dressClassic = (id: string): GeneratedTemple => dressDungeon(loadDungeon(id), planOf(id)).temple;
+
+/** What the dressing did with a classic dungeon */
+export const classicReport = (id: string): ClassicReport => dressDungeon(loadDungeon(id), planOf(id)).report;
+
+/** The header line naming the plan's own rooms (handRooms), when it draws any */
+const handRoomsLine = (id: string): string[] => {
+  const hand = CLASSIC_PLANS[id]?.handRooms ?? [];
+  const isDrawnAsIs = hand.length === 0;
+  if (isDrawnAsIs) return [];
+  const named = hand.map((room) => `${room.room} ${room.floor} (${room.row},${room.col})`).join(", ");
+  return [`// plus rooms of its own the dungeon does not have (dressPlans.ts, handRooms): ${named}.`];
+};
+
+/** The temple as a module in the shape every shipped temple has, under a header naming the dress step and the dungeon's source */
+export const renderClassicModule = (id: string, temple: GeneratedTemple): string =>
+  renderModule(id, temple, [
+    `// Generated by tools/temples/classic/dress.ts from ${DUNGEON_DIR}/${id}.json: change the plan there or the JSON and run it again instead of editing this file.`,
+    `// source: ${JSON.stringify(loadDungeon(id).source)}`,
+    ...handRoomsLine(id),
+    "// Floors run bottom to top (a basement first); every flight of stairs and every circle names the floor and the cell it lands on.",
+    '// "_" is a wall; each other token is one room. The Master Room holds the Pegasus chest and sits right behind the boss.',
+  ]);
+
+const isRunDirectly = require.main === module;
+if (isRunDirectly) {
+  // The plan's starters come from StarterWorld, which pulls the app's browser stores along; their init fails under
+  // node after the modules load and has nothing to do with the dressing, which is synchronous. Anything else is real.
+  process.on("unhandledRejection", (reason) => {
+    const isBrowserStorageInit = /No available storage method/.test(String(reason));
+    if (!isBrowserStorageInit) throw reason;
+  });
+  const folder = join(process.cwd(), "src/lib/engine/temples");
+  const asked = process.argv.slice(2);
+  const ids = asked.length ? asked : CLASSIC_IDS;
+  for (const id of ids) {
+    const { temple, report } = dressDungeon(loadDungeon(id), planOf(id));
+    writeFileSync(join(folder, `${id}.ts`), renderClassicModule(id, temple));
+    const floors = Object.keys(temple.maze);
+    process.stdout.write(`${id}: ${floors.length} floors, ${Object.keys(temple.rooms).length - 1} rooms, ${report.mustClear} must-clear, ${report.moves.length} moved, ${report.dropped.length} dropped, ${report.bombChests.length} Bomb chests\n`);
+    const hasNotes = report.repeats.length || report.overflow.length || report.left.length;
+    if (hasNotes) process.stdout.write(`  repeats: [${report.repeats}] overflow: [${report.overflow}] left: [${report.left}]\n`);
+  }
+}

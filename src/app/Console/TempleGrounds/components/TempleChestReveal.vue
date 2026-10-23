@@ -86,6 +86,7 @@
               class="loot-row__button"
               role="checkbox"
               :aria-checked="selected.has(item.value)"
+              :aria-disabled="whole || undefined"
               :tabindex="index < revealed ? 0 : -1"
               :data-cy="`chest-loot-${item.value}`"
               @click.stop="toggle(item.value)"
@@ -177,18 +178,26 @@ import PixelRuns from "./PixelRuns.vue";
 /**
  * Opening a treasure chest: the chest lands and rattles, the lid flies open in a burst of light and the loot rises
  * out of it one piece after another, fanning out above the chest while each piece's line fills in below. A chest that
- * comes with `closed` first lands shut and waits: Leave, or Open, which plays the same lid sequence from a shake. Everything
- * starts unticked; tap a line to tick that piece, and Take hands over only what is ticked (Take stays disabled until a
- * line is ticked; whatever is left stays in the chest). A tap anywhere while the chest is still opening skips to
- * the end. An empty chest opens the same way, on a puff of dust instead of light, and can only be closed. The page
- * owns `open`, and closes the reveal on `take` or `leave`.
+ * comes with `closed` first lands shut and waits: Leave, or Open, which plays the same lid sequence from a shake. A
+ * chest's rows start unticked but for one that comes ticked (a Pegasus chest's egg and whistle); tap a line to tick that
+ * piece, and Take hands over only what is ticked (Take stays disabled until a line is ticked; whatever is left stays in
+ * the chest). A beast's drop (`whole`) comes with every row ticked and is taken whole. A tap anywhere while the chest is
+ * still opening skips to the end. An empty chest opens the same way, on a puff of dust instead of light, and can only
+ * be closed. The page owns `open`, and closes the reveal on `take` or `leave`.
  */
-const props = defineProps<{
+interface ChestRevealProps {
   open: boolean;
   loot: ChestLoot[];
   /** The chest starts shut, waiting for Open (or Leave); the loot sequence plays when it is pressed. An empty chest never waits. */
   closed?: boolean;
-}>();
+  /**
+   * A beast's drop, taken whole: every row comes ticked and no row can be unticked (the temple hands out the whole drop
+   * whatever is ticked, so a row that looked left out would be a lie). Take still hands over every row.
+   */
+  whole?: boolean;
+}
+
+const props = defineProps<ChestRevealProps>();
 
 const emit = defineEmits<{
   (e: "take", values: string[]): void;
@@ -329,8 +338,9 @@ const start = () => {
   clearTimers();
   revealed.value = 0;
   exitMode.value = "leave";
-  // A row that comes ticked (a Pegasus chest's egg and whistle) starts ticked; every other row starts unticked
-  selected.value = new Set(props.loot.filter((item) => item.checked).map((item) => item.value));
+  // A row that comes ticked (a Pegasus chest's egg and whistle) starts ticked; every other row starts unticked. A drop
+  // taken whole has every row ticked.
+  selected.value = new Set(props.loot.filter((item) => props.whole || item.checked).map((item) => item.value));
   // The dialog holds the focus from the start, so Escape leaves even while the chest is opening
   nextTick(() => root.value?.focus({ preventScroll: true }));
   // A shut chest waits for Open: it lands, and nothing else happens until the hero presses it
@@ -380,6 +390,8 @@ const toggle = (value: string) => {
     skip();
     return;
   }
+  // A drop is taken whole: there is nothing to tick or untick
+  if (props.whole) return;
   const next = new Set(selected.value);
   const isTicked = next.has(value);
   if (isTicked) {

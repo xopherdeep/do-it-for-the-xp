@@ -18,19 +18,20 @@
  *   the master key opens the door), and a small lock still wants its key;
  * - stairs up lead to the next floor up in the climbing order (floorOrder: B1, 1F, 2F), stairs down to the next one
  *   down, landing on the requested coordinates, else the first matching stairs on that floor, else the same cell
- *   (R8 wants pairs at the same row and column);
+ *   (R8 wants pairs at the same row and column); a flight with `content.locked` ('small' | 'master') is a stairs door
+ *   with that lock, one way: the climb from that room, never the landing's way back;
  * - a teleport leads where `teleportTargetFor` sends the hero: the author's target, else the next circle on its
  *   floor (wrapping), else the temple's next circle; a circle with none leads nowhere (R8);
- * - a pit drops the hero to the floor below (same cell, else that floor's first stairs up) when there is one,
- *   and is an ordinary room otherwise.
+ * - a pit drops the hero to the lower floor and cell it names, else to the floor below (same cell, else that floor's
+ *   first stairs up) when there is one (pitDropOf), and is an ordinary room otherwise.
  *
  * A `rooms` entry is shared by every cell that uses its token (the authored temples do this), so a lock on a
  * token locks every room spelled with it. Generated temples give each room a token of its own.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
-import { neighbourFloorOf } from "@/lib/engine/core/dungeons/floorOrder";
-import { barrierBetween, isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { neighbourFloorOf, pitDropOf } from "@/lib/engine/core/dungeons/floorOrder";
+import { barrierBetween, climbLockOf, isBossRoom } from "@/lib/services/temples/authoredDoors";
 import { grantsBossKey, isBombSource, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
@@ -261,11 +262,16 @@ const linkStairs = (graph: TempleGraph): void => {
       graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} leads to no floor` });
       continue;
     }
-    const twin = graph.rooms.get(roomKey({ floor: target, row: stairs.ref.row, col: stairs.ref.col }));
+    // The twin stands on the same cell of the other floor, or on the cell the flight names (a classic dungeon's flight
+    // lands next door to the screen it was converted from): a named landing that is a stairs of the other kind is paired
+    const coords = stairs.room.content?.targetCoords;
+    const named = coords ? { row: Number(coords.y), col: Number(coords.x) } : { row: stairs.ref.row, col: stairs.ref.col };
+    const twin = graph.rooms.get(roomKey({ floor: target, ...named }));
     const isTwinMissing = twin?.kind !== twinKind;
-    if (isTwinMissing) graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} has no ${twinKind} at ${target} (${stairs.ref.row},${stairs.ref.col})` });
+    if (isTwinMissing) graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} has no ${twinKind} at ${target} (${named.row},${named.col})` });
     const landing = stairsLanding(graph, stairs, target, twinKind);
-    if (landing) addDoor(graph, { from: stairs.key, to: landing.key, kind: "stairs", lock: "none" });
+    // A locked flight (content.locked) bars the climb from this room only, with the lock the engine asks (a small key, or the Boss Key); its landing climbs back freely
+    if (landing) addDoor(graph, { from: stairs.key, to: landing.key, kind: "stairs", lock: climbLockOf(stairs.room) ?? "none" });
   }
 };
 
@@ -289,18 +295,24 @@ const linkTeleports = (graph: TempleGraph, layout: TempleLayout): void => {
 };
 
 /**
- * Pits: with a floor below, the hero drops as they walk in, so the pit's walking doors are replaced by the drop
- * (the same cell below, else that floor's first stairs up). With no floor below the pit is a bruise, not a door.
+ * Pits: with a floor to drop to, the hero drops as they walk in, so the pit's walking doors are replaced by the drop.
+ * Where it drops is the engine's rule (pitDropOf, read by hazards.ts too): a pit may name its landing as stairs do
+ * (`content.targetLevel` and `targetCoords`: how a classic dungeon's hole is written), honoured only for a floor below
+ * the pit; any other pit drops to the next floor down, the same cell, else that floor's first stairs up. With no floor
+ * to drop to the pit is a bruise, not a door.
  */
 const linkPits = (graph: TempleGraph): void => {
   for (const pit of graph.rooms.values()) {
     const isPit = pit.kind === "pit";
     if (!isPit) continue;
-    const below = neighbourFloorOf(graph.floors, pit.ref.floor, -1);
-    if (!below) continue;
-    const sameCell = graph.rooms.get(roomKey({ floor: below, row: pit.ref.row, col: pit.ref.col }));
-    if (!sameCell) graph.issues.push({ rule: "R8", text: `${describeRoom(pit)} drops onto a wall at ${below} (${pit.ref.row},${pit.ref.col})` });
-    const landing = sameCell ?? firstOfKind(graph, below, "stairs-up");
+    const drop = pitDropOf(graph.floors, pit.ref.floor, pit.room.content);
+    if (!drop) continue;
+    const below = drop.floor;
+    const wanted = drop.cell ? { row: drop.cell[0], col: drop.cell[1] } : { row: pit.ref.row, col: pit.ref.col };
+    const first = graph.rooms.get(roomKey({ floor: below, ...wanted }));
+    if (!first) graph.issues.push({ rule: "R8", text: `${describeRoom(pit)} drops onto a wall at ${below} (${wanted.row},${wanted.col})` });
+    const sameCell = drop.cell ? graph.rooms.get(roomKey({ floor: below, row: pit.ref.row, col: pit.ref.col })) : undefined;
+    const landing = first ?? sameCell ?? firstOfKind(graph, below, "stairs-up");
     if (!landing) continue;
     const walking = graph.out.get(pit.key) ?? [];
     graph.doors = graph.doors.filter((door) => !walking.includes(door));

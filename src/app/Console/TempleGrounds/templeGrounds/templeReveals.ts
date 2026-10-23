@@ -101,7 +101,7 @@ export const usePegasusReveal = (leaveTemple: () => void) => {
 };
 
 export interface ChestRevealDeps
-  extends Pick<TempleState, 'chestContents' | 'currentRoom' | 'showTempleMessage' | 'claimChestItems'> {
+  extends Pick<TempleState, 'chestContents' | 'currentRoom' | 'showTempleMessage' | 'claimChestItems' | 'claimDropItems'> {
   props: TempleGroundsProps;
   progressHeroId: string | undefined;
   showTempleCleared: ReturnType<typeof usePegasusReveal>['showTempleCleared'];
@@ -110,16 +110,28 @@ export interface ChestRevealDeps
 }
 
 export const useChestReveal = (deps: ChestRevealDeps) => {
-  const { props, progressHeroId, chestContents, currentRoom, showTempleMessage, claimChestItems, showTempleCleared, setHushMessages } =
-    deps;
+  const {
+    props,
+    progressHeroId,
+    chestContents,
+    currentRoom,
+    showTempleMessage,
+    claimChestItems,
+    claimDropItems,
+    showTempleCleared,
+    setHushMessages
+  } = deps;
 
   // The chest reveal. It shows what the chest held when it opened, so the rows stay put while it closes
   const isChestOpen = ref(false);
   const chestLootShown = ref<ChestLoot[]>([]);
   // A chest comes up shut, with Open and Leave; only an empty one opens at once (with Leave alone)
   const isChestClosed = ref(false);
+  // What the reveal shows is a beaten beast's drop, not a chest (useDropReveal): Take hands it out through claimDropItems
+  const isDropShown = ref(false);
 
   const showChestContentsDialog = () => {
+    isDropShown.value = false;
     chestLootShown.value = chestContents.value;
     isChestClosed.value = chestContents.value.length > 0;
     isChestOpen.value = true;
@@ -133,8 +145,8 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
       return;
     }
     isChestOpen.value = false;
-    // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple
-    const prize = currentRoom.value?.content;
+    // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple (a drop has none)
+    const prize = isDropShown.value ? undefined : currentRoom.value?.content;
     const pick = prize?.dungeon ? String(prize.dungeon) : '';
     const freesPegasus = prize?.pegasus === true && Boolean(pick) && values.includes(pick);
     const hasKey = values.some((value) => value.toLowerCase().includes('key'));
@@ -145,7 +157,8 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
     // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
     setHushMessages(freesPegasus);
     try {
-      claimChestItems(values);
+      if (isDropShown.value) claimDropItems(values);
+      else claimChestItems(values);
     } finally {
       setHushMessages(false);
     }
@@ -159,18 +172,42 @@ export const useChestReveal = (deps: ChestRevealDeps) => {
 
   // An empty chest opens the same way, with nothing inside
   const showEmptyChest = () => {
+    isDropShown.value = false;
     chestLootShown.value = [];
     isChestClosed.value = false;
     isChestOpen.value = true;
   };
 
   return {
-    chest: { isChestOpen, chestLootShown, isChestClosed },
+    chest: { isChestOpen, chestLootShown, isChestClosed, isDropShown },
     showChestContentsDialog,
     showEmptyChest,
     claimChestLoot: takeChestLoot,
     closeChest: leaveChest
   };
+};
+
+export interface DropRevealDeps extends Pick<TempleState, 'dropContents'> {
+  /** The chest reveal's state (useChestReveal), which a drop comes up in */
+  chest: ReturnType<typeof useChestReveal>['chest'];
+}
+
+/**
+ * A beaten beast's drop comes up in the chest reveal, the one chests use: open at once (the loot rises, there is no chest
+ * lid to lift) with every row ticked and none to untick, since a drop is taken whole. Take then hands it out through
+ * claimDropItems instead of claimChestItems (the chest reveal sees `isDropShown`).
+ */
+export const useDropReveal = (deps: DropRevealDeps) => {
+  const { chest, dropContents } = deps;
+
+  const showDropReveal = () => {
+    chest.isDropShown.value = true;
+    chest.chestLootShown.value = dropContents.value;
+    chest.isChestClosed.value = false;
+    chest.isChestOpen.value = true;
+  };
+
+  return { showDropReveal };
 };
 
 export interface DoorRevealDeps extends Pick<TempleState, 'playerKeys' | 'playKeyPulse'> {

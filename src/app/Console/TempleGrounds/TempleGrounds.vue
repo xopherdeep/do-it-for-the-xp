@@ -326,7 +326,7 @@
     <xp-world-map-modal :is-open="isPegasusOpen" @close="isPegasusOpen = false" />
 
     <!-- A chest comes up shut: Open makes the lid fly and the loot rise out of it; Leave closes it again -->
-    <temple-chest-reveal :open="isChestOpen" :loot="chestLootShown" :closed="isChestClosed" @take="takeChestLoot" @leave="leaveChest" />
+    <temple-chest-reveal :open="isChestOpen" :loot="chestLootShown" :closed="isChestClosed" :whole="isDropShown" @take="takeChestLoot" @leave="leaveChest" />
 
     <!-- The riddle on the wall, the shopkeeper's wares and a room's actions, in the same pixel style -->
     <temple-choice-reveal

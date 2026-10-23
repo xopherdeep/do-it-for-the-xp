@@ -9,7 +9,10 @@
  * - `facingSide` / `effectiveSide`: any door into a boss room is the Boss door, so the editor shows that side as
  *   the Boss Lock ('masterlocked', the skull) from both ends, whatever the stored value is.
  * - `bossDoorSides`: the same rule written into the saved sides, so older temples come right when they are saved.
+ * - `climbLockOf`: the lock on a flight of stairs (`content.locked`), the one bar that is not on a side of a room.
  */
+
+import type { ClimbLock } from '@/lib/engine/core/dungeons/types';
 
 export type Side = 'north' | 'east' | 'south' | 'west';
 
@@ -40,6 +43,17 @@ export const roomKind = (room: { type?: string } | null | undefined): string => 
 
 /** Whether a room is a boss room: the one every door into which is the Boss door */
 export const isBossRoom = (room: { type?: string } | null | undefined): boolean => roomKind(room) === 'boss';
+
+/**
+ * The lock on the climb FROM a stairs room (`content.locked`): 'small' for a small key, 'master' for the Boss Key, nothing
+ * for free stairs (and for any other spelling, so a stray value locks nothing). The engine's climb, the sheet and the
+ * solver's graph all ask this, so they agree on which flights are barred.
+ */
+export const climbLockOf = (room: { content?: { locked?: unknown } } | null | undefined): ClimbLock | undefined => {
+  const drawn = room?.content?.locked;
+  const isKnownLock = drawn === 'small' || drawn === 'master';
+  return isKnownLock ? drawn : undefined;
+};
 
 /**
  * The room as the engine plays its doors: a side drawn 'locked' is a small lock on that side, a side drawn
