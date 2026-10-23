@@ -98,7 +98,7 @@ export function questRoomCells(layout?: QuestLayout | null): QuestRoomCell[] {
  * - else the room is dormant (it has a template) or an empty lair (it has none).
  * A draft is not live: heroes never see it, so it cannot hold a room. A classic room is never resolved.
  */
-export function gmResolution(room: Room, quests: readonly Achievement[]): RoomQuestResolution {
+export function gmResolution(room: Partial<Room>, quests: readonly Achievement[]): RoomQuestResolution {
   const template = room.content?.quest;
   const isClassic = roomQuestIds(room).length === 0 && !template;
   if (isClassic) return { kind: "classic" };
@@ -112,6 +112,17 @@ export function gmResolution(room: Room, quests: readonly Achievement[]): RoomQu
   const filler = live.find((quest) => questBeastId(quest) === wanted);
   if (filler) return { kind: "quest", quest: filler, source: "template" };
   return { kind: "dormant", template };
+}
+
+/**
+ * One room's part in the size of its temple, as the Game Master reads it (no hero, no board): the quest the room is
+ * set to (the biggest live one when it lists several), else the live quest that has the template's beast, else the
+ * template's own difficulty, dormant. Classic beast rooms, empty lairs (a deleted quest, no template) and every other
+ * room are left out (null).
+ */
+export function roomSizeShare(room: Partial<Room> | undefined, quests: readonly Achievement[]): SizedRoom | null {
+  if (!room) return null;
+  return sizedRoomOf(gmResolution(room, quests));
 }
 
 let libraryById: Map<string, LibraryEntry> | null = null;
@@ -233,6 +244,11 @@ const faceOf = (beastId: string | undefined, beasts: readonly Beast[], missing: 
   return { name: shown?.name ?? missing, avatar: shown?.avatar || undefined };
 };
 
+/** What a quest room says when no quest fills its shipped template: "Dormant: Dust Dervish, no quest yet". */
+export function dormantLine(template: Pick<RoomQuestTemplate, "beastId">, beasts: readonly Beast[]): string {
+  return `Dormant: ${faceOf(String(template.beastId), beasts, "a beast").name}, no quest yet`;
+}
+
 /** "Simple 2" for a step of the slider, "5" for a value between the steps, "" when unset. */
 const difficultyText = (difficulty: number, name: string): string => [name, difficulty > 0 ? String(difficulty) : ""].filter(Boolean).join(" ");
 
@@ -287,7 +303,7 @@ const rowOf = (cell: QuestRoomCell, input: TempleQuestsInput, liveQuests: readon
     const row: TempleQuestRow = {
       ...base,
       kind: "dormant",
-      title: `Dormant: ${face.name}, no quest yet`,
+      title: dormantLine(template, beasts),
       beastId: String(template.beastId),
       beastName: face.name,
       avatar: face.avatar,

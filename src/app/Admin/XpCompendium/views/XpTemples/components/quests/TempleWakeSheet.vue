@@ -50,7 +50,7 @@
             <button type="button" class="wake-row" :class="`tier-${choice.tier}`" role="checkbox"
               :aria-checked="ticked.includes(choice.beastId)" @click="emit('toggleTick', choice.beastId)">
               <span class="portrait">
-                <img v-if="portraitOf(choice.avatar)" :src="portraitOf(choice.avatar)!" alt="" />
+                <img v-if="beastPortraitUrl(choice.avatar)" :src="beastPortraitUrl(choice.avatar)!" alt="" />
                 <i v-else class="fad fa-paw-claws" aria-hidden="true"></i>
               </span>
               <span class="body">
@@ -74,7 +74,7 @@
             <li v-for="choice in covered" :key="choice.beastId">
               <div class="wake-row is-static" :class="`tier-${choice.tier}`">
                 <span class="portrait">
-                  <img v-if="portraitOf(choice.avatar)" :src="portraitOf(choice.avatar)!" alt="" />
+                  <img v-if="beastPortraitUrl(choice.avatar)" :src="beastPortraitUrl(choice.avatar)!" alt="" />
                   <i v-else class="fad fa-paw-claws" aria-hidden="true"></i>
                 </span>
                 <span class="body">
@@ -119,7 +119,7 @@ import { IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonCo
 import { TIER_NAMES } from "@/lib/services/quests/QuestLabels";
 import type { WakeChoice } from "@/lib/services/temples/wakeTempleQuests";
 import type { HeroOption, WakeReport } from "../../hooks/useTempleQuests";
-import { portraitOf } from "./portraitUrl";
+import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 
 interface WakeSheetProps {
   isOpen: boolean;
