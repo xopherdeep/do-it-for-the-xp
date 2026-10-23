@@ -57,8 +57,6 @@ const back = () => {
 <style lang="scss" scoped>
 @use "@/styles/themes/earthbound.scss" as *;
 
-$button-fill: #4a2a4a;
-$button-edge: #1a0a1a;
 
 // The same sheet as the checklist: absolute at the bottom of the contained page, never fixed or vh.
 .battle-sheet {
@@ -73,7 +71,7 @@ $button-edge: #1a0a1a;
   z-index: 200;
   display: flex;
   flex-direction: column;
-  color: $eb-color-cream;
+  color: var(--gs-text);
   font-family: "StatusPlz", "Apple Kid", sans-serif;
   -webkit-user-select: none;
   user-select: none;
@@ -113,12 +111,13 @@ $button-edge: #1a0a1a;
 
 .sheet-title {
   margin: 0;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-family: var(--gs-font-title);
+  text-shadow: var(--gs-text-shadow);
   font-size: 1.4rem;
   font-weight: normal;
   line-height: 1.1;
   letter-spacing: 2px;
-  color: $eb-color-pale-yellow;
+  color: var(--gs-accent);
 
   i {
     margin-right: 10px;
@@ -158,7 +157,7 @@ $button-edge: #1a0a1a;
 :slotted(.empty-state) {
   padding: 18px 8px;
   text-align: center;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-family: var(--gs-font);
   font-size: 1.15rem;
   letter-spacing: 1px;
   opacity: 0.8;
@@ -170,7 +169,7 @@ $button-edge: #1a0a1a;
   justify-content: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 2px solid rgba($eb-color-cream, 0.15);
+  border-top: 2px solid color-mix(in srgb, var(--gs-text) 15%, transparent);
 }
 
 .rpg-button {
@@ -182,28 +181,53 @@ $button-edge: #1a0a1a;
   min-height: 48px;
   margin: 0;
   padding: 8px 14px;
-  border: 3px solid rgba($eb-color-cream, 0.45);
+  border: 3px solid color-mix(in srgb, var(--gs-text) 45%, transparent);
   border-radius: 2px;
-  background: $button-fill;
-  color: $eb-color-cream;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  background: var(--gs-button);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
   font-size: 1.25rem;
   letter-spacing: 1px;
   line-height: 1.1;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  box-shadow: 0 4px 0 $button-edge;
+  box-shadow: 0 4px 0 var(--gs-button-edge);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 
   &:active {
     transform: translateY(3px);
-    box-shadow: 0 1px 0 $button-edge;
+    box-shadow: 0 1px 0 var(--gs-button-edge);
   }
 
   &:focus-visible {
-    outline: 2px solid $eb-color-pale-yellow;
+    outline: 2px solid var(--gs-accent);
     outline-offset: 3px;
+  }
+}
+
+// Short phones (iPhone SE / 8, 360x640 Androids): a taller sheet with a tighter head and foot, so a Power card and its
+// Cast button show whole instead of half under the fold
+@media (max-height: 700px) {
+  .battle-sheet {
+    max-height: 80%;
+  }
+
+  .sheet-header {
+    padding-bottom: 6px;
+  }
+
+  .sheet-subtitle {
+    margin-top: 2px;
+  }
+
+  .menu-content {
+    max-height: 58vh;
+  }
+
+  .menu-footer {
+    margin-top: 8px;
+    padding-top: 8px;
   }
 }
 
