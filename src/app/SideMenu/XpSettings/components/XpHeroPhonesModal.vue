@@ -127,6 +127,9 @@ import { isFamilyRoadClosed, FAMILY_ROAD_CLOSED_LINE } from "@/lib/services/town
 import { usesHashHistory } from "@/router/historyMode";
 import debug from "@/lib/utils/debug";
 
+/** While a link code is live, the phone list is read this often so a phone that just linked gets its sheet */
+const PHONES_POLL_MS = 10_000;
+
 interface Props {
   heroId: string;
   nickname: string;
@@ -146,6 +149,7 @@ const secondsLeft = ref<number>(0);
 const isGenerating = ref(false);
 const errorMessage = ref<string | null>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
+let phonesTimer: ReturnType<typeof setInterval> | null = null;
 
 const needsTownHall = computed(() => family.parentAuth === null);
 const heroPhones = computed(() => family.phones.filter((p) => p.heroId === props.heroId));
@@ -173,6 +177,25 @@ const countdownText = computed(() => {
   return `${minutes}:${paddedSeconds}`;
 });
 
+function stopPhonesPoll(): void {
+  if (phonesTimer) {
+    clearInterval(phonesTimer);
+    phonesTimer = null;
+  }
+}
+
+/** Reads the phone list again; a phone that appeared since the last read gets its sheet now, not on the next round */
+async function pollPhones(): Promise<void> {
+  try {
+    const before = family.phones.length;
+    await family.loadPhones();
+    const hasGrown = family.phones.length > before;
+    if (hasGrown) await family.queueSheets();
+  } catch (error) {
+    debug.warn("Could not refresh the phone list:", error);
+  }
+}
+
 function updateCountdown(): void {
   const target = expiresAtMs.value;
   if (!target) return;
@@ -183,6 +206,7 @@ function updateCountdown(): void {
   if (shouldStop) {
     clearInterval(timer);
     timer = null;
+    stopPhonesPoll();
   }
 }
 
@@ -203,6 +227,8 @@ async function createCode(): Promise<void> {
     const hasTimer = Boolean(timer);
     if (hasTimer) clearInterval(timer as ReturnType<typeof setInterval>);
     timer = setInterval(updateCountdown, 1000);
+    stopPhonesPoll();
+    phonesTimer = setInterval(pollPhones, PHONES_POLL_MS);
   } catch (error) {
     debug.error("Could not generate link code:", error);
     const auth = family.parentAuth;
@@ -254,6 +280,7 @@ onUnmounted(() => {
     clearInterval(timer);
     timer = null;
   }
+  stopPhonesPoll();
 });
 </script>
 

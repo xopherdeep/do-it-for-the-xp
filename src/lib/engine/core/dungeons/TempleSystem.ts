@@ -28,6 +28,8 @@ import { MapVisibility } from './templeSystem/visibility';
 import * as heroRuns from './templeSystem/heroRuns';
 import * as bloodMoons from './templeSystem/bloodMoons';
 import * as questRooms from './templeSystem/questRooms';
+import { createLandedRuns } from './templeSystem/landedRuns';
+import { onRecordsLanded } from '@/lib/services/sync/recordSignals';
 import type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
 export { TEMPLE_CLEARED_KEY };
@@ -77,9 +79,16 @@ export class TempleSystem {
   private questBoards = new Map<string, QuestRoomBoard>();
   private boardReads = new Map<string, Promise<unknown>>();
 
+  // Progress another device wrote that landed here (Family Sync): the stale run is forgotten and its old saves never written
+  private landedRuns = createLandedRuns();
+
   private constructor() {
     this.dungeonManager = DungeonManager.getInstance();
     this.chestSystem = ChestSystem.getInstance();
+    onRecordsLanded(({ store, keys }) => {
+      const isProgress = store === '__templeProgress';
+      if (isProgress) this.landedRuns.landed(this.runs, keys);
+    });
     debug.log('TempleSystem initialized');
   }
   
@@ -655,6 +664,7 @@ export class TempleSystem {
     const progress = this.progressSnapshot(templeId);
     if (!progress) return;
 
+    this.landedRuns.noted(progress);
     this.pendingSaves.set(`${progress.userId}|${templeId}`, progress);
     const isSaveScheduled = this.saveScheduled;
     if (isSaveScheduled) return;
@@ -672,6 +682,9 @@ export class TempleSystem {
     // One batch after the other, so an older snapshot never lands after a newer one
     this.writes = this.writes.then(async () => {
       for (const progress of batch) {
+        // Taken before another device's copy of it landed: the landed copy is newer
+        const isStale = this.landedRuns.isStale(progress);
+        if (isStale) continue;
         try {
           await getTempleProgressDb().saveProgress(progress);
         } catch (error) {

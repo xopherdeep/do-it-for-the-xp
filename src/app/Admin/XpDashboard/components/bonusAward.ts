@@ -67,3 +67,19 @@ export const awardResult = (isPenalty: boolean, members: string[], amounts: Awar
   ...amounts,
   note: tidyNote(note),
 });
+
+/** Runs a change to a hero on the hero's turn (useHeroWrite): true when it was made, false when another device plays the hero */
+export type HeroWriter = (heroId: string, change: () => Promise<void>) => Promise<boolean>;
+
+/**
+ * Awards each picked hero on the hero's turn (Family Sync), one after the other; a hero another device plays is left out
+ * (the clerk says so). Answers the heroes who were awarded, for the result the dashboard refreshes from.
+ */
+export const awardEach = async (members: string[], award: (heroId: string) => Promise<void>, writeHero: HeroWriter): Promise<string[]> => {
+  const awarded: string[] = [];
+  for (const heroId of members) {
+    const isAwarded = await writeHero(heroId, () => award(heroId));
+    if (isAwarded) awarded.push(heroId);
+  }
+  return awarded;
+};

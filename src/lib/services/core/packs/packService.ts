@@ -21,6 +21,7 @@ import { ShopItemType } from "@/lib/databases/ShopsDb";
 import type { ShopInterface } from "@/lib/databases/ShopsDb";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
 import type { ShopMetadata } from "@/lib/engine/core/shopRegistry";
+import { emitRecordWritten } from "@/lib/services/sync/recordSignals";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import type { PackContent, XpPack } from "./packFormat";
 
@@ -250,16 +251,27 @@ export const loadPack = async (pack: XpPack, deps: PackDeps = defaultDeps): Prom
   return deps.restore(packToBackup(pack, snapshot.__shops));
 };
 
-/** Takes the pack's records back out (see planRemoval for what stays). Returns how many records were deleted */
+/**
+ * Takes the pack's records back out (see planRemoval for what stays). Returns how many records were deleted.
+ * The writes go to the raw storages, past DbStorageApi, so each one is announced here (recordSignals.ts): Family Sync sends
+ * the rewritten shelf and a tombstone for every record taken out, or the family's other devices would keep them.
+ */
 export const removePack = async (pack: XpPack, packs: readonly XpPack[], deps: PackDeps = defaultDeps): Promise<number> => {
   if (!deps.canManage()) throw new BackupPermissionError();
-  const plan = planRemoval(pack, packs, await readSnapshot(deps));
+  const snapshot = await readSnapshot(deps);
+  const plan = planRemoval(pack, packs, snapshot);
   // Shelves first, so no shop ever sells a reward that is already gone; then the dependants before what they use
   const shops = deps.storage("__shops");
-  for (const shop of plan.shops) await shops.set(shop.id, shop);
+  for (const shop of plan.shops) {
+    await shops.set(shop.id, shop);
+    emitRecordWritten({ store: "__shops", key: shop.id, value: shop });
+  }
   for (const name of [...PACK_STORES].reverse()) {
     const storage = deps.storage(name);
-    for (const key of plan.remove[name]) await storage.remove(key);
+    for (const key of plan.remove[name]) {
+      await storage.remove(key);
+      emitRecordWritten({ store: name, key, value: null, previous: snapshot[name].get(key) ?? null });
+    }
   }
   return plan.total;
 };

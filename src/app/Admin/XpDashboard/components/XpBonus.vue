@@ -182,6 +182,8 @@
         </ion-col>
       </ion-row>
     </ion-grid>
+    <!-- Family Sync: the clerk says when a hero picked here is played on another device, and was left out -->
+    <xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />
   </ion-content>
 </template>
 <script lang="ts">
@@ -190,9 +192,11 @@ import { defineComponent } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
 
 import ionic from "@/lib/mixins/ionic";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useHeroWrite } from "@/hooks/useHeroWrite";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
-import { awardAmounts, awardResult, canAward, gmGpNote, type AwardAmounts, type AwardResult } from "./bonusAward";
+import { awardAmounts, awardEach, awardResult, canAward, gmGpNote, type AwardAmounts, type AwardResult } from "./bonusAward";
 
 export default defineComponent({
   props: {
@@ -203,6 +207,7 @@ export default defineComponent({
   },
 
   mixins: [ionic],
+  components: { XpRevealPrompt },
   computed: {
     users() {
       return (this as any).userStore.users;
@@ -233,8 +238,13 @@ export default defineComponent({
   },
   setup() {
     const userStore = useUserStore();
+    // Each hero's award runs on the hero's turn (Family Sync): a hero another device plays is left out, and the clerk says so
+    const { prompt: heroPrompt, respond: answerHero, writeHero } = useHeroWrite();
     return {
       userStore,
+      heroPrompt,
+      answerHero,
+      writeHero,
     };
   },
   methods: {
@@ -248,17 +258,20 @@ export default defineComponent({
       const hasXp = xp > 0;
       const hasAp = ap > 0;
 
-      // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
-      for (const id of this.members as string[]) {
+      // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place, on each hero's turn
+      const award = async (id: string): Promise<void> => {
         // The wallet history shows the Game Master's note when one was written
         if (hasGp) await this.userStore.updateUserGP({ userId: id, wallet: gp, note: gmGpNote(gp, this.notes) });
         if (hasXp) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
         if (hasAp) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
-      }
+      };
+      const awarded = await awardEach(this.members as string[], award, this.writeHero);
+      const isNobodyAwarded = awarded.length === 0;
+      if (isNobodyAwarded) return;
 
       const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
       this.profileDb.showSuccessToast(message);
-      this.dismiss(awardResult(this.isPenalty, this.members as string[], amounts, this.notes));
+      this.dismiss(awardResult(this.isPenalty, awarded, amounts, this.notes));
     },
     onRadioChange() {
       // console.log("onRadioChange", val);

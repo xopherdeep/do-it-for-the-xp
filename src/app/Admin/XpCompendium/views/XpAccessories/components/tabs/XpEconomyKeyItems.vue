@@ -80,6 +80,8 @@
                 </div>
             </div>
         </ion-content>
+        <!-- Family Sync: the clerk says when a hero picked for an unlock is played on another device -->
+        <xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />
     </ion-page>
 </template>
 
@@ -91,16 +93,21 @@ import { ItemMetadata } from "@/lib/engine/core/items/itemTypes";
 import shopsDb from "@/lib/databases/ShopsDb";
 import { unlockableItemNames, unlockHintOf } from "@/lib/services/quests/ItemEffects";
 import { useUserStore } from "@/lib/store/stores/user";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { resultOnTurn, useHeroWrite } from "@/hooks/useHeroWrite";
 
 export default defineComponent({
   name: "XpEconomyKeyItems",
   components: {
+    XpRevealPrompt,
     IonPage,
     IonContent,
     IonSearchbar,
     IonButton
   },
   setup() {
+    // An unlock writes the hero's profile: on the hero's turn (Family Sync), not at all while another device plays them
+    const { prompt: heroPrompt, respond: answerHero, writeHero } = useHeroWrite();
     const searchQuery = ref("");
     const allItems = getAllItems();
 
@@ -217,6 +224,17 @@ export default defineComponent({
         const hasNoHeroes = heroes.length === 0;
         if (hasNoHeroes) return say('No heroes to unlock it for.', 'warning');
 
+        /** On the hero's turn: a hero another device plays is not changed (the clerk says so) */
+        const unlockOnTurn = async (userId: string) => {
+            const hero: any = userStore.users[userId];
+            const who = hero?.name?.nick || hero?.name?.first || 'the hero';
+            const unlocked = await resultOnTurn(writeHero, userId, async () => userStore.unlockItem(userId, itemName));
+            const isUnlocked = unlocked === true;
+            const isAlreadyHeld = unlocked === false;
+            if (isUnlocked) void say(`${itemName} unlocked for ${who}!`, 'success');
+            if (isAlreadyHeld) void say(`${who} already holds ${itemName}.`, 'warning');
+        };
+
         const alert = await alertController.create({
             header: `Unlock ${itemName}`,
             subHeader: 'Select a hero',
@@ -231,11 +249,7 @@ export default defineComponent({
                     text: 'Unlock',
                     handler: (userId: string) => {
                         if (!userId) return;
-                        const hero: any = userStore.users[userId];
-                        const who = hero?.name?.nick || hero?.name?.first || 'the hero';
-                        const isUnlocked = userStore.unlockItem(userId, itemName);
-                        if (isUnlocked) void say(`${itemName} unlocked for ${who}!`, 'success');
-                        else void say(`${who} already holds ${itemName}.`, 'warning');
+                        void unlockOnTurn(userId);
                     }
                 }
             ]
@@ -244,6 +258,8 @@ export default defineComponent({
     };
 
     return {
+        heroPrompt,
+        answerHero,
         searchQuery,
         groupedItems,
         assignItem,

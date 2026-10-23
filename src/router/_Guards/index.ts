@@ -1,5 +1,7 @@
 import { Router } from "vue-router";
 import { useFamilyStore } from "@/lib/store/stores/family";
+import { useSyncStore } from "@/lib/store/stores/sync";
+import debug from "@/lib/utils/debug";
 import { handleHeroPhoneGuard } from "./heroPhone.guard";
 import { handleLogoutGuard } from "./logout.guard";
 import { handleAuthGuard } from "./auth.guard";
@@ -18,9 +20,14 @@ import { handleGuideGuard } from "./guide.guard";
  */
 export function useRouterGuards(router: Router): void {
   router.beforeEach(async (to, from, next) => {
-    // 0. Hero phone kid-mode gate: in kid mode, only hero-phone and link-phone are accessible.
-    await useFamilyStore().init();
-    const heroPhoneResult = handleHeroPhoneGuard(to, useFamilyStore().isKidMode);
+    // 0. Hero phone kid-mode gate: in kid mode, only hero-phone and link-phone are accessible, until Family Sync has
+    //    made the phone a full portal (its first pull is done). The sync store starts here (once) so it has read what
+    //    this device kept; a store that cannot start leaves the phone on the board and never stops a navigation.
+    const family = useFamilyStore();
+    const sync = useSyncStore();
+    await family.init();
+    await sync.init().catch((error) => debug.warn("guards: could not start family sync", error));
+    const heroPhoneResult = handleHeroPhoneGuard(to, family.isKidMode, sync.isFullPortal);
     const hasHeroPhoneRedirect = typeof heroPhoneResult === "object" && heroPhoneResult !== null;
     if (hasHeroPhoneRedirect) {
       return next(heroPhoneResult);
