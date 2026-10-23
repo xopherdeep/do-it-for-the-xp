@@ -15,6 +15,7 @@ import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { browseLibrary, type LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import {
+  fillsTemplate,
   headlineQuest,
   isListRoom,
   questBeastId,
@@ -94,7 +95,8 @@ export function questRoomCells(layout?: QuestLayout | null): QuestRoomCell[] {
  * - the quest the editor picked (`questId`), when it is live; a room that lists several (`questIds`) is read by the
  *   biggest live quest in the list;
  * - else the first live quest whose beast is the template's (a quest with no beast of its own counts through the
- *   library's suggestion for its name, the rule a room finds its quest by);
+ *   library's suggestion for its name, the rule a room finds its quest by) and whose tier is the template's or higher
+ *   (a smaller quest does not fill the room); the Game Master's own pick above is never held to a tier;
  * - else the room is dormant (it has a template) or an empty lair (it has none).
  * A draft is not live: heroes never see it, so it cannot hold a room. A classic room is never resolved.
  */
@@ -108,8 +110,7 @@ export function gmResolution(room: Partial<Room>, quests: readonly Achievement[]
   if (picked) return { kind: "quest", quest: picked, source: "questId" };
   if (!template) return { kind: "emptyLair" };
 
-  const wanted = String(template.beastId);
-  const filler = live.find((quest) => questBeastId(quest) === wanted);
+  const filler = live.find((quest) => fillsTemplate(quest, template));
   if (filler) return { kind: "quest", quest: filler, source: "template" };
   return { kind: "dormant", template };
 }

@@ -133,6 +133,35 @@ export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementNa
   return suggestedBeastIds.get(name);
 }
 
+/**
+ * True when a quest is big enough for the room a shipped template describes: the quest's tier (questTier of its
+ * difficulty) is the template's tier or higher. A quest below it does not fill the room (a chore of 2 does not hold
+ * a boss room), but a bigger one still fills a smaller room. Only the automatic fills ask: a quest the Game Master
+ * sets on a room (`questId` / `questIds`) is a deliberate choice and holds it at any tier.
+ */
+export function fitsRoomTier(
+  quest: Pick<Achievement, "difficulty">,
+  template: Pick<RoomQuestTemplate, "difficulty">
+): boolean {
+  return QUEST_TIERS.indexOf(questTier(quest.difficulty)) >= QUEST_TIERS.indexOf(questTier(template.difficulty));
+}
+
+/**
+ * True when a live quest fills a shipped template on its own, the way a room finds its quest (5.2 step 2): it has the
+ * template's beast (its own `beastId`, else the library's suggestion for its name) and fits the room's tier.
+ * Everything that reads "which quest fills this template" asks this, so the hero's room, the Game Master's tab and
+ * the editor card never disagree.
+ */
+export function fillsTemplate(
+  quest: Pick<Achievement, "beastId" | "achievementName" | "noBeast" | "difficulty">,
+  template: Pick<RoomQuestTemplate, "beastId" | "difficulty">
+): boolean {
+  const hasItsBeast = questBeastId(quest) === String(template.beastId);
+  const isBigEnough = fitsRoomTier(quest, template);
+  const isFiller = hasItsBeast && isBigEnough;
+  return isFiller;
+}
+
 /** A room's `questIds` when it is a list of at least one id; anything else there (none, empty, not a list) is no list */
 function questListOf(room: Partial<Room> | null | undefined): string[] | undefined {
   const listed = room?.content?.questIds;
@@ -250,14 +279,13 @@ const resolvePicks = (
   return best ?? picks.find((pick) => pick.kind === "notYours") ?? null;
 };
 
-/** The best live quest visible to the hero whose beast is the template's, or null. */
+/** The best live quest visible to the hero that fills the template (its beast, at its tier or higher), or null. */
 const matchTemplate = (
   template: RoomQuestTemplate,
   heroId: string,
   board: readonly QuestBoardItem[],
   liveQuests: readonly Achievement[]
 ): RoomQuestResolution | null => {
-  const wanted = String(template.beastId);
   const boardIds = new Set(board.map((row) => String(row.quest.id)));
   const candidates: { quest: Achievement; item?: QuestBoardItem }[] = [
     ...board.filter((item) => !item.quest.draft).map((item) => ({ quest: item.quest, item })),
@@ -269,7 +297,7 @@ const matchTemplate = (
   const preferenceOf = (candidate: { item?: QuestBoardItem }) => PREFERENCE[readRow(candidate.item)];
   // Array.sort is stable: two quests that read the same keep the order they came in
   const [best] = candidates
-    .filter((candidate) => questBeastId(candidate.quest) === wanted)
+    .filter((candidate) => fillsTemplate(candidate.quest, template))
     .sort((a, b) => preferenceOf(a) - preferenceOf(b));
   return best ? { kind: "quest", quest: best.quest, item: best.item, source: "template" } : null;
 };
@@ -279,8 +307,9 @@ const matchTemplate = (
  *  1. `content.questId` / `content.questIds` (the Game Master's picks): the pick that is for the hero and reads best,
  *     open before pending before done before away, ties to the one listed first; a pick that is gone or a draft does
  *     not count, and when every live pick is for someone else the room sleeps for the hero;
- *  2. `content.quest` (the shipped template): the live quest visible to the hero whose beast is the template's,
- *     open before pending before done before away; ties go to the first;
+ *  2. `content.quest` (the shipped template): the live quest visible to the hero whose beast is the template's and
+ *     whose tier is the template's or higher (a smaller quest does not fill the room: it stays on the board and the
+ *     room stays dormant), open before pending before done before away; ties go to the first;
  *  3. the room is dormant.
  * A classic room is never resolved. Picks that no longer resolve and have no template are an empty lair.
  *

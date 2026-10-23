@@ -21,7 +21,7 @@ import { getQuestWindow } from "@/lib/engine/quests/QuestSchedule";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
-import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
+import { TEMPLE_FULL_SIZE, questBeastId, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
 import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
 
@@ -44,21 +44,36 @@ const combatCountsOf = (id: string): [number, number, number] => dressed(id).cou
 const sizeOf = (id: string): number => dressed(id).size;
 
 /**
- * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
- * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold, Earth) and
- * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none. A classic temple whose plan is
- * topped up with the rest of its theme holds that beast's starter too (Fire's Backseat Beastie: Clean Backseat Beastie;
- * Moon's Sniffle Sprite: Sniffle Sprite Salve).
+ * Section 12: the starter world's quests that fill a shipped room at once, by beast. One fills a room through the
+ * library's suggestion, because it has no beast of its own: Feed the Loyal Familiar (Kibble Kobold, Earth). Water holds
+ * none. A classic temple whose plan is topped up with the rest of its theme holds that beast's starter too (Fire's
+ * Backseat Beastie: Clean Backseat Beastie; Moon's Sniffle Sprite: Sniffle Sprite Salve). The six that sit below the
+ * tier of their room are not here (BELOW_ROOM_TIER): that room plays dormant.
  */
 const STARTER_MATCHES: Record<string, string[]> = {
-  "wind-temple": ["quest-dust", "quest-vacuum"],
+  "wind-temple": ["quest-dust"],
   "fire-temple": ["quest-breakfast", "quest-cook", "quest-car"],
   "earth-temple": ["quest-weeds", "quest-pet", "quest-plants", "quest-walk-dog", "quest-poop"],
-  "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear", "quest-mop"],
-  "ice-temple": ["quest-socks", "quest-fridge", "quest-laundry"],
-  "light-temple": ["quest-backpack", "quest-homework", "quest-reading"],
-  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep", "quest-vitamins"],
+  "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear"],
+  "ice-temple": ["quest-socks", "quest-fridge"],
+  "light-temple": ["quest-backpack"],
+  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-vitamins"],
   "storm-temple": ["quest-bed", "quest-shoes", "quest-toys"],
+};
+
+/**
+ * Section 12: the starter quests whose tier is below the room built for their beast, so the room stays dormant and the
+ * quest stays on the board: Wrangle the Fluffalo (2) in Wind's boss room, Subdue Stickyfoot Slime (2) in Shadow's
+ * mini-boss room, Corner the Laundry Lurker (3) in Ice's boss room, Behead the Homework Hydra (2) in Light's mini-boss
+ * room, Study the Ancient Tomes (1, by the library's suggestion) in Light's boss room, Pacify the Night Owlbear (1) in
+ * Moon's.
+ */
+const BELOW_ROOM_TIER: Record<string, string[]> = {
+  "wind-temple": ["quest-vacuum"],
+  "shadow-temple": ["quest-mop"],
+  "ice-temple": ["quest-laundry"],
+  "light-temple": ["quest-homework", "quest-reading"],
+  "moon-temple": ["quest-sleep"],
 };
 
 const FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
@@ -260,6 +275,17 @@ describe("the shipped temples as quest rooms", () => {
         .flatMap((resolution) => (resolution.kind === "quest" ? [resolution.quest.id] : []));
       // A temple's side rooms repeat a beast, so one starter quest can fill several rooms
       expect([...new Set(filled)].sort()).toEqual([...wanted].sort());
+    });
+
+    it("leaves a room dormant when the only starter quest with its beast is below the room's tier (section 12)", () => {
+      for (const questId of BELOW_ROOM_TIER[id] ?? []) {
+        const starter = STARTER_QUESTS.find((quest) => quest.id === questId)!;
+        const held = rooms.filter((room) => templateOf(room).beastId === questBeastId(starter));
+        expect({ questId, rooms: held.length > 0 }).toEqual({ questId, rooms: true });
+        for (const room of held) {
+          expect({ questId, kind: resolveRoomQuest(room.room, "hero", [], STARTER_QUESTS).kind }).toEqual({ questId, kind: "dormant" });
+        }
+      }
     });
   });
 });
