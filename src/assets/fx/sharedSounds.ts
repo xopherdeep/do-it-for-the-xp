@@ -17,7 +17,10 @@ import doorOpen from "@/assets/audio/door-open.mp3";
 import vaultOpen from "@/assets/audio/doors/vault-open.mp3";
 import hallOpen from "@/assets/audio/doors/hall-open.mp3";
 
+/** The coin counter: one short tick that fx/burst.ts loops for a moment and stops (the `countCoins` key) */
 export const coins = new Audio(Coins);
+/** One clink, played once and left alone: a payout landed (the `coins` key). Its own Audio, so it never cuts the counter off. */
+export const coinClink = new Audio(Coins);
 
 export const gp = new Audio(rupee);
 export const shhh = new Audio(secret)

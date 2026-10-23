@@ -12,6 +12,7 @@ import { feel, type Feel } from "./haptics";
 export const SOUND_FEELS: Readonly<Record<string, Feel>> = {
   buyItem: "grab",
   countCoins: "tick",
+  coins: "tick",
   gainGP: "grab",
   restoreAll: "success",
   restoreHP: "success",

@@ -2,7 +2,7 @@ import chronoTrigger from "./chronoTrigger.fx";
 import earthbound from "./earthbound.fx";
 import { earthboundBGM } from "./bgmSlots";
 import { sting } from "./audioSources";
-import { coins, gp, shhh, openMenu, closeMenu, message, newItem, openChest, takeItem, fairy, finish, openDoor, step, steps, doorSounds } from "./sharedSounds";
+import { coins, coinClink, gp, shhh, openMenu, closeMenu, message, newItem, openChest, takeItem, fairy, finish, openDoor, step, steps, doorSounds } from "./sharedSounds";
 
 import purchaseWAV from "@/assets/audio/Purchase.wav";
 import pointsMP3 from "@/assets/audio/points.mp3";
@@ -52,6 +52,7 @@ export const earthboundSounds = {
   gainGP: new Audio(purchaseWAV),
   fillPoints: new Audio(pointsMP3),
   countCoins: coins,
+  coins: coinClink,
   restoreHP: new Audio(earthbound.heal),
   restoreMP: new Audio(earthbound.statsup),
   restoreAll: new Audio(earthbound.heal2),
@@ -114,6 +115,7 @@ export const chronoTriggerSounds = {
   gainGP: new Audio(purchaseWAV),
   fillPoints: new Audio(pointsMP3),
   countCoins: coins,
+  coins: coinClink,
   restoreHP: new Audio(chronoTrigger.gainHp),
   restoreMP: new Audio(chronoTrigger.gainMp),
   restoreAll: new Audio(chronoTrigger.cureMagic),
@@ -171,6 +173,7 @@ export const finalFantasySounds = {
   gainGP: new Audio(purchaseWAV),
   fillPoints: new Audio(pointsMP3),
   countCoins: coins,
+  coins: coinClink,
   restoreHP: new Audio(chronoTrigger.gainHp),
   restoreMP: new Audio(chronoTrigger.gainMp),
   restoreAll: new Audio(chronoTrigger.cureMagic),
