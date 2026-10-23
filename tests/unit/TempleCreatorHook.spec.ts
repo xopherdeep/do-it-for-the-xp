@@ -14,6 +14,8 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
+import { isEntranceToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { ENTRANCE_TOKEN } from "@/lib/store/stores/temple-creator";
 import { writeMazeCell } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/floorLayers";
 
 jest.mock("@ionic/storage", () => {
@@ -91,7 +93,7 @@ const startTemple = (id: string, size: string, entrance: string) => {
 
 const entranceCells = (grid: string[][]) => {
   const found: number[][] = [];
-  grid.forEach((row, r) => row.forEach((cell, c) => cell === _00_ && found.push([r, c])));
+  grid.forEach((row, r) => row.forEach((cell, c) => isEntranceToken(cell) && found.push([r, c])));
   return found;
 };
 
@@ -810,8 +812,8 @@ describe("Quick Edit type tiles", () => {
     const creator = quickEditOn(questRoom());
     creator.applyQuickType("entrance");
 
-    expect(cell(creator)).toBe(_00_);
-    expect(creator.roomsData.value[_00_]).toEqual({ type: "entrance" });
+    expect(cell(creator)).toBe(ENTRANCE_TOKEN);
+    expect(creator.roomsData.value[ENTRANCE_TOKEN]).toEqual({ type: "entrance", visited: true });
   });
 });
 

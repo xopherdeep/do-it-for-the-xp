@@ -3,9 +3,9 @@
  * cell the saved entrance (and every other entrance token an empty room), and removing a floor shifts the floor index
  * of an entrance stored as "floor index,row,col" (the index is the floor's place among the maze's floor keys).
  */
-import { _00_ } from "@/lib/engine/dungeons/roomTypes";
 import { isEntranceToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import { ENTRANCE_TOKEN } from "@/lib/store/stores/temple-creator";
 import { floorKeysOf, floorSlice, getEntranceFloor, writeMazeCell, type MazeData } from "./floorLayers";
 import { describeEntrance } from "./mazeReadouts";
 import { readEntrancePosition } from "./resizeMaze";
@@ -97,8 +97,10 @@ type SymbolMaker = (row: number, col: number, type: string) => string;
 
 /**
  * Puts the entrance token on a cell, replacing the room it held (that room's record goes with it), and makes it the one
- * entrance: every other entrance token, on any floor, becomes an empty room with a new symbol and record. Changes the
- * maze and the room records in place and gives the entrance position to save for the cell.
+ * entrance: every other entrance token, on any floor, becomes an empty room with a new symbol and record. The token is
+ * the store's ENTRANCE_TOKEN, the key the shared entrance record is kept under, never the engine's single letter 'E', so
+ * the cell and its record agree before a Save as after it. Changes the maze and the room records in place and gives the
+ * entrance position to save for the cell.
  */
 export const placeEntrance = (temple: EntranceTemple, cell: EntranceCell, makeSymbol: SymbolMaker): string => {
   const { maze, rooms, usedSymbols } = temple;
@@ -112,7 +114,7 @@ export const placeEntrance = (temple: EntranceTemple, cell: EntranceCell, makeSy
     delete rooms[held];
     usedSymbols.delete(held);
   }
-  writeMazeCell(maze, levelId, row, col, _00_);
+  writeMazeCell(maze, levelId, row, col, ENTRANCE_TOKEN);
 
   otherEntranceCells(maze, levelId, row, col).forEach((old) => {
     const symbol = makeSymbol(old.row, old.col, "empty");

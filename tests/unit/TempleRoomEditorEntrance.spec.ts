@@ -115,6 +115,7 @@ describe("choosing Entrance on a one-floor temple's room", () => {
     const { store } = editor;
     const grid = store.templeMaze as string[][];
     expect(isEntranceToken(grid[1][3])).toBe(true);
+    expect(grid[1][3]).toBe(ENTRANCE_TOKEN); // the key of the shared entrance record, with no help from the room editor
     expect(store.entrancePosition).toBe("1,3");
     expect(entranceCells(grid)).toEqual(["1F:1,3"]);
     expect(editor.roomData.value?.type).toBe("entrance");

@@ -4,6 +4,7 @@
  * to a unique symbol, and the room record written for a cell.
  */
 import { _00_, ____, SHOP, TELE } from "@/lib/engine/dungeons/roomTypes";
+import { ENTRANCE_TOKEN } from "@/lib/store/stores/temple-creator";
 import {
   buildRoomRecord,
   chooseRoomSymbol,
@@ -20,7 +21,7 @@ describe("roomSymbols", () => {
   it("maps each room kind to its resize symbol", () => {
     expect(roomSymbols).toEqual({
       wall: ____,
-      entrance: _00_,
+      entrance: ENTRANCE_TOKEN,
       empty: "O__O",
       monster: "q__q",
       loot: "$__$",
@@ -130,8 +131,8 @@ describe("chooseRoomSymbol", () => {
 
   it("uses the shared entrance symbol for an entrance, whatever the cell held", () => {
     const gen = generate();
-    expect(chooseRoomSymbol("R001", "monster", "entrance", gen)).toBe(_00_);
-    expect(chooseRoomSymbol(____, "wall", "entrance", gen)).toBe(_00_);
+    expect(chooseRoomSymbol("R001", "monster", "entrance", gen)).toBe(ENTRANCE_TOKEN);
+    expect(chooseRoomSymbol(____, "wall", "entrance", gen)).toBe(ENTRANCE_TOKEN);
     expect(gen).not.toHaveBeenCalled();
   });
 

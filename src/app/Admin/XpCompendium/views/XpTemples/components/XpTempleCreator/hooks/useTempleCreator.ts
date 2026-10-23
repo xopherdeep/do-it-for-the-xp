@@ -558,8 +558,11 @@ export function useTempleCreator(
     // A boss room's doors are all locked with the boss key
     const roomData = buildRoomRecord(newType, contentData, sideData);
 
+    // The entrance's record is the one the whole temple shares, under the token on the cell: it stays as it is (its doors
+    // and name), and this room's record only becomes it when the temple has none yet
     const isOwnSymbol = symbolToUse !== ____;
-    if (isOwnSymbol) {
+    const keepsSharedEntranceRecord = isNewEntrance && Boolean(roomsData.value[symbolToUse]);
+    if (isOwnSymbol && !keepsSharedEntranceRecord) {
       roomsData.value[symbolToUse] = roomData;
     }
 

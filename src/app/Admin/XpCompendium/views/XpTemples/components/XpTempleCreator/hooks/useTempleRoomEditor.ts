@@ -597,8 +597,6 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
     const temple = { maze: store.templeMaze, rooms: store.roomsData, usedSymbols: store.usedSymbols };
     store.entrancePosition = placeEntrance(temple, cell, store.generateUniqueSymbol);
-    // The store's own spelling of the entrance, the one its room record and its saved maze use
-    writeMazeCell(store.templeMaze, cell.levelId, cell.row, cell.col, ENTRANCE_TOKEN);
 
     const sharedRecord: Room = store.roomsData[ENTRANCE_TOKEN] ?? { type: 'entrance', visited: true };
     store.roomsData[ENTRANCE_TOKEN] = sharedRecord;
