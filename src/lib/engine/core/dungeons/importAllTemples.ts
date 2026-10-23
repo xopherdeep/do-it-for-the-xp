@@ -14,6 +14,8 @@
  *   compared without them, and a refresh places them again in the new layout by Quick Start's own rule.
  * Hero progress lives in another store (`__templeProgress`). It is touched here in one case only: a refresh puts a
  * different temple under the same id, so every hero's run in it starts over on the new entrance (startRunsOver).
+ * A refresh also carries the heroes' wake memory over (carryWakeMemory): the beasts the old layout's woken floors held are
+ * remembered on each hero before the layout is replaced, so only the rooms that are new wake on the next entry.
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
@@ -25,6 +27,7 @@ import { placeQuickStartQuests, withoutQuickStartQuests } from '@/lib/services/t
 import { startTempleSync } from './templeFreshness';
 import { entranceOf, progressForNewLayout } from './templeReset';
 import { TempleSystem } from './TempleSystem';
+import type { HeroEffectsStore, PlayedLayout } from '@/lib/services/temples/wakeOnEntry';
 
 type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
 
@@ -40,6 +43,8 @@ export interface ImportOptions {
   db?: TempleDb;
   /** The temples shipped in code (default: the nine in src/lib/engine/temples) */
   shipped?: Record<string, ShippedTemple>;
+  /** The heroes whose wake memory a refresh carries over (default: the family's user store) */
+  heroes?: HeroEffectsStore;
 }
 
 /**
@@ -176,6 +181,22 @@ async function startRunsOver(templeId: string, layout: SeedLayout): Promise<void
   }
 }
 
+/**
+ * Before a refresh replaces the old layout, each hero's woken floors of it are swapped for the beasts those floors held
+ * (rememberWokenBeastsForHeroes), so the next arrival wakes only the beasts that are new. wakeOnEntry is loaded here
+ * and not at the top: a refresh is rare, and the import should not pull the stores in for the temples that did not change.
+ * A failure is warned about and never keeps the layout from being written.
+ */
+async function carryWakeMemory(templeId: string, oldLayout: TempleInterface['dungeonLayout'], heroes: HeroEffectsStore | undefined): Promise<void> {
+  if (!oldLayout) return;
+  try {
+    const wake = await import('@/lib/services/temples/wakeOnEntry');
+    await wake.rememberWokenBeastsForHeroes(templeId, oldLayout as PlayedLayout, heroes ?? wake.familyHeroEffects());
+  } catch (error) {
+    debug.warn(`Could not carry the heroes' woken beasts in ${templeId} to its new layout:`, error);
+  }
+}
+
 async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
   const report: SeedReport = {};
   try {
@@ -229,7 +250,10 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
         debug.log(`${action === 'create' ? 'Importing' : 'Refreshing'} ${templeId} layout in TempleDb...`);
         // The rooms a hero was in are gone with the old layout: their runs start over before it is replaced
         const isLayoutSwitch = action === 'refresh';
-        if (isLayoutSwitch) await startRunsOver(templeId, dungeonLayout);
+        if (isLayoutSwitch) {
+          await carryWakeMemory(templeId, existing?.dungeonLayout, options.heroes);
+          await startRunsOver(templeId, dungeonLayout);
+        }
         await db.setTemple({ ...base, ...existing, dungeonLayout, seedSignature: signature });
       } catch (error) {
         // One broken record must not keep the other temples from syncing

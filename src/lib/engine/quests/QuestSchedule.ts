@@ -172,6 +172,12 @@ export interface HeroQuestEffects {
    * wakeOnEntry.ts and Quick Start (quickStartTemple.ts). A bare temple id is an older wake, the entrance floor's.
    */
   templesWokenAt?: Record<string, string>;
+  /**
+   * Temple id -> the beasts (slugs, the last part of a woken quest's `tq-<temple>-<slug>` id) that floors woken under a
+   * layout since replaced held; written by a layout refresh (wakeOnEntry.ts rememberWokenBeasts). Walking onto a floor of the
+   * new layout wakes only the beasts not listed here: a beast the old layout woke is never made again, whichever floor it is on.
+   */
+  templesWokenBeasts?: Record<string, string[]>;
 }
 
 /** The calendar day a date falls on, the key the snooze and pull-in maps use. */
