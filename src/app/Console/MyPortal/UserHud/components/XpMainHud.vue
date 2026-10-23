@@ -274,5 +274,49 @@ export default defineComponent({
       filter: drop-shadow(0 0 6px rgba(var(--ion-color-tertiary-rgb), 0.5));
     }
   }
+
+  // Phones under 375px (iPhone SE 1st gen, 360px Androids): a wing has 128-148px, so the icons and the numbers close ranks
+  // and the stack may shrink; otherwise "MP 60 / 60" ran 54px past the right edge
+  @media (max-width: 374px) {
+    .hud-organism {
+      width: 100vw;
+      gap: 2px;
+    }
+
+    .hud-center {
+      width: 60px;
+    }
+
+    .hud-wing {
+      .wing-icon-col {
+        width: 34px;
+      }
+
+      .wing-content-stack {
+        min-width: 0;
+
+        .stat-row .stat-divider {
+          margin: 0 1px;
+        }
+      }
+    }
+
+    .stat-unit {
+      gap: 3px;
+
+      .stat-group {
+        gap: 2px;
+      }
+
+      .stat-value {
+        letter-spacing: 0;
+      }
+    }
+
+    i {
+      width: 30px;
+      font-size: 1.7rem;
+    }
+  }
 }
 </style>
