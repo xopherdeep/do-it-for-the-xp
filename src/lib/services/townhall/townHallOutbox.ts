@@ -153,17 +153,25 @@ export function waitingLabel(post: TownHallPost): string {
 }
 
 /** What the clerk tells a hero who has just posted: the line to say (hometownPrompts `postedNotice`). */
-export type PostedOutcome = "to-gm" | "to-site" | "bug" | "on-file-hero" | "on-file-gm";
+export type PostedOutcome = "to-gm" | "to-site" | "published" | "bug" | "on-file-hero" | "on-file-gm";
 
 /**
  * How a post that was just kept goes on. A post awaiting the Game Master goes to the Game Master, linked or not. Any
  * other waits for a registration the family lacks (on file, and whose it is to register), or goes out: a bug report to
- * the developers, a Game Master's topic or comment to the site.
+ * the developers, a Game Master's topic or comment to the site. When the link can publish, a topic or comment is up
+ * on the site already ("published"); a bug report still goes to the developers.
  */
-export function postedOutcome(post: TownHallPost, linked: boolean, isGameMaster: boolean): PostedOutcome {
+export function postedOutcome(
+  post: TownHallPost,
+  linked: boolean,
+  isGameMaster: boolean,
+  canPublish = false
+): PostedOutcome {
   const isAwaitingGm = post.status === "awaiting-gm";
   if (isAwaitingGm) return "to-gm";
   if (!linked) return isGameMaster ? "on-file-gm" : "on-file-hero";
+  const isPublishedNow = canPublish && post.kind !== "bug";
+  if (isPublishedNow) return "published";
   return post.kind === "bug" ? "bug" : "to-site";
 }
 

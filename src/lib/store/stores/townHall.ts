@@ -1,9 +1,9 @@
-import { Capacitor } from "@capacitor/core";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
 import { computed, ref } from "vue";
 import { getTownHallDb } from "@/lib/databases/TownHallDb";
 import { townHallFetch, TownHallError, type TownHallAuth } from "@/lib/services/townhall/townHallClient";
+import { NO_POWERS, powersOf, type SitePowers } from "@/lib/services/townhall/townHallDesk";
 import { fetchBoards } from "@/lib/services/townhall/townHallFeed";
 import { readLinkReturn, type LinkReturn } from "@/lib/services/townhall/townHallLink";
 import { claimLinkState, rememberLinkState } from "@/lib/services/townhall/townHallLinkState";
@@ -19,11 +19,14 @@ import {
   sendable,
   settle,
   startSending,
-  type SendResult,
 } from "@/lib/services/townhall/townHallOutbox";
-import { bugEnvironment, draftProblem, requestFor, type PostDraft, type PostRequest } from "@/lib/services/townhall/townHallPosts";
-import { appVersion, hostNonce, SITE_BOARDS, townHallSiteUrl, type SiteBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { draftProblem, requestFor, type PostDraft, type PostRequest } from "@/lib/services/townhall/townHallPosts";
+import { hostNonce, SITE_BOARDS, townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
+import { basicAuthOf, bugDetails, sendRequest, textOrUndefined, type FlushResult, type FlushRun } from "@/lib/services/townhall/townHallSend";
 import type { TownHallLink, TownHallPost, TownHallProfile } from "@/lib/services/townhall/townHallTypes";
+import debug from "@/lib/utils/debug";
+
+export type { FlushResult };
 
 /** What coming back from WordPress's "authorize this app" page came to: nothing there, turned down, or a checked link. */
 export type LinkResult = "linked" | "rejected" | "none" | "failed";
@@ -39,70 +42,6 @@ function isTownHallSite(candidate: string): boolean {
     return false;
   }
 }
-
-/** The site's text, trimmed, or nothing when it sent something else or an empty string. */
-function textOrUndefined(value: unknown): string | undefined {
-  const isText = typeof value === "string";
-  if (!isText) return undefined;
-  return value.trim() || undefined;
-}
-
-/** How a flush went: posts the site took, whether the family's link was given up, whether the account may not post. */
-export interface FlushResult {
-  sent: number;
-  unlinked: boolean;
-  forbidden: boolean;
-}
-
-type BoardIds = Partial<Record<SiteBoardSlug, number>>;
-
-/** What one flush keeps track of while it runs. */
-interface FlushRun {
-  result: FlushResult;
-  /** Posts this flush has already had a go at, so a post that went back in the queue is not tried again in the same flush. */
-  tried: Set<string>;
-  /** The site's board ids, read when the first topic needs them. */
-  boardIds: BoardIds | null;
-  /** The site said to slow down with comments (one every 15 seconds): the rest of this flush sends none. */
-  commentsHeld: boolean;
-}
-
-/** What a send that did not come back with a post: the site's refusal as it is (with WordPress's code), anything else as a server error. */
-function failureOf(error: unknown): SendResult {
-  const isSiteRefusal = error instanceof TownHallError;
-  if (!isSiteRefusal) return { ok: false, code: "server" };
-  return { ok: false, code: error.code, message: error.message, ...(error.siteCode ? { siteCode: error.siteCode } : {}) };
-}
-
-/** A made post answers with its id. A reply without one (a captive portal's page, say) is no sign the site has the post. */
-function resultOfReply(data: unknown): SendResult {
-  const id = (data as { id?: unknown } | null)?.id;
-  return typeof id === "number" ? { ok: true, remoteId: id } : { ok: false, code: "server" };
-}
-
-/** Where a bug report was found and what device sent it; the other kinds carry none. */
-function bugDetails(draft: PostDraft, route: string, at: number): { route: string; environment: string } | undefined {
-  const isBug = draft.kind === "bug";
-  if (!isBug) return undefined;
-  const environment = bugEnvironment({ version: appVersion(), route, platform: Capacitor.getPlatform(), userAgent: navigator.userAgent, at });
-  return { route, environment };
-}
-
-/** One try at sending a request. Whatever goes wrong comes back as a result, never as an error. */
-async function sendRequest(request: PostRequest, withAuth: TownHallAuth): Promise<SendResult> {
-  try {
-    const { data } = await townHallFetch<unknown>(request.path, { auth: withAuth, method: "POST", body: request.body });
-    return resultOfReply(data);
-  } catch (e) {
-    return failureOf(e);
-  }
-}
-
-const basicAuthOf = (link: Pick<TownHallLink, "userLogin" | "appPassword">): TownHallAuth => ({
-  kind: "basic",
-  userLogin: link.userLogin,
-  appPassword: link.appPassword,
-});
 
 /** The family's link to the Town Hall site on this device, and how requests prove who sends them. */
 export const useTownHallStore = defineStore("townHall", () => {
@@ -130,6 +69,13 @@ export const useTownHallStore = defineStore("townHall", () => {
   });
   const isLinked = computed(() => auth.value.kind !== "none");
   const signedInThroughWebsite = computed(() => !activeLink.value && hostSession() !== null);
+
+  /** What a website session may do on the site: held in memory only, since there is no link to keep it on. */
+  const sessionPowers = ref<SitePowers | null>(null);
+  /** The link's powers; else the website session's; else none (a hero, a guest, or a link not read since powers began). */
+  const powers = computed<SitePowers>(() => activeLink.value?.powers ?? sessionPowers.value ?? NO_POWERS);
+  const canPublish = computed(() => powers.value.publish);
+  const canModerate = computed(() => powers.value.moderate);
 
   let initPromise: Promise<void> | null = null;
 
@@ -176,10 +122,13 @@ export const useTownHallStore = defineStore("townHall", () => {
     if (!isTownHallSite(ret.siteUrl)) return "failed";
     const previous = activeLink.value;
     const withAuth = basicAuthOf(ret);
-    let name: unknown;
+    let me: { name?: unknown; capabilities?: unknown } | null = null;
     try {
-      const me = await townHallFetch<{ name?: unknown } | null>("wp/v2/users/me", { auth: withAuth, query: { context: "edit" } });
-      name = me.data?.name;
+      const answer = await townHallFetch<{ name?: unknown; capabilities?: unknown } | null>("wp/v2/users/me", {
+        auth: withAuth,
+        query: { context: "edit" },
+      });
+      me = answer.data;
     } catch (e) {
       const isSiteError = e instanceof TownHallError;
       if (isSiteError) return "failed";
@@ -190,8 +139,9 @@ export const useTownHallStore = defineStore("townHall", () => {
       siteUrl: townHallSiteUrl(),
       userLogin: ret.userLogin,
       appPassword: ret.appPassword,
-      displayName: textOrUndefined(name) ?? ret.userLogin,
+      displayName: textOrUndefined(me?.name) ?? ret.userLogin,
       linkedAt: Date.now(),
+      powers: powersOf(me, Date.now()),
       ...(uuid ? { appPasswordUuid: uuid } : {}),
     };
     await getTownHallDb().saveLink(next);
@@ -200,6 +150,47 @@ export const useTownHallStore = defineStore("townHall", () => {
     const shouldRemoveOld = !!previous && replacesConnection;
     if (shouldRemoveOld) await removeFromSite(previous);
     return "linked";
+  }
+
+  /**
+   * Keep these powers where the sign-in lives: on the family's link (saved with it), else in memory for a website session.
+   * Memory changes first, so a power the site took away is gone at once even if saving the link fails.
+   */
+  async function keepPowers(next: SitePowers): Promise<void> {
+    const current = activeLink.value;
+    if (!current) {
+      sessionPowers.value = next;
+      return;
+    }
+    const updated: TownHallLink = { ...current, powers: next };
+    link.value = updated;
+    await getTownHallDb().saveLink(updated);
+  }
+
+  /**
+   * Read what the signed-in account may do from the site and keep it. Best effort: a site that cannot answer (or a
+   * failed save) leaves the powers as they were. Nothing is requested for a guest, and an answer that arrives after the
+   * sign-in is gone is dropped.
+   */
+  async function refreshPowers(): Promise<void> {
+    try {
+      await init();
+      const withAuth = auth.value;
+      const isGuest = withAuth.kind === "none";
+      if (isGuest) return;
+      const answer = await townHallFetch<unknown>("wp/v2/users/me", { auth: withAuth, query: { context: "edit" } });
+      const stillSignedIn = auth.value.kind === withAuth.kind;
+      if (!stillSignedIn) return;
+      await keepPowers(powersOf(answer.data, Date.now()));
+    } catch (e) {
+      debug.warn("Town Hall: could not read the site's powers", e);
+    }
+  }
+
+  /** The site refused what the powers allowed: forget them until the next read says otherwise. */
+  async function dropPowers(): Promise<void> {
+    await init();
+    await keepPowers({ ...NO_POWERS, readAt: Date.now() });
   }
 
   /**
@@ -403,7 +394,7 @@ export const useTownHallStore = defineStore("townHall", () => {
 
     let request: PostRequest;
     try {
-      request = requestFor(post, run.boardIds ?? {});
+      request = requestFor(post, run.boardIds ?? {}, { canPublish: canPublish.value });
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       replacePost(settle(startSending(post), { ok: false, code: "invalid", message: reason }).post);
@@ -476,12 +467,17 @@ export const useTownHallStore = defineStore("townHall", () => {
     auth,
     isLinked,
     signedInThroughWebsite,
+    powers,
+    canPublish,
+    canModerate,
     init,
     beginLink,
     completeLink,
     unlink,
     forgetLink,
     fetchProfile,
+    refreshPowers,
+    dropPowers,
     submit,
     approve,
     reject,

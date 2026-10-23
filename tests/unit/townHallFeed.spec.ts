@@ -1,9 +1,16 @@
 import {
+  countDrafts,
+  countPendingTopics,
   fetchBoards,
+  fetchBugs,
   fetchComments,
+  fetchDrafts,
+  fetchHeldComments,
   fetchNews,
   fetchPatchNotes,
+  fetchPendingTopics,
   fetchTopics,
+  fetchWords,
   patchNotesCategoryId,
 } from "@/lib/services/townhall/townHallFeed";
 
@@ -198,5 +205,47 @@ describe("townHallFeed", () => {
       expect(topics.items.map((t) => t.author)).toEqual(["Unknown", "Unknown"]);
       expect(topics.totalPages).toBe(1);
     });
+  });
+});
+
+describe("the desk's readers", () => {
+  it("reads news drafts outside the Patch Notes, and patch-note drafts inside them", async () => {
+    const { req, urls } = site([["categories?slug=patch-notes", reply([{ id: 7 }])], ["posts?", reply([post(5)])]]);
+    expect((await fetchDrafts("news", req)).map((d) => d.id)).toEqual([5]);
+    expect(urls()[1]).toBe(`${ROOT}/wp/v2/posts?status=draft%2Cpending&context=edit&_embed=true&per_page=5&categories_exclude=7`);
+    await fetchDrafts("patch-notes", req);
+    expect(urls()[3]).toBe(`${ROOT}/wp/v2/posts?status=draft%2Cpending&context=edit&_embed=true&per_page=5&categories=7`);
+  });
+  it("reads no patch-note drafts while the site has no Patch Notes category", async () => {
+    const { req, urls } = site([["categories?slug=patch-notes", reply([])]]);
+    expect(await fetchDrafts("patch-notes", req)).toEqual([]);
+    expect(urls()).toHaveLength(1);
+  });
+  it("reads a board's pending topics", async () => {
+    const { req, urls } = site([["cafeteria_topic", reply([post(9, { _embedded: { author: [{ name: "Max" }] } })])]]);
+    expect((await fetchPendingTopics(11, req)).map((t) => t.author)).toEqual(["Max"]);
+    expect(urls()).toEqual([`${ROOT}/wp/v2/cafeteria_topic?status=pending&context=edit&cafeteria_board=11&_embed=true&per_page=10`]);
+  });
+  it("reads the held comments with the post each answers and the site's total", async () => {
+    const { req, urls } = site([["comments", reply([{ id: 3, post: 101, author_name: "Ana", date: "2026-10-02T11:00:00", content: { rendered: "<p>Hi</p>" } }], { "X-WP-Total": "12" })]]);
+    expect(await fetchHeldComments(req)).toEqual({ items: [{ id: 3, postId: 101, author: "Ana", date: "2026-10-02T11:00:00", content: "<p>Hi</p>" }], total: 12 });
+    expect(urls()).toEqual([`${ROOT}/wp/v2/comments?status=hold&context=edit&per_page=20`]);
+  });
+  it("reads the open bug reports with Bug Net's fields, newest first, leaving out the resolved", async () => {
+    const bug = (id: number, status: string) => ({ ...post(id), bug_status: status, bug_url: "/temple", bug_environment: "App: 1.0" });
+    const { req, urls } = site([["compass_bug", reply([bug(1, "new"), bug(2, "resolved")])]]);
+    expect(await fetchBugs(req)).toEqual([{ id: 1, date: "2026-10-01T09:30:00", title: "Post 1", status: "new", route: "/temple", environment: "App: 1.0" }]);
+    expect(urls()).toEqual([`${ROOT}/wp/v2/compass_bug?status=draft%2Cpending%2Cpublish&context=edit&per_page=10&orderby=date&order=desc`]);
+  });
+  it("reads an item's raw words for editing", async () => {
+    const { req, urls } = site([["cafeteria_topic/8", reply({ id: 8, title: { raw: "T", rendered: "T" }, content: { raw: "B", rendered: "<p>B</p>" } })]]);
+    expect(await fetchWords("topic", 8, req)).toEqual({ title: "T", body: "B" });
+    expect(urls()).toEqual([`${ROOT}/wp/v2/cafeteria_topic/8?context=edit`]);
+  });
+  it("counts drafts and pending topics from the site's total header, zero without one", async () => {
+    const { req, urls } = site([["posts?", reply([], { "X-WP-Total": "3" })], ["cafeteria_topic", reply([])]]);
+    expect(await countDrafts(req)).toBe(3);
+    expect(await countPendingTopics(req)).toBe(0);
+    expect(urls()).toEqual([`${ROOT}/wp/v2/posts?status=draft%2Cpending&context=edit&per_page=1`, `${ROOT}/wp/v2/cafeteria_topic?status=pending&context=edit&per_page=1`]);
   });
 });
