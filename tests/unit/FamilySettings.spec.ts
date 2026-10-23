@@ -51,7 +51,8 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveProfiles: jest.fn().mockResolvedValue(undefined) },
 }));
-jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ emitHeroRemoved: jest.fn() }));
+// The real signal maker stays (the family-sync signals are built with it); only the hero-removed signal is watched
+jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ ...jest.requireActual("@/lib/services/multiplayer/gameSignals"), emitHeroRemoved: jest.fn() }));
 
 const mockLoadUsers = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/store/stores/user", () => {

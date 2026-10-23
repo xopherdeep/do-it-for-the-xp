@@ -1,0 +1,7 @@
+{
+  "code": "xp_family_pro_required",
+  "message": "Family sync is part of XP Pro.",
+  "data": {
+    "status": 403
+  }
+}

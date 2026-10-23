@@ -190,6 +190,8 @@
           </div>
         </ion-datetime>
       </ion-modal>
+      <!-- Family Sync: the clerk says when the hero is played on another device, and nothing moved -->
+      <xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />
     </ion-content>
   </ion-modal>
 </template>
@@ -205,6 +207,8 @@ import { bloodMoonLine, isBloodMoonDue } from "@/lib/engine/core/dungeons/temple
 import { describeNextMoon, nextWeekly } from "@/lib/engine/core/dungeons/bloodMoonSchedule";
 import { play$fx } from "@/assets/fx";
 import { useWeekStart } from "@/hooks/useWeekStart";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { resultOnTurn, useHeroWrite } from "@/hooks/useHeroWrite";
 import debug from "@/lib/utils/debug";
 
 const weekStart = useWeekStart();
@@ -232,6 +236,8 @@ const props = defineProps<{
 defineEmits<{ (e: "close"): void }>();
 
 const userStore = useUserStore();
+// A blood moon writes the hero's temple progress: on the hero's turn (Family Sync), not while another device plays them
+const { prompt: heroPrompt, respond: answerHero, writeHero } = useHeroWrite();
 const templeSystem = TempleSystem.getInstance();
 
 const templeId = ref<string>("");
@@ -305,7 +311,13 @@ async function toast(message: string, color?: string) {
 async function act(row: HeroRow, work: () => Promise<TempleProgressEntry | null>, done: (entry: TempleProgressEntry) => string) {
   busy.value = row.userId;
   try {
-    const entry = await work();
+    const entry = await resultOnTurn(writeHero, row.userId, work);
+    // Another device plays the hero: the clerk has said so, and nothing moved
+    const isRefused = entry === "refused";
+    if (isRefused) {
+      play$fx("no");
+      return;
+    }
     if (!entry) {
       play$fx("no");
       await toast(`${row.name} has not entered ${templeName.value}: there is nothing to reset.`, "warning");

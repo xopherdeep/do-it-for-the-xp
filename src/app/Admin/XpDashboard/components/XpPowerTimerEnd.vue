@@ -4,6 +4,8 @@ import { alertController, toastController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { usePowerTimers } from "@/hooks/abilities/usePowerTimers";
 import { useUserStore } from "@/lib/store/stores/user";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useHeroWrite } from "@/hooks/useHeroWrite";
 
 /**
  * "Game On · 24:13" on a hero's card in the Game Master's dashboard for each timed privilege the hero is using, with
@@ -14,13 +16,19 @@ import { useUserStore } from "@/lib/store/stores/user";
 const props = defineProps<{ user: { id: string; name?: { nick?: string; first?: string } } }>();
 
 const userStore = useUserStore();
+const { prompt: heroPrompt, respond: answerHero, writeHero } = useHeroWrite();
 const heroId = computed(() => String(props.user?.id ?? ""));
 const heroName = computed(() => props.user?.name?.nick || props.user?.name?.first || "this hero");
 const { timers, stopEarly } = usePowerTimers(heroId, { quiet: true });
 
 const end = async (abilityId: string, name: string) => {
-  const ended = stopEarly(abilityId, userStore.currentUser?.id ?? "");
-  if (!ended) return;
+  // On the hero's turn (Family Sync): nothing ends while another device plays the hero, and the clerk says so
+  let ended = false;
+  const isWritten = await writeHero(heroId.value, async () => {
+    ended = stopEarly(abilityId, userStore.currentUser?.id ?? "");
+  });
+  const isNothingEnded = !isWritten || !ended;
+  if (isNothingEnded) return;
   const toast = await toastController.create({
     message: `Ended ${heroName.value}'s ${name}.`,
     duration: 2500,
@@ -57,6 +65,8 @@ const confirmEnd = async (abilityId: string, name: string, left: string) => {
     <span class="chip-line"><i class="fad fa-stopwatch" aria-hidden="true" /> {{ timer.name }} · {{ timer.left }}</span>
     <span class="chip-action">End</span>
   </button>
+  <!-- Family Sync: the clerk says when another device plays the hero -->
+  <xp-reveal-prompt :prompt="heroPrompt" @respond="answerHero" />
 </template>
 
 <style lang="scss" scoped>

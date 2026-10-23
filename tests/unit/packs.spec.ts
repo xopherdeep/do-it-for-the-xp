@@ -14,6 +14,7 @@ import {
 } from "@/lib/services/core/packs/packService";
 import type { PackDeps, PackStoreName } from "@/lib/services/core/packs/packService";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
+import { onRecordWritten, type RecordWrite } from "@/lib/services/sync/recordSignals";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -241,6 +242,25 @@ describe("removing a pack", () => {
     await removePack(TINY, packs, deps);
     expect(stores.__beasts.data.size).toBe(0);
     expect(stores.__accessories.data.size).toBe(0);
+  });
+
+  it("announces each write it makes to the raw stores, so Family Sync sends the shelf and a tombstone per record", async () => {
+    const { stores, deps } = world();
+    await loadPack(TINY, deps);
+    const quest = stores.__achievements.data.get("tiny-homework");
+    const writes: RecordWrite[] = [];
+    const stop = onRecordWritten((write) => writes.push(write));
+
+    await removePack(TINY, [TINY], deps);
+    stop();
+
+    const market = stores.__shops.data.get("hometown-market");
+    expect(writes).toContainEqual({ store: "__shops", key: "hometown-market", value: market });
+    expect(writes).toContainEqual({ store: "__achievements", key: "tiny-homework", value: null, previous: quest });
+    const removals = writes.filter((write) => write.value === null).map((write) => `${write.store}/${write.key}`);
+    expect(removals.sort()).toEqual(
+      ["__accessories/reward-frost-treat", "__achievementCategories/cat-tiny", "__achievements/tiny-homework", "__beasts/beast-homework-hydra"].sort()
+    );
   });
 
   it("calls a pack partly loaded when only some of its own records are there", async () => {

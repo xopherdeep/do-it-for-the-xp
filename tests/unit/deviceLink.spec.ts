@@ -1,5 +1,6 @@
 import {
   CODE_ALPHABET,
+  familyDeviceLabel,
   formatCode,
   linkUrl,
   normalizeCode,
@@ -119,6 +120,17 @@ describe("deviceLink", () => {
       expect(phoneLabel("Mia", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "web")).toBe("Mia's Mac");
       expect(phoneLabel("Mia", "Mozilla/5.0 (X11; Linux x86_64)", "web")).toBe("Mia's Linux");
       expect(phoneLabel("Mia", "CustomBrowser/1.0", "web")).toBe("Mia's phone");
+    });
+  });
+
+  describe("familyDeviceLabel", () => {
+    it("names a Game Master's device by what it is: a tablet, a phone or a computer", () => {
+      expect(familyDeviceLabel("ios", 1024)).toBe("the family tablet");
+      expect(familyDeviceLabel("android", 768)).toBe("the family tablet");
+      expect(familyDeviceLabel("android", 412)).toBe("the family phone");
+      expect(familyDeviceLabel("ios", 390)).toBe("the family phone");
+      expect(familyDeviceLabel("web", 1280)).toBe("the family computer");
+      expect(familyDeviceLabel("web", 390)).toBe("the family phone");
     });
   });
 });

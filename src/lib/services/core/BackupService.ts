@@ -21,6 +21,7 @@ import { notificationsStorage } from "@/lib/databases/NotificationsDb";
 import { saveBackupFile, type SavedBackupFile } from "@/lib/services/core/backupFile";
 import { localSettingsStorage } from "@/lib/services/core/localSettingsBackup";
 import { canRestoreHere } from "@/lib/services/core/restoreAccess";
+import { announceRestored } from "@/lib/services/core/restoreAnnounce";
 import { RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -106,8 +107,9 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  * (`__xp_family_events`, a restore would resend old events), a kid phone's hero key (`__xp_hero_device`), the hero
  * phone's own claims, answers and server cursor (`__xp_hero_phone`, they belong to that phone's link, so a restore
  * would resend old claims and point the cursor into a stream the phone may not be on), the Town Hall sign-in and
- * unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`) and photo proof for held claims
- * (`__xp_claim_photos`, big and private).
+ * unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`), photo proof for held claims
+ * (`__xp_claim_photos`, big and private) and Family Sync's queue, server number and hero turns (`__xp_sync`, a restore
+ * would resend old records, and the turns belong to this device).
  */
 export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles, cleanRecord: sealProfileSecrets },
@@ -450,6 +452,9 @@ export class BackupService {
         notRestored.length === 0
       );
     }
+
+    // Announced only now (restoreAnnounce.ts), so a restore that was rolled back announces nothing
+    announceRestored(plan, snapshots, backup.stores, mode);
 
     // 4. Only now that every store is written: refresh mirrored copies, then rebuild the user store
     for (const store of plan) {

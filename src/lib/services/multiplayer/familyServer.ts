@@ -62,6 +62,7 @@ export type FamilyProblem =
   | "moved"
   | "code-invalid"
   | "key-revoked"
+  | "pro-required"
   | "unlinked"
   | "rate-limited"
   | "invalid"
@@ -200,6 +201,7 @@ const PROBLEM_BY_SITE_CODE: Record<string, FamilyProblem> = {
   xp_family_moved: "moved",
   xp_family_code_invalid: "code-invalid",
   xp_family_key_revoked: "key-revoked",
+  xp_family_pro_required: "pro-required",
 };
 
 const PROBLEM_BY_STATUS: Record<number, FamilyProblem> = { 400: "invalid", 401: "unlinked", 429: "rate-limited" };
