@@ -157,3 +157,37 @@ describe("Battle Field: Goods and Powers", () => {
     });
   });
 });
+
+describe("Battle Field under a Game Style", () => {
+  before(() => cy.seedWorld());
+
+  ["retro", "modern"].forEach((fabStyle) => {
+    it(`Zelda, ${fabStyle} menu: the menu, the checklist and the run prompt`, () => {
+      cy.useGameStyle("zelda", fabStyle);
+      cy.visit("/battle/hero-1/free/beast-socktopus", { timeout: 120000 });
+      cy.tapToWakeAudio();
+      cy.get("ion-app#zelda", { timeout: 60000 }).should("exist");
+      if (fabStyle === "modern") {
+        waitForMenu();
+        cy.get("[data-cy=action-attack] .pill-note").should("have.text", "3 chores");
+        // Zelda's pixel font is wide: the cluster still fits the 390 px phone
+        cy.get(".radial-cluster").then(($el) => expect($el[0].scrollWidth).to.be.at.most($el[0].clientWidth));
+        cy.get("[data-cy=action-run]").then(($el) => expect($el[0].getBoundingClientRect().right).to.be.at.most(390));
+      } else {
+        cy.get("#attack", { timeout: 30000 }).should("be.visible").find(".item-note").should("have.text", "3 chores");
+        // A note never runs past the frame of the message box
+        cy.get("[data-cy=battle-dialog]").then(($box) => {
+          const frameRight = $box[0].getBoundingClientRect().right;
+          cy.get("#powers .item-note").then(($note) => expect($note[0].getBoundingClientRect().right).to.be.at.most(frameRight));
+        });
+      }
+      shot(`20-zelda-${fabStyle}-menu`);
+      cy.get(fabStyle === "modern" ? "[data-cy=action-attack]" : "#attack").click();
+      cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
+      shot(`21-zelda-${fabStyle}-checklist`);
+      cy.get("[data-cy=task-back]").click();
+      cy.get(fabStyle === "modern" ? "[data-cy=action-run]" : "#run-away").click();
+      shot(`22-zelda-${fabStyle}-run-confirm`);
+    });
+  });
+});

@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import {
   allowedGameStyle,
   GAME_STYLE_NAMES,
@@ -41,5 +43,28 @@ describe("gameStyle", () => {
     expect(allowedGameStyle("pokemon", false)).toBe("earthbound");
     expect(allowedGameStyle("pokemon", true)).toBe("pokemon");
     expect(allowedGameStyle("zelda", false)).toBe("zelda");
+  });
+});
+
+const THEME_DIR = path.resolve(__dirname, "../../src/styles/themes");
+const TOKENS = [
+  "font", "font-title", "text", "text-dim", "accent", "text-shadow", "page", "page-color", "window", "window-color",
+  "frame", "radius", "bar", "bar-frame", "bar-frame-top", "divider", "select", "cursor", "cursor-w", "cursor-h",
+  "good", "danger", "button", "button-edge",
+];
+
+/** The theme's file, found without caring about case (finalFantasy lives in finalfantasy.scss). */
+const themeFile = (id: string) =>
+  fs.readdirSync(THEME_DIR).find((name) => name.toLowerCase() === `${id.toLowerCase()}.scss`);
+
+describe("theme token contract", () => {
+  it.each(GAME_STYLES)("%s sets every token with a value", (id) => {
+    const file = themeFile(id);
+    expect(file).toBeDefined();
+    const scss = fs.readFileSync(path.join(THEME_DIR, file as string), "utf8");
+    const block = scss.slice(scss.indexOf(`ion-app#${id}`));
+    expect(block.length).toBeGreaterThan(0);
+    const missing = TOKENS.filter((token) => !new RegExp(`--gs-${token}:\\s*[^;\\s][^;]*;`).test(block));
+    expect(missing).toEqual([]);
   });
 });

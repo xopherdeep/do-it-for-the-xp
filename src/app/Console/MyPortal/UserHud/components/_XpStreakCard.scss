@@ -42,6 +42,12 @@
     repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.035) 6px 8px),
     linear-gradient(160deg, var(--sc-base-1), var(--sc-base-2));
 
+  // Earthbound now sets --gs-font (Apple Kid); these cards keep their status font on it and take the theme font elsewhere
+  ion-app#earthbound & {
+    --sc-font: "StatusPlz", monospace;
+    --sc-title-font: "Twoson", "StatusPlz", sans-serif;
+  }
+
   // Spark: a small warm light on charcoal
   &.is-spark {
     --sc-base-1: #4a3322;
