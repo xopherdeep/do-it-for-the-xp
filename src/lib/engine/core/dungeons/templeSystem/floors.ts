@@ -60,11 +60,11 @@ export function migrateVisitedRooms(runs: TempleRuns, templeId: string): void {
       for (let col = 0; col < grid[row].length; col++) {
         const roomKey = grid[row][col];
         const room = temple.rooms[roomKey];
-      
-      // Skip walls and non-existent rooms
-      const isNotARoom = !room || room.type === 'wall';
-      if (isNotARoom) continue;
-      
+
+        // Skip walls and non-existent rooms
+        const isNotARoom = !room || room.type === 'wall';
+        if (isNotARoom) continue;
+
         // Check if this room was marked as visited in the old system
         const isMarkedVisited = (room as any).visited === true;
         if (isMarkedVisited) {

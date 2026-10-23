@@ -357,9 +357,12 @@ describe("rooms are told apart by floor", () => {
     dungeons.registerDungeon(dungeon);
     temples.initTemple(id, [0, 1], "2F");
 
-    expect(temples.openChest(id)).toMatchObject({ compassFound: true });
+    // The way the chest reveal hands things out: the hero takes the compass, which empties the chest and remembers it
+    expect(temples.takeFromChest(id, "2F", [0, 1], ["compass"])).toBe(true);
 
-    expect(temples.getTempleState(id)).toMatchObject({ hasCompass: true, hasMap: false });
+    expect(dungeons.openChestInRoom(id, [0, 1], "2F")).toBeUndefined();
+    expect(temples.getTempleState(id)?.openedChests?.has("2F:0,1")).toBe(true);
+    expect(temples.getTempleState(id)?.openedChests?.has("1F:0,1")).toBe(false);
     expect(dungeons.openChestInRoom(id, [0, 1], "1F")).toMatchObject({ dungeon: "map" }); // 1F's chest was not touched
   });
 });
