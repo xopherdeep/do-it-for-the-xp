@@ -23,6 +23,9 @@
 //   --gs-bar-frame-top              the same frame drawn above a bottom bar
 //   --gs-divider, --gs-select       lines between rows, and the row under the cursor
 //   --gs-cursor, --gs-cursor-w/-h   the menu cursor image and its size
+//   --gs-good                       success, healing, done
+//   --gs-danger                     harm, urgency, refusal
+//   --gs-button, --gs-button-edge   a chunky confirm button's fill and its hard shadow
 
 // Pixel cursors, drawn on a grid for this app (an original glove and heart, not game sprites)
 $gs-hand-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 10' shape-rendering='crispEdges'%3E%3Crect x='4' y='0' width='10' height='1' fill='%23101018'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23101018'/%3E%3Crect x='4' y='1' width='10' height='1' fill='%23f8f8f8'/%3E%3Crect x='14' y='1' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='2' width='3' height='1' fill='%23101018'/%3E%3Crect x='3' y='2' width='4' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='2' width='7' height='1' fill='%23101018'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='3' width='5' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='3' width='3' height='1' fill='%23f8f8f8'/%3E%3Crect x='10' y='3' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='4' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='4' width='6' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='4' width='4' height='1' fill='%23101018'/%3E%3Crect x='0' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='5' width='3' height='1' fill='%23f8f8f8'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%23101018'/%3E%3Crect x='0' y='6' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='6' width='6' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='6' width='3' height='1' fill='%23101018'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%23a8a8b8'/%3E%3Crect x='2' y='7' width='4' height='1' fill='%23f8f8f8'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='7' y='7' width='2' height='1' fill='%23f8f8f8'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23101018'/%3E%3Crect x='1' y='8' width='1' height='1' fill='%23101018'/%3E%3Crect x='2' y='8' width='3' height='1' fill='%23a8a8b8'/%3E%3Crect x='5' y='8' width='2' height='1' fill='%23f8f8f8'/%3E%3Crect x='7' y='8' width='2' height='1' fill='%23101018'/%3E%3Crect x='2' y='9' width='6' height='1' fill='%23101018'/%3E%3C/svg%3E");
@@ -48,6 +51,10 @@ $gs-star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
   pointer-events: none;
   z-index: 2;
   animation: gs-cursor-bob 0.6s steps(2, end) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 @keyframes gs-cursor-bob {
@@ -415,5 +422,18 @@ $gs-star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--gs-text-dim) var(--gs-window-color);
+  }
+}
+
+@keyframes gs-critical-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  // !important: the themes set the blink under ion-app#<id>, which outranks this selector
+  .battlefield .attack-timer.is-critical .attack-timer-bar {
+    animation: none !important;
   }
 }

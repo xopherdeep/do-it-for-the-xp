@@ -66,9 +66,9 @@ const cast = (abilityId: string) => {
   flex-direction: column;
   gap: 8px;
   padding: 10px 14px;
-  border: 2px solid rgba($eb-color-cream, 0.22);
+  border: 2px solid color-mix(in srgb, var(--gs-text) 22%, transparent);
   border-radius: 2px;
-  background: rgba($eb-color-cream, 0.04);
+  background: color-mix(in srgb, var(--gs-text) 4%, transparent);
   font-family: $eb-font-status, sans-serif;
 
   .power-head {
@@ -82,7 +82,7 @@ const cast = (abilityId: string) => {
     width: 1.6rem;
     font-size: 1.3rem;
     text-align: center;
-    color: $eb-color-pale-yellow;
+    color: var(--gs-accent);
   }
 
   .power-title {
@@ -95,7 +95,7 @@ const cast = (abilityId: string) => {
 
   .power-name {
     margin: 0;
-    font-family: "Apple Kid", "StatusPlz", sans-serif;
+    font-family: var(--gs-font);
     font-size: 1.25rem;
     font-weight: normal;
     letter-spacing: 1px;
@@ -109,8 +109,8 @@ const cast = (abilityId: string) => {
     font-size: 0.85rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: $eb-color-dark-purple;
-    background: $eb-color-sky-blue;
+    color: var(--gs-window-color);
+    background: var(--gs-accent);
   }
 
   .power-desc {
@@ -125,7 +125,7 @@ const cast = (abilityId: string) => {
     margin: 0;
     font-family: "StatusPlz", monospace;
     font-size: 0.95rem;
-    color: var(--xp-color-mp, #{$eb-color-pale-yellow});
+    color: var(--xp-color-mp, var(--gs-accent));
   }
 
   .power-foot {
@@ -140,7 +140,7 @@ const cast = (abilityId: string) => {
     font-family: "StatusPlz", monospace;
     font-size: 0.85rem;
     line-height: 1.25;
-    color: #ff6b6b;
+    color: var(--gs-danger);
   }
 
   .cast-btn {
@@ -153,14 +153,14 @@ const cast = (abilityId: string) => {
     font-size: 1rem;
     color: var(--ion-color-rpg-contrast);
     background: var(--ion-color-rpg);
-    box-shadow: 0 0 0 3px $eb-color-slate;
+    box-shadow: 0 0 0 3px var(--gs-divider);
 
     &:active:not(:disabled) {
       background: var(--ion-color-rpg-tint);
     }
 
     &:focus-visible {
-      outline: 2px solid $eb-color-pale-yellow;
+      outline: 2px solid var(--gs-accent);
       outline-offset: 3px;
     }
 

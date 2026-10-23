@@ -1,11 +1,28 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import { useVoice } from "@/hooks/useVoice";
-import { clerkMenuPrompt, forbiddenPrompt, postedNotice, registerAgainPrompt } from "@/lib/services/hometown/hometownPrompts";
+import {
+  clerkMenuPrompt,
+  deskNotice,
+  forbiddenPrompt,
+  postedNotice,
+  registerAgainPrompt,
+  type DeskOutcome,
+} from "@/lib/services/hometown/hometownPrompts";
+import type {
+  ComposeDraft,
+  ComposeKind,
+  ComposeWords,
+  EditableType,
+  EditDraft,
+  NewsCategory,
+  NewsDraft,
+  Words,
+} from "@/lib/services/townhall/townHallDesk";
 import { postedOutcome, waitingFor } from "@/lib/services/townhall/townHallOutbox";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
 import { TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
-import type { TownHallPost, TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
+import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 import type { FlushResult } from "@/lib/store/stores/townHall";
 import debug from "@/lib/utils/debug";
 import type { CommentTarget } from "./townHallShared";
@@ -13,6 +30,8 @@ import type { CommentTarget } from "./townHallShared";
 /** What the posting desk needs of the Town Hall store (the Pinia store fits; the specs bring a fake). */
 export interface PostingStore {
   isLinked: boolean;
+  /** The link may publish on the site: the one source for the clerk's menu and for what the clerk says of a kept post */
+  canPublish: boolean;
   posts: TownHallPost[];
   submit(
     draft: PostDraft,
@@ -41,16 +60,31 @@ export interface PostingDeps {
   registerFamily(): Promise<void>;
   /** A Game Master said yes to redoing a registration that is not finished */
   redoRegistration(): Promise<void>;
+  /** The administrator's desk: what the writers send to, and what an edit reads from */
+  desk: {
+    createNews(draft: NewsDraft): Promise<string | null>;
+    saveEdit(target: SiteEditTarget, words: Words): Promise<string | null>;
+    readWords(type: EditableType, id: number): Promise<Words | null>;
+    /** Something on the site changed: the tab that shows it reloads */
+    changed(what: NewsCategory | EditableType): void;
+  };
 }
+
+/** A post or topic on the site that the administrator rewrites. */
+export type SiteEditTarget = { type: EditableType; id: number };
 
 /** What the compose is opened for: the same fields as the sheet's props, and the failed post being edited, if any. */
 export interface ComposeSpec {
-  kind: TownHallPostKind;
+  kind: ComposeKind;
   board?: TownHallBoardSlug;
   postId?: number;
   replyingTo?: string;
-  initial?: PostDraft;
+  initial?: ComposeWords;
   editingId?: string;
+  /** News: which category the sheet writes for */
+  newsCategory?: NewsCategory;
+  /** An edit: the post or topic on the site whose words are being rewritten */
+  editing?: SiteEditTarget;
 }
 
 const SAVE_TROUBLE = "That didn't save. Try again.";
@@ -84,6 +118,14 @@ export function useTownHallPosting(deps: PostingDeps) {
   const openTopic = (board?: TownHallBoardSlug) => open({ kind: "topic", ...(board ? { board } : {}) });
   const openComment = (target: CommentTarget) => open({ kind: "comment", postId: target.postId, replyingTo: target.title });
   const openBug = () => open({ kind: "bug" });
+  const openNews = (category: NewsCategory) => open({ kind: "news", newsCategory: category });
+
+  /** An administrator rewrites a post or topic: the sheet opens with its words, or not at all when the site would not give them */
+  const openSiteEdit = async (target: SiteEditTarget): Promise<void> => {
+    const words = await deps.desk.readWords(target.type, target.id);
+    if (!words) return;
+    open({ kind: "edit", editing: target, initial: { title: words.title, body: words.body } });
+  };
 
   /** A failed post comes back to the sheet with its words, to be fixed and sent again */
   const openEdit = (post: TownHallPost) => {
@@ -94,7 +136,6 @@ export function useTownHallPosting(deps: PostingDeps) {
       ...(post.postId !== undefined ? { postId: post.postId } : {}),
       editingId: post.id,
       initial: {
-        kind: post.kind,
         body: post.body,
         ...(post.title !== undefined ? { title: post.title } : {}),
         ...(board ? { board } : {}),
@@ -107,15 +148,22 @@ export function useTownHallPosting(deps: PostingDeps) {
     composeOpen.value = false;
   };
 
-  /** The clerk asks what to do at the board: post (on the board the hero is looking at), report a bug, or see to the registration */
+  /**
+   * The clerk asks what to do at the board: post (on the board the hero is looking at), report a bug, see to the
+   * registration, or, for a link that can publish, write news or a patch note
+   */
   const openClerkMenu = async (): Promise<void> => {
-    const pick = await reveal.showPrompt(clerkMenuPrompt(deps.isGameMaster(), voice.value));
+    const pick = await reveal.showPrompt(clerkMenuPrompt(deps.isGameMaster(), voice.value, store.canPublish));
     const wantsRegistration = pick === "registration";
     if (wantsRegistration) await deps.registerFamily();
     const wantsBoard = pick === "board";
     if (wantsBoard) openTopic(deps.currentBoard());
     const wantsBugReport = pick === "bug";
     if (wantsBugReport) openBug();
+    const wantsNews = pick === "write-news";
+    if (wantsNews) openNews("news");
+    const wantsPatchNote = pick === "write-patch-note";
+    if (wantsPatchNote) openNews("patch-notes");
   };
 
   // --- Sending the queue --------------------------------------------------------------------------------------
@@ -208,16 +256,63 @@ export function useTownHallPosting(deps: PostingDeps) {
     return { problem, post: store.posts.find((post) => post.id === spec.editingId) };
   };
 
+  // --- Writing at the desk ------------------------------------------------------------------------------------
+
+  const isDeskDraft = (draft: ComposeDraft): draft is NewsDraft | EditDraft => {
+    const isNews = draft.kind === "news";
+    const isEdit = draft.kind === "edit";
+    return isNews || isEdit;
+  };
+
+  /** What became of a desk draft, for the clerk's notice: news goes up or is kept as a draft, an edit is saved */
+  const outcomeOf = (draft: NewsDraft | EditDraft): DeskOutcome => {
+    const isEdit = draft.kind === "edit";
+    if (isEdit) return "saved";
+    const isPublishedNow = draft.status === "publish";
+    return isPublishedNow ? "published" : "drafted";
+  };
+
+  /** The desk's answer to a draft: its problem in words, or null when the site took it */
+  const sendToDesk = async (spec: ComposeSpec, draft: NewsDraft | EditDraft): Promise<string | null> => {
+    const isNews = draft.kind === "news";
+    if (isNews) return deps.desk.createNews(draft);
+    const editing = spec.editing;
+    if (!editing) return SAVE_TROUBLE;
+    return deps.desk.saveEdit(editing, { title: draft.title, body: draft.body });
+  };
+
   /**
-   * The hero tapped Send: keep the draft, close the sheet, start sending and say where the post goes next. A second tap
-   * while one is being kept, or after the sheet closed, does nothing (a post is kept once). A draft that cannot be kept
+   * The administrator tapped Send on news or an edit: the desk takes it to the site. A problem leaves the sheet open with
+   * the desk's words; otherwise the sheet closes, the clerk says what became of it and the tab it touched reloads.
+   */
+  const writeAtDesk = async (spec: ComposeSpec, draft: NewsDraft | EditDraft): Promise<void> => {
+    sending.value = true;
+    trouble.value = null;
+    let problem: string | null;
+    try {
+      problem = await sendToDesk(spec, draft);
+    } catch (error) {
+      debug.error("Town Hall could not send the desk's words:", error);
+      problem = SAVE_TROUBLE;
+    } finally {
+      sending.value = false;
+    }
+    if (problem) {
+      trouble.value = problem;
+      return;
+    }
+    composeOpen.value = false;
+    await reveal.showPrompt(deskNotice(outcomeOf(draft)));
+    const isNews = draft.kind === "news";
+    const changed = isNews ? draft.category : spec.editing?.type;
+    if (changed) deps.desk.changed(changed);
+  };
+
+  /**
+   * Keep the hero's draft, close the sheet, start sending and say where the post goes next. A draft that cannot be kept
    * leaves the sheet open with the reason.
    */
-  const sendDraft = async (draft: PostDraft): Promise<void> => {
-    const spec = composeSpec.value;
-    if (!spec) return;
-    const isSheetBusy = !composeOpen.value || sending.value;
-    if (isSheetBusy) return;
+  const sendPost = async (spec: ComposeSpec, draft: PostDraft): Promise<void> => {
     sending.value = true;
     trouble.value = null;
     let kept: { problem: string | null; post?: TownHallPost };
@@ -238,8 +333,21 @@ export function useTownHallPosting(deps: PostingDeps) {
     const post = kept.post;
     if (!post) return;
     const flushed = flushNow();
-    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster())));
+    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster(), store.canPublish)));
     await deliver(await flushed);
+  };
+
+  /**
+   * The hero tapped Send: a post is kept in the outbox, news and an edit go to the desk. A second tap while one is being
+   * kept, or after the sheet closed, does nothing (a post is kept once).
+   */
+  const sendDraft = async (draft: ComposeDraft): Promise<void> => {
+    const spec = composeSpec.value;
+    if (!spec) return;
+    const isSheetBusy = !composeOpen.value || sending.value;
+    if (isSheetBusy) return;
+    if (isDeskDraft(draft)) await writeAtDesk(spec, draft);
+    else await sendPost(spec, draft);
   };
 
   /**
@@ -258,7 +366,7 @@ export function useTownHallPosting(deps: PostingDeps) {
     if (problem) return problem;
     if (!post) return SAVE_TROUBLE;
     const flushed = flushNow();
-    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster())));
+    await reveal.showPrompt(postedNotice(postedOutcome(post, store.isLinked, deps.isGameMaster(), store.canPublish)));
     await deliver(await flushed);
     return null;
   };
@@ -281,6 +389,8 @@ export function useTownHallPosting(deps: PostingDeps) {
     openTopic,
     openComment,
     openBug,
+    openNews,
+    openSiteEdit,
     openEdit,
     closeCompose,
     openClerkMenu,

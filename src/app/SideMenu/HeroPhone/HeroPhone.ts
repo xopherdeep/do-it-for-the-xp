@@ -9,6 +9,7 @@ import {
   IonCardTitle,
   IonCol,
   IonContent,
+  IonFooter,
   IonGrid,
   IonHeader,
   IonPage,
@@ -18,7 +19,9 @@ import {
   IonToolbar,
 } from "@ionic/vue";
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import HeroPhoneBoard from "./components/HeroPhoneBoard.vue";
+import { useFirstPull } from "./useFirstPull";
 import { useCopy } from "@/hooks/useVoice";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import debug from "@/lib/utils/debug";
@@ -34,6 +37,7 @@ export const HeroPhone = defineComponent({
     IonCardTitle,
     IonCol,
     IonContent,
+    IonFooter,
     IonGrid,
     IonHeader,
     IonPage,
@@ -42,6 +46,7 @@ export const HeroPhone = defineComponent({
     IonTitle,
     IonToolbar,
     XpHeroModel,
+    XpRevealPrompt,
     "xp-hero-model": XpHeroModel,
     "hero-phone-board": HeroPhoneBoard,
   },
@@ -49,11 +54,26 @@ export const HeroPhone = defineComponent({
     const router = useRouter();
     const family = useFamilyStore();
     const t = useCopy();
+    // A Pro phone's first pull: the clerk's progress line, then the hero's turn, then the portal; Play opens it later
+    const { prompt, answer, footer: syncFooter, play, status } = useFirstPull(family, router);
+    const canPlay = computed(() => status.value.canPlay);
+    const isFullPortal = computed(() => status.value.isFullPortal);
 
     const isUnlinked = computed(() => Boolean(family.device?.unlinked));
     const card = computed(() => family.device?.card ?? null);
     /** The family device sent this hero's sheet: the board shows it (two-phone play) */
     const hasSheet = computed(() => Boolean(family.phoneState?.sheet));
+    /** The board is for a phone that is not the full game (the portal has the real quest book), or one whose hero another device plays */
+    const isBoardShown = computed(() => {
+      const isBoardPhone = !isUnlinked.value && (!isFullPortal.value || status.value.isPlayedElsewhere);
+      return isBoardPhone && hasSheet.value;
+    });
+    /** A full-game phone shows the board only while another device plays the hero: read-only, nothing is claimed from it */
+    const isBoardReadOnly = computed(() => isFullPortal.value);
+    /** The notice that the quests are on the family device, for a card with no board and no portal (a stalled pull says it below) */
+    const isElsewhereShown = computed(() => !hasSheet.value && !isFullPortal.value && !status.value.isStalled);
+    /** Play: the full game, or (off) a first pull still waiting on its hero after five minutes */
+    const isPlayShown = computed(() => status.value.isPlayShown && !isUnlinked.value);
 
     const pageTitle = computed(() => {
       const heroNickname = card.value?.nickname;
@@ -62,6 +82,7 @@ export const HeroPhone = defineComponent({
     });
 
     const unlinkedText = computed(() => t("family.unlinked"));
+    const playText = computed(() => t("sync.play"));
     const questsElsewhereText = computed(() => t("family.questsElsewhere"));
 
     const handleStartFresh = async (): Promise<void> => {
@@ -94,12 +115,21 @@ export const HeroPhone = defineComponent({
     });
 
     return {
+      answer,
+      canPlay,
       card,
-      hasSheet,
       handleStartFresh,
+      isBoardShown,
+      isBoardReadOnly,
+      isElsewhereShown,
+      isPlayShown,
       isUnlinked,
       pageTitle,
+      play,
+      playText,
+      prompt,
       questsElsewhereText,
+      syncFooter,
       unlinkedText,
     };
   },

@@ -1,6 +1,7 @@
 import { useTownHallClerk } from "@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallClerk";
 
 const mockSendQueue = jest.fn();
+const mockDeskRefresh = jest.fn();
 const mockOfferRegistration = jest.fn();
 const mockLink = {
   loadLink: jest.fn(),
@@ -9,13 +10,20 @@ const mockLink = {
   completeReturn: jest.fn(),
 };
 let mockLinkOptions: { announce(result: string): Promise<void> };
-let mockPostingOptions: { registerFamily(): Promise<void> };
+let mockPostingOptions: { registerFamily(): Promise<void>; desk: { changed(what: string): void } };
 
 jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallPosting", () => ({
-  useTownHallPosting: (options: { registerFamily(): Promise<void> }) => {
+  useTownHallPosting: (options: { registerFamily(): Promise<void>; desk: { changed(what: string): void } }) => {
     mockPostingOptions = options;
     return { sendQueue: mockSendQueue };
   },
+}));
+jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallDesk", () => ({
+  useTownHallDesk: () => ({
+    state: {},
+    actions: { refresh: mockDeskRefresh },
+    writer: { createNews: jest.fn(), saveEdit: jest.fn(), readWords: jest.fn() },
+  }),
 }));
 jest.mock("@/app/Console/MyPortal/HomeTown/TownHall/components/registrationOffer", () => ({
   registrationOffer: () => mockOfferRegistration,
@@ -32,7 +40,12 @@ jest.mock("@/lib/utils/debug", () => ({
 }));
 
 const showPrompt = jest.fn();
-const store = { activeLink: null as null | { displayName: string }, signedInThroughWebsite: false };
+const store = {
+  activeLink: null as null | { displayName: string },
+  signedInThroughWebsite: false,
+  refreshPowers: jest.fn(),
+};
+const reloadTab = jest.fn();
 
 const build = () =>
   useTownHallClerk({
@@ -44,6 +57,7 @@ const build = () =>
     route: () => "/town-hall/hero1",
     currentBoard: () => "general" as never,
     profilesReady: async () => undefined,
+    reloadTab,
   });
 
 beforeEach(() => {
@@ -67,6 +81,38 @@ describe("useTownHallClerk", () => {
     await build().completeLinkReturn();
     expect(mockSendQueue).toHaveBeenCalled();
     expect(mockOfferRegistration).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the powers and the desk before sending the queue on a return", async () => {
+    const calls: string[] = [];
+    store.refreshPowers.mockImplementationOnce(async () => {
+      calls.push("powers");
+    });
+    mockDeskRefresh.mockImplementationOnce(async () => {
+      calls.push("desk");
+    });
+    mockSendQueue.mockImplementationOnce(() => {
+      calls.push("queue");
+    });
+    mockLink.completeReturn.mockResolvedValue(false);
+    await build().completeLinkReturn();
+    expect(calls).toEqual(["powers", "desk", "queue"]);
+  });
+
+  it("reloads the tabs a desk change touches", () => {
+    build();
+    const { changed } = mockPostingOptions.desk;
+    changed("post");
+    expect(reloadTab.mock.calls).toEqual([["news"], ["updates"]]);
+    reloadTab.mockClear();
+    changed("topic");
+    expect(reloadTab.mock.calls).toEqual([["board"]]);
+    reloadTab.mockClear();
+    changed("patch-notes");
+    expect(reloadTab.mock.calls).toEqual([["updates"]]);
+    reloadTab.mockClear();
+    changed("news");
+    expect(reloadTab.mock.calls).toEqual([["news"]]);
   });
 
   it("unlinks a registered family when the parent picks unlink", async () => {

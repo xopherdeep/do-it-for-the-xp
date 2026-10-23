@@ -317,6 +317,15 @@ describe("postedOutcome", () => {
     expect(postedOutcome(kept({ status: "queued" }), false, true)).toBe("on-file-gm");
     expect(postedOutcome(kept({ status: "queued", kind: "bug" }), false, true)).toBe("on-file-gm");
   });
+
+  it("says a topic or a comment of a link that can publish is up already; a bug and a waiting post are as before", () => {
+    const sent = (over: Partial<TownHallPost>) => postedOutcome(post({ status: "queued", ...over }), true, true, true);
+    expect(sent({ kind: "topic" })).toBe("published");
+    expect(sent({ kind: "comment", postId: 7 })).toBe("published");
+    expect(sent({ kind: "bug" })).toBe("bug");
+    expect(postedOutcome(post({ status: "awaiting-gm" }), true, false, true)).toBe("to-gm");
+    expect(postedOutcome(post({ status: "queued" }), true, true)).toBe("to-site");
+  });
 });
 
 describe("editPost", () => {

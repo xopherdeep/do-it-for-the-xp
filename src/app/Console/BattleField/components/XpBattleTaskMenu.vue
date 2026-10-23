@@ -148,9 +148,7 @@ const back = () => {
 <style lang="scss" scoped>
 @use "@/styles/themes/earthbound.scss" as *;
 
-$button-fill: #4a2a4a;
-$button-edge: #1a0a1a;
-$seam: rgba($eb-color-cream, 0.25);
+$seam: color-mix(in srgb, var(--gs-text) 25%, transparent);
 
 // The sheet hugs the bottom of the battle page. Absolute, not fixed or vh: the page is a contained Ionic page and
 // its screen shake animates a transform, either of which would re-anchor a fixed box.
@@ -166,7 +164,7 @@ $seam: rgba($eb-color-cream, 0.25);
   z-index: 200;
   display: flex;
   flex-direction: column;
-  color: $eb-color-cream;
+  color: var(--gs-text);
   font-family: "StatusPlz", "Apple Kid", sans-serif;
   -webkit-user-select: none;
   user-select: none;
@@ -210,12 +208,13 @@ $seam: rgba($eb-color-cream, 0.25);
 
 .sheet-title {
   margin: 0;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-family: var(--gs-font-title);
+  text-shadow: var(--gs-text-shadow);
   font-size: 1.55rem;
   font-weight: normal;
   line-height: 1.1;
   letter-spacing: 2px;
-  color: $eb-color-pale-yellow;
+  color: var(--gs-accent);
 
   i {
     margin-right: 10px;
@@ -252,7 +251,7 @@ $seam: rgba($eb-color-cream, 0.25);
 .empty-state {
   padding: 18px 8px;
   text-align: center;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-family: var(--gs-font);
   font-size: 1.25rem;
   letter-spacing: 1px;
   opacity: 0.8;
@@ -267,11 +266,11 @@ $seam: rgba($eb-color-cream, 0.25);
   min-height: 58px;
   margin: 0;
   padding: 10px 14px 10px 16px;
-  border: 2px solid rgba($eb-color-cream, 0.22);
+  border: 2px solid color-mix(in srgb, var(--gs-text) 22%, transparent);
   border-radius: 2px;
-  background: rgba($eb-color-cream, 0.04);
-  color: $eb-color-cream;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  background: color-mix(in srgb, var(--gs-text) 4%, transparent);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
   font-size: 1.5rem;
   letter-spacing: 1px;
   text-align: left;
@@ -285,14 +284,14 @@ $seam: rgba($eb-color-cream, 0.25);
   }
 
   &:focus-visible {
-    outline: 2px solid $eb-color-pale-yellow;
+    outline: 2px solid var(--gs-accent);
     outline-offset: 2px;
   }
 
   // The open row: an accent bar down its left edge and a faint cream wash
   &.is-selected {
-    border-color: $eb-color-pale-yellow;
-    background: rgba($eb-color-cream, 0.08);
+    border-color: var(--gs-accent);
+    background: color-mix(in srgb, var(--gs-text) 8%, transparent);
 
     &::before {
       content: "";
@@ -301,7 +300,7 @@ $seam: rgba($eb-color-cream, 0.25);
       bottom: 0;
       left: 0;
       width: 5px;
-      background: $eb-color-pale-yellow;
+      background: var(--gs-accent);
     }
 
     .task-icon {
@@ -318,7 +317,7 @@ $seam: rgba($eb-color-cream, 0.25);
     }
 
     .task-icon {
-      color: var(--xp-color-xp, #{$eb-color-mint-green});
+      color: var(--xp-color-xp, var(--gs-good));
     }
   }
 }
@@ -328,7 +327,7 @@ $seam: rgba($eb-color-cream, 0.25);
   width: 1.8rem;
   font-size: 1.5rem;
   text-align: center;
-  color: $eb-color-pale-yellow;
+  color: var(--gs-accent);
 }
 
 // Long chore names wrap; they are never cut off.
@@ -345,10 +344,10 @@ $seam: rgba($eb-color-cream, 0.25);
   position: relative;
   margin-top: -2px;
   padding: 10px 14px 12px 18px;
-  border: 2px solid $eb-color-pale-yellow;
+  border: 2px solid var(--gs-accent);
   border-top-color: $seam;
   border-radius: 2px;
-  background: rgba($eb-color-cream, 0.08);
+  background: color-mix(in srgb, var(--gs-text) 8%, transparent);
   animation: strip-in 0.2s ease-out both;
 
   &::before {
@@ -358,7 +357,7 @@ $seam: rgba($eb-color-cream, 0.25);
     bottom: 0;
     left: 0;
     width: 5px;
-    background: $eb-color-pale-yellow;
+    background: var(--gs-accent);
   }
 }
 
@@ -390,7 +389,7 @@ $seam: rgba($eb-color-cream, 0.25);
   justify-content: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 2px solid rgba($eb-color-cream, 0.15);
+  border-top: 2px solid color-mix(in srgb, var(--gs-text) 15%, transparent);
 }
 
 // Chunky Earthbound-style buttons: cream on a plum fill with a hard shadow that squashes when pressed.
@@ -403,34 +402,34 @@ $seam: rgba($eb-color-cream, 0.25);
   min-height: 48px;
   margin: 0;
   padding: 8px 14px;
-  border: 3px solid rgba($eb-color-cream, 0.45);
+  border: 3px solid color-mix(in srgb, var(--gs-text) 45%, transparent);
   border-radius: 2px;
-  background: $button-fill;
-  color: $eb-color-cream;
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  background: var(--gs-button);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
   font-size: 1.35rem;
   letter-spacing: 1px;
   line-height: 1.1;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  box-shadow: 0 4px 0 $button-edge;
+  box-shadow: 0 4px 0 var(--gs-button-edge);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 
   &:active {
     transform: translateY(3px);
-    box-shadow: 0 1px 0 $button-edge;
+    box-shadow: 0 1px 0 var(--gs-button-edge);
   }
 
   &:focus-visible {
-    outline: 2px solid $eb-color-pale-yellow;
+    outline: 2px solid var(--gs-accent);
     outline-offset: 3px;
   }
 
   // Done! is the answer we want: it glows, and it fades up while the double-tap guard is still holding it back.
   &.is-primary {
-    border-color: $eb-color-pale-yellow;
-    color: $eb-color-pale-yellow;
+    border-color: var(--gs-good);
+    color: var(--gs-accent);
     animation: btn-arm 0.25s linear both, done-glow 1.6s ease-in-out 0.25s infinite;
   }
 }
@@ -470,11 +469,11 @@ $seam: rgba($eb-color-cream, 0.25);
 @keyframes done-glow {
   0%,
   100% {
-    box-shadow: 0 4px 0 $button-edge, 0 0 0 0 rgba($eb-color-pale-yellow, 0);
+    box-shadow: 0 4px 0 var(--gs-button-edge), 0 0 0 0 color-mix(in srgb, var(--gs-good) 0%, transparent);
   }
 
   50% {
-    box-shadow: 0 4px 0 $button-edge, 0 0 14px 3px rgba($eb-color-pale-yellow, 0.5);
+    box-shadow: 0 4px 0 var(--gs-button-edge), 0 0 14px 3px color-mix(in srgb, var(--gs-good) 50%, transparent);
   }
 }
 

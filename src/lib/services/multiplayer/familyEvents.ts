@@ -40,7 +40,7 @@ export const EVENT_KINDS: Record<FamilyEventKind, EventKindRule> = {
   "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
   "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
   "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
-  "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval"] },
+  "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval", "synced"] },
   "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
   "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
   "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
@@ -107,15 +107,24 @@ export const leveledEvent = (heroId: string, level: number, jobClass: string, de
 export const questDoneEvent = (heroId: string, deviceId: string, d: { difficulty: number; xp: number; fight: boolean }): FamilyEvent =>
   newEvent("quest.done", heroId, deviceId, { difficulty: d.difficulty, xp: d.xp, fight: d.fight });
 
-export const questClaimedEvent = (
-  heroId: string,
-  deviceId: string,
-  d: { questId: string; difficulty: number; requiresApproval: boolean },
-): FamilyEvent =>
+/** What a claim says: the quest, its difficulty and whether it waits for a Game Master */
+export interface QuestClaim {
+  questId: string;
+  difficulty: number;
+  requiresApproval: boolean;
+  /**
+   * Set by a device that syncs records (family sync, section 6): the claim's quest log entry arrives as a record, so the
+   * intake never takes it as a phone claim. A free kid phone's claim, and one sent again after a takeover, carry no mark.
+   */
+  synced?: boolean;
+}
+
+export const questClaimedEvent = (heroId: string, deviceId: string, d: QuestClaim): FamilyEvent =>
   newEvent("quest.claimed", heroId, deviceId, {
     questId: d.questId,
     difficulty: d.difficulty,
     requiresApproval: d.requiresApproval,
+    ...(d.synced ? { synced: true } : {}),
   });
 
 /** The Game Master's verdict on a held claim: `quest.approved`, or `quest.rejected` with the note the hero saw */

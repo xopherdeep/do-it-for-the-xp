@@ -10,7 +10,8 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="settings-card max-w-2xl">
+      <!-- A kid phone never saves or restores the family's file -->
+      <ion-card v-if="!isKidMode" class="settings-card max-w-2xl">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
@@ -130,7 +131,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="settings-card max-w-2xl">
+      <ion-card v-if="!isKidMode" class="settings-card max-w-2xl">
         <ion-card-content>
           <p>
             Everything lives on this device. Back up before you clear the browser, switch phones or try a
@@ -167,6 +168,7 @@
     setLandingChoice,
     type LandingChoice,
   } from "@/lib/services/core/profilePrefs";
+  import { useFamilyStore } from "@/lib/store/stores/family";
   import { useGameRulesStore } from "@/lib/store/stores/gameRules";
   import { useUserStore } from "@/lib/store/stores/user";
   import { backupAgeLabel, lastBackupAt, recordBackup } from "@/lib/services/core/backupReminder";
@@ -249,6 +251,9 @@
       // A backup or restore is running; the restore flow is shared with the empty File Select screen
       const { isBackupBusy, runWithLoading, selectRestoreFile } = useBackupRestore();
       const userStore = useUserStore();
+      const family = useFamilyStore();
+      // A kid phone (family sync spec, section 7) has no Backup & Restore
+      const isKidMode = computed(() => family.isKidMode);
       const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
       // When the last backup was made, and how to say so under "Back up everything"
       const lastBackup = ref(lastBackupAt());
@@ -282,6 +287,7 @@
 
       return {
         isBackupBusy,
+        isKidMode,
         lastBackup,
         backupAge,
         currentHeroId,

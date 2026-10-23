@@ -215,3 +215,56 @@ describe("TownHallCompose", () => {
     expect(cy(wrapper, "th-count").text()).toBe("0 / 2000");
   });
 });
+
+describe("news and edits", () => {
+  it("writes news with a title, 8,000 characters, and two sends: Draft and Publish", async () => {
+    const wrapper = compose({ kind: "news" });
+    expect(wrapper.find("ion-title").text()).toBe("Write news");
+    expect(cy(wrapper, "th-count").text()).toBe("0 / 8000");
+    expect(cy(wrapper, "th-board-picker").exists()).toBe(false);
+    expect(cy(wrapper, "th-pick-news").exists()).toBe(false);
+    await cy(wrapper, "th-title").setValue(" Harvest ");
+    await cy(wrapper, "th-body").setValue("Bring chores.");
+    await cy(wrapper, "th-save-draft").trigger("click");
+    await sendButton(wrapper).trigger("click");
+    expect(sent(wrapper)).toEqual([
+      { kind: "news", title: "Harvest", body: "Bring chores.", category: "news", status: "draft" },
+      { kind: "news", title: "Harvest", body: "Bring chores.", category: "news", status: "publish" },
+    ]);
+    expect(sendButton(wrapper).text()).toContain("Publish");
+    expect(cy(wrapper, "th-save-draft").text()).toBe("Draft");
+  });
+  it("offers Patch Notes only when the site has them, and starts on the category it was opened for", async () => {
+    const wrapper = compose({ kind: "news", patchNotesAvailable: true, newsCategory: "patch-notes" });
+    expect(cy(wrapper, "th-pick-patch-notes").attributes("aria-checked")).toBe("true");
+    await cy(wrapper, "th-pick-news").trigger("click");
+    await cy(wrapper, "th-title").setValue("T");
+    await cy(wrapper, "th-body").setValue("B");
+    await sendButton(wrapper).trigger("click");
+    expect(sent(wrapper)[0]).toMatchObject({ category: "news" });
+  });
+  it("writes news, not a patch note, when the site has no Patch Notes category even if it was opened for one", async () => {
+    const wrapper = compose({ kind: "news", newsCategory: "patch-notes" });
+    expect(cy(wrapper, "th-pick-patch-notes").exists()).toBe(false);
+    await cy(wrapper, "th-title").setValue("T");
+    await cy(wrapper, "th-body").setValue("B");
+    await sendButton(wrapper).trigger("click");
+    expect(sent(wrapper)[0]).toMatchObject({ category: "news", status: "publish" });
+  });
+  it("wants a title for news before it lets anything go", async () => {
+    const wrapper = compose({ kind: "news" });
+    await cy(wrapper, "th-body").setValue("B");
+    expect(isDisabled(wrapper)).toBe(true);
+    expect(cy(wrapper, "th-problem").text()).toBe("Give it a title.");
+  });
+  it("edits the words it was given, with one Save and no picker", async () => {
+    const wrapper = compose({ kind: "edit", initial: { title: "Old", body: "Words" } });
+    expect(wrapper.find("ion-title").text()).toBe("Edit");
+    expect(cy(wrapper, "th-board-picker").exists()).toBe(false);
+    expect(cy(wrapper, "th-save-draft").exists()).toBe(false);
+    expect(sendButton(wrapper).text()).toContain("Save");
+    await cy(wrapper, "th-title").setValue("New");
+    await sendButton(wrapper).trigger("click");
+    expect(sent(wrapper)).toEqual([{ kind: "edit", title: "New", body: "Words" }]);
+  });
+});

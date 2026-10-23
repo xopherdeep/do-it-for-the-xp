@@ -259,6 +259,20 @@ export const useProStore = defineStore("pro", () => {
     }
   }
 
+  /**
+   * This device joined another family (a kid phone linked to it; the family id was adopted already): the licence is the
+   * new family's, claimed at once, so its Pro reaches the device in this session (Family Sync turns on without a
+   * restart). A licence cached for the family it left is not carried over.
+   */
+  async function adoptedFamily(nextFamilyId: string): Promise<void> {
+    await init();
+    const id = nextFamilyId.toLowerCase();
+    const isAnotherFamily = id !== familyId.value;
+    familyId.value = id;
+    if (isAnotherFamily) license.value = null;
+    await recheck();
+  }
+
   /** Email every key on file for this address. The server never says whether one exists. */
   async function recover(email: string): Promise<void> {
     try {
@@ -313,6 +327,7 @@ export const useProStore = defineStore("pro", () => {
     claimWithRetry,
     purchase,
     restoreWithKey,
+    adoptedFamily,
     recover,
     manage,
     requirePro,

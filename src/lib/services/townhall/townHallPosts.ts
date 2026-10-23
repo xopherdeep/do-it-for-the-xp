@@ -103,8 +103,16 @@ export interface PostRequest {
   body: Record<string, unknown>;
 }
 
-/** The WordPress REST request that sends a post. Throws when the post lacks what its kind needs. */
-export function requestFor(post: TownHallPost, boardIds: Partial<Record<SiteBoardSlug, number>>): PostRequest {
+/**
+ * The WordPress REST request that sends a post. Throws when the post lacks what its kind needs. A topic goes out
+ * published when the link can publish (`options.canPublish`), pending the site's review otherwise; a bug report is
+ * always pending, and a comment is sent as it is.
+ */
+export function requestFor(
+  post: TownHallPost,
+  boardIds: Partial<Record<SiteBoardSlug, number>>,
+  options: { canPublish?: boolean } = {}
+): PostRequest {
   const isComment = post.kind === "comment";
   if (isComment) {
     const hasNoParent = post.postId === undefined;
@@ -131,12 +139,13 @@ export function requestFor(post: TownHallPost, boardIds: Partial<Record<SiteBoar
   const boardId = post.board === undefined ? undefined : boardIds[post.board as SiteBoardSlug];
   const hasNoBoardId = boardId === undefined;
   if (hasNoBoardId) throw new Error(`The board "${post.board ?? ""}" has no id on the site.`);
+  const status = options.canPublish ? "publish" : "pending";
   return {
     path: "wp/v2/cafeteria_topic",
     body: {
       title: post.title ?? "",
       content: post.body + signature(post.heroName) + (post.pack === undefined ? "" : packBlock(post.pack)),
-      status: "pending",
+      status,
       cafeteria_board: [boardId],
     },
   };

@@ -41,8 +41,8 @@ export interface QuestReviewed {
 
 type Listener<T> = (payload: T) => void;
 
-/** One signal: listeners subscribe and get a way to stop; emit tells them all, one failing never stops the rest */
-const makeSignal = <T>(name: string) => {
+/** One signal: listeners subscribe and get a way to stop; emit tells them all, one failing never stops the rest (shared with sync/recordSignals.ts) */
+export const makeSignal = <T>(name: string) => {
   const listeners = new Set<Listener<T>>();
   const on = (fn: Listener<T>): (() => void) => {
     listeners.add(fn);

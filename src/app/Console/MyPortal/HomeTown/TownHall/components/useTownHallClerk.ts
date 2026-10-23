@@ -9,7 +9,9 @@ import debug from "@/lib/utils/debug";
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import type { Ref } from "vue";
 import type { LinkResult, useTownHallStore } from "@/lib/store/stores/townHall";
+import type { EditableType, NewsCategory } from "@/lib/services/townhall/townHallDesk";
 import { SIGNUP_URL, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { useTownHallDesk } from "./useTownHallDesk";
 import { useTownHallPosting } from "./useTownHallPosting";
 import { useTownHallLink } from "./useTownHallLink";
 import { registrationOffer } from "./registrationOffer";
@@ -26,12 +28,15 @@ export interface TownHallClerkOptions {
   currentBoard(): TownHallBoardSlug;
   /** Resolves once the device's profiles are read: App.ts reads them without waiting, so a cold start may not know its Game Master yet */
   profilesReady(): Promise<void>;
+  /** Fetch a tab's list again (the desk changed what it shows) */
+  reloadTab(id: "news" | "board" | "updates"): Promise<void>;
 }
 
 /**
- * The Town Clerk's whole counter: posting, family registration and the link to WordPress. They live together because
- * each calls back into the others (a post waiting for a registration, a registration that sends the queue), and one
- * composable lets those closures see each other instead of the page threading them back and forth.
+ * The Town Clerk's whole counter: posting, the administrator's desk, family registration and the link to WordPress. They
+ * live together because each calls back into the others (a post waiting for a registration, a registration that sends
+ * the queue, a desk change that reloads a tab), and one composable lets those closures see each other instead of the
+ * page threading them back and forth.
  */
 export function useTownHallClerk(options: TownHallClerkOptions) {
   const { store, reveal } = options;
@@ -76,6 +81,18 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
     if (hasAccount) await link.openAuthorizePage();
   }
 
+  const desk = useTownHallDesk({ store, reveal });
+
+  /** The tabs that show what the desk changed: a post is news and a patch note, a topic is the board */
+  const reloadFor = (what: NewsCategory | EditableType): void => {
+    const touchesNews = what === "news" || what === "post";
+    if (touchesNews) void options.reloadTab("news");
+    const touchesUpdates = what === "patch-notes" || what === "post";
+    if (touchesUpdates) void options.reloadTab("updates");
+    const touchesBoard = what === "topic";
+    if (touchesBoard) void options.reloadTab("board");
+  };
+
   const posting = useTownHallPosting({
     store,
     reveal,
@@ -88,6 +105,12 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
     redoRegistration: async () => {
       await link.removeLink();
       await registerFamily();
+    },
+    desk: {
+      createNews: desk.writer.createNews,
+      saveEdit: desk.writer.saveEdit,
+      readWords: desk.writer.readWords,
+      changed: reloadFor,
     },
   });
 
@@ -103,12 +126,15 @@ export function useTownHallClerk(options: TownHallClerkOptions) {
   /**
    * Coming back from WordPress's authorize page, the clerk says how it went (the composable checks the return). An ordinary
    * visit by a Game Master whose posts wait for a registration this device lacks is offered Family Registration instead.
+   * What the link may do on the site is read again, and the desk with it, before the queue goes out.
    */
   async function completeLinkReturn(): Promise<void> {
     const handled = await link.completeReturn();
+    await store.refreshPowers();
+    await desk.actions.refresh();
     void posting.sendQueue();
     if (!handled) await offerRegistration();
   }
 
-  return { posting, registerFamily, completeLinkReturn };
+  return { posting, desk, registerFamily, completeLinkReturn };
 }
