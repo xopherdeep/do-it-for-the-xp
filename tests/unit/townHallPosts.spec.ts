@@ -271,4 +271,14 @@ describe("requestFor", () => {
   it("does not need a board id for a bug or a comment", () => {
     expect(() => requestFor(post({ kind: "bug", board: undefined, bug: { route: "/x", environment: "e" } }), {})).not.toThrow();
   });
+
+  it("sends a topic published when the link can publish, pending otherwise", () => {
+    expect(requestFor(post(), { "feature-requests": 3 }, { canPublish: true }).body.status).toBe("publish");
+    expect(requestFor(post(), { "feature-requests": 3 }, { canPublish: false }).body.status).toBe("pending");
+    expect(requestFor(post(), { "feature-requests": 3 }).body.status).toBe("pending");
+  });
+
+  it("leaves a bug report pending whatever the link can do", () => {
+    expect(requestFor(post({ kind: "bug" }), {}, { canPublish: true }).body.status).toBe("pending");
+  });
 });

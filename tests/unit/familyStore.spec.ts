@@ -2,7 +2,7 @@ import { createPinia, getActivePinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
-import { emitHeroRemoved, emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { emitHeroRemoved, emitQuestClaimed, emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import * as server from "@/lib/services/multiplayer/familyServer";
 import type { ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import { cardKey, cardOf } from "@/lib/services/multiplayer/heroCard";
@@ -37,6 +37,17 @@ jest.mock("@/lib/services/multiplayer/familyServer", () => {
     listPhones: jest.fn(),
   };
 });
+
+/** The sheet the family device builds for a hero (the board behind it is not under test here) */
+const mockBuildHeroSheet = jest.fn();
+/** Taking one phone claim (the completion service behind it is not under test here) */
+const mockTakePhoneClaim = jest.fn();
+jest.mock("@/lib/services/multiplayer/phoneClaimIntake", () => ({
+  __esModule: true,
+  ...jest.requireActual("@/lib/services/multiplayer/phoneClaimIntake"),
+  buildHeroSheet: (...args: any[]) => mockBuildHeroSheet(...args),
+  takePhoneClaim: (...args: any[]) => mockTakePhoneClaim(...args),
+}));
 
 jest.mock("@/lib/services/pro/familyIdentity", () => ({
   __esModule: true,
@@ -138,6 +149,26 @@ jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallS
 
 const mockUsers = reactive<Record<string, any>>({});
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ users: mockUsers }) }));
+
+/**
+ * Family Sync, as the family store sees it: on for a Pro family, whether this device is one of its family devices, the
+ * hero's turn (`withTurn` runs the work here, borrowed, or answers false when another device holds the hero) and the
+ * verdicts it takes from the family's events
+ */
+const mockSync = reactive({
+  isOn: false,
+  isCapturing: false,
+  isFamilyDevice: false,
+  isFullPortal: false,
+  state: { claimsSince: null as string | null },
+  init: jest.fn(),
+  reset: jest.fn(),
+  withTurn: jest.fn(),
+  takeVerdicts: jest.fn(),
+  keepEvents: jest.fn(),
+  markHistory: jest.fn(),
+});
+jest.mock("@/lib/store/stores/sync", () => ({ __esModule: true, useSyncStore: () => mockSync }));
 
 const bindFamily = server.bindFamily as jest.Mock;
 const moveHome = server.moveHome as jest.Mock;
@@ -252,6 +283,20 @@ describe("family store", () => {
     mockTownHall.auth = PARENT;
     mockTownHall.init.mockResolvedValue(undefined);
     mockTownHall.forgetLink.mockResolvedValue(undefined);
+    mockSync.isOn = false;
+    mockSync.isFamilyDevice = false;
+    mockSync.isFullPortal = false;
+    mockSync.init.mockResolvedValue(undefined);
+    mockSync.reset.mockResolvedValue(undefined);
+    mockSync.withTurn.mockImplementation(async (_heroId: string, fn: () => Promise<void>) => {
+      await fn();
+      return true;
+    });
+    mockSync.takeVerdicts.mockResolvedValue(undefined);
+    mockSync.keepEvents.mockResolvedValue(undefined);
+    mockSync.markHistory.mockResolvedValue(undefined);
+    mockSync.isCapturing = false;
+    mockSync.state.claimsSince = null;
     (require("@/lib/services/pro/familyIdentity").ensureIdentity as jest.Mock).mockResolvedValue({ familyId: FAMILY, deviceId: DEVICE });
     bindFamily.mockResolvedValue("created");
     moveHome.mockResolvedValue(undefined);
@@ -377,6 +422,41 @@ describe("family store", () => {
       await settle();
       expect(bindFamily).toHaveBeenCalledTimes(1);
       expect(store.home).toBe("home");
+    });
+
+    it("starts the sync store once it listens", async () => {
+      await started();
+      expect(mockSync.init).toHaveBeenCalledTimes(1);
+    });
+
+    it("a Pro family device queues events although it is not home, and is not asked the home question", async () => {
+      mockSync.isOn = true;
+      mockSync.isFamilyDevice = true;
+      mockState = { ...emptyState(), home: "home-elsewhere", lastCards: cardsAlreadySent() };
+      bindFamily.mockRejectedValue(new TownHallError("offline"));
+      const store = await started();
+      expect(store.home).toBe("home-elsewhere");
+
+      emitQuestPaid(paidQuest());
+      await settle();
+      expect(mockState.outbox.map((e) => `${e.kind} ${e.heroId}`)).toEqual(["quest.done h-1"]);
+
+      bindFamily.mockResolvedValue("home-elsewhere");
+      await store.bind();
+      expect(store.home).toBe("home");
+      expect(mockState.home).toBe("home");
+      expect(store.problem).toBeNull();
+    });
+
+    it("a free family is asked the home question as before", async () => {
+      bindFamily.mockResolvedValue("home-elsewhere");
+      mockState = { ...emptyState(), lastCards: cardsAlreadySent() };
+      const store = await started();
+      expect(store.home).toBe("home-elsewhere");
+
+      emitQuestPaid(paidQuest());
+      await settle();
+      expect(mockState.outbox).toEqual([]);
     });
 
     it("a second bind while one is running joins it", async () => {
@@ -962,6 +1042,7 @@ describe("family store", () => {
       expect(store.device?.card?.level).toBe(5);
       expect(bindFamily).not.toHaveBeenCalled();
       expect(saveHero).not.toHaveBeenCalled();
+      expect(mockSync.init).toHaveBeenCalledTimes(1);
     });
 
     it("claim saves the device, calls adoptFamily, sets isKidMode and device", async () => {
@@ -980,6 +1061,8 @@ describe("family store", () => {
       expect(adoptFamily).toHaveBeenCalledWith(FAMILY);
       expect(store.isKidMode).toBe(true);
       expect(store.device).toMatchObject({ key: "xph_key123", heroId: "h-1" });
+      // A phone linked again starts Family Sync from nothing: its first pull reads from 0
+      expect(mockSync.reset).toHaveBeenCalledTimes(1);
     });
 
     it("a code-invalid rejection saves nothing", async () => {
@@ -1027,6 +1110,8 @@ describe("family store", () => {
       expect(mockClearDevice).toHaveBeenCalledTimes(1);
       expect(store.device).toBeNull();
       expect(store.isKidMode).toBe(false);
+      // Family Sync's queue, numbers and turns belong to the link that is gone
+      expect(mockSync.reset).toHaveBeenCalledTimes(1);
     });
 
     it("linkCode asks makeLinkCode with parent auth", async () => {
@@ -1220,6 +1305,194 @@ describe("family store", () => {
       expect(fetchEvents).not.toHaveBeenCalled();
       await tick(1);
       expect(fetchEvents).toHaveBeenCalled();
+    });
+
+    it("the periodic tick reads the phone list before the sheet pass", async () => {
+      const linked = [{ id: 1, heroId: "h-1", label: "Mia's iPhone", createdAt: "2026-10-22T12:00:00Z", lastSeenAt: null }];
+      // No phone is linked when the app starts; one is linked a minute later
+      listPhones.mockResolvedValueOnce([]);
+      listPhones.mockResolvedValue(linked);
+      mockBuildHeroSheet.mockResolvedValue({
+        stats: { level: 2, xp: 5, nextLevelXp: 100, gp: 3, ap: 1, hp: 9, maxHp: 10, mp: 1, maxMp: 2 },
+        quests: [],
+      });
+      mockState.lastCards = cardsAlreadySent();
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      expect(store.phones).toEqual([]);
+      expect(mockBuildHeroSheet).not.toHaveBeenCalled();
+      const readsBefore = listPhones.mock.calls.length;
+      await tick(120_000);
+      await tick(0);
+      expect(listPhones).toHaveBeenCalledTimes(readsBefore + 1);
+      expect(store.phones).toEqual(linked);
+      const readAt = listPhones.mock.invocationCallOrder[readsBefore];
+      const passAt = mockBuildHeroSheet.mock.invocationCallOrder[0];
+      expect(readAt).toBeLessThan(passAt);
+      expect(kindsOf(mockState.outbox)).toEqual(["hero.sheet h-1"]);
+    });
+
+    it("the periodic tick does not read the phone list on a device that sends no sheets", async () => {
+      bindFamily.mockResolvedValue("home-elsewhere");
+      listPhones.mockResolvedValue([]);
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      expect(store.home).toBe("home-elsewhere");
+      await tick(120_000);
+      await tick(0);
+      expect(listPhones).not.toHaveBeenCalled();
+    });
+
+    it("a Pro family's 2 minute round stands down: the sync store's minute tick runs it", async () => {
+      mockSync.isOn = true;
+      mockSync.isFamilyDevice = true;
+      listPhones.mockResolvedValue([]);
+      jest.useFakeTimers();
+      const store = useFamilyStore();
+      const run = store.init();
+      await tick(0);
+      await run;
+      await tick(0);
+      fetchEvents.mockClear();
+      await tick(120_000);
+      expect(fetchEvents).not.toHaveBeenCalled();
+
+      await store.downloadRound();
+      expect(fetchEvents).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("a family that syncs (family sync, section 6)", () => {
+    const phoneClaimEvent = (seq: number, id: string, heroId = "h-1", data: Record<string, unknown> = {}): ReceivedEvent => ({
+      seq,
+      id,
+      heroId,
+      deviceId: "PHONE",
+      kind: "quest.claimed",
+      scope: "family",
+      at: "2026-10-22T09:00:00.000Z",
+      receivedAt: "2026-10-22 09:00:01",
+      data: { questId: "q-1", difficulty: 2, requiresApproval: true, ...data },
+    });
+    /** h-2 is played on another device: its turn is busy, and nothing runs for it here */
+    const turnsWithBoElsewhere = () =>
+      mockSync.withTurn.mockImplementation(async (heroId: string, fn: () => Promise<void>) => {
+        if (heroId === "h-2") return false;
+        await fn();
+        return true;
+      });
+
+    it("intake runs through withTurn when sync is on", async () => {
+      mockSync.isOn = true;
+      fillUsers(mia(), bo(), mom());
+      turnsWithBoElsewhere();
+      mockTakePhoneClaim.mockImplementation(async (e: ReceivedEvent) => ({ claimId: e.id, questId: "q-1", status: "pending", note: "", xp: 0, gp: 0, ap: 0 }));
+      fetchEvents.mockResolvedValueOnce([
+        phoneClaimEvent(1, "c-1", "h-1"),
+        phoneClaimEvent(2, "c-2", "h-2"),
+        // a synced claim's entry arrives as a record: never taken
+        phoneClaimEvent(3, "c-3", "h-1", { synced: true }),
+      ]);
+      const store = await started();
+      await store.download();
+
+      expect(mockSync.withTurn.mock.calls.map(([heroId]) => heroId)).toEqual(["h-1", "h-2"]);
+      expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-1"]);
+      // Bo's claim is left for the device holding Bo: not answered, not marked taken
+      expect(mockState.takenClaims.map((claim) => claim.id)).toEqual(["c-1"]);
+      expect(mockState.outbox.filter((e) => e.kind === "claim.settled").map((e) => e.data.claimId)).toEqual(["c-1"]);
+      expect(mockState.lastSeq).toBe(3);
+      // the family's cursor has moved past it: kept in the sync store, tried again each round
+      expect(mockSync.keepEvents.mock.calls.flat(2).map((e: ReceivedEvent) => e.id)).toEqual(["c-2"]);
+    });
+
+    it("history is skipped: a claim or reward the site received before this device started reading the events", async () => {
+      mockSync.isOn = true;
+      mockSync.state.claimsSince = "2026-10-22T09:30:00.000Z";
+      mockTakePhoneClaim.mockImplementation(async (e: ReceivedEvent) => ({ claimId: e.id, questId: "q-1", status: "pending", note: "", xp: 0, gp: 0, ap: 0 }));
+      const before = { receivedAt: "2026-10-22T09:00:01.000Z" };
+      const after = { receivedAt: "2026-10-22T10:00:01.000Z" };
+      fetchEvents.mockResolvedValueOnce([
+        { ...phoneClaimEvent(1, "c-old"), ...before },
+        { ...phoneClaimEvent(2, "c-new"), ...after },
+        sampleRewardEvent({ seq: 3, id: "r-old", ...before }),
+        sampleRewardEvent({ seq: 4, id: "r-new", ...after }),
+      ]);
+      const store = await started();
+      await store.download();
+
+      expect(mockTakePhoneClaim.mock.calls.map(([e]) => e.id)).toEqual(["c-new"]);
+      expect(mockApplyQuestRewards.mock.calls.map(([, , questId]) => questId)).toEqual(["party:r-new"]);
+      expect(mockState.lastSeq).toBe(4);
+    });
+
+    it("a device reading the family's events from their beginning marks the moment; one that has read them does not", async () => {
+      let store = await started();
+      await store.download();
+      expect(mockSync.markHistory).toHaveBeenCalled();
+
+      (getActivePinia() as unknown as { _s: Map<string, { $dispose: () => void }> })._s.forEach((running) => running.$dispose());
+      setActivePinia(createPinia());
+      mockSync.markHistory.mockClear();
+      mockState = { ...emptyState(), lastSeq: 40 };
+      store = await started();
+      await store.download();
+      expect(mockSync.markHistory).not.toHaveBeenCalled();
+    });
+
+    it("a server reward is paid on its hero's turn; one for a hero played elsewhere is left to that device", async () => {
+      mockSync.isOn = true;
+      turnsWithBoElsewhere();
+      fetchEvents.mockResolvedValueOnce([sampleRewardEvent(), sampleRewardEvent({ seq: 2, id: "evt-rew-2", heroId: "h-2" })]);
+      const store = await started();
+      await store.download();
+
+      expect(mockApplyQuestRewards).toHaveBeenCalledTimes(1);
+      expect(mockApplyQuestRewards).toHaveBeenCalledWith("h-1", { xp: 50, gp: 0, ap: 3 }, "party:evt-rew-1");
+      expect(mockState.paidRewards.map((paid) => paid.id)).toEqual(["evt-rew-1"]);
+    });
+
+    it("the verdicts among the events go to the sync store, only while it is on", async () => {
+      const verdict: ReceivedEvent = { ...phoneClaimEvent(4, "v-1"), kind: "claim.settled", data: { claimId: "entry-1", questId: "q-1", status: "approved", note: "", xp: 0, gp: 0, ap: 0 } };
+      fetchEvents.mockResolvedValueOnce([verdict]);
+      let store = await started();
+      await store.download();
+      expect(mockSync.takeVerdicts).not.toHaveBeenCalled();
+
+      (getActivePinia() as unknown as { _s: Map<string, { $dispose: () => void }> })._s.forEach((running) => running.$dispose());
+      setActivePinia(createPinia());
+      mockState = emptyState();
+      mockSync.isOn = true;
+      fetchEvents.mockReset();
+      fetchEvents.mockResolvedValueOnce([verdict]).mockResolvedValue([]);
+      store = await started();
+      await store.download();
+      expect(mockSync.takeVerdicts).toHaveBeenCalledWith([verdict]);
+    });
+
+    it("a claim made here is marked synced while this device captures its records (Pro lapsed or not loaded yet too)", async () => {
+      mockState = { ...emptyState(), lastCards: cardsAlreadySent() };
+      const store = await started();
+      emitQuestClaimed({ heroId: "h-1", questId: "q-1", difficulty: 3, requiresApproval: true });
+      await settle();
+      mockSync.isCapturing = true;
+      emitQuestClaimed({ heroId: "h-1", questId: "q-2", difficulty: 3, requiresApproval: true });
+      await settle();
+
+      const claims = mockState.outbox.filter((e) => e.kind === "quest.claimed").map((e) => e.data);
+      expect(claims).toEqual([
+        { questId: "q-1", difficulty: 3, requiresApproval: true },
+        { questId: "q-2", difficulty: 3, requiresApproval: true, synced: true },
+      ]);
+      expect(store.home).toBe("home");
     });
   });
 });

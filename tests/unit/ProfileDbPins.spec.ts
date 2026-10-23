@@ -5,7 +5,8 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveProfiles: jest.fn().mockResolvedValue(undefined) },
 }));
-jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ emitHeroRemoved: jest.fn() }));
+// The real signal maker stays (the family-sync record signals the storage layer raises are built with it)
+jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ ...jest.requireActual("@/lib/services/multiplayer/gameSignals"), emitHeroRemoved: jest.fn() }));
 
 /** The bits of an Ionic Storage ProfileDb uses, in memory */
 const memoryStorage = (seed: Record<string, unknown> = {}) => {

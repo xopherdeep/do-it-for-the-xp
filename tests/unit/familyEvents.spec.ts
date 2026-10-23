@@ -19,7 +19,7 @@ describe("EVENT_KINDS", () => {
       "hero.card": { scope: "public", writer: "home", fields: ["nickname", "look", "jobClass", "level"] },
       "hero.leveled": { scope: "public", writer: "home", fields: ["level", "jobClass"] },
       "quest.done": { scope: "public", writer: "home", fields: ["difficulty", "xp", "fight"] },
-      "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval"] },
+      "quest.claimed": { scope: "family", writer: "home-or-phone", fields: ["questId", "difficulty", "requiresApproval", "synced"] },
       "quest.approved": { scope: "family", writer: "home", fields: ["questId", "note"] },
       "quest.rejected": { scope: "family", writer: "home", fields: ["questId", "note"] },
       "reward.granted": { scope: "family", writer: "server", fields: ["xp", "ap", "reason", "sourceId"] },
@@ -76,6 +76,14 @@ describe("the approval loop's events", () => {
     const e = questClaimedEvent("h-1", "d1", { questId: "q-9", difficulty: 3, requiresApproval: true });
     expect(e).toMatchObject({ kind: "quest.claimed", heroId: "h-1", deviceId: "d1" });
     expect(e.data).toEqual({ questId: "q-9", difficulty: 3, requiresApproval: true });
+  });
+
+  it("quest.claimed keeps synced", () => {
+    const synced = questClaimedEvent("h-1", "d1", { questId: "q-9", difficulty: 3, requiresApproval: true, synced: true });
+    expect(synced.data).toEqual({ questId: "q-9", difficulty: 3, requiresApproval: true, synced: true });
+    // a claim with no mark (a free kid phone's, a takeover's re-send) carries none
+    const unmarked = questClaimedEvent("h-1", "d1", { questId: "q-9", difficulty: 3, requiresApproval: true, synced: false });
+    expect(unmarked.data).toEqual({ questId: "q-9", difficulty: 3, requiresApproval: true });
   });
 
   it("a verdict is quest.approved or quest.rejected with the note the hero read", () => {

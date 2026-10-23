@@ -236,15 +236,21 @@ describe("BattleField: a free fight", () => {
       await flushPromises();
       expect(vm.dialogText).toBe("Socktopus attacks!");
     };
-    const menu = () => wrapper.findAll(".menu-item").map((button) => button.text());
+    /** The command labels; a row's note (what the command can do) sits under its label and has its own helper. */
+    const menu = () => wrapper.findAll(".menu-item .item-label").map((label) => label.text());
+    const menuNotes = () =>
+      Object.fromEntries(
+        wrapper.findAll(".menu-item").map((row) => [row.attributes("id"), row.find(".item-note").exists() ? row.find(".item-note").text() : undefined])
+      );
+    const isDimmed = (id: string) => wrapper.find(`#${id}`).attributes("disabled") !== undefined;
     return {
       wrapper, router, userStore, vm, tap, readUntilMenu, attackWith,
-      bag, bagOpen, bagCard, useFromBag, castPower, letTheBeastStrike, menu,
+      bag, bagOpen, bagCard, useFromBag, castPower, letTheBeastStrike, menu, menuNotes, isDimmed,
     };
   };
 
   it("opens on the beast, takes two chores to win and walks the hero home with the loot", async () => {
-    const { wrapper, router, userStore, vm, tap, attackWith } = await enterBattle("/battle/hero-1/free/");
+    const { wrapper, router, userStore, vm, tap, attackWith, menu } = await enterBattle("/battle/hero-1/free/");
     const chores = () => wrapper.find(".chores-left-label").text();
     const clock = () => wrapper.find(".attack-timer-label");
 
@@ -258,7 +264,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("[data-cy=battle-dialog]").text()).toContain(INTRO);
     expect(vm.dialogText).toBe(INTRO); // still on screen: the atom's own click no longer dismisses it
     await tap();
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
+    expect(menu()).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
     expect(wrapper.find("#attack i").classes()).toContain("fa-axe"); // the warrior tackles with an axe
     expect(wrapper.find(".dialog-prompt").text()).toBe("Do its chores to win!");
     expect(chores()).toBe("2 tasks left");
@@ -403,15 +409,19 @@ describe("BattleField: a free fight", () => {
   });
 
   it("asks before running away, and Defend trades a glancing hit for a fresh clock", async () => {
-    const { wrapper, userStore, vm, tap, readUntilMenu } = await enterBattle("/battle/hero-1/free/");
+    const { wrapper, userStore, vm, tap, readUntilMenu, menu } = await enterBattle("/battle/hero-1/free/");
     await tap();
     await tap();
 
     await wrapper.find("#run-away").trigger("click");
     expect(wrapper.find(".dialog-prompt").text()).toBe("Run away? Your finished chores won't count.");
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Keep fighting", "Run"]);
+    // Each answer is a full-width row, so a long label never has to share a narrow column
+    const spansBothColumns = wrapper.findAll(".menu-item-col").map((col) => col.attributes("style") ?? "");
+    expect(spansBothColumns).toHaveLength(2);
+    spansBothColumns.forEach((style) => expect(style).toContain("grid-column: 1 / -1"));
     await wrapper.find("#keep-fighting").trigger("click");
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
+    expect(menu()).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
 
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     await wrapper.find("#defend").trigger("click");
@@ -545,14 +555,46 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("#attack i").classes()).toContain("fa-axe"); // the warrior's weapon
     expect(wrapper.find("#powers i").classes()).toContain("fa-book-spells");
     expect(wrapper.find("#item i").classes()).toContain("fa-backpack");
-    // Two by two, and only Run Away spans its row
+    // Two by two, and only Tackle spans its row
     const spans = wrapper.findAll(".menu-item-col").map((col) => col.attributes("style"));
-    expect(spans.map((style) => style?.includes("1 / -1"))).toEqual([false, false, false, false, true]);
+    expect(spans.map((style) => style?.includes("1 / -1"))).toEqual([true, false, false, false, false]);
 
     // A hero without a class tackles with a fist
     userStore.users["hero-1"].jobClass = "";
     await flushPromises();
     expect(wrapper.find("#attack i").classes()).toContain("fa-fist-raised");
+  });
+
+  it("each command says what it can do: Tackle counts the chores; Powers and Goods read the sheets and dim when they have nothing", async () => {
+    const { userStore, tap, readUntilMenu, attackWith, menuNotes, isDimmed } = await enterBattle("/battle/hero-1/free/", {
+      leftHand: [ICE_WAND],
+      rightHand: [],
+    });
+    const hero = userStore.users["hero-1"];
+    await tap();
+    await tap();
+
+    // 10 MP: neither Power (20 and 25 MP) can be cast, the Ice Wand (10 MP) can, and there are no bottles
+    let notes = menuNotes();
+    expect(notes).toMatchObject({ attack: "2 chores", defend: undefined, item: "x1", "run-away": undefined });
+    expect(notes.powers).toBe("no MP");
+    expect([isDimmed("attack"), isDimmed("defend"), isDimmed("powers"), isDimmed("item"), isDimmed("run-away")]).toEqual([
+      false, false, true, false, false,
+    ]);
+
+    // Rich in MP, with a hurt hero and a Health Potion: the cheapest Power names its price, and the bag counts the wand and the bottle
+    hero.stats.mp = { now: 120, max: 120 };
+    hero.stats.hp = { now: 10, max: 30 };
+    hero.inventory = [{ name: "Health Potion" }];
+    await flushPromises();
+    notes = menuNotes();
+    expect(notes).toMatchObject({ powers: "20 MP", item: "x2" });
+    expect(isDimmed("powers")).toBe(false);
+
+    // A chore done, one left
+    await attackWith("Sort socks");
+    await readUntilMenu();
+    expect(menuNotes().attack).toBe("1 chore");
   });
 
   it("Goods opens the bag; the Ice Wand buys ten minutes and the Silver Arrow pins the beast", async () => {
@@ -693,7 +735,7 @@ describe("BattleField: a free fight", () => {
   });
 
   it("Bottles in the bag opens the potion sheet and a drink heals", async () => {
-    const { wrapper, userStore, vm, tap, readUntilMenu, bag, bagOpen, useFromBag } = await enterBattle("/battle/hero-1/free/");
+    const { wrapper, userStore, vm, tap, readUntilMenu, bag, bagOpen, menuNotes, isDimmed } = await enterBattle("/battle/hero-1/free/");
     const hero = userStore.users["hero-1"];
     hero.stats.hp = { now: 10, max: 30 };
     hero.inventory = [{ name: "Health Potion" }];
@@ -724,12 +766,11 @@ describe("BattleField: a free fight", () => {
     expect(hero.inventory).toEqual([]);
     await readUntilMenu();
 
-    // Reopened, the sheet is a fresh one: the last bottle is gone
+    // The last bottle is gone and no tool is in a hand: Goods dims and says why ("not held"), so there is no empty sheet to open
+    expect(menuNotes().item).toBe("not held");
+    expect(isDimmed("item")).toBe(true);
     await wrapper.find("#item").trigger("click");
-    await useFromBag(BOTTLES);
-    expect(wrapper.find("[data-cy=potion-sheet] .empty-state").text()).toBe("Your bottles are empty. Temple shops brew potions.");
-    await wrapper.find("[data-cy=potion-sheet-back]").trigger("click");
-    expect(wrapper.find("[data-cy=potion-sheet]").exists()).toBe(false);
+    expect(bagOpen()).toBe(false);
     expect(wrapper.find(".menu-item").exists()).toBe(true);
   });
 
@@ -770,7 +811,11 @@ describe("BattleField: a free fight", () => {
   });
 
   it("a strike closes the bag", async () => {
-    const { wrapper, tap, readUntilMenu, bagOpen, letTheBeastStrike } = await enterBattle("/battle/hero-1/free/");
+    // A wand in hand: Goods dims when the bag holds nothing to use
+    const { wrapper, tap, readUntilMenu, bagOpen, letTheBeastStrike } = await enterBattle("/battle/hero-1/free/", {
+      leftHand: [ICE_WAND],
+      rightHand: [],
+    });
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     await tap();
     await tap();
@@ -787,7 +832,12 @@ describe("BattleField: a free fight", () => {
   });
 
   it("back closes the bag before it asks to run", async () => {
-    const { wrapper, tap, bagOpen, menu } = await enterBattle("/battle/hero-1/free/");
+    // A wand in hand and the MP to cast: Goods and Powers dim when they have nothing to offer
+    const { wrapper, userStore, tap, bagOpen, menu } = await enterBattle("/battle/hero-1/free/", {
+      leftHand: [ICE_WAND],
+      rightHand: [],
+    });
+    userStore.users["hero-1"].stats.mp = { now: 120, max: 120 };
     await tap();
     await tap();
     const next = jest.fn();

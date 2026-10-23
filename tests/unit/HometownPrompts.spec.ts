@@ -6,6 +6,7 @@ import {
   NURSE,
   benchReceiptLine,
   benchRefusalLine,
+  binPrompt,
   careConfirmPrompt,
   careReceiptLine,
   careRefusalLine,
@@ -15,7 +16,9 @@ import {
   conciergeMenuPrompt,
   conciergeNotice,
   courierLatePrompt,
+  deskNotice,
   forbiddenPrompt,
+  keysTakenNotice,
   linkResultNotice,
   linkedStatusPrompt,
   nurseMenuChoices,
@@ -183,7 +186,13 @@ describe("the Town Hall clerk", () => {
   });
 
   it("names each errand the way the board does", () => {
-    expect(CLERK_ERRANDS).toEqual({ board: "Posting on the Board", bug: "Bug reports", registration: "Family registration" });
+    expect(CLERK_ERRANDS).toEqual({
+      board: "Posting on the Board",
+      bug: "Bug reports",
+      registration: "Family registration",
+      "write-news": "Writing the news",
+      "write-patch-note": "Writing a patch note",
+    });
   });
 
   it("says the courier is late and offers to try again, or never mind", () => {
@@ -286,6 +295,10 @@ describe("the clerk's posting lines", () => {
     }
   });
 
+  it("tells a publishing link its post is up already", () => {
+    expect(postedNotice("published").lines).toEqual(["*pins it to the wall* It's up on the wall already."]);
+  });
+
   it("says the family must register again, to anyone", () => {
     expect(registerAgainPrompt()).toMatchObject({
       speaker: CLERK,
@@ -316,5 +329,27 @@ describe("the clerk's posting lines", () => {
     expect(prompt.lines).toEqual(["Your family's registration isn't finished. Ask your Game Master."]);
     expect(prompt.choices.map((choice) => choice.id)).toEqual(["ok"]);
     expect(prompt.cancelId).toBe("ok");
+  });
+});
+
+describe("the clerk's desk", () => {
+  it("offers the writers only to a link that can publish, after the hero's errands", () => {
+    expect(clerkMenuChoices(true).map((c) => c.id)).toEqual(["board", "bug", "registration", "never"]);
+    expect(clerkMenuChoices(true, true).map((c) => c.id)).toEqual(["board", "bug", "registration", "write-news", "write-patch-note", "never"]);
+    expect(clerkMenuChoices(false, true).map((c) => c.label)).toContain("Write news");
+    expect(clerkMenuChoices(false, true).find((c) => c.id === "write-patch-note")).toMatchObject({ label: "Write a patch note", icon: "pen" });
+    expect(clerkMenuPrompt(true, "adventure", true).choices.map((c) => c.id)).toContain("write-news");
+  });
+  it("asks once before taking something down", () => {
+    const prompt = binPrompt();
+    expect(prompt.lines).toEqual(["Take it down? It goes to the city's bin; the site can bring it back for thirty days."]);
+    expect(prompt.choices.map((c) => [c.id, c.label])).toEqual([["take-down", "Take it down"], ["leave", "Leave it"]]);
+    expect(prompt.cancelId).toBe("leave");
+  });
+  it("says when the keys are taken back and what became of a desk job", () => {
+    expect(keysTakenNotice().lines).toEqual(["The city has taken back your keys. Register again if that's a mistake."]);
+    expect(deskNotice("published").lines).toEqual(["*pins it to the wall* It's up for everyone."]);
+    expect(deskNotice("drafted").lines).toEqual(["*files it* Kept as a draft on the site."]);
+    expect(deskNotice("saved").lines).toEqual(["*stamps it* Saved."]);
   });
 });

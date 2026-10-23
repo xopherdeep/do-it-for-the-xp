@@ -111,8 +111,10 @@ const AGE_GROUP_CHOICES: { id: AgeGroup; label: string }[] = [
   { id: "adult", label: "18 and up" },
 ];
 
-const visible = computed(() => family.enabled && family.parentAuth !== null);
-const showUnlinkedPrompt = computed(() => family.enabled && family.parentAuth === null);
+/** A kid phone has no Phones panel (the sync spec, section 7): only Game Master devices link and unlink phones */
+const isGameMasterDevice = computed(() => family.enabled && !family.isKidMode);
+const visible = computed(() => isGameMasterDevice.value && family.parentAuth !== null);
+const showUnlinkedPrompt = computed(() => isGameMasterDevice.value && family.parentAuth === null);
 
 /** What the Game Master calls the hero in the clerk's line: the first name, else the first word of the full name */
 const firstNameOf = (profile: { name?: { first?: string; full?: string } }): string => {

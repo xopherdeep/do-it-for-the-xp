@@ -174,6 +174,7 @@ describe("familyProblem", () => {
     [new TownHallError("server", "x", 409, "xp_family_moved"), "moved"],
     [new TownHallError("server", "x", 404, "xp_family_code_invalid"), "code-invalid"],
     [new TownHallError("unauthorized", "x", 401, "xp_family_key_revoked"), "key-revoked"],
+    [new TownHallError("forbidden", "x", 403, "xp_family_pro_required"), "pro-required"],
     [new TownHallError("unauthorized", "x", 401), "unlinked"],
     [new TownHallError("unauthorized", "x", 401, "rest_forbidden"), "unlinked"],
     [new TownHallError("server", "x", 429, "xp_family_rate_limited", 600), "rate-limited"],

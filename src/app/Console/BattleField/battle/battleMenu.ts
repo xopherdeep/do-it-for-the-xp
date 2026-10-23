@@ -1,4 +1,5 @@
 import { classKey } from "@/lib/services/abilities/heroAbilityStatus";
+import type { BattleMenuStatus } from "@/lib/services/battle/BattleMenuStatus";
 
 /** One entry in the in-dialog command menu (Tackle / Defend / Powers / Goods / Run Away, or a confirm pair). */
 export interface BattleMenuAction {
@@ -6,8 +7,12 @@ export interface BattleMenuAction {
   label: string;
   faIcon: string;
   click: () => void;
-  /** Spans both menu columns (the Run Away row). */
+  /** Spans both menu columns (the Tackle row). */
   fullWidth?: boolean;
+  /** A short line under the label: what the command can do right now ("2 chores", "3 MP", "x2"). */
+  note?: string;
+  /** The command cannot be used now; the row is dimmed and ignores taps. */
+  disabled?: boolean;
 }
 
 /** What each class tackles with, keyed by classKey ("White Mage" -> "whitemage"); Font Awesome Pro 5 names. */
@@ -35,3 +40,24 @@ export const DEFAULT_TACKLE_ICON = "fist-raised";
 /** The Tackle button's icon: the weapon of the hero's class, whatever case or spacing the profile stored. */
 export const tackleIcon = (jobClass: unknown): string =>
   (typeof jobClass === "string" && CLASS_WEAPON_ICONS[classKey(jobClass)]) || DEFAULT_TACKLE_ICON;
+
+/** The status slot each command reads; any other command has none. */
+const STATUS_SLOT_OF: Record<string, keyof BattleMenuStatus | undefined> = { attack: "tackle", powers: "powers", item: "goods" };
+
+/**
+ * Puts the status of Tackle, Powers and Goods on the normal command layout: each gets its note and disabled flag,
+ * and Tackle leads the list across both columns. Any other action, and a layout with no `attack` (the confirm pairs),
+ * passes through unchanged.
+ */
+export const applyMenuStatus = (actions: BattleMenuAction[], status: BattleMenuStatus): BattleMenuAction[] => {
+  if (!actions.some((action) => action.id === "attack")) return actions;
+  return actions.map((action) => {
+    const slotName = STATUS_SLOT_OF[action.id];
+    const hasNoStatus = slotName === undefined;
+    if (hasNoStatus) return action;
+    const slot = status[slotName];
+    const isTackle = action.id === "attack";
+    const leads = isTackle ? { fullWidth: true } : {};
+    return { ...action, ...leads, note: slot.note, disabled: !slot.enabled };
+  });
+};

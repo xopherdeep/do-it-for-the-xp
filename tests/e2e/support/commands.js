@@ -66,6 +66,18 @@ Cypress.Commands.add("scrollToCenter", { prevSubject: "element" }, (subject) => 
   return cy.wrap(subject, { log: false });
 });
 
+/**
+ * Picks the Game Style (`rpg`, e.g. "zelda") and the menu skin (`fabStyle`, "retro" or "modern") for the next load.
+ * Both are read from localStorage when the app starts (src/lib/utils/gameStyle.ts, src/lib/store/stores/game.ts), so call
+ * it after cy.seedWorld() has opened the app and follow it with a cy.visit.
+ */
+Cypress.Commands.add("useGameStyle", (rpg, fabStyle) => {
+  cy.window().then((win) => {
+    win.localStorage.setItem("xp.themeChoice", JSON.stringify({ ui: "nintendo", rpg }));
+    win.localStorage.setItem("fabStyle", fabStyle);
+  });
+});
+
 /** Marks the page as user-interacted so the app's sound effects do not throw autoplay errors. */
 Cypress.Commands.add("tapToWakeAudio", () => {
   cy.document().then((doc) => doc.documentElement.setAttribute("data-user-interacted", "true"));

@@ -279,6 +279,9 @@
     @burst="playAdventureSong"
     @done="finishFanfare"
   />
+
+  <!-- Family Sync: an edit of a hero another device plays is not saved, and the clerk says so -->
+  <xp-hero-write-gate ref="heroGate" />
 </template>
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped src="./_AddProfile.css" />

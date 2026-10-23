@@ -9,10 +9,16 @@ export interface SettingsItem {
   description: string;
   /** An image under src/assets/icons */
   icon: string;
+  /** The page the row opens; empty for a row that does something instead (it has an `action`) */
   route: string;
   /** Nothing on the page works yet: the row wears a Soon badge */
   soon?: boolean;
+  /** What the row does when it is tapped, instead of opening a page */
+  action?: SettingsAction;
 }
+
+/** The things a Settings row can do instead of opening a page */
+export type SettingsAction = "unlink-phone";
 
 export interface SettingsSection {
   id: string;
@@ -129,3 +135,39 @@ export const PRO_ITEM: SettingsItem = {
 
 /** Every page the Settings page opens, in the order it shows them */
 export const ALL_SETTINGS_ITEMS: SettingsItem[] = [...SETTINGS_SECTIONS.flatMap((section) => section.items), PRO_ITEM];
+
+/** The kid phone's way out: the hero rests, the phone forgets the family, and the picker opens (the sync spec, section 7) */
+export const UNLINK_ITEM: SettingsItem = {
+  id: "unlink-phone",
+  title: "Unlink this phone",
+  description: "Take this phone off the family. A new link code puts it back.",
+  icon: require("@/assets/icons/mobile-game.svg"),
+  route: "",
+  action: "unlink-phone",
+};
+
+/** What a kid phone does not keep from the lists above: the Game Master's pages (the family, packs, the Town Hall account) */
+const GAME_MASTER_SECTIONS = ["family", "account"];
+const GAME_MASTER_ITEMS = ["packs"];
+
+/** General without its Backup & Restore card (a kid phone never saves or restores the family's file) */
+const KID_GENERAL_DESCRIPTION = "Guides and the landing page.";
+
+const forKidPhone = (section: SettingsSection): SettingsSection => ({
+  ...section,
+  items: section.items
+    .filter((item) => !GAME_MASTER_ITEMS.includes(item.id))
+    .map((item) => (item.id === "general" ? { ...item, description: KID_GENERAL_DESCRIPTION } : item)),
+});
+
+/**
+ * The sections the Settings page lists. A kid phone (family sync, section 7) keeps the game's chores and rewards and the
+ * device's own pages, loses the Game Master's (Family, Packs, Account) and Backup & Restore, and gains Unlink this phone
+ * at the end of "This device".
+ */
+export function sectionsFor(options: { isKidMode: boolean }): SettingsSection[] {
+  if (!options.isKidMode) return SETTINGS_SECTIONS;
+  return SETTINGS_SECTIONS.filter((section) => !GAME_MASTER_SECTIONS.includes(section.id))
+    .map(forKidPhone)
+    .map((section) => (section.id === "device" ? { ...section, items: [...section.items, UNLINK_ITEM] } : section));
+}

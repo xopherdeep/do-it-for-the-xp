@@ -22,8 +22,13 @@
           v-if="isOpened('news')"
           v-show="selectedTab === 'news'"
           ref="newsTab"
+          :can-publish="canPublish"
+          :can-moderate="canModerate"
+          :held-comments="heldComments"
+          :desk="desk"
           @trouble="onTrouble('news')"
           @comment="openComment"
+          @edit="openSiteEdit"
         />
         <town-hall-board
           v-if="isOpened('board')"
@@ -31,11 +36,16 @@
           ref="boardTab"
           :board-slug="boardSlug"
           :waiting="waiting"
+          :can-publish="canPublish"
+          :can-moderate="canModerate"
+          :held-comments="heldComments"
+          :desk="desk"
           @boards="onBoards"
           @trouble="onTrouble('board')"
           @comment="openComment"
           @dismiss="dismissPost"
           @edit="openEdit"
+          @edit-site="openSiteEdit"
         />
         <town-hall-packs
           v-if="isOpened('packs')"
@@ -53,7 +63,11 @@
           v-show="selectedTab === 'updates'"
           ref="updatesTab"
           :stats="stats"
+          :can-publish="canPublish"
+          :bugs="bugs"
+          :desk="desk"
           @trouble="onTrouble('updates')"
+          @edit-site="openSiteEdit"
         />
       </div>
 
@@ -61,6 +75,7 @@
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button color="rpg" data-cy="th-clerk" aria-label="Talk to the clerk" @click="openClerkMenu">
           <ion-icon :icon="addOutline"></ion-icon>
+          <ion-badge v-if="waitingCount > 0" class="th-clerk__count" data-cy="th-clerk-count">{{ waitingCount }}</ion-badge>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
@@ -99,6 +114,8 @@
       :post-id="composeSpec.postId"
       :replying-to="composeSpec.replyingTo"
       :initial="composeSpec.initial"
+      :patch-notes-available="patchNotesAvailable"
+      :news-category="composeSpec.newsCategory"
       :boards="boards"
       :is-open="composeOpen"
       :sending="composeSending"

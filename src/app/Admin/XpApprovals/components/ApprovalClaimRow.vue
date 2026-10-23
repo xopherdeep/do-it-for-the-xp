@@ -20,7 +20,10 @@
 
         <approval-photo :entry="entry" />
 
-        <div class="claim__actions">
+        <p v-if="sentLine" class="claim__sent" data-test="claim-sent" role="status">
+          <i class="fad fa-paper-plane" aria-hidden="true"></i> {{ sentLine }}
+        </p>
+        <div v-else class="claim__actions">
           <button
             type="button"
             class="claim__btn claim__btn--approve"
@@ -42,7 +45,7 @@
         </div>
       </div>
     </ion-item>
-    <ion-item-options side="end">
+    <ion-item-options v-if="!sentLine" side="end">
       <ion-item-option color="success" @click="emit('approve', entry)">
         <i class="fad fa-check fa-lg" aria-hidden="true"></i>
         Approve
@@ -71,12 +74,15 @@ defineOptions({ name: "approval-claim-row" });
  * One chore waiting on the Game Master: the quest, the hero and how long they have waited, what they earn as chips, the
  * photo proof if there is one, and big Approve / Send back buttons. Swiping the row left still shows the same two
  * actions as a shortcut. The row only asks; XpApprovals runs the confirm dialogs and approveClaim / rejectClaim.
+ * A verdict already sent to the device holding the hero's turn (family sync) shows its line instead, and asks nothing.
  */
 interface ApprovalClaimRowProps {
   entry: QuestLogEntry;
   heroName: string;
   /** The hero's avatar image, or "" for the scroll glyph */
   avatar: string;
+  /** The verdict sent to the hero's device, as the screen words it, until that device's copy of the entry lands */
+  sentLine?: string;
 }
 
 const props = defineProps<ApprovalClaimRowProps>();
@@ -165,6 +171,16 @@ const waited = computed(() => waitedLabel(props.entry.completedAt));
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.claim__sent {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--xp-app-text-dim);
 }
 
 .claim__actions {

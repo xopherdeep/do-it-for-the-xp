@@ -32,6 +32,8 @@ import type { ChoiceCard } from "./formOptions";
 import ionic from "@/lib/mixins/ionic";
 
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
+import XpHeroWriteGate from "@/components/organisms/HeroWriteGate/XpHeroWriteGate.vue";
+import { saveHeroEdit, type HeroWriteGate } from "@/hooks/useHeroWrite";
 import GamerCard from "./GamerCard.vue"
 import HeroStylePicker from "./HeroStylePicker.vue"
 import Stats from "@/lib/utils/User/stats";
@@ -43,11 +45,7 @@ export const AddProfile = defineComponent({
   // false starts it off ("Add Kid"), undefined keeps the default.
   props: ["id", "profile", "presetGameMaster", "startTab"],
   mixins: [ionic],
-  components: {
-    XpHeroFanfare,
-    GamerCard,
-    HeroStylePicker
-  },
+  components: { XpHeroFanfare, XpHeroWriteGate, GamerCard, HeroStylePicker },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
@@ -74,17 +72,19 @@ export const AddProfile = defineComponent({
       // An edit lays the form's fields over the stored hero, so equipment, inventory, quest effects
       // and the rest survive; a new hero is built from the form (see profileToSave)
       const profile = await profileToSave(this.storage, this.newProfile, this.$props.profile);
-      await this.storage.setProfile(profile as NewProfileForm);
+      // An edit runs on the hero's turn (Family Sync): nothing is saved while another device plays the hero (the clerk says so)
+      const gate = this.isEditing ? (this.$refs.heroGate as HeroWriteGate | undefined) : undefined;
+      const isSaved = await saveHeroEdit(gate, String(profile.id), () => this.storage.setProfile(profile as NewProfileForm));
 
-      // An edit has nothing to announce: back to the family
-      if (this.isEditing) {
-        this.play$fx('yes');
-        modalController.dismiss({ profileAdded: true });
-        return;
-      }
-
-      // A new hero joins the party: the reveal plays the stinger and its song, and hands back on its button
-      this.showFanfare = true;
+      // An edit has nothing to announce: back to the family. A new hero joins the party: the reveal plays the stinger and
+      // its song, and hands back on its button
+      if (this.isEditing) this.closeEdit(isSaved);
+      else this.showFanfare = true;
+    },
+    // An edit saved closes the form; one not saved (another device plays the hero) stays open under the clerk's line
+    closeEdit(isSaved: boolean) {
+      this.play$fx(isSaved ? 'yes' : 'no');
+      if (isSaved) modalController.dismiss({ profileAdded: true });
     },
     // The reveal's big moment: the song for a new adventure starts under its stinger
     playAdventureSong() {

@@ -80,6 +80,7 @@ import XpNotifications from "./XpNotifications/XpNotifications.vue";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 import XpRpgMenu, { RpgMenuAction } from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import { USER_MENU_CONFIG } from "@/constants";
+import { goAfterSignOut } from "@/router/signOutRoute";
 
 export default defineComponent({
   name: "xp-fab-user-hud",
@@ -229,7 +230,9 @@ export default defineComponent({
       showSaveQuitModal.value = false;
       if (shouldLogout.value) {
         shouldLogout.value = false;
-        router.replace({ name: "xp-profile" });
+        // Signing out rests the hero's turn (the sync store watches who is signed in): what waits goes up first
+        userStore.logoutUser();
+        goAfterSignOut(router);
       }
     };
 
