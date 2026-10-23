@@ -7,8 +7,8 @@ import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
  *
  * - Baked ambient occlusion (mesh.ts) darkens the light from the sky in creases and under overhangs, and the sun a
  *   little, so contacts read without real shadows.
- * - Convex edges get a thin bevel highlight, a pixel or two wide whatever the zoom: the blocks read as blocks, like a
- *   painted SNES sprite, instead of flat cut-outs.
+ * - Convex edges get a thin bevel highlight, a pixel or two wide whatever the zoom and never more than a fifth of a
+ *   small face: the blocks read as blocks, like a painted SNES sprite, instead of flat cut-outs.
  * - Each unit cell is tinted a touch lighter or darker, warmer or cooler, so big faces read as textured blocks.
  * - Side faces seen almost edge on pick up a soft cool rim, so a silhouette separates from a dark background.
  *
@@ -25,8 +25,10 @@ export interface VoxelMaterialOptions {
 const AO_STRENGTH = 1;
 /** How much of the occlusion reaches the direct sun: keeps lit faces from going muddy */
 const AO_DIRECT = 0.6;
-/** Bevel width in world units; it never drops under ~1.25 pixels so small models still get a crisp rim */
+/** Bevel width in world units; small models lift it to ~1.25 pixels for a crisp rim, and BEVEL_MAX_FRACTION caps it on small quads */
 const EDGE_WIDTH = 0.09;
+/** The bevel never takes more than this fraction of a quad's shorter side, so a half-unit box keeps its colour between the rims */
+const BEVEL_MAX_FRACTION = 0.2;
 /** How much lighter the bevel is than the face */
 const EDGE_LIGHT = 0.22;
 /** How far a cell's brightness strays either way, and how far its hue leans warm or cool */
@@ -77,11 +79,12 @@ const AO_FRAGMENT = /* glsl */ `
 
 const BEVEL_RIM_FRAGMENT = /* glsl */ `
 {
-  // Distance to each convex edge of the quad, in world units; fwidth keeps the bevel a pixel or so wide at any zoom
+  // Distance to each convex edge of the quad, in world units; fwidth lifts the bevel to a pixel or so on small models, and the quad's size caps it
   vec2 uv = vVoxelUv.xy;
   vec2 size = vVoxelUv.zw;
   vec2 px = max(fwidth(uv), vec2(1e-4));
   vec2 width = max(vec2(${EDGE_WIDTH.toFixed(3)}), px * 1.25);
+  width = min(width, vec2(${BEVEL_MAX_FRACTION.toFixed(3)} * min(size.x, size.y)));
   vec4 dist = vec4(uv.x, size.x - uv.x, uv.y, size.y - uv.y);
   vec4 near = (1.0 - smoothstep(width.xxyy - px.xxyy, width.xxyy, dist)) * vVoxelEdges;
   float bevel = max(max(near.x, near.y), max(near.z, near.w));
