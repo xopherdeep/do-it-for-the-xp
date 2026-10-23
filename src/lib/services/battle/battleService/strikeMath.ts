@@ -7,14 +7,16 @@ const STRIKE_SHARE_OF_MAX_HP = 0.12;
 const DEFAULT_BRACE_FACTOR = 0.5;
 /** However nimble the hero, agility never dodges more than this share of parting strikes (tunable). */
 export const PARTING_DODGE_CEILING = 0.5;
+/** At least this share of a beast strike always lands, however much Strength, Powers or gear soften it (owner 2026-10-23). */
+export const MIN_STRIKE_FACTOR = 0.75;
 
 /**
  * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
  * (10 is the baseline, so a boss with 15 bites 1.5x as hard) and a +-10% roll. It never scales
- * with time or chores left. Trained strength lets only `strikeFactor` of it land (1 by default, never
- * below three quarters), a beast that holds a grudge against the hero hits `grudge` times as hard (1 by default,
- * 25% a mark, never past 1.75: docs/Quest-Rooms-Spec.md 5.7), and a brace lets `braceFactor` of that through (half by
- * default, a quarter for a Warrior's wall), each rounded down, never below 1.
+ * with time or chores left. Trained strength lets only `strikeFactor` of it land (1 by default, clamped to a
+ * floor of MIN_STRIKE_FACTOR=0.75, whatever stacks), a beast that holds a grudge against the hero hits `grudge`
+ * times as hard (1 by default, 25% a mark, never past 1.75: docs/Quest-Rooms-Spec.md 5.7), and a brace lets
+ * `braceFactor` of that through (half by default, a quarter for a Warrior's wall), each rounded down, never below 1.
  */
 export function strikeDamage(
   maxHp: number,
@@ -26,7 +28,8 @@ export function strikeDamage(
   grudge: number = 1
 ): number {
   const raw = Math.round(maxHp * STRIKE_SHARE_OF_MAX_HP * ((attack || 10) / 10) * (0.9 + roll * 0.2));
-  const share = Number.isFinite(strikeFactor) && strikeFactor > 0 && strikeFactor <= 1 ? strikeFactor : 1;
+  const isUsableFactor = Number.isFinite(strikeFactor) && strikeFactor > 0;
+  const share = isUsableFactor ? Math.max(MIN_STRIKE_FACTOR, Math.min(1, strikeFactor)) : 1;
   const harder = Number.isFinite(grudge) ? Math.min(MAX_GRUDGE_FACTOR, Math.max(1, grudge)) : 1;
   const full = Math.max(1, Math.floor((Number.isFinite(raw) ? Math.max(1, raw) : 1) * share * harder + 1e-9));
   const factor = Number.isFinite(braceFactor) && braceFactor > 0 ? braceFactor : DEFAULT_BRACE_FACTOR;

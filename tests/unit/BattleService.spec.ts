@@ -143,6 +143,28 @@ describe("BattleService", () => {
       expect(strikeDamage(100, 10, true, 0.5, NaN)).toBe(6);
       expect(strikeDamage(100, 10, true, 0.5, 0)).toBe(6);
     });
+
+    it("clamps strikeFactor to a floor of 0.75, never allowing it below", () => {
+      // A factor of 0.5 should land as 0.75 would
+      const factorHalf = strikeDamage(100, 10, false, 0.5, 1, 0.5);
+      const factorMin = strikeDamage(100, 10, false, 0.5, 1, 0.75);
+      expect(factorHalf).toBe(factorMin);
+    });
+
+    it("allows valid factors (0.75 and above) unchanged", () => {
+      expect(strikeDamage(100, 10, false, 0.5, 1, 0.75)).toBe(9);
+      expect(strikeDamage(100, 10, false, 0.5, 1, 0.9)).toBe(10);
+      expect(strikeDamage(100, 10, false, 0.5, 1, 1)).toBe(12);
+    });
+
+    it("treats non-finite and non-positive factors as 1 while respecting the floor", () => {
+      // 0 should become 1 (fallback), not 0.75
+      expect(strikeDamage(100, 10, false, 0.5, 1, 0)).toBe(12);
+      // Negative should become 1
+      expect(strikeDamage(100, 10, false, 0.5, 1, -0.5)).toBe(12);
+      // NaN should become 1
+      expect(strikeDamage(100, 10, false, 0.5, 1, NaN)).toBe(12);
+    });
   });
 
   describe("setting up", () => {
