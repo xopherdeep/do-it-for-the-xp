@@ -9,8 +9,11 @@
     </ion-refresher>
 
     <ion-grid>
+      <!-- A kid phone belongs to one hero -->
+      <p v-if="isKidMode" class="kid-phone-line" data-cy="kid-phone-line">{{ thisPhoneLine }}</p>
+
       <!-- Empty State: Authentic Earthbound Window (Unified Mobile & Desktop) -->
-      <div v-if="users.length === 0" class="empty-state-view">
+      <div v-if="isEmptyWorld" class="empty-state-view">
         <div class="eb-window empty-window">
           <div class="eb-window-header">
             <span class="eb-window-title">Choose A Profile</span>
@@ -133,7 +136,7 @@
       </div>
 
       <!-- Populated Profiles Views -->
-      <template v-else>
+      <template v-else-if="users.length > 0">
         <!-- Card View (Default) -->
         <ion-row v-if="!isRetroView" class="md:hidden profile-grid"
           :class="{ 'justify-content-center items-center': users.length === 1 }">
@@ -196,6 +199,7 @@
 
               <!-- Start New Game Slot -->
               <div
+                v-if="!isKidMode"
                 class="eb-file-slot eb-new-slot"
                 role="button"
                 tabindex="0"
@@ -224,7 +228,7 @@
         <ion-row class="ion-no-padding hidden md:block">
           <ion-card v-show="!isLoading" class="max-w-4xl">
             <ion-list>
-              <ion-item detail button @click="openNewProfileModal">
+              <ion-item v-if="!isKidMode" detail button @click="openNewProfileModal">
                 <ion-buttons slot="start" class="icon-colors">
                   <i class="fad fa-heartbeat fa-3x"></i>
                 </ion-buttons>
@@ -279,7 +283,7 @@
     </ion-fab>
 
     <!-- Center FAB: Add Profile -->
-    <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click="openNewProfileModal"
+    <ion-fab v-if="!isKidMode" vertical="bottom" horizontal="center" slot="fixed" @click="openNewProfileModal"
       class="ion-no-border md:hidden fab-pulse">
       <ion-fab-button color="danger">
         <i class="fad fa-plus fa-2x"></i>
@@ -289,11 +293,17 @@
     <!-- Toast for restore success -->
     <ion-toast :is-open="showRestoreToast" :message="restoreMessage" :duration="3000"
       :color="restoreSuccess ? 'success' : 'warning'" position="top" @didDismiss="showRestoreToast = false"></ion-toast>
+
+    <!-- The clerk asks when another device is still playing the picked hero -->
+    <xp-reveal-prompt :prompt="turnPrompt" @respond="answerTurn" />
   </xp-rpg-page>
 </template>
 
 <script lang="ts">
 import { landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
+// "vue" comes before "@ionic/vue": the jest transform names the template's own `vue` import vue_1, which would replace a
+// script import that took the name first
+import { computed, defineComponent, ref, onUnmounted } from "vue";
 import {
   toastController,
   useIonRouter,
@@ -301,8 +311,6 @@ import {
   onIonViewDidLeave,
 } from "@ionic/vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { useAudioStore } from "@/lib/store/stores/audio";
-import { computed, defineComponent, ref, onUnmounted } from "vue";
 import {
   peopleCircleSharp,
   peopleCircleOutline,
@@ -328,6 +336,8 @@ import debug from "@/lib/utils/debug";
 import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useTurnGate } from "@/hooks/useHeroTurn";
 import { useFileSelectDoors } from "./useFileSelectDoors";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
@@ -343,7 +353,8 @@ export default defineComponent({
   components: {
     XpGp,
     XpProfileCard,
-    XpRpgPage
+    XpRpgPage,
+    XpRevealPrompt
   },
   mixins: [ionic],
   setup() {
@@ -351,11 +362,12 @@ export default defineComponent({
     // State management
     const isLoading = ref(false); // For initial list loading
     const userStore = useUserStore();
-    const audioStore = useAudioStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
     // Restore a backup and Link a phone, the doors on this screen that are not a hero
-    const { isBackupBusy, selectRestoreFile, isMultiplayerEnabled, openLinkPhone } = useFileSelectDoors();
+    const { isBackupBusy, selectRestoreFile, isMultiplayerEnabled, openLinkPhone, kidPhone } = useFileSelectDoors();
+    // With Family Sync on, the picked hero's turn is asked for first (the clerk asks when another device plays them)
+    const { prompt: turnPrompt, respond: answerTurn, requestTurn } = useTurnGate();
 
     // Restore notification state
     // Restore notification state
@@ -365,9 +377,13 @@ export default defineComponent({
     const isRestoringProfiles = ref(false);
     const isRetroView = ref(false);
 
-    // Computed properties
-    const users = computed(() => userStore.usersAz);
-    const bgm = computed(() => audioStore.bgm);
+    // On a kid phone the list is the one linked hero, under the "This is {nick}'s phone" line, and no door to add a hero
+    const { isKidMode, users, thisPhoneLine } = kidPhone;
+    // The empty device offers the first hero, Quick Start, a restore and a link; a kid phone waiting for its hero does not
+    const isEmptyWorld = computed(() => {
+      const hasNobody = users.value.length === 0;
+      return hasNobody && !isKidMode.value;
+    });
 
     // Data loading function
     const loadProfiles = async () => {
@@ -412,8 +428,15 @@ export default defineComponent({
     };
 
     // Navigation functions
+    /** An open under way: a second tap meanwhile does nothing */
+    let isOpening = false;
+    /**
+     * A tap is answered at once: the loading modal shows while the hero's turn is asked for (a device that sat for days
+     * reads to the newest record first), and steps aside for the clerk's busy question. Not now leaves the picker.
+     */
     const navigateToUserPortal = async (profile: User) => {
-      // Create and present the loading modal
+      if (isOpening) return;
+      isOpening = true;
       const loadingModal = await modalController.create({
         component: ProfileLoadingModal,
         componentProps: {
@@ -423,13 +446,13 @@ export default defineComponent({
         cssClass: 'profile-loading-modal',
         backdropDismiss: false
       });
-
       await loadingModal.present();
 
       try {
+        const isPlayingHere = await requestTurn(profile, () => loadingModal.dismiss());
+        if (!isPlayingHere) return;
         // Login the user first and wait for it to complete
         await userStore.loginUser(profile);
-
         // Then go to the screen they chose to land on (Settings > General), My Home unless they picked another
         await ionRouter.navigate(landingPathFor(profile, landingChoiceOf(String(profile.id))), "root");
       } catch (error) {
@@ -442,6 +465,7 @@ export default defineComponent({
         });
         await toast.present();
       } finally {
+        isOpening = false;
         // Dismiss the modal after a short delay to ensure smooth transition
         setTimeout(async () => {
           await loadingModal.dismiss();
@@ -558,31 +582,12 @@ export default defineComponent({
       // Additional cleanup if needed
     });
 
-    // Retro view computed: transform users into RPG menu actions
-    const retroMenuActions = computed(() => {
-      const actions = users.value.map((user, index) => ({
-        id: user.id,
-        label: `${index + 1}: ${user.name.nick || user.name.full}${user.isAdult ? " [GM]" : ""} - LVL ${user?.stats?.level || 1
-          }`,
-        click: () => selectProfile(user),
-      }));
-      // Add "Start New Game" option
-      actions.push({
-        id: "new-game",
-        label: "Start New Game",
-        click: () => openNewProfileModal(),
-      });
-      return actions;
-    });
-
-    const handleRetroAction = () => {
-      // action.click() is now handled internally by XpRpgMenu
-    };
-
     return {
       isLoading,
       users,
-      bgm,
+      isKidMode,
+      isEmptyWorld,
+      thisPhoneLine,
       peopleCircleSharp,
       peopleCircleOutline,
       getUserAvatar,
@@ -600,12 +605,12 @@ export default defineComponent({
       isRetroView,
       gridOutline,
       listOutline,
-      retroMenuActions,
-      handleRetroAction,
       isMultiplayerEnabled,
       openLinkPhone,
       isBackupBusy,
       selectRestoreFile,
+      turnPrompt,
+      answerTurn,
     };
   },
 });

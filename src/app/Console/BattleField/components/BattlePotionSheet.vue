@@ -77,10 +77,10 @@ const drink = (potion: PotionCard) => {
   min-height: 64px;
   margin: 0;
   padding: 10px 14px 10px 18px;
-  border: 2px solid rgba($eb-color-cream, 0.22);
+  border: 2px solid color-mix(in srgb, var(--gs-text) 22%, transparent);
   border-radius: 2px;
-  background: rgba($eb-color-cream, 0.04);
-  color: $eb-color-cream;
+  background: color-mix(in srgb, var(--gs-text) 4%, transparent);
+  color: var(--gs-text);
   text-align: left;
   cursor: pointer;
   appearance: none;
@@ -92,7 +92,7 @@ const drink = (potion: PotionCard) => {
   }
 
   &:focus-visible {
-    outline: 2px solid $eb-color-pale-yellow;
+    outline: 2px solid var(--gs-accent);
     outline-offset: 2px;
   }
 
@@ -108,7 +108,7 @@ const drink = (potion: PotionCard) => {
   width: 1.6rem;
   font-size: 1.3rem;
   text-align: center;
-  color: $eb-color-pale-yellow;
+  color: var(--gs-accent);
 }
 
 .item-body {
@@ -127,7 +127,7 @@ const drink = (potion: PotionCard) => {
 }
 
 .item-name {
-  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-family: var(--gs-font);
   font-size: 1.25rem;
   letter-spacing: 1px;
   line-height: 1.2;
@@ -138,7 +138,7 @@ const drink = (potion: PotionCard) => {
   flex: 0 0 auto;
   font-family: "StatusPlz", monospace;
   font-size: 0.95rem;
-  color: $eb-color-pale-yellow;
+  color: var(--gs-accent);
 }
 
 .item-effect,
@@ -151,7 +151,7 @@ const drink = (potion: PotionCard) => {
 }
 
 .item-reason {
-  color: #ff6b6b;
+  color: var(--gs-danger);
   opacity: 1;
 }
 

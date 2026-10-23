@@ -64,6 +64,26 @@ function stubSite() {
   ).as("comments");
 }
 
+/**
+ * What waits for the owner is read only on a link that may publish. The stub answers one draft, and every case can count
+ * its requests (@drafts): a hero's run, or a family's link, must make none.
+ */
+function stubDrafts() {
+  cy.intercept("GET", "**/wp/v2/posts?status=draft*", json([post(103, "Draft: Winter Market", "Soon.")], { "X-WP-Total": "1" })).as("drafts");
+}
+
+/**
+ * Counts the reads that match `url` without answering them: the stub defined before it (an older one) still does.
+ * Unlike an alias, a count can be waited on with a long timeout while the page is slow to ask.
+ */
+function countReads(url) {
+  const reads = { count: 0 };
+  cy.intercept("GET", url, () => {
+    reads.count += 1;
+  });
+  return reads;
+}
+
 function openTownHall(heroId, fixture = "town-hall-backup.json", subpage = "") {
   cy.seedWorld(fixture, heroId);
   cy.visit(`/town-hall/${heroId}${subpage}`, { timeout: 120000 });
@@ -79,6 +99,7 @@ describe("Town Hall", () => {
   beforeEach(() => {
     stubCatchAllWrites();
     stubSite();
+    stubDrafts();
   });
 
   it("keeps its four tabs at the bottom of the screen", () => {
@@ -98,6 +119,9 @@ describe("Town Hall", () => {
     cy.contains("Harvest Festival");
     cy.get("[data-cy=th-comments-toggle]").first().click();
     cy.contains("[data-cy=th-comment-item]", "Great news, heroes!", { timeout: 20000 });
+    // A hero has no desk: no draft is read, and none is shown
+    cy.get("[data-cy=th-draft]").should("not.exist");
+    cy.get("@drafts.all").should("have.length", 0);
     cy.screenshot("town-hall-02-news", { capture: "viewport" });
   });
 
@@ -309,9 +333,14 @@ describe("Town Hall", () => {
     });
 
     it("leaving the Town Hall after the return and coming Back does not bring the password back or link again", () => {
+      const meReads = countReads("**/wp/v2/users/me?context=edit*");
       openRegistration(returnPath(LINK_QUERY));
       cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
       dismissNotice();
+      // The site is asked twice on the way in: once to check the new password, once for what the link may do (the Town Hall reads it as it opens)
+      cy.wrap(null, { timeout: 30000 }).should(() => {
+        expect(meReads.count).to.eq(2);
+      });
       cy.get("[data-cy=th-family-chat]").click();
       cy.url({ timeout: 20000 }).should("match", /\/town-hall\/gm-1\/chat$/);
       cy.go("back");
@@ -319,7 +348,9 @@ describe("Town Hall", () => {
       cy.location("search").should("eq", "");
       cy.url().should("not.contain", "password");
       cy.wait(1500); // a second link would ask the site again right after the page opens
-      cy.get("@me.all").should("have.length", 1);
+      cy.wrap(null).should(() => {
+        expect(meReads.count).to.eq(2);
+      });
       cy.contains("[data-cy=reveal-text]", "Welcome, Mom!").should("not.exist");
     });
 
@@ -590,6 +621,105 @@ describe("Town Hall", () => {
         });
         cy.contains("[data-cy=th-approvals-notice]", "This device isn't registered at the Town Hall, so approved posts wait here.", { timeout: 20000 });
         cy.get("@topicPost.all").should("have.length", 0);
+      });
+    });
+
+    describe("The owner's desk", () => {
+      const OWNER_POWERS = { name: "Mom", capabilities: { publish_posts: true, edit_others_posts: true, moderate_comments: true } };
+
+      // The posts the earlier cases left on this device must not be sent from here, and these cases leave none behind
+      afterEach(forgetDeviceLink);
+
+      beforeEach(() => {
+        // Defined after the registration describe's own stub of the same address, so these win
+        cy.intercept("GET", "**/wp/v2/users/me?context=edit*", json(OWNER_POWERS)).as("me");
+        cy.intercept("GET", "**/wp/v2/cafeteria_topic?status=pending*", json([topic(303, "Pending: pet dragon", "Please.", "Max")], { "X-WP-Total": "1" })).as(
+          "pending"
+        );
+        cy.intercept(
+          "GET",
+          "**/wp/v2/comments?status=hold*",
+          json([{ id: 402, post: 101, author_name: "Ana", date: "2026-10-02T11:00:00", content: { rendered: "<p>Held words</p>" } }], { "X-WP-Total": "1" })
+        ).as("held");
+        cy.intercept(
+          "GET",
+          "**/wp/v2/compass_bug*",
+          json([{ ...post(501, "Dragon stuck", "It is stuck."), bug_status: "new", bug_url: "/temple", bug_environment: "App: dev" }])
+        ).as("bugs");
+        cy.intercept("POST", "**/wp/v2/posts/103", json({ id: 103, status: "publish" })).as("publishDraft");
+      });
+
+      /** Mom links the family (the site sends her back with a new password and answers with her powers), and the clerk's welcome is read */
+      const linkedAsTheOwner = () => {
+        openRegistration(returnPath(LINK_QUERY));
+        cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+        dismissNotice();
+      };
+
+      it("shows the owner what waits: the count on the clerk, the draft first with its tools, the held comment under its post", () => {
+        linkedAsTheOwner();
+
+        cy.get("[data-cy=th-clerk-count]", { timeout: 20000 }).should(($count) => {
+          expect($count.text().trim()).to.eq("4");
+        });
+        cy.get("[data-cy=th-draft], [data-cy=th-post]", { timeout: 20000 })
+          .first()
+          .should("have.attr", "data-cy", "th-draft")
+          .within(() => {
+            cy.contains("[data-cy=th-chip]", "Draft");
+            cy.get("[data-cy=th-publish]").should("exist");
+          });
+
+        cy.contains("[data-cy=th-post]", "The Hero’s Welcome", { timeout: 20000 }).within(() => {
+          cy.get("[data-cy=th-comments-toggle]").should("contain", "(1 held)");
+          cy.contains("[data-cy=th-held-comment]", "Held words").within(() => {
+            cy.get("[data-cy=th-approve]").should("exist");
+          });
+        });
+        cy.get("[data-cy=th-clerk-count]").should("be.visible");
+        cy.contains("[data-cy=reveal-text]", "Welcome, Mom!").should("not.exist"); // the clerk has stepped back: the shot shows the page
+        cy.screenshot("town-hall-13-owner-desk", { capture: "viewport" });
+      });
+
+      it("publishes the draft from the card", () => {
+        const newsReads = countReads("**/wp/v2/posts?_embed*");
+        linkedAsTheOwner();
+        cy.get("[data-cy=th-draft] [data-cy=th-publish]", { timeout: 20000 }).first().as("publish");
+        let readsBeforePublish = 0;
+        cy.get("@publish").then(() => {
+          readsBeforePublish = newsReads.count;
+        });
+        cy.get("@publish").click();
+        cy.wait("@publishDraft").then(({ request }) => {
+          expect(request.headers.authorization).to.eq(MOM_BASIC);
+          expect(request.body.status).to.eq("publish");
+        });
+        // The desk changed the news: the tab reads it again
+        cy.wrap(null, { timeout: 30000 }).should(() => {
+          expect(newsReads.count).to.be.greaterThan(readsBeforePublish);
+        });
+      });
+
+      it("offers the writers in the clerk's menu", () => {
+        linkedAsTheOwner();
+        cy.get("[data-cy=th-clerk]", { timeout: 30000 }).click();
+        cy.contains("[data-cy=reveal-choice-write-news]", "Write news", { timeout: 20000 }).should("exist");
+        cy.contains("[data-cy=reveal-choice-write-patch-note]", "Write a patch note").should("exist");
+      });
+
+      it("shows a family's link none of it", () => {
+        // The site knows this link as a plain family member: no capabilities come back
+        cy.intercept("GET", "**/wp/v2/users/me?context=edit*", json({ name: "Dad" })).as("meFamily");
+        openRegistration(returnPath(LINK_QUERY));
+        cy.contains("[data-cy=reveal-text]", "Welcome, Dad!", { timeout: 30000 });
+        dismissNotice();
+        cy.get("[data-cy=th-tab-news]", { timeout: 20000 }).should("be.visible");
+        cy.contains("[data-cy=th-post]", "The Hero’s Welcome", { timeout: 20000 });
+        cy.wait(1500); // the desk is read right after the powers arrive
+        cy.get("[data-cy=th-clerk-count]").should("not.exist");
+        cy.get("[data-cy=th-draft]").should("not.exist");
+        cy.get("[data-cy=th-held-comment]").should("not.exist");
+        cy.get("@drafts.all").should("have.length", 0);
       });
     });
   });

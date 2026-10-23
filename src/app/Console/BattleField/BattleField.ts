@@ -9,17 +9,20 @@ import { choreGains } from "@/lib/services/battle/choreGains";
 import { autoLine } from "@/lib/services/battle/battleService/dialogLines";
 import { drinkPotion, potionShelf } from "@/lib/services/battle/BattlePotions";
 import { battlePowers, castBattlePower } from "@/lib/services/battle/BattlePowers";
+import { battleMenuStatus } from "@/lib/services/battle/BattleMenuStatus";
 import { getAbilityService } from "@/lib/services/abilities/AbilityService";
 import { heroAbilitySnapshot } from "@/lib/services/abilities/heroAbilityStatus";
 import type { Ability } from "@/hooks/abilities/abilityConstants";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
+import { useEquipmentItems } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
+import { isItemUnlocked } from "@/lib/services/quests/ItemEffects";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroPassive } from "@/lib/services/stats/StatEffects";
 import debug from "@/lib/utils/debug";
 import XpInventoryModal from "@/app/Console/MyPortal/UserHud/MyInventory/XpInventoryModal.vue";
 import { resolveBattleContext, type BattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
-import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
+import { applyMenuStatus, tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
 import { clearBattleProgress, loadBattleProgress, pruneBattleProgress, saveBattleProgress } from "./battle/battleProgress";
 import type { EnemyAnimation, HitPopup, VictoryCardState } from "./battle/battleView";
 import { useAtbDisplay, useAttackClock } from "./composables/useAtbDisplay";
@@ -137,6 +140,7 @@ export default defineComponent({
     const feedback = useBattleFeedback();
     const buzz = useBattleBuzz();
     const { equipment, leftHandItem, rightHandItem, refresh: reloadHands } = useHeroEquipment(ctx.userId);
+    const { specialItems } = useEquipmentItems();
     const hero = computed(() => userStore.getUserById(ctx.userId));
     const heroLook = computed(() => hero.value?.look);
     const heroAnimation = ref<HeroAnimation>("idle");
@@ -555,6 +559,26 @@ export default defineComponent({
       runConfirm.value = true;
     };
 
+    /** What Tackle, Powers and Goods can do right now, read from the same cards the sheets show. */
+    const menuStatus = computed(() => {
+      // The effects spent this fight (usedThisFight) are not reactive: the menu coming back after each answer reads them again
+      void showMenu.value;
+      return battleMenuStatus({
+        choresLeft: atb.choresLeft.value,
+        powers: service.value ? battlePowers(abilities, itemContext()) : [],
+        goods: service.value
+          ? specialItems
+              .filter((item) => isItemUnlocked(hero.value ?? null, item.name))
+              .map((item) => {
+                // The catalogue entry as the bag's loose item shape (an interface has no index signature)
+                const tile: BattleItemLike = { ...item };
+                return { role: battleBagRole(tile), card: describeBattleItem(tile, itemContext()) };
+              })
+          : [],
+        potions: potionShelf(ctx.userId),
+      });
+    });
+
     const menuActions = computed<BattleMenuAction[]>(() => {
       if (runConfirm.value) {
         const heroData = userStore.users[ctx.userId] ?? hero.value;
@@ -565,6 +589,7 @@ export default defineComponent({
             id: "keep-fighting",
             label: "Keep fighting",
             faIcon: "fist-raised",
+            fullWidth: true,
             click: () => {
               audio.playSound("no");
               runConfirm.value = false;
@@ -574,6 +599,7 @@ export default defineComponent({
             id: "run",
             label: "Run",
             faIcon: "running",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
@@ -587,6 +613,7 @@ export default defineComponent({
             id: "bribe-full",
             label: `Bribe (${quotes.fullCost} GP)`,
             faIcon: "coins",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
@@ -601,6 +628,7 @@ export default defineComponent({
             id: "bribe-low",
             label: `Cheap Bribe (${quotes.lowCost} GP)`,
             faIcon: "badge-percent",
+            fullWidth: true,
             click: () => {
               audio.playSound("cursor");
               runConfirm.value = false;
@@ -611,7 +639,7 @@ export default defineComponent({
 
         return actions;
       }
-      return [
+      const commands: BattleMenuAction[] = [
         {
           id: "attack",
           label: "Tackle",
@@ -651,8 +679,9 @@ export default defineComponent({
             sheet.value = "bag";
           },
         },
-        { id: "run-away", label: "Run Away", faIcon: "running", fullWidth: true, click: openRunConfirm },
+        { id: "run-away", label: "Run Away", faIcon: "running", click: openRunConfirm },
       ];
+      return applyMenuStatus(commands, menuStatus.value);
     });
 
     /** What a finished chore gives back (choreGains): MP in a quest fight, double when charged, and HP under moonlight. */

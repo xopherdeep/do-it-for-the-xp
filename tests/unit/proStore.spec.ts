@@ -272,6 +272,35 @@ describe("pro store", () => {
     expect(store.isPro).toBe(true);
   });
 
+  it("a device that joins another family (a phone linked) claims that family's licence at once, without a restart", async () => {
+    claim.mockResolvedValueOnce(null);
+    const store = useProStore();
+    await store.init();
+    expect(store.isPro).toBe(false);
+
+    claim.mockResolvedValueOnce(status({ familyId: OTHER_FAMILY }));
+    await store.adoptedFamily(OTHER_FAMILY.toUpperCase());
+
+    expect(claim).toHaveBeenLastCalledWith(OTHER_FAMILY, "devicetest01");
+    expect(store.familyId).toBe(OTHER_FAMILY);
+    expect(store.isPro).toBe(true);
+    expect(mockStored?.familyId).toBe(OTHER_FAMILY);
+  });
+
+  it("a licence cached for the family a device leaves is not carried into the new one", async () => {
+    mockStored = { familyId: FAMILY, deviceId: "devicetest01", license: cached() as any };
+    const store = useProStore();
+    await store.init();
+    expect(store.isPro).toBe(true);
+
+    claim.mockResolvedValueOnce(null);
+    await store.adoptedFamily(OTHER_FAMILY);
+
+    expect(validate).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenLastCalledWith(OTHER_FAMILY, "devicetest01");
+    expect(store.isPro).toBe(false);
+  });
+
   it("restoreWithKey on an 11th device shows the device-limit message", async () => {
     claim.mockResolvedValue(null);
     validate.mockRejectedValue(new ProClientError("device_limit"));

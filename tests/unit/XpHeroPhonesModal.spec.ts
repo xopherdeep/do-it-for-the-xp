@@ -26,6 +26,7 @@ const mockFamily = reactive({
   parentAuth: { kind: "basic" } as any,
   linkCode: jest.fn(),
   loadPhones: jest.fn(),
+  queueSheets: jest.fn(),
   removePhone: jest.fn(),
 });
 
@@ -79,9 +80,11 @@ describe("XpHeroPhonesModal", () => {
     mockFamily.phones = [];
     mockFamily.linkCode.mockReset();
     mockFamily.loadPhones.mockReset();
+    mockFamily.queueSheets.mockReset();
     mockFamily.removePhone.mockReset();
     mockFamily.parentAuth = { kind: "basic" };
     mockFamily.loadPhones.mockResolvedValue(undefined);
+    mockFamily.queueSheets.mockResolvedValue(undefined);
     mockFamily.removePhone.mockResolvedValue(undefined);
     (QRCode.toDataURL as jest.Mock).mockResolvedValue("data:image/png;base64,mockqr");
   });
@@ -213,6 +216,65 @@ describe("XpHeroPhonesModal", () => {
       await flushPromises();
 
       expect(mockFamily.linkCode).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("a phone that links while the code is on screen", () => {
+    const linkedPhone = { id: 5, heroId: "h-1", label: "Mia's iPhone", createdAt: "2026-10-22T12:00:00Z", lastSeenAt: null };
+
+    it("polls the phone list every 10 s while a code is live and runs the sheet pass when a phone appears", async () => {
+      const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+      mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+      // The mount read finds nothing; the first poll finds the new phone
+      mockFamily.loadPhones.mockImplementationOnce(async () => undefined);
+      mockFamily.loadPhones.mockImplementationOnce(async () => {
+        mockFamily.phones = [linkedPhone];
+      });
+      const wrapper = await open();
+      await cy(wrapper, "link-phone").trigger("click");
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(10_000);
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(2);
+      expect(mockFamily.queueSheets).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(10_000);
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(3);
+      expect(mockFamily.queueSheets).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not poll before a code is made, and stops when the modal closes", async () => {
+      const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+      mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+      const wrapper = await open();
+      jest.advanceTimersByTime(30_000);
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(1);
+
+      await cy(wrapper, "link-phone").trigger("click");
+      await flushPromises();
+      wrapper.unmount();
+      jest.advanceTimersByTime(30_000);
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(1);
+      expect(mockFamily.queueSheets).not.toHaveBeenCalled();
+    });
+
+    it("stops polling when the code runs out", async () => {
+      const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+      mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+      const wrapper = await open();
+      await cy(wrapper, "link-phone").trigger("click");
+      await flushPromises();
+      jest.advanceTimersByTime(600 * 1000);
+      await flushPromises();
+      const readsAtExpiry = mockFamily.loadPhones.mock.calls.length;
+      jest.advanceTimersByTime(60_000);
+      await flushPromises();
+      expect(mockFamily.loadPhones).toHaveBeenCalledTimes(readsAtExpiry);
     });
   });
 

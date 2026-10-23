@@ -63,7 +63,7 @@ export function authHeaders(auth: TownHallAuth): Record<string, string> {
 
 export interface TownHallRequest {
   auth?: TownHallAuth;
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   query?: Record<string, string | number | undefined>;
   body?: unknown;
   /** Defaults to the Town Hall site's REST root. */

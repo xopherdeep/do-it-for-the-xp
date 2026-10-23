@@ -5,7 +5,13 @@ import {
   type PostingDeps,
   type PostingStore,
 } from "@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallPosting";
-import { clerkMenuPrompt, forbiddenPrompt, postedNotice, registerAgainPrompt } from "@/lib/services/hometown/hometownPrompts";
+import {
+  clerkMenuPrompt,
+  deskNotice,
+  forbiddenPrompt,
+  postedNotice,
+  registerAgainPrompt,
+} from "@/lib/services/hometown/hometownPrompts";
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import type { FlushResult } from "@/lib/store/stores/townHall";
 import { newPost } from "@/lib/services/townhall/townHallOutbox";
@@ -46,7 +52,7 @@ const fakeReveal = () => {
 
 /** A store that keeps what it is given and sends nothing; `flush` answers what the spec says. */
 const fakeStore = (over: Partial<PostingStore> = {}) => {
-  const state = reactive({ isLinked: true, posts: [] as TownHallPost[] });
+  const state = reactive({ isLinked: true, canPublish: false, posts: [] as TownHallPost[] });
   const store: PostingStore = Object.assign(state, {
     init: jest.fn(async () => undefined),
     submit: jest.fn(async (draft: PostDraft, hero: { id: string; name: string }, isGameMaster: boolean) => {
@@ -66,13 +72,24 @@ interface Rig {
   posting: ReturnType<typeof useTownHallPosting>;
   store: PostingStore;
   reveal: ReturnType<typeof fakeReveal>;
+  desk: PostingDeps["desk"] & { createNews: jest.Mock; saveEdit: jest.Mock; readWords: jest.Mock; changed: jest.Mock };
   redo: jest.Mock;
   register: jest.Mock;
   wrapper: ReturnType<typeof mount>;
 }
 
-const rig = (options: { store?: PostingStore; isGameMaster?: boolean } = {}): Rig => {
+const rig = (
+  options: { store?: PostingStore; isGameMaster?: boolean; canPublish?: boolean; desk?: Partial<PostingDeps["desk"]> } = {},
+): Rig => {
   const store = options.store ?? fakeStore();
+  if (options.canPublish !== undefined) store.canPublish = options.canPublish;
+  const desk = {
+    createNews: jest.fn(async () => null as string | null),
+    saveEdit: jest.fn(async () => null as string | null),
+    readWords: jest.fn(async () => ({ title: "Old", body: "W" }) as { title: string; body: string } | null),
+    changed: jest.fn(),
+    ...options.desk,
+  } as Rig["desk"];
   const reveal = fakeReveal();
   const redo = jest.fn(async () => undefined);
   const register = jest.fn(async () => undefined);
@@ -86,6 +103,7 @@ const rig = (options: { store?: PostingStore; isGameMaster?: boolean } = {}): Ri
     currentBoard: () => "ideas-suggestions",
     registerFamily: register,
     redoRegistration: redo,
+    desk,
   };
   let posting!: ReturnType<typeof useTownHallPosting>;
   const wrapper = mount(
@@ -96,7 +114,7 @@ const rig = (options: { store?: PostingStore; isGameMaster?: boolean } = {}): Ri
       },
     }),
   );
-  return { posting, store, reveal, redo, register, wrapper };
+  return { posting, store, reveal, desk, redo, register, wrapper };
 };
 
 beforeEach(() => mockLogged.mockClear());
@@ -184,7 +202,7 @@ describe("opening the compose", () => {
       kind: "topic",
       board: "feature-requests",
       editingId: "f-1",
-      initial: { kind: "topic", title: "More dragons", body: "Please", board: "feature-requests" },
+      initial: { title: "More dragons", body: "Please", board: "feature-requests" },
     });
     expect(posting.composeOpen.value).toBe(true);
   });
@@ -608,5 +626,68 @@ describe("coming back online", () => {
     window.dispatchEvent(new Event("online"));
     await flushPromises();
     expect(store.flush).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the writers", () => {
+  it("offers Write news and Write a patch note only to a publishing link, and opens the sheet on them", async () => {
+    const r = rig({ canPublish: true });
+    const opening = r.posting.openClerkMenu();
+    expect(r.reveal.asked[0].choices.map((c) => c.id)).toContain("write-patch-note");
+    r.reveal.answer("write-patch-note");
+    await opening;
+    expect(r.posting.composeSpec.value).toEqual({ kind: "news", newsCategory: "patch-notes" });
+    expect(r.posting.composeOpen.value).toBe(true);
+  });
+
+  it("sends news to the desk, closes the sheet, says what became of it and refreshes the tab", async () => {
+    const r = rig({ canPublish: true });
+    r.posting.openNews("news");
+    const sending = r.posting.sendDraft({ kind: "news", title: "T", body: "B", category: "news", status: "draft" });
+    await flushPromises();
+    expect(r.desk.createNews).toHaveBeenCalledWith({ kind: "news", title: "T", body: "B", category: "news", status: "draft" });
+    expect(r.posting.composeOpen.value).toBe(false);
+    expect(r.reveal.asked.at(-1)).toEqual(deskNotice("drafted"));
+    r.reveal.answer();
+    await sending;
+    expect(r.desk.changed).toHaveBeenCalledWith("news");
+  });
+
+  it("keeps the sheet open with the desk's problem", async () => {
+    const r = rig({ canPublish: true, desk: { createNews: jest.fn(async () => "The site has no Patch Notes category yet.") } });
+    r.posting.openNews("patch-notes");
+    await r.posting.sendDraft({ kind: "news", title: "T", body: "B", category: "patch-notes", status: "publish" });
+    expect(r.posting.composeOpen.value).toBe(true);
+    expect(r.posting.trouble.value).toBe("The site has no Patch Notes category yet.");
+  });
+
+  it("opens an edit with the item's words and saves them back", async () => {
+    const r = rig({ canPublish: true, desk: { readWords: jest.fn(async () => ({ title: "Old", body: "W" })) } });
+    await r.posting.openSiteEdit({ type: "topic", id: 8 });
+    expect(r.posting.composeSpec.value).toEqual({ kind: "edit", editing: { type: "topic", id: 8 }, initial: { title: "Old", body: "W" } });
+    const saving = r.posting.sendDraft({ kind: "edit", title: "New", body: "W" });
+    await flushPromises();
+    expect(r.desk.saveEdit).toHaveBeenCalledWith({ type: "topic", id: 8 }, { title: "New", body: "W" });
+    expect(r.reveal.asked.at(-1)).toEqual(deskNotice("saved"));
+    r.reveal.answer();
+    await saving;
+    expect(r.desk.changed).toHaveBeenCalledWith("topic");
+  });
+
+  it("opens nothing when the words cannot be read", async () => {
+    const r = rig({ canPublish: true, desk: { readWords: jest.fn(async () => null) } });
+    await r.posting.openSiteEdit({ type: "post", id: 5 });
+    expect(r.posting.composeOpen.value).toBe(false);
+  });
+
+  it("tells a publishing link its topic is up already", async () => {
+    // A publishing link is a Game Master's: a hero's topic still waits for the Game Master first
+    const r = rig({ canPublish: true, isGameMaster: true });
+    r.posting.openTopic("feature-requests");
+    const sending = r.posting.sendDraft(topicDraft);
+    await flushPromises();
+    expect(r.reveal.asked.at(-1)).toEqual(postedNotice("published"));
+    r.reveal.answer();
+    await sending;
   });
 });

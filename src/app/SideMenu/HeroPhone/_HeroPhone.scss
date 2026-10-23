@@ -62,4 +62,19 @@
       margin-top: 12px;
     }
   }
+
+  .sync-footer {
+    display: block;
+    margin-top: 16px;
+    text-align: center;
+    color: var(--ion-color-step-500, #a0aec0);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    font-style: italic;
+  }
+
+  // Play sits at the bottom of the screen where a thumb reaches, on the theme's own bottom bar
+  .play-footer .play-btn {
+    margin: 4px 12px;
+  }
 }

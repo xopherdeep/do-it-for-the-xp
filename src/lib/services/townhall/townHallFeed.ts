@@ -1,4 +1,5 @@
 import { townHallFetch, type TownHallRequest } from "./townHallClient";
+import { isOpenBug, REST_PATHS, type EditableType, type NewsCategory, type Words } from "./townHallDesk";
 import { PATCH_NOTES_SLUG, TOWN_HALL_BOARDS, type SiteBoardSlug, type TownHallBoardSlug } from "./townHallSite";
 
 /** What a read needs from the caller: who asks, and (for tests and other sites) how and where. */
@@ -39,8 +40,25 @@ export interface TopicItem {
   author: string;
 }
 
+/** A comment the site holds for approval, with the post it answers. */
+export interface HeldComment extends CommentItem {
+  postId: number;
+}
+
+/** A Bug Net report as the desk lists it. */
+export interface BugItem {
+  id: number;
+  date: string;
+  title: string;
+  status: string;
+  route: string;
+  environment: string;
+}
+
 interface Rendered {
   rendered?: string;
+  /** Only sent in the edit context. */
+  raw?: string;
 }
 
 interface WpPost {
@@ -57,8 +75,15 @@ interface WpPost {
   };
 }
 
+interface WpBug extends WpPost {
+  bug_status?: string;
+  bug_url?: string;
+  bug_environment?: string;
+}
+
 interface WpComment {
   id: number;
+  post?: number;
   author_name?: string;
   date?: string;
   content?: Rendered;
@@ -76,11 +101,21 @@ const NEWS_PER_PAGE = 5;
 const PATCH_NOTES_LIMIT = 10;
 const COMMENTS_LIMIT = 50;
 const TOPICS_PER_PAGE = 10;
+const DRAFTS_LIMIT = 5;
+const HELD_COMMENTS_LIMIT = 20;
+const BUGS_LIMIT = 10;
+const DRAFT_STATUSES = "draft,pending";
 
 /** The page count WordPress puts in a header; a site that sends none has one page. */
 function totalPagesOf(headers: Headers): number {
   const pages = Number(headers.get("X-WP-TotalPages"));
   return pages >= 1 ? pages : 1;
+}
+
+/** The item count WordPress puts in a header; a site that sends none counts none. */
+function totalOf(headers: Headers): number {
+  const total = Number(headers.get("X-WP-Total"));
+  return total >= 1 ? total : 0;
 }
 
 function toNewsItem(post: WpPost): NewsItem {
@@ -173,4 +208,89 @@ export async function fetchTopics(
     query: { cafeteria_board: boardId, _embed: "true", per_page: TOPICS_PER_PAGE, page },
   });
   return { items: (data ?? []).map(toTopicItem), totalPages: totalPagesOf(headers) };
+}
+
+/** The unpublished posts (drafts and pending): the news, or the Patch Notes; none while the site has no such category. */
+export async function fetchDrafts(category: NewsCategory, req: TownHallReadRequest = {}): Promise<NewsItem[]> {
+  const patchNotesId = await patchNotesCategoryId(req);
+  const isPatchNotes = category === "patch-notes";
+  const hasCategory = patchNotesId !== null;
+  const hasNothingToRead = isPatchNotes && !hasCategory;
+  if (hasNothingToRead) return [];
+  const categoryKey = isPatchNotes ? "categories" : "categories_exclude";
+  const { data } = await townHallFetch<WpPost[]>(REST_PATHS.post, {
+    ...req,
+    query: { status: DRAFT_STATUSES, context: "edit", _embed: "true", per_page: DRAFTS_LIMIT, [categoryKey]: patchNotesId ?? undefined },
+  });
+  return (data ?? []).map(toNewsItem);
+}
+
+/** A board's topics that wait for approval. */
+export async function fetchPendingTopics(boardId: number, req: TownHallReadRequest = {}): Promise<TopicItem[]> {
+  const { data } = await townHallFetch<WpPost[]>(REST_PATHS.topic, {
+    ...req,
+    query: { status: "pending", context: "edit", cafeteria_board: boardId, _embed: "true", per_page: TOPICS_PER_PAGE },
+  });
+  return (data ?? []).map(toTopicItem);
+}
+
+/** The comments held for approval, each with the post it answers, and how many the site holds in all. */
+export async function fetchHeldComments(req: TownHallReadRequest = {}): Promise<{ items: HeldComment[]; total: number }> {
+  const { data, headers } = await townHallFetch<WpComment[]>(REST_PATHS.comment, {
+    ...req,
+    query: { status: "hold", context: "edit", per_page: HELD_COMMENTS_LIMIT },
+  });
+  const items = (data ?? []).map((comment) => ({
+    id: comment.id,
+    postId: comment.post ?? 0,
+    author: comment.author_name ?? "",
+    date: comment.date ?? "",
+    content: comment.content?.rendered ?? "",
+  }));
+  return { items, total: totalOf(headers) };
+}
+
+/** The bug reports still open, newest first. */
+export async function fetchBugs(req: TownHallReadRequest = {}): Promise<BugItem[]> {
+  const { data } = await townHallFetch<WpBug[]>(REST_PATHS.bug, {
+    ...req,
+    query: { status: "draft,pending,publish", context: "edit", per_page: BUGS_LIMIT, orderby: "date", order: "desc" },
+  });
+  return (data ?? [])
+    .map((bug) => ({
+      id: bug.id,
+      date: bug.date ?? "",
+      title: bug.title?.rendered ?? "",
+      status: bug.bug_status ?? "new",
+      route: bug.bug_url ?? "",
+      environment: bug.bug_environment ?? "",
+    }))
+    .filter((bug) => isOpenBug(bug.status));
+}
+
+/** The title and body of a post or topic as they were typed, not as they render. */
+export async function fetchWords(type: EditableType, id: number, req: TownHallReadRequest = {}): Promise<Words> {
+  const { data } = await townHallFetch<WpPost | null>(`${REST_PATHS[type]}/${id}`, { ...req, query: { context: "edit" } });
+  return {
+    title: data?.title?.raw ?? data?.title?.rendered ?? "",
+    body: data?.content?.raw ?? data?.content?.rendered ?? "",
+  };
+}
+
+/** How many posts wait as drafts or pending, from the site's total. */
+export async function countDrafts(req: TownHallReadRequest = {}): Promise<number> {
+  const { headers } = await townHallFetch<WpPost[]>(REST_PATHS.post, {
+    ...req,
+    query: { status: DRAFT_STATUSES, context: "edit", per_page: 1 },
+  });
+  return totalOf(headers);
+}
+
+/** How many topics wait for approval, from the site's total. */
+export async function countPendingTopics(req: TownHallReadRequest = {}): Promise<number> {
+  const { headers } = await townHallFetch<WpPost[]>(REST_PATHS.topic, {
+    ...req,
+    query: { status: "pending", context: "edit", per_page: 1 },
+  });
+  return totalOf(headers);
 }

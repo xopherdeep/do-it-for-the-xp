@@ -25,6 +25,8 @@ import XpGuide from "@/components/organisms/Guide/XpGuide.vue";
 import { hasSeenTour } from "@/lib/services/tutorial/firstRunTour";
 import { guidesOn as isGuidesOn } from "@/lib/services/core/profilePrefs";
 import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { usePortalTurn } from "@/hooks/useHeroTurn";
 
 // Define interface for equipment items
 interface EquipmentItem {
@@ -62,7 +64,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour, XpGuide },
+  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour, XpGuide, XpRevealPrompt },
   mixins: [ionic],
   name: "my-portal",
   data() {
@@ -256,6 +258,9 @@ export default defineComponent({
     // (on foot the overworld is the Plains: the first Pegasus unlocks it)
     const compass = computed(() => areaTabFor(route, canFly(user.value), String(userId || "")));
 
+    // Family Sync: the clerk says once when another device took this hero over, and asks when the turn is busy
+    const { prompt: turnPrompt, respond: answerTurn } = usePortalTurn(String(userId));
+
     const pageIcon = computed(() => route.meta.faIcon);
     const fabStyle = computed(() => gameStore.fabStyle);
 
@@ -307,6 +312,8 @@ export default defineComponent({
       userActions: actions,
       setUserActions,
       setActions,
+      turnPrompt,
+      answerTurn,
     };
   },
 });

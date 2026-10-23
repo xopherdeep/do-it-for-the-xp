@@ -2,8 +2,8 @@ import { ref, type Ref } from "vue";
 import { getHeroPhoneDb } from "@/lib/databases/HeroPhoneDb";
 import type { HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import { enqueue, resetSending } from "@/lib/services/multiplayer/eventOutbox";
-import { questClaimedEvent } from "@/lib/services/multiplayer/familyEvents";
-import { familyProblem, fetchEvents, type FamilyProblem } from "@/lib/services/multiplayer/familyServer";
+import { questClaimedEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
+import { familyProblem, fetchEvents, type FamilyProblem, type ReceivedEvent } from "@/lib/services/multiplayer/familyServer";
 import type { SheetQuest } from "@/lib/services/multiplayer/heroSheet";
 import { addClaim, applyReceived, emptyPhoneState, refuseClaims, trimClaims, type HeroPhoneState } from "@/lib/services/multiplayer/phoneClaims";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
@@ -23,6 +23,10 @@ export interface PhoneSyncContext {
   device(): HeroDevice | null;
   /** The site no longer takes the phone's key */
   revoked(): Promise<void>;
+  /** The phone starts reading its events from their beginning (just linked): family sync marks the moment, before any read */
+  fromStart(): Promise<void>;
+  /** A page of events was read: a Pro phone in the full portal takes its hero's verdicts, rewards and re-sent claims (family sync) */
+  received(events: ReceivedEvent[]): Promise<void>;
 }
 
 export interface HeroPhoneSync {
@@ -34,6 +38,8 @@ export interface HeroPhoneSync {
   load(): Promise<void>;
   /** The hero finished a quest from the sheet: the claim is kept and queued, and sent at once when it can be */
   claim(quest: SheetQuest): Promise<void>;
+  /** Another event of the hero's own (a claim sent again after a takeover) goes out with the phone's key */
+  queue(build: (deviceId: string) => FamilyEvent): Promise<void>;
   /** Sends what waits, then reads what the family device answered; a call while one runs joins it */
   sync(): Promise<void>;
   /** The phone starts fresh: its claims and sheet are dropped */
@@ -109,12 +115,16 @@ export const createHeroPhoneSync = (ctx: PhoneSyncContext): HeroPhoneSync => {
     const isLinked = device !== null && auth !== null;
     if (!isLinked) return;
     await load();
+    const isFromStart = state.value.lastSeq === 0;
+    if (isFromStart) await ctx.fromStart().catch((error) => debug.warn("hero phone: could not mark where its events start", error));
     for (let page = 0; page < MAX_PAGES; page++) {
       const since = state.value.lastSeq;
       const events = await fetchEvents(auth, since, PAGE);
       const hasEvents = events.length > 0;
       if (!hasEvents) break;
       await update((current) => trimClaims(applyReceived(current, events, device.heroId)));
+      // What the full portal takes never stops the phone's own sync: it is logged, and the page counts as read
+      await ctx.received(events).catch((error) => debug.warn("hero phone: could not take the family's events", error));
       const isLastPage = events.length < PAGE || state.value.lastSeq <= since;
       if (isLastPage) break;
     }
@@ -168,11 +178,19 @@ export const createHeroPhoneSync = (ctx: PhoneSyncContext): HeroPhoneSync => {
     sync().catch((error) => debug.warn("hero phone: could not send the claim", error));
   };
 
+  const queue = async (build: (deviceId: string) => FamilyEvent): Promise<void> => {
+    const device = ctx.device();
+    if (!device) return;
+    const e = build(device.deviceId);
+    await update((current) => ({ ...current, outbox: enqueue(current.outbox, e) }));
+    sync().catch((error) => debug.warn("hero phone: could not send an event", error));
+  };
+
   const clear = async (): Promise<void> => {
     await writing;
     await getHeroPhoneDb().clearState();
     state.value = emptyPhoneState();
   };
 
-  return { state, problem, load, claim, sync, clear, dispose: sender.dispose };
+  return { state, problem, load, claim, queue, sync, clear, dispose: sender.dispose };
 };

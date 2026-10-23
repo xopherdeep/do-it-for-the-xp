@@ -25,7 +25,7 @@
     <!-- The command menu lives inside the box, like the SNES originals -->
     <div class="dialog-menu" v-else-if="showMenu">
       <p v-if="prompt" class="dialog-prompt">{{ prompt }}</p>
-      <XpRpgMenu :actions="menuActions" borderless />
+      <XpRpgMenu :actions="menuActions" columns="auto" borderless />
     </div>
   </div>
 </template>

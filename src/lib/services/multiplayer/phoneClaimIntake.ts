@@ -32,9 +32,25 @@ export const claimTimeOf = (at: string, now: Date): Date => {
   return isUsable ? new Date(time) : now;
 };
 
-/** Whether a received event is a claim made on a hero phone (not this device's own `quest.claimed`) */
-export const isPhoneClaim = (e: ReceivedEvent, ownDeviceId: string): boolean =>
-  e.kind === "quest.claimed" && e.deviceId !== ownDeviceId && typeof e.data?.questId === "string";
+/**
+ * Whether a received event is a claim made on a hero phone: not this device's own `quest.claimed`, and not a synced one
+ * (its quest log entry arrives as a record, so taking it too would log the claim twice)
+ */
+export const isPhoneClaim = (e: ReceivedEvent, ownDeviceId: string): boolean => {
+  const isClaim = e.kind === "quest.claimed" && typeof e.data?.questId === "string";
+  const isOwn = e.deviceId === ownDeviceId;
+  const isSynced = e.data?.synced === true;
+  return isClaim && !isOwn && !isSynced;
+};
+
+/**
+ * Under Family Sync, whether the site received an event before `since`, the moment this device started reading the
+ * family's events from their beginning: history, which the device that read it then has taken; never taken again here
+ */
+export const isHistory = (e: ReceivedEvent, since: string | null): boolean => {
+  const hasMark = since !== null;
+  return hasMark && Date.parse(e.receivedAt) < Date.parse(since as string);
+};
 
 const answer = (claimId: string, questId: string, status: ClaimSettled["status"], note = "", paid = { xp: 0, gp: 0, ap: 0 }): ClaimSettled => ({
   claimId,
