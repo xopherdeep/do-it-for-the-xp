@@ -67,8 +67,9 @@ const fightTemple = (): string => {
  * The temple screen over a temple: `returnsTo` is the room the route names (a battle returns there), none when the
  * hero walked in. `showPage` is Ionic showing the page (ionViewDidEnter: its first show, and each show after a parked
  * stay, as when a battle returns to the same room twice); `arrive` is the hero walking into the room they stand in.
+ * `returnsLevel` is the route's ?level, read each time the page shows (it changes without a new page).
  */
-const templeScreen = (id: string, returnsTo?: [number, number]) => {
+const templeScreen = (id: string, returnsTo?: [number, number], returnsLevel?: () => string | undefined) => {
   const showDropReveal = jest.fn();
   const pass = () => undefined;
   const wrapper = mount(
@@ -101,7 +102,7 @@ const templeScreen = (id: string, returnsTo?: [number, number]) => {
         } as unknown as RoomOutcomeDeps;
         const { getLiveContext: liveContext, handleArrival } = useRoomOutcomes(deps);
         const entry = { temple: id, heroId: HERO, whenOpened: Promise.resolve(true), currentLevel, templeSystem: temples, templeShortName: { value: "Test" }, say: pass, fx: pass };
-        useTempleEntry({ ...entry, returnsTo, liveContext, showDropReveal });
+        useTempleEntry({ ...entry, returnsTo, returnsLevel, liveContext, showDropReveal });
         return { handleArrival };
       },
       render: () => null,
@@ -176,6 +177,45 @@ describe("the battle return opens a won fight's drop", () => {
 
     await screen.showPage();
     await screen.arrive();
+
+    expect(screen.showDropReveal).not.toHaveBeenCalled();
+  });
+});
+
+describe("the battle return keys its drop by floor as well as row and column", () => {
+  /** A two-floor temple with the same fight room (a small key drop) at the same row and column on each floor */
+  const towerTemple = (): string => makeTemple(
+    { E: { type: "entrance" }, M: { type: "monster", content: { beasts: ["beast-socktopus"], drops: SMALL_KEY_DROP } } },
+    { "1F": [["E", "M"]], "2F": [["E", "M"]] }
+  );
+
+  it("opens a second won drop at the same row and column on another floor, once each", async () => {
+    const id = towerTemple();
+    enter(id, FIGHT_ROOM, "1F");
+    temples.markRoomCleared(id, "1F", FIGHT_ROOM);
+    let routeLevel = "1F";
+    const screen = templeScreen(id, FIGHT_ROOM, () => routeLevel);
+    await screen.showPage();
+    expect(screen.showDropReveal).toHaveBeenCalledTimes(1);
+
+    // The hero climbs, wins the same room on 2F, and the battle returns there: the same page shows again, ?level=2F
+    temples.getTempleState(id)!.currentLevel = "2F";
+    temples.markRoomCleared(id, "2F", FIGHT_ROOM);
+    routeLevel = "2F";
+    await screen.showPage();
+    expect(screen.showDropReveal).toHaveBeenCalledTimes(2);
+
+    await screen.showPage();
+    expect(screen.showDropReveal).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens nothing when the route names a floor the hero does not stand on", async () => {
+    const id = towerTemple();
+    enter(id, FIGHT_ROOM, "1F");
+    temples.markRoomCleared(id, "1F", FIGHT_ROOM);
+    const screen = templeScreen(id, FIGHT_ROOM, () => "2F");
+
+    await screen.showPage();
 
     expect(screen.showDropReveal).not.toHaveBeenCalled();
   });

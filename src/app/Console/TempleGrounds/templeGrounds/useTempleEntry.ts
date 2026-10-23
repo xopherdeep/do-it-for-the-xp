@@ -6,6 +6,7 @@ import type { RevealPromptOptions } from '@/components/organisms/RevealPrompt/re
 import { useRevealPrompt } from '@/components/organisms/RevealPrompt/useRevealPrompt';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
+import { returnRoomKey, shouldRevealReturnDrop } from '@/lib/services/temples/battleReturnDrop';
 import { roomActions } from '@/lib/services/temples/RoomInteractions';
 import { wakeTempleOnEntry, type EntryWakeDone } from '@/lib/services/temples/wakeOnEntry';
 import type { useRoomOutcomes } from './useRoomOutcomes';
@@ -25,6 +26,11 @@ export interface TempleEntryParts {
   fx: (key: string) => void;
   /** The room a battle returns the hero to ([row, col], the route's x and y); none when the hero walked in */
   returnsTo?: [number, number];
+  /**
+   * The floor the battle returns to, read each time the page is shown (the floor rides in the route's ?level, which
+   * changes without a new page: the same x and y on another floor share one page); none when the route names no floor
+   */
+  returnsLevel?: () => string | undefined;
   /** The room the hero stands in, read from the temple itself (useRoomOutcomes) */
   liveContext: ReturnType<typeof useRoomOutcomes>['getLiveContext'];
   /** Opens the chest reveal on what a beaten beast dropped in the room the hero stands in */
@@ -35,20 +41,27 @@ export interface TempleEntryParts {
  * The battle return (design spec, "Fight-room drops"): on a win the beast drops what it held, and the hero takes it
  * through the chest reveal on coming back to the room. Each time Ionic shows the page of a battle return (a second
  * battle in the same room shows that parked page again rather than a new one), a won fight's drop waiting in the room
- * the route names opens in that reveal, once per page: a hero who leaves it shut finds "Take it" on the room's sheet,
- * and a later arrival in the room, or the page shown again, opens nothing.
+ * the route names opens in that reveal, once per room of the page: a hero who leaves it shut finds "Take it" on the
+ * room's sheet, and a later arrival in the room, or the page shown again, opens nothing. A room is a floor and a row and
+ * column (battleReturnDrop), so a drop won at the same x and y on another floor opens in its turn.
  */
-const useBattleReturnDrop = ({ temple, whenOpened, templeSystem, returnsTo, liveContext, showDropReveal }: TempleEntryParts): void => {
+const useBattleReturnDrop = ({ temple, whenOpened, templeSystem, returnsTo, returnsLevel, liveContext, showDropReveal }: TempleEntryParts): void => {
   if (!returnsTo) return;
-  let hasOfferedDrop = false;
+  const offeredRooms = new Set<string>();
 
-  /** Whether the hero stands in the battle's room, with a won fight's drop waiting there that this page has not shown */
-  const isDropToOffer = (): boolean => {
+  /** The key of the battle's room when the hero stands in it with a won fight's drop waiting there that this page has not shown */
+  const roomToOffer = (): string | null => {
     const live = liveContext();
-    if (!live) return false;
-    const [row, col] = live.ctx.position;
-    const isOnReturnRoom = row === returnsTo[0] && col === returnsTo[1];
-    return isOnReturnRoom && !hasOfferedDrop && roomActions(live.room, live.ctx).drop === 'waiting';
+    if (!live) return null;
+    const standing = { level: live.ctx.level, position: live.ctx.position };
+    const shouldOffer = shouldRevealReturnDrop({
+      returnsTo,
+      returnsLevel: returnsLevel?.(),
+      standing,
+      offered: offeredRooms,
+      isDropWaiting: roomActions(live.room, live.ctx).drop === 'waiting',
+    });
+    return shouldOffer ? returnRoomKey(standing.level, standing.position) : null;
   };
 
   // Waits for the run to be read (the battle recorded the win in it) and for the screen to catch up with where it stands
@@ -57,9 +70,9 @@ const useBattleReturnDrop = ({ temple, whenOpened, templeSystem, returnsTo, live
     if (!isOpened) return;
     await templeSystem.whenProgressReady(temple);
     await nextTick();
-    const shouldOffer = isDropToOffer();
-    if (!shouldOffer) return;
-    hasOfferedDrop = true;
+    const room = roomToOffer();
+    if (room === null) return;
+    offeredRooms.add(room);
     showDropReveal();
   };
 
