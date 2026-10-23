@@ -22,12 +22,18 @@ jest.mock("@ionic/vue", () => ({
   actionSheetController: {},
   alertController: {},
   onIonViewWillEnter: (hook: () => unknown) => mockViewEnters.push(hook),
+  // Once shown, a battle return opens a won fight's drop (useTempleEntry); no page here is shown after a battle
+  onIonViewDidEnter: () => undefined,
 }));
 jest.mock("@/lib/engine/core/dungeons/TempleAdapter", () => ({
   registerAllTemples: () => mockRegisterTemples(),
   registerCustomTemples: () => Promise.resolve(),
 }));
-jest.mock("@/lib/engine/core/dungeons/importAllTemples", () => ({ importAllTempleLayouts: () => Promise.resolve() }));
+jest.mock("@/lib/engine/core/dungeons/importAllTemples", () => ({
+  importAllTempleLayouts: () => Promise.resolve(),
+  // openTemple waits for the shipped temples' seed sync before it reads a temple's record
+  ensureBuiltInTemples: () => Promise.resolve(),
+}));
 jest.mock("@/lib/store/stores/user", () => ({
   useUserStore: () => ({
     users: { "hero-1": {} },

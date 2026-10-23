@@ -2,9 +2,11 @@ import { TempleDb, type TempleInterface } from "@/lib/databases/TempleDb";
 import temples from "@/lib/engine/temples";
 import { importAllTempleLayouts, layoutSignature, planSeedSync, type ShippedTemple } from "@/lib/engine/core/dungeons/importAllTemples";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
-import { isQuestRoom } from "@/lib/services/temples/questRooms";
+import { isQuestRoom, roomQuestIds } from "@/lib/services/temples/questRooms";
+import { QUICK_START_QUEST_IDS, quickStartTemplePlan } from "@/lib/services/temples/quickStartPlan";
 import debug from "@/lib/utils/debug";
 import backup from "./importAllTemples.backup.json";
+import { windBeforeEagle } from "./windBeforeEagle";
 
 jest.mock("@/lib/utils/debug", () => ({
   __esModule: true,
@@ -198,21 +200,14 @@ describe("importAllTempleLayouts", () => {
     expect(record.seedSignature).toBe(layoutSignature(shippedTemple()));
   });
 
-  it("never touches hero progress", async () => {
-    const progress = fakeStorage();
-    progress.data.set("kid-1:wind-temple", { looted: ["R002"], keys: 1 });
-    const before = JSON.stringify([...progress.data.entries()]);
-
+  // What the sync does with hero progress (nothing, but for the runs of a temple whose layout it switched) is
+  // ClassicTempleRefresh.spec's, on the real progress store
+  it("keeps temple records only in the temple store", async () => {
     await sync({ "wind-temple": shippedTemple(), "fire-temple": shippedTemple() }); // create
     await sync({ "wind-temple": shippedTemple(true), "fire-temple": shippedTemple() }); // refresh
     await db.setTemple({ ...(await stored("fire-temple")), dungeonLayout: layoutOf(shippedTemple(true)) });
     await sync({ "wind-temple": shippedTemple(true), "fire-temple": shippedTemple() }); // edited
 
-    expect(JSON.stringify([...progress.data.entries()])).toBe(before);
-    expect(progress.set).not.toHaveBeenCalled();
-    expect(progress.remove).not.toHaveBeenCalled();
-    expect(progress.clear).not.toHaveBeenCalled();
-    // the temple store holds temple records only
     expect([...storage.data.keys()].sort()).toEqual(["fire-temple", "wind-temple"]);
   });
 
@@ -352,6 +347,95 @@ describe("the quest room rebuild reaching a family's device", () => {
     expect(report).toEqual({ "light-temple": "edited", "ice-temple": "refresh" });
     expect((await stored("light-temple")).dungeonLayout).toEqual(finished);
     expect((await stored("ice-temple")).dungeonLayout).toEqual(layoutOf(rebuilt["ice-temple"]));
+  });
+});
+
+/**
+ * Quick Start (since 2026-10-18) writes tonight's quests into the family's copy of the Wind Temple. A copy whose only
+ * change from its seed is those placements is still the shipped temple: it refreshes when the shipped Wind changes,
+ * and tonight's quests are placed again in the new layout by Quick Start's own rule. Any change of the Game Master's
+ * beside them, a room or a quest of their own in one, keeps the copy theirs.
+ */
+describe("a copy of the Wind Temple Quick Start placed tonight's quests in", () => {
+  let storage: ReturnType<typeof fakeStorage>;
+  let db: TempleDb;
+  const ID = "wind-temple";
+  const spireShipped: ShippedTemple = { entrance: windBeforeEagle.entrance, maze: windBeforeEagle.maze, rooms: windBeforeEagle.rooms };
+  const eagleShipped = (temples as Record<string, ShippedTemple>)[ID];
+  const sync = (shipped: ShippedTemple) => importAllTempleLayouts({ db, shipped: { [ID]: shipped } });
+  const stored = async () => (await db.getTempleById(ID)) as TempleInterface;
+  const rooms = (record: TempleInterface) => record.dungeonLayout!.rooms;
+
+  /** What Quick Start wrote into a family's untouched Spire before its rooms had to be a walk from the door: three rooms, two behind the locked door */
+  const QUICK_START_ROOMS: Record<string, string> = { M0305: "quick-dishes", M0204: "quick-room", M0203: "quick-homework" };
+
+  /** A device that took the Spire in, then ran Quick Start; `edit` is anything the Game Master changed after */
+  const quickStartedSpire = async (edit: (layout: Record<string, any>) => void = () => undefined) => {
+    await sync(spireShipped);
+    const record = await stored();
+    for (const [symbol, questId] of Object.entries(QUICK_START_ROOMS)) rooms(record)[symbol].content!.questIds = [questId];
+    edit(record.dungeonLayout as Record<string, any>);
+    await db.setTemple(record);
+  };
+
+  beforeEach(() => {
+    storage = fakeStorage();
+    db = new TempleDb(storage as never);
+  });
+
+  it("keeps tonight's quests while the shipped Wind Temple has not changed", async () => {
+    await quickStartedSpire();
+    storage.set.mockClear();
+
+    expect(await sync(spireShipped)).toEqual({ [ID]: "current" });
+
+    expect(storage.set).not.toHaveBeenCalled();
+    expect(roomQuestIds(rooms(await stored()).M0305)).toEqual(["quick-dishes"]);
+  });
+
+  it("refreshes to the Eagle, with tonight's quests placed again by Quick Start's rule, and then has nothing left to do", async () => {
+    await quickStartedSpire();
+
+    expect(await sync(eagleShipped)).toEqual({ [ID]: "refresh" });
+
+    const record = await stored();
+    expect(record.seedSignature).toBe(layoutSignature(eagleShipped));
+    expect(record.dungeonLayout).toEqual(quickStartTemplePlan(layoutOf(eagleShipped), QUICK_START_QUEST_IDS, [], new Date()).layout);
+    expect(roomQuestIds(rooms(record).M005)).toEqual(["quick-dishes"]);
+    expect(roomQuestIds(rooms(record).M004)).toEqual(["quick-room"]);
+    expect(await sync(eagleShipped)).toEqual({ [ID]: "current" });
+  });
+
+  it("keeps the copy when the Game Master changed a room beside tonight's quests", async () => {
+    await quickStartedSpire((layout) => {
+      layout.rooms.R0103 = { type: "shop" };
+    });
+
+    expect(await sync(eagleShipped)).toEqual({ [ID]: "edited" });
+    expect(rooms(await stored()).R0103).toEqual({ type: "shop" });
+  });
+
+  it("keeps the copy when the Game Master put a quest of their own in a room (the Temple Creator, the Temple Quests tab)", async () => {
+    await quickStartedSpire((layout) => {
+      layout.rooms.M0201.content.questIds = ["mums-own"];
+    });
+    expect(await sync(eagleShipped)).toEqual({ [ID]: "edited" });
+  });
+
+  it("keeps the copy when the Game Master put a quest beside one of tonight's", async () => {
+    await quickStartedSpire((layout) => {
+      layout.rooms.M0305.content.questIds = ["quick-dishes", "mums-own"];
+    });
+    expect(await sync(eagleShipped)).toEqual({ [ID]: "edited" });
+  });
+
+  it("reads tonight's quests as Quick Start's only in the Wind Temple's copy", () => {
+    const seeded = quickStartTemplePlan(layoutOf(spireShipped), QUICK_START_QUEST_IDS, [], new Date()).layout;
+    const record = (id: string): TempleInterface => ({ id, categoryIds: [], seedSignature: layoutSignature(spireShipped), dungeonLayout: seeded! });
+
+    expect(planSeedSync(record(ID), spireShipped).action).toBe("current");
+    expect(planSeedSync(record(ID), eagleShipped)).toMatchObject({ action: "refresh", quickStartQuestIds: ["quick-dishes"] });
+    expect(planSeedSync(record("earth-temple"), eagleShipped).action).toBe("edited");
   });
 });
 

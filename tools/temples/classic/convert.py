@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-LTTP dungeon converter: writes tools/temples/classic/dungeons/<id>.json, one per temple, from the pinned
+Classic dungeon converter: writes tools/temples/classic/dungeons/<id>.json, one per temple, from the pinned
 tables under vendor/ (see SOURCES.md). Standard library only; the same inputs give the same bytes.
 
-    python3 tools/temples/classic/convert.py [id ...]      # default: all eight LTTP temples
+    python3 tools/temples/classic/convert.py [id ...]      # default: the eight LTTP temples and wind-temple
+
+`wind-temple` is Zelda 1 Level 1 (the Eagle), matched from TheVGLC's LoZ_1.dot by loz_eagle.py, which explains its own
+rules. The rest of this note is the LTTP converter.
 
 The schema is tools/temples/classic/classicDungeon.ts. The rules (decided in the plan's Task 5 brief):
 
@@ -41,6 +44,7 @@ import sys
 
 from lttp_contents import ContentStages
 from lttp_doors import DoorStages
+from loz_eagle import SOURCE, WIND_ID, EagleConversion
 from lttp_layout import DIRS, LayoutStages, floor_name, pot_screen, sprite_screen
 from lttp_tables import HERE, TEMPLES, Tables, norm
 
@@ -121,41 +125,50 @@ def debug_dump(conversion):
             print(f"   {floor_name(level)} {at} {cell['tile']:#04x}{cell['screen']} {cell['hall']}: enemies={cell['enemies']} {sides} {extra} {links}")
 
 
+def emit(temple_id, title, conversion, result):
+    """Write one conversion's JSON and print its report, overrides applied, notes and errors. True when it failed."""
+    print(f"== {temple_id}: {title}")
+    if result is not None:
+        os.makedirs(OUT_DIR, exist_ok=True)
+        with open(os.path.join(OUT_DIR, f"{temple_id}.json"), "w", encoding="utf8") as handle:
+            handle.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+        report = result["report"]
+        print("   cells per floor: " + ", ".join(f"{name} {count}" for name, count in report["cellsPerFloor"].items()))
+        print(f"   must-clear {report['mustClear']}, side {report['side']}, small keys {report['smallKeys']} "
+              f"against {report['smallLocks']} locks")
+    for line in conversion.applied:
+        print("   override: " + line)
+    for line in conversion.warnings:
+        print("   note: " + line)
+    for line in conversion.errors:
+        print("   ERROR: " + line)
+    if conversion.errors:
+        print(f"   {temple_id} not written: settle the errors in overrides/{temple_id}.json")
+    return bool(conversion.errors)
+
+
 def main(argv):
     debug = "--debug" in argv
     argv = [a for a in argv if a != "--debug"]
-    wanted = argv[1:] or [t[0] for t in TEMPLES]
-    unknown = [w for w in wanted if w not in {t[0] for t in TEMPLES}]
+    wanted = argv[1:] or [t[0] for t in TEMPLES] + [WIND_ID]
+    unknown = [w for w in wanted if w not in {t[0] for t in TEMPLES} | {WIND_ID}]
     if unknown:
         print("unknown temple id(s): " + ", ".join(unknown))
         return 2
-    tables = Tables()
     failed = False
+    tables = Tables() if any(t[0] in wanted for t in TEMPLES) else None
     for temple_id, dungeon, main_door, _ in TEMPLES:
         if temple_id not in wanted:
             continue
         conversion = Conversion(tables, temple_id, dungeon, main_door, load_overrides(temple_id))
         result = conversion.run()
-        print(f"== {temple_id}: LTTP {dungeon}")
-        if result is not None:
-            os.makedirs(OUT_DIR, exist_ok=True)
-            with open(os.path.join(OUT_DIR, f"{temple_id}.json"), "w", encoding="utf8") as handle:
-                handle.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
-            report = result["report"]
-            print("   cells per floor: " + ", ".join(f"{name} {count}" for name, count in report["cellsPerFloor"].items()))
-            print(f"   must-clear {report['mustClear']}, side {report['side']}, small keys {report['smallKeys']} "
-                  f"against {report['smallLocks']} locks")
-        for line in conversion.applied:
-            print("   override: " + line)
-        for line in conversion.warnings:
-            print("   note: " + line)
-        for line in conversion.errors:
-            print("   ERROR: " + line)
+        failed = emit(temple_id, f"LTTP {dungeon}", conversion, result) or failed
         if debug:
             debug_dump(conversion)
-        if conversion.errors:
-            failed = True
-            print(f"   {temple_id} not written: settle the errors in overrides/{temple_id}.json")
+    if WIND_ID in wanted:  # Zelda 1 Level 1: the Eagle, from the pinned graph (loz_eagle.py)
+        conversion = EagleConversion(os.path.join(HERE, "vendor", "LoZ_1.dot"), load_overrides(WIND_ID))
+        result = conversion.run()
+        failed = emit(WIND_ID, SOURCE, conversion, result) or failed
     return 1 if failed else 0
 
 

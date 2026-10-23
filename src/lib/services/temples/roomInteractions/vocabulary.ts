@@ -59,8 +59,11 @@ export interface Ware {
   soldOut?: boolean;
 }
 
-/** What the screen has to open or do beyond a toast and a sound. */
-export type RoomIntent = 'leave' | 'fight' | 'openChest' | 'emptyChest' | 'teleport' | 'riddle' | 'shop' | 'sheet';
+/**
+ * What the screen has to open or do beyond a toast and a sound. `takeDrop` opens the chest reveal on what a beaten
+ * beast dropped in the room the hero stands in.
+ */
+export type RoomIntent = 'leave' | 'fight' | 'openChest' | 'emptyChest' | 'takeDrop' | 'teleport' | 'riddle' | 'shop' | 'sheet';
 
 export interface RoomOutcome {
   /** A toast, in the temple's voice */
@@ -107,7 +110,7 @@ export interface RoomSheet {
   header: string;
   /** The line under the title. An encounter without one shows its beast's name; an empty string shows nothing. */
   subHeader?: string;
-  /** A line of its own under the subtitle: a quest room's chore, when it is due and when the beast is back */
+  /** A line of its own under the subtitle: a quest room's chore, when it is due and when the beast is back, and the glint of a drop waiting */
   body?: string;
   /** The room's own actions; the screen adds Cancel */
   actions: RoomAction[];
@@ -122,6 +125,11 @@ export interface RoomSheet {
    * The sheet's action is the same thing for a caller with no chest to show: `openChest` / `emptyChest`.
    */
   chest?: 'closed' | 'empty';
+  /**
+   * A fight room whose beast is down (or was never the hero's to fight) still holds what it dropped: the sheet offers it
+   * as "Take it" (the `takeDrop` intent), and the sheet's own line says something glints there.
+   */
+  drop?: 'waiting';
 }
 
 /** What a room with a beast in it says when the hero steps up to it, by tier, before its beast's name is known (see nameTheEncounter). */

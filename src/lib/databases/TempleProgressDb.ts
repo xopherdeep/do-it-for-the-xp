@@ -129,6 +129,12 @@ export class TempleProgressDb extends DbStorageApi {
     return entries.filter((entry): entry is TempleProgressEntry => entry !== null && entry.userId === userId);
   }
 
+  /** Every hero's run through one temple (a layout switch starts them all over) */
+  public async getProgressForTemple(templeId: string): Promise<TempleProgressEntry[]> {
+    const entries = (await this.getAll()).map(toTempleProgress);
+    return entries.filter((entry): entry is TempleProgressEntry => entry !== null && entry.templeId === templeId);
+  }
+
   /**
    * Game Master action: schedule the blood moon over a temple for a hero. The reset itself fires when the
    * hero next enters the temple after that time (TempleSystem reads the record back and resets it).

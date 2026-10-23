@@ -2,13 +2,11 @@
  * The nine temples that ship with the app (src/lib/engine/temples) can all be finished.
  *
  * Each one is registered the way the engine registers it (TempleAdapter.registerTemple, so a Master Room becomes the
- * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver. The eight
- * temples written by the generator (tools/temples/regenerate.ts) must also keep to the shape they were made in:
- * two or three floors joined by stairs, a short critical path, every rule of the Temple Generation Contract.
- * The Wind Temple is authored by hand and only has to be finishable. It is the one temple that asks for a Bomb: its
- * Boss Key lies past a cracked wall, and its own shop, in reach of the entrance without one, sells Bombs. It is read
- * here as shipped, no wall blown by hand: the shop is a Bomb source, so the solver opens the cracked wall itself once
- * the hero has reached the shop (WindTemple.spec.ts checks the shop really comes first).
+ * Pegasus chest and the editor's door sides become locks), then read by the temple audit and the solver, no wall
+ * blown by hand. Every one follows a classic dungeon, dressed from its JSON (tools/temples/classic/dress.ts): eight an
+ * LTTP palace, the Wind Temple Zelda 1's Eagle with the owner's own east rooms (WindTemple.spec.ts).
+ * ClassicTemples.spec.ts holds them to the dressing's rules; here they only have to be finishable and full of the
+ * right quests.
  *
  * Quest Rooms (docs/Quest-Rooms-Spec.md section 11): every combat room of the nine holds a quest template from the
  * chore library, bound to a beast of the temple's theme, and the templates add up to a full temple (21 or more).
@@ -25,80 +23,41 @@ import { STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { questFromTemplate, mondayOf } from "@/lib/services/temples/wakeTempleQuests";
 import { TEMPLE_FULL_SIZE, questTier, resolveRoomQuest, templeSize, type QuestTier } from "@/lib/services/temples/questRooms";
 import { auditSummary, auditTemple, missingNames, type AuditableRoom } from "@/lib/services/temples/templeAudit";
-import { generateShipped, renderModule } from "../../tools/temples/regenerate";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { CLASSIC_IDS, CLASSIC_PLANS, classicReport, dressClassic } from "../../tools/temples/classic/dress";
 
 const shipped = temples as Record<string, any>;
 const IDS = Object.keys(shipped);
-const HAND_MADE = ["wind-temple"];
-const REGENERATED = IDS.filter((id) => !HAND_MADE.includes(id));
-
-/** Floors each regenerated temple was spread over */
-const FLOORS: Record<string, number> = {
-  "earth-temple": 2,
-  "fire-temple": 2,
-  "ice-temple": 2,
-  "light-temple": 2,
-  "storm-temple": 2,
-  "water-temple": 2,
-  "moon-temple": 3,
-  "shadow-temple": 3,
-};
-
-/** The relics each regenerated temple keeps in a chest */
-const RELICS: Record<string, string[]> = {
-  "earth-temple": ["Gaia's Hammer"],
-  "fire-temple": ["Flame Shield"],
-  "ice-temple": ["Frost Wand"],
-  "light-temple": ["Dawnbreaker Bow"],
-  "storm-temple": ["Lightning Rod"],
-  "water-temple": ["Trident of Tides"],
-  "moon-temple": ["Lunar Pendant", "Moon Shard"],
-  "shadow-temple": ["Void Dagger"],
-};
 
 /**
  * Quest Rooms (docs/Quest-Rooms-Spec.md sections 10 and 11): the combat rooms of each temple as (monster, miniboss, boss)
- * counts, and the size its quest templates add up to. A full temple is 21 or more.
+ * counts, and the size its quest templates add up to. A full temple is 21 or more. Each temple's counts and size follow
+ * its dungeon, read from its dressed rooms (side rooms, repeats of a must-clear beast, count too); only the size's floor
+ * of 21 is pinned.
  */
-const COMBAT_ROOMS: Record<string, [number, number, number]> = {
-  "wind-temple": [6, 2, 1],
-  "earth-temple": [5, 1, 1],
-  "water-temple": [5, 1, 1],
-  "shadow-temple": [7, 1, 1],
-  "fire-temple": [4, 1, 1],
-  "ice-temple": [3, 1, 1],
-  "light-temple": [5, 1, 1],
-  "moon-temple": [6, 1, 1],
-  "storm-temple": [5, 1, 1],
+const dressed = (id: string): { counts: [number, number, number]; size: number } => {
+  const rooms = Object.values(dressClassic(id).rooms);
+  const count = (type: string) => rooms.filter((room) => room.type === type).length;
+  const quests = rooms.filter((room) => room.content?.quest).map((room) => ({ difficulty: Number(room.content!.quest!.difficulty), dormant: true }));
+  return { counts: [count("monster"), count("miniboss"), count("boss")], size: templeSize(quests).total };
 };
-
-const TEMPLE_SIZE: Record<string, number> = {
-  "wind-temple": 22,
-  "earth-temple": 21,
-  "water-temple": 21,
-  "shadow-temple": 23,
-  "fire-temple": 25,
-  "ice-temple": 23,
-  "light-temple": 21,
-  "moon-temple": 22,
-  "storm-temple": 21,
-};
+const combatCountsOf = (id: string): [number, number, number] => dressed(id).counts;
+const sizeOf = (id: string): number => dressed(id).size;
 
 /**
  * Section 12: the starter world's quests that fill a shipped room at once, by beast. Two fill a room through the
  * library's suggestion, because they have no beast of their own: Feed the Loyal Familiar (Kibble Kobold, Earth) and
- * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none.
+ * Study the Ancient Tomes (Pop Quiz Poltergeist, Light's boss room). Water holds none. A classic temple whose plan is
+ * topped up with the rest of its theme holds that beast's starter too (Fire's Backseat Beastie: Clean Backseat Beastie;
+ * Moon's Sniffle Sprite: Sniffle Sprite Salve).
  */
 const STARTER_MATCHES: Record<string, string[]> = {
   "wind-temple": ["quest-dust", "quest-vacuum"],
-  "fire-temple": ["quest-breakfast", "quest-cook"],
+  "fire-temple": ["quest-breakfast", "quest-cook", "quest-car"],
   "earth-temple": ["quest-weeds", "quest-pet", "quest-plants", "quest-walk-dog", "quest-poop"],
   "shadow-temple": ["quest-dishes", "quest-crumbs", "quest-table-set", "quest-table-clear", "quest-mop"],
   "ice-temple": ["quest-socks", "quest-fridge", "quest-laundry"],
   "light-temple": ["quest-backpack", "quest-homework", "quest-reading"],
-  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep"],
+  "moon-temple": ["quest-teeth", "quest-outfit", "quest-hands", "quest-hair", "quest-screen-rest", "quest-wake", "quest-sleep", "quest-vitamins"],
   "storm-temple": ["quest-bed", "quest-shoes", "quest-toys"],
 };
 
@@ -135,19 +94,21 @@ const followsScheduleRules = (template: RoomQuestTemplate): boolean => {
   }
 };
 
-/** The temple as the engine holds it after registration, cracked walls and all (the Wind Temple's shop is the Bomb that opens its wall) */
+/** The temple as the engine holds it after registration, cracked walls and all */
 const registered = (id: string) => {
   registerTemple(id, shipped[id], { force: true });
   const dungeon = DungeonManager.getInstance().getDungeon(id)!;
   return { id, entrance: dungeon.entrance, maze: dungeon.maze, rooms: dungeon.rooms };
 };
 
-const roomsOn = (graph: TempleGraph, floor: string) => [...graph.rooms.values()].filter((room) => room.ref.floor === floor);
-
 describe("the shipped temples", () => {
   it("are the nine of the registry", () => {
     expect(IDS.sort()).toEqual(Object.keys(TEMPLE_METADATA).sort());
     expect(IDS).toHaveLength(9);
+  });
+
+  it("all follow a classic dungeon, each dressed from its JSON under its plan", () => {
+    expect(IDS.filter((id) => !CLASSIC_IDS.includes(id))).toEqual([]);
   });
 
   describe.each(IDS)("%s", (id) => {
@@ -200,18 +161,17 @@ describe("the shipped temples", () => {
 });
 
 describe("the shipped temples as quest rooms", () => {
-  it("name the size each temple should come to, from section 11", () => {
-    expect(Object.keys(TEMPLE_SIZE).sort()).toEqual(IDS.slice().sort());
-    expect(Object.keys(COMBAT_ROOMS).sort()).toEqual(IDS.slice().sort());
-  });
-
   describe.each(IDS)("%s", (id) => {
     const layout = registered(id);
     const graph = buildTempleGraph(layout);
-    const [monsterCount, minibossCount, bossCount] = COMBAT_ROOMS[id];
+    const [monsterCount, minibossCount, bossCount] = combatCountsOf(id);
     const theme = id.replace("-temple", "");
     const rooms = COMBAT_TYPES.flatMap((tier) => combatRooms(graph, tier));
     const templates = rooms.map(templateOf);
+    /** A temple's side rooms repeat a must-clear beast: the rules of "once" and "easiest first" read its sealed rooms */
+    const sealed = (room: GraphRoom): boolean => room.room.content?.lockOnEnter === true;
+    /** The beasts a temple's must-clear rooms had to repeat, its theme being short of beasts (classicReport) */
+    const repeats = classicReport(id).repeats.map((slug) => `beast-${slug}`);
 
     it("has the combat rooms of the theme map: monsters, minibosses and one boss", () => {
       expect(combatRooms(graph, "monster")).toHaveLength(monsterCount);
@@ -231,9 +191,13 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("keeps to the theme: every beast is a library beast of this temple's theme, used once", () => {
+    it("keeps to the theme: every beast is a library beast of this temple's theme, used once per sealed room (but its reported repeats)", () => {
+      const once = rooms
+        .filter(sealed)
+        .map((room) => templateOf(room).beastId)
+        .filter((beastId) => !repeats.includes(beastId));
+      expect(new Set(once).size).toBe(once.length);
       const ids = templates.map((template) => template.beastId);
-      expect(new Set(ids).size).toBe(ids.length);
       for (const beastId of ids) {
         const beast = BEAST_LIBRARY.find((entry) => entry.id === beastId);
         expect({ beastId, known: Boolean(beast) }).toEqual({ beastId, known: true });
@@ -265,14 +229,19 @@ describe("the shipped temples as quest rooms", () => {
       }
     });
 
-    it("puts the easier monster quests in the rooms nearest the entrance", () => {
-      const monsterDifficulties = combatRooms(graph, "monster").map((room) => templateOf(room).difficulty);
-      expect(monsterDifficulties).toEqual([...monsterDifficulties].sort((a, b) => a - b));
+    it("puts the easier monster and mini-boss quests in the rooms nearest the entrance", () => {
+      const tiers: QuestTier[] = ["monster", "miniboss"];
+      for (const tier of tiers) {
+        const difficulties = combatRooms(graph, tier)
+          .filter(sealed)
+          .map((room) => templateOf(room).difficulty);
+        expect({ tier, difficulties }).toEqual({ tier, difficulties: [...difficulties].sort((a, b) => a - b) });
+      }
     });
 
     it("comes to a full temple: the quests add up to the size of the theme map, 21 or more", () => {
       const share = templeSize(rooms.map((room) => ({ difficulty: templateOf(room).difficulty, dormant: true })));
-      expect(share.total).toBe(TEMPLE_SIZE[id]);
+      expect(share.total).toBe(sizeOf(id));
       expect(share.total).toBeGreaterThanOrEqual(TEMPLE_FULL_SIZE);
       expect(share.isFull).toBe(true);
     });
@@ -281,7 +250,7 @@ describe("the shipped temples as quest rooms", () => {
       const sized = auditTemple(layout, { sizeOf: templateSize });
       expect(sized.passed).toBe(true);
       expect(auditSummary(sized)).toBe(`${sized.checks.length} of ${sized.checks.length} checks passed`);
-      expect(sized.checks.find((check) => check.id === "size")).toMatchObject({ ok: true, detail: `Size ${TEMPLE_SIZE[id]} of ${TEMPLE_FULL_SIZE} · ${TEMPLE_SIZE[id]} if woken` });
+      expect(sized.checks.find((check) => check.id === "size")).toMatchObject({ ok: true, detail: `Size ${sizeOf(id)} of ${TEMPLE_FULL_SIZE} · ${sizeOf(id)} if woken` });
     });
 
     it("is filled at once by the starter quests section 12 names (by beast or by the library's suggestion), and by no other", () => {
@@ -289,84 +258,30 @@ describe("the shipped temples as quest rooms", () => {
       const filled = rooms
         .map((room) => resolveRoomQuest(room.room, "hero", [], STARTER_QUESTS))
         .flatMap((resolution) => (resolution.kind === "quest" ? [resolution.quest.id] : []));
-      expect(filled.sort()).toEqual([...wanted].sort());
+      // A temple's side rooms repeat a beast, so one starter quest can fill several rooms
+      expect([...new Set(filled)].sort()).toEqual([...wanted].sort());
     });
   });
 });
 
-describe("the eight regenerated temples", () => {
-  it("are every shipped temple but the hand-made Wind Temple", () => {
-    expect(REGENERATED).toHaveLength(8);
-  });
-
-  describe.each(REGENERATED)("%s", (id) => {
-    const layout = registered(id);
-    const graph = buildTempleGraph(layout);
-    const rooms = [...graph.rooms.values()];
-
-    it("is spread over several floors with a short run on each", () => {
-      expect(graph.floors).toHaveLength(FLOORS[id]);
-      for (const floor of graph.floors) {
-        const count = roomsOn(graph, floor).length;
-        expect(count).toBeGreaterThanOrEqual(8);
-        expect(count).toBeLessThanOrEqual(14);
-      }
-    });
-
-    it("starts on the ground floor, and a flight of stairs joins each floor to the next", () => {
-      expect(shipped[id].entrance).toHaveLength(3);
-      expect(shipped[id].entrance[0]).toBe(0);
-      graph.floors.slice(0, -1).forEach((floor, index) => {
-        const next = graph.floors[index + 1];
-        const up = graph.doors.filter((door) => door.kind === "stairs" && graph.rooms.get(door.from)!.ref.floor === floor && graph.rooms.get(door.to)!.ref.floor === next);
-        const down = graph.doors.filter((door) => door.kind === "stairs" && graph.rooms.get(door.from)!.ref.floor === next && graph.rooms.get(door.to)!.ref.floor === floor);
-        expect(up.length).toBeGreaterThanOrEqual(1);
-        expect(down.length).toBeGreaterThanOrEqual(1);
-      });
-    });
-
-    it("keeps the Master Room under its own name and the mini-boss on the way", () => {
-      const placed = Object.values(shipped[id].maze as Record<string, string[][]>)
-        .flat(2)
-        .map((token) => shipped[id].rooms[token]?.type);
-      expect(placed.filter((type) => type === "master")).toHaveLength(1);
-      expect(placed.filter((type) => type === "miniboss")).toHaveLength(1);
-      expect(placed.filter((type) => type === "boss")).toHaveLength(1);
-    });
-
-    it("hands out at least as many small keys as it has small locks", () => {
-      const keys = rooms.reduce((sum, room) => sum + room.smallKeys, 0);
-      const locks = graph.doors.filter((door) => door.lock === "small").length;
-      expect(locks).toBeGreaterThanOrEqual(1);
-      expect(keys).toBeGreaterThanOrEqual(locks);
-    });
-
-    it("keeps the registry's element on its boss and a quest template on every monster room", () => {
-      const boss = rooms.find((room) => room.kind === "boss")!;
-      expect(boss.room.content?.element).toBe(TEMPLE_METADATA[id].element);
-      const monsters = rooms.filter((room) => room.kind === "monster");
-      expect(monsters.length).toBeGreaterThanOrEqual(3);
-      for (const room of monsters) expect(room.room.content?.quest?.beastId).toEqual(expect.any(String));
-    });
-
-    it("keeps its relic in a chest", () => {
-      const held = rooms.filter((room) => room.room.type === "loot" && room.room.content?.chest === "dungeon").map((room) => room.room.content?.dungeon);
-      expect(held).toEqual(expect.arrayContaining(RELICS[id]));
-    });
-
-    it("is exactly what tools/temples/regenerate.ts writes from its seed", () => {
-      const file = readFileSync(join(__dirname, "../../src/lib/engine/temples", `${id}.ts`), "utf8");
-      expect(file).toBe(renderModule(id, generateShipped(id)));
-      expect(file).toContain(`// seed: "${id}"`);
-    });
-
-    it("breaks no rule of the Temple Generation Contract", () => {
-      expect(solveTemple(layout).reasons).toEqual([]);
-    });
+/**
+ * A temple repeats a must-clear beast only when its theme is short of beasts: its plan then lists every beast of the
+ * theme its mini-bosses and boss leave, so a plan short by mistake fails here instead of repeating quietly
+ */
+describe("the temples' plans", () => {
+  it.each(IDS)("%s repeats a beast only when its plan lists every beast of its theme", (id) => {
+    const plan = CLASSIC_PLANS[id];
+    const listed = new Set([...plan.mustClear, ...plan.minibosses, plan.boss].map(([slug]) => slug));
+    const theme = id.replace("-temple", "");
+    const unlisted = BEAST_LIBRARY.filter((beast) => beast.theme === theme && !listed.has(beast.slug)).map((beast) => beast.slug);
+    const { repeats } = classicReport(id);
+    const isRepeating = repeats.length > 0;
+    expect({ id, repeats, unlisted: isRepeating ? unlisted : [] }).toEqual({ id, repeats, unlisted: [] });
   });
 });
 
-describe("the generator defaults the shipped temples are made with", () => {
+// The generator no longer makes a shipped temple; the Temple Creator's Generate still uses it with these defaults
+describe("the generator's defaults (the Temple Creator's Generate)", () => {
   const options = { theme: "Kitchen", size: "small" as const, floors: 2 as const, locks: 1 as const };
   const typed = (temple: { rooms: Record<string, { type: string }> }, type: string) => Object.values(temple.rooms).filter((room) => room.type === type);
   const keyInMiniboss = (temple: { rooms: Record<string, { type: string; content?: Record<string, any> }> }) =>

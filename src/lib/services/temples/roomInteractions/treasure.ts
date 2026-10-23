@@ -8,6 +8,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { asChestRoom } from '../ChestLoot';
+import { roomDrops } from '../fightDrops';
 import { earnGold } from './hero';
 import { temples } from './travel';
 import { roomKind, SFX } from './vocabulary';
@@ -128,6 +129,18 @@ export const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome 
   }
   system.addKey(ctx.templeId);
   return { message: `You take ${name}.`, sound: SFX.key, found: { kind: 'key', title: 'Small Key' } };
+};
+
+/**
+ * Whether a fight room's drop is waiting for the hero: the room drops something (`content.drops`, see fightDrops), the hero
+ * has not taken it in this run, and no fight stands in the way. The drop is filed apart from the room's own key
+ * (TempleSystem.isDropTaken), so taking it does not spend the room's search and searching does not take it.
+ * @param isFightLive The beast is still there to be fought: a quest room whose sheet offers the fight, a classic room not yet cleared
+ */
+export const isDropWaiting = (room: Room, ctx: RoomContext, isFightLive: boolean): boolean => {
+  if (isFightLive) return false;
+  const isDropped = roomDrops(room) !== null;
+  return isDropped && !temples().isDropTaken(ctx.templeId, ctx.level, ctx.position);
 };
 
 /** A chest is empty when the room says so, or its chest in the ChestSystem is. */

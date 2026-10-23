@@ -12,7 +12,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
-import windTemple from "@/lib/engine/temples/wind-temple";
+import { windBeforeEagle as windTemple } from "./windBeforeEagle";
 import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
 import {
   WOKEN_TEMPLES_FIELD,
@@ -37,7 +37,7 @@ const MIA = "hero-2";
 const WED = new Date("2026-10-14T15:30:00");
 const MONDAY = new Date("2026-10-12T00:00:00");
 
-/** A fresh copy of the shipped Howling Spire */
+/** A fresh copy of the Howling Spire as the owner made it (windBeforeEagle.ts) */
 const spire = (): QuestLayout & { entrance: number[] } =>
   JSON.parse(JSON.stringify({ entrance: windTemple.entrance, maze: windTemple.maze, rooms: windTemple.rooms }));
 

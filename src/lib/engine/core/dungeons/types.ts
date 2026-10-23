@@ -30,6 +30,12 @@ export interface RoomQuestTemplate {
  */
 export type RoomDrops = Pick<RoomContent, 'chest' | 'dungeon' | 'items' | 'gold'>;
 
+/**
+ * What bars a flight of stairs (`RoomContent.locked` on a stairs room): a small lock a small key opens, or the Boss
+ * Door's lock only the Boss Key opens. The doors between two rooms are locked with `Room.locked` and the Boss Door rule instead.
+ */
+export type ClimbLock = 'small' | 'master';
+
 export interface RoomContent {
   beasts?: string[];
   /** A quest room: the family quest the Game Master picked in the editor (5.2 step 1) */
@@ -49,6 +55,11 @@ export interface RoomContent {
   items?: string[];
   gold?: number;
   dungeon?: string;
+  /**
+   * A stairs-up / stairs-down room: the climb FROM this room is locked, a small key or the Boss Key opens it (the Boss Key
+   * is kept). The landing on the other floor climbs back freely. Remembered in a run as TempleState.openedDoors `climbKey`.
+   */
+  locked?: ClimbLock;
   /** A fight room (monster, mini-boss, boss): what the hero takes after winning, a key, the map or a Bomb included */
   drops?: RoomDrops;
   chestId?: string;

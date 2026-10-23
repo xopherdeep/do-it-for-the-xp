@@ -176,6 +176,98 @@ describe("TempleSolver", () => {
     expect(solveTemple(pit).reasons).toEqual(["R8: 2F (0,3) pit drops onto a wall at 1F (0,3)"]);
   });
 
+  it("R8 Pits: a pit that names its landing drops there, on any lower floor; one that names none drops as before", () => {
+    const rooms: Record<string, Room> = {
+      [_]: { type: "wall" },
+      E001: { type: "entrance" },
+      R002: { type: "empty" },
+      V001: { type: "pit", content: { targetLevel: "1F", targetCoords: { x: 1, y: 0 } } },
+      V002: { type: "pit" },
+      V003: { type: "pit", content: { targetLevel: "B1", targetCoords: { x: 0, y: 0 } } },
+    };
+    const pitDoors = (layout: TempleLayout) => buildTempleGraph(layout).doors.filter((door) => door.kind === "pit").map((door) => door.id);
+
+    // Two floors down to the cell it names; the unnamed pit next to it lands on the same cell below, as always
+    const tall: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", "R002"]], "2F": [["R002", "V002"]], "3F": [["V001", "R002"]] }, rooms };
+    expect(pitDoors(tall)).toEqual(["2F:0,1>1F:0,1", "3F:0,0>1F:0,1"]);
+    expect(buildTempleGraph(tall).issues).toEqual([]);
+
+    // Into a one-room floor
+    const cellar: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", "V003"]], B1: [["R002"]] }, rooms };
+    expect(pitDoors(cellar)).toEqual(["1F:0,1>B1:0,0"]);
+    expect(buildTempleGraph(cellar).issues).toEqual([]);
+
+    // A named cell that is a wall is said so, and the pit still drops where it can
+    const astray: TempleLayout = { entrance: [0, 0, 0], maze: { "1F": [["E001", _]], "2F": [[_, "V001"]] }, rooms };
+    expect(buildTempleGraph(astray).issues).toEqual([{ rule: "R8", text: "2F (0,1) pit drops onto a wall at 1F (0,1)" }]);
+  });
+
+  // Until 2026-10-13 the Temple Creator seeded every new pit with its own floor and cell 0,0. As in the engine's fall
+  // (hazards.ts), a named floor counts only when the temple has it and it stands below the pit.
+  it("R8 Pits: a pit whose named floor is not below it (the old seed, a floor above, a missing floor) drops as an unnamed pit", () => {
+    const named = (targetLevel: string): Room => ({ type: "pit", content: { targetLevel, targetCoords: { x: 0, y: 0 } } });
+    const rooms: Record<string, Room> = { [_]: { type: "wall" }, E001: { type: "entrance" }, R002: { type: "empty" }, V1F: named("1F"), V2F: named("2F"), VB3: named("B3") };
+    const pitDoors = (layout: TempleLayout) => buildTempleGraph(layout).doors.filter((door) => door.kind === "pit").map((door) => door.id);
+    const tower = (ground: string, upper: string): TempleLayout => ({ entrance: [0, 0, 1], maze: { "1F": [[_, "E001", ground]], "2F": [["R002", "R002", upper]] }, rooms });
+
+    // One floor: the old seed is a bruise, not a door onto itself, and the pit keeps its walking door
+    const flat: TempleLayout = { entrance: [0, 1], maze: [[_, "E001", "V1F"]], rooms };
+    expect(pitDoors(flat)).toEqual([]);
+    expect(buildTempleGraph(flat).issues).toEqual([]);
+    expect(buildTempleGraph(flat).doors.map((door) => door.id)).toContain("1F:0,2>1F:0,1");
+
+    // Two floors: the old seed and a missing floor drop to the same cell below, the cell they name unread
+    expect(pitDoors(tower("R002", "V2F"))).toEqual(["2F:0,2>1F:0,2"]);
+    expect(pitDoors(tower("R002", "VB3"))).toEqual(["2F:0,2>1F:0,2"]);
+    expect(buildTempleGraph(tower("R002", "VB3")).issues).toEqual([]);
+
+    // A ground-floor pit naming the floor above has nothing below it
+    expect(pitDoors(tower("V2F", "R002"))).toEqual([]);
+  });
+
+  describe("a flight of stairs can be locked: a small key or the Boss Key opens the climb (#1484)", () => {
+    const climbRooms = (stairs: Room): Record<string, Room> => ({ ...ROOMS, R001: { type: "empty" }, U001: stairs, D001: { type: "stairs-down" } });
+    /** 1F walks east to the stairs up (1,3); 2F walks west from the stairs down to the boss, the Boss Key above the mini-boss */
+    const tower = (stairs: Room, ground: string[][], upper: string[][]): TempleLayout => ({ entrance: [0, 1, 0], maze: { "1F": ground, "2F": upper }, rooms: climbRooms(stairs) });
+    const small: Room = { type: "stairs-up", content: { locked: "small" } };
+    const master: Room = { type: "stairs-up", content: { locked: "master" } };
+    const onTheWay = [[_, "K001", _, _], ["E001", "R001", "R002", "U001"], [_, _, _, _]];
+    const upstairs = [[_, _, "MK01", _], ["B001", "R004", "b001", "D001"], ["P001", _, _, _]];
+
+    it("is solvable when the only small key lies on the floor below, and not once that key is gone", () => {
+      expect(solveTemple(tower(small, onTheWay, upstairs))).toMatchObject({ solvable: true, reasons: [] });
+
+      const keyless = tower(small, [[_, _, _, _], onTheWay[1], onTheWay[2]], upstairs);
+      expect(solveTemple(keyless).solvable).toBe(false);
+      expect(reasonsUnder("R2", keyless)).toEqual([expect.stringMatching(/^R2: the master key is out of reach: 0 keys in hand, 1 locked door in reach \(1F \(1,3\) stairs-up -> 2F \(1,3\) stairs-down\)/)]);
+    });
+
+    it("locks the climb and not the landing: the stairs door leaving a locked stairs room carries the lock", () => {
+      const stairsDoors = buildTempleGraph(tower(small, onTheWay, upstairs)).doors.filter((door) => door.kind === "stairs");
+      expect(stairsDoors.map(({ id, lock }) => [id, lock])).toEqual([["1F:1,3>2F:1,3", "small"], ["2F:1,3>1F:1,3", "none"]]);
+      expect(buildTempleGraph(tower(master, onTheWay, upstairs)).doors.find((door) => door.kind === "stairs")?.lock).toBe("master");
+    });
+
+    it("counts the stairs' small lock against the keys: a key short of it is an R3", () => {
+      expect(reasonsUnder("R3", tower(small, [[_, _, _, _], onTheWay[1], onTheWay[2]], upstairs))).toEqual(["R3: 0 small keys for 1 locked door on the critical path"]);
+      expect(reasonsUnder("R3", tower(small, onTheWay, upstairs))).toEqual([]);
+    });
+
+    it("a Boss Key climb is solvable only when the Boss Key is reachable before it", () => {
+      const keyBelow = [[_, _, "MK01", _], ["E001", "R001", "b001", "U001"], [_, _, _, _]];
+      const bossFloor = [[_, _, _, _], ["B001", "R004", "R002", "D001"], ["P001", _, _, _]];
+      expect(solveTemple(tower(master, keyBelow, bossFloor))).toMatchObject({ solvable: true, reasons: [] });
+
+      // The same Boss Key left on the boss floor is behind the very lock it opens
+      const keyAbove = [[_, _, "MK01", _], ["B001", "R004", "R002", "D001"], ["P001", _, _, _]];
+      const noKeyBelow = [[_, _, _, _], ["E001", "R001", "b001", "U001"], [_, _, _, _]];
+      expect(solveTemple(tower({ type: "stairs-up" }, noKeyBelow, keyAbove)).solvable).toBe(true);
+      const stuck = tower(master, noKeyBelow, keyAbove);
+      expect(solveTemple(stuck).solvable).toBe(false);
+      expect(reasonsUnder("R2", stuck)).toEqual([expect.stringMatching(/^R2: the master key is out of reach/)]);
+    });
+  });
+
   describe("R8 Floors follow the climbing order, not the order the maze map holds them (#1380)", () => {
     // The map's keys are 1F, 2F, B1 (the basement was drawn last), so B1 lies below 1F. The entrance's floor index
     // still counts in the map's own order: 0 is 1F.
@@ -410,10 +502,9 @@ describe("TempleSolver", () => {
     expect(next.doors).toEqual([]);
   });
 
+  // Every shipped temple follows a classic dungeon now (the Wind Temple Zelda's Eagle, with the owner's own rooms): none
+  // is hand-made any more, so none is let off a rule
   describe("R12 Shipped temples pass", () => {
-    /** The Wind Temple is the owner's own, edited in the Temple Creator: a rule it breaks shows in the title, it does not fail the suite */
-    const HAND_MADE = ["wind-temple"];
-
     /** The layout as registration reads it: the editor's door sides (`sides`) become locks */
     const asRegistered = (temple: TempleLayout): TempleLayout => ({
       ...temple,
@@ -422,9 +513,7 @@ describe("TempleSolver", () => {
 
     for (const [id, temple] of Object.entries(temples)) {
       const result = solveTemple(asRegistered(temple as TempleLayout));
-      const test = HAND_MADE.includes(id) && result.reasons.length ? it.skip : it;
-      const title = test === it.skip ? `${id} fails the solver: ${result.reasons.join(" | ")}` : `${id} passes the solver`;
-      test(title, () => {
+      it(`${id} passes the solver`, () => {
         expect(result.reasons).toEqual([]);
         expect(result.solvable).toBe(true);
       });

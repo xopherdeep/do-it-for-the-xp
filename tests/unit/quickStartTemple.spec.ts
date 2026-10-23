@@ -10,7 +10,8 @@ import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { TempleInterface } from "@/lib/databases/TempleDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
-import windTemple from "@/lib/engine/temples/wind-temple";
+import shippedWind from "@/lib/engine/temples/wind-temple";
+import { windBeforeEagle as windTemple } from "./windBeforeEagle";
 import { QUICK_START_PACK } from "@/lib/services/core/packs/catalog/quickStart";
 import { roomQuestIds } from "@/lib/services/temples/questRooms";
 import {
@@ -30,8 +31,23 @@ const MONDAY = new Date("2026-10-12T00:00:00");
 
 type Layout = NonNullable<TempleInterface["dungeonLayout"]>;
 
-/** A fresh copy of the shipped Howling Spire, so no spec can change the one in code */
+/** A fresh copy of the Howling Spire as the owner made it (windBeforeEagle.ts), so no spec can change it */
 const spire = (): Layout => JSON.parse(JSON.stringify({ entrance: windTemple.entrance, maze: windTemple.maze, rooms: windTemple.rooms }));
+
+/**
+ * The Spire with its entrance's north door a plain door: every monster room this side of the cracked and boss doors is
+ * then a walk from the entrance. In the Spire as made only the Mustwisp's room is, so the specs that place several
+ * quests walk this one.
+ */
+const openSpire = (): Layout => {
+  const layout = spire();
+  const entrance = layout.rooms._00__;
+  layout.rooms._00__ = { ...entrance, sides: { ...entrance.sides!, north: "door" } };
+  return layout;
+};
+
+/** A fresh copy of the Wind Temple as shipped: Zelda's Eagle, entered at 1F (5,2) */
+const eagle = (): Layout => JSON.parse(JSON.stringify({ entrance: shippedWind.entrance, maze: shippedWind.maze, rooms: shippedWind.rooms }));
 
 const TONIGHT = ["quick-dishes", "quick-room", "quick-homework"];
 
@@ -46,16 +62,23 @@ describe("the Quick Start quests and temple", () => {
 });
 
 describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
-  it("puts them in the first three monster rooms a hero walks into from the entrance, one per room", () => {
-    const plan = quickStartTemplePlan(spire(), TONIGHT, [KIA, MIA], WED);
-    // The entrance opens east onto the Mustwisp's room; its locked north door leads on to the Spill Sprite, then the Mailbox Mimic
+  it("puts them in the first three monster rooms a hero walks into from the entrance, nearest first, one per room", () => {
+    const plan = quickStartTemplePlan(openSpire(), TONIGHT, [KIA, MIA], WED);
+    // The entrance opens north onto the Spill Sprite (the Mailbox Mimic beyond it) and east onto the Mustwisp
     expect(plan.placed.map(({ questId, symbol }) => [questId, symbol])).toEqual([
-      ["quick-dishes", "M0305"],
-      ["quick-room", "M0204"],
+      ["quick-dishes", "M0204"],
+      ["quick-room", "M0305"],
       ["quick-homework", "M0203"],
     ]);
-    expect(plan.placed.map((place) => place.key)).toEqual(["1F:5,3", "1F:4,2", "1F:3,2"]);
+    expect(plan.placed.map((place) => place.key)).toEqual(["1F:4,2", "1F:5,3", "1F:3,2"]);
     expect(plan.unplaced).toEqual([]);
+  });
+
+  // A quest of tonight's is a child's first fight: its room is a walk from the door, never behind a lock to open first
+  it("never puts one behind a locked door, a cracked wall or a sealed room: in the Spire as made only the Mustwisp is a walk away", () => {
+    const plan = quickStartTemplePlan(spire(), TONIGHT, [KIA], WED);
+    expect(plan.placed.map(({ questId, symbol }) => [questId, symbol])).toEqual([["quick-dishes", "M0305"]]);
+    expect(plan.unplaced).toEqual(["quick-room", "quick-homework"]);
   });
 
   it("holds each quest the way a pack's quest sits in a room, and keeps the room's template beside it", () => {
@@ -69,7 +92,7 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
   });
 
   it("changes only those three rooms and keeps the entrance and the maze", () => {
-    const before = spire();
+    const before = openSpire();
     const plan = quickStartTemplePlan(before, TONIGHT, [KIA], WED);
     const changed = Object.keys(before.rooms).filter((symbol) => JSON.stringify(before.rooms[symbol]) !== JSON.stringify(plan.layout!.rooms[symbol]));
     expect(changed.sort()).toEqual(["M0203", "M0204", "M0305"]);
@@ -85,7 +108,7 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
   });
 
   it("passes over a room that already holds a quest", () => {
-    const layout = spire();
+    const layout = openSpire();
     layout.rooms.M0305 = { ...layout.rooms.M0305, content: { ...layout.rooms.M0305.content, questIds: ["mums-own"] } };
     const plan = quickStartTemplePlan(layout, TONIGHT, [KIA], WED);
     expect(plan.placed.map((place) => place.symbol)).toEqual(["M0204", "M0203", "M0201"]);
@@ -100,7 +123,7 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
   });
 
   it("does not place a quest the temple already holds, so a second run changes nothing", () => {
-    const first = quickStartTemplePlan(spire(), TONIGHT, [KIA], WED);
+    const first = quickStartTemplePlan(openSpire(), TONIGHT, [KIA], WED);
     const second = quickStartTemplePlan(first.layout, TONIGHT, [KIA], WED);
     expect(second.placed).toEqual([]);
     expect(second.unplaced).toEqual([]);
@@ -108,7 +131,7 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
   });
 
   it("never writes a room whose token other cells share (it would change every one of them)", () => {
-    const layout = spire();
+    const layout = openSpire();
     // The Mustwisp's token now stands in two cells: the entrance's east room and the wall west of the entrance's west room
     (layout.maze as Record<string, string[][]>)["1F"][5][0] = "M0305";
     const plan = quickStartTemplePlan(layout, TONIGHT, [KIA], WED);
@@ -117,8 +140,8 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
   });
 
   it("lists the quests no free monster room was left for", () => {
-    const plan = quickStartTemplePlan(spire(), [...TONIGHT, "a", "b", "c", "d"], [KIA], WED);
-    // The Spire has six monster rooms
+    const plan = quickStartTemplePlan(openSpire(), [...TONIGHT, "a", "b", "c", "d"], [KIA], WED);
+    // The Spire has six monster rooms, each a walk from the entrance once its north door is open
     expect(plan.placed).toHaveLength(6);
     expect(plan.unplaced).toEqual(["d"]);
   });
@@ -134,7 +157,7 @@ describe("quickStartTemplePlan: tonight's quests in the Spire", () => {
 
 describe("quickStartTemplePlan: the other monster rooms wake", () => {
   it("wakes the other monster rooms' templates for every Quick Start hero, starting this Monday", () => {
-    const layout = spire();
+    const layout = openSpire();
     const plan = quickStartTemplePlan(layout, TONIGHT, [KIA, MIA], WED);
     expect(plan.wake.templeId).toBe("wind-temple");
     expect(plan.wake.heroIds).toEqual([KIA, MIA]);
@@ -145,7 +168,7 @@ describe("quickStartTemplePlan: the other monster rooms wake", () => {
   });
 
   it("leaves the miniboss and boss rooms asleep for the Game Master, and wakes nothing in the rooms tonight's quests took", () => {
-    const layout = spire();
+    const layout = openSpire();
     const woken = quickStartTemplePlan(layout, TONIGHT, [KIA], WED).wake.templates.map((template) => template.beastId);
     for (const symbol of ["m0402", "m0504", "B0401", "M0305", "M0204", "M0203"]) {
       expect(woken).not.toContain(beastOf(layout, symbol));
@@ -153,7 +176,7 @@ describe("quickStartTemplePlan: the other monster rooms wake", () => {
   });
 
   it("makes Solo Missions for the heroes through planWake, as the Temple Quests tab would", () => {
-    const plan = quickStartTemplePlan(spire(), TONIGHT, [KIA, MIA], WED);
+    const plan = quickStartTemplePlan(openSpire(), TONIGHT, [KIA, MIA], WED);
     const wake = planWake({ ...plan.wake, quests: [], beasts: [] });
     expect(wake.problem).toBeNull();
     expect(wake.quests.map((quest) => quest.id).sort()).toEqual(
@@ -178,6 +201,35 @@ describe("quickStartTemplePlan: the other monster rooms wake", () => {
     layout.rooms.M0102 = { ...layout.rooms.M0102, content: { ...layout.rooms.M0102.content, quest: { ...layout.rooms.M0302.content!.quest! } } };
     const woken = quickStartTemplePlan(layout, TONIGHT, [KIA], WED).wake.templates.map((template) => template.beastId);
     expect(woken.filter((id) => id === beastOf(layout, "M0302"))).toHaveLength(1);
+  });
+});
+
+describe("quickStartTemplePlan in the shipped Wind Temple (Zelda's Eagle)", () => {
+  // The entrance opens east onto M005 and west onto M004, two fight rooms each sealed only by its own beast; its north
+  // door is locked, and m006 behind it is no room for a child's first quest of the night
+  it("puts tonight's quests only in the rooms a hero walks into from the entrance with no key, Bomb or seal", () => {
+    const plan = quickStartTemplePlan(eagle(), TONIGHT, [KIA], WED);
+    expect(plan.placed.map(({ questId, symbol }) => [questId, symbol])).toEqual([
+      ["quick-dishes", "M005"],
+      ["quick-room", "M004"],
+    ]);
+    expect(plan.placed.map((place) => place.symbol)).not.toContain("m006");
+    expect(plan.unplaced).toEqual(["quick-homework"]);
+  });
+
+  it("goes no further than a room a beast seals: what lies past M005 or M004 waits for the fight", () => {
+    const layout = eagle();
+    // M005's east side opens onto a new monster room: reaching it means winning M005's fight first
+    (layout.maze as Record<string, string[][]>)["1F"][5][4] = "M999";
+    layout.rooms.M999 = { ...layout.rooms.m006, sides: { north: "wall", east: "wall", south: "wall", west: "door" } };
+    layout.rooms.M005 = { ...layout.rooms.M005, sides: { ...layout.rooms.M005.sides!, east: "door" } };
+    const plan = quickStartTemplePlan(layout, TONIGHT, [KIA], WED);
+    expect(plan.placed.map((place) => place.symbol)).toEqual(["M005", "M004"]);
+  });
+
+  it("wakes the Eagle's other monster rooms, the one behind the locked door with them", () => {
+    const woken = quickStartTemplePlan(eagle(), TONIGHT, [KIA], WED).wake.templates.map((template) => template.beastId);
+    expect(woken).toContain("beast-spill-sprite");
   });
 });
 
@@ -233,7 +285,7 @@ const spireRecord = (): TempleInterface => ({
   categoryIds: ["dungeon", "wind"],
   level: 1,
   seedSignature: "v1:abc",
-  dungeonLayout: spire(),
+  dungeonLayout: openSpire(),
 });
 
 describe("runQuickStartTemple", () => {
@@ -243,7 +295,7 @@ describe("runQuickStartTemple", () => {
     expect(f.records).toHaveLength(1);
     const saved = f.records[0];
     expect(saved).toMatchObject({ id: "wind-temple", customName: "Wind Temple", categoryIds: ["dungeon", "wind"], seedSignature: "v1:abc" });
-    expect(roomQuestIds(saved.dungeonLayout!.rooms.M0305 as Room)).toEqual(["quick-dishes"]);
+    expect(roomQuestIds(saved.dungeonLayout!.rooms.M0204 as Room)).toEqual(["quick-dishes"]);
     expect(done.placed.map((place) => place.questId)).toEqual(TONIGHT);
   });
 

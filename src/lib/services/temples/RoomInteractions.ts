@@ -21,11 +21,11 @@ import { heroEffects, luckyTop } from '@/lib/services/stats/StatEffects';
 import { asChestRoom } from './ChestLoot';
 import { earnGold, healHero, readGold, readPoints, restoreMana } from './roomInteractions/hero';
 import { hasHappened, pick, randomInt, rememberOnce, rngOf, roomKey } from './roomInteractions/visitMemory';
-import { climb, temples } from './roomInteractions/travel';
+import { stairsSheet, temples } from './roomInteractions/travel';
 import { jumpTrap, springTrap } from './roomInteractions/hazards';
 import { shopWares } from './roomInteractions/shop';
 import { isPuzzleSolved, publicRiddle, riddleFor } from './roomInteractions/puzzle';
-import { isChestEmptyIn, isPickupTaken, isRoomSpent, openGate, pickUp, spendRoom } from './roomInteractions/treasure';
+import { isChestEmptyIn, isDropWaiting, isPickupTaken, isRoomSpent, openGate, pickUp, spendRoom } from './roomInteractions/treasure';
 import { questRoomWordsFor } from './roomInteractions/questSheet';
 import { ENCOUNTER_LINES, roomKind, SFX } from './roomInteractions/vocabulary';
 import type { RoomAction, RoomContext, RoomOutcome, RoomSheet } from './roomInteractions/vocabulary';
@@ -100,6 +100,9 @@ const spring = (
 };
 
 const spent = (ctx: RoomContext, topic: string): boolean => hasHappened(roomKey(ctx, topic));
+
+/** What a fight room says while its beast's drop waits to be taken (the screen opens the chest reveal on it) */
+const DROP_LINE = 'Something glints where the beast fell.';
 
 /**
  * The action sheet for a room: a header in the temple's voice and the room's own actions.
@@ -230,26 +233,38 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
           ? []
           : [act('Search the room', () => hunt(ctx, 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))];
 
+      // What the beast dropped waits in the room for a hero with no fight to win: Take it opens the chest reveal on it
+      // (the drop is filed apart from the room's search, see isDropWaiting)
+      const takeTheDrop = (): RoomAction[] => [act('Take it', () => ({ intent: 'takeDrop' }))];
+
       // A room that holds a quest tells the truth about it (docs/Quest-Rooms-Spec.md 5.3): the quest's beast, the chore
       // and when it is due, or why there is no fight. A classic room, a dormant one and a run with no board yet fall through.
       const questWords = questRoomWordsFor(room, ctx);
       if (questWords) {
         const { status, header, subHeader, body, beastId, fight, search } = questWords;
+        const hasDrop = isDropWaiting(room, ctx, fight);
         const actions: RoomAction[] = [];
         if (fight) actions.push(act('Fight', () => ({ intent: 'fight' })));
+        if (hasDrop) actions.push(...takeTheDrop());
         if (search) actions.push(...searchTheRoom());
         const beastDefeated = status === 'cleared' || status === 'pending';
         return {
           ...sheet(header, actions, subHeader),
-          body,
+          body: hasDrop ? [body, DROP_LINE].filter(Boolean).join(' ') : body,
           beastId,
           ...(beastId ? { questBeast: true } : {}),
           ...(beastDefeated ? { beastDefeated } : {}),
+          ...(hasDrop ? { drop: 'waiting' as const } : {}),
         };
       }
 
       if (system.isRoomCleared(ctx.templeId, ctx.level, ctx.position)) {
-        return { ...sheet('Nothing left here but the smell.', searchTheRoom()), beastDefeated: true };
+        const hasDrop = isDropWaiting(room, ctx, false);
+        return {
+          ...sheet('Nothing left here but the smell.', [...(hasDrop ? takeTheDrop() : []), ...searchTheRoom()]),
+          ...(hasDrop ? { body: DROP_LINE, drop: 'waiting' as const } : {}),
+          beastDefeated: true,
+        };
       }
       const beasts = room.content?.beasts;
       const beastId = Array.isArray(beasts) && beasts.length > 0 ? String(beasts[0]) : undefined;
@@ -260,9 +275,9 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     }
 
     case 'stairs-up':
-      return sheet('Stairs lead up.', [act('Climb', () => climb(room, ctx, 'up'))]);
+      return stairsSheet(room, ctx, 'up');
     case 'stairs-down':
-      return sheet('Stairs lead down.', [act('Climb', () => climb(room, ctx, 'down'))]);
+      return stairsSheet(room, ctx, 'down');
 
     case 'pit':
       return sheet('A hole in the floor. Mind your step.');

@@ -106,6 +106,10 @@ describe("lootFace", () => {
     expect(lootFace("compass")).toMatchObject({ name: "Compass", tier: "key" });
   });
 
+  it("knows the Bomb: a supply with the bomb icon, not the plain gift", () => {
+    expect(lootFace("Bomb")).toMatchObject({ name: "Bomb", icon: "bomb", blurb: "Blows open a cracked wall. Goes in your bag.", tier: "supply" });
+  });
+
   it("tells which tool a relic is equipped as", () => {
     expect(lootFace("Flame Shield").blurb).toBe("A relic of the Fire Temple. Equip it as the Fire Wand.");
     expect(lootFace("Trident of Tides").blurb).toBe("A relic of the Water Temple. Equip it as the Hook Shot.");

@@ -6,16 +6,17 @@ import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSy
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { ensureTempleFresh } from '@/lib/engine/core/dungeons/templeFreshness';
+import { ensureBuiltInTemples } from '@/lib/engine/core/dungeons/importAllTemples';
 import { canEnter } from '@/lib/engine/core/dungeons/templeSystem/floors';
 import { isBarrierKind } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
-import { useUserStore } from '@/lib/store/stores/user';
 import { useTimers } from '@/hooks/useTimers';
-import { chestItemUnlocks, freeTemplePegasus, pegasusEgg } from '@/lib/services/temples/TemplePegasus';
+import { pegasusEgg } from '@/lib/services/temples/TemplePegasus';
 import { chestLoot, lootFace } from '@/lib/services/temples/ChestLoot';
-import { earnGold } from '@/lib/services/temples/RoomInteractions';
+import { roomDrops } from '@/lib/services/temples/fightDrops';
+import { dropRows, handOutItems, takeDrop } from './templeLoot';
 
 // Define a message display function type that can be provided by the component using this hook
 export type MessageDisplayFn = (message: string, duration?: number) => void;
@@ -93,6 +94,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   });
 
   const openTemple = async (): Promise<boolean> => {
+    // The shipped temples are synced into the TempleDb once per session (app start): a run must not open on a copy
+    // the sync is about to replace, since a refresh starts every run in that temple over (importAllTemples)
+    await ensureBuiltInTemples();
     await ensureTempleFresh(templeId);
     if (isUnmounted) return false;
     const isTempleReady = initTemple();
@@ -389,6 +393,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   const isChestLooted = (room: { isEmpty?: boolean; content?: { chestId?: string } }) =>
     Boolean(room.isEmpty || (room.content?.chestId && ChestSystem.getInstance().getChest(room.content.chestId)?.isEmpty));
 
+  // What the loot rules (templeLoot) hand things out with: the run, the hero, and the screen's own copies of the map and compass
+  const lootDeps = { templeId, userId, templeSystem, hasMap, hasCompass };
+
   // Process selected chest items
   const claimChestItems = (selectedItems: string[]) => {
     const isNotInARoom = !currentRoom.value || !currentPosition.value;
@@ -398,7 +405,6 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const [row, col] = currentPosition.value;
     debug.log(`Processing chest items at position [${row}, ${col}] in temple ${templeId}`);
     const content = currentRoom.value.content;
-    let freed: string | undefined;
 
     // A chest emptied before (even in an earlier visit) hands out nothing a second time
     if (isChestLooted(currentRoom.value)) {
@@ -412,70 +418,13 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       showTempleMessage('You took nothing.', 2000);
       return;
     }
-    
-    // What the message lists: each item by its proper name, the gold as it was paid
-    const collected: string[] = [];
-    // What the hero had no room for: it stays in the chest, so they can come back for it
-    const leftBehind: string[] = [];
 
-    // Process each selected item
-    selectedItems.forEach(item => {
-      // Handle special gold item format
-      const isGold = item.startsWith('gold:');
-      if (isGold) {
-        const goldAmount = parseInt(item.split(':')[1], 10);
-        // Paid with the hero's class and awareness bonus, like any other temple gold
-        const canPayGold = !isNaN(goldAmount) && userId;
-        if (canPayGold) collected.push(`${earnGold(userId, goldAmount)} GP`);
-        return;
-      }
-      
-      // Restoratives go in the bag as consumables (My Goods files them under Consumables), or in storage when the bag
-      // is full; with neither having room, the chest keeps them
-      const canBagRestorative = userId && /^(potion|ether)$|elixir/i.test(item);
-      if (canBagRestorative) {
-        const isInBag = useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
-        if (isInBag) collected.push(lootFace(item).name);
-        else leftBehind.push(item);
-        return;
-      }
-
-      collected.push(lootFace(item).name);
-
-      // Handle special items by updating both local refs AND the temple system state
-      if (item === 'key') {
-        // The temple holds the count (and saves it with the hero's progress); the header reads it from there
-        templeSystem.addKey(templeId);
-      } else if (item === 'master-key') {
-        // Holding the master key opens the temple's gate without the beast that guards it
-        templeSystem.grantMasterKey(templeId);
-      } else if (item === 'map') {
-        hasMap.value = true;
-        // Update the temple system state directly
-        const state = templeSystem.getTempleState(templeId);
-        if (state) state.hasMap = true;
-      } else if (item === 'compass') {
-        hasCompass.value = true;
-        // Update the temple system state directly
-        const state = templeSystem.getTempleState(templeId);
-        if (state) state.hasCompass = true;
-      } else {
-        // The Pegasus chest behind the boss: the egg frees the world's Pegasus and clears the temple. The egg is the
-        // chest's whole prize token: it unlocks no item (the Wind Temple's whistle is a row of its own).
-        const isEgg = content?.pegasus === true && item === content.dungeon;
-        if (isEgg) freed = freeTemplePegasus(templeId, userId, item).message;
-        // A named item (Frost Wand, the Wind Whistle...): the hero may now equip it, and what it stands for
-        const shouldUnlockItem = userId && !isEgg;
-        if (shouldUnlockItem) {
-          const store = useUserStore();
-          chestItemUnlocks(templeId, item).forEach((name) => store.unlockItem(userId, name));
-        }
-      }
-    });
+    // What the hero had no room for stays in the chest, so they can come back for it
+    const { collected, leftBehind, freed } = handOutItems(lootDeps, selectedItems, content);
 
     // The state above was changed directly, so it has to be asked to save
     templeSystem.saveProgress(templeId);
-    
+
     // Out of the chest: it is empty (and stays so) only once nothing is left in it; the rest waits for the next visit
     const taken = selectedItems.filter((item) => !leftBehind.includes(item));
     const hasTaken = taken.length > 0;
@@ -492,7 +441,22 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     }
     showTempleMessage(freed ?? `Collected: ${collected.join(', ')}`, 3000);
   };
-  
+
+  // What a beaten beast dropped in the room the hero stands in, as the chest reveal shows it; nothing once it is taken
+  const dropContents = computed(() => {
+    const isTaken = templeSystem.isDropTaken(templeId, currentLevel.value, currentPosition.value);
+    return isTaken ? [] : dropRows(roomDrops(currentRoom.value));
+  });
+
+  // The hero takes what they ticked of the drop, all of it or nothing (templeLoot.takeDrop), and the run remembers it taken
+  const claimDropItems = (selectedItems: string[]) => {
+    const isNotInARoom = !currentRoom.value || !currentPosition.value;
+    if (isNotInARoom) return;
+    const room = { level: currentLevel.value, position: currentPosition.value };
+    const { message, duration } = takeDrop({ ...lootDeps, ...room }, dropContents.value, roomDrops(currentRoom.value), selectedItems);
+    showTempleMessage(message, duration);
+  };
+
   // Check if the chest in the current room is empty
   const isChestEmpty = computed(() => {
     const isNotLootRoom = !currentRoom.value || currentRoom.value.type !== 'loot';
@@ -648,6 +612,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     currentMessage,
     showMessage,
     chestContents,
+    dropContents,
     isChestEmpty,
     isCurrentRoomCleared,
     
@@ -663,6 +628,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     isDoorLocked,
     unlockDoor,
     claimChestItems,
+    claimDropItems,
     handleTeleport,
     toggleMap,
     openMap,

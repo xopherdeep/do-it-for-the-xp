@@ -57,4 +57,26 @@ describe("countKeysAndLocks: where the small keys come from", () => {
     const { totalKeys, actualLocks } = countKeysAndLocks(rooms);
     expect(totalKeys - actualLocks).toBe(0);
   });
+
+  it("counts a locked flight of stairs as one small lock (its landing, which climbs back freely, as none)", () => {
+    const rooms = {
+      k1: { type: "key", content: {} },
+      up: { type: "stairs-up", content: { locked: "small" } },
+      down: { type: "stairs-down", content: {} },
+    };
+    expect(countKeysAndLocks(rooms)).toEqual({ totalKeys: 1, actualLocks: 1 });
+  });
+
+  it("counts a Boss Key climb as no small lock: the Boss Key is not one of the small keys", () => {
+    expect(countKeysAndLocks({ up: { type: "stairs-up", content: { locked: "master" } } }).actualLocks).toBe(0);
+  });
+
+  it("adds the stairs' lock to the locked doors, which are still counted once per edge", () => {
+    const rooms = {
+      a: { type: "empty", sides: { east: "locked" } },
+      b: { type: "empty", sides: { west: "locked" } },
+      up: { type: "stairs-up", content: { locked: "small" } },
+    };
+    expect(countKeysAndLocks(rooms).actualLocks).toBe(2);
+  });
 });
