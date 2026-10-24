@@ -214,7 +214,8 @@ export const heroesWithoutAnytimeBeast = (quests: readonly AmbushQuest[], heroId
  * hero, so it names none here.
  */
 export const freeFightHeroes = (draft: AmbushQuest, others: readonly AmbushQuest[]): string[] => {
-  if (draft.type === "asNeeded") return [];
+  const isOpenBounty = draft.type === "asNeeded";
+  if (isOpenBounty) return [];
   const family = [...others.filter((quest) => quest.id !== draft.id), { ...draft, draft: false }];
   return heroesWithoutAnytimeBeast(family, draft.assignee ?? []);
 };
@@ -225,7 +226,8 @@ const namesList = (names: readonly string[]): string =>
 
 /** The one hint line under the quest's due time for these heroes; empty for none. */
 export function freeFightHint(names: readonly string[]): string {
-  if (names.length === 0) return "";
+  const hasNoNames = names.length === 0;
+  if (hasNoNames) return "";
   const verb = names.length === 1 ? "has" : "have";
   return (
     `${namesList(names)} ${verb} no anytime quest with a beast, so their ambushes are free fights (AP only) ` +

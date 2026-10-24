@@ -71,7 +71,8 @@ const useBattleReturnDrop = ({ temple, whenOpened, templeSystem, returnsTo, retu
     await templeSystem.whenProgressReady(temple);
     await nextTick();
     const room = roomToOffer();
-    if (room === null) return;
+    const hasNothingToOffer = room === null;
+    if (hasNothingToOffer) return;
     offeredRooms.add(room);
     showDropReveal();
   };

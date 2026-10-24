@@ -562,7 +562,8 @@ export function useTempleCreator(
     // and name), and this room's record only becomes it when the temple has none yet
     const isOwnSymbol = symbolToUse !== ____;
     const keepsSharedEntranceRecord = isNewEntrance && Boolean(roomsData.value[symbolToUse]);
-    if (isOwnSymbol && !keepsSharedEntranceRecord) {
+    const writesOwnRecord = isOwnSymbol && !keepsSharedEntranceRecord;
+    if (writesOwnRecord) {
       roomsData.value[symbolToUse] = roomData;
     }
 

@@ -635,13 +635,6 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     releaseQuest(roomData.value);
     retypeRoom(roomData.value, type);
 
-    // The entrance is the temple's one start cell, not a room type: it moves the entrance here
-    if (isEntrance) {
-      makeThisRoomTheEntrance();
-      closeTypeModal();
-      return;
-    }
-
     const step = stepForRoomType(type);
 
     // Monster rooms go to config selector first (step 2.5) - choose M001-M009
@@ -676,6 +669,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       seedTravelTargets(ensureContent(roomData.value), type, store.currentLevelId);
       modalStep.value = 3;
     } else {
+      // The entrance is the temple's one start cell, not a room type: it moves the entrance here
+      if (isEntrance) makeThisRoomTheEntrance();
       closeTypeModal();
     }
   };

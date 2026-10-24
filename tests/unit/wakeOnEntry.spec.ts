@@ -26,7 +26,6 @@ import {
   entryWakeSkip,
   isShippedTemple,
   rememberWake,
-  rememberWokenBeasts,
   wakeKey,
   wakeOnEntryPlan,
   wakeTempleOnEntry,
@@ -37,6 +36,7 @@ import {
   type EntryWakeInput,
   type PlayedLayout,
 } from "@/lib/services/temples/wakeOnEntry";
+import { rememberWokenBeasts } from "@/lib/services/temples/layoutRefreshWake";
 import { isWokenQuest, wakeQuestId } from "@/lib/services/temples/wakeTempleQuests";
 
 const KIA = "hero-1";

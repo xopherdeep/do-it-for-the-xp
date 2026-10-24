@@ -27,7 +27,8 @@ import { placeQuickStartQuests, withoutQuickStartQuests } from '@/lib/services/t
 import { startTempleSync } from './templeFreshness';
 import { entranceOf, progressForNewLayout } from './templeReset';
 import { TempleSystem } from './TempleSystem';
-import type { HeroEffectsStore, PlayedLayout } from '@/lib/services/temples/wakeOnEntry';
+import type { HeroEffectsStore } from '@/lib/services/temples/layoutRefreshWake';
+import type { PlayedLayout } from '@/lib/services/temples/wakeOnEntry';
 
 type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
 
@@ -183,14 +184,14 @@ async function startRunsOver(templeId: string, layout: SeedLayout): Promise<void
 
 /**
  * Before a refresh replaces the old layout, each hero's woken floors of it are swapped for the beasts those floors held
- * (rememberWokenBeastsForHeroes), so the next arrival wakes only the beasts that are new. wakeOnEntry is loaded here
+ * (rememberWokenBeastsForHeroes), so the next arrival wakes only the beasts that are new. layoutRefreshWake is loaded here
  * and not at the top: a refresh is rare, and the import should not pull the stores in for the temples that did not change.
  * A failure is warned about and never keeps the layout from being written.
  */
 async function carryWakeMemory(templeId: string, oldLayout: TempleInterface['dungeonLayout'], heroes: HeroEffectsStore | undefined): Promise<void> {
   if (!oldLayout) return;
   try {
-    const wake = await import('@/lib/services/temples/wakeOnEntry');
+    const wake = await import('@/lib/services/temples/layoutRefreshWake');
     await wake.rememberWokenBeastsForHeroes(templeId, oldLayout as PlayedLayout, heroes ?? wake.familyHeroEffects());
   } catch (error) {
     debug.warn(`Could not carry the heroes' woken beasts in ${templeId} to its new layout:`, error);

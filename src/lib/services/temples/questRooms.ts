@@ -158,8 +158,7 @@ export function fillsTemplate(
 ): boolean {
   const hasItsBeast = questBeastId(quest) === String(template.beastId);
   const isBigEnough = fitsRoomTier(quest, template);
-  const isFiller = hasItsBeast && isBigEnough;
-  return isFiller;
+  return hasItsBeast && isBigEnough;
 }
 
 /** A room's `questIds` when it is a list of at least one id; anything else there (none, empty, not a list) is no list */

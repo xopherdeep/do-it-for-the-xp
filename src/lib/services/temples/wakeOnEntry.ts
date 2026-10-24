@@ -27,7 +27,7 @@
  *
  * A layout refresh (owner 2026-10-23, "wake only the new beasts"): when a shipped temple's layout is replaced
  * (importAllTemples), each hero's woken floors of the OLD layout are swapped for the beasts those floors held
- * (`templesWokenBeasts`, rememberWokenBeasts). The next arrival on a floor wakes only the beasts that list does not hold,
+ * (`templesWokenBeasts`, rememberWokenBeasts in layoutRefreshWake.ts). The next arrival on a floor wakes only the beasts that list does not hold,
  * so a room that is new wakes while a beast the old layout woke (its quest deleted since, or moved to another floor) is
  * never made again. A save no refresh has touched has no such list and wakes as it always did.
  */
@@ -62,11 +62,11 @@ export const WOKEN_TEMPLES_FIELD = "templesWokenAt";
 /** What the field holds one floor under: the temple and the floor, "wind-temple@2F". A temple id alone is an older wake. */
 export const wakeKey = (templeId: string, floor: string): string => `${templeId}@${floor}`;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 /** The wakes a hero has, by key (a temple and floor, or an older temple alone); a stored field that is not a record, or an entry that is not a time, reads as none (a profile is family data). */
-const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<string, string> => {
+export const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<string, string> => {
   const woken: unknown = isRecord(effects) ? effects.templesWokenAt : undefined;
   const kept: Record<string, string> = {};
   if (!isRecord(woken)) return kept;
@@ -129,7 +129,7 @@ export const entranceFloorOf = (layout: PlayedLayout | null | undefined): string
 export const WOKEN_BEASTS_FIELD = "templesWokenBeasts";
 
 /** Every temple's remembered beasts (slugs); a stored field that is not a record, or a temple's entry that is not a list, reads as none, and anything in a list that is not a slug is dropped (a profile is family data). */
-const beastMemoryOf = (effects: HeroQuestEffects | null | undefined): Record<string, string[]> => {
+export const beastMemoryOf = (effects: HeroQuestEffects | null | undefined): Record<string, string[]> => {
   const remembered: unknown = isRecord(effects) ? effects.templesWokenBeasts : undefined;
   const kept: Record<string, string[]> = {};
   if (!isRecord(remembered)) return kept;
@@ -143,40 +143,6 @@ const beastMemoryOf = (effects: HeroQuestEffects | null | undefined): Record<str
 export const wokenBeastsOf = (effects: HeroQuestEffects | null | undefined, templeId: string): string[] => {
   const slugs = beastMemoryOf(effects)[templeId];
   return Array.isArray(slugs) ? slugs : [];
-};
-
-/**
- * The hero's questEffects as a refresh of the temple's layout leaves them: the beasts that the floors woken under `oldLayout`
- * held are added to the temple's remembered beasts, and the temple's woken floors are forgotten (the next arrival on any
- * floor of the new layout wakes what is not remembered). A wake remembered by the temple alone was the old layout's entrance
- * floor's. Other temples' wakes and memory and every other effect are kept, and nothing is changed in place. Null when the
- * hero has no floor of the temple woken: there is nothing to carry over and nothing to write.
- */
-export const rememberWokenBeasts = (effects: HeroQuestEffects | null | undefined, templeId: string, oldLayout: PlayedLayout | null | undefined): HeroQuestEffects | null => {
-  const woken = wokenTemplesOf(effects);
-  const floorPrefix = `${templeId}@`;
-  const isThisTemples = (key: string) => key === templeId || key.startsWith(floorPrefix);
-  const hasNoWokenFloor = !Object.keys(woken).some(isThisTemples);
-  if (hasNoWokenFloor) return null;
-
-  const entranceFloor = entranceFloorOf(oldLayout);
-  const wokenFloors = new Set(Object.keys(woken).filter(isThisTemples).map((key) => (key === templeId ? entranceFloor : key.slice(floorPrefix.length))));
-  const held = monsterTemplateCells(oldLayout)
-    .filter((cell) => wokenFloors.has(cell.floor))
-    .map((cell) => wakeSlugOf(String(cell.room.content?.quest?.beastId)));
-
-  const memory = beastMemoryOf(effects);
-  const slugs = [...new Set([...wokenBeastsOf(effects, templeId), ...held])].sort();
-  const hasBeasts = slugs.length > 0;
-  if (hasBeasts) memory[templeId] = slugs;
-
-  const next: HeroQuestEffects = {
-    ...(isRecord(effects) ? effects : {}),
-    templesWokenAt: Object.fromEntries(Object.entries(woken).filter(([key]) => !isThisTemples(key))),
-  };
-  if (Object.keys(memory).length > 0) next[WOKEN_BEASTS_FIELD] = memory;
-  else delete next[WOKEN_BEASTS_FIELD];
-  return next;
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -423,46 +389,6 @@ export function familyWakeStores(): FamilyWakeStores {
     hero: (heroId) => userStore.getUserById(heroId),
     saveEffects: (heroId, effects) => userStore.setQuestEffects(heroId, effects),
   };
-}
-
-/** What a layout refresh reads and writes of the family's heroes: each hero with the questEffects they hold, and the writer for them. */
-export interface HeroEffectsStore {
-  heroes: () => Promise<readonly EntryHero[]>;
-  saveEffects: (heroId: string, effects: HeroQuestEffects) => unknown;
-}
-
-/** The user store's heroes and its setQuestEffects. A refresh runs as the app starts, so profiles that have not loaded yet are loaded first. */
-export function familyHeroEffects(): HeroEffectsStore {
-  const userStore = useUserStore();
-  const rosterOf = () => (Object.values(userStore.users ?? {}) as EntryHero[]).filter((hero) => hero?.id);
-  return {
-    heroes: async () => {
-      const hasNoHeroesLoaded = rosterOf().length === 0;
-      if (hasNoHeroesLoaded) await userStore.loadUsers();
-      return rosterOf();
-    },
-    saveEffects: (heroId, effects) => userStore.setQuestEffects(heroId, effects),
-  };
-}
-
-/**
- * Carries every hero's wake of a temple from the layout being replaced to the one that replaces it (rememberWokenBeasts):
- * writes only the heroes who had a floor of it woken, one at a time, and a hero whose write fails is warned about and
- * does not keep the others from theirs. Returns the ids of the heroes written. Call it before the old layout is gone.
- */
-export async function rememberWokenBeastsForHeroes(templeId: string, oldLayout: PlayedLayout | null | undefined, store: HeroEffectsStore): Promise<string[]> {
-  const written: string[] = [];
-  for (const hero of await store.heroes()) {
-    const effects = rememberWokenBeasts(hero.questEffects, templeId, oldLayout);
-    if (!effects) continue;
-    try {
-      await store.saveEffects(String(hero.id), effects);
-      written.push(String(hero.id));
-    } catch (error) {
-      debug.warn(`[wakeOnEntry] could not carry ${hero.id}'s woken ${templeId} beasts to its new layout`, error);
-    }
-  }
-  return written;
 }
 
 /** The layout shipped in code for a temple, or null for one that is not shipped. */

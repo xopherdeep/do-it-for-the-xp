@@ -4,7 +4,8 @@ import { importAllTempleLayouts, layoutSignature, planSeedSync, type ShippedTemp
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { isQuestRoom, roomQuestIds } from "@/lib/services/temples/questRooms";
 import { QUICK_START_QUEST_IDS, quickStartTemplePlan } from "@/lib/services/temples/quickStartPlan";
-import { WOKEN_BEASTS_FIELD, WOKEN_TEMPLES_FIELD, wakeOnEntryPlan, type HeroEffectsStore } from "@/lib/services/temples/wakeOnEntry";
+import type { HeroEffectsStore } from "@/lib/services/temples/layoutRefreshWake";
+import { WOKEN_BEASTS_FIELD, WOKEN_TEMPLES_FIELD, wakeOnEntryPlan } from "@/lib/services/temples/wakeOnEntry";
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import debug from "@/lib/utils/debug";
 import backup from "./importAllTemples.backup.json";
