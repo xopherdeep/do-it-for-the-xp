@@ -38,7 +38,7 @@ describe("floorMultiplier", () => {
     expect(floorMultiplier(oneDay, "2027-04-15")).toBe(2);
   });
 
-  it("is not thrown by the daylight saving change", () => {
+  it("scores a window that spans the March date", () => {
     const spring = { phaseId: "p1", opensOn: "2027-03-12", dueOn: "2027-03-15" };
     expect(floorMultiplier(spring, "2027-03-14")).toBe(1.5);
   });

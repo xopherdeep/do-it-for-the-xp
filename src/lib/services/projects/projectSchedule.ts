@@ -15,7 +15,7 @@ export interface PhaseWindow {
 /** The roof floor above the last phase; its window is the last phase's window */
 export const ROOF_PHASE_ID = "roof";
 
-/** Whole calendar days from one day to another (negative when `to` is earlier) */
+/** Days between two days (negative if earlier), via differenceInCalendarDays: millisecond subtraction breaks over a daylight saving change */
 export const daysBetween = (from: string, to: string): number => differenceInCalendarDays(parseLocalDate(to), parseLocalDate(from));
 
 /** Round half up, after shaving off the float error a running share sum carries (2.4999999999999996 is a half) */

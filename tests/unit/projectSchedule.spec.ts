@@ -22,7 +22,7 @@ describe("daysBetween", () => {
     expect(daysBetween("2027-04-03", "2027-04-03")).toBe(0);
   });
 
-  it("is not thrown by the daylight saving change", () => {
+  it("counts the days of a span that crosses the March and November dates", () => {
     expect(daysBetween("2027-03-13", "2027-03-15")).toBe(2);
     expect(daysBetween("2027-11-06", "2027-11-08")).toBe(2);
   });
