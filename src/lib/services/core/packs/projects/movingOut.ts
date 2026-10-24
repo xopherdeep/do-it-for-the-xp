@@ -4,17 +4,14 @@
  * come straight from `MOVING_TEMPLATES`, so the two never drift apart.
  */
 import { MOVING_PHASES, MOVING_TEMPLATES, movingBeastId } from "../movingPack";
+import { nearestDifficulty } from "../packCommon";
 import type { ProjectChoreSuggestion, ProjectPhase, ProjectType } from "./projectTypes";
 
 type MovingTemplate = (typeof MOVING_TEMPLATES)[number];
 type MovingPhaseId = (typeof MOVING_PHASES)[number]["id"];
 
-/** The Fibonacci slider's steps, ascending. */
-const SLIDER_STEPS: readonly number[] = [1, 2, 3, 5, 8, 13];
-
-/** The slider step nearest to a difficulty; a tie rounds up. */
-export const nearestDifficulty = (difficulty: number): number =>
-  SLIDER_STEPS.reduce((best, step) => (Math.abs(step - difficulty) <= Math.abs(best - difficulty) ? step : best));
+// The slider helper lives in packCommon now; this re-export keeps the old import path working.
+export { nearestDifficulty };
 
 /** The phases the tower keeps, with their share of the days. */
 const KEPT_PHASES: readonly { id: MovingPhaseId; share: number }[] = [

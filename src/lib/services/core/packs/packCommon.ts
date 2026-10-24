@@ -47,6 +47,13 @@ export const heroBandFor = (profile: { isAdult?: unknown; birthday?: unknown }, 
 /** The Fibonacci scale's rewards, as the quest form sets them: d x 100 XP, d x 10 GP, d AP */
 export const rewardsFor = (difficulty: number) => ({ xp: difficulty * 100, gp: difficulty * 10, ap: difficulty });
 
+/** The Fibonacci slider's steps, ascending: every size a chore can have */
+export const FIBONACCI_STEPS: readonly number[] = [1, 2, 3, 5, 8, 13];
+
+/** The slider step nearest to a difficulty; a tie rounds up. */
+export const nearestDifficulty = (difficulty: number): number =>
+  FIBONACCI_STEPS.reduce((best, step) => (Math.abs(step - difficulty) <= Math.abs(best - difficulty) ? step : best));
+
 /** Minutes per checklist step, to a tenth: the quest's minutes spread over its steps */
 export const cooldownOf = (minutes: number, steps: number): number => Math.round((minutes / Math.max(1, steps)) * 10) / 10;
 
