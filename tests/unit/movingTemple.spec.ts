@@ -8,7 +8,7 @@ import {
   buildMovingPack,
   movingPackBackup,
 } from "@/lib/services/core/packs/movingPack";
-import type { MovingAnswers, MovingHero, MovingRoomId } from "@/lib/services/core/packs/movingPack";
+import type { MovingAnswers } from "@/lib/services/core/packs/movingPack";
 import {
   MOVING_TEMPLE_ID,
   buildMovingTemple,
@@ -25,7 +25,7 @@ import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { BackupService } from "@/lib/services/core/BackupService";
 import type { BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
 import type { Room } from "@/lib/engine/core/dungeons/types";
-import { PARENT, SIX, TWELVE, answers } from "./movingHouseFixtures";
+import { FAMILIES, PARENT, ROOM_SETS, SIX, TWELVE, answers } from "./movingHouseFixtures";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -56,10 +56,6 @@ jest.mock("@/lib/databases/TempleProgressDb", () => ({ __esModule: true, templeP
 jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn() } }));
 jest.mock("@/router/_Guards/gm.guard", () => ({ __esModule: true, canManageFamily: () => true, RESTORE_GM_ONLY_MESSAGE: "GM only" }));
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ loadUsers: jest.fn() }) }));
-
-const MOM: MovingHero = { id: "mom", name: "Mom", band: "grownup" };
-const TEEN: MovingHero = { id: "teen", name: "Teen", band: "kid" };
-const TOT: MovingHero = { id: "tot", name: "Tot", band: "little" };
 
 const UNPACK = "cat-move-unpack";
 
@@ -102,23 +98,6 @@ const recordNamed = (temple: MovingTemple, name: string): { token: string; room:
 
 // ---------------------------------------------------------------------------------------------------------------
 // The matrix: floors x basement x ticked rooms x families
-
-const ROOM_SETS: [string, Partial<Record<MovingRoomId, number>>][] = [
-  ["the default rooms", { ...DEFAULT_MOVING_ROOMS }],
-  ["every room at its most", {
-    bedroom: 8, bathroom: 5, kitchen: 1, living: 1, dining: 1, laundry: 1, storage: 1, garage: 1, yard: 1, guest: 4, office: 1, pets: 1,
-  }],
-  ["only a kitchen", { kitchen: 1 }],
-  ["only one bedroom", { bedroom: 1 }],
-  ["nothing ticked", {}],
-];
-
-const FAMILIES: [string, MovingHero[]][] = [
-  ["Dad, Twelve and Six", [PARENT, TWELVE, SIX]],
-  ["Six alone", [SIX]],
-  ["two grown-ups and four kids", [PARENT, MOM, TWELVE, SIX, TEEN, TOT]],
-  ["Dad alone", [PARENT]],
-];
 
 const MATRIX: [string, Partial<MovingAnswers>][] = ([1, 2] as const).flatMap((floors) =>
   [false, true].flatMap((basement) =>

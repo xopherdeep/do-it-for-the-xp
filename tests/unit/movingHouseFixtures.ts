@@ -10,6 +10,9 @@ import { houseCellsFor } from "@/lib/services/core/packs/movingTemple/houseRooms
 export const PARENT: MovingHero = { id: "dad", name: "Dad", band: "grownup" };
 export const TWELVE: MovingHero = { id: "twelve", name: "Twelve", band: "kid" };
 export const SIX: MovingHero = { id: "six", name: "Six", band: "little" };
+export const MOM: MovingHero = { id: "mom", name: "Mom", band: "grownup" };
+export const TEEN: MovingHero = { id: "teen", name: "Teen", band: "kid" };
+export const TOT: MovingHero = { id: "tot", name: "Tot", band: "little" };
 
 export const answers = (extra: Partial<MovingAnswers> = {}): MovingAnswers => ({
   moveDate: "2026-11-20",
@@ -55,4 +58,21 @@ export const SETUPS: [string, Partial<MovingAnswers>][] = [
     rooms: EVERYTHING,
     heroes: [PARENT, { id: "mom", name: "Mom", band: "grownup" }, TWELVE, SIX, { id: "teen", name: "Teen", band: "kid" }, { id: "tot", name: "Tot", band: "little" }],
   }],
+];
+
+/** The ticked rooms the matrices run over: the setup's defaults, every room at its most, one room, none */
+export const ROOM_SETS: [string, Partial<Record<MovingRoomId, number>>][] = [
+  ["the default rooms", { ...DEFAULT_MOVING_ROOMS }],
+  ["every room at its most", EVERYTHING],
+  ["only a kitchen", { kitchen: 1 }],
+  ["only one bedroom", { bedroom: 1 }],
+  ["nothing ticked", {}],
+];
+
+/** The families the matrices run over: the owner's, a little one alone, a big family, a grown-up alone */
+export const FAMILIES: [string, MovingHero[]][] = [
+  ["Dad, Twelve and Six", [PARENT, TWELVE, SIX]],
+  ["Six alone", [SIX]],
+  ["two grown-ups and four kids", [PARENT, MOM, TWELVE, SIX, TEEN, TOT]],
+  ["Dad alone", [PARENT]],
 ];
