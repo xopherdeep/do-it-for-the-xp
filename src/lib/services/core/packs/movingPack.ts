@@ -311,6 +311,9 @@ export interface MovingPack {
   daysToMove: number;
 }
 
+/** The id of the beast a template or daily carries; the project types adopt the same beast by this id. */
+export const movingBeastId = (slug: string): string => `beast-move-${slug}`;
+
 /** The same background spread for the same slug every time, so a reload replaces a beast with itself */
 const backgroundsFor = (slug: string): Pick<Beast, "bg1" | "bg2"> => {
   let hash = 7;
@@ -389,7 +392,7 @@ export const buildMovingPack = (answers: MovingAnswers): MovingPack => {
   const usedPhases = new Set<PhaseId>();
 
   const addBeast = (slug: string, name: string, avatar: number, steps: string[], minutes: number): string => {
-    const id = `beast-move-${slug}`;
+    const id = movingBeastId(slug);
     beasts.push({
       id, name, avatar, ...backgroundsFor(slug), aspectRatio: 48, checklist: [...steps],
       attackCooldown: cooldownOf(minutes, steps.length),
