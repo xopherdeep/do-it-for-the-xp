@@ -167,6 +167,13 @@ describe("Spring Cleaning", () => {
     expect([oven?.who, oven?.difficulty]).toEqual(["grownup", 8]);
   });
 
+  it("keeps a little chore on the Final Inspection floor, and the window chore with a kid", () => {
+    const final = spring.phases.find((phase) => phase.id === "final-inspection");
+    expect(final?.chores.some((chore) => chore.who === "little")).toBe(true);
+    const windows = choresOf(spring).find((chore) => chore.name === "Open the Windows for Fresh Air");
+    expect([windows?.who, windows?.difficulty]).toEqual(["kid", 2]);
+  });
+
   it("has chores for every band and for the kitchen, bathroom, bedroom, living room, garage, storage and house", () => {
     const chores = choresOf(spring);
     const bands = new Set(chores.map((chore) => chore.who));

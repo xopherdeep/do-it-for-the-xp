@@ -47,7 +47,8 @@ const ORGANIZE: readonly ProjectChoreSuggestion[] = [
 ];
 
 const FINAL_INSPECTION: readonly ProjectChoreSuggestion[] = [
-  chore("fresh-air", "Open the Windows for Fresh Air", "house", "little", 1, 5),
+  chore("fluff-cushions", "Fluff the Cushions", ["living"], "little", 1, 10),
+  chore("fresh-air", "Open the Windows for Fresh Air", "house", "kid", 2, 5),
   chore("make-beds", "Make the Beds Tight", ["bedroom"], "kid", 2, 15),
   chore("last-trash", "Take Out the Last Trash", "house", "kid", 3, 20),
   chore("kitchen-wipe", "Give the Kitchen a Last Wipe", ["kitchen"], "grownup", 5, 30),
