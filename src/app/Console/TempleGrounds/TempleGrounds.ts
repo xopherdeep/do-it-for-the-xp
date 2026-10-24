@@ -367,7 +367,7 @@ export default defineComponent({
 
     // What happens as the hero walks in: the blood moon notice, each floor's first wake, a won fight's drop on the battle return
     const entry = { temple: props.temple, heroId: progressHeroId, whenOpened, currentLevel, templeSystem, templeShortName, say, fx };
-    const { floorWakePrompt, answerFloorWake } = useTempleEntry({ ...entry, returnsTo: startPosition, liveContext, showDropReveal });
+    const { floorWakePrompt, answerFloorWake } = useTempleEntry({ ...entry, returnsTo: startPosition, returnsLevel: () => toStartLevel(route.query.level, startPosition), liveContext, showDropReveal });
 
     // Tapping an equipped item: the select tick, then whatever the item does here
     const useHand = (item: EquipmentItem | null) => {

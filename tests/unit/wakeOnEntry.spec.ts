@@ -7,6 +7,10 @@
  * Game Master deleted is not made again. Walking in wakes only the entrance floor; every other floor wakes the first
  * time the hero arrives on it (owner 2026-10-19). The plan is pure; only `commitEntryWake` writes, through the writers
  * it is handed.
+ *
+ * A layout refresh (owner 2026-10-23, "wake only the new beasts"): the floors a hero woke under the old layout are
+ * forgotten and the beasts those floors held are remembered instead, so a room that is new in the new layout wakes on
+ * the next entry while a beast the old layout woke (its quest deleted since, or moved to another floor) never does.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
@@ -15,6 +19,7 @@ import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { windBeforeEagle as windTemple } from "./windBeforeEagle";
 import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
 import {
+  WOKEN_BEASTS_FIELD,
   WOKEN_TEMPLES_FIELD,
   commitEntryWake,
   entranceFloorOf,
@@ -25,11 +30,13 @@ import {
   wakeOnEntryPlan,
   wakeTempleOnEntry,
   wasWokenFor,
+  wokenBeastsOf,
   type EntryHero,
   type EntryWakeDeps,
   type EntryWakeInput,
   type PlayedLayout,
 } from "@/lib/services/temples/wakeOnEntry";
+import { rememberWokenBeasts } from "@/lib/services/temples/layoutRefreshWake";
 import { isWokenQuest, wakeQuestId } from "@/lib/services/temples/wakeTempleQuests";
 
 const KIA = "hero-1";
@@ -419,6 +426,182 @@ describe("waking floor by floor", () => {
     const plan = onFloor("2F", { quests: [theirs] });
     expect(plan.joined).toEqual([{ ...theirs, assignee: [MIA, KIA] }]);
     expect(beastsOf(plan.quests)).toEqual([UPSTAIRS[1], UPSTAIRS[2]].sort());
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A layout refresh: wake only the new beasts
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Beast ids as the `tq-<temple>-<slug>` quest id spells them, in a fixed order */
+const slugsOf = (beastIds: readonly string[]) => beastIds.map((beastId) => beastId.replace(/^beast-/, "")).sort();
+
+/** The Spire with a monster room of a new beast built into its top-left corner, a wall in the layout it replaces */
+const spireWithNewRoom = (): PlayedLayout => {
+  const layout = spire();
+  layout.rooms = { ...layout.rooms, N1: monsterRoom("beast-dish-goblin") };
+  (layout.maze as Record<string, string[][]>)["1F"][0][0] = "N1";
+  return layout;
+};
+
+/** The tower with the Cushion Croc's room moved up from 1F to the corner of 2F that U1 held */
+const towerWithCrocUpstairs = (): PlayedLayout => {
+  const layout = tower();
+  const maze = layout.maze as Record<string, string[][]>;
+  maze["1F"] = maze["1F"].map((row) => row.map((symbol) => (symbol === "M0201" ? "_____" : symbol)));
+  maze["2F"] = [["M0201", "U2"], ["U3", "_____"]];
+  return layout;
+};
+
+describe("rememberWokenBeasts", () => {
+  const woken = (layout: PlayedLayout, floor = "1F") => wakeOnEntryPlan(input({ layout, floor })).effects as HeroQuestEffects;
+
+  it("keeps the beasts of the floors the hero was woken on, and forgets that temple's floors", () => {
+    const before: HeroQuestEffects = {
+      ...rememberWake(woken(tower()), "fire-temple", "1F", WED),
+      snoozedOn: { q1: "2026-10-14" },
+    };
+    const after = rememberWokenBeasts(before, "wind-temple", tower());
+
+    expect(after?.[WOKEN_BEASTS_FIELD]).toEqual({ "wind-temple": slugsOf(MONSTERS) });
+    // Only the floors the hero was woken on: 2F's beasts were never woken
+    for (const beastId of UPSTAIRS) expect(after?.[WOKEN_BEASTS_FIELD]?.["wind-temple"]).not.toContain(beastId.replace(/^beast-/, ""));
+    expect(after?.[WOKEN_TEMPLES_FIELD]).toEqual({ "fire-temple@1F": WED.toISOString() });
+    expect(wasWokenFor(after, "wind-temple", "1F", "1F")).toBe(false);
+    expect(wasWokenFor(after, "fire-temple", "1F", "1F")).toBe(true);
+    expect(after?.snoozedOn).toEqual({ q1: "2026-10-14" });
+    // The effects it was handed are not changed in place
+    expect(before[WOKEN_TEMPLES_FIELD]).toHaveProperty(["wind-temple@1F"]);
+    expect(before[WOKEN_BEASTS_FIELD]).toBeUndefined();
+  });
+
+  it("keeps the beasts of every floor that was woken", () => {
+    const both = rememberWake(woken(tower()), "wind-temple", "2F", WED);
+    const after = rememberWokenBeasts(both, "wind-temple", tower());
+    expect(after?.[WOKEN_BEASTS_FIELD]).toEqual({ "wind-temple": slugsOf([...MONSTERS, ...UPSTAIRS]) });
+    expect(after?.[WOKEN_TEMPLES_FIELD]).toEqual({});
+  });
+
+  it("reads a wake remembered by temple alone as the old layout's entrance floor", () => {
+    const legacy = { [WOKEN_TEMPLES_FIELD]: { "wind-temple": "2026-10-01T00:00:00.000Z" } };
+    expect(rememberWokenBeasts(legacy, "wind-temple", tower())?.[WOKEN_BEASTS_FIELD]).toEqual({ "wind-temple": slugsOf(MONSTERS) });
+    // An entrance on 2F: the legacy wake was 2F's
+    const startsUpstairs: PlayedLayout = { ...tower(), entrance: [1, 0, 0] };
+    const after = rememberWokenBeasts(legacy, "wind-temple", startsUpstairs);
+    expect(after?.[WOKEN_BEASTS_FIELD]).toEqual({ "wind-temple": slugsOf(UPSTAIRS) });
+    expect(after?.[WOKEN_TEMPLES_FIELD]).toEqual({});
+  });
+
+  it("adds to what an earlier refresh remembered, once each, and leaves other temples' memory alone", () => {
+    const before: HeroQuestEffects = {
+      ...woken(spire()),
+      [WOKEN_BEASTS_FIELD]: { "wind-temple": ["old-one", "cushion-croc"], "fire-temple": ["ember-imp"] },
+    };
+    const after = rememberWokenBeasts(before, "wind-temple", spire());
+    expect(after?.[WOKEN_BEASTS_FIELD]).toEqual({
+      "wind-temple": slugsOf(["beast-old-one", ...MONSTERS]),
+      "fire-temple": ["ember-imp"],
+    });
+  });
+
+  it("forgets a floor with no monster room without inventing a memory for it", () => {
+    const after = rememberWokenBeasts(woken(tower(), "3F"), "wind-temple", tower());
+    expect(after?.[WOKEN_TEMPLES_FIELD]).toEqual({});
+    expect(after?.[WOKEN_BEASTS_FIELD]).toBeUndefined();
+  });
+
+  it("changes nothing for a hero with no floor of the temple woken", () => {
+    expect(rememberWokenBeasts({}, "wind-temple", tower())).toBeNull();
+    expect(rememberWokenBeasts(undefined, "wind-temple", tower())).toBeNull();
+    expect(rememberWokenBeasts(rememberWake({}, "fire-temple", "1F", WED), "wind-temple", tower())).toBeNull();
+    // A temple whose name starts like this one is another temple
+    expect(rememberWokenBeasts(rememberWake({}, "wind-temple-2", "1F", WED), "wind-temple", tower())).toBeNull();
+  });
+
+  it("reads a memory that is not a record of lists as none (a profile is family data)", () => {
+    expect(wokenBeastsOf(undefined, "wind-temple")).toEqual([]);
+    expect(wokenBeastsOf({ [WOKEN_BEASTS_FIELD]: "cushion-croc" } as unknown as HeroQuestEffects, "wind-temple")).toEqual([]);
+    expect(wokenBeastsOf({ [WOKEN_BEASTS_FIELD]: { "wind-temple": "cushion-croc" } } as unknown as HeroQuestEffects, "wind-temple")).toEqual([]);
+    expect(wokenBeastsOf({ [WOKEN_BEASTS_FIELD]: { "wind-temple": ["cushion-croc", 3, null] } } as unknown as HeroQuestEffects, "wind-temple")).toEqual(["cushion-croc"]);
+  });
+});
+
+describe("waking after a layout refresh", () => {
+  /** A hero woken on the old layout's entrance floor, carried across the refresh the way the seed sync carries them */
+  const refreshedHero = (old: PlayedLayout = spire()) => {
+    const first = wakeOnEntryPlan(input({ layout: old, floor: "1F" }));
+    return { hero: hero({ questEffects: rememberWokenBeasts(first.effects, "wind-temple", old) ?? undefined }), quests: first.quests };
+  };
+
+  it("wakes a room that is new in the new layout, on a floor the old layout woke", () => {
+    // None of the old quests are left (the Game Master deleted them), so only the memory keeps the old beasts asleep
+    const { hero: kia } = refreshedHero();
+    const plan = wakeOnEntryPlan(input({ layout: spireWithNewRoom(), floor: "1F", hero: kia, quests: [] }));
+
+    expect(plan.skip).toBeNull();
+    expect(beastsOf(plan.quests)).toEqual(["beast-dish-goblin"]);
+    expect(plan.quests[0]).toMatchObject({ id: wakeQuestId("wind-temple", "beast-dish-goblin"), type: "individual", assignee: [KIA] });
+    // The floor is remembered again, beside what the old layout woke
+    expect(wasWokenFor(plan.effects, "wind-temple", "1F", "1F")).toBe(true);
+    expect(plan.effects?.[WOKEN_BEASTS_FIELD]).toEqual({ "wind-temple": slugsOf(MONSTERS) });
+  });
+
+  it("does not make a quest again for a beast the old layout woke, though the Game Master deleted its quest", () => {
+    const { hero: kia, quests } = refreshedHero();
+    const withoutCroc = quests.filter((made) => made.beastId !== "beast-cushion-croc");
+    expect(withoutCroc).toHaveLength(MONSTERS.length - 1);
+
+    const plan = wakeOnEntryPlan(input({ layout: spire(), floor: "1F", hero: kia, quests: withoutCroc }));
+    expect(plan.skip).toBeNull();
+    expect(plan.quests).toEqual([]);
+    expect(plan.joined).toEqual([]);
+    expect(plan.beasts).toEqual([]);
+
+    // Not even when every quest is gone
+    expect(wakeOnEntryPlan(input({ layout: spire(), floor: "1F", hero: kia, quests: [] })).quests).toEqual([]);
+  });
+
+  it("does not take the hero into a beast the old layout woke for them, though another hero's quest for it is live", () => {
+    const { hero: kia } = refreshedHero();
+    const theirs = quest(wakeQuestId("wind-temple", "beast-cushion-croc"), { assignee: [MIA], beastId: "beast-cushion-croc" });
+    const plan = wakeOnEntryPlan(input({ layout: spire(), floor: "1F", hero: kia, quests: [theirs] }));
+    expect(plan.joined).toEqual([]);
+    expect(plan.quests).toEqual([]);
+  });
+
+  it("does not wake a beast that moved to another floor, and still wakes the rooms that are new upstairs", () => {
+    const { hero: kia } = refreshedHero();
+    const layout = towerWithCrocUpstairs();
+
+    // The Cushion Croc's quest is gone, so only the memory keeps it asleep
+    const upstairs = wakeOnEntryPlan(input({ layout, floor: "2F", hero: kia, quests: [] }));
+    expect(upstairs.skip).toBeNull();
+    expect(beastsOf(upstairs.quests)).toEqual([UPSTAIRS[1], UPSTAIRS[2]].sort());
+
+    // The old floor was forgotten with the refresh, so the entrance floor reads again, and finds nothing new
+    const downstairs = wakeOnEntryPlan(input({ layout, floor: "1F", hero: kia, quests: [] }));
+    expect(downstairs.skip).toBeNull();
+    expect(downstairs.quests).toEqual([]);
+  });
+
+  it("wakes every beast for a hero the temple's old layout never woke, as before", () => {
+    const stranger = hero({ questEffects: rememberWokenBeasts(rememberWake({}, "fire-temple", "1F", WED), "fire-temple", spire()) ?? undefined });
+    const plan = wakeOnEntryPlan(input({ layout: spireWithNewRoom(), floor: "1F", hero: stranger }));
+    expect(beastsOf(plan.quests)).toEqual([...MONSTERS, "beast-dish-goblin"].sort());
+  });
+
+  it("reads a temple's memory for that temple alone", () => {
+    const elsewhere = hero({ questEffects: { [WOKEN_BEASTS_FIELD]: { "fire-temple": slugsOf(MONSTERS) } } });
+    expect(beastsOf(wakeOnEntryPlan(input({ hero: elsewhere })).quests)).toEqual([...MONSTERS].sort());
+  });
+
+  it("keeps an old save that no refresh has touched as it was: the floor stays woken and a new room stays asleep", () => {
+    const first = wakeOnEntryPlan(input({ layout: spire(), floor: "1F" }));
+    const oldSave = hero({ questEffects: first.effects ?? undefined });
+    expect(oldSave.questEffects?.[WOKEN_BEASTS_FIELD]).toBeUndefined();
+    expect(wakeOnEntryPlan(input({ layout: spireWithNewRoom(), floor: "1F", hero: oldSave })).skip).toBe("alreadyWoken");
+    // and a floor it never woke wakes whole, with no memory to hold a beast back
+    expect(beastsOf(wakeOnEntryPlan(input({ layout: tower(), floor: "2F", hero: oldSave })).quests)).toEqual([...UPSTAIRS].sort());
   });
 });
 

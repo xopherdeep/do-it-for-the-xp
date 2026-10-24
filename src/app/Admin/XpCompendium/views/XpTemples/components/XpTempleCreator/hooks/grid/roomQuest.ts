@@ -7,6 +7,7 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
 import {
+  fillsTemplate,
   headlineQuest,
   isQuestRoom,
   liveRoomQuests,
@@ -59,7 +60,7 @@ export function pickerTypeOf(room: Partial<Room> | null | undefined): string {
  * - `picked`: the Game Master's quest (the biggest live one when the room lists several), and `moreChores`, how many
  *   other live quests a list room holds besides it (left out when there are none);
  * - `missing`: the room names quests and none is live (gone, or only drafts), with the shipped template when it has one;
- * - `template`: a shipped template, with the live quest that has its beast when one fills it;
+ * - `template`: a shipped template, with the live quest that has its beast (at the template's tier or higher) when one fills it;
  * - `none`: not a quest room.
  */
 export type RoomQuestHolding =
@@ -86,7 +87,7 @@ export function describeRoomQuest(room: Partial<Room> | null | undefined, quests
   }
   if (!template) return { kind: "none" };
   const live = quests.filter((quest) => !quest.draft);
-  const filler = live.find((quest) => questBeastId(quest) === String(template.beastId));
+  const filler = live.find((quest) => fillsTemplate(quest, template));
   return filler ? { kind: "template", template, filler } : { kind: "template", template };
 }
 

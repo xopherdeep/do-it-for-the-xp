@@ -472,12 +472,16 @@ watch(
 );
 
 // The guide's question in the hero's voice; the simple voice reads each one aloud as it appears (the speaker button
-// reads it for everyone), and closing the wizard cuts the voice off
+// reads it for everyone), a screen change cuts the last question off (a line from the speaker button too, which the
+// next question may not replace), and closing the wizard cuts the voice off
 const guideLine = computed(() => steps.value[position.value]?.guide ?? "");
 watch(
   [() => props.open, guideLine],
-  ([isOpen, line]) => {
-    if (isOpen) startAutoReading(line);
+  ([isOpen, line], [wasOpen, lastLine] = []) => {
+    if (!isOpen) return;
+    const isNewScreen = Boolean(wasOpen) && line !== lastLine;
+    if (isNewScreen) stopReading();
+    startAutoReading(line);
   },
   { immediate: true }
 );

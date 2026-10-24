@@ -13,6 +13,7 @@ import {
   gmResolution,
   libraryEntryOf,
   questRoomCells,
+  roomSizeShare,
   type QuestHero,
   type QuestLayout,
 } from "@/lib/services/temples/templeQuestRows";
@@ -172,6 +173,49 @@ describe("gmResolution", () => {
     const found = gmResolution(room("monster", { questId: "q-other", quest: template() }), [goblin, other]);
     expect(found).toMatchObject({ kind: "quest", quest: other, source: "questId" });
   });
+
+  describe("by tier (a quest below the room's tier does not fill it)", () => {
+    const bossTemplate = () => template({ difficulty: 8 });
+
+    it("leaves the room dormant when the quest with the template's beast is below the room's tier", () => {
+      const t = bossTemplate();
+      expect(gmResolution(room("boss", { quest: t }), [goblin])).toEqual({ kind: "dormant", template: t });
+    });
+
+    it("leaves the room dormant when the quest named by the library's suggestion is below the room's tier", () => {
+      const nameOnly = makeQuest("q-name", { beastId: "", achievementName: "Banish the Dish Goblin", difficulty: 1 });
+      const t = template({ difficulty: 3 });
+      expect(gmResolution(room("miniboss", { quest: t }), [nameOnly])).toEqual({ kind: "dormant", template: t });
+    });
+
+    it("skips the smaller quest for a later one that fits", () => {
+      const fitting = makeQuest("q-fitting", { difficulty: 8 });
+      const found = gmResolution(room("boss", { quest: bossTemplate() }), [goblin, fitting]);
+      expect(found).toEqual({ kind: "quest", quest: fitting, source: "template" });
+    });
+
+    it("still fills a room with a quest of its own tier or a higher one", () => {
+      const equal = makeQuest("q-equal", { difficulty: 13 });
+      expect(gmResolution(room("boss", { quest: bossTemplate() }), [equal])).toEqual({ kind: "quest", quest: equal, source: "template" });
+      const higher = makeQuest("q-higher", { difficulty: 8 });
+      expect(gmResolution(room("monster", { quest: template() }), [higher])).toEqual({ kind: "quest", quest: higher, source: "template" });
+    });
+
+    it("does not touch the Game Master's own pick, whatever its tier", () => {
+      const found = gmResolution(room("boss", { questId: "q-goblin", quest: bossTemplate() }), [goblin]);
+      expect(found).toEqual({ kind: "quest", quest: goblin, source: "questId" });
+    });
+
+    it("does not touch a list the Game Master set, whatever the tiers in it", () => {
+      const small = makeQuest("small", { difficulty: 1 });
+      const found = gmResolution(room("boss", { questIds: ["small"], quest: bossTemplate() }), [small]);
+      expect(found).toEqual({ kind: "quest", quest: small, source: "questId" });
+    });
+
+    it("sizes a room the lower quest does not fill by the template, dormant", () => {
+      expect(roomSizeShare(room("boss", { quest: bossTemplate() }), [goblin])).toEqual({ difficulty: 8, dormant: true });
+    });
+  });
 });
 
 describe("gmResolution of a room that lists several quests", () => {
@@ -222,8 +266,8 @@ describe("buildTempleQuests", () => {
     ],
     rooms: {
       E: room("entrance"),
-      // the starter Laundry Lurker is a 3 in a boss room: a tier mismatch
-      b: room("boss", { quest: template({ beastId: "beast-laundry-lurker", difficulty: 13, basicSchedule: "weekly" }) }),
+      // the Game Master set the Laundry Lurker (a 3) on a boss room: a tier mismatch, flagged (a template fill is never held to it below)
+      b: room("boss", { questId: "q-lurker", quest: template({ beastId: "beast-laundry-lurker", difficulty: 13, basicSchedule: "weekly" }) }),
       m: room("miniboss", { quest: template({ beastId: "beast-dust-dervish", difficulty: 5, basicSchedule: "weekly" }) }),
       s: room("monster", { quest: template({ beastId: "beast-dish-goblin", difficulty: 2 }) }),
       g: room("monster", { questId: "q-gone" }),
@@ -309,6 +353,17 @@ describe("buildTempleQuests", () => {
     expect(row.mismatch).toBe("Boss room holds a Miniboss quest (3)");
   });
 
+  it("shows a boss room as dormant, not mismatched, when the only quest with its beast is a smaller one", () => {
+    const unset: QuestLayout = {
+      maze: [["b"]],
+      rooms: { b: room("boss", { quest: template({ beastId: "beast-laundry-lurker", difficulty: 13, basicSchedule: "weekly" }) }) },
+    };
+    const view = build({ layout: unset });
+    expect(view.rows[0]).toMatchObject({ kind: "dormant", mismatch: null, difficulty: 13, tier: "boss" });
+    expect(view.rows[0].quest).toBeUndefined();
+    expect(view.size).toMatchObject({ total: 13, awake: 0, dormant: 13, dormantRooms: 1 });
+  });
+
   it("says an empty lair when the Game Master's quest is gone and there is no template", () => {
     const row = build().rows.find((r) => r.symbol === "g")!;
     expect(row).toMatchObject({ kind: "emptyLair", title: "Empty lair: its quest is gone", dots: [], mismatch: null, tierName: "", facts: "", when: "" });
@@ -352,7 +407,8 @@ describe("buildTempleQuests", () => {
 
     it("reads the hero's own board: lurking, tamed, waiting on the Game Master, resting", () => {
       expect(dots("s")).toEqual(["Kia:lurking", "Mia:pending"]);
-      expect(dots("b")).toEqual(["Kia:cleared", "Mia:dormant"]);
+      // the Game Master's pick on the boss room is Kia's alone: for Mia it sleeps there
+      expect(dots("b")).toEqual(["Kia:cleared", "Mia:notYours"]);
     });
 
     it("reads a quest that is not due as away", () => {
@@ -367,7 +423,10 @@ describe("buildTempleQuests", () => {
         "Mia: tied up, waiting on the Game Master",
       ]);
       const cleared = build().rows.find((r) => r.symbol === "b")!;
-      expect(cleared.dots.map((dot) => dot.label)).toEqual(["Kia: tamed", "Mia: no quest of theirs here, plays the classic fight"]);
+      expect(cleared.dots.map((dot) => dot.label)).toEqual(["Kia: tamed", "Mia: not their quest"]);
+      // a template room none of the quests is visible to a hero for plays dormant for them
+      const dormant = build({ heroes: [heroes[0], hero("hero-3", "Zed", [])] }).rows.find((r) => r.symbol === "s")!;
+      expect(dormant.dots.map((dot) => dot.label)).toEqual(["Kia: the beast is here", "Zed: no quest of theirs here, plays the classic fight"]);
     });
 
     it("says not yours for a hero the Game Master's picked quest is not for", () => {

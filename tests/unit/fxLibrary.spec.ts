@@ -88,7 +88,7 @@ describe("$fx", () => {
     const common = [
       "gp", "shhh", "openMenu", "closeMenu", "newItem", "openChest", "takeItem", "fairy", "finish", "openDoor", "key", "useKey",
       "map", "error", "enterBattle", "startBattle", "attack", "runAway", "learn", "levelUp", "gainXP", "gainGP", "fillPoints",
-      "countCoins", "restoreHP", "restoreMP", "restoreAll", "useMP", "openInventory", "loot", "present", "lootItem", "dropItem",
+      "countCoins", "coins", "restoreHP", "restoreMP", "restoreAll", "useMP", "openInventory", "loot", "present", "lootItem", "dropItem",
       "bonusItem", "equip", "useItem", "buyItem", "sellItem", "cursor", "click", "text", "cursorHoriz", "cursorVerti", "step", "steps",
     ];
     for (const set of Object.values($fx.rpg)) expect(soundKeys(set)).toEqual(expect.arrayContaining(common));
@@ -99,7 +99,7 @@ describe("$fx", () => {
 
   it("shares one Audio between the RPG sets for the sounds they have in common", () => {
     const { earthbound, chronoTrigger, finalFantasy } = $fx.rpg;
-    for (const key of ["gp", "shhh", "openMenu", "closeMenu", "newItem", "openChest", "takeItem", "fairy", "finish", "openDoor", "countCoins"]) {
+    for (const key of ["gp", "shhh", "openMenu", "closeMenu", "newItem", "openChest", "takeItem", "fairy", "finish", "openDoor", "countCoins", "coins"]) {
       expect(chronoTrigger[key]).toBe(earthbound[key]);
       expect(finalFantasy[key]).toBe(earthbound[key]);
     }

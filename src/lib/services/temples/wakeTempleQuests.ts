@@ -26,9 +26,11 @@ import {
 /** The prefix of every quest a temple wakes. */
 const WAKE_PREFIX = "tq";
 
+/** The beast's part of a woken quest's id: "beast-dish-goblin" is "dish-goblin". It names a template whichever layout holds it. */
+export const wakeSlugOf = (beastId: string): string => beastId.replace(/^beast-/, "");
+
 /** The id of the quest a temple's template wakes: `tq-shadow-temple-dish-goblin`. */
-export const wakeQuestId = (templeId: string, beastId: string): string =>
-  `${WAKE_PREFIX}-${templeId}-${beastId.replace(/^beast-/, "")}`;
+export const wakeQuestId = (templeId: string, beastId: string): string => `${WAKE_PREFIX}-${templeId}-${wakeSlugOf(beastId)}`;
 
 /** True for a quest a temple woke: its id is `tq-<templeId>-<slug>` (wakeQuestId), whichever temple woke it. */
 export const isWokenQuest = (quest: Pick<Achievement, "id">): boolean => String(quest.id ?? "").startsWith(`${WAKE_PREFIX}-`);

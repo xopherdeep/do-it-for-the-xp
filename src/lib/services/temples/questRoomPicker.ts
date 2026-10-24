@@ -6,40 +6,22 @@
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
-import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
+import type { Room } from "@/lib/engine/core/dungeons/types";
 import { dueTimeOn } from "@/lib/engine/quests/QuestSchedule";
-import {
-  adoptLibraryBeast,
-  beastTheme,
-  browseLibrary,
-  isClassicBeast,
-  type LibraryEntry,
-} from "@/lib/services/bestiary/librarySuggest";
+import { adoptLibraryBeast, beastTheme, browseLibrary, isClassicBeast } from "@/lib/services/bestiary/librarySuggest";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
 import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import type { FamilyMember } from "@/lib/services/quests/QuestList";
 import {
   TEMPLE_FULL_SIZE,
-  headlineQuest,
   questBeastId,
   questTier,
   templeSize,
   type QuestTier,
   type SizedRoom,
 } from "@/lib/services/temples/questRooms";
+import { libraryEntryOf, roomSizeShare } from "@/lib/services/temples/templeQuestRows";
 import type { TempleTheme } from "@/lib/services/temples/templeThemes";
-
-// ---------------------------------------------------------------------------------------------------------------------
-// The beasts the picker can show
-// ---------------------------------------------------------------------------------------------------------------------
-
-let libraryById: Map<string, LibraryEntry> | null = null;
-
-/** A library beast (chore or classic) by id; the library never changes while the app runs. */
-const libraryEntryOf = (id: string): LibraryEntry | undefined => {
-  libraryById ??= new Map(browseLibrary().map((entry) => [String(entry.id), entry]));
-  return libraryById.get(id);
-};
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Rows
@@ -134,13 +116,6 @@ export interface QuestCard {
   approval: boolean;
   /** "no due time: ambushes any time" */
   note?: string;
-}
-
-/** What a quest room says when no quest fills its shipped template: "Dormant: Dust Dervish, no quest yet". */
-export function dormantLine(template: Pick<RoomQuestTemplate, "beastId">, beasts: readonly Beast[]): string {
-  const id = String(template.beastId);
-  const name = beasts.find((beast) => String(beast.id) === id)?.name ?? libraryEntryOf(id)?.name ?? "a beast";
-  return `Dormant: ${name}, no quest yet`;
 }
 
 /** The note on a quest that has no due time (5.9). */
@@ -332,24 +307,6 @@ export function beastToAdopt(beastId: string | undefined, ownedIds: Iterable<str
 // ---------------------------------------------------------------------------------------------------------------------
 // The size meter
 // ---------------------------------------------------------------------------------------------------------------------
-
-/**
- * One room's part in the size of its temple, as the editor knows it (it has no hero and no board): the quest the
- * room is set to (the biggest live one when it lists several), else the live quest that has the template's beast,
- * else the template's own difficulty, dormant.
- * Classic beast rooms, empty lairs (a deleted quest, no template) and every other room are left out (null).
- */
-export function roomSizeShare(room: Partial<Room> | undefined, quests: readonly Achievement[]): SizedRoom | null {
-  const content = room?.content;
-  const live = quests.filter((quest) => !quest.draft);
-  const picked = headlineQuest(room, live);
-  if (picked) return { difficulty: Number(picked.difficulty) || 0 };
-  const template = content?.quest;
-  if (!template) return null;
-  const filler = live.find((quest) => questBeastId(quest) === String(template.beastId));
-  if (filler) return { difficulty: Number(filler.difficulty) || 0 };
-  return { difficulty: Number(template.difficulty) || 0, dormant: true };
-}
 
 type Maze = string[][] | Record<string, string[][]>;
 

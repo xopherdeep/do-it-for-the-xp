@@ -7,10 +7,14 @@
  * Time Power's extension, a pause only old saves carry from Chronos' Clock). A quest with no due time is an
  * "anytime" chore: it is always waiting, and ambushes after any overdue one. A quest with no beast never ambushes,
  * because the Game Master chose "No beast" or the library has none to suggest.
+ *
+ * A hero with no anytime quest that has a beast (and nothing late) only ever meets free fights, which pay AP only. The
+ * last section answers that for the Game Master's quest form: who is in that spot, and the line that tells them.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
+  dueTimeOn,
   effectiveDeadline,
   isDayOff,
   isQuestOverdue,
@@ -162,4 +166,71 @@ export function ambushAlertCopy(names: { beastName?: string; questName?: string 
     title: `⚔️ ${beastWithArticle(beast)} blocks your path!`,
     body: quest ? `${quest} is waiting. Come back and fight!` : "Come back and fight!",
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Heroes who only meet free fights (the Game Master's quest form)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** What these checks read off a quest: any Achievement fits, and so does the quest the form is editing. */
+export type AmbushQuest = Pick<
+  Achievement,
+  "id" | "dueByTime" | "type" | "assignee" | "beastId" | "achievementName" | "noBeast" | "draft"
+>;
+
+/** Any day will do: whether a quest has a due time does not depend on the day. */
+const ANY_DAY = new Date(0);
+
+/** True for a quest with no due time (or one that cannot be read): never late, always waiting, as pickQuestAmbush reads it. */
+export const isAnytimeQuest = (quest: Pick<Achievement, "dueByTime">): boolean => dueTimeOn(quest.dueByTime, ANY_DAY) === null;
+
+/** QuestEngine.isVisibleToUser: an Open Bounty is open to every hero, any other quest to the heroes it names. */
+const isVisibleTo = (quest: AmbushQuest, heroId: string): boolean =>
+  quest.type === "asNeeded" || (quest.assignee ?? []).includes(heroId);
+
+/** A live quest (heroes never see a draft) that sends a beast when it ambushes. */
+const sendsBeast = (quest: AmbushQuest): boolean => !quest.draft && Boolean(questBeastId(quest));
+
+/**
+ * True when some live quest with a beast can ambush the hero for real: an anytime one, which is always waiting, or a
+ * timed one, which sends its beast once it is late. False means every encounter of theirs is a free fight.
+ */
+export const canAmbushForReal = (quests: readonly AmbushQuest[], heroId: string): boolean =>
+  quests.some((quest) => sendsBeast(quest) && isVisibleTo(quest, heroId));
+
+/**
+ * Of `heroIds`, those with no anytime quest that has a beast: unless a timed chore runs late, their ambushes are free
+ * fights (AP only). Each hero once, in the order given.
+ */
+export const heroesWithoutAnytimeBeast = (quests: readonly AmbushQuest[], heroIds: readonly string[]): string[] => {
+  const waiting = quests.filter((quest) => sendsBeast(quest) && isAnytimeQuest(quest));
+  const isCovered = (heroId: string) => waiting.some((quest) => isVisibleTo(quest, heroId));
+  return heroIds.filter((heroId, index) => heroIds.indexOf(heroId) === index && !isCovered(heroId));
+};
+
+/**
+ * The heroes `draft` names who would only meet free fights once it is saved as it stands in the form. The form's quest
+ * replaces its own saved copy in `others` and counts as live even while it is still a draft. An Open Bounty names no
+ * hero, so it names none here.
+ */
+export const freeFightHeroes = (draft: AmbushQuest, others: readonly AmbushQuest[]): string[] => {
+  const isOpenBounty = draft.type === "asNeeded";
+  if (isOpenBounty) return [];
+  const family = [...others.filter((quest) => quest.id !== draft.id), { ...draft, draft: false }];
+  return heroesWithoutAnytimeBeast(family, draft.assignee ?? []);
+};
+
+/** "Mia", "Mia and Sam", "Mia, Sam and Joe". */
+const namesList = (names: readonly string[]): string =>
+  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+
+/** The one hint line under the quest's due time for these heroes; empty for none. */
+export function freeFightHint(names: readonly string[]): string {
+  const hasNoNames = names.length === 0;
+  if (hasNoNames) return "";
+  const verb = names.length === 1 ? "has" : "have";
+  return (
+    `${namesList(names)} ${verb} no anytime quest with a beast, so their ambushes are free fights (AP only) ` +
+    "unless a chore runs late. Make this one anytime, with a beast, to send them real fights."
+  );
 }

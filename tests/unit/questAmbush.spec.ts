@@ -4,6 +4,11 @@ import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import {
   QUEST_AMBUSH_COOLDOWN_MS,
   ambushAlertCopy,
+  canAmbushForReal,
+  freeFightHeroes,
+  freeFightHint,
+  heroesWithoutAnytimeBeast,
+  isAnytimeQuest,
   libraryBeastName,
   pickQuestAmbush,
   withAmbushStamped,
@@ -358,5 +363,159 @@ describe("ambushAlertCopy", () => {
   it("falls back to a plain beast and a plain call when it has no names", () => {
     expect(ambushAlertCopy({})).toEqual({ title: "⚔️ A beast blocks your path!", body: "Come back and fight!" });
     expect(ambushAlertCopy({ questName: "  " }).body).toBe("Come back and fight!");
+  });
+});
+
+describe("isAnytimeQuest", () => {
+  it("is true for a quest with no due time, or one that cannot be read", () => {
+    expect(isAnytimeQuest(makeQuest("q", { dueByTime: "" }))).toBe(true);
+    expect(isAnytimeQuest(makeQuest("q", { dueByTime: "soon" }))).toBe(true);
+    expect(isAnytimeQuest(makeQuest("q", { dueByTime: "25:00" }))).toBe(true);
+  });
+
+  it("is false for a quest with a due time, bare or a full stamp", () => {
+    expect(isAnytimeQuest(makeQuest("q", { dueByTime: "08:00" }))).toBe(false);
+    expect(isAnytimeQuest(makeQuest("q", { dueByTime: "2026-10-12T17:30:00" }))).toBe(false);
+  });
+
+  it("agrees with the ambush rule: an anytime quest is the one that ambushes with no deadline", () => {
+    const anytime = makeQuest("q", { dueByTime: "" });
+    expect(isAnytimeQuest(anytime)).toBe(true);
+    expect(pickQuestAmbush([row(anytime)], undefined, {}, NOW)?.deadline).toEqual(NOW);
+  });
+});
+
+describe("canAmbushForReal", () => {
+  it("is true for a hero with an anytime quest that has a beast", () => {
+    expect(canAmbushForReal([makeQuest("q", { dueByTime: "" })], "hero-1")).toBe(true);
+  });
+
+  it("is true for a hero with a timed quest that has a beast, because it can go overdue", () => {
+    expect(canAmbushForReal([makeQuest("q", { dueByTime: "08:00" })], "hero-1")).toBe(true);
+  });
+
+  it("is false when the quests that name the hero have no beast", () => {
+    const quests = [makeQuest("q", { beastId: "", noBeast: true }), makeQuest("r", { beastId: undefined, noBeast: true })];
+    expect(canAmbushForReal(quests, "hero-1")).toBe(false);
+  });
+
+  it("is false when the beast quests belong to other heroes", () => {
+    expect(canAmbushForReal([makeQuest("q", { assignee: ["hero-2"] })], "hero-1")).toBe(false);
+  });
+
+  it("counts an Open Bounty for every hero", () => {
+    const bounty = makeQuest("q", { type: "asNeeded", assignee: [] });
+    expect(canAmbushForReal([bounty], "hero-1")).toBe(true);
+    expect(canAmbushForReal([bounty], "hero-9")).toBe(true);
+  });
+
+  it("counts a shared quest for every hero it names", () => {
+    const team = makeQuest("q", { type: "collaborate", assignee: ["hero-1", "hero-2"] });
+    expect(canAmbushForReal([team], "hero-2")).toBe(true);
+  });
+
+  it("leaves a draft out: heroes never see one", () => {
+    expect(canAmbushForReal([makeQuest("q", { draft: true })], "hero-1")).toBe(false);
+  });
+
+  it("is false on an empty board", () => {
+    expect(canAmbushForReal([], "hero-1")).toBe(false);
+  });
+});
+
+describe("heroesWithoutAnytimeBeast", () => {
+  const anytime = (id: string, overrides: Partial<Achievement> = {}) => makeQuest(id, { dueByTime: "", ...overrides });
+
+  it("lists the heroes who have no anytime quest with a beast, in the order given", () => {
+    const quests = [anytime("q1", { assignee: ["hero-2"] })];
+    expect(heroesWithoutAnytimeBeast(quests, ["hero-3", "hero-2", "hero-1"])).toEqual(["hero-3", "hero-1"]);
+  });
+
+  it("lists nobody when every hero has one", () => {
+    const quests = [anytime("q1", { type: "collaborate", assignee: ["hero-1", "hero-2"] })];
+    expect(heroesWithoutAnytimeBeast(quests, ["hero-1", "hero-2"])).toEqual([]);
+  });
+
+  it("does not count a timed quest, even with a beast: it ambushes only once it is late", () => {
+    expect(heroesWithoutAnytimeBeast([makeQuest("q1", { dueByTime: "08:00" })], ["hero-1"])).toEqual(["hero-1"]);
+  });
+
+  it("does not count an anytime quest with no beast", () => {
+    const quests = [anytime("q1", { beastId: "", noBeast: true })];
+    expect(heroesWithoutAnytimeBeast(quests, ["hero-1"])).toEqual(["hero-1"]);
+  });
+
+  it("does not count a draft", () => {
+    expect(heroesWithoutAnytimeBeast([anytime("q1", { draft: true })], ["hero-1"])).toEqual(["hero-1"]);
+  });
+
+  it("counts an anytime Open Bounty with a beast for every hero", () => {
+    const bounty = anytime("q1", { type: "asNeeded", assignee: [] });
+    expect(heroesWithoutAnytimeBeast([bounty], ["hero-1", "hero-2"])).toEqual([]);
+  });
+
+  it("names a hero once, and nobody for no heroes", () => {
+    expect(heroesWithoutAnytimeBeast([], ["hero-1", "hero-1"])).toEqual(["hero-1"]);
+    expect(heroesWithoutAnytimeBeast([anytime("q1")], [])).toEqual([]);
+  });
+});
+
+describe("freeFightHeroes", () => {
+  it("names the heroes of a timed quest who have no anytime quest with a beast", () => {
+    const draft = makeQuest("new", { dueByTime: "08:00", assignee: ["hero-1", "hero-2"] });
+    const others = [makeQuest("q1", { dueByTime: "", assignee: ["hero-2"] })];
+    expect(freeFightHeroes(draft, others)).toEqual(["hero-1"]);
+  });
+
+  it("says nothing when the quest is itself anytime with a beast", () => {
+    const draft = makeQuest("new", { dueByTime: "", assignee: ["hero-1"] });
+    expect(freeFightHeroes(draft, [])).toEqual([]);
+  });
+
+  it("counts the quest as it is now, not as it was saved, and while it is still a draft", () => {
+    const saved = makeQuest("same", { dueByTime: "08:00", assignee: ["hero-1"] });
+    const nowAnytime = makeQuest("same", { dueByTime: "", assignee: ["hero-1"], draft: true });
+    expect(freeFightHeroes(saved, [saved])).toEqual(["hero-1"]);
+    expect(freeFightHeroes(nowAnytime, [saved])).toEqual([]);
+  });
+
+  it("does not let the saved copy of the quest cover a hero the form just took off it", () => {
+    const saved = makeQuest("same", { dueByTime: "", assignee: ["hero-1", "hero-2"] });
+    const edited = makeQuest("same", { dueByTime: "08:00", assignee: ["hero-1"] });
+    expect(freeFightHeroes(edited, [saved])).toEqual(["hero-1"]);
+  });
+
+  it("names the quest's heroes when it has no beast", () => {
+    const draft = makeQuest("new", { dueByTime: "", beastId: "", noBeast: true, assignee: ["hero-1"] });
+    expect(freeFightHeroes(draft, [])).toEqual(["hero-1"]);
+  });
+
+  it("is quiet for an Open Bounty, which names no hero, and for a quest with no heroes yet", () => {
+    expect(freeFightHeroes(makeQuest("new", { type: "asNeeded", assignee: [], dueByTime: "08:00" }), [])).toEqual([]);
+    expect(freeFightHeroes(makeQuest("new", { assignee: [], dueByTime: "08:00" }), [])).toEqual([]);
+  });
+
+  it("ignores another quest's draft", () => {
+    const draft = makeQuest("new", { dueByTime: "08:00", assignee: ["hero-1"] });
+    const others = [makeQuest("q1", { dueByTime: "", draft: true })];
+    expect(freeFightHeroes(draft, others)).toEqual(["hero-1"]);
+  });
+});
+
+describe("freeFightHint", () => {
+  it("is empty when no hero is named", () => {
+    expect(freeFightHint([])).toBe("");
+  });
+
+  it("names one hero and says what to do", () => {
+    expect(freeFightHint(["Mia"])).toBe(
+      "Mia has no anytime quest with a beast, so their ambushes are free fights (AP only) unless a chore runs late. " +
+        "Make this one anytime, with a beast, to send them real fights."
+    );
+  });
+
+  it("joins two or more names", () => {
+    expect(freeFightHint(["Mia", "Sam"])).toMatch(/^Mia and Sam have no anytime quest/);
+    expect(freeFightHint(["Mia", "Sam", "Joe"])).toMatch(/^Mia, Sam and Joe have no anytime quest/);
   });
 });
