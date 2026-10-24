@@ -4,16 +4,18 @@
  *
  * Pure: no storage, no Vue. Each phase is a floor of the family's own house: the Old House planner (housePlanner.ts)
  * lays out, floor by floor on its 9x9 frame, the rooms that have chores in that phase, each holding them all. The
- * phase's biggest chore (the first on a tie) is the floor's boss, in a room of its own beside its house room, and the
- * stairs up hang off it: they open when every chore of the floor is done ('floorCleared'). The next floor's arrival is
- * pinned to the stairs' cell. The last phase's boss guards the Boss Key; the roof, the next floor up, holds the arrival,
- * the finale behind the Boss Key door and the Trophy. towerRecord.ts writes the cells as rooms; projectQuests.ts makes
- * the quests. The same input always gives the same tower.
+ * phase's biggest chore (the first on a tie) is the floor's boss, in a room of its own (beside its house room when a
+ * side is free), and the stairs up hang off it: they open when every chore of the floor is done ('floorCleared'). The
+ * next floor's arrival is pinned to the stairs' cell. The last phase's boss guards the Boss Key: it is sealed, so it
+ * stands in a wing of its own (as the Old House's junk drawer does) and goes in after every chore room, its stairs last,
+ * so no chore room hangs off it and none waits behind the phase's biggest chore. The roof, the next floor up, holds the
+ * arrival, the finale behind the Boss Key door and the Trophy. towerRecord.ts writes the cells as rooms;
+ * projectQuests.ts makes the quests. The same input always gives the same tower.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { TempleInterface } from "@/lib/databases/TempleDb";
 import { HOUSE_FRAME, planHouse, type HousePlan } from "@/lib/services/core/packs/movingTemple/housePlanner";
-import type { HouseCell, HouseCellKind } from "@/lib/services/core/packs/movingTemple/houseRooms";
+import type { HouseCell, HouseCellKind, HouseZone } from "@/lib/services/core/packs/movingTemple/houseRooms";
 import { houseRoomsOf, type ProjectChore, type ProjectRoom } from "./projectChores";
 import { ROOF_PHASE_ID, type PhaseWindow } from "./projectSchedule";
 import { projectQuestId, questsForProject, windowOfPhase, type ProjectTowerInput } from "./projectQuests";
@@ -61,7 +63,12 @@ interface Draft {
   cell: TowerCell;
   parents: string[];
   at?: [number, number];
+  /** "house" unless it is the sealed key guard's wing, which only its own link touches */
+  zone?: HouseZone;
 }
+
+/** A cell of the key guard's wing: the planner keeps every house room off it and never walks through it */
+const inWing = (draft: Draft): Draft => ({ ...draft, zone: "wing" });
 
 const way = (id: string, name: string, role: TowerRole, parents: string[] = [], at?: [number, number]): Draft => ({
   cell: { id, name, role, questIds: [], biggest: 0 },
@@ -92,7 +99,10 @@ const checkChores = (input: ProjectTowerInput): void => {
   if (!hasLastChore) throw new Error(`The last phase of ${type.name} needs a chore: its boss keeps the Boss Key`);
 };
 
-/** The cells of a phase's floor: the way in, the boss's house room, the boss, its stairs up, then every other room */
+/**
+ * The cells of a phase's floor, in the order they are placed: the way in, the boss's house room, then an open boss and
+ * its stairs up before every other room, or, on the last phase, every other room, then the key guard, then its stairs
+ */
 const phaseDrafts = (anchor: Draft, chores: readonly ProjectChore[], rooms: readonly ProjectRoom[], questId: (choreId: string) => string, isLast: boolean): Draft[] => {
   const boss = biggestOf(chores);
   const roomCells = rooms.flatMap((room): Draft[] => {
@@ -106,21 +116,25 @@ const phaseDrafts = (anchor: Draft, chores: readonly ProjectChore[], rooms: read
   });
   if (!boss) return [anchor, way("stairsUp", "Stairs up", "stairsUp", [anchor.cell.id]), ...roomCells];
 
-  // The boss's own room and the boss go first, so the boss still has a free side for its stairs
   const bossRoom = roomCells.find((draft) => draft.cell.id === `room:${boss.roomId}`);
   const bossName = rooms.find((room) => room.id === boss.roomId)?.name ?? boss.name;
   const bossCell: TowerCell = { id: "boss", name: bossName, role: isLast ? "keyGuard" : "floorBoss", questIds: [questId(boss.id)], biggest: boss.difficulty };
   const bossDraft: Draft = { cell: bossCell, parents: [...(bossRoom ? [bossRoom.cell.id] : []), anchor.cell.id] };
-  return [
-    anchor,
-    ...(bossRoom ? [bossRoom] : []),
-    bossDraft,
-    way("stairsUp", "Stairs up", "stairsUp", ["boss"]),
-    ...roomCells.filter((draft) => draft !== bossRoom),
-  ];
+  const stairs = way("stairsUp", "Stairs up", "stairsUp", ["boss"]);
+  const ownRoom = bossRoom ? [bossRoom] : [];
+  const otherRooms = roomCells.filter((draft) => draft !== bossRoom);
+  // An open boss goes first, so it still has a free side for its stairs. The sealed key guard goes after every chore
+  // room, in its wing, and its stairs last of all: nothing can hang off either, and the guard's free sides always leave
+  // the stairs a spot (a wing of two would often have none). The stairs may touch house rooms: they open only once the
+  // guard's chore is done anyway.
+  if (!isLast) return [anchor, ...ownRoom, bossDraft, stairs, ...otherRooms];
+  return [anchor, ...ownRoom, ...otherRooms, inWing(bossDraft), stairs];
 };
 
-/** The roof: the arrival, the finale beside it and the Trophy behind the finale (never beside the arrival: a grid has no triangles) */
+/**
+ * The roof: the arrival, the finale beside it and the Trophy behind the finale (never beside the arrival: a grid has no
+ * triangles). The sealed finale needs no wing: the Trophy is the only room behind it, and it belongs there.
+ */
 const roofDrafts = (anchor: Draft, finale: ProjectChore, questId: (choreId: string) => string): Draft[] => [
   anchor,
   { cell: { id: "finale", name: "The Roof", role: "finale", questIds: [questId(finale.id)], biggest: finale.difficulty }, parents: [anchor.cell.id] },
@@ -143,7 +157,7 @@ const planOrSay = (key: string, cells: readonly HouseCell[], seed: string): Hous
 const planFloor = (key: string, drafts: readonly Draft[], seed: string): PlacedTowerCell[] => {
   const cells: HouseCell[] = drafts.map((draft) => ({
     id: draft.cell.id, name: draft.cell.name, kind: PLANNER_KINDS[draft.cell.role], floor: "1F",
-    parents: draft.parents, prefer: [], zone: "house", questIds: [], ...(draft.at ? { at: draft.at } : {}),
+    parents: draft.parents, prefer: [], zone: draft.zone ?? "house", questIds: [], ...(draft.at ? { at: draft.at } : {}),
   }));
   const plan = planOrSay(key, cells, `${seed}:${key}`);
   const [pin] = drafts;

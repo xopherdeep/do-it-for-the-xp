@@ -3,72 +3,20 @@
  * stairs, with the finale on the roof behind the Boss Key door. A matrix of both project types, the Moving House
  * fixtures' homes and families proves the solver and the audit accept every tower, the Old House's way.
  */
-import { addDays } from "date-fns";
 import { PROJECT_TYPES } from "@/lib/services/core/packs/projects";
 import type { ProjectType } from "@/lib/services/core/packs/projects";
-import { dateKey, parseLocalDate } from "@/lib/services/core/packs/packCommon";
 import type { PackHero } from "@/lib/services/core/packs/packCommon";
-import type { MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import * as planner from "@/lib/services/core/packs/movingTemple/housePlanner";
-import { suggestChores, type ProjectChore, type ProjectHouse } from "@/lib/services/projects/projectChores";
-import { ROOF_PHASE_ID, phaseWindows } from "@/lib/services/projects/projectSchedule";
+import type { ProjectChore } from "@/lib/services/projects/projectChores";
+import { ROOF_PHASE_ID } from "@/lib/services/projects/projectSchedule";
 import { projectQuestId } from "@/lib/services/projects/projectQuests";
-import {
-  buildProjectTower,
-  roofFloorKey,
-  towerFloorKeys,
-  type ProjectTower,
-  type ProjectTowerInput,
-} from "@/lib/services/projects/projectTower";
+import { buildProjectTower, roofFloorKey, towerFloorKeys, type ProjectTower, type ProjectTowerInput } from "@/lib/services/projects/projectTower";
 import { solveTemple } from "@/lib/engine/dungeons/generator";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
-import type { Room } from "@/lib/engine/core/dungeons/types";
 import { FAMILIES, PARENT, ROOM_SETS, SIX, TWELVE } from "./movingHouseFixtures";
-
-const START = "2027-04-03";
-const NOW = new Date(2027, 3, 3, 9, 0);
-const SPRING = PROJECT_TYPES["spring-cleaning"];
-
-type Rooms = Partial<Record<MovingRoomId, number>>;
-
-const endOf = (type: ProjectType): string => dateKey(addDays(parseLocalDate(START), type.defaultDays - 1));
-
-/** The input the wizard would hand over: the suggested chores, the windows from the start to the type's default end */
-const inputFor = (type: ProjectType, rooms: Rooms, heroes: readonly PackHero[]): ProjectTowerInput => {
-  const house: ProjectHouse = { rooms };
-  const chores = suggestChores(type, house, heroes);
-  return { projectId: `${type.id}-${START}`, type, house, chores, windows: phaseWindows(type.phases, START, endOf(type)), now: NOW, heroes };
-};
-
-/** One placed room of the tower: its floor, cell, token and room table entry */
-interface Cell { floor: string; row: number; col: number; token: string; room: Room }
-
-const cellsOf = (tower: ProjectTower): Cell[] => {
-  const layout = tower.record.dungeonLayout!;
-  const maze = layout.maze as Record<string, string[][]>;
-  return Object.entries(maze).flatMap(([floor, grid]) =>
-    grid.flatMap((line, row) =>
-      line.flatMap((token, col) => {
-        const room = layout.rooms[token];
-        const isRoom = Boolean(room) && room.type !== "wall";
-        return isRoom ? [{ floor, row, col, token, room }] : [];
-      }),
-    ),
-  );
-};
-
-const holding = (cells: Cell[], questId: string): Cell[] => cells.filter((cell) => (cell.room.content?.questIds ?? []).includes(questId));
-
-/** The phase's biggest chore, the first on a tie */
-const biggestOf = (chores: ProjectChore[]): ProjectChore => chores.reduce((best, chore) => (chore.difficulty > best.difficulty ? chore : best));
-
-const isBeside = (a: Cell, b: Cell): boolean => Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1;
-
-const choresOf = (input: ProjectTowerInput, phaseId: string): ProjectChore[] => input.chores.filter((chore) => chore.phaseId === phaseId);
-
-/** The tower floor a phase's chores belong to */
-const floorKeyOf = (type: ProjectType, phaseId: string): string =>
-  phaseId === ROOF_PHASE_ID ? roofFloorKey(type.phases.length) : towerFloorKeys(type.phases.length)[type.phases.findIndex((phase) => phase.id === phaseId)];
+import {
+  SPRING, SWEEP_STARTS, biggestOf, cellsOf, choresOf, floorKeyOf, holding, inputFor, isBeside, strandedChoreRooms, type Cell, type Rooms,
+} from "./projectTowerFixtures";
 
 // ---------------------------------------------------------------------------------------------------------------
 // The matrix: both types x the fixtures' ticked rooms (some room ticked) x families
@@ -202,6 +150,17 @@ describe("every tower the wizard can build", () => {
     expect(cells.filter((cell) => cell.floor === keys[keys.length - 1] && cell.room.type === "stairs-up")).toEqual([]);
   });
 
+  it.each(MATRIX)("%s: reaches every chore room from where the floor is entered, never through a sealed room, whatever the start date", (label, type, rooms, heroes) => {
+    const { cells } = towerOf(label, type, rooms, heroes);
+    expect(strandedChoreRooms(cells)).toEqual([]);
+    for (const start of SWEEP_STARTS) {
+      const tower = buildProjectTower(inputFor(type, rooms, heroes, start));
+      expect({ start, stranded: strandedChoreRooms(cellsOf(tower)) }).toEqual({ start, stranded: [] });
+      const solved = solveTemple(tower.record.dungeonLayout!);
+      expect({ start, reasons: solved.reasons, audited: auditTemple(tower.record).passed }).toEqual({ start, reasons: [], audited: true });
+    }
+  });
+
   it.each(MATRIX)("%s: roofs the tower with the arrival, the finale behind the Boss Key door, and The Trophy", (label, type, rooms, heroes) => {
     const { input, cells } = towerOf(label, type, rooms, heroes);
     const roof = cells.filter((cell) => cell.floor === roofFloorKey(type.phases.length));
@@ -222,6 +181,17 @@ describe("every tower the wizard can build", () => {
 describe("buildProjectTower", () => {
   const family = [PARENT, TWELVE, SIX];
   const base = (): ProjectTowerInput => inputFor(SPRING, { kitchen: 1, bedroom: 2, bathroom: 1 }, family);
+
+  it("keeps Bedroom 3 out of the key guard's wing (review: Spring Cleaning, default rooms, Dad, Twelve and Six, from 2027-07-07)", () => {
+    const tower = buildProjectTower(inputFor(SPRING, ROOM_SETS[0][1], family, "2027-07-07"));
+    const cells = cellsOf(tower);
+    expect(strandedChoreRooms(cells)).toEqual([]);
+    const guard = cells.find((cell) => cell.room.type === "miniboss")!;
+    const besideGuard = cells.filter((cell) => cell.floor === guard.floor && isBeside(cell, guard)).map((cell) => cell.room.type).sort();
+    // The guard touches only the room it hangs off and its own stairs up
+    expect(besideGuard).toHaveLength(2);
+    expect(besideGuard).toContain("stairs-up");
+  });
 
   it("builds the same tower from the same input", () => {
     expect(buildProjectTower(base())).toEqual(buildProjectTower(base()));
