@@ -1,7 +1,7 @@
 /**
  * Getting around a temple: what lies in each direction of a room, the doors between rooms, the stairs between
- * floors (a flight can be locked: a small key or the Boss Key opens the climb), and the two lookups the pits and
- * stairs share (the next floor, the first room of a kind).
+ * floors (a flight can be locked: a small key or the Boss Key opens the climb, or it waits for the floor's chores to be
+ * done), and the two lookups the pits and stairs share (the next floor, the first room of a kind).
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
@@ -9,6 +9,9 @@ import type { DoorKind } from '@/lib/engine/core/dungeons/TempleSystem';
 import { CRACKED_WALL_LINE, SEALED_DOOR_LINE, SOLID_WALL_LINE } from '@/lib/engine/core/dungeons/templeSystem/doors';
 import { neighbourFloorOf } from '@/lib/engine/core/dungeons/floorOrder';
 import type { ClimbLock, Room } from '@/lib/engine/core/dungeons/types';
+import { copyFor } from '@/lib/services/copy/copy';
+import { voiceFor, type Voice } from '@/lib/services/copy/voices';
+import { useUserStore } from '@/lib/store/stores/user';
 import { climbLockOf } from '../authoredDoors';
 import { roomKind, SFX } from './vocabulary';
 import type { Direction, RoomContext, RoomOutcome, RoomSheet } from './vocabulary';
@@ -109,39 +112,65 @@ export const findRoomOfKind = (templeId: string, floor: string, kinds: string[])
   return undefined;
 };
 
+/** The locks a key opens (the floor-cleared lock has no key: the screen says whether the floor is done) */
+type KeyLock = Exclude<ClimbLock, 'floorCleared'>;
+
 /** What the stairs say of the lock that bars them: the sheet's subtitle, and the toast of a hero who cannot open it */
-const CLIMB_LOCK_LINES: Record<ClimbLock, string> = {
+const CLIMB_LOCK_LINES: Record<KeyLock, string> = {
   small: 'A small lock bars the way.',
   master: "The Boss Door's lock bars the way.",
 };
 
 /** What the hero finds as the lock gives, ahead of the climb */
-const CLIMB_UNLOCKED_LINES: Record<ClimbLock, string> = {
+const CLIMB_UNLOCKED_LINES: Record<KeyLock, string> = {
   small: 'Unlocked!',
   master: 'The big lock falls away.',
 };
 
-/** The lock a climb still has to open: the flight's lock, unless it is free or was opened already in this run. */
+/** What the stairs say of the lock that bars them, in the voice of the hero who stands before them (the floor line is in the copy catalogue) */
+const lockLine = (lock: ClimbLock, ctx: RoomContext): string => {
+  if (lock !== 'floorCleared') return CLIMB_LOCK_LINES[lock];
+  const voice: Voice = voiceFor(useUserStore().getUserById(ctx.userId));
+  return copyFor('temple.floorClearedLock', voice);
+};
+
+/**
+ * The lock a climb still has to open: the flight's lock, unless it is free or was opened already in this run. A
+ * floor-cleared flight is never remembered as open: it is shut until the context says the floor is cleared, each time.
+ */
 const lockToOpen = (room: Room, ctx: RoomContext): ClimbLock | undefined => {
   const lock = climbLockOf(room);
+  if (lock === 'floorCleared') return ctx.floorCleared === true ? undefined : lock;
   const isFreeOrOpen = !lock || temples().isClimbUnlocked(ctx.templeId, ctx.level, ctx.position);
   return isFreeOrOpen ? undefined : lock;
 };
 
-/** Whether the hero holds what the lock wants: a small key in the bag, or the Boss Key (kept, not spent). */
-const canOpenClimb = (templeId: string, lock: ClimbLock): boolean =>
-  lock === 'small' ? (temples().getTempleState(templeId)?.playerKeys ?? 0) > 0 : temples().hasMasterKey(templeId);
+/**
+ * Whether the hero holds what the lock wants: a small key in the bag, or the Boss Key (kept, not spent). Nothing in the
+ * bag opens a floor-cleared lock (`lockToOpen` has let a cleared floor through already).
+ */
+const canOpenClimb = (templeId: string, lock: ClimbLock): boolean => {
+  switch (lock) {
+    case 'small':
+      return (temples().getTempleState(templeId)?.playerKeys ?? 0) > 0;
+    case 'master':
+      return temples().hasMasterKey(templeId);
+    case 'floorCleared':
+      return false;
+  }
+};
 
 /**
- * The sheet of a flight of stairs: Climb on a free flight, or one already opened in this run. A locked flight says what
- * bars it and, to a hero holding the key it wants, offers "Unlock and climb" (the key is spent by `climb`, not here).
+ * The sheet of a flight of stairs: Climb on a free flight, or one already opened in this run, or one whose floor is
+ * cleared (`ctx.floorCleared`). A locked flight says what bars it and, to a hero holding the key it wants, offers
+ * "Unlock and climb" (the key is spent by `climb`, not here); a flight that waits for its floor offers nothing until then.
  */
 export const stairsSheet = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomSheet => {
   const header = way === 'up' ? 'Stairs lead up.' : 'Stairs lead down.';
   const lock = lockToOpen(room, ctx);
   if (!lock) return { header, actions: [{ label: 'Climb', run: () => climb(room, ctx, way) }] };
 
-  const subHeader = CLIMB_LOCK_LINES[lock];
+  const subHeader = lockLine(lock, ctx);
   const hasTheKey = canOpenClimb(ctx.templeId, lock);
   if (!hasTheKey) return { header, subHeader, actions: [] };
   return { header, subHeader, actions: [{ label: 'Unlock and climb', run: () => climb(room, ctx, way) }] };
@@ -149,7 +178,9 @@ export const stairsSheet = (room: Room, ctx: RoomContext, way: 'up' | 'down'): R
 
 /**
  * Take the stairs. A locked flight opens first (a small key is spent, the Boss Key is only shown) and stays open for the
- * run; a hero without the key is turned back where they stand. Stairs to no floor are rubble before any key is taken.
+ * run; a hero without the key is turned back where they stand. A floor-cleared flight spends nothing and opens nothing:
+ * it climbs while `ctx.floorCleared` holds and turns the hero back while it does not. Stairs to no floor are rubble
+ * before any key is taken.
  */
 export const climb = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomOutcome => {
   const rubble: RoomOutcome = { message: 'The stairs are blocked by rubble.', sound: SFX.error };
@@ -158,6 +189,8 @@ export const climb = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomOut
   if (isStairwayBlocked) return rubble;
 
   const lock = lockToOpen(room, ctx);
+  const isFloorShut = lock === 'floorCleared';
+  if (isFloorShut) return { message: lockLine(lock, ctx), sound: SFX.error };
   if (lock) {
     const hasOpened = temples().unlockClimb(ctx.templeId, ctx.level, ctx.position, lock);
     if (!hasOpened) return { message: CLIMB_LOCK_LINES[lock], sound: SFX.error };

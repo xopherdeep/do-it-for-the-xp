@@ -414,7 +414,7 @@ export class TempleSystem {
 
   /**
    * Open the locked climb from the stairs room at `position` on `level`: a 'small' lock spends one small key, a 'master' lock
-   * needs the Boss Key and keeps it; an open climb opens again for nothing.
+   * needs the Boss Key and keeps it; an open climb opens again for nothing; a 'floorCleared' lock is never opened here (false).
    * @returns True if the climb is open now
    */
   public unlockClimb(templeId: string, level: string, position: [number, number], kind: ClimbLock): boolean {

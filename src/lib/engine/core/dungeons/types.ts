@@ -31,10 +31,12 @@ export interface RoomQuestTemplate {
 export type RoomDrops = Pick<RoomContent, 'chest' | 'dungeon' | 'items' | 'gold'>;
 
 /**
- * What bars a flight of stairs (`RoomContent.locked` on a stairs room): a small lock a small key opens, or the Boss
- * Door's lock only the Boss Key opens. The doors between two rooms are locked with `Room.locked` and the Boss Door rule instead.
+ * What bars a flight of stairs (`RoomContent.locked` on a stairs room): a small lock a small key opens, the Boss
+ * Door's lock only the Boss Key opens, or the floor itself: 'floorCleared' opens when every chore on the floor is done
+ * (a project tower's stairs; no key, and the climb is never remembered as open: the screen asks each time).
+ * The doors between two rooms are locked with `Room.locked` and the Boss Door rule instead.
  */
-export type ClimbLock = 'small' | 'master';
+export type ClimbLock = 'small' | 'master' | 'floorCleared';
 
 export interface RoomContent {
   beasts?: string[];
@@ -57,7 +59,8 @@ export interface RoomContent {
   dungeon?: string;
   /**
    * A stairs-up / stairs-down room: the climb FROM this room is locked, a small key or the Boss Key opens it (the Boss Key
-   * is kept). The landing on the other floor climbs back freely. Remembered in a run as TempleState.openedDoors `climbKey`.
+   * is kept), or it waits for the floor to be cleared. The landing on the other floor climbs back freely. A key's opening
+   * is remembered in a run as TempleState.openedDoors `climbKey`; a floor-cleared climb is not (the context says each time).
    */
   locked?: ClimbLock;
   /** A fight room (monster, mini-boss, boss): what the hero takes after winning, a key, the map or a Bomb included */

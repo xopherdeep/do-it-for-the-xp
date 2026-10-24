@@ -18,8 +18,9 @@
  *   the master key opens the door), and a small lock still wants its key;
  * - stairs up lead to the next floor up in the climbing order (floorOrder: B1, 1F, 2F), stairs down to the next one
  *   down, landing on the requested coordinates, else the first matching stairs on that floor, else the same cell
- *   (R8 wants pairs at the same row and column); a flight with `content.locked` ('small' | 'master') is a stairs door
- *   with that lock, one way: the climb from that room, never the landing's way back;
+ *   (R8 wants pairs at the same row and column); a flight with `content.locked` ('small' | 'master' | 'floorCleared') is
+ *   a stairs door with that lock, one way: the climb from that room, never the landing's way back. A floor-cleared flight
+ *   opens once every room to clear on its own floor (isRoomToClear: a fight, or a room holding quests) has been reached;
  * - a teleport leads where `teleportTargetFor` sends the hero: the author's target, else the next circle on its
  *   floor (wrapping), else the temple's next circle; a circle with none leads nowhere (R8);
  * - a pit drops the hero to the lower floor and cell it names, else to the floor below (same cell, else that floor's
@@ -32,6 +33,7 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 import { teleportTargetFor } from "@/lib/engine/core/dungeons/teleportPairing";
 import { neighbourFloorOf, pitDropOf } from "@/lib/engine/core/dungeons/floorOrder";
 import { barrierBetween, climbLockOf, isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { FIGHT_ROOM_TYPES } from "@/lib/services/temples/fightDrops";
 import { grantsBossKey, isBombSource, smallKeysGranted } from "@/lib/services/temples/roomGrants";
 
 export type Direction = "north" | "south" | "east" | "west";
@@ -60,8 +62,11 @@ export interface RoomRef {
   col: number;
 }
 
-/** What opens a door: nothing, a small key, the master key (boss doors), or a Bomb (a cracked wall) */
-export type LockKind = "none" | "small" | "master" | "bomb";
+/**
+ * What opens a door: nothing, a small key, the master key (boss doors), a Bomb (a cracked wall), or a cleared floor (a
+ * flight of stairs that waits for every chore on its floor)
+ */
+export type LockKind = "none" | "small" | "master" | "bomb" | "floorCleared";
 
 export type DoorKind = "door" | "stairs" | "teleport" | "pit";
 
@@ -127,6 +132,9 @@ const KIND_ALIASES: Record<string, string> = {
 const IMPASSABLE = new Set(["wall", "void"]);
 
 export const roomKey = (ref: RoomRef): string => `${ref.floor}:${ref.row},${ref.col}`;
+
+/** The floor a room key belongs to (the part before the last colon, so a floor name may hold one). */
+export const floorOfKey = (key: string): string => key.slice(0, key.lastIndexOf(":"));
 
 /** "1F (2,4) boss": how a room is named in a reason. */
 export const describeRoom = (room: GraphRoom): string => `${room.ref.floor} (${room.ref.row},${room.ref.col}) ${room.kind}`;
@@ -360,6 +368,26 @@ export const buildTempleGraph = (layout: TempleLayout): TempleGraph => {
   linkPits(graph);
   graph.entrance = findEntrance(layout, graph);
   return graph;
+};
+
+/**
+ * A room the hero has to clear: a monster, mini-boss or boss room, or any room that holds quests (`content.questIds`, a
+ * chore room of a house or a tower). A floor-cleared flight waits for every one of its floor.
+ */
+export const isRoomToClear = (room: GraphRoom): boolean => {
+  const isFightType = FIGHT_ROOM_TYPES.includes(room.kind);
+  const questIds = room.room.content?.questIds;
+  const holdsQuests = Array.isArray(questIds) && questIds.length > 0;
+  return isFightType || holdsQuests;
+};
+
+/** The keys of the rooms to clear on each floor of the graph (a floor with none has an empty list). */
+export const roomsToClearByFloor = (graph: Pick<TempleGraph, "floors" | "rooms">): Map<string, string[]> => {
+  const byFloor = new Map<string, string[]>(graph.floors.map((floor) => [floor, []]));
+  for (const room of graph.rooms.values()) {
+    if (isRoomToClear(room)) byFloor.get(room.ref.floor)?.push(room.key);
+  }
+  return byFloor;
 };
 
 /** Rooms of a kind, in reading order. */

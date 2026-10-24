@@ -8,14 +8,19 @@
  * taken to do both the moment a room is in reach (a monster's key drop included). So does taking a Bomb: a cracked
  * wall is a door that opens, for good, once the hero has reached a room that gives out a Bomb (a shop, a Bomb chest,
  * a Bomb drop). A Bomb is the only thing that opens one, and opens nothing else: no locked door, no boss door.
+ * A flight of stairs that waits for its floor to be cleared opens the moment the hero has reached every room to clear
+ * on that floor (a fight, or a room holding quests): no key, so it takes no part in the search over door orders.
  *
  * Each rule R1..R9 adds a reason that starts with its number; `solvable` is R2 alone.
  */
 import {
   buildTempleGraph,
   describeRoom,
+  floorOfKey,
+  isRoomToClear,
   reachableFrom,
   roomsOfKind,
+  roomsToClearByFloor,
   type Door,
   type GraphRoom,
   type LockKind,
@@ -44,6 +49,8 @@ interface Region {
   master: boolean;
   /** The hero has reached a room that gives out a Bomb (roomGrants.isBombSource): every cracked wall is theirs to blow */
   bombs: boolean;
+  /** Floors whose every room to clear has been reached (a floor with none counts from the start): their floor-cleared stairs are open */
+  cleared: Set<string>;
 }
 
 type Verdict = { ok: true; history: string[] } | { ok: false; reason: string };
@@ -58,26 +65,70 @@ const doorName = (graph: TempleGraph, door: Door): string => `${name(graph, door
 
 // --- walking with the doors opened so far ----------------------------------------------------------------------
 
-/** What the hero carries that opens a door by itself, not a key spent door by door: the Boss Key, a Bomb. */
+/** What the hero carries that opens a door by itself, not a key spent door by door: the Boss Key, a Bomb, a cleared floor. */
 interface Carried {
   master: boolean;
   bombs: boolean;
+  cleared: ReadonlySet<string>;
 }
 
-/** A door the hero can walk through now. A Bomb opens only a cracked wall, and the Boss Key only a boss door. */
-const passable = (door: Door, opened: ReadonlySet<string>, carried: Carried): boolean =>
-  door.lock === "none" || (door.lock === "small" && opened.has(door.id)) || (door.lock === "master" && carried.master) || (door.lock === "bomb" && carried.bombs);
+/** The locks that open by themselves once the hero has found what they wait for: the explorer parks a door behind one. */
+const WAITING_LOCKS = new Set<LockKind>(["master", "bomb", "floorCleared"]);
+
+/** The stairs that wait for `floor` to be cleared: the doors its last room to clear lets the hero through. */
+const waitsOnFloor =
+  (floor: string) =>
+  (door: Door): boolean => {
+    const isItsStairs = door.lock === "floorCleared" && floorOfKey(door.from) === floor;
+    return isItsStairs;
+  };
+
+/**
+ * A door the hero can walk through now. A Bomb opens only a cracked wall, the Boss Key only a boss door, and a cleared
+ * floor only the stairs of that floor.
+ */
+const passable = (door: Door, opened: ReadonlySet<string>, carried: Carried): boolean => {
+  switch (door.lock) {
+    case "none":
+      return true;
+    case "small":
+      return opened.has(door.id);
+    case "master":
+      return carried.master;
+    case "bomb":
+      return carried.bombs;
+    case "floorCleared":
+      return carried.cleared.has(floorOfKey(door.from));
+  }
+};
 
 /**
  * Everything in reach from the entrance with `opened` doors unlocked. Keys, the master key and Bombs are picked up on
  * the way; a boss door waits until the master key turns up, a cracked wall until a room that gives out a Bomb is
- * reached, and then each opens.
+ * reached, a floor-cleared flight until every room to clear on its floor is reached, and then each opens.
  */
 const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
-  const region: Region = { reached: new Set(), order: [], keysFound: 0, master: false, bombs: false };
+  const region: Region = { reached: new Set(), order: [], keysFound: 0, master: false, bombs: false, cleared: new Set() };
   const { entrance } = graph;
   if (!entrance) return region;
   const waiting: Door[] = [];
+
+  // The rooms to clear on each floor that the hero has not reached yet: a floor with none is cleared from the start
+  const toClear = new Map([...roomsToClearByFloor(graph)].map(([floor, keys]) => [floor, new Set(keys)]));
+  for (const [floor, keys] of toClear) {
+    const hasNothingToClear = keys.size === 0;
+    if (hasNothingToClear) region.cleared.add(floor);
+  }
+
+  /** The floor this room finished clearing (its last room to clear), if it did */
+  const clearedBy = (room: GraphRoom): string | undefined => {
+    const left = toClear.get(room.ref.floor);
+    const isRoomToReach = Boolean(left?.delete(room.key));
+    const isFloorJustCleared = isRoomToReach && left?.size === 0;
+    if (!isFloorJustCleared) return undefined;
+    region.cleared.add(room.ref.floor);
+    return room.ref.floor;
+  };
 
   const arrive = (key: string): void => {
     const isReached = region.reached.has(key);
@@ -88,20 +139,22 @@ const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
     region.keysFound += room.smallKeys;
 
     // What the hero finds here opens the doors that were waiting for it: walk through them now
-    const found: LockKind[] = [];
+    const opens: Array<(door: Door) => boolean> = [];
     const isMasterKeyFound = room.masterKey && !region.master;
     if (isMasterKeyFound) {
       region.master = true;
-      found.push("master");
+      opens.push((door) => door.lock === "master");
     }
     const isBombFound = room.bombs && !region.bombs;
     if (isBombFound) {
       region.bombs = true;
-      found.push("bomb");
+      opens.push((door) => door.lock === "bomb");
     }
-    for (const lock of found) {
-      const ready = waiting.filter((door) => door.lock === lock);
-      waiting.splice(0, waiting.length, ...waiting.filter((door) => door.lock !== lock));
+    const floor = isRoomToClear(room) ? clearedBy(room) : undefined;
+    if (floor) opens.push(waitsOnFloor(floor));
+    for (const isOpened of opens) {
+      const ready = waiting.filter(isOpened);
+      waiting.splice(0, waiting.length, ...waiting.filter((door) => !isOpened(door)));
       ready.forEach((door) => arrive(door.to));
     }
   };
@@ -110,7 +163,7 @@ const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
   for (let i = 0; i < region.order.length; i++) {
     for (const door of graph.out.get(region.order[i]) ?? []) {
       const isPassable = passable(door, opened, region);
-      const isWaitingDoor = door.lock === "master" || door.lock === "bomb";
+      const isWaitingDoor = WAITING_LOCKS.has(door.lock);
       if (isPassable) arrive(door.to);
       else if (isWaitingDoor) waiting.push(door);
     }
@@ -159,7 +212,7 @@ const missing = (graph: TempleGraph, goal: Goal, region: Region, opened: Readonl
   const prize = goal.prizes.find((key) => region.reached.has(key));
   const isPrizeOutOfReach = goal.prizes.length > 0 && !prize;
   if (isPrizeOutOfReach) return "the Pegasus chest is out of reach";
-  const closed = new Set(graph.doors.filter((door) => !passable(door, opened, { master: true, bombs: region.bombs })).map((door) => door.id));
+  const closed = new Set(graph.doors.filter((door) => !passable(door, opened, { master: true, bombs: region.bombs, cleared: region.cleared })).map((door) => door.id));
   const back = new Set(reachableFrom(graph, prize ?? boss, new Set(), closed));
   return exits(graph, goal).some((key) => back.has(key)) ? undefined : "no way back to the gate";
 };
@@ -325,9 +378,35 @@ const checkDeadKeys = (graph: TempleGraph, goal: Goal, reasons: string[]): void 
   }
 };
 
+/**
+ * R2, for the stairs that wait for their floor to be cleared: a flight no run opens. With every small key turned (and the
+ * Boss Key and a Bomb taken wherever they lie) the floor still has a room to clear the hero never reaches, a room walled
+ * off or cut off by this very flight, so the stairs lead nowhere. One reason per such flight, naming the stairs and the
+ * first room it waits on.
+ */
+const deadFloorClearedStairs = (graph: TempleGraph): string[] => {
+  const everyKeyTurned = new Set(graph.doors.filter((door) => door.lock === "small").map((door) => door.id));
+  const region = explore(graph, everyKeyTurned);
+  const toClear = roomsToClearByFloor(graph);
+  const reasons: string[] = [];
+  for (const door of graph.doors) {
+    const floor = floorOfKey(door.from);
+    const isDeadStairs = door.lock === "floorCleared" && !region.cleared.has(floor);
+    if (!isDeadStairs) continue;
+    const waitingOn = (toClear.get(floor) ?? []).find((key) => !region.reached.has(key));
+    const stuckOn = waitingOn ? name(graph, waitingOn) : "a room of its floor";
+    reasons.push(`R2: the floor-cleared stairs at ${name(graph, door.from)} never open: ${stuckOn} is out of reach`);
+  }
+  return reasons;
+};
+
 // --- the entry points -----------------------------------------------------------------------------------------
 
-/** Solve a layout: R1..R9 as reasons, R2 as `solvable`, and the rooms of one winning run. */
+/**
+ * Solve a layout: R1..R9 as reasons, R2 as `solvable`, and the rooms of one winning run. A floor-cleared flight no run
+ * opens is an R2 failure of its own (deadFloorClearedStairs): the temple is not solvable then, even if the keys alone
+ * would see the hero through.
+ */
 export const solveTemple = (layout: TempleLayout): SolveResult => {
   const graph = buildTempleGraph(layout);
   const reasons = graph.issues.map((issue) => `${issue.rule}: ${issue.text}`);
@@ -339,6 +418,8 @@ export const solveTemple = (layout: TempleLayout): SolveResult => {
   const verdict = search(graph, goal, [], new Map());
   const isStuck = !verdict.ok;
   if (isStuck) reasons.push(verdict.reason);
+  const deadStairs = deadFloorClearedStairs(graph);
+  reasons.push(...deadStairs);
   checkKeyCount(graph, goal, reasons);
   checkMasterKey(graph, goal, reasons);
   checkAutoFights(graph, reasons);
@@ -346,8 +427,9 @@ export const solveTemple = (layout: TempleLayout): SolveResult => {
   checkPegasus(graph, goal, reasons);
   checkDeadKeys(graph, goal, reasons);
 
-  const run = verdict.ok ? replay(graph, verdict.history) : { order: [], critical: [] };
-  return { solvable: verdict.ok, reasons: sortByRule(reasons), order: run.order, criticalPath: run.critical };
+  const isSolvable = verdict.ok && deadStairs.length === 0;
+  const run = isSolvable ? replay(graph, verdict.history) : { order: [], critical: [] };
+  return { solvable: isSolvable, reasons: sortByRule(reasons), order: run.order, criticalPath: run.critical };
 };
 
 const sortByRule = (reasons: string[]): string[] => [...reasons].sort((a, b) => Number(a.slice(1, a.indexOf(":"))) - Number(b.slice(1, b.indexOf(":"))));

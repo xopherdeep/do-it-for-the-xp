@@ -40,6 +40,11 @@ export interface RoomContext {
   rng?: () => number;
   /** The clock a quest room's due times and return days are read against. Tests pass a fixed one. */
   now?: Date;
+  /**
+   * Every chore on the hero's current floor is done: a 'floorCleared' flight of stairs climbs only while this is true. Set
+   * for project towers, absent everywhere else (and then such a flight stays shut).
+   */
+  floorCleared?: boolean;
 }
 
 /** A multiple-choice riddle as the screen shows it: the answer stays here. */

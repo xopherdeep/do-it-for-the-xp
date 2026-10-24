@@ -327,10 +327,14 @@ export function isClimbUnlocked(runs: TempleRuns, templeId: string, level: strin
 /**
  * Open the locked climb from the stairs room at `position` on `level`. A 'small' lock spends one small key (refused with
  * none); a 'master' lock needs the Boss Key and keeps it. The opening is remembered with the hero's progress, so the climb
- * is free for the rest of the run. A climb already open is opened again for nothing: no key is spent twice.
+ * is free for the rest of the run. A climb already open is opened again for nothing: no key is spent twice. A
+ * 'floorCleared' lock has no key to turn: nothing here opens it and nothing is written (the screen reads whether the
+ * floor is cleared each time it climbs, `RoomContext.floorCleared`).
  * @returns True if the climb is open now
  */
 export function unlockClimb(runs: TempleRuns, templeId: string, level: string, position: [number, number], kind: ClimbLock): boolean {
+  const isFloorLock = kind === 'floorCleared';
+  if (isFloorLock) return false;
   const templeState = runs.templeStates[templeId];
   if (!templeState) return false;
   if (isClimbUnlocked(runs, templeId, level, position)) return true;
