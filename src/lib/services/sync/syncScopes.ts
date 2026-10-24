@@ -57,6 +57,7 @@ export const SYNC_STORES: readonly SyncStoreRule[] = [
   { store: "__shops", scope: "family" },
   { store: "__temples", scope: "family" },
   { store: "__templeProgress", scope: "hero", heroIdOf: beforeFirstColon },
+  { store: "__projects", scope: "family" },
   { store: "__questLog", scope: "hero", heroIdOf: userIdOfValue },
   { store: "__purchaseLog", scope: "hero", heroIdOf: userIdOfValue },
   { store: "__chat", scope: "family-any" },

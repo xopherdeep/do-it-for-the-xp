@@ -14,6 +14,7 @@ import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
 import { templeStorage } from "@/lib/databases/TempleDb";
 import { templeProgressStorage } from "@/lib/databases/TempleProgressDb";
+import { projectStorage } from "@/lib/databases/ProjectDb";
 import { castLogStorage } from "@/lib/databases/CastLogDb";
 import { familySettingsStorage } from "@/lib/databases/FamilySettingsDb";
 import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
@@ -100,8 +101,8 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  *
  * The order is the restore order: stores that others point at come first (profiles, quest
  * categories and beasts before the quests that reference them; accessories and abilities before
- * the shops that sell them; temples before the progress through them; quests, shops and profiles
- * before the logs that record them).
+ * the shops that sell them; temples before the progress through them and the projects that built
+ * them; quests, shops and profiles before the logs that record them).
  *
  * Left out on purpose, because they belong to this device or must never travel in a file: the family server queue
  * (`__xp_family_events`, a restore would resend old events), a kid phone's hero key (`__xp_hero_device`), the hero
@@ -121,6 +122,8 @@ export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__shops", label: "Shops", storage: shopStorage },
   { name: "__temples", label: "Temples", storage: templeStorage },
   { name: "__templeProgress", label: "Temple progress", storage: templeProgressStorage },
+  // Points at a project tower's temple and quests, so it comes after both
+  { name: "__projects", label: "Projects", storage: projectStorage },
   { name: "__questLog", label: "Quest log", storage: questLogStorage },
   { name: "__purchaseLog", label: "Purchase log", storage: purchaseLogStorage },
   { name: "__chat", label: "Chat", storage: chatStorage },

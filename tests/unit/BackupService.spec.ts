@@ -26,6 +26,7 @@ import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
 import { templeStorage } from "@/lib/databases/TempleDb";
 import { templeProgressStorage } from "@/lib/databases/TempleProgressDb";
+import { projectStorage } from "@/lib/databases/ProjectDb";
 import { castLogStorage } from "@/lib/databases/CastLogDb";
 import { familySettingsStorage } from "@/lib/databases/FamilySettingsDb";
 import { latePenaltyStorage } from "@/lib/databases/LatePenaltyLogDb";
@@ -55,6 +56,7 @@ jest.mock("@/lib/databases/TempleProgressDb", () => ({
   __esModule: true,
   templeProgressStorage: { sentinel: "templeProgress" },
 }));
+jest.mock("@/lib/databases/ProjectDb", () => ({ __esModule: true, projectStorage: { sentinel: "projects" } }));
 jest.mock("@/lib/databases/CastLogDb", () => ({ __esModule: true, castLogStorage: { sentinel: "castLog" } }));
 jest.mock("@/lib/databases/FamilySettingsDb", () => ({ __esModule: true, familySettingsStorage: { sentinel: "familySettings" } }));
 jest.mock("@/lib/databases/LatePenaltyLogDb", () => ({ __esModule: true, latePenaltyStorage: { sentinel: "latePenalties" } }));
@@ -178,6 +180,7 @@ describe("BACKUP_STORES registry", () => {
       "__shops",
       "__temples",
       "__templeProgress",
+      "__projects",
       "__questLog",
       "__purchaseLog",
       "__chat",
@@ -202,6 +205,7 @@ describe("BACKUP_STORES registry", () => {
     expect(storageOf("__shops")).toBe(shopStorage);
     expect(storageOf("__temples")).toBe(templeStorage);
     expect(storageOf("__templeProgress")).toBe(templeProgressStorage);
+    expect(storageOf("__projects")).toBe(projectStorage);
     expect(storageOf("__questLog")).toBe(questLogStorage);
     expect(storageOf("__purchaseLog")).toBe(purchaseLogStorage);
     expect(storageOf("__chat")).toBe(chatStorage);

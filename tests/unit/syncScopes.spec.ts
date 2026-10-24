@@ -17,6 +17,7 @@ describe("SYNC_STORES", () => {
       __shops: "family",
       __temples: "family",
       __templeProgress: "hero",
+      __projects: "family",
       __questLog: "hero",
       __purchaseLog: "hero",
       __chat: "family-any",
