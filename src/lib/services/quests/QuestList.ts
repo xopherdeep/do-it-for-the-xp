@@ -5,7 +5,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import type { SentBack } from "./sentBack";
 import { hideDrafts, isDraft, type DraftLike } from "./questDrafts";
 import { suggestedRewards } from "./sizeRewards";
-import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { effectiveDeadline, isProjectQuest, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
  * The quest log as a plain to-do list. Pure: no storage, no Vue.
@@ -178,6 +178,8 @@ const statusOf = (item: QuestBoardItem, due: Date | null, date: Date): QuestList
   if (isDone) return pending ? "pending" : "done";
   const isOpen = status === "open";
   if (isOpen) return overdue || (isOnce(quest) && due !== null && date > due) ? "overdue" : "open";
+  // A project chore whose floor sleeps is not a task yet, whatever its startsOn says: it lists when the floor wakes
+  if (isProjectQuest(quest)) return null;
   // Not due today: an upcoming one-off task still belongs on the list; recurring quests wait for their day
   const starts = parseDate(quest.startsOn);
   return isOnce(quest) && starts && startOfDay(starts) > startOfDay(date) ? "later" : null;

@@ -9,7 +9,8 @@ import {
   set,
   startOfDay,
 } from "date-fns";
-import type { Achievement } from "@/lib/databases/AchievementDb";
+import type { Achievement, ProjectQuestLink } from "@/lib/databases/AchievementDb";
+import { parseLocalDate } from "@/lib/services/core/packs/heroAge";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
@@ -39,10 +40,18 @@ export type QuestScheduleFields = Pick<
   | "startsOn"
   | "endsOn"
   | "timesOfDay"
+  | "project"
 >;
 
 /** What the schedule rules read off a quest; a record that leaves its schedule out reads as a daily quest. */
 export type QuestScheduleInput = Pick<QuestScheduleFields, "id"> & Partial<QuestScheduleFields>;
+
+/**
+ * True for a project chore: a one-off quest tied to a tower floor (`project`). It sleeps until its floor wakes
+ * and is due on its phase's date, whatever `startsOn` says.
+ */
+export const isProjectQuest = (quest: Pick<Achievement, "project">): quest is Achievement & { project: ProjectQuestLink } =>
+  Boolean(quest.project);
 
 /** What the due-date rule reads: the schedule and the due time. */
 export type QuestDeadlineFields = QuestScheduleInput & Pick<Achievement, "id" | "dueByTime">;
@@ -217,10 +226,18 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
   return Boolean(from && until && from <= now && now < until);
 };
 
+/** The one day a one-off quest is due: a project chore's phase date, else the day it starts, else `day`. */
+const oneOffDueDayOf = (quest: QuestDeadlineFields, day: Date): Date => {
+  if (isProjectQuest(quest)) return parseLocalDate(quest.project.dueOn);
+  const starts = parseDate(quest.startsOn);
+  return starts ? startOfDay(starts) : day;
+};
+
 /**
  * The calendar day the quest's deadline falls on, seen from `date`. This is the one due-date rule: the board's
  * `overdue`, the list, the due-soon and overdue alerts and the Extra Time Power all read it through effectiveDeadline.
- * - once: the day it starts (its only due day), else `date`'s day; snoozed on that day (the Snooze Power, or an
+ * - once: the day it starts (its only due day), else `date`'s day; a project chore is due on its phase's date
+ *   (`project.dueOn`) instead; snoozed on that day (the Snooze Power, or an
  *   old save's Silver Arrow), the day after it, since the snooze only hides the day it was cast on;
  * - a window that spans several days (weekly without listed weekdays, custom periods): the window's last day,
  *   or the day the quest ends when that comes first;
@@ -228,10 +245,9 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
  */
 export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffects | undefined, date: Date): Date => {
   const day = startOfDay(date);
-  const isOneOff = quest.basicSchedule === "once";
+  const isOneOff = quest.basicSchedule === "once" || isProjectQuest(quest);
   if (isOneOff) {
-    const starts = parseDate(quest.startsOn);
-    const dueDay = starts ? startOfDay(starts) : day;
+    const dueDay = oneOffDueDayOf(quest, day);
     const isSnoozedOnDueDay = effects?.snoozedOn?.[quest.id] === dayKeyOf(dueDay);
     return isSnoozedOnDueDay ? addDays(dueDay, 1) : dueDay;
   }
@@ -279,7 +295,13 @@ export const isQuestOverdue = (
   return Boolean(deadline && now > deadline);
 };
 
+/**
+ * True when the quest is on the board's calendar on `date`: it has started and not yet ended. A project chore
+ * ignores its dates: it is active from the moment its floor wakes (`project.wokenAt`) and stays so past its due
+ * day, so it can be late.
+ */
 export const isQuestActiveOn = (quest: QuestScheduleInput, date: Date): boolean => {
+  if (isProjectQuest(quest)) return Boolean(quest.project.wokenAt);
   const day = startOfDay(date);
   const starts = parseDate(quest.startsOn);
   const isBeforeStart = starts && startOfDay(starts) > day;

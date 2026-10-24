@@ -14,6 +14,20 @@ export const achievementCategoryStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
+/**
+ * What ties a quest to a project tower (services/projects): the project, the tower floor it belongs to, and the
+ * phase date it is due on. The quest sleeps (QuestSchedule.isQuestActiveOn) until the floor wakes and `wokenAt` is set.
+ */
+export interface ProjectQuestLink {
+  projectId: string;
+  /** The tower floor ("1F", "2F") the quest belongs to */
+  floor: string;
+  /** The day (YYYY-MM-DD, local) the quest is due, at the quest's `dueByTime` */
+  dueOn: string;
+  /** ISO time the floor woke the quest; absent while the quest sleeps */
+  wokenAt?: string;
+}
+
 export interface Achievement {
   // achievement
   id: any;
@@ -73,6 +87,8 @@ export interface Achievement {
   draft?: boolean;
   /** The hero who made the quest with the Quest Wizard (questWizard.ts). Absent on quests from the Compendium or a pack. */
   createdBy?: string;
+  /** Set on a project chore: a one-off quest that stays hidden until its tower floor wakes and is due on `project.dueOn` */
+  project?: ProjectQuestLink;
 }
 
 export interface AchievementCategoryInterface {
