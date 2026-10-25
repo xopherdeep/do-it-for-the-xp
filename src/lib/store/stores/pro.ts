@@ -4,10 +4,11 @@ import { computed, onScopeDispose, ref, watch } from "vue";
 import { usesHashHistory } from "@/router/historyMode";
 import { getProDb } from "@/lib/databases/ProDb";
 import { compassSiteRoot } from "@/lib/api/apiHost";
-import { CachedLicense, isPro as entitled, needsRecheck } from "@/lib/services/pro/entitlement";
+import { CachedLicense, isPro as entitled, isProductionBuild, needsRecheck } from "@/lib/services/pro/entitlement";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
 import * as proClient from "@/lib/services/pro/proClient";
-import { ProClientError, ProStatus } from "@/lib/services/pro/proClient";
+import { ProClientError, ProClientErrorCode, ProStatus } from "@/lib/services/pro/proClient";
+import { keyInactiveMessage, membershipOf } from "@/lib/services/pro/membershipStatus";
 import { ProGate, ProPlanId } from "@/lib/services/pro/proPlans";
 import { DEVICE_LIMIT_MESSAGE, openProUpsell, proToast } from "@/lib/services/pro/proUi";
 
@@ -25,14 +26,17 @@ export const useProStore = defineStore("pro", () => {
   const familyId = ref("");
   const deviceId = ref("");
   const loading = ref(false);
+  /** The code of the last server check that failed; null after one that got an answer. */
+  const lastError = ref<ProClientErrorCode | null>(null);
 
   /** Ticks every hour so isPro and needsRecheck notice an expiry without a reload. */
   const now = ref(new Date());
-  const isPro = computed(() => entitled(license.value, now.value, process.env.NODE_ENV === "production"));
+  const isPro = computed(() => entitled(license.value, now.value, isProductionBuild()));
   const plan = computed(() => license.value?.plan ?? null);
   const expiresAt = computed(() => license.value?.expiresAt ?? null);
   const licenseKey = computed(() => license.value?.key ?? "");
   const memberSince = computed(() => license.value?.since ?? null);
+  const env = computed(() => license.value?.env ?? null);
 
   async function persist() {
     await getProDb().saveState({ familyId: familyId.value, deviceId: deviceId.value, license: license.value });
@@ -40,6 +44,7 @@ export const useProStore = defineStore("pro", () => {
 
   function cacheFrom(status: ProStatus) {
     now.value = new Date();
+    lastError.value = null;
     const sameKey = license.value?.key === status.licenseKey;
     const since = (sameKey && license.value?.since) || now.value.toISOString();
     license.value = {
@@ -70,15 +75,19 @@ export const useProStore = defineStore("pro", () => {
       if (status) {
         cacheFrom(status);
         await persist();
-      } else if (license.value) {
-        now.value = new Date();
-        license.value = { ...license.value, pro: false, lastValidatedAt: now.value.toISOString() };
-        await persist();
+      } else {
+        lastError.value = null;
+        if (license.value) {
+          now.value = new Date();
+          license.value = { ...license.value, pro: false, lastValidatedAt: now.value.toISOString() };
+          await persist();
+        }
       }
     } catch (e) {
       const isClientError = e instanceof ProClientError;
       if (!isClientError) throw e;
-      // offline, rate limited or the server is down: the cached state stands
+      // offline, rate limited or the server is down: the cached state stands, and the card says why it may be stale
+      lastError.value = e.code;
     } finally {
       loading.value = false;
     }
@@ -236,6 +245,7 @@ export const useProStore = defineStore("pro", () => {
     try {
       const status = await proClient.validate(key, deviceId.value);
       if (!status) {
+        lastError.value = null;
         await proToast("No XP Pro license matches that key.");
         return;
       }
@@ -243,13 +253,32 @@ export const useProStore = defineStore("pro", () => {
       familyId.value = status.familyId;
       cacheFrom(status);
       await persist();
-      await proToast(status.pro ? "XP Pro restored!" : "That key is not active right now.", status.pro ? "success" : "warning");
+      if (isPro.value) {
+        await proToast("XP Pro restored!", "success");
+      } else {
+        // the key is real but Pro stays off (a lapsed period, or a test-mode key on a production build): say why
+        const why = membershipOf(
+          {
+            isPro: false,
+            plan: plan.value,
+            expiresAt: expiresAt.value,
+            licenseKey: licenseKey.value,
+            env: env.value,
+            lastError: lastError.value,
+            memberSince: memberSince.value,
+          },
+          now.value
+        );
+        await proToast(keyInactiveMessage(why.reasonLine), "warning");
+      }
     } catch (e) {
-      if (e instanceof ProClientError && e.code === "device_limit") {
+      const isClientError = e instanceof ProClientError;
+      if (isClientError) lastError.value = e.code;
+      if (isClientError && e.code === "device_limit") {
         await proToast(DEVICE_LIMIT_MESSAGE);
-      } else if (e instanceof ProClientError && e.code === "invalid_input") {
+      } else if (isClientError && e.code === "invalid_input") {
         await proToast("That doesn't look like an XP Pro key.");
-      } else if (e instanceof ProClientError) {
+      } else if (isClientError) {
         await proToast("The shopkeeper could not check that key. Try again in a moment.");
       } else {
         throw e;
@@ -317,11 +346,13 @@ export const useProStore = defineStore("pro", () => {
     familyId,
     deviceId,
     loading,
+    lastError,
     isPro,
     plan,
     expiresAt,
     licenseKey,
     memberSince,
+    env,
     init,
     recheck,
     claimWithRetry,

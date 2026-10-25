@@ -9,6 +9,7 @@
     </ion-card-header>
     <ion-card-content>
       <ul class="status-lines">
+        <li v-if="status.reasonLine" class="reason-line" data-cy="pro-reason">{{ status.reasonLine }}</li>
         <li v-if="status.planName">Plan: <ion-chip color="primary">{{ status.planName }}</ion-chip></li>
         <li v-if="status.dateLine" data-cy="pro-date">{{ status.dateLine }}</li>
         <li v-if="status.maskedKey" data-cy="pro-masked-key">Key: <ion-chip>{{ status.maskedKey }}</ion-chip></li>
@@ -29,12 +30,10 @@ import { computed } from "vue";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonText } from "@ionic/vue";
 import { ribbonOutline, shieldCheckmark } from "ionicons/icons";
 import { useProStore } from "@/lib/store/stores/pro";
-import { membershipStatus } from "@/lib/services/pro/membershipStatus";
+import { membershipOf } from "@/lib/services/pro/membershipStatus";
 
 const pro = useProStore();
-const status = computed(() =>
-  membershipStatus({ isPro: pro.isPro, plan: pro.plan, expiresAt: pro.expiresAt, licenseKey: pro.licenseKey })
-);
+const status = computed(() => membershipOf(pro));
 const isOn = computed(() => status.value.state === "active" || status.value.state === "lifetime");
 </script>
 
@@ -59,6 +58,10 @@ const isOn = computed(() => status.value.state === "active" || status.value.stat
 
     li {
       margin: 4px 0;
+    }
+
+    .reason-line {
+      color: var(--gs-text);
     }
   }
 

@@ -25,6 +25,7 @@
             @copy="copyKey"
           />
           <template v-else>
+            <p v-if="reasonLine" data-cy="pro-reason">{{ reasonLine }}</p>
             <p v-if="!pro.isPro">Pro adds the Temple Creator, advanced schedules, AI helpers and six more game styles.</p>
             <p v-if="pro.licenseKey" data-cy="pro-masked-key">
               Key: {{ maskedKey }}
