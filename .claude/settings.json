@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep|Read|Edit|Write|MultiEdit|NotebookEdit|Glob|Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/home/xopher/www/x/Xophz-COMPASS/apps/chemical-x/starter-kit/cli/hooks/entry.js\" claude-pre-tool",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/home/xopher/www/x/Xophz-COMPASS/apps/chemical-x/starter-kit/cli/hooks/entry.js\" claude-post-edit",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/home/xopher/www/x/Xophz-COMPASS/apps/chemical-x/starter-kit/cli/hooks/entry.js\" session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"/home/xopher/www/x/Xophz-COMPASS/apps/chemical-x/starter-kit/cli/hooks/entry.js\" statusline",
+    "padding": 0
+  }
+}
