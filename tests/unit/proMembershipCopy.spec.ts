@@ -45,7 +45,15 @@ const mountPage = () =>
 describe("the XP Pro page copy", () => {
   beforeEach(() => {
     mockNative.value = false;
-    Object.assign(mockPro, { isPro: false, plan: null, expiresAt: null, licenseKey: "" });
+    Object.assign(mockPro, {
+      isPro: false,
+      plan: null,
+      expiresAt: null,
+      licenseKey: "",
+      memberSince: undefined,
+      env: undefined,
+      lastError: undefined,
+    });
   });
 
   it("no longer promises Family Sync as a coming perk", () => {
@@ -78,5 +86,57 @@ describe("the XP Pro page copy", () => {
   it("uses no em dashes", () => {
     mockNative.value = true;
     expect(mountPage().text()).not.toContain("\u2014");
+  });
+
+  describe("the status card says why Pro is off", () => {
+    const reason = () => mountPage().find('[data-cy="pro-reason"]');
+    const lapsed = {
+      isPro: false,
+      plan: "monthly",
+      licenseKey: "XP-PRO-AAAA-BBBB-CCCC",
+      memberSince: "2020-10-13T12:00:00.000Z",
+      expiresAt: "2020-10-20T12:00:00.000Z",
+      env: "production",
+    };
+
+    it("shows no reason line for a family that never had Pro", () => {
+      expect(reason().exists()).toBe(false);
+    });
+
+    it("shows no reason line while Pro is on", () => {
+      Object.assign(mockPro, { ...lapsed, isPro: true, expiresAt: "2099-01-01T12:00:00.000Z", lastError: "network" });
+      expect(reason().exists()).toBe(false);
+    });
+
+    it("says the trial ended, with the date, under the status", () => {
+      Object.assign(mockPro, lapsed);
+      expect(reason().text()).toBe("Your trial ended Oct 20, 2020");
+    });
+
+    it("says the plan ended after a paid period", () => {
+      Object.assign(mockPro, { ...lapsed, plan: "yearly", memberSince: "2019-10-20T12:00:00.000Z" });
+      expect(reason().text()).toBe("Your plan ended Oct 20, 2020");
+    });
+
+    it("says a test-mode license only works in development builds", () => {
+      const original = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      try {
+        Object.assign(mockPro, { ...lapsed, env: "sandbox" });
+        expect(reason().text()).toBe("This is a test-mode license; it only works in development builds");
+      } finally {
+        process.env.NODE_ENV = original;
+      }
+    });
+
+    it("says the key is already on 10 devices", () => {
+      Object.assign(mockPro, { ...lapsed, expiresAt: null, lastError: "device_limit" });
+      expect(reason().text()).toBe("This key is already on 10 devices");
+    });
+
+    it("says the shopkeeper could not be reached", () => {
+      Object.assign(mockPro, { ...lapsed, expiresAt: null, lastError: "network" });
+      expect(reason().text()).toBe("The shopkeeper could not be reached; showing the last known state");
+    });
   });
 });

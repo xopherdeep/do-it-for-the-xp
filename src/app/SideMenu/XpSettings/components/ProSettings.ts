@@ -1,6 +1,7 @@
 import { computed, defineComponent, onMounted, ref } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { useProStore } from "@/lib/store/stores/pro";
+import { membershipOf } from "@/lib/services/pro/membershipStatus";
 import { PLAN_NAMES } from "@/lib/services/pro/proPlans";
 import { proToast } from "@/lib/services/pro/proUi";
 import XpLicenseCard from "./XpLicenseCard.vue";
@@ -33,6 +34,9 @@ export default defineComponent({
 
     const planLabel = computed(() => (pro.plan ? PLAN_NAMES[pro.plan] ?? pro.plan : ""));
 
+    /** Why Pro is off, in one line; empty while it is on. */
+    const reasonLine = computed(() => membershipOf(pro).reasonLine);
+
     async function copyKey() {
       try {
         await navigator.clipboard.writeText(pro.licenseKey);
@@ -47,6 +51,6 @@ export default defineComponent({
       if (pro.isPro) keyInput.value = "";
     }
 
-    return { pro, keyInput, emailInput, maskedKey, dateLabel, sinceLabel, planLabel, copyKey, restore };
+    return { pro, keyInput, emailInput, maskedKey, dateLabel, sinceLabel, planLabel, reasonLine, copyKey, restore };
   },
 });
