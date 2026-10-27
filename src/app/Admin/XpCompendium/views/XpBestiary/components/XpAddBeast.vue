@@ -135,6 +135,10 @@
             <i class="fad fa-paw-claws" aria-hidden="true"></i>
             {{ draft.avatar ? "Change beast" : "Pick a beast" }}
           </button>
+          <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="snap-drawing" @click="snapDrawing">
+            <i class="fad fa-camera" aria-hidden="true"></i>
+            Snap a drawing
+          </button>
           <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="pick-background" @click="pickBackground">
             <i class="fad fa-image" aria-hidden="true"></i>
             Background
@@ -214,6 +218,7 @@ import { useRoute, useRouter } from "vue-router";
 import { play$fx } from "@/assets/fx";
 import AvatarSelect from "@/components/molecules/AvatarSelect";
 import XpBackgroundSelector from "@/components/molecules/BackgroundSelector/XpBackgroundSelector.vue";
+import BeastPhotoPicker from "@/components/organisms/BeastPhoto/BeastPhotoPicker.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
@@ -234,6 +239,7 @@ import {
   moveChore,
   newBeastDraft,
   openingIndex,
+  withLibraryLook,
 } from "../beastWizard";
 import type { BeastDraft, BeastStepId } from "../beastWizard";
 
@@ -272,7 +278,8 @@ const isLoaded = ref(!beastId);
 const isSaving = ref(false);
 const isEditing = computed(() => draft.value.id !== "");
 
-const portrait = computed(() => beastPortraitUrl(draft.value.avatar) ?? "");
+// A snapped drawing is the portrait when there is one, even over a library beast picked before it
+const portrait = computed(() => draft.value.localImage || (beastPortraitUrl(draft.value.avatar) ?? ""));
 const summary = computed(() => beastSummary(draft.value));
 const chores = computed(() => filledChores(draft.value));
 
@@ -375,9 +382,24 @@ const pickBeast = async () => {
     // The picker took the canvas over, whether it was cancelled or not
     await reclaimBackdrop();
     const isAvatarPicked = typeof data === "number" && data > 0;
-    if (isAvatarPicked) draft.value.avatar = data;
+    // A library beast replaces a drawing snapped before it
+    if (isAvatarPicked) draft.value = withLibraryLook(draft.value, data);
   } catch (error) {
     debug.warn("[BeastWizard] the beast picker could not be opened", error);
+  }
+};
+
+// A photo of a drawing is another way to the look: the avatar stays as it is, the portrait shows the drawing
+const snapDrawing = async () => {
+  play$fx("openMenu");
+  try {
+    const modal = await modalController.create({ component: BeastPhotoPicker, cssClass: "beast-photo-modal" });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<string | null>();
+    const isDrawingPicked = role === "picked" && typeof data === "string" && data.length > 0;
+    if (isDrawingPicked) draft.value.localImage = data;
+  } catch (error) {
+    debug.warn("[BeastWizard] the drawing picker could not be opened", error);
   }
 };
 

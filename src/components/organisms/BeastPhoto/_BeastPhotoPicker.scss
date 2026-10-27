@@ -1,0 +1,145 @@
+// The snap-a-drawing sheet: a cream parchment box like the claim photo prompt, the controls at the bottom of the box.
+.beast-photo {
+  --background: transparent;
+}
+
+.beast-photo__box {
+  box-sizing: border-box;
+  // Fill the sheet so the controls sit at its bottom, in thumb reach, and the picture reads above them
+  min-height: calc(100% - 32px);
+  margin: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fff8e6;
+  color: #2b2118;
+  border: 4px solid #2b2118;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px #d9b45a inset;
+  font-family: "StatusPlz", monospace;
+}
+
+.beast-photo__title {
+  margin: 0;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.beast-photo__sub {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.beast-photo__error {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #b3261e;
+}
+
+.beast-photo__stage {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2b2118;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.beast-photo__placeholder {
+  font-size: 4rem;
+  color: #d9b45a;
+}
+
+// The box is sized by the component (an aspect ratio and a width), so the frame's percentages land on the picture
+.beast-photo__picture {
+  position: relative;
+  flex: 0 0 auto;
+  // Clips the shadow the frame throws to dim the rest of the picture
+  overflow: hidden;
+}
+
+.beast-photo__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+// The frame: a cream line with a dark one inside it, and the rest of the picture dimmed around it
+.beast-photo__frame {
+  position: absolute;
+  box-sizing: border-box;
+  background: transparent;
+  border: 3px solid #fff8e6;
+  box-shadow: 0 0 0 9999px rgba(43, 33, 24, 0.62), inset 0 0 0 2px #2b2118;
+  cursor: grab;
+  // A finger on the frame drags it; the sheet must not scroll under it
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.beast-photo__input {
+  display: none;
+}
+
+.beast-photo__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.beast-photo__row {
+  display: flex;
+  gap: 8px;
+}
+
+.beast-photo__btn {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  background: #d9b45a;
+  border: 3px solid #2b2118;
+  border-radius: 4px;
+  color: #2b2118;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active:not(:disabled) {
+    filter: brightness(0.88);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  &--quiet {
+    background: transparent;
+  }
+
+  &--go {
+    background: #6fa84a;
+  }
+}
+
+// The frame's tools are lighter than the verbs below them
+.beast-photo__row--tools .beast-photo__btn {
+  min-height: 40px;
+  background: #fff8e6;
+}

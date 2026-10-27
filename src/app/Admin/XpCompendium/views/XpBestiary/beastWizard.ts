@@ -21,6 +21,12 @@ export interface BeastDraft {
   checklist: string[];
   /** The picture's number (NNN.webp in assets/images/beasts); 0 until one is picked */
   avatar: number;
+  /**
+   * A photo of a drawing as a data URL (kid creations): the beast's look when it is set, drawn over a library avatar if
+   * one is also picked. Undefined when the beast never had one; "" when a library beast replaced a stored drawing, so
+   * the patch can wipe it.
+   */
+  localImage?: string;
   /** The two layers of the Earthbound battle backdrop it fights on (0 to 327) */
   bg1: number;
   bg2: number;
@@ -70,9 +76,22 @@ export const draftFromBeast = (beast: Beast): BeastDraft => ({
   name: beast.name ?? "",
   checklist: Array.isArray(beast.checklist) ? [...beast.checklist] : [],
   avatar: Number(beast.avatar) || 0,
+  // Only a beast that has a drawing gives the draft one, so a save of any other beast never names the field
+  ...(beast.localImage ? { localImage: beast.localImage } : {}),
   bg1: beast.bg1 ?? 0,
   bg2: beast.bg2 ?? 0,
   aspectRatio: beast.aspectRatio ?? DEFAULT_ASPECT_RATIO,
+});
+
+/**
+ * The draft after a library beast is picked: the avatar set, and a drawing snapped earlier let go. A draft that had a
+ * drawing keeps the field as "" (not removed) so beastPatch tells the Bestiary to wipe the stored one; a draft that
+ * never had one stays without the field.
+ */
+export const withLibraryLook = (draft: BeastDraft, avatar: number): BeastDraft => ({
+  ...draft,
+  avatar,
+  ...(draft.localImage ? { localImage: "" } : {}),
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -110,7 +129,8 @@ const NEEDS_LOOK = "Pick a look";
 const NEEDS_NAME = "Give it a name";
 const NEEDS_CHORE = "Add one chore it loses to";
 
-const hasLook = (draft: BeastDraft): boolean => draft.avatar > 0;
+const hasDrawing = (draft: BeastDraft): boolean => Boolean(draft.localImage);
+const hasLook = (draft: BeastDraft): boolean => draft.avatar > 0 || hasDrawing(draft);
 const hasName = (draft: BeastDraft): boolean => draft.name.trim().length > 0;
 const hasChore = (draft: BeastDraft): boolean => filledChores(draft).length > 0;
 
@@ -175,6 +195,12 @@ const choresText = (count: number): string => {
   return count === 1 ? "1 chore" : `${count} chores`;
 };
 
+/** What the look line says: the drawing wins when there is one, because it is the portrait the form shows. */
+const lookText = (draft: BeastDraft): string => {
+  if (hasDrawing(draft)) return "Your drawing";
+  return hasLook(draft) ? `Beast ${String(draft.avatar).padStart(3, "0")}` : "Not picked";
+};
+
 /** One line per answer for the summary; a tap on a line goes back to the step that owns it. */
 export const beastSummary = (draft: BeastDraft): BeastSummaryLine[] => {
   const count = filledChores(draft).length;
@@ -182,7 +208,7 @@ export const beastSummary = (draft: BeastDraft): BeastSummaryLine[] => {
     {
       stepId: "look",
       label: "Look",
-      value: hasLook(draft) ? `Beast ${String(draft.avatar).padStart(3, "0")}` : "Not picked",
+      value: lookText(draft),
       isMissing: !hasLook(draft),
     },
     { stepId: "name", label: "Name", value: hasName(draft) ? draft.name.trim() : "Not named", isMissing: !hasName(draft) },
@@ -200,6 +226,8 @@ export const beastPatch = (draft: BeastDraft): Beast => ({
   name: draft.name.trim(),
   checklist: filledChores(draft),
   avatar: draft.avatar,
+  // Named only when the draft has the field (see withLibraryLook), so a beast with no drawing is saved without touching it
+  ...(draft.localImage !== undefined ? { localImage: draft.localImage } : {}),
   bg1: draft.bg1,
   bg2: draft.bg2,
   aspectRatio: draft.aspectRatio,

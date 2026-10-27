@@ -140,13 +140,15 @@
 
 // ---- Pickers in the bar (thumb reach) ---------------------------------------------------------------------------
 
+// Three pickers: two share the first row, the third takes the next, each wide enough to tap
 .bw-picks {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .bw-pick {
-  flex: 1 1 0;
+  flex: 1 1 40%;
   min-height: 48px;
   font-size: 0.95rem;
 }

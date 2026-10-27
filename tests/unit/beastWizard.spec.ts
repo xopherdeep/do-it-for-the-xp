@@ -16,6 +16,7 @@ import {
   moveChore,
   newBeastDraft,
   openingIndex,
+  withLibraryLook,
 } from "@/app/Admin/XpCompendium/views/XpBestiary/beastWizard";
 import type { BeastDraft } from "@/app/Admin/XpCompendium/views/XpBestiary/beastWizard";
 import {
@@ -224,8 +225,69 @@ describe("the patch for the Bestiary", () => {
 
   it("never mentions what the form does not own, so a save cannot wipe it", () => {
     const keys = Object.keys(beastPatch({ ...complete(), id: "beast-1" }));
-    for (const owned of ["achievementIds", "element", "theme", "variantAvatar", "imageUrl", "localImage"]) {
+    for (const owned of ["achievementIds", "element", "theme", "variantAvatar", "imageUrl"]) {
       expect(keys).not.toContain(owned);
     }
+  });
+});
+
+describe("a drawing for the look", () => {
+  const drawing = "data:image/jpeg;base64,AAAA";
+
+  it("is a look on its own: no library beast is needed, and the step and the summons let it through", () => {
+    const drawn = { ...complete(), avatar: 0, localImage: drawing };
+    expect(beastProblem(drawn)).toBeNull();
+    expect(steps[0].isValid(drawn)).toBe(true);
+    expect(isReady(steps, drawn)).toBe(true);
+  });
+
+  it("is not a look when it is empty", () => {
+    expect(beastProblem({ ...complete(), avatar: 0, localImage: "" })).toBe("Pick a look");
+  });
+
+  it("goes to the Bestiary with the beast", () => {
+    expect(beastPatch({ ...complete(), avatar: 0, localImage: drawing })).toMatchObject({ avatar: 0, localImage: drawing });
+  });
+
+  it("says nothing about a drawing when the draft never had one, so a save cannot wipe a stored drawing by accident", () => {
+    expect("localImage" in beastPatch(complete())).toBe(false);
+  });
+
+  it("is read back from a stored beast, and a beast without one leaves the draft without", () => {
+    const withDrawing = draftFromBeast({ id: "kid-1", name: "Sockto", checklist: [], avatar: 0, localImage: drawing } as never);
+    expect(withDrawing.localImage).toBe(drawing);
+    expect("localImage" in draftFromBeast({ id: "old", name: "Oldie" } as never)).toBe(false);
+  });
+
+  it("reads 'Your drawing' on the summary's look line, even when a library beast sits under it", () => {
+    const look = (draft: BeastDraft) => beastSummary(draft)[0];
+    expect(look({ ...complete(), avatar: 0, localImage: drawing })).toEqual({
+      stepId: "look",
+      label: "Look",
+      value: "Your drawing",
+      isMissing: false,
+    });
+    expect(look({ ...complete(), localImage: drawing }).value).toBe("Your drawing");
+  });
+
+  it("is let go when a library beast is picked after it, and the patch then wipes a stored drawing", () => {
+    const swapped = withLibraryLook({ ...complete(), id: "beast-1", avatar: 0, localImage: drawing }, 7);
+    expect(swapped.avatar).toBe(7);
+    expect(beastProblem(swapped)).toBeNull();
+    expect(beastSummary(swapped)[0].value).toBe("Beast 007");
+    expect(beastPatch(swapped)).toMatchObject({ avatar: 7, localImage: "" });
+  });
+
+  it("leaves a draft that never had a drawing without one", () => {
+    const picked = withLibraryLook(complete(), 9);
+    expect(picked.avatar).toBe(9);
+    expect("localImage" in picked).toBe(false);
+  });
+
+  it("changes a copy of the draft, never the draft it was given", () => {
+    const given = { ...complete(), localImage: drawing };
+    withLibraryLook(given, 3);
+    expect(given.localImage).toBe(drawing);
+    expect(given.avatar).toBe(12);
   });
 });

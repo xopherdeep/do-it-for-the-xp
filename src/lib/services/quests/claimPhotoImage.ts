@@ -21,7 +21,7 @@ export class PhotoRejectedError extends Error {
   }
 }
 
-const loadImage = (url: string): Promise<HTMLImageElement> =>
+export const loadImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
