@@ -2,6 +2,7 @@ import { flushPromises, mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h } from "vue";
 import MyCalendar from "../MyCalendar.vue";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore } from "@/lib/store/stores/user";
 import XpAppHeader from "@/components/organisms/XpApp/XpAppHeader.vue";
 import XpAppSection from "@/components/organisms/XpApp/XpAppSection.vue";
@@ -58,6 +59,19 @@ jest.mock("@/app/Console/MyPortal/UserHud/MyQuests/components/XpQuestWizardModal
     render() {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       return require("vue").h("div", { class: "quest-wizard-stub", "data-open": String((this as any).open) });
+    },
+  },
+}));
+
+jest.mock("@/app/Console/MyPortal/UserHud/MyQuests/components/XpBeastMakerModal.vue", () => ({
+  __esModule: true,
+  default: {
+    name: "XpBeastMakerModal",
+    props: ["open", "heroId"],
+    emits: ["close", "saved", "quest"],
+    render() {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return require("vue").h("div", { class: "beast-maker-stub", "data-open": String((this as any).open) });
     },
   },
 }));
@@ -331,6 +345,46 @@ describe("MyCalendar", () => {
 
       sheetButtons()[1].handler?.();
       expect(mockPush.mock.calls[0][0]).toEqual({ name: "my-tasks", params: { userId: "hero-1" } });
+    });
+
+    it("offers Draw a Beast to a maker, opens the Maker, and hands its beast to the wizard until that closes", async () => {
+      signIn("hero");
+      const rules = useGameRulesStore();
+      await rules.load();
+      rules.makers = ["hero-1"];
+      const wrapper = await mountCalendar();
+      await wrapper.find('[data-test="calendar-fab"]').trigger("click");
+      await flushPromises();
+      expect(sheetButtons().map((button) => button.text)).toEqual(["New Quest", "Open the Beast Log", "Draw a Beast", "Cancel"]);
+
+      sheetButtons()[2].handler?.();
+      await flushPromises();
+      const maker = wrapper.findComponent({ name: "XpBeastMakerModal" });
+      expect(maker.props("open")).toBe(true);
+      expect(maker.props("heroId")).toBe("hero-1");
+
+      maker.vm.$emit("quest", { id: "b9", name: "Socktopus", checklist: ["Match the pairs"] });
+      await flushPromises();
+      expect(maker.props("open")).toBe(false);
+      const wizard = wrapper.findComponent({ name: "XpQuestWizardModal" });
+      expect(wizard.props("open")).toBe(true);
+      expect(wizard.props("prefill")).toMatchObject({ beastId: "b9" });
+
+      wizard.vm.$emit("close");
+      await flushPromises();
+      expect(wizard.props("open")).toBe(false);
+      expect(wizard.props("prefill").beastId).toBeUndefined();
+    });
+
+    it("keeps Draw a Beast from a Game Master, who has the Compendium", async () => {
+      signIn("game-master");
+      const rules = useGameRulesStore();
+      await rules.load();
+      rules.makers = ["gm-1"];
+      const wrapper = await mountCalendar();
+      await wrapper.find('[data-test="calendar-fab"]').trigger("click");
+      await flushPromises();
+      expect(sheetButtons().map((button) => button.text)).not.toContain("Draw a Beast");
     });
   });
 });

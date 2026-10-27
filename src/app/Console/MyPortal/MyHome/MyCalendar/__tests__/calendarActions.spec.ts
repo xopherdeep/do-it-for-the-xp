@@ -11,8 +11,15 @@ describe("calendarActions", () => {
     expect(calendarActions({ isToday: true }).map((action) => action.id)).not.toContain("today");
   });
 
+  it("offers Draw a Beast last to a maker, and to nobody else", () => {
+    expect(calendarActions({ isToday: true, isMaker: true }).map((action) => action.id)).toEqual(["new-quest", "quest-log", "draw-beast"]);
+    expect(calendarActions({ isToday: false, isMaker: true }).map((action) => action.id)).toEqual(["new-quest", "today", "quest-log", "draw-beast"]);
+    expect(calendarActions({ isToday: true, isMaker: true })[2].text).toBe("Draw a Beast");
+    expect(calendarActions({ isToday: true, isMaker: false })).toEqual(calendarActions({ isToday: true }));
+  });
+
   it("gives every entry words and an icon", () => {
-    for (const action of calendarActions({ isToday: false })) {
+    for (const action of calendarActions({ isToday: false, isMaker: true })) {
       expect(action.text).not.toBe("");
       expect(action.icon).not.toBe("");
     }

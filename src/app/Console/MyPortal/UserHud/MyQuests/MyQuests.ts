@@ -20,16 +20,17 @@ import { BestiaryDb, beastStorage } from "@/lib/databases/BestiaryDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { arrowBack, checkmarkDone, close } from "ionicons/icons";
 import { play$fx } from "@/assets/fx";
-import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 
 import XpBeastCardModal from "./components/XpBeastCardModal.vue";
 import XpQuickTaskModal from "./components/XpQuickTaskModal.vue";
 import XpVillageAwaits from "@/components/organisms/VillageAwaits/XpVillageAwaits.vue";
 import XpQuestWizardModal from "./components/XpQuestWizardModal.vue";
+import XpBeastMakerModal from "./components/XpBeastMakerModal.vue";
 import XpQuestRowTrailing from "./components/XpQuestRowTrailing.vue";
 import { questLogActions } from "./questLogActions";
 import type { QuestLogActionId } from "./questLogActions";
+import { useBeastMaker } from "./useBeastMaker";
 import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
@@ -77,6 +78,7 @@ export default defineComponent({
     XpQuickTaskModal,
     XpVillageAwaits,
     XpQuestWizardModal,
+    XpBeastMakerModal,
     XpQuestRowTrailing,
     XpAppBottomNav,
   },
@@ -87,7 +89,6 @@ export default defineComponent({
       activeRow: null as QuestListRow | null,
       view: savedView() as QuestLogView,
       addOpen: false,
-      wizardOpen: false,
       // the list row whose Done tap is being recorded, so a double tap can't claim twice
       finishing: "",
       // the row that just paid out (or went to the Game Master): it wears a stamp for a beat, then lands in Done
@@ -115,9 +116,6 @@ export default defineComponent({
     // this.nativeAudio.preloadSimple('openTask', '../src/assets/audio/click.mp3').then(onSuccess, onError)
   },
   computed: {
-    xp_achievement() {
-      return (this as any).gameStore.xp_achievement;
-    },
     searchText: {
       get() {
         return this.params.search;
@@ -168,10 +166,6 @@ export default defineComponent({
         return this.listRows.length ? [{ key: "list", label: "", rows: draw(this.listRows) }] : [];
       }
       return sectionsByWindow(this.listRows, new Date()).map(({ key, label, rows }) => ({ key, label, rows: draw(rows) }));
-    },
-    // The Quest Wizard opens on today for the hero whose log this is
-    wizardPrefill(): ReturnType<typeof questPrefill> {
-      return questPrefill(prefillQueryFor(new Date(), "all", String(this.userId)));
     },
     emptyLine(): string {
       const isSearching = Boolean(this.params.search);
@@ -342,13 +336,13 @@ export default defineComponent({
       });
       await toast.present();
     },
-    // The FAB's sheet: a new quest through the wizard, or the small to-do form
+    // The FAB's sheet: a new quest through the wizard, the small to-do form, or (a maker) the Beast Maker
     async presentActionSheet() {
       const sheet = await actionSheetController.create({
         ...appSheet("quests"),
         header: "Beast Log",
         buttons: [
-          ...questLogActions().map(({ id, text }) => ({
+          ...questLogActions(this.isMaker).map(({ id, text }) => ({
             text,
             handler: () => {
               this.runAction(id);
@@ -364,6 +358,12 @@ export default defineComponent({
       const isNewQuest = id === "new-quest";
       if (isNewQuest) {
         this.wizardOpen = true;
+        return;
+      }
+      const isDrawBeast = id === "draw-beast";
+      if (isDrawBeast) {
+        play$fx("openMenu");
+        this.makerOpen = true;
         return;
       }
       this.addOpen = true;
@@ -382,11 +382,16 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const gameStore = useGameStore();
     const userStore = useUserStore();
     const timers = useTimers();
     const t = useCopy();
     const { rootClass, rootStyle } = useAppSkin("quests");
+    // The Beast Maker (a maker's door) and the Quest Wizard it hands a beast to; the wizard opens on today for the
+    // hero whose log this is
+    const maker = useBeastMaker(
+      () => String(props.userId),
+      () => questPrefill(prefillQueryFor(new Date(), "all", String(props.userId)))
+    );
 
     const board = ref<QuestBoardItem[]>([]);
     // Quest id -> why the family locked it for being late ("Too late: this one closed at 6:00pm")
@@ -468,7 +473,6 @@ export default defineComponent({
     );
 
     return {
-      gameStore,
       userStore,
       timers,
       t,
@@ -484,6 +488,7 @@ export default defineComponent({
       rootClass,
       rootStyle,
       arrowBack,
+      ...maker,
     };
   },
 });
