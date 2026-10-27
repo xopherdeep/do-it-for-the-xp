@@ -13,6 +13,7 @@ import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
+import { loadCreationRows } from "@/lib/services/creations/creationReview";
 import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import {
   toastController,
@@ -309,6 +310,7 @@ export default defineComponent({
     const approvals = ref({
       chores: 0,
       rewards: 0,
+      creations: 0,
       total: 0,
     });
 
@@ -316,9 +318,10 @@ export default defineComponent({
     const abilities = ref<any[]>([]);
 
     // Everything waiting on the Game Master: quest completions (Quest Log entries still
-    // "pending") and shop purchases to deliver (Purchase Log entries still "pending")
+    // "pending"), shop purchases to deliver (Purchase Log entries still "pending") and the
+    // beasts and quests the kids made that wait on a verdict
     const loadPendingApprovals = async () => {
-      // Count each log on its own so one unreadable store can't zero the other's number.
+      // Count each list on its own so one unreadable store can't zero the others' numbers.
       const countPending = async (read: () => Promise<unknown[]>, what: string) => {
         try {
           return (await read()).length;
@@ -327,11 +330,12 @@ export default defineComponent({
           return 0;
         }
       };
-      const [chores, rewards] = await Promise.all([
+      const [chores, rewards, creations] = await Promise.all([
         countPending(() => getQuestLogDb().getPending(), "quest approvals"),
         countPending(() => getPurchaseLogDb().getPending(), "accessory purchases"),
+        countPending(() => loadCreationRows(["proposed"]), "creations"),
       ]);
-      approvals.value = { chores, rewards, total: approvalsTotal(chores, rewards) };
+      approvals.value = { chores, rewards, creations, total: approvalsTotal(chores, rewards, creations) };
     };
 
     const loadDashboardData = async () => {
