@@ -286,7 +286,7 @@ export function useTempleData(templeId: string) {
 
   // Load all beasts from bestiary
   const loadBeasts = async () => {
-    allBeasts.value = await bestiaryDb.getBeasts();
+    allBeasts.value = await bestiaryDb.getLiveBeasts();
   };
 
   // Get beasts with full details for this temple

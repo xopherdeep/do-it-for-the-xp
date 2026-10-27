@@ -211,7 +211,7 @@ const build = async () => {
   try {
     const pack = buildHomePack(answers.value);
     // A library beast the family already owns keeps their copy; the pack only sets its strike clock
-    const owned = (await new BestiaryDb(beastStorage).getBeasts()).filter(Boolean);
+    const owned = (await new BestiaryDb(beastStorage).getLiveBeasts()).filter(Boolean);
     await backupService.restoreBackup(homePackBackup(pack, owned), { mode: "merge" });
     play$fx("select");
     summary.value = homePackSummary(pack);

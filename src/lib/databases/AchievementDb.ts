@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import debug from "@/lib/utils/debug";
 import DbStorageApi from "./DbStorageApi";
+import type { Proposal } from "@/lib/services/creations/creations";
 
 import { Drivers, Storage } from "@ionic/storage";
 
@@ -89,6 +90,11 @@ export interface Achievement {
   createdBy?: string;
   /** Set on a project chore: a one-off quest that stays hidden until its tower floor wakes and is due on `project.dueOn` */
   project?: ProjectQuestLink;
+  /**
+   * Present on a quest a hero suggested (services/creations): it waits for a Game Master, saved as a draft so no hero
+   * sees it, until approved. Absent on every quest a Game Master or a pack made.
+   */
+  proposal?: Proposal;
 }
 
 export interface AchievementCategoryInterface {

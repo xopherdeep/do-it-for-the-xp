@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 import debug from '@/lib/utils/debug';
 import type { TempleTheme } from '@/lib/services/temples/templeThemes';
+import { isLiveBeast } from '@/lib/services/creations/creations';
+import type { Proposal } from '@/lib/services/creations/creations';
 
 import { Drivers, Storage } from "@ionic/storage";
 import { toastController } from '@ionic/vue';
@@ -30,6 +32,8 @@ export interface Beast {
   aspectRatio?: number;    // Aspect ratio for battle background display
   element?: string;        // Region element (worldRegistry): random encounters there prefer beasts of it
   theme?: TempleTheme;     // The temple whose chores this beast belongs to (not the art element); copied from the library
+  madeBy?: string;         // The hero who made it (kid creations): kept after approval, for the credit line
+  proposal?: Proposal;     // Present on a beast a hero made: out of play until a Game Master approves it (isLiveBeast)
 }
 
 export interface BackgroundPreset {
@@ -109,6 +113,16 @@ export class BestiaryDb extends DbStorageApi {
 
   public async getBeasts() {
     return this.getAll()
+  }
+
+  /**
+   * The beasts in play: every beast but the ones a hero proposed that no Game Master has approved yet (and any hole
+   * storage hands back). Fights, temple rooms and quest links read this; the Game Master's Bestiary and the screens
+   * that must see every record read getBeasts.
+   */
+  public async getLiveBeasts(): Promise<Beast[]> {
+    const all: Beast[] = await this.getBeasts()
+    return all.filter(isLiveBeast)
   }
 
   // NEW IMPORT/EXPORT FUNCTIONALITY

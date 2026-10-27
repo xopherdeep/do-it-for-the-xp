@@ -176,7 +176,7 @@ export const useRoomBeast = (deps: RoomBeastDeps) => {
   const showBestiaryBeast = async (room: CurrentRoom) => {
     beastPending.value = true;
     try {
-      const beasts = await new BestiaryDb(beastStorage).getBeasts();
+      const beasts = await new BestiaryDb(beastStorage).getLiveBeasts();
       const hasNoBeasts = !beasts || beasts.length === 0;
       if (hasNoBeasts) return;
       const element = templeElement.value || 'fire';

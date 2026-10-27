@@ -157,7 +157,7 @@ export function useTempleQuests(templeId: string, layout: Ref<QuestLayout | null
     if (hasNothingToWake) return;
     waking.value = true;
     try {
-      const [records, beasts] = await Promise.all([achievementDb.getTasks(), bestiaryDb.getBeasts()]);
+      const [records, beasts] = await Promise.all([achievementDb.getTasks(), bestiaryDb.getLiveBeasts()]);
       const plan = planWake({
         templeId,
         templates: pickedTemplates.value,
@@ -177,7 +177,7 @@ export function useTempleQuests(templeId: string, layout: Ref<QuestLayout | null
         skipped: plan.skipped.map((skip) => skip.line),
       };
       play$fx(done.woken.length ? "select" : "no");
-      allBeasts.value = await bestiaryDb.getBeasts();
+      allBeasts.value = await bestiaryDb.getLiveBeasts();
       await load();
     } catch (error) {
       debug.error("[TempleQuests] waking the quests failed", error);

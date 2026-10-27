@@ -160,3 +160,31 @@ describe("an edit through the beast wizard", () => {
     expect(beast.id).toEqual(expect.any(String));
   });
 });
+
+describe("getLiveBeasts", () => {
+  const proposal = (state: "proposed" | "returned" | "approved") => ({ by: "ronan", on: "2026-10-27T10:00:00.000Z", state });
+
+  it("leaves out a proposed beast and keeps an approved one", async () => {
+    await bestiaryDb.setBeast({ id: "beast-old", name: "Old Timer", checklist: [], avatar: 1 });
+    await bestiaryDb.setBeast({ id: "beast-proposed", name: "Proposed Pal", checklist: [], avatar: 2, madeBy: "ronan", proposal: proposal("proposed") });
+    await bestiaryDb.setBeast({ id: "beast-returned", name: "Sent Back", checklist: [], avatar: 3, madeBy: "ronan", proposal: proposal("returned") });
+    await bestiaryDb.setBeast({ id: "beast-approved", name: "Approved Pal", checklist: [], avatar: 4, madeBy: "ronan", proposal: proposal("approved") });
+
+    const live = await bestiaryDb.getLiveBeasts();
+    expect(live.map((beast) => beast.id).sort()).toEqual(["beast-approved", "beast-old"]);
+    expect(live.find((beast) => beast.id === "beast-approved")).toMatchObject({ madeBy: "ronan", proposal: { state: "approved" } });
+  });
+
+  it("leaves getBeasts alone: the Game Master's Bestiary still sees every record", async () => {
+    await bestiaryDb.setBeast({ id: "beast-proposed", name: "Proposed Pal", checklist: [], avatar: 2, proposal: proposal("proposed") });
+    expect(await bestiaryDb.getBeasts()).toHaveLength(1);
+    expect(await bestiaryDb.getLiveBeasts()).toEqual([]);
+  });
+
+  it("keeps the proposal when a save only sends the fields the form owns", async () => {
+    await bestiaryDb.setBeast({ id: "beast-proposed", name: "Proposed Pal", checklist: [], avatar: 2, madeBy: "ronan", proposal: proposal("proposed") });
+    await bestiaryDb.setBeast({ id: "beast-proposed", name: "Proposed Pally", checklist: ["Sweep"], avatar: 2 });
+    expect(await stored("beast-proposed")).toMatchObject({ name: "Proposed Pally", madeBy: "ronan", proposal: { state: "proposed" } });
+    expect(await bestiaryDb.getLiveBeasts()).toEqual([]);
+  });
+});

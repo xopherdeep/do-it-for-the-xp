@@ -49,6 +49,7 @@ jest.mock("@/lib/databases/BestiaryDb", () => ({
   beastStorage: {},
   default: class {
     getBeasts = async () => mockDb.beasts.slice();
+    getLiveBeasts = async () => mockDb.beasts.slice();
   },
 }));
 jest.mock("@/lib/engine/core/dungeons/importAllTemples", () => ({

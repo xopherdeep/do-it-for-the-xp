@@ -62,7 +62,7 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
-        beasts.value = await bestiary.getBeasts();
+        beasts.value = await bestiary.getLiveBeasts();
       } catch (err) {
         debug.warn('[BeastSelection] failed to load beasts for selection', err);
       }
