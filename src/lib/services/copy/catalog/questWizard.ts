@@ -72,6 +72,22 @@ export const questWizard = {
     adventure: "The Game Master checks it when you finish.",
     classic: "Requires Game Master approval on completion.",
   },
+  // A maker (a hero allowed to make things) chooses who the quest is for; the words are the same in every voice
+  "questWizard.who.me": {
+    adventure: "Me",
+  },
+  "questWizard.who.everyone": {
+    adventure: "Everyone",
+  },
+  "questWizard.who.parent": {
+    adventure: "A parent",
+  },
+  // The note on the last screen when the quest goes to a Game Master before any hero sees it
+  "questWizard.ready.makerNote": {
+    simple: "A grown-up looks at it first.",
+    adventure: "A Game Master looks at it first.",
+    classic: "Awaits Game Master review.",
+  },
   "questWizard.summon": {
     simple: "Summon!",
     adventure: "Summon!",

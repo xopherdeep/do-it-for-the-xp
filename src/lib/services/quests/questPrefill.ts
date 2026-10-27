@@ -19,8 +19,11 @@ export interface QuestPrefillQuery {
   hero?: string;
 }
 
-/** The fields of a new quest a prefill may set. Everything else stays the form's default. */
-export type QuestPrefill = Partial<Pick<Achievement, "startsOn" | "timesOfDay" | "assignee" | "type">>;
+/**
+ * The fields of a new quest a prefill may set. Everything else stays the form's default. `beastId` is the family beast
+ * a maker just drew ("Make a quest with it"): the Quest Wizard opens on it instead of asking for a chore.
+ */
+export type QuestPrefill = Partial<Pick<Achievement, "startsOn" | "timesOfDay" | "assignee" | "type">> & { beastId?: string };
 
 const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 

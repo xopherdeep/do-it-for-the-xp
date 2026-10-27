@@ -85,7 +85,14 @@
             <li v-for="(text, index) in draft.steps" :key="`${index}-${text}`" class="qw-step" data-test="step-row">
               <span class="qw-step__n" aria-hidden="true">{{ index + 1 }}</span>
               <span class="qw-step__text">{{ text }}</span>
-              <button type="button" class="qw-step__x" :aria-label="`Drop ${text}`" data-test="step-drop" @click="drop(index)">
+              <button
+                v-if="!hasFamilyBeast"
+                type="button"
+                class="qw-step__x"
+                :aria-label="`Drop ${text}`"
+                data-test="step-drop"
+                @click="drop(index)"
+              >
                 <i class="fad fa-times" aria-hidden="true"></i>
               </button>
             </li>
@@ -177,12 +184,25 @@
         </section>
       </template>
 
-      <!-- 5. WHO (a Game Master only): hero tiles -->
+      <!-- 5. WHO (a Game Master, or a maker): hero tiles; a maker's start with Me and end with Everyone -->
       <template #who>
         <section class="qw-section" data-test="step-who">
           <div class="qw-grid qw-grid--3">
             <button
-              v-for="hero in heroes"
+              v-if="isMaker && myProfile"
+              type="button"
+              class="qw-tile qw-tile--hero"
+              :class="{ 'is-picked': draft.heroIds.includes(me) }"
+              :aria-pressed="draft.heroIds.includes(me)"
+              data-test="who-me"
+              @click="chooseHero(me)"
+            >
+              <span class="qw-tile__art qw-tile__art--round"><img :src="avatarOf(myProfile)" alt="" /></span>
+              <span class="qw-tile__label">{{ t("questWizard.who.me") }}</span>
+              <i v-if="draft.heroIds.includes(me)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
+            </button>
+            <button
+              v-for="hero in whoTiles"
               :key="hero.id"
               type="button"
               class="qw-tile qw-tile--hero"
@@ -193,7 +213,21 @@
             >
               <span class="qw-tile__art qw-tile__art--round"><img :src="avatarOf(hero)" alt="" /></span>
               <span class="qw-tile__label">{{ nameOf(hero) }}</span>
+              <span v-if="isMaker && hero.isAdult === true" class="qw-tile__tag">{{ t("questWizard.who.parent") }}</span>
               <i v-if="draft.heroIds.includes(hero.id)" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
+            </button>
+            <button
+              v-if="isMaker"
+              type="button"
+              class="qw-tile qw-tile--hero"
+              :class="{ 'is-picked': isEveryone }"
+              :aria-pressed="isEveryone"
+              data-test="who-everyone"
+              @click="chooseEveryone"
+            >
+              <span class="qw-tile__art qw-tile__art--round"><i class="fad fa-users" aria-hidden="true"></i></span>
+              <span class="qw-tile__label">{{ t("questWizard.who.everyone") }}</span>
+              <i v-if="isEveryone" class="fad fa-check-circle qw-tile__check" aria-hidden="true"></i>
             </button>
           </div>
         </section>
@@ -219,7 +253,7 @@
                 <i class="fad fa-tasks" aria-hidden="true"></i>
                 <span>{{ draft.steps.length ? `${draft.steps.length} steps` : "1 step" }}</span>
               </li>
-              <li v-if="isGm" class="qw-card__party">
+              <li v-if="choosesWho" class="qw-card__party">
                 <i class="fad fa-users" aria-hidden="true"></i>
                 <span>{{ partyNames }}</span>
               </li>
@@ -262,7 +296,7 @@
           </button>
           <p v-if="!isGm" class="qw-note" data-test="kid-note">
             <i class="fad fa-shield-check" aria-hidden="true"></i>
-            {{ t("questWizard.ready.kidNote") }}
+            {{ t(isProposing ? "questWizard.ready.makerNote" : "questWizard.ready.kidNote") }}
           </p>
         </section>
       </template>
@@ -284,7 +318,7 @@
             @keyup.enter="onEnterSearch"
           />
         </label>
-        <label v-else-if="asked.id === 'steps'" class="xp-app-search">
+        <label v-else-if="asked.id === 'steps' && !hasFamilyBeast" class="xp-app-search">
           <i class="fad fa-plus" aria-hidden="true"></i>
           <input
             v-model="stepText"
@@ -334,13 +368,17 @@ import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
 import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 import type { Achievement } from "@/lib/databases/AchievementDb";
+import { BestiaryDb, beastStorage } from "@/lib/databases/BestiaryDb";
+import type { Beast } from "@/lib/databases/BestiaryDb";
 import { DAY_TOKENS } from "@/lib/engine/quests/QuestSchedule";
 import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
+import { canMake } from "@/lib/services/family/familySettings";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import {
   addStep,
   bandOf,
+  chooseFamilyBeast,
   choreName,
   choreTiles,
   clampDifficulty,
@@ -358,16 +396,19 @@ import {
   suggestChore,
   TIME_CHOICES,
   toggleDay,
+  toggleEveryone,
   toggleHero,
   typeChore,
   WHEN_CHOICES,
   whenLine,
+  willPropose,
 } from "@/lib/services/quests/questWizard";
 import type { WizardChoice, WizardDraft, WizardTime, WizardWhen } from "@/lib/services/quests/questWizard";
 import { saveWizardQuest } from "@/lib/services/quests/questWizardSave";
 import { useCopy, useReadAloud, useVoice } from "@/hooks/useVoice";
 import { formatQuestName } from "@/lib/utils/format";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
@@ -399,6 +440,8 @@ const t = useCopy();
 const { voice } = useVoice();
 const { startAutoReading, stopReading } = useReadAloud();
 const userStore = useUserStore();
+const rules = useGameRulesStore();
+void rules.load();
 const audioStore = useAudioStore();
 const gameStore = useGameStore();
 const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
@@ -421,8 +464,13 @@ const isGm = computed(() => {
   const access = resolveGmAccess(userStore);
   return access === "game-master" || access === "masquerade";
 });
+// A hero a Game Master allowed to make things (Settings > Party) may choose who the quest is for; a quest for anyone but
+// themself goes to a Game Master first
+const isMaker = computed(() => !isGm.value && canMake(me.value, { makers: rules.makers }));
+const choosesWho = computed(() => isGm.value || isMaker.value);
 const band = computed(() => bandOf(userStore.users[me.value] ?? {}));
 const heroes = computed(() => Object.values(userStore.users).filter((hero): hero is Profile => Boolean(hero?.id)));
+const myProfile = computed(() => heroes.value.find((hero) => String(hero.id) === me.value));
 
 const nameOf = (hero: Profile): string => hero.name?.nick || hero.name?.first || "Hero";
 const avatarOf = (hero: Profile): string => {
@@ -437,11 +485,15 @@ const avatarOf = (hero: Profile): string => {
 
 // ---- The draft -----------------------------------------------------------------------------------------------------
 
-const blankDraft = (): WizardDraft => newDraft({ isGm: isGm.value, heroId: me.value, prefill: props.prefill });
+const blankDraft = (): WizardDraft =>
+  newDraft({ isGm: isGm.value, isMaker: isMaker.value, heroId: me.value, prefill: props.prefill });
 
 const draft = ref<WizardDraft>(blankDraft());
+// The family beast a maker just drew ("Make a quest with it"): the quest is made with it, not with a library chore
+const familyBeast = ref<Beast | null>(null);
+const hasFamilyBeast = computed(() => Boolean(draft.value.beastId));
 // The screens are the steps of the shared wizard shell (the header, dots, guide and Back / Next are the shell's)
-const steps = computed(() => questWizardSteps(isGm.value, voice.value));
+const steps = computed(() => questWizardSteps(isGm.value, voice.value, isMaker.value));
 const position = ref(0);
 const saving = ref(false);
 
@@ -451,12 +503,35 @@ const search = ref("");
 const stepText = ref("");
 const showAll = ref(false);
 
+// A quest made with a family beast skips the chore screen: it opens on the steps (Back still reaches the chore screen).
+// The beast is read from the bestiary, so its own picture and checklist are in the draft; a beast that is gone leaves the
+// chore screen to ask.
+const openOnFamilyBeast = async (beastId: string) => {
+  const stepsAt = steps.value.findIndex((step) => step.id === "steps");
+  position.value = Math.max(stepsAt, 0);
+  try {
+    const beasts = await new BestiaryDb(beastStorage).getBeasts();
+    const found = beasts.find((beast) => String(beast?.id) === beastId);
+    const isGone = !found || !props.open || draft.value.beastId !== beastId;
+    if (isGone) {
+      position.value = 0;
+      return;
+    }
+    familyBeast.value = found;
+    draft.value = chooseFamilyBeast(draft.value, found);
+  } catch (error) {
+    debug.warn("[QuestWizard] the family beast could not be read", error);
+    position.value = 0;
+  }
+};
+
 // Every time the wizard opens it starts fresh, with the Calendar's day and part of the day in place
 watch(
   () => props.open,
   (isOpen) => {
     if (!isOpen) return;
     draft.value = blankDraft();
+    familyBeast.value = null;
     position.value = 0;
     search.value = "";
     stepText.value = "";
@@ -467,6 +542,8 @@ watch(
     savedQuestTitle.value = "";
     savedQuestSubtitle.value = "";
     savedQuestPortrait.value = "";
+    const beastId = draft.value.beastId;
+    if (beastId) void openOnFamilyBeast(beastId);
   },
   { immediate: true }
 );
@@ -505,7 +582,12 @@ const tiles = computed<LibraryEntry[]>(() => {
 const canShowMore = computed(() => !isSearching.value && !showAll.value && allTiles.value.length > PAGE_SIZE);
 
 const portrait = (entry: LibraryEntry | null): string | null => beastPortraitUrl(entry?.avatar);
-const chosenPortrait = computed(() => portrait(draft.value.entry));
+// A family beast wears its own drawing when it has one, else the library portrait it was made from
+const chosenPortrait = computed(() => {
+  const own = familyBeast.value;
+  if (own) return own.localImage || beastPortraitUrl(own.avatar);
+  return portrait(draft.value.entry);
+});
 
 // "Something else": the beast it would fight (a match for the typed words, else the default one) wears a pencil
 const ownEntry = computed(() => (isSearching.value ? suggestChore(search.value) ?? defaultChore() : null));
@@ -517,6 +599,7 @@ const isPicked = (entry: LibraryEntry): boolean => !draft.value.isOwn && String(
 const pick = (entry: LibraryEntry) => {
   play$fx("cursor");
   draft.value = pickChore(draft.value, entry);
+  familyBeast.value = null;
   search.value = "";
   shell.value?.scrollToTop(200);
 };
@@ -524,12 +607,14 @@ const pick = (entry: LibraryEntry) => {
 // Typing names the quest as the letters come, so Next wakes up as soon as there is a name
 const onType = () => {
   draft.value = typeChore(draft.value, search.value);
+  familyBeast.value = null;
 };
 
 const onOwnTile = () => {
   play$fx("cursor");
   if (isSearching.value) {
     draft.value = typeChore(draft.value, search.value);
+    familyBeast.value = null;
     searchInput.value?.blur();
     return;
   }
@@ -599,12 +684,31 @@ const chooseHero = (heroId: string) => {
   draft.value = toggleHero(draft.value, heroId);
 };
 
+const everyoneIds = computed(() => heroes.value.map((hero) => String(hero.id)));
+const isEveryone = computed(() => everyoneIds.value.every((id) => draft.value.heroIds.includes(id)));
+// A maker's other tiles: every profile but their own (Me comes first, Everyone last)
+const whoTiles = computed(() => (isMaker.value ? heroes.value.filter((hero) => String(hero.id) !== me.value) : heroes.value));
+
+const chooseEveryone = () => {
+  play$fx("cursor");
+  draft.value = toggleEveryone(draft.value, everyoneIds.value, me.value);
+};
+
 // ---- 6. Ready ------------------------------------------------------------------------------------------------------
 
 const questName = computed(() => draft.value.name.trim());
-const beastName = computed(() => (draft.value.entry ?? defaultChore()).name);
+const beastName = computed(() => familyBeast.value?.name ?? (draft.value.entry ?? defaultChore()).name);
 const whenText = computed(() => whenLine(draft.value));
 const needsApproval = computed(() => !isGm.value || draft.value.requiresApproval);
+// A maker's quest for anyone but themself, or on a beast still waiting for a Game Master, is looked at before any hero sees it
+const isProposing = computed(() =>
+  willPropose(draft.value, {
+    isGm: isGm.value,
+    isMaker: isMaker.value,
+    creatorId: me.value,
+    familyBeasts: familyBeast.value ? [familyBeast.value] : [],
+  })
+);
 const partyNames = computed(() => {
   const ids = draft.value.heroIds.length ? draft.value.heroIds : [me.value];
   return ids.map((id) => heroes.value.find((hero) => hero.id === id)).filter(Boolean).map((hero) => nameOf(hero as Profile)).join(", ");
@@ -652,7 +756,7 @@ const summon = async () => {
   }
   saving.value = true;
   try {
-    const quest = await saveWizardQuest(draft.value, { isGm: isGm.value, creatorId: me.value });
+    const quest = await saveWizardQuest(draft.value, { isGm: isGm.value, isMaker: isMaker.value, creatorId: me.value });
     savedQuest.value = quest;
     savedQuestTitle.value = formatQuestName(quest.achievementName || questName.value);
     savedQuestSubtitle.value = beastName.value;
@@ -694,7 +798,9 @@ const finishQuestFanfare = async () => {
     // The name the quest saved under (title case), not the letters as typed
     const name = formatQuestName(quest.achievementName || questName.value);
     const waitsForApproval = needsApproval.value && !isGm.value;
-    void say(t("questWizard.toast.header"), waitsForApproval ? t("questWizard.toast.approval", { name }) : name);
+    // A proposal is not in the log yet: the toast says a Game Master looks at it first, not that it is checked on completion
+    const approvalLine = quest.proposal ? t("questWizard.ready.makerNote") : t("questWizard.toast.approval", { name });
+    void say(t("questWizard.toast.header"), waitsForApproval ? approvalLine : name);
   }
 };
 </script>
