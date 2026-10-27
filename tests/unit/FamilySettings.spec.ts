@@ -7,6 +7,9 @@ import { sealSecret } from "@/lib/services/profile/pinSeal";
 import * as prompts from "@/app/SideMenu/SwitchProfile/pinRecoveryPrompts";
 import FamilySettings from "@/app/SideMenu/XpSettings/components/FamilySettings.vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
+import { DEFAULT_FAMILY_SETTINGS, canMake, loadFamilySettings } from "@/lib/services/family/familySettings";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 
 /** How the "Your recovery code" dialog ends: the parent taps "I wrote it down", or the app closes with it still up */
 let mockCodeDialog: "tapped" | "appClosed" = "tapped";
@@ -196,5 +199,78 @@ describe("Settings > Family recovery code card", () => {
     expect(button.exists()).toBe(true);
     await button.trigger("click");
     expect(reissue).toHaveBeenCalledWith(expect.objectContaining({ id: "dad" }));
+  });
+});
+
+describe("the Maker setting: which kids may draw beasts and suggest quests", () => {
+  let stored: Record<string, unknown> | null = null;
+  const spies: jest.SpyInstance[] = [];
+
+  /** The family settings record in memory, so a read gives back whatever the last save (or the test) put there */
+  beforeEach(() => {
+    stored = null;
+    const db = getFamilySettingsDb();
+    spies.push(
+      jest.spyOn(db, "getSettings").mockImplementation(async () => stored as any),
+      jest.spyOn(db, "saveSettings").mockImplementation(async (settings) => {
+        stored = settings as unknown as Record<string, unknown>;
+      })
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length) spies.pop()?.mockRestore();
+  });
+
+  it("starts with no Makers", async () => {
+    expect(DEFAULT_FAMILY_SETTINGS.makers).toEqual([]);
+    expect((await loadFamilySettings()).makers).toEqual([]);
+  });
+
+  it("keeps only real ids from a saved list, as strings", async () => {
+    stored = { makers: ["hero-1", 7, "", null] };
+    expect((await loadFamilySettings()).makers).toEqual(["hero-1", "7"]);
+  });
+
+  it("reads a list that is not a list as no Makers", async () => {
+    stored = { makers: "hero-1" };
+    expect((await loadFamilySettings()).makers).toEqual([]);
+  });
+
+  it("lets a listed hero make things, not another, and a Game Master always", () => {
+    const settings = { makers: ["hero-1"] };
+    expect(canMake("hero-1", settings)).toBe(true);
+    expect(canMake("hero-2", settings)).toBe(false);
+    expect(canMake("hero-2", settings, true)).toBe(true);
+  });
+
+  it("matches a number id to its string, and lets nobody make things without an id", () => {
+    const settings = { makers: ["7"] };
+    expect(canMake(7, settings)).toBe(true);
+    expect(canMake(null, settings)).toBe(false);
+    expect(canMake(undefined, settings)).toBe(false);
+    expect(canMake("", { makers: [""] })).toBe(false);
+  });
+
+  it("saves a hero as a Maker once, and takes them off again", async () => {
+    setActivePinia(createPinia());
+    const rules = useGameRulesStore();
+
+    await rules.setMaker("hero-1", true);
+    await rules.setMaker("hero-1", true);
+    await rules.setMaker("hero-2", true);
+    expect(rules.makers).toEqual(["hero-1", "hero-2"]);
+    expect((stored as any).makers).toEqual(["hero-1", "hero-2"]);
+
+    await rules.setMaker("hero-1", false);
+    expect(rules.makers).toEqual(["hero-2"]);
+    expect((stored as any).makers).toEqual(["hero-2"]);
+  });
+
+  it("leaves the other family rules as they were when it saves a Maker", async () => {
+    stored = { streaks: false, approveAllPurchases: true };
+    setActivePinia(createPinia());
+    await useGameRulesStore().setMaker("hero-1", true);
+    expect(stored).toMatchObject({ streaks: false, approveAllPurchases: true, makers: ["hero-1"] });
   });
 });

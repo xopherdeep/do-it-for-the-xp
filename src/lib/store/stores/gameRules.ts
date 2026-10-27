@@ -24,6 +24,7 @@ export const useGameRulesStore = defineStore("gameRules", () => {
   const autoSavePercent = ref(DEFAULT_FAMILY_SETTINGS.autoSavePercent);
   const approveAllPurchases = ref(DEFAULT_FAMILY_SETTINGS.approveAllPurchases);
   const weekStartsOn = ref(DEFAULT_FAMILY_SETTINGS.weekStartsOn);
+  const makers = ref<string[]>([...DEFAULT_FAMILY_SETTINGS.makers]);
   let loading: Promise<void> | null = null;
 
   const take = (settings: FamilySettings) => {
@@ -33,6 +34,7 @@ export const useGameRulesStore = defineStore("gameRules", () => {
     autoSavePercent.value = settings.autoSavePercent;
     approveAllPurchases.value = settings.approveAllPurchases;
     weekStartsOn.value = settings.weekStartsOn;
+    makers.value = settings.makers;
   };
 
   function load(): Promise<void> {
@@ -96,6 +98,14 @@ export const useGameRulesStore = defineStore("gameRules", () => {
     await save({ weekStartsOn: day });
   }
 
+  /** Let a hero draw beasts and suggest quests (or take it back); a Game Master still checks every one */
+  async function setMaker(heroId: string, on: boolean): Promise<void> {
+    await load();
+    const others = makers.value.filter((id) => id !== String(heroId));
+    makers.value = on ? [...others, String(heroId)] : others;
+    await save({ makers: makers.value });
+  }
+
   return {
     streaks,
     lateChores,
@@ -103,6 +113,7 @@ export const useGameRulesStore = defineStore("gameRules", () => {
     autoSavePercent,
     approveAllPurchases,
     weekStartsOn,
+    makers,
     load,
     save,
     setStreaks,
@@ -111,5 +122,6 @@ export const useGameRulesStore = defineStore("gameRules", () => {
     setAutoSavePercent,
     setApproveAllPurchases,
     setWeekStartsOn,
+    setMaker,
   };
 });
