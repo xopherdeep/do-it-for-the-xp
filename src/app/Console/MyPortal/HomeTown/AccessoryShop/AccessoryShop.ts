@@ -331,7 +331,7 @@ export default defineComponent({
       const isRefused = errand?.ok === false;
       const isPaid = errand?.ok === true;
       if (isRefused) await this.reveal.showPrompt(atmNotice(this.voice, line, { sound: "no" }));
-      if (isPaid) await this.reveal.showPrompt(atmNotice(this.voice, line, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
+      if (isPaid) await this.reveal.showPrompt(atmNotice(this.voice, line, { sprite: "coins", sound: action === "payDebt" ? "finish" : "coins" }));
     },
 
     // The shelves rise as the game's sheet at the bottom of the screen, ringed in the shop's colour

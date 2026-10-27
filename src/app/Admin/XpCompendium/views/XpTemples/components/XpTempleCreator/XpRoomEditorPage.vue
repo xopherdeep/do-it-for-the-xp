@@ -139,7 +139,8 @@ import {
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { useUserStore } from '@/lib/store/stores/user';
 import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
-import { dormantLine, questCardOf } from '@/lib/services/temples/questRoomPicker';
+import { questCardOf } from '@/lib/services/temples/questRoomPicker';
+import { dormantLine } from '@/lib/services/temples/templeQuestRows';
 import { needsTravelControls, pairingNote, withRoomAt } from '@/lib/engine/core/dungeons/teleportPairing';
 import type { RoomDrops } from '@/lib/engine/core/dungeons/types';
 import { FIGHT_ROOM_TYPES } from '@/lib/services/temples/fightDrops';

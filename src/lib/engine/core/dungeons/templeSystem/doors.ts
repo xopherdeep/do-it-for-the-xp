@@ -285,8 +285,6 @@ export function openDoorsAround(runs: TempleRuns, templeId: string, position: [n
   if (!templeState) return 0;
 
   const floor = level ?? templeState.currentLevel;
-  const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' } as const;
-  const step = { north: [-1, 0], south: [1, 0], east: [0, 1], west: [0, -1] } as const;
   let opened = 0;
 
   const sealedHere = isSealedByFight(runs, templeId, floor, position);
@@ -294,11 +292,11 @@ export function openDoorsAround(runs: TempleRuns, templeId: string, position: [n
     const openedOwnSide = !sealedHere && openDoorSide(runs, templeId, position, direction, floor);
     if (openedOwnSide) opened++;
 
-    const next: [number, number] = [position[0] + step[direction][0], position[1] + step[direction][1]];
+    const next = stepFrom(position, direction);
     const neighbour = runs.dungeonManager.getRoom(templeId, next, floor);
     const isNeighbourClosedOff = !neighbour || neighbour.type === 'wall' || isSealedByFight(runs, templeId, floor, next);
     if (isNeighbourClosedOff) continue;
-    const didOpenNeighbourSide = openDoorSide(runs, templeId, next, opposite[direction], floor);
+    const didOpenNeighbourSide = openDoorSide(runs, templeId, next, OPPOSITE[direction], floor);
     if (didOpenNeighbourSide) opened++;
   }
   return opened;

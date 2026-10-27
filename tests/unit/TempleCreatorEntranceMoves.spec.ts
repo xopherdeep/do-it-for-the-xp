@@ -3,7 +3,14 @@
  * the floor it is stored against changes (a floor is removed): hooks/grid/entranceMoves. An entrance stored as
  * "floor index,row,col" names its floor by place in the maze's floor keys, so removing a floor before it shifts it.
  */
+import { createPinia, setActivePinia } from "pinia";
 import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
+import { isEntranceToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { ENTRANCE_TOKEN } from "@/lib/store/stores/temple-creator";
+import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
+import { registerCustomTemples } from "@/lib/engine/core/dungeons/TempleAdapter";
+import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
+import { useTempleCreator } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleCreator";
 import {
   entranceAfterFloorRemoval,
   entrancePositionAt,
@@ -12,6 +19,61 @@ import {
   removeFloorFrom,
   type EntranceTemple,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/entranceMoves";
+
+// Only the browser's storage and Ionic's router and controllers are faked, for the cases that draw with the creator
+jest.mock("@ionic/storage", () => {
+  const rows = new Map<string, Map<string, unknown>>();
+  class FakeStorage {
+    private readonly mine: Map<string, unknown>;
+    constructor(config: { name: string }) {
+      if (!rows.has(config.name)) rows.set(config.name, new Map());
+      this.mine = rows.get(config.name) as Map<string, unknown>;
+    }
+    async create() {
+      return this;
+    }
+    async get(key: string) {
+      return this.mine.has(key) ? JSON.parse(JSON.stringify(this.mine.get(key))) : null;
+    }
+    async set(key: string, value: unknown) {
+      this.mine.set(key, JSON.parse(JSON.stringify(value)));
+    }
+    async remove(key: string) {
+      this.mine.delete(key);
+    }
+    async clear() {
+      this.mine.clear();
+    }
+    async keys() {
+      return Array.from(this.mine.keys());
+    }
+  }
+  return { Drivers: { IndexedDB: "indexeddb", LocalStorage: "localstorage" }, Storage: FakeStorage };
+});
+jest.mock("@ionic/vue", () => ({
+  toastController: { create: jest.fn(() => Promise.resolve({ present: jest.fn() })) },
+  alertController: { create: jest.fn() },
+  createAnimation: jest.fn(),
+  useIonRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
+}));
+jest.mock("vue-router", () => ({ useRoute: () => ({ params: {}, query: {} }) }));
+jest.mock("@/lib/databases/ProfileDb", () => {
+  class MockProfileDb {
+    setProfile = jest.fn();
+    getAll = jest.fn().mockResolvedValue([]);
+  }
+  return { __esModule: true, ProfileDb: MockProfileDb, default: MockProfileDb };
+});
+jest.mock("@/lib/services/core/StorageService", () => ({
+  __esModule: true,
+  default: { saveUsers: jest.fn().mockResolvedValue(undefined) },
+}));
+jest.mock("@/lib/databases/TempleProgressDb", () => ({
+  getTempleProgressDb: () => ({
+    getProgress: () => Promise.resolve(null),
+    saveProgress: (progress: unknown) => Promise.resolve(progress),
+  }),
+}));
 
 /** A 2x3 floor of walls with the given tokens put at [row, col] */
 const floor = (tokens: Record<string, string> = {}): string[][] => {
@@ -161,7 +223,7 @@ describe("placeEntrance", () => {
     const position = placeEntrance(temple, { levelId: "1F", row: 1, col: 2 }, makeSymbol);
 
     expect(position).toBe("1,2");
-    expect(temple.maze).toEqual(floor({ "0,0": "empty-00", "1,2": _00_ }));
+    expect(temple.maze).toEqual(floor({ "0,0": "empty-00", "1,2": ENTRANCE_TOKEN }));
     expect(temple.rooms).toEqual({ "empty-00": { type: "empty" } });
     expect(makeSymbol).toHaveBeenCalledTimes(1);
     expect(makeSymbol).toHaveBeenCalledWith(0, 0, "empty");
@@ -171,14 +233,14 @@ describe("placeEntrance", () => {
     const temple = templeOf({ "1F": floor(), "2F": floor({ "1,1": _00_ }) });
 
     expect(placeEntrance(temple, { levelId: "1F", row: 0, col: 2 }, symbolMaker())).toBe("0,0,2");
-    expect(temple.maze).toEqual({ "1F": floor({ "0,2": _00_ }), "2F": floor({ "1,1": "empty-11" }) });
+    expect(temple.maze).toEqual({ "1F": floor({ "0,2": ENTRANCE_TOKEN }), "2F": floor({ "1,1": "empty-11" }) });
     expect(temple.rooms["empty-11"]).toEqual({ type: "empty" });
   });
 
   it("clears every old entrance token, whatever it is spelled like, so only one entrance is left", () => {
     const temple = templeOf(floor({ "0,0": "E", "0,1": "_00__" }));
     placeEntrance(temple, { levelId: "1F", row: 1, col: 1 }, symbolMaker());
-    expect(temple.maze).toEqual(floor({ "0,0": "empty-00", "0,1": "empty-01", "1,1": _00_ }));
+    expect(temple.maze).toEqual(floor({ "0,0": "empty-00", "0,1": "empty-01", "1,1": ENTRANCE_TOKEN }));
   });
 
   it("lets go of the room record and the used symbol of the room the entrance takes the cell from", () => {
@@ -190,7 +252,7 @@ describe("placeEntrance", () => {
 
     expect(temple.rooms).toEqual({ M0001: { type: "monster" } });
     expect([...temple.usedSymbols]).toEqual(["M0001"]);
-    expect(temple.maze).toEqual(floor({ "0,0": _00_ }));
+    expect(temple.maze).toEqual(floor({ "0,0": ENTRANCE_TOKEN }));
   });
 
   it("keeps the wall record: the wall is shared by every wall cell", () => {
@@ -199,11 +261,13 @@ describe("placeEntrance", () => {
     expect(temple.rooms[____]).toEqual({ type: "wall" });
   });
 
-  it("changes nothing when the entrance is already on the cell", () => {
-    const temple = templeOf(floor({ "1,2": _00_ }));
+  it("makes no empty room when the entrance is already on the cell, and spells it the store's way", () => {
     const makeSymbol = symbolMaker();
-    expect(placeEntrance(temple, { levelId: "1F", row: 1, col: 2 }, makeSymbol)).toBe("1,2");
-    expect(temple.maze).toEqual(floor({ "1,2": _00_ }));
+    [_00_, "_00_", ENTRANCE_TOKEN].forEach((spelling) => {
+      const temple = templeOf(floor({ "1,2": spelling }));
+      expect(placeEntrance(temple, { levelId: "1F", row: 1, col: 2 }, makeSymbol)).toBe("1,2");
+      expect(temple.maze).toEqual(floor({ "1,2": ENTRANCE_TOKEN }));
+    });
     expect(makeSymbol).not.toHaveBeenCalled();
   });
 
@@ -217,6 +281,30 @@ describe("placeEntrance", () => {
     const temple = templeOf(floor({ "0,0": _00_ }));
     expect(placeEntrance(temple, { levelId: "1F", row: 5, col: 5 }, symbolMaker())).toBe("5,5");
     expect(temple.maze).toEqual(floor({ "0,0": _00_ }));
+  });
+});
+
+// #1536: the editor wrote the entrance on a cell as the engine's 'E' while the store keeps the shared entrance record under
+// its own token, so a cell and its room record could come apart until a Save renamed one
+describe("placeEntrance spells the entrance as the store does", () => {
+  it("writes the store's entrance token, the key of the shared entrance record", () => {
+    const shared = { type: "entrance", visited: true };
+    const temple = templeOf(floor({ "0,0": "M0000" }), { M0000: { type: "monster" }, [ENTRANCE_TOKEN]: shared }, ["M0000"]);
+
+    placeEntrance(temple, { levelId: "1F", row: 0, col: 0 }, symbolMaker());
+
+    const token = (temple.maze as string[][])[0][0];
+    expect(token).toBe(ENTRANCE_TOKEN);
+    expect(temple.rooms[token]).toBe(shared);
+  });
+
+  it("does not write the engine's 'E' on any floor", () => {
+    const temple = templeOf({ "1F": floor({ "0,0": "E" }), "2F": floor({ "1,1": "_00_" }) });
+
+    placeEntrance(temple, { levelId: "1F", row: 1, col: 2 }, symbolMaker());
+
+    const cells = Object.values(temple.maze as Record<string, string[][]>).flat(2);
+    expect(cells.filter(isEntranceToken)).toEqual([ENTRANCE_TOKEN]);
   });
 });
 
@@ -270,6 +358,95 @@ describe("removeFloorFrom", () => {
       notice: "The entrance was on 2F, which is gone. It is back at 1F 1x 1y.",
     });
     expect(Object.keys(temple.maze)).toEqual(["1F", "3F"]);
-    expect((temple.maze as Record<string, string[][]>)["1F"][0][0]).toBe(_00_);
+    expect((temple.maze as Record<string, string[][]>)["1F"][0][0]).toBe(ENTRANCE_TOKEN);
+  });
+});
+
+// --- #1536: painting the entrance with the creator, saving, and the hero starting on it ---------------------------
+
+describe("the entrance the creator's applyRoomChanges paints", () => {
+  const temples = TempleSystem.getInstance();
+  const db = new TempleDb(templeStorage);
+  const plainDoors = { north: "door", east: "door", south: "door", west: "door" };
+  let counter = 0;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  /** A fresh creator on a 3x4 first floor with the entrance at 0,0, as initGrid draws it */
+  const startCreator = () => {
+    const id = `entrance-token-temple-${++counter}`;
+    const creator = useTempleCreator({ templeId: id });
+    creator.store.reset();
+    creator.store.templeId = id;
+    creator.gridSize.value = "3x4";
+    creator.entrancePosition.value = "0,0";
+    creator.initGrid();
+    return { id, creator };
+  };
+  const paintEntrance = (creator: ReturnType<typeof useTempleCreator>, row: number, col: number, doors = plainDoors) => {
+    creator.selectCell(row, col);
+    creator.applyRoomChanges("entrance", {}, doors);
+  };
+  const entranceCellsOf = (creator: ReturnType<typeof useTempleCreator>) =>
+    (creator.templeMaze.value as string[][]).flatMap((cells, row) =>
+      cells.flatMap((token, col) => (isEntranceToken(token) ? [[row, col, token]] : []))
+    );
+
+  it("puts the store's entrance token on the cell and keeps the room record under that same token", () => {
+    const { creator } = startCreator();
+    paintEntrance(creator, 2, 3);
+
+    expect(entranceCellsOf(creator)).toEqual([[2, 3, ENTRANCE_TOKEN]]);
+    expect(creator.roomsData.value[ENTRANCE_TOKEN]).toMatchObject({ type: "entrance" });
+    expect(Object.keys(creator.roomsData.value).filter(isEntranceToken)).toEqual([ENTRANCE_TOKEN]);
+  });
+
+  it("leaves one entrance cell and one entrance record when the entrance is painted again, from a saved maze too", () => {
+    const { creator } = startCreator();
+    (creator.templeMaze.value as string[][])[0][0] = ENTRANCE_TOKEN;
+    paintEntrance(creator, 1, 1);
+    paintEntrance(creator, 2, 0);
+
+    expect(entranceCellsOf(creator)).toEqual([[2, 0, ENTRANCE_TOKEN]]);
+    expect(Object.keys(creator.roomsData.value).filter(isEntranceToken)).toEqual([ENTRANCE_TOKEN]);
+    expect(creator.entrancePosition.value).toBe("2,0");
+  });
+
+  it("starts the hero on the painted entrance when the temple is saved and loaded", async () => {
+    const { id, creator } = startCreator();
+    paintEntrance(creator, 2, 3);
+    await creator.saveTemple();
+
+    const layout = (await db.getTempleById(id))!.dungeonLayout!;
+    expect((layout.maze as string[][])[2][3]).toBe(ENTRANCE_TOKEN);
+    expect(layout.rooms[ENTRANCE_TOKEN]).toMatchObject({ type: "entrance" });
+    expect(layout.entrance).toEqual([2, 3]);
+
+    await registerCustomTemples();
+    temples.initTemple(id);
+    expect(temples.getTempleState(id)?.currentPosition).toEqual([2, 3]);
+    expect(temples.getCurrentRoom(id)?.type).toBe("entrance");
+  });
+
+  it("keeps the entrance record the temple shares, its doors included, when the entrance is painted elsewhere", () => {
+    const { creator } = startCreator();
+    const shared = { type: "entrance", visited: true, sides: { north: "locked", east: "door", south: "door", west: "door" } };
+    creator.roomsData.value[ENTRANCE_TOKEN] = shared;
+
+    paintEntrance(creator, 2, 3);
+
+    expect(creator.roomsData.value[ENTRANCE_TOKEN]).toEqual(shared);
+  });
+
+  it("gives a temple with no entrance record yet the painted room's record, under the token on the cell", () => {
+    const { creator } = startCreator();
+    delete creator.roomsData.value[ENTRANCE_TOKEN];
+
+    paintEntrance(creator, 2, 3);
+
+    expect(Object.keys(creator.roomsData.value).filter(isEntranceToken)).toEqual([ENTRANCE_TOKEN]);
+    expect(creator.roomsData.value[ENTRANCE_TOKEN]).toEqual({ type: "entrance" });
   });
 });

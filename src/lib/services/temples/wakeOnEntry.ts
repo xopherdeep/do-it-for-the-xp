@@ -24,6 +24,12 @@
  * temple alone (made before floors) is the entrance floor's, and no other floor's. The plan is pure;
  * `commitEntryWake` writes only through the writers it is handed. A hero's wakes take turns (they all write the one
  * questEffects), so walking in and taking the stairs at once cannot make one forget the other.
+ *
+ * A layout refresh (owner 2026-10-23, "wake only the new beasts"): when a shipped temple's layout is replaced
+ * (importAllTemples), each hero's woken floors of the OLD layout are swapped for the beasts those floors held
+ * (`templesWokenBeasts`, rememberWokenBeasts in layoutRefreshWake.ts). The next arrival on a floor wakes only the beasts that list does not hold,
+ * so a room that is new wakes while a beast the old layout woke (its quest deleted since, or moved to another floor) is
+ * never made again. A save no refresh has touched has no such list and wakes as it always did.
  */
 import AchievementDb, { achievementStorage, type Achievement } from "@/lib/databases/AchievementDb";
 import BestiaryDb, { beastStorage, type Beast } from "@/lib/databases/BestiaryDb";
@@ -40,6 +46,7 @@ import {
   monsterTemplateCells,
   planWake,
   wakeQuestId,
+  wakeSlugOf,
   type WakeSkip,
   type WakeWriters,
 } from "@/lib/services/temples/wakeTempleQuests";
@@ -55,11 +62,11 @@ export const WOKEN_TEMPLES_FIELD = "templesWokenAt";
 /** What the field holds one floor under: the temple and the floor, "wind-temple@2F". A temple id alone is an older wake. */
 export const wakeKey = (templeId: string, floor: string): string => `${templeId}@${floor}`;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 /** The wakes a hero has, by key (a temple and floor, or an older temple alone); a stored field that is not a record, or an entry that is not a time, reads as none (a profile is family data). */
-const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<string, string> => {
+export const wokenTemplesOf = (effects: HeroQuestEffects | null | undefined): Record<string, string> => {
   const woken: unknown = isRecord(effects) ? effects.templesWokenAt : undefined;
   const kept: Record<string, string> = {};
   if (!isRecord(woken)) return kept;
@@ -112,6 +119,30 @@ export const entranceFloorOf = (layout: PlayedLayout | null | undefined): string
   const isOnAFloor = entrance.length === 3;
   const named = isOnAFloor ? floors[entrance[0]] : undefined;
   return named || floors[0] || "1F";
+};
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A layout refresh
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** The questEffects field that remembers the beasts a replaced layout woke (HeroQuestEffects.templesWokenBeasts). */
+export const WOKEN_BEASTS_FIELD = "templesWokenBeasts";
+
+/** Every temple's remembered beasts (slugs); a stored field that is not a record, or a temple's entry that is not a list, reads as none, and anything in a list that is not a slug is dropped (a profile is family data). */
+export const beastMemoryOf = (effects: HeroQuestEffects | null | undefined): Record<string, string[]> => {
+  const remembered: unknown = isRecord(effects) ? effects.templesWokenBeasts : undefined;
+  const kept: Record<string, string[]> = {};
+  if (!isRecord(remembered)) return kept;
+  for (const [templeId, slugs] of Object.entries(remembered)) {
+    if (Array.isArray(slugs)) kept[templeId] = slugs.filter((slug): slug is string => typeof slug === "string");
+  }
+  return kept;
+};
+
+/** The beasts (slugs, the part of a `tq-<temple>-<slug>` id after the temple) the temple's replaced layouts woke for the hero whose questEffects these are. */
+export const wokenBeastsOf = (effects: HeroQuestEffects | null | undefined, templeId: string): string[] => {
+  const slugs = beastMemoryOf(effects)[templeId];
+  return Array.isArray(slugs) ? slugs : [];
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -224,7 +255,9 @@ const sharedWokenQuest = (live: readonly Achievement[], templeId: string, beastI
  * What the hero's first arrival on a floor of a temple wakes (see the top of this file). Every monster room's template
  * on that floor is read once per beast, in the maze's reading order: left alone when the room holds a live pick or the
  * hero already has the beast's quest, shared when a temple already woke it for someone else, else woken for the hero
- * through planWake. A floor the layout does not draw wakes nothing and is not remembered.
+ * through planWake. A beast a replaced layout already woke for the hero (wokenBeastsOf) is left alone whatever its floor,
+ * and its quest, if the Game Master deleted it since, is not made again. A floor the layout does not draw wakes nothing
+ * and is not remembered.
  */
 export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
   const layout = input.layout;
@@ -237,6 +270,7 @@ export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
   if (isFloorMissing) return nothingPlanned("noFloor", floor);
 
   const heroId = String(input.hero?.id);
+  const rememberedBeasts = new Set(wokenBeastsOf(input.hero?.questEffects, input.templeId));
   const live = input.quests.filter((quest) => !quest.draft);
   const toWake: RoomQuestTemplate[] = [];
   const joined = new Map<string, Achievement>();
@@ -247,6 +281,8 @@ export function wakeOnEntryPlan(input: EntryWakeInput): EntryWakePlan {
     if (isHeldByPick) continue;
     const template = cell.room.content?.quest as RoomQuestTemplate;
     const beastId = String(template.beastId);
+    const isWokenByOldLayout = rememberedBeasts.has(wakeSlugOf(beastId));
+    if (isWokenByOldLayout) continue;
     const isSeen = seen.has(beastId);
     if (isSeen) continue;
     seen.add(beastId);

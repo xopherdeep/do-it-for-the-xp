@@ -14,6 +14,7 @@ import {
   type Riddle,
   type RoomAction,
   type RoomContext,
+  type RoomIntent,
   type RoomOutcome,
   type Ware
 } from '@/lib/services/temples/RoomInteractions';
@@ -54,6 +55,15 @@ export interface RoomOutcomeDeps
 
 /** How long the temple holds the "carried to the Hospital" line before the Hospital screen takes over */
 const CARRIED_TO_HOSPITAL_MS = 1800;
+
+/** The room the hero stands in, with the context its actions run in */
+interface LiveRoom {
+  ctx: RoomContext;
+  room: any;
+}
+
+/** What opening or doing an intent takes: the outcome that asked for it, and the room the hero stands in (none without a hero) */
+type IntentHandler = (outcome: RoomOutcome, live: LiveRoom | null) => void | Promise<void>;
 
 // --- Room actions: what each room says and does lives in RoomInteractions ---------------------
 
@@ -115,7 +125,7 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
    * Where the hero stands right now, read from the temple itself: the refs of useTemple only catch up
    * on the next tick, and a trap has to know the room the hero just walked into.
    */
-  const liveContext = (): { ctx: RoomContext; room: any } | null => {
+  const liveContext = (): LiveRoom | null => {
     const state = templeSystem.getTempleState(props.temple);
     const room = templeSystem.getCurrentRoom(props.temple);
     const hasNoLiveRoom = !state || !room || !progressHeroId;
@@ -168,90 +178,105 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     });
   };
 
-  /** Show what a room or an item did: the sound, the shake, the toast, and whatever screen it opens. */
-  const applyOutcome = async (outcome: RoomOutcome): Promise<void> => {
+  // The sound, the shake and the toast of an outcome (or the item held overhead, in place of the toast)
+  const announce = (outcome: RoomOutcome) => {
     // A cleared temple has its own reveal, with its own sounds and its own words: no toast, no sting
     const celebrating = Boolean(outcome.cleared);
-    const { sound, message } = outcome;
+    const { sound, message, found } = outcome;
     const shouldPlaySound = sound && !celebrating;
     if (shouldPlaySound) fx(sound);
     const shouldShake = Boolean(outcome.shake);
     if (shouldShake) shake();
-    const found = outcome.found;
     if (found) showFanfare(found, message);
     const shouldShowToast = message && !celebrating && !found;
     if (shouldShowToast) say(message);
+  };
+
+  // Same as losing a battle: the trap already admitted the hero (full HP and MP, billed). The temple says one line,
+  // then the Hospital screen takes over and the nurse reads the bill. The run is saved where the hero fell.
+  const carryToHospital = () => {
+    fx('die');
+    say(CARRIED_TO_HOSPITAL_LINE, CARRIED_TO_HOSPITAL_MS);
+    const heroId = String(progressHeroId ?? props.userId ?? userStore.currentUser.id);
+    timers.startTimeout(CARRIED_TO_HOSPITAL_MS, () => void router.replace(hospitalRoute(heroId)));
+  };
+
+  // Whether the hero has already freed the Pegasus this temple keeps
+  const hasFreedTemplePegasus = (): boolean => {
+    const freed = pegasusOfTemple(props.temple);
+    if (!freed) return false;
+    const hero = userStore.getUserById(String(progressHeroId ?? ''));
+    return Boolean(hero?.stats?.pegasi?.[freed.index]);
+  };
+
+  // The way out: a cleared temple first cracks the egg and counts the reward up, and only then does the hero walk out
+  const walkOut: IntentHandler = (outcome) => {
+    const { cleared } = outcome;
+    if (!cleared) {
+      leaveTemple();
+      return;
+    }
+    showTempleCleared(hasFreedTemplePegasus() ? pegasusView(props.temple) : null, cleared);
+  };
+
+  const stepIntoCircle: IntentHandler = async () => {
+    const didTeleport = handleTeleport();
+    if (!didTeleport) {
+      // A circle with no partner anywhere leads nowhere
+      fx('no');
+      showTempleMessage(CIRCLE_FIZZLES);
+      return;
+    }
+    // Update UI after teleport, then see what the new room does
+    fx('okdesuka');
+    timers.startTimeout(100, () => updateBg(currentPosition.value[1], currentPosition.value[0]));
+    await arrive();
+  };
+
+  const askRiddle: IntentHandler = async (outcome, live) => {
+    const asked = outcome.riddle;
+    const hasNothingToAsk = !live || !asked;
+    if (hasNothingToAsk) return;
+    await showRiddleAlert(asked, live.room, live.ctx);
+  };
+
+  const openShop: IntentHandler = async (outcome, live) => {
+    const wares = outcome.wares;
+    const hasNothingToSell = !live || !wares;
+    if (hasNothingToSell) return;
+    await showShopAlert(wares, outcome.gp ?? 0, live.room, live.ctx);
+  };
+
+  // What each intent opens or does; every intent has its handler
+  const intentHandlers: Record<RoomIntent, IntentHandler> = {
+    leave: walkOut,
+    fight: () => startFight(),
+    openChest: () => showChestContentsDialog(),
+    emptyChest: () => showEmptyChest(),
+    takeDrop: () => showDropReveal(),
+    teleport: stepIntoCircle,
+    riddle: askRiddle,
+    shop: openShop,
+    sheet: () => showRoomActions()
+  };
+
+  /** Show what a room or an item did: the sound, the shake, the toast, and whatever screen it opens. */
+  const applyOutcome = async (outcome: RoomOutcome): Promise<void> => {
+    announce(outcome);
 
     const isDefeated = Boolean(outcome.defeated);
     if (isDefeated) {
-      // Same as losing a battle: the trap already admitted the hero (full HP and MP, billed). The temple says one line,
-      // then the Hospital screen takes over and the nurse reads the bill. The run is saved where the hero fell.
-      fx('die');
-      say(CARRIED_TO_HOSPITAL_LINE, CARRIED_TO_HOSPITAL_MS);
-      const heroId = String(progressHeroId ?? props.userId ?? userStore.currentUser.id);
-      timers.startTimeout(CARRIED_TO_HOSPITAL_MS, () => void router.replace(hospitalRoute(heroId)));
+      carryToHospital();
       return;
     }
 
     const live = liveContext();
-    switch (outcome.intent) {
-      case 'leave': {
-        const cleared = outcome.cleared;
-        if (cleared) {
-          // The gate opened: the egg cracks and the reward counts up, and only then does the hero walk out
-          const heroId = String(progressHeroId ?? '');
-          const freed = pegasusOfTemple(props.temple);
-          const hasFreed = Boolean(freed && userStore.getUserById(heroId)?.stats?.pegasi?.[freed.index]);
-          showTempleCleared(hasFreed ? pegasusView(props.temple) : null, cleared);
-          return;
-        }
-        leaveTemple();
-        return;
-      }
-      case 'fight':
-        startFight();
-        break;
-      case 'openChest':
-        showChestContentsDialog();
-        break;
-      case 'emptyChest':
-        showEmptyChest();
-        break;
-      case 'takeDrop':
-        showDropReveal();
-        break;
-      case 'teleport': {
-        const didTeleport = handleTeleport();
-        if (didTeleport) {
-          // Update UI after teleport, then see what the new room does
-          fx('okdesuka');
-          timers.startTimeout(100, () => updateBg(currentPosition.value[1], currentPosition.value[0]));
-          await arrive();
-        } else {
-          // A circle with no partner anywhere leads nowhere
-          fx('no');
-          showTempleMessage(CIRCLE_FIZZLES);
-        }
-        break;
-      }
-      case 'riddle': {
-        const canShowRiddle = Boolean(live && outcome.riddle);
-        if (canShowRiddle) {
-          await showRiddleAlert(outcome.riddle!, live!.room, live!.ctx);
-        }
-        break;
-      }
-      case 'shop': {
-        const canShowShop = Boolean(live && outcome.wares);
-        if (canShowShop) {
-          await showShopAlert(outcome.wares!, outcome.gp ?? 0, live!.room, live!.ctx);
-        }
-        break;
-      }
-      case 'sheet':
-        await showRoomActions();
-        break;
-    }
+    const handler = outcome.intent && intentHandlers[outcome.intent];
+    if (handler) await handler(outcome, live);
+
+    // The hero walking out of the temple meets no other room
+    const hasLeft = outcome.intent === 'leave';
+    if (hasLeft) return;
 
     const hasMoved = Boolean(outcome.moved);
     if (hasMoved) await arrive();

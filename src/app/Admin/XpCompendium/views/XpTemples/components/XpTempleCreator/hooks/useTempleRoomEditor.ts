@@ -7,7 +7,7 @@
 import { ref, computed, watch, Ref, ComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import { useIonRouter, toastController } from '@ionic/vue';
-import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
+import { ENTRANCE_TOKEN, useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
 import BestiaryDb, { beastStorage, Beast } from '@/lib/databases/BestiaryDb';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
@@ -29,6 +29,7 @@ import { canonicalRoomType, hasRoomTypeGuide, roomTypeShortLabel } from '../room
 import { isQuestRoom as holdsQuest } from '@/lib/services/temples/questRooms';
 import { BOMB_ITEM } from '@/lib/services/temples/fightDrops';
 import { floorSlice, getEntranceFloor, sortedFloorKeys, writeMazeCell } from './grid/floorLayers';
+import { placeEntrance } from './grid/entranceMoves';
 import { listMonsterConfigs, type MonsterConfigOption } from './grid/monsterConfigs';
 import { syncNeighbourSides } from './grid/neighbourLinks';
 import {
@@ -586,6 +587,22 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     modalStep.value = 2;
   };
 
+  // Makes the cell being edited the temple's entrance (on the floor it is on): the old entrance becomes an empty room,
+  // the entrance position is saved for this cell, and the room takes the shared entrance record (keeping its doors and name)
+  const makeThisRoomTheEntrance = () => {
+    if (!roomData.value) return;
+    const cell = { levelId: store.currentLevelId, row: rowIdx.value, col: colIdx.value };
+    const cellExists = floorSlice(store.templeMaze, cell.levelId)[cell.row]?.[cell.col] !== undefined;
+    if (!cellExists) return;
+
+    const temple = { maze: store.templeMaze, rooms: store.roomsData, usedSymbols: store.usedSymbols };
+    store.entrancePosition = placeEntrance(temple, cell, store.generateUniqueSymbol);
+
+    const sharedRecord: Room = store.roomsData[ENTRANCE_TOKEN] ?? { type: 'entrance', visited: true };
+    store.roomsData[ENTRANCE_TOKEN] = sharedRecord;
+    roomData.value = adoptSharedRecord(sharedRecord, roomData.value);
+  };
+
   const selectType = async (type: string) => {
     // Security Check: Entrances only on the designated Entrance Floor
     const isEntrance = type === 'entrance';
@@ -652,6 +669,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       seedTravelTargets(ensureContent(roomData.value), type, store.currentLevelId);
       modalStep.value = 3;
     } else {
+      // The entrance is the temple's one start cell, not a room type: it moves the entrance here
+      if (isEntrance) makeThisRoomTheEntrance();
       closeTypeModal();
     }
   };

@@ -4,19 +4,19 @@
  * token to a unique coordinate symbol, and the room record written for a cell.
  */
 import {
-  _00_,
   ____,
   TELE,
   SHOP,
 } from "@/lib/engine/dungeons/roomTypes";
 import { isEntranceToken, isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
+import { ENTRANCE_TOKEN } from "@/lib/store/stores/temple-creator";
 import { hasNonDoorSide, lockBossSides } from "./doorSides";
 
 // Room symbols mapping
 export const roomSymbols: Record<string, string> = {
   wall: ____,
-  entrance: _00_,
+  entrance: ENTRANCE_TOKEN,
   empty: "O__O",
   monster: "q__q",
   loot: "$__$",
@@ -45,7 +45,8 @@ export const isClearableRoomSymbol = (cellSymbol: string): boolean =>
   cellSymbol.startsWith("R") || isCoordinateToken(cellSymbol);
 
 /**
- * The symbol a cell takes when it becomes `newType`: walls and entrances use their shared symbols, a cell leaving
+ * The symbol a cell takes when it becomes `newType`: walls and entrances use their shared symbols (the entrance's is the
+ * store's ENTRANCE_TOKEN, the key of its shared record), a cell leaving
  * the wall or entrance (or changing room type) gets a fresh unique symbol, and a cell keeping its type keeps its symbol.
  */
 export const chooseRoomSymbol = (
@@ -59,7 +60,7 @@ export const chooseRoomSymbol = (
   if (newType === "wall") {
     symbolToUse = ____;
   } else if (newType === "entrance") {
-    symbolToUse = _00_;
+    symbolToUse = ENTRANCE_TOKEN;
   } else if (isWallToken(currentSymbol) || isEntranceToken(currentSymbol)) {
     symbolToUse = generateSymbol();
   } else if (newType !== currentType) {

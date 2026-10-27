@@ -205,6 +205,17 @@ describe("describeRoomQuest", () => {
     expect(describeRoomQuest({ type: "monster", content: { quest: template } }, [quests[0]])).toEqual({ kind: "template", template });
   });
 
+  it("leaves a template waiting when the quest that has its beast is below the template's tier", () => {
+    const bossTemplate = { ...template, difficulty: 8 };
+    expect(describeRoomQuest({ type: "boss", content: { quest: bossTemplate } }, quests)).toEqual({ kind: "template", template: bossTemplate });
+    const minibossTemplate = { ...template, difficulty: 3 };
+    expect(describeRoomQuest({ type: "miniboss", content: { quest: minibossTemplate } }, quests)).toEqual({
+      kind: "template",
+      template: minibossTemplate,
+      filler: quests[2],
+    });
+  });
+
   it("is none for a classic or empty room", () => {
     expect(describeRoomQuest({ type: "monster", content: { beasts: ["b1"] } }, quests)).toEqual({ kind: "none" });
     expect(describeRoomQuest({ type: "empty" }, quests)).toEqual({ kind: "none" });

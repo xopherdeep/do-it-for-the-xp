@@ -9,9 +9,8 @@
 
 import { reactive } from 'vue';
 import { DungeonManager } from './DungeonManager';
-import { Dungeon, Room } from './types';
+import { Room } from './types';
 import type { ClimbLock } from './types';
-import { ChestSystem } from './ChestSystem';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
 import { TEMPLE_CLEARED_KEY } from './templeReset';
@@ -40,19 +39,9 @@ export type { DoorKind, DoorState } from './templeSystem/doors';
 export { MapVisibility } from './templeSystem/visibility';
 export type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
-/** What an opened chest held */
-interface OpenedChest {
-  items?: string[];
-  specialItem?: string;
-  keyFound?: boolean;
-  mapFound?: boolean;
-  compassFound?: boolean;
-}
-
 export class TempleSystem {
   private static instance: TempleSystem;
   private dungeonManager: DungeonManager;
-  private chestSystem: ChestSystem;
 
   // Track temple-specific state for each temple
   private templeStates: Record<string, TempleState> = reactive({});
@@ -84,7 +73,6 @@ export class TempleSystem {
 
   private constructor() {
     this.dungeonManager = DungeonManager.getInstance();
-    this.chestSystem = ChestSystem.getInstance();
     onRecordsLanded(({ store, keys }) => {
       const isProgress = store === '__templeProgress';
       if (isProgress) this.landedRuns.landed(this.runs, keys);
@@ -114,30 +102,6 @@ export class TempleSystem {
     };
   }
   
-  private clearedRoomKey(level: string, position: [number, number]): string {
-    return runState.clearedRoomKey(level, position);
-  }
-
-  private floorsOf(temple: Dungeon): string[] {
-    return floors.floorsOf(temple);
-  }
-
-  private canStandAt(templeId: string, level: string, position: [number, number]): boolean {
-    return floors.canStandAt(this.runs, templeId, level, position);
-  }
-
-  private sealKey(templeId: string, level: string, position: [number, number]): string {
-    return doors.sealKey(templeId, level, position);
-  }
-
-  private createTempleState(position: [number, number], level: string): TempleState {
-    return runState.createTempleState(position, level);
-  }
-
-  private sealRoom(templeId: string, level: string, position: [number, number], room: Room): void {
-    doors.sealRoom(this.runs, templeId, level, position, room);
-  }
-
   private unsealRoom(templeId: string, level: string, position: [number, number]): void {
     doors.unsealRoom(this.runs, templeId, level, position);
   }
@@ -238,20 +202,6 @@ export class TempleSystem {
     return this.heroByTemple.get(templeId);
   }
 
-  private openState(
-    templeId: string,
-    userId: string | undefined,
-    position: [number, number],
-    level: string,
-    resume: boolean
-  ): { state: TempleState; created: boolean } {
-    return heroRuns.openState(this.runs, templeId, userId, position, level, resume);
-  }
-
-  private releaseTemple(templeId: string): void {
-    heroRuns.releaseTemple(this.runs, templeId);
-  }
-
   private forgetRun(templeId: string, unsaved = false): void {
     heroRuns.forgetRun(this.runs, templeId, unsaved);
   }
@@ -274,10 +224,6 @@ export class TempleSystem {
   public leaveByPortal(templeId: string): Promise<void> {
     heroRuns.leaveByPortal(this.runs, templeId);
     return this.flushSaves();
-  }
-  
-  private migrateVisitedRooms(templeId: string): void {
-    floors.migrateVisitedRooms(this.runs, templeId);
   }
   
   /**
@@ -357,14 +303,6 @@ export class TempleSystem {
     return runState.hasVisited(this.runs, templeId, position);
   }
   
-  private doorKey(level: string, position: [number, number], direction: DoorState['direction']): string {
-    return doors.doorKey(level, position, direction);
-  }
-
-  private isBossDoor(there: Room | undefined): boolean {
-    return doors.isBossDoor(there);
-  }
-
   /**
    * What stands between the room at `position` and the room in `direction`: an open way, a small lock, the
    * boss door, or what the Game Master drew instead of a door: a `wall` no one passes, a `bombable` cracked wall only
@@ -387,10 +325,6 @@ export class TempleSystem {
    */
   public explainDoor(templeId: string, position: [number, number], direction: DoorState['direction']): string | null {
     return doors.explainDoor(this.runs, templeId, position, direction);
-  }
-
-  private openDoor(templeId: string, level: string, position: [number, number], direction: DoorState['direction']): void {
-    doors.openDoor(this.runs, templeId, level, position, direction);
   }
 
   /**
@@ -459,10 +393,6 @@ export class TempleSystem {
     return doors.openDoorsAround(this.runs, templeId, position, level);
   }
 
-  private isSealedByFight(templeId: string, level: string, position: [number, number]): boolean {
-    return doors.isSealedByFight(this.runs, templeId, level, position);
-  }
-
   /** The live seal: the beast bars the doors of this room right now (isSealedByFight is the authored rule, a guard room not yet won). */
   public isRoomBarred(templeId: string, level: string, position: [number, number]): boolean {
     return doors.isRoomBarred(this.runs, templeId, level, position);
@@ -523,14 +453,6 @@ export class TempleSystem {
     return runState.isBossBeaten(this.runs, templeId);
   }
 
-  /**
-   * Open a chest and collect its contents
-   * @returns Object with collected items
-   */
-  public openChest(templeId: string): OpenedChest | undefined {
-    return chests.openChest(this.runs, templeId);
-  }
-  
   /**
    * Check if a room is a specific type
    */
@@ -693,21 +615,5 @@ export class TempleSystem {
       }
     });
     return this.writes;
-  }
-
-  private readSavedProgress(userId: string, templeId: string): Promise<TempleProgressEntry | null | undefined> {
-    return heroRuns.readSavedProgress(userId, templeId);
-  }
-
-  private loadProgress(templeId: string, userId: string, resume: boolean): void {
-    heroRuns.loadProgress(this.runs, templeId, userId, resume);
-  }
-
-  private applyProgress(
-    templeId: string,
-    saved: TempleProgressEntry,
-    resumeFrom?: { level: string; row: number; col: number }
-  ): void {
-    heroRuns.applyProgress(this.runs, templeId, saved, resumeFrom);
   }
 }

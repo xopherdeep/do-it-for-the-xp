@@ -18,6 +18,9 @@ export const RECHECK_HOURS = 24;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 
+/** A production build never honours a sandbox (test-mode) license. */
+export const isProductionBuild = (): boolean => process.env.NODE_ENV === "production";
+
 function parse(iso: string | null | undefined): number {
   return iso ? new Date(iso).getTime() : NaN;
 }

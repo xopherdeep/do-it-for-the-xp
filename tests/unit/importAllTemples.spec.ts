@@ -4,6 +4,9 @@ import { importAllTempleLayouts, layoutSignature, planSeedSync, type ShippedTemp
 import { auditTemple } from "@/lib/services/temples/templeAudit";
 import { isQuestRoom, roomQuestIds } from "@/lib/services/temples/questRooms";
 import { QUICK_START_QUEST_IDS, quickStartTemplePlan } from "@/lib/services/temples/quickStartPlan";
+import type { HeroEffectsStore } from "@/lib/services/temples/layoutRefreshWake";
+import { WOKEN_BEASTS_FIELD, WOKEN_TEMPLES_FIELD, wakeOnEntryPlan } from "@/lib/services/temples/wakeOnEntry";
+import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import debug from "@/lib/utils/debug";
 import backup from "./importAllTemples.backup.json";
 import { windBeforeEagle } from "./windBeforeEagle";
@@ -436,6 +439,112 @@ describe("a copy of the Wind Temple Quick Start placed tonight's quests in", () 
     expect(planSeedSync(record(ID), spireShipped).action).toBe("current");
     expect(planSeedSync(record(ID), eagleShipped)).toMatchObject({ action: "refresh", quickStartQuestIds: ["quick-dishes"] });
     expect(planSeedSync(record("earth-temple"), eagleShipped).action).toBe("edited");
+  });
+});
+
+/**
+ * A refresh and the heroes' wake memory (owner 2026-10-23, "wake only the new beasts"): before the old layout is replaced,
+ * each hero's woken floors of it are swapped for the beasts those floors held, so the next entry wakes only the rooms
+ * that are new. Only a refresh does it; the hero store is the family's user store unless a test hands one in.
+ */
+describe("a refresh and the beasts the heroes were woken for", () => {
+  const KIA = "hero-1";
+  const MIA = "hero-2";
+  const WOKE = "2026-10-14T15:30:00.000Z";
+  let storage: ReturnType<typeof fakeStorage>;
+  let db: TempleDb;
+
+  const monsterRoom = (beastId: string) => ({ type: "monster", content: { beasts: [], quest: { beastId, difficulty: 1, basicSchedule: "daily", dueByTime: "19:00" } } });
+
+  /** A temple of two floors: 1F holds two monster rooms (a third with `extra`), 2F one */
+  const beastTemple = (extra = false): ShippedTemple => ({
+    entrance: [0, 0, 0],
+    maze: { "1F": [extra ? ["A1", "A2", "A3"] : ["A1", "A2"]], "2F": [["B1"]] },
+    rooms: {
+      A1: monsterRoom("beast-ant"),
+      A2: monsterRoom("beast-bee"),
+      B1: monsterRoom("beast-cat"),
+      ...(extra ? { A3: monsterRoom("beast-dog") } : {}),
+    },
+  });
+
+  /** A family's heroes as the store hands them out, and what was saved back */
+  const family = (profiles: Record<string, HeroQuestEffects | undefined>) => {
+    const saved: Record<string, HeroQuestEffects> = {};
+    const heroes: HeroEffectsStore = {
+      heroes: jest.fn(async () => Object.entries(profiles).map(([id, questEffects]) => ({ id, questEffects }))),
+      saveEffects: jest.fn((id: string, effects: HeroQuestEffects) => {
+        saved[id] = effects;
+      }),
+    };
+    return { heroes, saved };
+  };
+
+  beforeEach(async () => {
+    storage = fakeStorage();
+    db = new TempleDb(storage as never);
+    await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple() }, heroes: family({}).heroes });
+  });
+
+  it("swaps a hero's woken floors of the old layout for the beasts those floors held, and leaves the other heroes alone", async () => {
+    const { heroes, saved } = family({
+      [KIA]: { snoozedOn: { q1: "2026-10-14" }, [WOKEN_TEMPLES_FIELD]: { "wind-temple@1F": WOKE, "fire-temple@1F": WOKE } },
+      [MIA]: {},
+    });
+
+    const report = await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple(true) }, heroes });
+
+    expect(report["wind-temple"]).toBe("refresh");
+    expect(Object.keys(saved)).toEqual([KIA]);
+    // 1F's beasts only: 2F was never woken. The Wind Temple's floor is forgotten, the Fire Temple's is not.
+    expect(saved[KIA]).toEqual({
+      snoozedOn: { q1: "2026-10-14" },
+      [WOKEN_TEMPLES_FIELD]: { "fire-temple@1F": WOKE },
+      [WOKEN_BEASTS_FIELD]: { "wind-temple": ["ant", "bee"] },
+    });
+  });
+
+  it("reads the old layout from the record it replaces, so the next entry wakes only the room that is new", async () => {
+    const { heroes, saved } = family({ [KIA]: { [WOKEN_TEMPLES_FIELD]: { "wind-temple@1F": WOKE } } });
+    await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple(true) }, heroes });
+
+    const layout = (await db.getTempleById("wind-temple"))?.dungeonLayout as never;
+    const entry = (floor: string) =>
+      wakeOnEntryPlan({ templeId: "wind-temple", isShipped: true, layout, floor, hero: { id: KIA, questEffects: saved[KIA] }, quests: [], beasts: [], now: new Date(WOKE) });
+
+    expect(entry("1F").quests.map((made) => String(made.beastId))).toEqual(["beast-dog"]);
+    // 2F was never woken, so it wakes whole
+    expect(entry("2F").quests.map((made) => String(made.beastId))).toEqual(["beast-cat"]);
+  });
+
+  it("touches no hero when the temple is created, current, or the Game Master's own", async () => {
+    const { heroes } = family({ [KIA]: { [WOKEN_TEMPLES_FIELD]: { "wind-temple@1F": WOKE } } });
+
+    expect((await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple() }, heroes }))["wind-temple"]).toBe("current");
+    expect((await importAllTempleLayouts({ db, shipped: { "fire-temple": beastTemple() }, heroes }))["fire-temple"]).toBe("create");
+    const mine = layoutOf(beastTemple());
+    mine.rooms.A1 = monsterRoom("beast-mine");
+    await db.setTemple({ ...((await db.getTempleById("wind-temple")) as TempleInterface), dungeonLayout: mine });
+    expect((await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple(true) }, heroes }))["wind-temple"]).toBe("edited");
+
+    expect(heroes.heroes).not.toHaveBeenCalled();
+    expect(heroes.saveEffects).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for a hero with no floor of the temple woken", async () => {
+    const { heroes } = family({ [KIA]: { [WOKEN_TEMPLES_FIELD]: { "fire-temple@1F": WOKE } }, [MIA]: undefined });
+    await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple(true) }, heroes });
+    expect(heroes.heroes).toHaveBeenCalledTimes(1);
+    expect(heroes.saveEffects).not.toHaveBeenCalled();
+  });
+
+  it("still writes the new layout when the heroes can not be read or written", async () => {
+    const unreadable: HeroEffectsStore = { heroes: jest.fn(async () => Promise.reject(new Error("no heroes"))), saveEffects: jest.fn() };
+    const report = await importAllTempleLayouts({ db, shipped: { "wind-temple": beastTemple(true) }, heroes: unreadable });
+
+    expect(report["wind-temple"]).toBe("refresh");
+    expect(layoutSignature((await db.getTempleById("wind-temple"))?.dungeonLayout)).toBe(layoutSignature(beastTemple(true)));
+    expect(debug.warn).toHaveBeenCalled();
   });
 });
 

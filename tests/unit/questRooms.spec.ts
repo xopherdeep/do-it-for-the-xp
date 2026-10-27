@@ -7,6 +7,7 @@ import {
   QUEST_TIERS,
   TEMPLE_FULL_SIZE,
   TIER_ATTACK_FACTOR,
+  fitsRoomTier,
   headlineQuest,
   isQuestRoom,
   questBeastId,
@@ -360,6 +361,79 @@ describe("resolveRoomQuest", () => {
       expect(resolveRoomQuest(room({ quest: template() }), HERO, [makeItem(draft)], [draft]).kind).toBe("dormant");
     });
 
+    describe("by tier (a quest below the room's tier does not fill it)", () => {
+      const bossTemplate = () => template({ difficulty: 8 });
+      const minibossTemplate = () => template({ difficulty: 5 });
+
+      it("leaves the room dormant when the quest matched by beast is below the room's tier", () => {
+        const goblin = makeQuest("q-dish", { difficulty: 2 });
+        const tpl = bossTemplate();
+        expect(resolveRoomQuest(room({ quest: tpl }, "boss"), HERO, [makeItem(goblin)], [goblin])).toEqual({ kind: "dormant", template: tpl });
+        expect(roomQuestStatus(resolveRoomQuest(room({ quest: tpl }, "boss"), HERO, [makeItem(goblin)], [goblin]))).toBe("dormant");
+      });
+
+      it("leaves the room dormant when the quest matched by the library's suggestion is below the room's tier", () => {
+        const nameOnly = makeQuest("q-dish", { beastId: "", achievementName: "Banish the Dish Goblin", difficulty: 1 });
+        const tpl = minibossTemplate();
+        expect(resolveRoomQuest(room({ quest: tpl }, "miniboss"), HERO, [makeItem(nameOnly)], [nameOnly])).toEqual({
+          kind: "dormant",
+          template: tpl,
+        });
+      });
+
+      it("leaves a quest the board hides (Gale's Wind) out of a higher room too", () => {
+        const goblin = makeQuest("q-dish", { difficulty: 2 });
+        const tpl = bossTemplate();
+        expect(resolveRoomQuest(room({ quest: tpl }, "boss"), HERO, [], [goblin])).toEqual({ kind: "dormant", template: tpl });
+      });
+
+      it("fills a room of its own tier, whatever its place on the Fibonacci scale inside the tier", () => {
+        const three = makeQuest("q-dish", { difficulty: 3 });
+        const found = resolveRoomQuest(room({ quest: minibossTemplate() }, "miniboss"), HERO, [makeItem(three)], [three]);
+        expect(found).toMatchObject({ kind: "quest", source: "template" });
+        expect((found as { quest: Achievement }).quest.id).toBe("q-dish");
+        const thirteen = makeQuest("q-dish", { difficulty: 13 });
+        expect(resolveRoomQuest(room({ quest: bossTemplate() }, "boss"), HERO, [makeItem(thirteen)], [thirteen]).kind).toBe("quest");
+      });
+
+      it("fills a room of a lower tier: a bigger quest still holds a smaller room", () => {
+        const boss = makeQuest("q-dish", { difficulty: 8 });
+        const monster = resolveRoomQuest(room({ quest: template({ difficulty: 2 }) }), HERO, [makeItem(boss)], [boss]);
+        expect(monster).toMatchObject({ kind: "quest", source: "template" });
+        const miniboss = resolveRoomQuest(room({ quest: minibossTemplate() }, "miniboss"), HERO, [makeItem(boss)], [boss]);
+        expect(miniboss).toMatchObject({ kind: "quest", source: "template" });
+      });
+
+      it("skips a smaller quest for a later one that fits, even when the smaller one reads better", () => {
+        const small = makeQuest("q-small", { difficulty: 2 });
+        const fitting = makeQuest("q-fitting", { difficulty: 8 });
+        const board = [makeItem(small, "open"), makeItem(fitting, "done")];
+        const found = resolveRoomQuest(room({ quest: bossTemplate() }, "boss"), HERO, board, []);
+        expect((found as { quest: Achievement }).quest.id).toBe("q-fitting");
+      });
+
+      it("leaves the quest on the board: the board still lists it, only the room ignores it", async () => {
+        const goblin = makeQuest("q-dish", { difficulty: 2 });
+        const board = await boardAt([goblin], [], at("2026-10-08T10:00:00"));
+        expect(board.map((row) => row.quest.id)).toEqual(["q-dish"]);
+        expect(resolveRoomQuest(room({ quest: bossTemplate() }, "boss"), HERO, board, [goblin]).kind).toBe("dormant");
+      });
+
+      it("does not touch the Game Master's own pick: a questId below the room's tier still holds the room", () => {
+        const goblin = makeQuest("q-dish", { difficulty: 2 });
+        const found = resolveRoomQuest(room({ questId: "q-dish", quest: bossTemplate() }, "boss"), HERO, [makeItem(goblin)], [goblin]);
+        expect(found).toMatchObject({ kind: "quest", source: "questId" });
+        expect((found as { quest: Achievement }).quest.id).toBe("q-dish");
+      });
+
+      it("does not touch a Game Master's list either: a questIds quest below the room's tier still holds the room", () => {
+        const mugs = makeQuest("q-mugs", { difficulty: 1, beastId: "beast-socktopus" });
+        const found = resolveRoomQuest(room({ questIds: ["q-mugs"], quest: bossTemplate() }, "boss"), HERO, [makeItem(mugs)], [mugs]);
+        expect(found).toMatchObject({ kind: "quest", source: "questId" });
+        expect((found as { quest: Achievement }).quest.id).toBe("q-mugs");
+      });
+    });
+
     it("prefers an open quest to a pending one, a pending one to a done one, and a done one to one that is away", () => {
       const away = makeQuest("q-away");
       const done = makeQuest("q-done");
@@ -387,6 +461,35 @@ describe("resolveRoomQuest", () => {
       expect(found).toEqual({ kind: "quest", quest: goblin, item: undefined, source: "template" });
       expect(roomQuestStatus(found)).toBe("away");
     });
+  });
+});
+
+describe("fitsRoomTier", () => {
+  const quest = (difficulty?: number) => makeQuest("q", { difficulty });
+
+  it("is true when the quest's tier is the template's tier or higher", () => {
+    expect(fitsRoomTier(quest(2), template({ difficulty: 1 }))).toBe(true);
+    expect(fitsRoomTier(quest(3), template({ difficulty: 5 }))).toBe(true);
+    expect(fitsRoomTier(quest(8), template({ difficulty: 13 }))).toBe(true);
+    expect(fitsRoomTier(quest(8), template({ difficulty: 2 }))).toBe(true);
+    expect(fitsRoomTier(quest(13), template({ difficulty: 5 }))).toBe(true);
+  });
+
+  it("is false when the quest's tier is below the template's", () => {
+    expect(fitsRoomTier(quest(2), template({ difficulty: 3 }))).toBe(false);
+    expect(fitsRoomTier(quest(5), template({ difficulty: 8 }))).toBe(false);
+    expect(fitsRoomTier(quest(1), template({ difficulty: 13 }))).toBe(false);
+  });
+
+  it("reads tiers, not raw difficulty, and rounds a legacy value down like questTier does", () => {
+    expect(fitsRoomTier(quest(4), template({ difficulty: 5 }))).toBe(true);
+    expect(fitsRoomTier(quest(7), template({ difficulty: 5 }))).toBe(true);
+    expect(fitsRoomTier(quest(7), template({ difficulty: 8 }))).toBe(false);
+  });
+
+  it("reads a quest with no difficulty as a monster", () => {
+    expect(fitsRoomTier(quest(undefined), template({ difficulty: 2 }))).toBe(true);
+    expect(fitsRoomTier(quest(undefined), template({ difficulty: 3 }))).toBe(false);
   });
 });
 

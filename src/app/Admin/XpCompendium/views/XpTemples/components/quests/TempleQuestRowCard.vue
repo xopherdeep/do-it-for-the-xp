@@ -46,7 +46,7 @@
 import { computed } from "vue";
 import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
 import type { TempleQuestRow } from "@/lib/services/temples/templeQuestRows";
-import { portraitOf } from "./portraitUrl";
+import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 
 /**
  * One quest room of a temple, as the Quests tab lists it: the beast's portrait, the quest (or "Dormant: Dust Dervish, no
@@ -56,7 +56,7 @@ import { portraitOf } from "./portraitUrl";
 const props = defineProps<{ row: TempleQuestRow }>();
 const emit = defineEmits<{ (e: "open"): void }>();
 
-const portrait = computed(() => portraitOf(props.row.avatar));
+const portrait = computed(() => beastPortraitUrl(props.row.avatar));
 </script>
 
 <style lang="scss" scoped>

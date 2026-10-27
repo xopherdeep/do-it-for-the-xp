@@ -14,7 +14,6 @@ import {
   buildPickerRows,
   defaultLibraryForm,
   defaultPickerSegment,
-  dormantLine,
   filterPickerRows,
   NEVER_AMBUSHES_NOTE,
   layoutSize,
@@ -25,9 +24,9 @@ import {
   previewSize,
   questCardOf,
   questFromLibraryBeast,
-  roomSizeShare,
   type LibraryQuestForm,
 } from "@/lib/services/temples/questRoomPicker";
+import { dormantLine, roomSizeShare } from "@/lib/services/temples/templeQuestRows";
 
 const libraryBeast = (slug: string) => {
   const beast = BEAST_LIBRARY.find((entry) => entry.slug === slug);

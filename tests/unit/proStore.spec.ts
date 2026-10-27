@@ -320,6 +320,137 @@ describe("pro store", () => {
     expect(proToast).toHaveBeenCalledWith("That doesn't look like an XP Pro key.");
   });
 
+  describe("why Pro is off", () => {
+    /** A fresh cache: init does not recheck, so each recheck below is the one under test. */
+    const freshCache = () => {
+      mockStored = { familyId: FAMILY, deviceId: "devicetest01", license: cached() as any };
+    };
+    const withNodeEnv = async (value: string, run: () => Promise<void>) => {
+      const original = process.env.NODE_ENV;
+      process.env.NODE_ENV = value;
+      try {
+        await run();
+      } finally {
+        process.env.NODE_ENV = original;
+      }
+    };
+
+    it("starts with no error and exposes the license environment", async () => {
+      claim.mockResolvedValue(status({ env: "sandbox" }));
+      const store = useProStore();
+      expect(store.lastError).toBeNull();
+      await store.init();
+      expect(store.env).toBe("sandbox");
+      expect(store.lastError).toBeNull();
+    });
+
+    it("keeps the error code of a recheck that could not reach the server, and clears it when one works", async () => {
+      freshCache();
+      validate.mockRejectedValue(new ProClientError("network"));
+      const store = useProStore();
+      await store.init();
+      await store.recheck();
+      expect(store.lastError).toBe("network");
+      expect(store.isPro).toBe(true); // the cached state still stands
+
+      validate.mockResolvedValue(status());
+      await store.recheck();
+      expect(store.lastError).toBeNull();
+    });
+
+    it("keeps each client error code: server, rate_limited and device_limit", async () => {
+      freshCache();
+      const store = useProStore();
+      await store.init();
+      for (const code of ["server", "rate_limited", "device_limit"] as const) {
+        validate.mockRejectedValue(new ProClientError(code));
+        await store.recheck();
+        expect(store.lastError).toBe(code);
+      }
+    });
+
+    it("clears the error when the server answers that no license matches", async () => {
+      freshCache();
+      const store = useProStore();
+      await store.init();
+      validate.mockRejectedValue(new ProClientError("network"));
+      await store.recheck();
+      expect(store.lastError).toBe("network");
+      validate.mockResolvedValue(null);
+      await store.recheck();
+      expect(store.lastError).toBeNull();
+    });
+
+    it("restoreWithKey keeps the code of the failure, and the device-limit toast stays as it was", async () => {
+      claim.mockResolvedValue(null);
+      validate.mockRejectedValue(new ProClientError("device_limit"));
+      const store = useProStore();
+      await store.restoreWithKey(KEY);
+      expect(store.lastError).toBe("device_limit");
+      expect(proToast).toHaveBeenCalledWith(DEVICE_LIMIT_MESSAGE);
+
+      validate.mockRejectedValue(new ProClientError("network"));
+      await store.restoreWithKey(KEY);
+      expect(store.lastError).toBe("network");
+
+      validate.mockResolvedValue(status());
+      await store.restoreWithKey(KEY);
+      expect(store.lastError).toBeNull();
+    });
+
+    it("the restore toast says a trial ended when the key's first period was a trial", async () => {
+      mockStored = {
+        familyId: FAMILY,
+        deviceId: "devicetest01",
+        license: cached({ since: "2020-10-13T12:00:00.000Z" }) as any,
+      };
+      validate.mockResolvedValue(status({ pro: false, expiresAt: "2020-10-20T12:00:00.000Z" }));
+      const store = useProStore();
+      await store.restoreWithKey(KEY);
+      expect(proToast).toHaveBeenLastCalledWith("That key is not active right now. Your trial ended Oct 20, 2020.", "warning");
+    });
+
+    it("the restore toast says the plan ended for a key that lapsed after a paid period", async () => {
+      claim.mockResolvedValue(null);
+      validate.mockResolvedValue(status({ pro: false, expiresAt: "2020-10-20T12:00:00.000Z" }));
+      const store = useProStore();
+      await store.restoreWithKey(KEY);
+      expect(store.isPro).toBe(false);
+      expect(proToast).toHaveBeenLastCalledWith("That key is not active right now. Your plan ended Oct 20, 2020.", "warning");
+    });
+
+    it("the restore toast stays plain when nothing explains why the key is off", async () => {
+      claim.mockResolvedValue(null);
+      validate.mockResolvedValue(status({ pro: false }));
+      const store = useProStore();
+      await store.restoreWithKey(KEY);
+      expect(proToast).toHaveBeenLastCalledWith("That key is not active right now.", "warning");
+    });
+
+    it("a test-mode key on a production build is not restored, and the toast says why", async () => {
+      claim.mockResolvedValue(null);
+      validate.mockResolvedValue(status({ env: "sandbox" }));
+      await withNodeEnv("production", async () => {
+        const store = useProStore();
+        await store.restoreWithKey(KEY);
+        expect(store.isPro).toBe(false);
+        expect(proToast).toHaveBeenLastCalledWith(
+          "That key is not active right now. This is a test-mode license; it only works in development builds.",
+          "warning"
+        );
+      });
+    });
+
+    it("a test-mode key still restores on a development build", async () => {
+      claim.mockResolvedValue(null);
+      validate.mockResolvedValue(status({ env: "sandbox" }));
+      const store = useProStore();
+      await store.restoreWithKey(KEY);
+      expect(store.isPro).toBe(true);
+      expect(proToast).toHaveBeenLastCalledWith("XP Pro restored!", "success");
+    });
+  });
+
   it("requirePro returns true without a modal when Pro, and opens the upsell when not", async () => {
     claim.mockResolvedValue(status());
     const store = useProStore();

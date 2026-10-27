@@ -90,6 +90,9 @@
         </div>
       </div>
 
+      <!-- Heroes this quest names who have no anytime quest with a beast: their ambushes are free fights -->
+      <quest-ambush-hint />
+
       <!-- Times of day: which calendar tabs list this chore. Several means it is done that many times a day. -->
       <div class="times-of-day">
         <div class="date-label">TIMES OF DAY</div>
@@ -312,6 +315,7 @@ import {
 import { BASIC_SCHEDULE_ICONS } from "@/constants";
 import { useWeekStart } from "@/hooks/useWeekStart";
 import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
+import QuestAmbushHint from "./QuestAmbushHint.vue";
 import { play$fx } from "@/assets/fx";
 import { TIMES_OF_DAY, type TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { AchievementFormInjectionKey } from "../hooks/useAchievementForm";

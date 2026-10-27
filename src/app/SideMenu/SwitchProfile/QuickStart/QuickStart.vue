@@ -21,7 +21,7 @@
         Name your kids and tap Start. Each one gets three evening quests and a shop with treats they can earn
         tonight. You can make it your own later.
       </p>
-      <p class="qs-blurb">Tonight's quests also wait in the Howling Spire, the temple out on the Plains.</p>
+      <p v-if="spireNote" class="qs-blurb" data-cy="quick-start-spire-note">{{ spireNote }}</p>
 
       <section class="qs-section qs-gm">
         <h3 class="qs-heading"><i class="fad fa-crown" aria-hidden="true"></i> You, the Game Master</h3>
@@ -125,6 +125,7 @@ import { computed, onMounted, ref } from "vue";
 import { IonButton, IonButtons, IonContent, IonHeader, IonInput, IonTitle, IonToolbar, modalController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
 import { useToast } from "@/hooks/useToast";
+import { useVoice } from "@/hooks/useVoice";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { QUICK_START_PACK } from "@/lib/services/core/packs/catalog/quickStart";
 import {
@@ -135,10 +136,12 @@ import {
   heroNames,
   runQuickStart,
 } from "@/lib/services/core/packs/quickStart";
+import { quickStartSpireCount, quickStartSpireNote } from "@/lib/services/temples/quickStartSpireNote";
 import { runQuickStartTemple } from "@/lib/services/temples/quickStartTemple";
 import debug from "@/lib/utils/debug";
 
 const names = ref<string[]>(["", ""]);
+const { voice } = useVoice();
 const gmName = ref("");
 const gmPin = ref("");
 const isStarting = ref(false);
@@ -157,6 +160,10 @@ const rewards = (QUICK_START_PACK.content.rewards ?? []).map((item) => ({
   icon: item.icon || "gift",
   price: item.basePrice,
 }));
+
+// Only the free fight rooms near the Spire's door take a quest, so the note says how many of tonight's do (not all three)
+const spireCount = quickStartSpireCount();
+const spireNote = computed(() => quickStartSpireNote(voice.value, spireCount, quests.length));
 
 const gameMaster = computed(() => ({ name: String(gmName.value ?? ""), passcode: String(gmPin.value ?? "") }));
 // The hint waits until the parent starts typing, so the form doesn't open on an error

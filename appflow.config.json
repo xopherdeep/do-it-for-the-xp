@@ -1,0 +1,9 @@
+{
+  "apps": [
+    {
+      "appId": "7a3ebba6",
+      "dependencyInstallCommand": "npm install -g pnpm@12.3.4 && pnpm install --frozen-lockfile",
+      "webBuildCommand": "pnpm run build"
+    }
+  ]
+}

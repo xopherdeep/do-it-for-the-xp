@@ -185,6 +185,7 @@ import { generateFullBeast } from "@/lib/services/ai/GeminiService";
 import { useProStore } from "@/lib/store/stores/pro";
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
+import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 
 const {
   achievement,
@@ -226,15 +227,8 @@ const otherSuggestions = computed(() =>
   beastSuggestions.value.filter((entry) => String(entry.id) !== String(suggestedBeast.value?.id))
 );
 
-const portraitUrl = (entry: LibraryEntry): string | null => {
-  const avatar = entry.avatar;
-  if (!avatar) return null;
-  try {
-    return require(`@/assets/images/beasts/${avatar.toString().padStart(3, "0")}.webp`);
-  } catch {
-    return null; // no picture for this number: the card shows the dragon icon
-  }
-};
+// No picture for the number: the card shows the dragon icon
+const portraitUrl = (entry: LibraryEntry): string | null => beastPortraitUrl(entry.avatar);
 
 const choose = async (entry: LibraryEntry) => {
   isChanging.value = false;

@@ -1,5 +1,5 @@
 /**
- * The chests of a temple run: opening one, taking part of it, and remembering it emptied with the hero's progress. A
+ * The chests of a temple run: taking items out of one, and remembering it emptied with the hero's progress. A
  * beaten beast's drop (a fight room's `content.drops`) is remembered the same way, under a key of its own.
  * TempleSystem's chest methods delegate here; each one documents its contract.
  */
@@ -57,80 +57,4 @@ export function markDropTaken(runs: TempleRuns, templeId: string, level: string,
 /** Whether the hero already took the drop of the fight room at `position` in this run (false for a temple that is not open). */
 export function isDropTaken(runs: TempleRuns, templeId: string, level: string, position: [number, number]): boolean {
   return Boolean(runs.templeStates[templeId]?.openedChests?.has(dropKey(level, position)));
-}
-
-interface ChestOpenResult {
-  items?: string[];
-  specialItem?: string;
-  keyFound?: boolean;
-  mapFound?: boolean;
-  compassFound?: boolean;
-}
-
-export function openChest(runs: TempleRuns, templeId: string) {
-  const templeState = runs.templeStates[templeId];
-  if (!templeState) return undefined;
-  
-  const chestContent = runs.dungeonManager.openChestInRoom(
-    templeId,
-    templeState.currentPosition,
-    templeState.currentLevel
-  );
-  
-  if (!chestContent) return undefined;
-  
-  const result: ChestOpenResult = {};
-  
-  // Process items
-  const items = chestContent.items ?? [];
-  const hasItems = items.length > 0;
-  if (hasItems) {
-    result.items = items;
-    
-    // Check for special items
-    items.forEach(item => {
-      const isKey = item === 'key';
-      if (isKey) {
-        templeState.playerKeys++;
-        result.keyFound = true;
-      }
-    });
-    
-    // Remove the items from the chest
-    runs.dungeonManager.removeItemsFromRoomChest(
-      templeId,
-      templeState.currentPosition,
-      items,
-      templeState.currentLevel
-    );
-  }
-  
-  // Process dungeon special item
-  const dungeonItem = chestContent.dungeon;
-  if (dungeonItem) {
-    const isMap = dungeonItem === 'map';
-    const isCompass = dungeonItem === 'compass';
-    if (isMap) {
-      templeState.hasMap = true;
-      result.mapFound = true;
-    } else if (isCompass) {
-      templeState.hasCompass = true;
-      result.compassFound = true;
-    } else {
-      result.specialItem = dungeonItem;
-    }
-    
-    // Remove the dungeon item from the chest
-    runs.dungeonManager.removeItemsFromRoomChest(
-      templeId,
-      templeState.currentPosition,
-      [dungeonItem],
-      templeState.currentLevel
-    );
-  }
-
-  // Keys, the map and the compass are part of the hero's progress
-  runs.queueSave(templeId);
-
-  return result;
 }
