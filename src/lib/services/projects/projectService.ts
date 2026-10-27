@@ -4,6 +4,11 @@
  * crash with something to retry rather than a bonus paid twice: a settled floor wakes its quests first, then saves the
  * record (from then on it is settled), then pays. Calls take turns, so two payments landing together settle a floor once.
  *
+ * Settling is not tied to the floor of the chore just paid: every settling asks for ALL the running project's floors that
+ * woke, were not settled and read cleared (settleReadyFloors). So a floor whose settling failed once, or that cleared
+ * because the Game Master deleted its last open chore, is settled the next time anything asks: a payment on any floor, an
+ * arrival at the tower, a board refresh.
+ *
  * QuestCompletionService calls `onQuestPaid` (or `onEntryPaid`, when it only has the log entry) after a project chore is
  * paid, and wraps the call so a failure here never holds up the payment.
  */
@@ -20,10 +25,11 @@ import {
   openQuestIds,
   questsWokenBy,
   rescheduleFloors,
-  settleFloor,
+  settleReady,
   withRewardGiven,
   withSeen,
-  type FloorSettlement,
+  type ReadySettlement,
+  type SettledFloor,
 } from "./projectProgress";
 import { isProjectQuestId } from "./projectIds";
 import type { ProjectTowerInput } from "./projectQuests";
@@ -73,11 +79,11 @@ const floorNameOf = (project: ProjectRecord, floorKey: string): string => {
   return phase?.name ?? floorKey;
 };
 
-/** The bonus into each hero's pocket: XP and GP only (AP is never multiplied); one hero failing does not hold up the rest */
-const payGrants = (project: ProjectRecord, floorKey: string, grants: FloorSettlement["grants"], at: string): void => {
-  const source = `project:${project.id}:${floorKey}`;
-  const label = `Floor bonus: ${floorNameOf(project, floorKey)}`;
-  for (const [heroId, grant] of Object.entries(grants)) {
+/** One floor's bonus into each hero's pocket: XP and GP only (AP is never multiplied); one hero failing does not hold up the rest */
+const payFloor = (project: ProjectRecord, floor: SettledFloor, at: string): void => {
+  const source = `project:${project.id}:${floor.floorKey}`;
+  const label = `Floor bonus: ${floorNameOf(project, floor.floorKey)}`;
+  for (const [heroId, grant] of Object.entries(floor.grants)) {
     try {
       applyQuestRewards(heroId, { xp: grant.xp, gp: grant.gp, ap: 0 }, source, at, label);
     } catch (error) {
@@ -92,34 +98,53 @@ const runningProject = async (projectId: string, stores: ProjectStores): Promise
   return project?.id === projectId ? project : null;
 };
 
-const settleAfterPayment = async (quest: Achievement, at: string, stores: ProjectStores): Promise<FloorSettlement | null> => {
-  const link = quest.project;
-  if (!link) return null;
-  const project = await runningProject(link.projectId, stores);
-  if (!project) return null;
+/** Settles whatever the running project has ready, and commits it: quests woken, record saved, then the bonuses paid */
+const settleAndCommit = async (project: ProjectRecord, at: string, now: Date, stores: ProjectStores): Promise<ReadySettlement | null> => {
   const [quests, entries] = await Promise.all([stores.quests.getTasks(), stores.log.getEntries()]);
-  const settlement = settleFloor(project, link.floor, quests, entries, new Date());
+  const settlement = settleReady(project, quests, entries, now);
   if (!settlement) return null;
   for (const woken of questsWokenBy(project, settlement.project, quests)) await stores.quests.set(String(woken.id), woken);
   await stores.projects.save(settlement.project);
-  payGrants(project, link.floor, settlement.grants, at);
+  for (const floor of settlement.floors) payFloor(project, floor, at);
   return settlement;
 };
 
+const settleAfterPayment = async (quest: Achievement, at: string, stores: ProjectStores): Promise<ReadySettlement | null> => {
+  const link = quest.project;
+  if (!link) return null;
+  const project = await runningProject(link.projectId, stores);
+  return project ? settleAndCommit(project, at, new Date(), stores) : null;
+};
+
 /**
- * A project chore was paid (`at` is when the hero finished it): when that clears its floor, the floor's bonus is paid to
- * the heroes who worked it, the next floor's chores wake onto the board, and the roof finishes the project. Null when
- * the quest is no chore of the running project, or its floor is not cleared yet or was settled before.
+ * A project chore was paid (`at` is when the hero finished it): every floor of its project that is ready is settled, the
+ * chore's own among them. A floor's bonus is paid to the heroes who worked it, the next floor's chores wake onto the
+ * board, and the roof finishes the project. Null when the quest is no chore of the running project, or no floor is ready.
  */
-export function onQuestPaid(quest: Achievement, at: string, stores: ProjectStores = liveStores()): Promise<FloorSettlement | null> {
+export function onQuestPaid(quest: Achievement, at: string, stores: ProjectStores = liveStores()): Promise<ReadySettlement | null> {
   return inTurn(() => settleAfterPayment(quest, at, stores));
 }
 
-/** The same for a payment that only has the log entry (an approval): the chore is read by its id, and only a project chore is */
-export async function onEntryPaid(questId: string, at: string, stores: ProjectStores = liveStores()): Promise<FloorSettlement | null> {
+/**
+ * The same for a payment that only has the log entry (an approval): the chore is read by its id, and only a project chore
+ * is. A chore deleted since it was claimed cannot say which project it was in, so the running one is asked what is ready.
+ */
+export async function onEntryPaid(questId: string, at: string, stores: ProjectStores = liveStores()): Promise<ReadySettlement | null> {
   if (!isProjectQuestId(questId)) return null;
   const quest = (await stores.quests.get(String(questId))) as Achievement | null;
-  return quest ? onQuestPaid(quest, at, stores) : null;
+  return quest ? onQuestPaid(quest, at, stores) : settleReadyFloors(new Date(), stores);
+}
+
+/**
+ * Settles every floor of the running project that woke, was not settled and reads cleared, lowest first (see
+ * projectProgress.settleReady), and commits it. Safe to ask any time and as often as wanted: a floor is settled once.
+ * Null when there is nothing to settle or no project is running.
+ */
+export function settleReadyFloors(now: Date = new Date(), stores: ProjectStores = liveStores()): Promise<ReadySettlement | null> {
+  return inTurn(async () => {
+    const project = await stores.projects.getActive();
+    return project ? settleAndCommit(project, now.toISOString(), now, stores) : null;
+  });
 }
 
 /**

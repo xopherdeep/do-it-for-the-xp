@@ -41,6 +41,9 @@ const woken = (quest: Achievement, wokenAt: string): Achievement =>
 
 // ---- Waking -------------------------------------------------------------------------------------------------------
 
+/** The floor with the instant it woke: kept as it was when it had woken already */
+const stampedAwake = (floor: ProjectFloor, now: Date): ProjectFloor => ({ ...floor, wokenAt: floor.wokenAt ?? now.toISOString() });
+
 /**
  * The floor woken at `now` and its chores with the instant on their link. A floor already woken comes back as it is,
  * its quests unchanged (copies all the same). The quests are the floor's own, out of those given.
@@ -55,11 +58,11 @@ export function wakeFloor(
   const floor = floorOf(base, floorKey);
   if (!floor) return { project: base, quests: [] };
   const isAsleep = !floor.wokenAt;
-  const wokenAt = floor.wokenAt ?? now.toISOString();
+  const awake = stampedAwake(floor, now);
   const own = questsOfFloor(floor, quests).map(copyOf);
   return {
-    project: withFloor(base, { ...floor, wokenAt }),
-    quests: isAsleep ? own.map((quest) => woken(quest, wokenAt)) : own,
+    project: withFloor(base, awake),
+    quests: isAsleep ? own.map((quest) => woken(quest, awake.wokenAt as string)) : own,
   };
 }
 
@@ -113,14 +116,16 @@ interface Bonus {
 }
 
 /**
- * What clearing the floor earns: the multiplier of the day its last chore was claimed (today, for a floor with none to
- * claim) and the pool above x1 of the chores' own XP and GP, split among the heroes paid for them. AP never grows.
+ * What clearing the floor earns: the multiplier of the day its last chore was claimed and the pool above x1 of the
+ * chores' own XP and GP, split among the heroes paid for them. AP never grows. A floor with no chores left earned
+ * nothing, so it is stamped x1 whatever its window says.
  */
-const bonusOf = (floor: ProjectFloor, quests: readonly Achievement[], paid: readonly QuestLogEntry[], now: Date): Bonus => {
+const bonusOf = (floor: ProjectFloor, quests: readonly Achievement[], paid: readonly QuestLogEntry[]): Bonus => {
   const work = workOn(floor, quests, paid).sort(byClaim);
   const last = work[work.length - 1];
-  const multiplier = floorMultiplier(floor.window, last ? dayOfEntry(last) : dateKey(now));
-  const chores = questsOfFloor(floor, quests).map((quest) => ({ xp: Number(quest.xp) || 0, gp: Number(quest.gp) || 0 }));
+  const live = questsOfFloor(floor, quests);
+  const multiplier = last ? floorMultiplier(floor.window, dayOfEntry(last)) : 1;
+  const chores = live.map((quest) => ({ xp: Number(quest.xp) || 0, gp: Number(quest.gp) || 0 }));
   const pool = floorBonusPool(chores, multiplier);
   const split = splitFloorBonus(pool, work.map((entry) => entry.userId), last?.userId ?? "");
   return { multiplier, grants: payable(split) };
@@ -154,18 +159,21 @@ interface Climb {
 }
 
 /**
- * After `below` was settled: the roof finishes the project; any other floor wakes the one above it. A floor with no
- * chores left there is settled on the spot (nothing to pay) and the climb goes on from it.
+ * After `below` was settled: the roof finishes the project; any other floor wakes the one above it. A floor above with no
+ * chores left is settled on the spot (nothing to pay), and one already settled (cleared out of order) is passed over as
+ * it is; the climb goes on from either.
  */
 const climb = (project: ProjectRecord, below: ProjectFloor, quests: readonly Achievement[], paid: readonly QuestLogEntry[], now: Date): Climb => {
   const isRoof = below.phaseId === ROOF_PHASE_ID;
   if (isRoof) return { project: finishedProject(project, now), finished: true };
   const above = project.floors[project.floors.findIndex((floor) => floor.floorKey === below.floorKey) + 1];
   if (!above) return { project, finished: false };
-  const awake = { ...above, wokenAt: above.wokenAt ?? now.toISOString() };
+  const isSettled = Boolean(above.clearedAt);
+  if (isSettled) return climb(project, above, quests, paid, now);
+  const awake = stampedAwake(above, now);
   const hasNoChores = questsOfFloor(above, quests).length === 0;
   if (!hasNoChores) return { project: withFloor(project, awake), wake: above.floorKey, finished: false };
-  const settled = settledFloor(awake, bonusOf(above, quests, paid, now).multiplier, now);
+  const settled = settledFloor(awake, bonusOf(above, quests, paid).multiplier, now);
   return climb(withFloor(project, settled), settled, quests, paid, now);
 };
 
@@ -187,9 +195,68 @@ export function settleFloor(
   const isSettled = Boolean(floor.clearedAt);
   const canSettle = !isSettled && isFloorCleared(floor, quests, paid);
   if (!canSettle) return null;
-  const bonus = bonusOf(floor, quests, paid, now);
+  const bonus = bonusOf(floor, quests, paid);
   const settled = settledFloor(floor, bonus.multiplier, now);
   return { grants: bonus.grants, ...climb(withFloor(base, settled), settled, quests, paid, now) };
+}
+
+/** One floor settled, and what its own bonus handed out */
+export interface SettledFloor {
+  floorKey: string;
+  grants: Record<string, FloorBonus>;
+}
+
+/** Every floor a settling pass settled, lowest first; the rest is the pass as a whole (see FloorSettlement) */
+export interface ReadySettlement extends FloorSettlement {
+  floors: SettledFloor[];
+}
+
+/** A floor that woke, was not settled, and reads cleared */
+const isReadyToSettle = (floor: ProjectFloor, quests: readonly Achievement[], paid: readonly QuestLogEntry[]): boolean => {
+  const isOpen = Boolean(floor.wokenAt) && !floor.clearedAt;
+  return isOpen && isFloorCleared(floor, quests, paid);
+};
+
+/** The grants of all the floors in one, a hero's shares added up (for saying what a pass handed out, not for paying it) */
+const totalGrants = (settled: readonly SettledFloor[]): Record<string, FloorBonus> => {
+  const total: Record<string, FloorBonus> = {};
+  for (const { grants } of settled) {
+    for (const [heroId, grant] of Object.entries(grants)) {
+      const had = total[heroId] ?? { xp: 0, gp: 0 };
+      total[heroId] = { xp: had.xp + grant.xp, gp: had.gp + grant.gp };
+    }
+  }
+  return total;
+};
+
+/**
+ * Every floor of a running project that woke, was not settled and reads cleared, settled at `now`, lowest first, each
+ * climbing as settleFloor does (so a floor the pass wakes that is already cleared is settled in the same pass). This is
+ * what a payment, an arrival and a board refresh ask: a floor whose settling failed earlier, or that cleared because the
+ * Game Master deleted its last open chore, is settled the next time anything asks. Null when there is nothing to settle
+ * (also for a project that is not running). `floors` has each floor settled with its own grants (the bonus is paid per
+ * floor); `wake` and `finished` are those of the last one. The record given is not touched.
+ */
+export function settleReady(
+  project: ProjectRecord,
+  quests: readonly Achievement[],
+  paid: readonly QuestLogEntry[],
+  now: Date
+): ReadySettlement | null {
+  if (project.status !== "active") return null;
+  const readyIn = (record: ProjectRecord): ProjectFloor | undefined => record.floors.find((floor) => isReadyToSettle(floor, quests, paid));
+  let current = project;
+  let last: FloorSettlement | null = null;
+  const floors: SettledFloor[] = [];
+  for (let ready = readyIn(current); ready; ready = readyIn(current)) {
+    const settlement = settleFloor(current, ready.floorKey, quests, paid, now);
+    if (!settlement) break;
+    floors.push({ floorKey: ready.floorKey, grants: settlement.grants });
+    current = settlement.project;
+    last = settlement;
+  }
+  if (!last) return null;
+  return { project: current, grants: totalGrants(floors), ...(last.wake ? { wake: last.wake } : {}), finished: last.finished, floors };
 }
 
 // ---- Extending ----------------------------------------------------------------------------------------------------
@@ -211,11 +278,26 @@ const roofWindow = (lastPhase: ProjectFloor | undefined, spread: ReadonlyMap<str
   return respread ?? { phaseId, opensOn: today, dueOn: newEndOn };
 };
 
+/** Whether the text is a real calendar day written YYYY-MM-DD (2027-02-30 and 2027-4-8 are not) */
+const isRealDay = (text: string): boolean => {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!parts) return false;
+  const [year, month, day] = parts.slice(1).map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+};
+
+/** extendWindows reads a day it cannot parse as today, so the dates are checked here, before any window is written */
+const assertRealDay = (text: string, what: string): void => {
+  if (!isRealDay(text)) throw new RangeError(`${what} must be a real day written YYYY-MM-DD, not "${text}"`);
+};
+
 /**
  * The project and its open chores after the end moved to `newEndOn`: the cleared floors keep their windows, bonuses and
  * quests; the others are spread again from `today` by the phases' shares (projectSchedule.extendWindows, which refuses an
- * end before today or too near for the floors left), the roof taking the last phase's window. The quests returned are
- * those that moved: their `startsOn` and `project.dueOn` follow their floor's window.
+ * end before today or too near for the floors left), the roof taking the last phase's window. Both dates must be real
+ * days written YYYY-MM-DD, or it throws a RangeError. The quests returned are those that moved: their `startsOn` and
+ * `project.dueOn` follow their floor's window.
  */
 export function rescheduleFloors(
   project: ProjectRecord,
@@ -224,6 +306,8 @@ export function rescheduleFloors(
   today: string,
   newEndOn: string
 ): { project: ProjectRecord; quests: Achievement[] } {
+  assertRealDay(today, "Today");
+  assertRealDay(newEndOn, "The new end");
   const base = copyOf(project);
   const phases = base.floors.filter((floor) => floor.phaseId !== ROOF_PHASE_ID);
   const clearedIds = new Set(phases.filter((floor) => floor.clearedAt).map((floor) => floor.phaseId));

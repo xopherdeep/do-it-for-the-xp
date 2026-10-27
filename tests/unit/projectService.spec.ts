@@ -13,7 +13,7 @@ import { floorMultiplier } from "@/lib/services/projects/floorBonus";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { projectStartsOn } from "@/lib/services/projects/projectQuests";
 import { phaseWindows } from "@/lib/services/projects/projectSchedule";
-import { abandonProject, extendProject, markRewardGiven, markSeen, onEntryPaid, onQuestPaid, startProject } from "@/lib/services/projects/projectService";
+import { abandonProject, extendProject, markRewardGiven, markSeen, onEntryPaid, onQuestPaid, settleReadyFloors, startProject } from "@/lib/services/projects/projectService";
 import { buildProjectTower } from "@/lib/services/projects/projectTower";
 import { newProjectRecord } from "@/lib/services/projects/projectRecord";
 import { FAMILIES, ROOM_SETS } from "./movingHouseFixtures";
@@ -182,6 +182,33 @@ describe("onQuestPaid", () => {
     expect(await onQuestPaid(quests[0], "2027-04-04T12:00:00.000Z", stores)).toBeNull();
   });
 
+  it("settles a floor whose earlier settling failed on the next payment, wherever it is", async () => {
+    const project = await begin();
+    const first = await questsOf(floorOf(project, "1F"));
+    for (const quest of first) await payQuest(quest, "2027-04-04");
+    // the record cannot be saved this once (the quests of 2F were woken just before): the floor is cleared, unsettled
+    jest.spyOn(stores.projects, "save").mockRejectedValueOnce(new Error("the storage is full"));
+    await expect(onQuestPaid(first[first.length - 1], "2027-04-04T12:00:00.000Z", stores)).rejects.toThrow("the storage is full");
+    expect(floorOf(await active(), "1F").clearedAt).toBeUndefined();
+    expect(paidBonus).not.toHaveBeenCalled();
+
+    // a chore of another floor is paid: that payment settles 1F too
+    const [elsewhere] = await questsOf(floorOf(project, "2F"));
+    await payQuest(elsewhere, "2027-04-08");
+    const settlement = await onQuestPaid(elsewhere, "2027-04-08T12:00:00.000Z", stores);
+
+    expect(settlement?.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
+    expect(settlement?.wake).toBe("2F");
+    const saved = await active();
+    expect(floorOf(saved, "1F").clearedAt).toBeDefined();
+    expect(floorOf(saved, "2F").wokenAt).toBeDefined();
+    expect(paidBonus).toHaveBeenCalledWith(expect.any(String), expect.any(Object), `project:${project.id}:1F`, "2027-04-08T12:00:00.000Z", "Floor bonus: Declutter");
+    // and not settled a second time by the next one
+    const paidOnce = paidBonus.mock.calls.length;
+    expect(await onQuestPaid(elsewhere, "2027-04-08T12:00:01.000Z", stores)).toBeNull();
+    expect(paidBonus).toHaveBeenCalledTimes(paidOnce);
+  });
+
   it("climbs every floor and finishes on the roof", async () => {
     const project = await begin(START, "2027-05-30");
     for (const floor of project.floors) await clearFloor(await active(), floor.floorKey, floor.window.opensOn);
@@ -211,12 +238,67 @@ describe("onEntryPaid", () => {
     expect(floorOf(await active(), "2F").wokenAt).toBeDefined();
   });
 
+  it("still settles what is ready when the chore that was approved has been deleted", async () => {
+    const project = await begin();
+    const quests = await questsOf(floorOf(project, "1F"));
+    for (const quest of quests) await payQuest(quest, "2027-04-04");
+    const approved = quests[quests.length - 1];
+    await stores.quests.remove(String(approved.id));
+    const settlement = await onEntryPaid(String(approved.id), "2027-04-04T12:00:00.000Z", stores);
+    expect(settlement?.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
+    expect(floorOf(await active(), "2F").wokenAt).toBeDefined();
+  });
+
   it("reads nothing for a plain chore, and settles nothing for a project chore that is gone", async () => {
     await begin();
     const read = jest.spyOn(stores.quests, "get");
     expect(await onEntryPaid("dishes", "2027-04-04T12:00:00.000Z", stores)).toBeNull();
     expect(read).not.toHaveBeenCalled();
     expect(await onEntryPaid("pq-spring-cleaning-2027-04-03-gone", "2027-04-04T12:00:00.000Z", stores)).toBeNull();
+    expect(paidBonus).not.toHaveBeenCalled();
+  });
+});
+
+describe("settleReadyFloors", () => {
+  it("settles a floor emptied by deleting its last open chore", async () => {
+    const project = await begin();
+    const quests = await questsOf(floorOf(project, "1F"));
+    const open = quests[quests.length - 1];
+    for (const quest of quests.slice(0, -1)) await payQuest(quest, "2027-04-04");
+    // nothing is settled while the last chore is still there to do
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 18), stores)).toBeNull();
+
+    await stores.quests.remove(String(open.id));
+    const settlement = await settleReadyFloors(new Date(2027, 3, 5, 18), stores);
+
+    expect(settlement?.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
+    expect(settlement?.wake).toBe("2F");
+    const saved = await active();
+    expect(floorOf(saved, "1F").clearedAt).toBe(new Date(2027, 3, 5, 18).toISOString());
+    expect(floorOf(saved, "1F").multiplier).toBe(2);
+    (await questsOf(floorOf(saved, "2F"))).forEach((quest) => expect(quest.project?.wokenAt).toBe(floorOf(saved, "2F").wokenAt));
+    const heroes = Object.keys(settlement!.grants);
+    expect(heroes.length).toBeGreaterThan(0);
+    expect(paidBonus).toHaveBeenCalledTimes(heroes.length);
+    expect(paidBonus).toHaveBeenCalledWith(heroes[0], expect.objectContaining({ ap: 0 }), `project:${project.id}:1F`, new Date(2027, 3, 5, 18).toISOString(), "Floor bonus: Declutter");
+  });
+
+  it("settles a floor once, however often it is asked", async () => {
+    const project = await begin();
+    const quests = await questsOf(floorOf(project, "1F"));
+    for (const quest of quests.slice(0, -1)) await payQuest(quest, "2027-04-04");
+    await stores.quests.remove(String(quests[quests.length - 1].id));
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 18), stores)).not.toBeNull();
+    const paidOnce = paidBonus.mock.calls.length;
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 19), stores)).toBeNull();
+    expect(paidBonus).toHaveBeenCalledTimes(paidOnce);
+  });
+
+  it("settles nothing while every floor still has a chore to pay, or when no project is running", async () => {
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 18), stores)).toBeNull();
+    const project = await begin();
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 18), stores)).toBeNull();
+    expect(await active()).toEqual(project);
     expect(paidBonus).not.toHaveBeenCalled();
   });
 });
@@ -349,6 +431,17 @@ describe("extendProject", () => {
     await expect(extendProject("2027-04-06", "2027-04-07", stores)).rejects.toThrow(RangeError);
     await expect(extendProject("2027-04-08", "2027-04-07", stores)).rejects.toThrow(RangeError);
     expect(await active()).toEqual(before);
+  });
+
+  it("refuses a date that is not a real day, and writes nothing", async () => {
+    await begin();
+    const before = await active();
+    const questsBefore = await stores.quests.getTasks();
+    await expect(extendProject("2027-5-1", "2027-04-07", stores)).rejects.toThrow(RangeError);
+    await expect(extendProject("2027-02-30", "2027-04-07", stores)).rejects.toThrow(RangeError);
+    await expect(extendProject("2027-05-01", "next week", stores)).rejects.toThrow(RangeError);
+    expect(await active()).toEqual(before);
+    expect(await stores.quests.getTasks()).toEqual(questsBefore);
   });
 
   it("needs a running project", async () => {

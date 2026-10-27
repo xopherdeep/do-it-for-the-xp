@@ -14,6 +14,7 @@ import {
   questsWokenBy,
   rescheduleFloors,
   settleFloor,
+  settleReady,
   wakeFloor,
   withRewardGiven,
   withSeen,
@@ -259,6 +260,35 @@ describe("settleFloor", () => {
     expect(questsWokenBy(project, settled.project, quests).map((quest) => quest.id)).toEqual(["pq-fin"]);
   });
 
+  it("stamps x1 on a floor with no chores, however early it settles", () => {
+    // 2F's window has not even opened (it would read x2), but no bonus was earned on a floor with nothing to do
+    const quests = QUESTS().filter((quest) => quest.id !== "pq-c");
+    const settled = settleFloor(projectOf(), "1F", quests, bothPaidOn(4), NOW)!;
+    expect(floorByKey(settled.project, "2F").multiplier).toBe(1);
+    expect(floorByKey(settled.project, "1F").multiplier).toBe(2);
+    // the same when the empty floor is the one being settled
+    const emptied = settleFloor(projectOf(), "2F", quests, [], NOW)!;
+    expect(floorByKey(emptied.project, "2F").multiplier).toBe(1);
+    expect(emptied.grants).toEqual({});
+  });
+
+  it("wakes past a floor above that is already settled, leaving it as it was", () => {
+    // a floor cleared out of order (an arrival wake): the climb does not name it, nor stamp it again
+    const project = projectOf({
+      floors: [
+        floorOf("1F", "sort", FIRST, ["pq-a", "pq-b"], { wokenAt: "2027-04-03T15:00:00.000Z" }),
+        floorOf("2F", "clean", SECOND, ["pq-c"], { wokenAt: "2027-04-04T09:00:00.000Z", clearedAt: "2027-04-04T09:30:00.000Z", multiplier: 1.5, bonusPaidAt: "2027-04-04T09:30:00.000Z" }),
+        floorOf("3F", "roof", SECOND, ["pq-fin"]),
+      ],
+    });
+    const settled = settleFloor(project, "1F", QUESTS(), bothPaidOn(4), NOW)!;
+    expect(settled.wake).toBe("3F");
+    expect(settled.finished).toBe(false);
+    expect(floorByKey(settled.project, "2F")).toEqual(floorByKey(project, "2F"));
+    expect(floorByKey(settled.project, "3F").wokenAt).toBe(NOW.toISOString());
+    expect(questsWokenBy(project, settled.project, QUESTS()).map((quest) => quest.id)).toEqual(["pq-fin"]);
+  });
+
   it("finishes the project when the roof is empty too", () => {
     const quests = QUESTS().slice(0, 2);
     const settled = settleFloor(projectOf(), "1F", quests, bothPaidOn(4), NOW)!;
@@ -293,6 +323,82 @@ describe("settleFloor", () => {
     expect(settled.project.status).toBe("active");
     expect(settled.project.clearedAt).toBeUndefined();
     expect(settled.project.reward.earnedAt).toBeUndefined();
+  });
+});
+
+describe("settleReady", () => {
+  /** 1F and 2F both woken and unsettled (a settle that failed, then a wake elsewhere), the roof asleep */
+  const stuck = (): ProjectRecord =>
+    projectOf({
+      floors: [
+        floorOf("1F", "sort", FIRST, ["pq-a", "pq-b"], { wokenAt: "2027-04-03T15:00:00.000Z" }),
+        floorOf("2F", "clean", SECOND, ["pq-c"], { wokenAt: "2027-04-04T12:00:00.000Z" }),
+        floorOf("3F", "roof", SECOND, ["pq-fin"]),
+      ],
+    });
+  const paidBoth = (): QuestLogEntry[] => [entryOf("pq-a", "ann", april(4)), entryOf("pq-b", "ben", april(4, 13)), entryOf("pq-c", "ann", april(8))];
+
+  it("settles every woken floor that reads cleared, lowest first, and climbs to the floor left open", () => {
+    const settled = settleReady(stuck(), QUESTS(), paidBoth(), NOW)!;
+    expect(settled.floors.map((floor) => floor.floorKey)).toEqual(["1F", "2F"]);
+    expect(settled.floors[0].grants).toEqual({ ann: { xp: 150, gp: 15 }, ben: { xp: 150, gp: 15 } });
+    expect(settled.floors[1].grants).toEqual({ ann: { xp: 300, gp: 30 } });
+    // the total, for whoever only wants to say what was handed out
+    expect(settled.grants).toEqual({ ann: { xp: 450, gp: 45 }, ben: { xp: 150, gp: 15 } });
+    expect(floorByKey(settled.project, "1F").clearedAt).toBe(NOW.toISOString());
+    expect(floorByKey(settled.project, "2F").clearedAt).toBe(NOW.toISOString());
+    expect(floorByKey(settled.project, "3F").wokenAt).toBe(NOW.toISOString());
+    expect(settled.wake).toBe("3F");
+    expect(settled.finished).toBe(false);
+    expect(settled.project.status).toBe("active");
+  });
+
+  it("settles nothing twice", () => {
+    const settled = settleReady(stuck(), QUESTS(), paidBoth(), NOW)!;
+    expect(settleReady(settled.project, QUESTS(), paidBoth(), NOW)).toBeNull();
+  });
+
+  it("is null when no woken floor reads cleared", () => {
+    expect(settleReady(projectOf(), QUESTS(), [entryOf("pq-a", "ann", april(4))], NOW)).toBeNull();
+  });
+
+  it("leaves a floor that is still asleep, however empty it reads", () => {
+    // 2F has no chores left, but 1F is not done: the empty floor above is not woken or settled from the side
+    const quests = QUESTS().filter((quest) => quest.id !== "pq-c");
+    expect(settleReady(projectOf(), quests, [entryOf("pq-a", "ann", april(4))], NOW)).toBeNull();
+  });
+
+  it("settles a floor emptied by deleting its last open chore", () => {
+    const quests = QUESTS().filter((quest) => quest.id !== "pq-b");
+    const settled = settleReady(projectOf(), quests, [entryOf("pq-a", "ann", april(4))], NOW)!;
+    expect(settled.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
+    expect(settled.wake).toBe("2F");
+  });
+
+  it("finishes the project when the woken roof reads cleared", () => {
+    const project = projectOf({
+      floors: [
+        floorOf("1F", "sort", FIRST, ["pq-a", "pq-b"], { wokenAt: "x", clearedAt: "2027-04-04T12:00:00.000Z", multiplier: 2 }),
+        floorOf("2F", "clean", SECOND, ["pq-c"], { wokenAt: "x", clearedAt: "2027-04-08T12:00:00.000Z", multiplier: 1.5 }),
+        floorOf("3F", "roof", SECOND, ["pq-fin"], { wokenAt: "x" }),
+      ],
+    });
+    const settled = settleReady(project, QUESTS(), [entryOf("pq-fin", "ann", april(9))], NOW)!;
+    expect(settled.finished).toBe(true);
+    expect(settled.wake).toBeUndefined();
+    expect(settled.project.status).toBe("cleared");
+    expect(settled.project.reward.earnedAt).toBe(NOW.toISOString());
+  });
+
+  it("settles nothing for a project that is no longer running", () => {
+    expect(settleReady({ ...stuck(), status: "abandoned" }, QUESTS(), paidBoth(), NOW)).toBeNull();
+    expect(settleReady({ ...stuck(), status: "cleared" }, QUESTS(), paidBoth(), NOW)).toBeNull();
+  });
+
+  it("does not touch the record it was given", () => {
+    const project = stuck();
+    settleReady(project, QUESTS(), paidBoth(), NOW);
+    expect(project).toEqual(stuck());
   });
 });
 
@@ -356,6 +462,21 @@ describe("rescheduleFloors", () => {
     expect(moved.quests.map((quest) => quest.id)).toEqual(["pq-fin"]);
     expect(moved.quests[0].project?.dueOn).toBe("2027-04-20");
     expect(moved.project.endOn).toBe("2027-04-20");
+  });
+
+  it.each(["2027-4-8", "2027-02-30", "2027-13-01", "tomorrow", "", "2027-04-08T10:00:00"])("refuses an end that is not a real day: %p", (bad) => {
+    // extendWindows would read the text as today, and the roof's dueOn and the endOn would keep the raw text
+    expect(() => rescheduleFloors(projectOf(), SHARES, QUESTS(), "2027-04-08", bad)).toThrow(RangeError);
+    expect(() => rescheduleFloors(projectOf(), SHARES, QUESTS(), "2027-04-08", bad)).toThrow(/YYYY-MM-DD/);
+  });
+
+  it.each(["2027-4-8", "2027-02-30", "now", ""])("refuses a today that is not a real day: %p", (bad) => {
+    expect(() => rescheduleFloors(projectOf(), SHARES, QUESTS(), bad, "2027-04-20")).toThrow(RangeError);
+  });
+
+  it("takes the last day of a leap February as a real day", () => {
+    const moved = rescheduleFloors(projectOf(), SHARES, QUESTS(), "2028-02-20", "2028-02-29");
+    expect(moved.project.endOn).toBe("2028-02-29");
   });
 
   it("refuses an end before today", () => {
