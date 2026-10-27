@@ -317,24 +317,28 @@ describe("the Quest Wizard for a maker", () => {
       proposal: { by: "hero", on: "2026-10-20T08:00:00.000Z", state: "proposed" },
     };
     const read = jest.spyOn(BestiaryDb.prototype, "getBeasts").mockResolvedValue([beast] as never);
-    const wrapper = await mountMaker({ beastId: "b9" });
-    await flushPromises();
+    // the spy comes off even when an assertion fails, so it cannot leak into a later test
+    try {
+      const wrapper = await mountMaker({ beastId: "b9" });
+      await flushPromises();
 
-    // the chore screen is passed over: the steps are the beast's own, so they cannot be dropped or added to
-    expect(wrapper.find('[data-test="step-what"]').exists()).toBe(false);
-    expect(wrapper.get(".xp-app-header__meta").text()).toBe("2 / 6");
-    expect(wrapper.findAll('[data-test="step-row"]').map((row) => row.find(".qw-step__text").text())).toEqual(["Find the pair", "Roll them"]);
-    expect(wrapper.find('[data-test="step-drop"]').exists()).toBe(false);
-    expect(wrapper.find('[data-test="step-input"]').exists()).toBe(false);
+      // the chore screen is passed over: the steps are the beast's own, so they cannot be dropped or added to
+      expect(wrapper.find('[data-test="step-what"]').exists()).toBe(false);
+      expect(wrapper.get(".xp-app-header__meta").text()).toBe("2 / 6");
+      expect(wrapper.findAll('[data-test="step-row"]').map((row) => row.find(".qw-step__text").text())).toEqual(["Find the pair", "Roll them"]);
+      expect(wrapper.find('[data-test="step-drop"]').exists()).toBe(false);
+      expect(wrapper.find('[data-test="step-input"]').exists()).toBe(false);
 
-    for (let screen = 0; screen < 4; screen += 1) await tap(wrapper, "next");
-    expect(wrapper.get('[data-test="ready-name"]').text()).toBe("Sock Monster");
-    expect(wrapper.get(".qw-card__portrait").attributes("src")).toBe(drawing);
-    expect(wrapper.get(".qw-card__sub").text()).toBe("Sock Monster");
-    expect(wrapper.get('[data-test="kid-note"]').text()).toBe("A Game Master looks at it first.");
+      for (let screen = 0; screen < 4; screen += 1) await tap(wrapper, "next");
+      expect(wrapper.get('[data-test="ready-name"]').text()).toBe("Sock Monster");
+      expect(wrapper.get(".qw-card__portrait").attributes("src")).toBe(drawing);
+      expect(wrapper.get(".qw-card__sub").text()).toBe("Sock Monster");
+      expect(wrapper.get('[data-test="kid-note"]').text()).toBe("A Game Master looks at it first.");
 
-    await tap(wrapper, "submit");
-    expect(save.mock.calls[0][0]).toMatchObject({ beastId: "b9", name: "Sock Monster", entry: null });
-    read.mockRestore();
+      await tap(wrapper, "submit");
+      expect(save.mock.calls[0][0]).toMatchObject({ beastId: "b9", name: "Sock Monster", entry: null });
+    } finally {
+      read.mockRestore();
+    }
   });
 });
