@@ -10,6 +10,7 @@ import {
   approveCreation,
   approveQuest,
   canPropose,
+  canProposeAny,
   creationAp,
   creationRows,
   creditLine,
@@ -202,6 +203,16 @@ describe("the cap on what one hero has waiting", () => {
   it("lets a hero propose at nine and not at ten", () => {
     expect(canPropose(waitingFor("ronan", 9), "ronan")).toBe(true);
     expect(canPropose(waitingFor("ronan", 10), "ronan")).toBe(false);
+  });
+
+  it("counts beasts and quests together, skips a hole in storage, and lets an approved one go", () => {
+    const beasts = [...waitingFor("ronan", 5), null];
+    const quests = [...waitingFor("ronan", 4), { proposal: inState("approved", "ronan") }, undefined];
+    expect(canProposeAny(beasts, quests, "ronan")).toBe(true);
+    expect(canProposeAny(beasts, [...quests, { proposal: inState("returned", "ronan") }], "ronan")).toBe(false);
+    expect(canProposeAny(waitingFor("ronan", 5), waitingFor("ronan", 5), "ronan")).toBe(false);
+    expect(canProposeAny(waitingFor("ronan", 5), waitingFor("jack", 5), "ronan")).toBe(true);
+    expect(canProposeAny([], [], "ronan")).toBe(true);
   });
 
   it("counts a returned creation as still open, and an approved one as done", () => {

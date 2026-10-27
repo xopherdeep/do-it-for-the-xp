@@ -223,7 +223,8 @@ import { BestiaryDb, beastStorage } from "@/lib/databases/BestiaryDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 import { addMakerChore, libraryLook, makerSteps, MAX_MAKER_CHORES, proposedBeast, suggestNames } from "@/lib/services/creations/beastMaker";
-import { canPropose, creditLine } from "@/lib/services/creations/creations";
+import { creditLine } from "@/lib/services/creations/creations";
+import { mayPropose } from "@/lib/services/creations/makerCap";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import XpBeastLookStep from "./XpBeastLookStep.vue";
@@ -345,6 +346,8 @@ const snapDrawing = async () => {
       return;
     }
     draft.value = { ...draft.value, localImage: data };
+    // The drawing is the look now: a library beast picked before it no longer seeds the name
+    pickedEntry.value = null;
     browsing.value = false;
     shell.value?.scrollToTop(200);
   } catch (error) {
@@ -430,10 +433,8 @@ const send = async () => {
   }
   saving.value = true;
   try {
-    const bestiary = new BestiaryDb(beastStorage);
-    // Storage can hand back a hole; the cap counts only this hero's creations still waiting or sent back
-    const beasts = (await bestiary.getBeasts()).filter(Boolean);
-    const isCapped = !canPropose(beasts, props.heroId);
+    // The cap counts this hero's beasts and quests still with the Game Master, together
+    const isCapped = !(await mayPropose(props.heroId));
     if (isCapped) {
       play$fx("no");
       say(t("beastMaker.cap"));
@@ -441,7 +442,7 @@ const send = async () => {
     }
     // The Bestiary makes an id up and never hands it back, so the beast gets one here: the Quest Wizard opens on it
     const beast: Beast = { ...proposedBeast(draft.value, props.heroId, new Date()), id: uuidv4() };
-    await bestiary.setBeast(beast);
+    await new BestiaryDb(beastStorage).setBeast(beast);
     sentBeast.value = beast;
     showFanfare.value = true;
     emit("saved", beast);

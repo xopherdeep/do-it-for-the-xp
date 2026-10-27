@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 import { modalController, toastController } from "@ionic/vue";
 import XpBeastMakerModal from "@/app/Console/MyPortal/UserHud/MyQuests/components/XpBeastMakerModal.vue";
+import { AchievementDb } from "@/lib/databases/AchievementDb";
 import { BestiaryDb } from "@/lib/databases/BestiaryDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -137,6 +138,7 @@ const toReady = async (wrapper: Maker, name = "Sock Goblin", chores = ["Sort the
 
 let saved: jest.SpyInstance;
 let read: jest.SpyInstance;
+let readQuests: jest.SpyInstance;
 
 beforeEach(() => {
   create.mockReset();
@@ -144,11 +146,13 @@ beforeEach(() => {
   toast.mockResolvedValue({ present: jest.fn() });
   saved = jest.spyOn(BestiaryDb.prototype, "setBeast").mockResolvedValue(undefined);
   read = jest.spyOn(BestiaryDb.prototype, "getBeasts").mockResolvedValue([]);
+  readQuests = jest.spyOn(AchievementDb.prototype, "getTasks").mockResolvedValue([]);
 });
 
 afterEach(() => {
   saved.mockRestore();
   read.mockRestore();
+  readQuests.mockRestore();
 });
 
 describe("the Beast Maker in the shell", () => {
@@ -255,8 +259,9 @@ describe("the Beast Maker in the shell", () => {
     expect(wrapper.get('[data-test="nameplate"]').text()).toBe("Sock Goblin");
   });
 
-  it("offers the stock names when no chore and no library beast gives a word", async () => {
+  it("offers the stock names when no chore and no library beast gives a word: a drawing over a library pick forgets its chore", async () => {
     const wrapper = await mountMaker();
+    await pickSocktopus(wrapper);
     pickerAnswers(DRAWING, "picked");
     await tap(wrapper, "look-photo");
     await tap(wrapper, "next");
@@ -354,14 +359,12 @@ describe("the Beast Maker in the shell", () => {
     expect(wrapper.emitted("close")).toHaveLength(1);
   });
 
-  it("stops at the cap: ten creations still with the Game Master, and nothing is saved", async () => {
-    const waiting = Array.from({ length: 10 }, (_, n) => ({
-      id: `b${n}`,
-      name: `Beast ${n}`,
-      checklist: [],
-      proposal: { by: "hero", on: "2026-10-20T08:00:00.000Z", state: n % 2 ? "proposed" : "returned" },
-    }));
-    read.mockResolvedValue([...waiting, null] as never);
+  it("stops at the cap: ten creations, beasts and quests together, still with the Game Master, and nothing is saved", async () => {
+    const proposal = (n: number) => ({ by: "hero", on: "2026-10-20T08:00:00.000Z", state: n % 2 ? "proposed" : "returned" });
+    const beasts = Array.from({ length: 5 }, (_, n) => ({ id: `b${n}`, name: `Beast ${n}`, checklist: [], proposal: proposal(n) }));
+    const quests = Array.from({ length: 5 }, (_, n) => ({ id: `q${n}`, achievementName: `Quest ${n}`, draft: true, proposal: proposal(n) }));
+    read.mockResolvedValue([...beasts, null] as never);
+    readQuests.mockResolvedValue([...quests, null] as never);
     const wrapper = await mountMaker();
     await toReady(wrapper);
     await tap(wrapper, "submit");

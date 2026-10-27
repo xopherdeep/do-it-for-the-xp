@@ -43,7 +43,6 @@ export const beastMaker = {
   "beastMaker.look.search": {
     simple: "Find a beast",
     adventure: "Search the library",
-    classic: "Search the library",
   },
   "beastMaker.look.noMatch": {
     simple: "No beast for that. Try another word.",

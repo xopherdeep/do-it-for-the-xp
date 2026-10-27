@@ -126,4 +126,11 @@ export const questWizard = {
     adventure: "{name}: the Game Master checks it when you finish.",
     classic: "{name}. Awaiting Game Master approval.",
   },
+  // A maker at the cap (creations.MAKER_CAP, beasts and quests together) cannot propose another; the Beast Maker says
+  // the same words (beastMaker.cap)
+  "questWizard.cap": {
+    simple: "Ask a grown-up to look at your creations first.",
+    adventure: "Ask a Game Master to look at your creations first.",
+    classic: "Creation limit reached. Await Game Master review.",
+  },
 } satisfies CopyCatalog;

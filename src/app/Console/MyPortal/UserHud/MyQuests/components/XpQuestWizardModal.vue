@@ -405,6 +405,7 @@ import {
 } from "@/lib/services/quests/questWizard";
 import type { WizardChoice, WizardDraft, WizardTime, WizardWhen } from "@/lib/services/quests/questWizard";
 import { saveWizardQuest } from "@/lib/services/quests/questWizardSave";
+import { mayPropose } from "@/lib/services/creations/makerCap";
 import { useCopy, useReadAloud, useVoice } from "@/hooks/useVoice";
 import { formatQuestName } from "@/lib/utils/format";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -756,6 +757,13 @@ const summon = async () => {
   }
   saving.value = true;
   try {
+    // A maker's creations are capped, beasts and quests together: past it a proposal is refused before it is built
+    const isCapped = isProposing.value && !(await mayPropose(me.value));
+    if (isCapped) {
+      play$fx("no");
+      void say(t("questWizard.cap"));
+      return;
+    }
     const quest = await saveWizardQuest(draft.value, { isGm: isGm.value, isMaker: isMaker.value, creatorId: me.value });
     savedQuest.value = quest;
     savedQuestTitle.value = formatQuestName(quest.achievementName || questName.value);

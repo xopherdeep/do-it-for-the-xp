@@ -124,6 +124,18 @@ export const openCount = (records: readonly Proposed[], by: string): number =>
 /** Whether this hero may send another creation */
 export const canPropose = (records: readonly Proposed[], by: string): boolean => openCount(records, by) < MAKER_CAP;
 
+/** A row as storage hands it back: a hole (null) is possible and counts for nothing */
+type StoredRow = Proposed | null | undefined;
+
+/**
+ * Whether this hero may send another creation, counting their beasts and quests together: a creation is either, and
+ * the cap (spec section 3) is on creations, not on each kind. The Beast Maker and the Quest Wizard both ask this.
+ */
+export const canProposeAny = (beasts: readonly StoredRow[], quests: readonly StoredRow[], by: string): boolean => {
+  const records = [...beasts, ...quests].filter((record): record is Proposed => Boolean(record));
+  return canPropose(records, by);
+};
+
 /**
  * The AP a creation earns, from the Quest Wizard's own reward table so there are no new numbers: a beast is worth a
  * size 3 quest, a quest a size 1 quest.

@@ -1,6 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { toastController } from "@ionic/vue";
 import XpQuestWizardModal from "@/app/Console/MyPortal/UserHud/MyQuests/components/XpQuestWizardModal.vue";
+import { AchievementDb } from "@/lib/databases/AchievementDb";
 import { BestiaryDb } from "@/lib/databases/BestiaryDb";
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { saveWizardQuest } from "@/lib/services/quests/questWizardSave";
@@ -340,5 +342,47 @@ describe("the Quest Wizard for a maker", () => {
     } finally {
       read.mockRestore();
     }
+  });
+
+  describe("at the cap (ten creations, beasts and quests together, still with the Game Master)", () => {
+    const waiting = (n: number) => ({ by: "hero", on: "2026-10-20T08:00:00.000Z", state: n % 2 ? "proposed" : "returned" });
+    const beasts = Array.from({ length: 5 }, (_, n) => ({ id: `b${n}`, name: `Beast ${n}`, checklist: [], proposal: waiting(n) }));
+    const quests = Array.from({ length: 5 }, (_, n) => ({ id: `q${n}`, achievementName: `Quest ${n}`, draft: true, proposal: waiting(n) }));
+    let readBeasts: jest.SpyInstance;
+    let readQuests: jest.SpyInstance;
+    let toast: jest.SpyInstance;
+
+    beforeEach(() => {
+      readBeasts = jest.spyOn(BestiaryDb.prototype, "getBeasts").mockResolvedValue([...beasts, null] as never);
+      readQuests = jest.spyOn(AchievementDb.prototype, "getTasks").mockResolvedValue(quests as never);
+      toast = jest.spyOn(toastController, "create").mockResolvedValue({ present: jest.fn() } as never);
+    });
+
+    afterEach(() => {
+      readBeasts.mockRestore();
+      readQuests.mockRestore();
+      toast.mockRestore();
+    });
+
+    it("refuses a quest for a sibling with the cap line, and nothing is saved", async () => {
+      const wrapper = await mountMaker();
+      await toWho(wrapper);
+      await tap(wrapper, "hero-sib");
+      await tap(wrapper, "next");
+      await tap(wrapper, "submit");
+      expect(save).not.toHaveBeenCalled();
+      expect(toast.mock.calls[0][0]).toMatchObject({ header: "Ask a Game Master to look at your creations first." });
+      expect(wrapper.get(".fanfare-stub").attributes("data-open")).toBe("false");
+      expect(wrapper.find('[data-test="submit"]').exists()).toBe(true);
+    });
+
+    it("still saves a quest for the maker alone, which is no creation (today's live path)", async () => {
+      const wrapper = await mountMaker();
+      await toWho(wrapper);
+      await tap(wrapper, "next");
+      await tap(wrapper, "submit");
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(toast).not.toHaveBeenCalled();
+    });
   });
 });
