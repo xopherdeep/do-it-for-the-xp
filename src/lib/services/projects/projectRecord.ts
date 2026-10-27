@@ -72,7 +72,8 @@ const choreCopy = (chore: ProjectChore): ProjectChore => ({ ...chore, assignee: 
 export function newProjectRecord(tower: ProjectTower, input: ProjectTowerInput, rewardText: string): ProjectRecord {
   const first = input.windows[0];
   const last = input.windows[input.windows.length - 1];
-  if (!first || !last) throw new Error("The project has no dates for its phases");
+  const hasDates = Boolean(first && last);
+  if (!hasDates) throw new Error("The project has no dates for its phases");
   const wokenAt = input.now.toISOString();
   return {
     id: input.projectId,

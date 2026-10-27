@@ -13,6 +13,7 @@ import type { ProjectType } from "@/lib/services/core/packs/projects";
 import { parseLocalDate, rewardsFor } from "@/lib/services/core/packs/packCommon";
 import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import type { ProjectChore, ProjectHouse } from "./projectChores";
+import { PROJECT_QUEST_PREFIX } from "./projectIds";
 import { ROOF_PHASE_ID, type PhaseWindow } from "./projectSchedule";
 
 /** Every project chore is due by eight in the evening of its phase's last day */
@@ -41,7 +42,7 @@ export interface ProjectTowerInput {
   heroes?: readonly PackHero[];
 }
 
-export const projectQuestId = (projectId: string, choreId: string): string => `pq-${projectId}-${choreId}`;
+export const projectQuestId = (projectId: string, choreId: string): string => `${PROJECT_QUEST_PREFIX}${projectId}-${choreId}`;
 
 /** A quest's `startsOn` for a window that opens on this day: the local midnight, as the packs write it */
 export const projectStartsOn = (opensOn: string): string => parseLocalDate(opensOn).toISOString();
