@@ -40,7 +40,8 @@
           :class="`quest-section quest-section--${section.key}`">
           <xp-app-row v-for="row in section.rows" :key="row.id" :id="row.id" class="quest-log-row"
             :class="{ 'is-overdue': row.status === 'overdue', 'is-tamed': row.status === 'done', 'is-pending': row.status === 'pending', 'is-later': row.status === 'later', 'is-celebrating': celebrating?.id === row.id, 'is-celebrating--pending': celebrating?.id === row.id && celebrating.pending, 'is-landed': landed === row.id }"
-            :data-status="row.status" :title="row.title" :subtitle="row.subtitle" :image="row.image" :icon="row.icon"
+            :data-status="row.status" :title="row.title" :subtitle="[row.subtitle, row.credit].filter(Boolean).join(' · ')"
+            :image="row.image" :icon="row.icon"
             :chevron="!(view === 'list' && row.canFinish)" :disabled="finishing === row.id" @click="openRow(row)">
             <template v-if="row.hasChips" #chips>
               <xp-app-chips :chips="row.chips" />

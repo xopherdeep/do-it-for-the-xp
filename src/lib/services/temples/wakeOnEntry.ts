@@ -381,7 +381,8 @@ export function familyWakeStores(): FamilyWakeStores {
   const userStore = useUserStore();
   return {
     readQuests: () => achievementDb.getTasks(),
-    readBeasts: async () => (await bestiaryDb.getBeasts()) as Beast[],
+    // A beast a hero proposed is not in play until a Game Master approves it: no temple wakes a quest on it
+    readBeasts: async () => (await bestiaryDb.getLiveBeasts()) as Beast[],
     writers: {
       saveBeast: (beast) => bestiaryDb.setBeast(beast),
       saveQuest: (quest) => achievementDb.setTask(quest),

@@ -65,7 +65,8 @@ const users = {
 const rowsOf = (...items: QuestBoardItem[]): QuestListRow[] => questListFor("hero-1", NOON, items, users);
 
 const portraitUrl = (avatar?: number | null) => (avatar ? `portrait-${avatar}.webp` : null);
-const context = (beasts: Beast[] = []) => ({ beasts, heroNick: "Max", portraitUrl });
+const nickOf = (id: string) => ({ jack: "Jack" })[id as "jack"] ?? "";
+const context = (beasts: Beast[] = []) => ({ beasts, heroNick: "Max", portraitUrl, nickOf });
 
 describe("the Board's due windows", () => {
   it("sorts the rows into Overdue, Today, This week, Later and Done, and leaves empty windows out", () => {
@@ -169,6 +170,13 @@ describe("a row's tile and chips", () => {
     expect(toLogRow(withImage, context()).image).toBe("https://example.test/q.png");
   });
 
+  it("draws the kid's own picture of a beast over a library portrait it also has", () => {
+    const drawn = { id: "b3", name: "Sock Puppet", checklist: [], avatar: 12, localImage: "data:image/jpeg;base64,BBB" } as Beast;
+    const [row] = rowsOf(onBoard(makeQuest({ beastId: "b3", noBeast: false })));
+
+    expect(toLogRow(row, context([drawn])).image).toBe("data:image/jpeg;base64,BBB");
+  });
+
   it("shows the status icon when the quest has no beast and no picture", () => {
     const rows = rowsOf(onBoard(makeQuest({ id: "a" })), onBoard(makeQuest({ id: "b" }), "open", { overdue: true }));
     const byId = new Map(rows.map((row) => [row.id, toLogRow(row, context())]));
@@ -197,6 +205,30 @@ describe("a row's tile and chips", () => {
     expect(ids.get("shared")).toMatchObject({ who: "Max +1", requiresApproval: true, canFinish: true });
     expect(ids.get("waiting")).toMatchObject({ stateLabel: "Pending", canFinish: false });
     expect(ids.get("tamed")).toMatchObject({ stateLabel: "Tamed", canFinish: false, title: "Clean The Kitchen" });
+  });
+});
+
+describe("a row's credit", () => {
+  const sentOn = "2026-10-20T10:00:00.000Z";
+
+  it("names the hero who suggested a quest a Game Master approved", () => {
+    const suggested = makeQuest({ createdBy: "jack", proposal: { by: "jack", on: sentOn, state: "approved" } });
+    const [row] = rowsOf(onBoard(suggested));
+
+    expect(toLogRow(row, context()).credit).toBe("Suggested by Jack");
+  });
+
+  it("gives no credit to a quest from the Compendium, even one that has a creator", () => {
+    const [plain, wizard] = rowsOf(onBoard(makeQuest({ id: "plain" })), onBoard(makeQuest({ id: "wizard", createdBy: "jack" })));
+
+    expect(toLogRow(plain, context()).credit).toBe("");
+    expect(toLogRow(wizard, context()).credit).toBe("");
+  });
+
+  it("gives no credit when the maker is no hero the family knows", () => {
+    const [row] = rowsOf(onBoard(makeQuest({ proposal: { by: "stranger", on: sentOn, state: "approved" } })));
+
+    expect(toLogRow(row, context()).credit).toBe("");
   });
 });
 

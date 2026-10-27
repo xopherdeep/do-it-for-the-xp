@@ -159,6 +159,7 @@ export default defineComponent({
         beasts: this.familyBeasts,
         heroNick: nickOf((this as any).userStore.users[hero], hero),
         portraitUrl: beastPortraitUrl,
+        nickOf: (id: string) => (this as any).userStore.users[id]?.name?.nick ?? "",
       };
       const draw = (rows: QuestListRow[]) => rows.map((row) => toLogRow(row, context));
       const isListView = this.view === "list";

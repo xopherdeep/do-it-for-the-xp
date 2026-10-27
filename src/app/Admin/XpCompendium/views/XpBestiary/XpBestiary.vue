@@ -15,6 +15,15 @@
         <input type="text" v-model="searchQuery" placeholder="Search bestiary..." class="beast-search-input" />
       </div>
       <div class="beast-count">{{ filteredBeasts.length }} Beasts</div>
+      <!-- All: the beasts in play. Creations: every beast a hero made, waiting or not -->
+      <ion-segment v-model="segment" class="beast-segment" aria-label="Show beasts">
+        <ion-segment-button value="all">
+          <ion-label>All</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="creations">
+          <ion-label>Creations</ion-label>
+        </ion-segment-button>
+      </ion-segment>
     </div>
 
     <!-- Grid Area -->
@@ -28,8 +37,8 @@
           </ion-col>
 
           <ion-col size="4" size-md="3" size-lg="2" v-for="beast in filteredBeasts" :key="beast.id">
-            <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :bg1="beast.bg1"
-              :bg2="beast.bg2" @click="presentBeastOptions(beast)" />
+            <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :picture="beast.localImage"
+              :bg1="beast.bg1" :bg2="beast.bg2" :badge="badgeOf(beast)" @click="presentBeastOptions(beast)" />
           </ion-col>
         </ion-row>
       </ion-grid>
@@ -79,6 +88,9 @@ import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb
 import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
+import { beastBadge, bestiaryFilter } from "./bestiaryFilter";
+import type { BestiarySegment } from "./bestiaryFilter";
+import { useUserStore } from "@/lib/store/stores/user";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -398,15 +410,12 @@ export default defineComponent({
     const beasts = ref([] as Beast[]);
     const router = useRouter();
     const searchQuery = ref("");
+    const segment = ref<BestiarySegment>("all");
     const isLoading = ref(true);
+    const userStore = useUserStore();
 
-    const filteredBeasts = computed(() => {
-      if (!searchQuery.value) return beasts.value;
-      const query = searchQuery.value.toLowerCase();
-      return beasts.value.filter((beast) =>
-        beast.name.toLowerCase().includes(query)
-      );
-    });
+    const filteredBeasts = computed(() => bestiaryFilter(beasts.value, segment.value, searchQuery.value));
+    const badgeOf = (beast: Beast) => beastBadge(beast, (id) => userStore.users[id]?.name?.nick ?? "");
 
     // Generate fresh backgrounds for Add New box (refs so they can be updated)
     const addNewBg1 = ref(Math.floor(Math.random() * 325));
@@ -424,7 +433,9 @@ export default defineComponent({
       achievementDb,
       router,
       searchQuery,
+      segment,
       filteredBeasts,
+      badgeOf,
       addNewBg1,
       addNewBg2,
       isLoading,
