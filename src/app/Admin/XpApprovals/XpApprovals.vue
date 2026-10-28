@@ -18,9 +18,7 @@
       <ion-segment v-model="activeSegment" scrollable>
         <ion-segment-button value="achievements">
           Achievements
-          <ion-badge color="success">{{
-            pendingAchievements.length
-          }}</ion-badge>
+          <ion-badge color="success">{{ achievementsWaiting }}</ion-badge>
         </ion-segment-button>
         <ion-segment-button value="accessories">
           Accessories
@@ -41,6 +39,8 @@
       </div>
       <template v-else>
         <ion-list v-if="activeSegment === 'achievements'">
+          <!-- A cleared project's family reward, earned and waiting for the Game Master to hand it over -->
+          <approval-family-reward-row v-if="familyReward" :text="familyReward.reward.text" @given="loadApprovals" />
           <approval-claim-row
             v-for="entry in pendingAchievements"
             :key="entry.id"
@@ -133,6 +133,7 @@
   import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
   import ApprovalPhoto from "./components/ApprovalPhoto.vue";
   import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
+  import ApprovalFamilyRewardRow from "./components/ApprovalFamilyRewardRow.vue";
   import ApprovalPurchaseRow from "./components/ApprovalPurchaseRow.vue";
   import XpHeroWriteGate from "@/components/organisms/HeroWriteGate/XpHeroWriteGate.vue";
   import { saveHeroEdit, type HeroWriteGate } from "@/hooks/useHeroWrite";
@@ -147,6 +148,8 @@
   import { approveClaim, rejectClaim } from "@/lib/services/quests/approvalFlow";
   import type { ReviewOutcome } from "@/lib/services/quests/approvalFlow";
   import { claimsFor } from "@/lib/services/quests/waitingClaims";
+  import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
+  import { readRewardToGive } from "@/lib/services/projects/projectService";
   import { play$fx } from "@/assets/fx";
   import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
   import {
@@ -187,6 +190,7 @@
       XpTownHallApprovals,
       ApprovalPhoto,
       ApprovalClaimRow,
+      ApprovalFamilyRewardRow,
       ApprovalPurchaseRow,
       XpHeroWriteGate,
     },
@@ -224,6 +228,9 @@
       const pendingAccessories = ref<PurchaseLogEntry[]>([]);
       // The 20 most recent fulfilled/refunded PurchaseLog entries
       const recentPurchaseReviews = ref<PurchaseLogEntry[]>([]);
+      // The cleared project whose family reward is earned and not yet handed over (its row tops the achievements tab)
+      const familyReward = ref<ProjectRecord | null>(null);
+      const achievementsWaiting = computed(() => pendingAchievements.value.length + (familyReward.value ? 1 : 0));
 
       // Helper functions
       const heroFor = (userId: string) => {
@@ -326,6 +333,16 @@
       // overwrite the fresh data that follows an approve/reject.
       let latestLoad = 0;
       const isLatestLoad = (load: number) => load === latestLoad;
+      // The family reward is read apart from the two logs: a store that cannot be read says so, and the lists still show
+      const readFamilyReward = async (load: number, failed: string[]): Promise<void> => {
+        try {
+          const waiting = await readRewardToGive();
+          if (isLatestLoad(load)) familyReward.value = waiting;
+        } catch (error) {
+          debug.error("Failed to load the family reward:", error);
+          failed.push("the family reward");
+        }
+      };
       const loadApprovals = async (): Promise<boolean> => {
         const thisLoad = ++latestLoad;
         try {
@@ -357,6 +374,7 @@
           }
 
           const failed: string[] = [];
+          await readFamilyReward(thisLoad, failed);
           const isQuestsFailed = quests.status === "rejected";
           if (isQuestsFailed) {
             debug.error("Failed to load quest approvals:", quests.reason);
@@ -627,6 +645,9 @@
         rootStyle,
         activeSegment,
         pendingAchievements,
+        achievementsWaiting,
+        familyReward,
+        loadApprovals,
         pendingAccessories,
         townHallWaiting,
         historyRows,

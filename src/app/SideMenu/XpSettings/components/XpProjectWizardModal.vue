@@ -290,7 +290,7 @@ const { dayText, draftType, projectTypeIcon } = wizard;
  * change the list, what the tower is built from) lives in projectWizard.ts; this file holds the draft and the body of
  * each step. One project runs at a time, so with one running the wizard only says to finish or abandon it first.
  */
-const props = defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean; typeId?: ProjectTypeId }>();
 const emit = defineEmits<{ close: [] }>();
 
 const { rootClass, rootStyle } = useAppSkin("quests");
@@ -344,6 +344,9 @@ const begin = async () => {
     found[id] = runs[index];
   });
   lastRuns.value = found;
+  // The trophy's "Start again" opens on the type of the run that was cleared, with that run's chore list ready
+  const asked = props.typeId;
+  if (asked) draft.value = wizard.withType(draft.value, asked, { ...context(), lastChores: lastChoresOf(asked) });
   isLoaded.value = true;
 };
 

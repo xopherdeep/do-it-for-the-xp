@@ -12,11 +12,12 @@
  * QuestCompletionService calls `onQuestPaid` (or `onEntryPaid`, when it only has the log entry) after a project chore is
  * paid, and wraps the call so a failure here never holds up the payment. The temple screen calls `onFloorReached` when a
  * hero arrives on a floor (the floor wakes for the whole family), `readTower` for the clock and the stairs' lock, and
- * `markFloorSeen` once it has told a hero a floor was cleared.
+ * `markFloorSeen` once it has told a hero a floor was cleared. A finished project is read back through `readTrophies`,
+ * `readFinish` (its credits) and `readRewardToGive` (Approvals), and told to a hero once with `markSeen`.
  */
 import AchievementDb, { achievementStorage, type Achievement } from "@/lib/databases/AchievementDb";
 import { getProjectDb, type ProjectDb } from "@/lib/databases/ProjectDb";
-import { getQuestLogDb, type QuestLogDb } from "@/lib/databases/QuestLogDb";
+import { getQuestLogDb, type QuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { getTempleProgressDb, type TempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
@@ -25,6 +26,7 @@ import debug from "@/lib/utils/debug";
 import { phaseNameOf } from "./floorClock";
 import {
   hasSeen,
+  isPaidEntry,
   newestCleared,
   openQuestIds,
   questsWokenBy,
@@ -38,6 +40,7 @@ import {
   type SettledFloor,
 } from "./projectProgress";
 import { freshProjectId, isProjectQuestId } from "./projectIds";
+import { rewardToGive, trophiesOf } from "./projectFinish";
 import type { ProjectTowerInput } from "./projectQuests";
 import { newProjectRecord, type ProjectRecord } from "./projectRecord";
 import { buildProjectTower } from "./projectTower";
@@ -302,8 +305,7 @@ export function abandonProject(stores: ProjectStores = liveStores()): Promise<vo
 /** The reward was handed over: stamps the newest cleared project whose reward was earned and not given yet */
 export function markRewardGiven(stores: ProjectStores = liveStores()): Promise<void> {
   return inTurn(async () => {
-    const isToGive = (record: ProjectRecord): boolean => Boolean(record.reward.earnedAt) && !record.reward.givenAt;
-    const record = newestCleared(await stores.projects.getAll(), isToGive);
+    const record = rewardToGive(await stores.projects.getAll());
     if (record) await stores.projects.save(withRewardGiven(record, new Date()));
   });
 }
@@ -315,4 +317,34 @@ export function markSeen(heroId: string, what: "reward" | "credits", stores: Pro
     if (!record) return;
     if (!hasSeen(record, heroId, what)) await stores.projects.save(withSeen(record, heroId, what));
   });
+}
+
+// ---- The finish: what the trophy, the credits and Approvals read ---------------------------------------------------
+
+/** The cleared runs, the one cleared last first: the trophies in Hometown */
+export function readTrophies(stores: ProjectStores = liveStores()): Promise<ProjectRecord[]> {
+  return inTurn(async () => trophiesOf(await stores.projects.getAll()));
+}
+
+/** A cleared run with the quests and the paid log entries its credits are read from */
+export interface FinishSnapshot {
+  project: ProjectRecord;
+  quests: Achievement[];
+  paid: QuestLogEntry[];
+}
+
+/** The newest cleared run (or the one named) with what its credits need; null when none is cleared, or the one named is not */
+export function readFinish(projectId?: string, stores: ProjectStores = liveStores()): Promise<FinishSnapshot | null> {
+  return inTurn(async () => {
+    const cleared = trophiesOf(await stores.projects.getAll());
+    const project = projectId ? cleared.find((record) => record.id === projectId) : cleared[0];
+    if (!project) return null;
+    const [quests, entries] = await Promise.all([stores.quests.getTasks(), stores.log.getEntries()]);
+    return { project, quests, paid: entries.filter(isPaidEntry) };
+  });
+}
+
+/** The cleared run whose reward the Game Master has not handed over yet; null when none waits */
+export function readRewardToGive(stores: ProjectStores = liveStores()): Promise<ProjectRecord | null> {
+  return inTurn(async () => rewardToGive(await stores.projects.getAll()));
 }

@@ -252,6 +252,17 @@ describe("a project run before", () => {
     expect(wrapper.find('[data-test="rerun-note"]').exists()).toBe(false);
   });
 
+  it("opens on the type it is asked for (the trophy's Start again), with the last run's list ready", async () => {
+    const movingOut = PROJECT_TYPES["moving-out"];
+    const chores = suggestChores(movingOut, USUAL_HOUSE, [{ id: "mom", name: "Mom", band: "grownup" }]);
+    projectDb.lastOfType.mockImplementation(async (typeId: string) => (typeId === "moving-out" ? { id: "old", typeId, chores } : null));
+    const wrapper = await mountWizard({ open: true, typeId: "moving-out" });
+    expect(wrapper.get('[data-test="type-moving-out"]').attributes("aria-pressed")).toBe("true");
+    expect(wrapper.get('[data-test="type-spring-cleaning"]').attributes("aria-pressed")).toBe("false");
+    expect(wrapper.find('[data-test="rerun-note"]').exists()).toBe(true);
+    expect(wrapper.get('[data-test="next"]').attributes("disabled")).toBeUndefined();
+  });
+
   it("starts from the suggestions when the last run has no chores a tower could be built from", async () => {
     projectDb.lastOfType.mockImplementation(async (typeId: string) => ({ id: "old", typeId, chores: [] }));
     const wrapper = await mountWizard();
