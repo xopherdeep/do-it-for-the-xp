@@ -1,5 +1,5 @@
 <template>
-  <div ref="root">
+  <div ref="root" class="video-test-card">
     <!-- Always in the page, so screen readers announce text that changes inside it -->
     <div class="video-test-card__live" aria-live="polite" data-cy="test-live">{{ liveText }}</div>
     <ion-card v-if="hasStarted" class="settings-card video-test-card max-w-2xl" data-cy="video-test-card">
@@ -57,8 +57,8 @@
 
             <ion-item v-if="!isRunning" lines="none">
               <div class="video-test-card__actions">
-                <ion-button size="small" data-cy="test-share" @click="onShare">Share report</ion-button>
-                <ion-button size="small" fill="outline" data-cy="test-copy" @click="onCopy">Copy</ion-button>
+                <ion-button size="small" color="rpg" data-cy="test-share" @click="onShare">Share report</ion-button>
+                <ion-button size="small" fill="outline" color="rpg" data-cy="test-copy" @click="onCopy">Copy</ion-button>
               </div>
             </ion-item>
           </template>
@@ -130,12 +130,16 @@
     return notice.value;
   });
 
-  /** On a small phone the card starts below the fold, so bring it up when a run begins. */
+  /**
+   * On a small phone the card starts below the fold, so bring it up when a run begins and again when the results land.
+   * Block start, not nearest: the page scroller runs under the footer, so nearest stops while the card is still
+   * behind it. Instant, not smooth: a busy test starves a smooth scroll of frames on a weak phone.
+   */
   const bringIntoView = async () => {
     await nextTick();
     const element = root.value;
     const canScroll = element !== null && typeof element.scrollIntoView === "function";
-    if (canScroll) element.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (canScroll) element.scrollIntoView({ block: "start" });
   };
 
   const onProgress = (progress: DeviceTestProgress) => {
@@ -164,6 +168,7 @@
       if (stoppedEarly) {
         // The page went hidden mid-run: keep what was measured and say so, the extras would only stall too
         result.value = base;
+        void bringIntoView();
         notice.value = "The test stopped early because the app left the screen.";
         isRunning.value = false;
         emit("running", false);
@@ -172,7 +177,10 @@
       step.value = stepCount.value;
       stepLabel.value = "Drawing tiles and the town";
       const extras = await runDeviceExtras({ signal });
-      if (!signal.aborted) result.value = { ...base, ...extras };
+      if (!signal.aborted) {
+        result.value = { ...base, ...extras };
+        void bringIntoView();
+      }
     } catch {
       // chemx-allow: a failed run is shown as a plain message, never thrown into the page
       if (!signal.aborted) notice.value = "The test could not finish on this device.";
@@ -221,6 +229,11 @@
 </script>
 
 <style scoped>
+  /* The positioned parent of the visually hidden live region below */
+  .video-test-card {
+    position: relative;
+  }
+
   .video-test-card__live {
     position: absolute;
     width: 1px;

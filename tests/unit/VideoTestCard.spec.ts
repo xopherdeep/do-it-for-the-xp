@@ -272,14 +272,27 @@ describe("Video, Test this device", () => {
       Element.prototype.scrollIntoView = original;
     });
 
-    it("brings the card into view when a run starts", async () => {
+    it("brings the card to the top of the page scroller, at once, when a run starts", async () => {
+      // block start: the scroller runs under the footer, so nearest stops while the card is still behind it;
+      // no smooth behaviour: a busy test starves a smooth scroll of frames on a weak phone
       const scrollIntoView = jest.fn();
       Element.prototype.scrollIntoView = scrollIntoView;
       const wrapper = await open();
 
       await tap(wrapper);
 
-      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" });
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    });
+
+    it("brings the card into view again when the results land", async () => {
+      const scrollIntoView = jest.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      const wrapper = await open();
+
+      await tap(wrapper);
+
+      expect(wrapper.find("[data-cy='test-table']").exists()).toBe(true);
+      expect(scrollIntoView).toHaveBeenCalledTimes(2);
     });
 
     it("does nothing where scrollIntoView does not exist", async () => {
