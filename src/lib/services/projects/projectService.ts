@@ -173,14 +173,17 @@ const commitArrival = async (arrival: ArrivalWake, stores: ProjectStores): Promi
 };
 
 /**
- * A hero reached the floor of the running project (walking in, stairs, a pit, a teleport): the floor wakes for the whole
- * family if it was asleep, and whatever is ready to settle is settled (a floor emptied by deleted chores settles here,
- * and its climb goes on). Waking twice changes nothing. Null when no project is running.
+ * A hero reached the floor of the tower they are in (walking in, stairs, a pit, a teleport): the floor wakes for the
+ * whole family if it was asleep, and whatever is ready to settle is settled (a floor emptied by deleted chores settles
+ * here, and its climb goes on). Waking twice changes nothing. Null when no project is running, and when the running
+ * project is not the one built in `templeId` (a cleared tower stays in the game: a hero inside it must not wake the
+ * floors of another project, which share its floor keys).
  */
-export function onFloorReached(floorKey: string, now: Date = new Date(), stores: ProjectStores = liveStores()): Promise<FloorArrival | null> {
+export function onFloorReached(templeId: string, floorKey: string, now: Date = new Date(), stores: ProjectStores = liveStores()): Promise<FloorArrival | null> {
   return inTurn(async () => {
     const project = await stores.projects.getActive();
-    if (!project) return null;
+    const isNotThisTower = !project || project.templeId !== templeId;
+    if (isNotThisTower) return null;
     const arrival = wakeOnArrival(project, floorKey, await stores.quests.getTasks(), now);
     if (arrival) await commitArrival(arrival, stores);
     const settled = await settleAndCommit(arrival?.project ?? project, now.toISOString(), now, stores);

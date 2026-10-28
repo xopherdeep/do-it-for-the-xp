@@ -177,7 +177,7 @@ const clock = computed(() => {
   if (hasNothingToShow) return null;
   return floorClockView(running, floor.floorKey, today.value, voice.value);
 });
-const rows = computed(() => (project.value ? floorRowsOf(project.value) : []));
+const rows = computed(() => (project.value ? floorRowsOf(project.value, voice.value) : []));
 const endsText = computed(() => (project.value ? dayText(project.value.endOn) : ""));
 
 // ---- The Game Master's controls ------------------------------------------------------------------------------------------

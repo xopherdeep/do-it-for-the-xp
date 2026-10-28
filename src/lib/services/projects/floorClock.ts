@@ -8,21 +8,21 @@ import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/services/core/packs/packCommon";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import { copyFor } from "@/lib/services/copy/copy";
-import type { Voice } from "@/lib/services/copy/voices";
+import { FALLBACK_VOICE, type Voice } from "@/lib/services/copy/voices";
 import { floorMultiplier } from "./floorBonus";
 import type { ProjectFloor, ProjectRecord } from "./projectRecord";
 import { ROOF_PHASE_ID, daysBetween } from "./projectSchedule";
 
-/** The roof is no phase, so it has no phase name of its own */
-export const ROOF_NAME = "The Roof";
-
 /** The days away that still read as a weekday ("Sat"); past it the date is clearer ("Apr 10") */
 const WEEKDAY_REACH = 6;
 
-/** What a floor is called: its phase's name ("Deep Clean"), the roof's, or its key ("2F") when the type or the phase is gone */
-export const phaseNameOf = (typeId: string, floor: Pick<ProjectFloor, "floorKey" | "phaseId">): string => {
+/**
+ * What a floor is called: its phase's name ("Deep Clean"), the roof's (the roof is no phase, so its name is the
+ * catalogue's, in `voice`), or its key ("2F") when the type or the phase is gone
+ */
+export const phaseNameOf = (typeId: string, floor: Pick<ProjectFloor, "floorKey" | "phaseId">, voice: Voice = FALLBACK_VOICE): string => {
   const isRoof = floor.phaseId === ROOF_PHASE_ID;
-  if (isRoof) return ROOF_NAME;
+  if (isRoof) return copyFor("projectTower.roofName", voice);
   const phase = projectTypeOf(typeId)?.phases.find((each) => each.id === floor.phaseId);
   return phase?.name ?? floor.floorKey;
 };
@@ -89,7 +89,7 @@ export const floorClockView = (project: ProjectRecord, floorKey: string, today: 
   const floor = project.floors.find((each) => each.floorKey === floorKey);
   const hasNoFloor = !floor;
   if (hasNoFloor) return null;
-  const name = phaseNameOf(project.typeId, floor);
+  const name = phaseNameOf(project.typeId, floor, voice);
   return {
     floorKey,
     name,

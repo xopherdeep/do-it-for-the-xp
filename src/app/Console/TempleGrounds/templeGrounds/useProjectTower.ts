@@ -36,6 +36,7 @@ export const useProjectTower = (parts: ProjectTowerParts) => {
   const { voice } = useVoice();
   const celebration = useRevealPrompt();
 
+  /** The running project, when it is the one built in this temple; another project's floors share the keys, and are never read as this tower's */
   const snapshot = ref<TowerSnapshot | null>(null);
   /** The tower was read at least once: until then its stairs stay shut, and a failed read keeps them so */
   const isRead = ref(false);
@@ -50,20 +51,20 @@ export const useProjectTower = (parts: ProjectTowerParts) => {
   });
 
   /**
-   * Whether the stairs of this floor may climb: true when every chore of the floor was done (or no project is running any
-   * more), false while it is not or the tower is not read yet; undefined for another temple, which never uses the lock.
+   * Whether the stairs of this floor may climb: true when every chore of the floor was done, false while it is not or the
+   * tower is not read yet; undefined (no lock, the stairs behave as in any temple) for another temple, and for a tower
+   * with no project of its own running (cleared, or another project is the one running).
    */
   const isFloorCleared = (level: string): boolean | undefined => {
     if (!isTower) return undefined;
     if (!isRead.value) return false;
-    const read = snapshot.value;
-    return read ? read.cleared.includes(level) : true;
+    return snapshot.value?.cleared.includes(level);
   };
 
   /** Wakes the floor the hero is on and settles what is ready; a failure is said, and the tower is read all the same */
   const reachFloor = async (): Promise<void> => {
     try {
-      await onFloorReached(currentLevel.value, new Date());
+      await onFloorReached(temple, currentLevel.value, new Date());
     } catch (error) {
       debug.warn('[TempleGrounds] the floor could not be woken', error);
     }
@@ -83,7 +84,9 @@ export const useProjectTower = (parts: ProjectTowerParts) => {
 
   const readAgain = async (): Promise<void> => {
     try {
-      snapshot.value = await readTower();
+      const read = await readTower();
+      const isThisTower = read?.project.templeId === temple;
+      snapshot.value = isThisTower ? read : null;
       isRead.value = true;
       today.value = dateKey(new Date());
     } catch (error) {
@@ -99,7 +102,7 @@ export const useProjectTower = (parts: ProjectTowerParts) => {
     for (const floor of unseenClearedFloors(read.project, heroId)) {
       try {
         await markFloorSeen(heroId, floor.floorKey);
-        await celebration.showPrompt(floorClearedPrompt(floor, phaseNameOf(read.project.typeId, floor), voice.value));
+        await celebration.showPrompt(floorClearedPrompt(floor, phaseNameOf(read.project.typeId, floor, voice.value), voice.value));
       } catch (error) {
         debug.warn('[TempleGrounds] the cleared floor could not be told', error);
       }

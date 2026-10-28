@@ -3,6 +3,7 @@
  * cleared, which cleared floors they were not yet told about, and whether a new end day can be asked for. Pure.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
+import { copyFor } from "@/lib/services/copy/copy";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { clearedFloorKeys, currentFloorOf, endDateProblem, floorRowsOf, unseenClearedFloors, withFloorSeen } from "@/lib/services/projects/towerView";
@@ -153,6 +154,11 @@ describe("floorRowsOf", () => {
       { floorKey: "3F", name: "Organize", state: "asleep" },
       { floorKey: "4F", name: "The Roof", state: "asleep" },
     ]);
+  });
+
+  it("names the roof in the voice asked", () => {
+    const roofOnly = projectOf([floorOf("1F", "roof", SECOND, ["pq-fin"])]);
+    expect(floorRowsOf(roofOnly, "classic")[0].name).toBe(copyFor("projectTower.roofName", "classic"));
   });
 
   it("reads a floor cleared early as cleared, however far ahead its due day still is", () => {

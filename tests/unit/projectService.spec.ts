@@ -56,6 +56,8 @@ const fakeStorage = () => {
 const HEROES = FAMILIES[0][1];
 const ROOMS = ROOM_SETS[0][1];
 const REWARD = "Pizza night, your pick";
+/** The temple Spring Cleaning is built in: a hero reaching a floor says which tower they are in */
+const SPRING_TOWER = "gen-project-spring-cleaning";
 
 /** The real databases over in-memory storage: more than the service asks of them, so the specs can read back what it saved */
 let stores: { projects: ProjectDb; quests: AchievementDb; log: QuestLogDb; temples: TempleDb; progress: TempleProgressDb; engine: { forgetTempleRun: jest.Mock } };
@@ -528,7 +530,7 @@ describe("onFloorReached", () => {
 
   it("wakes the floor for the family: the record and every chore of the floor", async () => {
     const project = await begin();
-    const arrival = await onFloorReached("2F", ARRIVED, stores);
+    const arrival = await onFloorReached(SPRING_TOWER, "2F", ARRIVED, stores);
 
     expect(arrival?.woken.map((quest) => String(quest.id)).sort()).toEqual([...floorOf(project, "2F").questIds].sort());
     const saved = await active();
@@ -540,11 +542,11 @@ describe("onFloorReached", () => {
 
   it("changes nothing when the floor is awake: waking twice, or reaching the ground floor", async () => {
     await begin();
-    await onFloorReached("2F", ARRIVED, stores);
+    await onFloorReached(SPRING_TOWER, "2F", ARRIVED, stores);
     const once = await active();
 
-    const again = await onFloorReached("2F", new Date(2027, 3, 6, 9), stores);
-    const ground = await onFloorReached("1F", new Date(2027, 3, 6, 9), stores);
+    const again = await onFloorReached(SPRING_TOWER, "2F", new Date(2027, 3, 6, 9), stores);
+    const ground = await onFloorReached(SPRING_TOWER, "1F", new Date(2027, 3, 6, 9), stores);
 
     expect(again?.woken).toEqual([]);
     expect(ground?.woken).toEqual([]);
@@ -555,7 +557,7 @@ describe("onFloorReached", () => {
     const project = await begin();
     for (const quest of await questsOf(floorOf(project, "1F"))) await stores.quests.remove(String(quest.id));
 
-    const arrival = await onFloorReached("1F", ARRIVED, stores);
+    const arrival = await onFloorReached(SPRING_TOWER, "1F", ARRIVED, stores);
 
     expect(arrival?.settled?.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
     const saved = await active();
@@ -564,10 +566,10 @@ describe("onFloorReached", () => {
   });
 
   it("is quiet when no project is running, and when the project was cleared", async () => {
-    expect(await onFloorReached("1F", ARRIVED, stores)).toBeNull();
+    expect(await onFloorReached(SPRING_TOWER, "1F", ARRIVED, stores)).toBeNull();
     await begin();
     await abandonProject(stores);
-    expect(await onFloorReached("1F", ARRIVED, stores)).toBeNull();
+    expect(await onFloorReached(SPRING_TOWER, "1F", ARRIVED, stores)).toBeNull();
   });
 
   it("takes its turn with the other calls: an arrival and a payment together settle the floor once", async () => {
@@ -575,11 +577,30 @@ describe("onFloorReached", () => {
     const quests = await questsOf(floorOf(project, "1F"));
     for (const quest of quests) await payQuest(quest, "2027-04-04");
 
-    await Promise.all([onFloorReached("1F", ARRIVED, stores), onQuestPaid(quests[0], "2027-04-04T12:00:00.000Z", stores), settleReadyFloors(ARRIVED, stores)]);
+    await Promise.all([onFloorReached(SPRING_TOWER, "1F", ARRIVED, stores), onQuestPaid(quests[0], "2027-04-04T12:00:00.000Z", stores), settleReadyFloors(ARRIVED, stores)]);
 
+    // Each hero who worked the floor is paid their share exactly once, and the floor is stamped paid
     const heroes = new Set(quests.map((quest) => quest.assignee[0]));
-    expect(paidBonus.mock.calls.length).toBeLessThanOrEqual(heroes.size);
-    expect(floorOf(await active(), "1F").clearedAt).toBeDefined();
+    expect(heroes.size).toBeGreaterThan(0);
+    expect(paidBonus).toHaveBeenCalledTimes(heroes.size);
+    expect(new Set(paidBonus.mock.calls.map((call) => call[0]))).toEqual(heroes);
+    const settled = floorOf(await active(), "1F");
+    expect(settled.clearedAt).toBeDefined();
+    expect(settled.bonusPaidAt).toBeDefined();
+  });
+
+  it("is quiet for a hero in another project's tower: it wakes and settles nothing of the running project", async () => {
+    const project = await begin();
+    for (const quest of await questsOf(floorOf(project, "1F"))) await payQuest(quest, "2027-04-04");
+    const before = await active();
+
+    const arrival = await onFloorReached("gen-project-moving-out", "2F", ARRIVED, stores);
+
+    expect(arrival).toBeNull();
+    expect(await active()).toEqual(before);
+    expect(floorOf(await active(), "2F").wokenAt).toBeUndefined();
+    expect(floorOf(await active(), "1F").clearedAt).toBeUndefined();
+    expect(paidBonus).not.toHaveBeenCalled();
   });
 });
 

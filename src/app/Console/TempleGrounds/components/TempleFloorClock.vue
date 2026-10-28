@@ -25,7 +25,7 @@ defineProps({ clock: { type: Object as PropType<FloorClockView>, required: true 
   justify-content: center;
   gap: 2px 12px;
   padding: 3px 8px;
-  background: var(--gs-window, rgba(0, 0, 0, 0.7));
+  background: var(--gs-window);
   color: var(--gs-text, inherit);
   font-family: 'StatusPlz', monospace;
   font-size: 0.8rem;

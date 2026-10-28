@@ -41,6 +41,14 @@ export const projectTower = {
     classic: "Clear this floor today for ×{multiplier}",
   },
 
+  // Names and button labels the screens put on a tower; the voices that read the same say so
+  "projectTower.roofName": { simple: "The Roof", adventure: "The Roof", classic: "The Roof" },
+  "projectTower.keeper": { simple: "Tower Keeper", adventure: "Tower Keeper", classic: "Tower Keeper" },
+  "projectTower.onward": { simple: "Onward", adventure: "Onward", classic: "Onward" },
+  "projectTower.abandon.yes": { simple: "Give up", adventure: "Abandon", classic: "Abandon" },
+  "projectTower.abandon.no": { simple: "Keep going", adventure: "Keep it", classic: "Keep it" },
+  "projectTower.spot.fallbackName": { simple: "Project tower", adventure: "Project tower", classic: "Project tower" },
+
   // The fanfare when a floor is cleared
   "projectTower.floorCleared.title": { adventure: "Floor cleared!" },
   "projectTower.floorCleared.name": {

@@ -6,6 +6,7 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { dateKey, parseLocalDate } from "@/lib/services/core/packs/packCommon";
+import { FALLBACK_VOICE, type Voice } from "@/lib/services/copy/voices";
 import { phaseNameOf } from "./floorClock";
 import { isFloorCleared } from "./projectProgress";
 import type { ProjectFloor, ProjectRecord } from "./projectRecord";
@@ -39,9 +40,9 @@ const rowStateOf = (floor: ProjectFloor): FloorRowState => {
   return floor.wokenAt ? "open" : "asleep";
 };
 
-/** Every floor of the tower, bottom to top, for the sheet's list */
-export const floorRowsOf = (project: ProjectRecord): FloorRow[] =>
-  project.floors.map((floor) => ({ floorKey: floor.floorKey, name: phaseNameOf(project.typeId, floor), state: rowStateOf(floor) }));
+/** Every floor of the tower, bottom to top, for the sheet's list (the roof is named in the hero's voice) */
+export const floorRowsOf = (project: ProjectRecord, voice: Voice = FALLBACK_VOICE): FloorRow[] =>
+  project.floors.map((floor) => ({ floorKey: floor.floorKey, name: phaseNameOf(project.typeId, floor, voice), state: rowStateOf(floor) }));
 
 /** The keys of the floors whose chores were all paid, settled or not yet; a floor with every chore deleted reads cleared too */
 export const clearedFloorKeys = (project: ProjectRecord, quests: readonly Achievement[], paid: readonly QuestLogEntry[]): string[] =>

@@ -1,6 +1,7 @@
 import { defineComponent, ref } from "vue";
 import { addDays, format } from "date-fns";
 import { flushPromises, mount } from "@vue/test-utils";
+import { toStartLevel, toStartPosition } from "@/app/Console/TempleGrounds/templeGrounds/routeStart";
 import { getTempleWorldLocation } from "@/app/Console/TempleGrounds/templeGrounds/useTempleMeta";
 import { useProjectTower } from "@/app/Console/TempleGrounds/templeGrounds/useProjectTower";
 import { resolveSwipeDirection, useTempleMovement } from "@/app/Console/TempleGrounds/templeGrounds/useTempleMovement";
@@ -35,6 +36,42 @@ describe("getTempleWorldLocation", () => {
 
   it.each(["gen-pantry-31", "", "WIND-TEMPLE"])("sends %p, which it does not know, home to town", (templeId) => {
     expect(getTempleWorldLocation(templeId)).toEqual({ world: "plains", route: "home-town" });
+  });
+});
+
+// Characterization: the route's x, y and ?level, pinned when they left TempleGrounds.ts (the move changed nothing)
+describe("toStartPosition", () => {
+  it("is [row, col] for a complete numeric pair, with the route's strings and zero included", () => {
+    expect(toStartPosition("2", "5")).toEqual([5, 2]);
+    expect(toStartPosition("0", "0")).toEqual([0, 0]);
+    expect(toStartPosition(1, 3)).toEqual([3, 1]);
+  });
+
+  it.each([
+    [undefined, "1"],
+    ["1", undefined],
+    [null, "1"],
+    ["", "1"],
+    ["1", ""],
+    ["a", "1"],
+    ["1.5", "1"],
+    ["-1", "1"],
+  ])("is no start position for x=%p y=%p", (x, y) => {
+    expect(toStartPosition(x, y)).toBeUndefined();
+  });
+});
+
+describe("toStartLevel", () => {
+  it("is the floor the route names, only next to a start position", () => {
+    expect(toStartLevel("2F", [1, 1])).toBe("2F");
+    expect(toStartLevel(["3F", "4F"], [1, 1])).toBe("3F");
+    expect(toStartLevel("2F", undefined)).toBeUndefined();
+  });
+
+  it("is none for a blank or non-text floor", () => {
+    expect(toStartLevel("", [1, 1])).toBeUndefined();
+    expect(toStartLevel(undefined, [1, 1])).toBeUndefined();
+    expect(toStartLevel(2, [1, 1])).toBeUndefined();
   });
 });
 
@@ -221,7 +258,7 @@ describe("useProjectTower: the tower in play on the temple screen", () => {
 
     await showPage();
 
-    expect(reach).toHaveBeenCalledWith("2F", expect.any(Date));
+    expect(reach).toHaveBeenCalledWith(TOWER, "2F", expect.any(Date));
     expect(readIt).toHaveBeenCalled();
   });
 
@@ -233,7 +270,7 @@ describe("useProjectTower: the tower in play on the temple screen", () => {
     currentLevel.value = "2F";
     await flushPromises();
 
-    expect(reach).toHaveBeenCalledWith("2F", expect.any(Date));
+    expect(reach).toHaveBeenCalledWith(TOWER, "2F", expect.any(Date));
   });
 
   it("has the rooms read the hero's board again each time, after the wake: the chores woken since the run read it must fight", async () => {
@@ -268,7 +305,7 @@ describe("useProjectTower: the tower in play on the temple screen", () => {
     expect(tower.isFloorCleared("2F")).toBe(false);
   });
 
-  it("keeps the stairs shut when the tower cannot be read, and opens them when the project is over", async () => {
+  it("keeps the stairs shut when the tower cannot be read, and leaves the lock alone when no project is running", async () => {
     readIt.mockRejectedValue(new Error("storage is full"));
     const broken = screen(TOWER);
     await broken.showPage();
@@ -277,7 +314,25 @@ describe("useProjectTower: the tower in play on the temple screen", () => {
     readIt.mockResolvedValue(null);
     const over = screen(TOWER);
     await over.showPage();
-    expect(over.tower.isFloorCleared("1F")).toBe(true);
+    expect(over.tower.isFloorCleared("1F")).toBeUndefined();
+    expect(over.tower.floorClock.value).toBeNull();
+  });
+
+  it("takes the running project of another tower for no project: no clock, no offer, no prompt, no lock", async () => {
+    // A cleared Moving Out tower stays in the game; Spring Cleaning is the project running, and its floors share the keys
+    const other = projectOf([floorOf("1F", "declutter", 3, { clearedAt: "2027-04-02T09:00:00.000Z", multiplier: 1.6 }), floorOf("2F", "deep-clean", 6)]);
+    readIt.mockResolvedValue({ project: other, cleared: ["1F"] });
+    const { tower, showPage } = screen("gen-project-moving-out");
+
+    await showPage();
+
+    expect(tower.floorClock.value).toBeNull();
+    expect(tower.isFloorCleared("1F")).toBeUndefined();
+    expect(tower.isFloorCleared("2F")).toBeUndefined();
+    expect(tower.towerPrompt.value).toBeNull();
+    expect(seen).not.toHaveBeenCalled();
+    // it asked as the tower it is in, so the service woke nothing of the other project
+    expect(reach).toHaveBeenCalledWith("gen-project-moving-out", "1F", expect.any(Date));
   });
 
   it("shows the clock of the floor the hero stands on, with the offer, and follows them up", async () => {

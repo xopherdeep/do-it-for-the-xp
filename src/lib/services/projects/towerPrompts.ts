@@ -12,9 +12,6 @@ import type { ProjectFloor } from "./projectRecord";
 /** The multiplier above which a cleared floor earned a bonus */
 const NO_BONUS = 1;
 
-/** Who asks the Game Master before a project is given up */
-const TOWER_KEEPER = "Tower Keeper";
-
 /**
  * "Floor cleared!" for a floor of the record: the phase's name, and the early-finish multiplier when it was above x1
  * (coins rise with a bonus, the tablet without one). One Onward goes on; Escape is Onward too.
@@ -29,11 +26,16 @@ export const floorClearedPrompt = (floor: ProjectFloor, phaseName: string, voice
     sprite: hasBonus ? "coins" : "tablet",
     glow: "gold",
     lines,
-    choices: [{ id: "onward", label: "Onward", icon: "arrow-right", tone: "primary" }],
+    choices: [{ id: "onward", label: copyFor("projectTower.onward", voice), icon: "arrow-right", tone: "primary" }],
     cancelId: "onward",
   };
 };
 
 /** "Abandon The Spring Spire? ...": yes gives the project up, no (or Escape) keeps it */
 export const abandonPrompt = (towerName: string, voice: Voice): RevealPromptOptions =>
-  yesNoOf(TOWER_KEEPER, copyFor("projectTower.abandon.ask", voice, { tower: towerName }), { yes: "Abandon", no: "Keep it" }, { accent: "townHall", sprite: "tablet" });
+  yesNoOf(
+    copyFor("projectTower.keeper", voice),
+    copyFor("projectTower.abandon.ask", voice, { tower: towerName }),
+    { yes: copyFor("projectTower.abandon.yes", voice), no: copyFor("projectTower.abandon.no", voice) },
+    { accent: "townHall", sprite: "tablet" }
+  );

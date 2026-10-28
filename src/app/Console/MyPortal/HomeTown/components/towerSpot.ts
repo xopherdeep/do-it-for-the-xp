@@ -20,7 +20,6 @@ export interface TowerSpot {
   cue: string;
 }
 
-const FALLBACK_NAME = "Project tower";
 const FALLBACK_ELEMENT = "wind";
 
 export const towerSpotOf = (project: ProjectRecord, voice: Voice): TowerSpot => {
@@ -29,7 +28,7 @@ export const towerSpotOf = (project: ProjectRecord, voice: Voice): TowerSpot => 
   const floor = currentFloorOf(project);
   return {
     sceneId: projectTowerSceneId(phaseCount, type?.element ?? FALLBACK_ELEMENT),
-    label: type?.towerName ?? FALLBACK_NAME,
-    cue: floor ? copyFor("projectTower.spot.cue", voice, { floor: floor.floorKey, phase: phaseNameOf(project.typeId, floor) }) : "",
+    label: type?.towerName ?? copyFor("projectTower.spot.fallbackName", voice),
+    cue: floor ? copyFor("projectTower.spot.cue", voice, { floor: floor.floorKey, phase: phaseNameOf(project.typeId, floor, voice) }) : "",
   };
 };

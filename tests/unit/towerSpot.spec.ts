@@ -2,6 +2,7 @@
  * The tower's spot on the Hometown plaza: its name under it, where the family is on it, and the voxel scene that draws
  * it (a narrow stack of the project's floors in its element's colours). Pure: the record and the voice go in.
  */
+import { copyFor } from "@/lib/services/copy/copy";
 import { PROJECT_TYPES } from "@/lib/services/core/packs/projects";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { towerSpotOf } from "@/app/Console/MyPortal/HomeTown/components/towerSpot";
@@ -57,10 +58,16 @@ describe("towerSpotOf", () => {
     expect(getBuildingBoxes(sceneId).length).toBeGreaterThan(10);
   });
 
-  it("falls back to a plain name and the wind's colours for a type that is gone", () => {
+  it("falls back to a plain name from the catalogue and the wind's colours for a type that is gone", () => {
     const spot = towerSpotOf(projectOf("gone-type" as never, SPRING_FLOORS()), "adventure");
-    expect(spot.label).toBe("Project tower");
+    expect(spot.label).toBe(copyFor("projectTower.spot.fallbackName", "adventure"));
+    expect(towerSpotOf(projectOf("gone-type" as never, SPRING_FLOORS()), "simple").label).toBe(copyFor("projectTower.spot.fallbackName", "simple"));
     expect(spot.sceneId).toBe(projectTowerSceneId(4, "wind"));
+  });
+
+  it("says the roof's name in the voice asked when the family is on the roof", () => {
+    const onRoof = projectOf("spring-cleaning", [floorOf("1F", "declutter", { wokenAt: "2027-04-01T09:00:00.000Z", clearedAt: "2027-04-02T09:00:00.000Z" }), floorOf("2F", "roof", { wokenAt: "2027-04-02T09:00:00.000Z" })]);
+    expect(towerSpotOf(onRoof, "classic").cue).toBe(`Now on 2F: ${copyFor("projectTower.roofName", "classic")}`);
   });
 
   it("has no cue for a record with no floors", () => {

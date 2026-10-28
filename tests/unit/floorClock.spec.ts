@@ -2,6 +2,7 @@
  * The floor clock in the temple's header (Project Towers): what a floor's due day reads like to a hero, and the offer to
  * clear it early for a bigger bonus. The words are the copy catalogue's three voices; the multiplier is floorBonus's. Pure.
  */
+import { copyFor } from "@/lib/services/copy/copy";
 import { floorMultiplier } from "@/lib/services/projects/floorBonus";
 import { bonusOfferLine, floorClockLine, floorClockState, floorClockView, phaseNameOf } from "@/lib/services/projects/floorClock";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
@@ -151,6 +152,14 @@ describe("phaseNameOf", () => {
   it("is the phase's name from the project type, the roof's own name for the roof", () => {
     expect(phaseNameOf("spring-cleaning", { floorKey: "2F", phaseId: "deep-clean" })).toBe("Deep Clean");
     expect(phaseNameOf("spring-cleaning", { floorKey: "5F", phaseId: "roof" })).toBe("The Roof");
+  });
+
+  it("says the roof's name from the copy catalogue, in the voice asked (the adventure voice by default)", () => {
+    const roof = { floorKey: "5F", phaseId: "roof" };
+    for (const voice of ["simple", "adventure", "classic"] as const) {
+      expect(phaseNameOf("spring-cleaning", roof, voice)).toBe(copyFor("projectTower.roofName", voice));
+    }
+    expect(phaseNameOf("spring-cleaning", roof)).toBe(copyFor("projectTower.roofName", "adventure"));
   });
 
   it("falls back to the floor's key when the type or the phase is gone", () => {

@@ -2,6 +2,7 @@
  * What the tower says in the game's own prompts: the fanfare for a cleared floor (with the early bonus when there was
  * one) and the Game Master's last question before a project is given up. Pure: the words are the copy catalogue's.
  */
+import { copyFor } from "@/lib/services/copy/copy";
 import type { ProjectFloor } from "@/lib/services/projects/projectRecord";
 import { abandonPrompt, floorClearedPrompt } from "@/lib/services/projects/towerPrompts";
 
@@ -45,6 +46,7 @@ describe("floorClearedPrompt", () => {
     for (const voice of VOICES) {
       const prompt = floorClearedPrompt(clearedFloor(1.4), "Deep Clean", voice);
       expect(prompt.choices.map((choice) => choice.id)).toEqual(["onward"]);
+      expect(prompt.choices[0].label).toBe(copyFor("projectTower.onward", voice));
       expect(prompt.cancelId).toBe("onward");
       expect(`${prompt.title} ${prompt.lines.join(" ")}`).not.toContain(EM_DASH);
     }
@@ -58,6 +60,15 @@ describe("abandonPrompt", () => {
     expect(prompt.lines.join(" ")).toContain("The Spring Spire");
     expect(prompt.choices.map((choice) => choice.id)).toEqual(["yes", "no"]);
     expect(prompt.cancelId).toBe("no");
+  });
+
+  it("has its speaker and its two buttons from the copy catalogue, in the voice asked", () => {
+    for (const voice of VOICES) {
+      const prompt = abandonPrompt("The Spring Spire", voice);
+      expect(prompt.speaker).toBe(copyFor("projectTower.keeper", voice));
+      expect(prompt.choices.map((choice) => choice.label)).toEqual([copyFor("projectTower.abandon.yes", voice), copyFor("projectTower.abandon.no", voice)]);
+    }
+    expect(abandonPrompt("The Spring Spire", "simple").choices[0].label).toBe("Give up");
   });
 
   it("speaks in every voice with no em dash, and says what is lost", () => {
