@@ -2,6 +2,7 @@
 // Pure: the caller passes the clock so the same input always gives the same text.
 import type { DeviceSignals } from "@/lib/services/graphics/deviceSignals";
 import type { DeviceTestConfigResult, DeviceTestResult } from "@/lib/services/graphics/deviceTestTypes";
+import { KNOBS, TIER_NAMES } from "@/lib/services/graphics/voxelQuality";
 
 const UNKNOWN = "unknown";
 const NOT_RUN = "not run";
@@ -61,6 +62,14 @@ function canvasLine(canvases: number | null | undefined): string {
   return `Canvases: ${whole(canvases)}`;
 }
 
+/** What the tier itself limits: the test runs uncapped, so the cap is only named, never measured. Empty when none. */
+export function tierCapNote(tier: DeviceTestResult["tier"]): string {
+  if (!tier) return "";
+  const fps = KNOBS[tier].heroFps;
+  const isCapped = fps > 0;
+  return isCapped ? `${TIER_NAMES[tier]} caps the hero at ${fps} fps` : "";
+}
+
 /** The id of the supported config with the lowest median work time, or null when none has one. */
 export function fastestConfig(result: DeviceTestResult): DeviceTestConfigResult["id"] | null {
   const timed = result.configs.filter((c) => c.supported && c.work.medianMs !== null);
@@ -74,7 +83,8 @@ export function fastestConfig(result: DeviceTestResult): DeviceTestConfigResult[
 export function formatReport(signals: DeviceSignals, result: DeviceTestResult, now: Date = new Date()): string {
   const lines = [
     `XP video test v1 ${now.toISOString().slice(0, 10)}`,
-    `Tier: ${result.tier ?? "none"}`,
+    `Tier: ${result.tier ? TIER_NAMES[result.tier] : "none"}`,
+    ...(tierCapNote(result.tier) ? [tierCapNote(result.tier)] : []),
     ...(result.aborted ? ["Stopped early: the test did not finish"] : []),
     ...signalLines(signals),
     ...result.configs.map(configLine),

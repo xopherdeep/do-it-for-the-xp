@@ -21,6 +21,13 @@
               <ion-label class="ion-text-wrap">This device cannot draw the 3D hero at all.</ion-label>
             </ion-item>
 
+            <ion-item v-if="tierText" lines="none" data-cy="test-tier">
+              <ion-label class="ion-text-wrap">
+                <h2>{{ tierText }}</h2>
+                <p v-if="capNote">{{ capNote }}</p>
+              </ion-label>
+            </ion-item>
+
             <div class="video-test-card__scroll">
               <table class="video-test-card__table" data-cy="test-table">
                 <thead>
@@ -77,7 +84,9 @@
   import { Share } from "@capacitor/share";
   import { runDeviceTest, type DeviceTestProgress } from "@/lib/services/graphics/deviceTest";
   import { runDeviceExtras } from "@/lib/services/graphics/deviceTestExtras";
+  import { currentTier } from "@/lib/services/graphics/deviceQuality";
   import { fastestConfig, formatReport } from "@/lib/services/graphics/deviceReport";
+  import { KNOBS, TIER_NAMES } from "@/lib/services/graphics/voxelQuality";
   import type { DeviceSignals } from "@/lib/services/graphics/deviceSignals";
   import type { DeviceTestResult } from "@/lib/services/graphics/deviceTestTypes";
   import { copyTextToClipboard } from "@/lib/utils/clipboard";
@@ -85,14 +94,16 @@
   const props = defineProps<{ signals: DeviceSignals }>();
   const emit = defineEmits<{ (e: "running", value: boolean): void }>();
 
-  // The four render configs plus the extras (tiles, town, canvases) as the last step
-  const CONFIG_STEPS = 4;
+  // The five fixed render configs (a sixth runs for a tier other than Super) plus the extras (tiles, town, canvases)
+  // as the last step; the runner reports the real count with its first progress
+  const FIXED_CONFIG_STEPS = 5;
+  const totalSteps = (): number => FIXED_CONFIG_STEPS + (currentTier() === "super" ? 0 : 1) + 1;
   const REPORT_TITLE = "Do It For The XP: video test";
 
   const hasStarted = ref(false);
   const isRunning = ref(false);
   const step = ref(1);
-  const stepCount = ref(CONFIG_STEPS + 1);
+  const stepCount = ref(totalSteps());
   const stepLabel = ref("Getting ready");
   const result = ref<DeviceTestResult | null>(null);
   const notice = ref("");
@@ -115,6 +126,17 @@
       fps: c.fps === null ? "unknown" : c.fps.toFixed(0),
     })),
   );
+
+  const tierText = computed(() => {
+    const tier = result.value?.tier;
+    return tier ? `Tier: ${TIER_NAMES[tier]}` : "";
+  });
+  // The test runs uncapped (work per frame is the metric), so the tier's own cap is only named here
+  const capNote = computed(() => {
+    const tier = result.value?.tier;
+    const fps = tier ? KNOBS[tier].heroFps : 0;
+    return tier && fps > 0 ? `${TIER_NAMES[tier]} caps the hero at ${fps} fps` : "";
+  });
 
   const cannotDrawHero = computed(() => result.value?.configs[0]?.supported === false);
 
@@ -159,7 +181,7 @@
     result.value = null;
     notice.value = "";
     step.value = 1;
-    stepCount.value = CONFIG_STEPS + 1;
+    stepCount.value = totalSteps();
     stepLabel.value = "Getting ready";
     void bringIntoView();
     try {
