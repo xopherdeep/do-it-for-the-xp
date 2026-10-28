@@ -38,7 +38,7 @@
           <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
         </xp-draggable-spot>
 
-        <xp-draggable-spot v-if="hasOldHouse" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
+        <xp-draggable-spot v-if="isOldHouseShown" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
           <xp-building-model building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
         </xp-draggable-spot>
 

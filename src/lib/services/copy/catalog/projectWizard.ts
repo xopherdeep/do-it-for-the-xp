@@ -16,6 +16,14 @@ export const projectWizard = {
   },
   "projectWizard.card.action": { adventure: "Start a project" },
 
+  // The Moving House dialog, once the pack is in: Moving Out takes the moving chores into a tower
+  "projectWizard.fromMoving.hint": {
+    simple: "Want a tower for your moving chores?",
+    adventure: "Turn your moving chores into a tower, a floor for each stage.",
+    classic: "Move the moving chores into a project tower.",
+  },
+  "projectWizard.fromMoving.action": { adventure: "Build the Moving Out tower" },
+
   // The steps: a plain title for the dot, and the guide's question (the simple voice is read aloud)
   "projectWizard.step.type": { adventure: "The project" },
   "projectWizard.step.house": { adventure: "The house" },

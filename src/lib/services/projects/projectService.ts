@@ -20,10 +20,14 @@ import { getProjectDb, type ProjectDb } from "@/lib/databases/ProjectDb";
 import { getQuestLogDb, type QuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { getTempleProgressDb, type TempleProgressDb } from "@/lib/databases/TempleProgressDb";
+import type { MovingAnswers } from "@/lib/services/core/packs/movingPack";
+import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import debug from "@/lib/utils/debug";
 import { phaseNameOf } from "./floorClock";
+import { openMoveQuests, prefillMovingOut, stillOpenIds } from "./movingOutPrefill";
+import { OLD_HOUSE_ID } from "./oldHouse";
 import {
   hasSeen,
   isPaidEntry,
@@ -44,6 +48,7 @@ import { rewardToGive, trophiesOf } from "./projectFinish";
 import type { ProjectTowerInput } from "./projectQuests";
 import { newProjectRecord, type ProjectRecord } from "./projectRecord";
 import { buildProjectTower } from "./projectTower";
+import type { ProjectDraft } from "./projectWizard";
 import { clearedFloorKeys, withFloorSeen } from "./towerView";
 
 /** The databases the service reads and writes; the specs hand it ones over in-memory storage */
@@ -299,6 +304,40 @@ export function abandonProject(stores: ProjectStores = liveStores()): Promise<vo
     for (const id of open) await stores.quests.remove(id);
     await stores.temples.remove(project.templeId);
     await forgetRuns(project.templeId, stores);
+  });
+}
+
+/** What the wizard opens on for Moving Out: the board's open moving chores (and the log that says which are paid) and the family's last moving answers */
+export async function readMovingOutPrefill(answers: MovingAnswers | null, heroes: readonly PackHero[], stores: ProjectStores = liveStores()): Promise<ProjectDraft> {
+  const [quests, entries] = await Promise.all([stores.quests.getTasks(), stores.log.getEntries()]);
+  return prefillMovingOut(answers, openMoveQuests(quests, entries), heroes);
+}
+
+const sayIfFailed = (result: PromiseSettledResult<unknown>, what: string): void => {
+  const didFail = result.status === "rejected";
+  if (didFail) debug.warn(`[Projects] could not retire the Old House: ${what}`, result.reason);
+};
+
+/** The carried chores that are still open now leave the board, one by one: a chore that will not go is said and the rest still do */
+const removeCarried = async (carried: readonly string[], stores: ProjectStores): Promise<void> => {
+  const open = stillOpenIds(carried, await stores.log.getEntries());
+  const removed = await Promise.allSettled(open.map((id) => stores.quests.remove(id)));
+  removed.forEach((result, index) => sayIfFailed(result, `the chore ${open[index]}`));
+};
+
+/**
+ * Moving Out replaces the Old House: its temple record goes, so do every hero's saved walk in it and the run the engine
+ * holds, and the open moving chores the tower carried (`carried`, from carriedQuestIds) leave the board, since they live in
+ * the tower now. A carried chore that was paid or is waiting for approval by now stays, with every log entry; so do the
+ * moving chores the tower did not take. Nothing is wiped, a failure is said and never undoes the project, and with no
+ * Old House there is only the quiet.
+ */
+export function retireOldHouse(carried: readonly string[], stores: ProjectStores = liveStores()): Promise<void> {
+  return inTurn(async () => {
+    const steps = await Promise.allSettled([removeCarried(carried, stores), stores.temples.remove(OLD_HOUSE_ID)]);
+    sayIfFailed(steps[0], "its chores");
+    sayIfFailed(steps[1], "its temple");
+    await forgetRuns(OLD_HOUSE_ID, stores);
   });
 }
 

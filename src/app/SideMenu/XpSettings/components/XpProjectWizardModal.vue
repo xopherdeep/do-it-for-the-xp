@@ -272,11 +272,12 @@ import type { MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import { FIBONACCI_STEPS, dateKey, nearestDifficulty, rewardsFor } from "@/lib/services/core/packs/packCommon";
 import { PROJECT_TYPES, projectTypeOf } from "@/lib/services/core/packs/projects";
 import type { ProjectTypeId } from "@/lib/services/core/packs/projects";
+import { carriedQuestIds } from "@/lib/services/projects/movingOutPrefill";
 import { houseRoomsOf } from "@/lib/services/projects/projectChores";
 import type { ProjectChore, ProjectHouse } from "@/lib/services/projects/projectChores";
 import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { ROOF_PHASE_ID, minimumEndOn } from "@/lib/services/projects/projectSchedule";
-import { startProject } from "@/lib/services/projects/projectService";
+import { retireOldHouse, startProject } from "@/lib/services/projects/projectService";
 import * as wizard from "@/lib/services/projects/projectWizard";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -289,8 +290,12 @@ const { dayText, draftType, projectTypeIcon } = wizard;
  * The chrome is the shared XpWizardShell and every rule (what each step needs, what choosing a type fills, how edits
  * change the list, what the tower is built from) lives in projectWizard.ts; this file holds the draft and the body of
  * each step. One project runs at a time, so with one running the wizard only says to finish or abandon it first.
+ *
+ * It can open on a draft it is handed (`initial`: Moving Out from the Moving House dialog, with the family's rooms and
+ * moving chores in place) and then starts on the house, the project being chosen. Whoever builds Moving Out retires the
+ * Old House, and the moving chores still in the list leave the board for the tower.
  */
-const props = defineProps<{ open: boolean; typeId?: ProjectTypeId }>();
+const props = defineProps<{ open: boolean; typeId?: ProjectTypeId; initial?: wizard.ProjectDraft }>();
 const emit = defineEmits<{ close: [] }>();
 
 const { rootClass, rootStyle } = useAppSkin("quests");
@@ -316,6 +321,9 @@ const lastRuns = ref<Partial<Record<ProjectTypeId, ProjectRecord | null>>>({});
 
 let opening = 0;
 
+/** A draft handed in has its project already, so the wizard starts on the house; the steps before it are one Back away */
+const HOUSE_STEP = 1;
+
 /** A read that fails reads as "nothing there": starting a project still refuses while one is running */
 const readOrNull = async (read: () => Promise<ProjectRecord | null>): Promise<ProjectRecord | null> => {
   try {
@@ -330,8 +338,8 @@ const begin = async () => {
   opening += 1;
   const ticket = opening;
   today.value = dateKey(new Date());
-  draft.value = wizard.newProjectDraft(today.value);
-  position.value = 0;
+  draft.value = props.initial ?? wizard.newProjectDraft(today.value);
+  position.value = props.initial ? HOUSE_STEP : 0;
   isLoaded.value = false;
   const db = getProjectDb();
   const ids = types.map((kind) => kind.id);
@@ -445,6 +453,12 @@ const onDrop = (id: string) => {
 const earliestEnd = computed(() => minimumEndOn(chosen.value?.phases.length ?? 1, today.value));
 const windowTexts = computed(() => wizard.windowLines(draft.value, today.value, voice.value));
 
+/** A Moving Out tower replaces the Old House: its record goes and the moving chores now in the list leave the board (the service never throws) */
+const retireIfMovingOut = async (typeId: ProjectTypeId): Promise<void> => {
+  const isMovingOut = typeId === "moving-out";
+  if (isMovingOut) await retireOldHouse(carriedQuestIds(draft.value));
+};
+
 const build = async () => {
   if (isBuilding.value) return;
   const type = chosen.value;
@@ -453,6 +467,7 @@ const build = async () => {
   try {
     const input = wizard.towerInputOf(draft.value, { today: today.value, now: new Date(), heroes: heroes.value });
     await startProject(input, draft.value.rewardText.trim());
+    await retireIfMovingOut(type.id);
     play$fx("select");
     void showToast(t("projectWizard.built", { tower: type.towerName }), 4000);
     emit("close");

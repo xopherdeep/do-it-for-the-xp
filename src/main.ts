@@ -225,7 +225,7 @@ import('@/lib/engine/core/dungeons/importAllTemples').then(({ ensureBuiltInTempl
 // E2E seam, development builds only: the Cypress suite seeds every store from a backup file and
 // signs a hero in without driving the whole onboarding flow (tests/e2e/support/commands.js).
 if (process.env.NODE_ENV !== 'production') {
-  import('./lib/services/core/BackupService').then(({ backupService }) => {
+  Promise.all([import('./lib/services/core/BackupService'), import('./lib/utils/e2eProjectSeam')]).then(([{ backupService }, { projectTowerSeam }]) => {
     (window as any).__xp = {
       restoreBackup: (backup: unknown) => backupService.restoreBackup(backup as any),
       // Restoring a backup is Game Master only, so a spec signs in as a throwaway Game Master first.
@@ -243,6 +243,8 @@ if (process.env.NODE_ENV !== 'production') {
         return Boolean(user);
       },
       getUser: (userId: string) => JSON.parse(JSON.stringify(useUserStore().users[userId] ?? null)),
+      // Reads and claims for the project tower walk (tests/e2e/specs/project-tower.spec.js)
+      ...projectTowerSeam(),
     };
   });
 }

@@ -97,6 +97,62 @@ const projectOf = (status: ProjectRecord["status"], id = "spring-cleaning-2027-0
   ...(status === "cleared" ? { clearedAt: "2027-04-08T20:00:00.000Z" } : {}),
 });
 
+describe("HomeTown's Old House", () => {
+  const movingOutOf = (status: ProjectRecord["status"]): ProjectRecord => ({ ...projectOf(status, "moving-out-2027-04-01"), typeId: "moving-out" });
+
+  const townWithOldHouse = () => {
+    const wrapper = mountTown();
+    (wrapper.vm as any).hasOldHouse = true;
+    return wrapper;
+  };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    running.mockReset();
+    trophies.mockReset();
+    running.mockResolvedValue(null);
+    trophies.mockResolvedValue([]);
+  });
+
+  it("stands while the family has its temple record and no tower", async () => {
+    const wrapper = townWithOldHouse();
+
+    await (wrapper.vm as any).findTower();
+
+    expect((wrapper.vm as any).isOldHouseShown).toBe(true);
+  });
+
+  it("is not on the plaza without its temple record", async () => {
+    const wrapper = mountTown();
+
+    await (wrapper.vm as any).findTower();
+
+    expect((wrapper.vm as any).isOldHouseShown).toBe(false);
+  });
+
+  it("steps aside for a Moving Out tower, running or kept as the trophy", async () => {
+    running.mockResolvedValue({ project: movingOutOf("active"), cleared: [] });
+    const building = townWithOldHouse();
+    await (building.vm as any).findTower();
+    expect((building.vm as any).isOldHouseShown).toBe(false);
+
+    running.mockResolvedValue(null);
+    trophies.mockResolvedValue([movingOutOf("cleared")]);
+    const trophy = townWithOldHouse();
+    await (trophy.vm as any).findTower();
+    expect((trophy.vm as any).isOldHouseShown).toBe(false);
+  });
+
+  it("stays beside another kind of tower", async () => {
+    running.mockResolvedValue({ project: projectOf("active"), cleared: [] });
+    const wrapper = townWithOldHouse();
+
+    await (wrapper.vm as any).findTower();
+
+    expect((wrapper.vm as any).isOldHouseShown).toBe(true);
+  });
+});
+
 describe("HomeTown's project tower", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
