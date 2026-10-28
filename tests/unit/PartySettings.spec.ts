@@ -25,7 +25,8 @@ jest.mock("@/lib/databases/profileStorage", () => {
   return { __esModule: true, profileStorage: memory, default: memory };
 });
 jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn().mockResolvedValue(undefined) } }));
-jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ emitHeroRemoved: jest.fn() }));
+// The rest of the signals stay real: the record signals (family sync) are made with makeSignal when the user store loads
+jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ ...jest.requireActual("@/lib/services/multiplayer/gameSignals"), emitHeroRemoved: jest.fn() }));
 
 describe("Settings > Party: who may make beasts and quests", () => {
   let saved: Record<string, unknown> | null = null;
