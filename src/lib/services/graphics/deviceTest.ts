@@ -1,7 +1,8 @@
 // The "Test this device" runner: builds and draws the real voxel hero on a throwaway canvas under five fixed render
-// configs plus the chosen tier's own (when it is not Super), one WebGL context alive at a time, and times the renderer, the build, the first render (shader compile
-// included) and the per-frame work. Frames are timed by their own render plus gl.finish, never by the gap between
-// animation frames, which would read slow under the tiers' own 30 and 20 fps caps.
+// configs plus the chosen tier's own (when it is not Super), one WebGL context alive at a time, and times the
+// renderer, the build, the first render (shader compile included) and the per-frame work. Frames are timed by their
+// own render plus gl.finish, never by the gap between animation frames, which would read slow under the tiers' own
+// 30 and 20 fps caps.
 // Each config draws against a clock: a fast device draws every frame, a slow one stops once a time budget is spent and
 // enough frames are kept to read, and a hopeless one at a hard cap (its numbers then read "unknown"), so the whole run
 // is bounded instead of waiting out every frame at hundreds of milliseconds each.
@@ -154,15 +155,15 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
     const canvas = createCanvas();
     const rendererStart = now();
     // The grid configs size the renderer by Super's rule; only the ones that carry knobs keep that rule's MSAA
-    const options = rendererOptionsFor(spec.knobs ?? KNOBS.super, window.devicePixelRatio);
-    const pixelRatio = spec.pixelRatio ?? options.dpr;
+    const rendererOpts = rendererOptionsFor(spec.knobs ?? KNOBS.super, window.devicePixelRatio);
+    const pixelRatio = spec.pixelRatio ?? rendererOpts.dpr;
     const detail = spec.knobs ? detailOf(spec.knobs) : DEFAULT_DETAIL;
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: true,
-        antialias: spec.knobs !== null && options.antialias,
+        antialias: spec.knobs !== null && rendererOpts.antialias,
         powerPreference: "low-power",
       });
     } catch {

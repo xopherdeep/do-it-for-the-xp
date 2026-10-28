@@ -26,6 +26,7 @@ jest.mock("@/lib/services/graphics/deviceSignals", () => ({
 jest.mock("@/lib/services/graphics/deviceTest", () => ({ __esModule: true, runDeviceTest: jest.fn() }));
 jest.mock("@/lib/services/graphics/deviceTestExtras", () => ({ __esModule: true, runDeviceExtras: jest.fn() }));
 jest.mock("@/lib/services/graphics/deviceReport", () => ({
+  ...jest.requireActual("@/lib/services/graphics/deviceReport"),
   __esModule: true,
   formatReport: jest.fn(() => "REPORT TEXT"),
   fastestConfig: jest.fn(() => "noMsaaDpr1"),
@@ -57,7 +58,7 @@ const result = (supported = true): DeviceTestResult => ({
 const extras = { tiles: { count: 9, ms: 400 }, town: { count: 6, ms: 80 }, canvases: 2 };
 
 const open = async () => {
-  const wrapper = mount(VideoSettings, { global: { stubs: { "xp-back-button": true } } });
+  const wrapper = mount(VideoSettings, { global: { stubs: { "xp-back-button": true, "xp-hero-model": true } } });
   await flushPromises();
   return wrapper;
 };
@@ -119,6 +120,26 @@ describe("Video, Test this device", () => {
     expect(wrapper.find("[data-cy='test-progress']").exists()).toBe(false);
     expect(wrapper.find("[data-cy='test-table']").text()).toContain("Today's settings");
     expect(runDeviceExtras).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the tier and the cap it puts on the hero for a non-Super result", async () => {
+    const wrapper = await open();
+
+    await tap(wrapper);
+    const row = wrapper.find("[data-cy='test-tier']");
+    expect(row.text()).toContain("Tier: Classic");
+    expect(row.text()).toContain("Classic caps the hero at 30 fps");
+  });
+
+  it("names Super without a cap note, since Super is not capped", async () => {
+    (runDeviceTest as jest.Mock).mockResolvedValue({ ...result(), tier: "super" });
+    const wrapper = await open();
+
+    await tap(wrapper);
+    const row = wrapper.find("[data-cy='test-tier']");
+    expect(row.text()).toContain("Tier: Super");
+    expect(row.text()).not.toContain("caps the hero");
+    expect(row.findAll("p")).toHaveLength(0);
   });
 
   it("shows Test N of M from the runner's progress and names the fastest setup", async () => {

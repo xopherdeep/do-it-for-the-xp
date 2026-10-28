@@ -85,8 +85,8 @@
   import { runDeviceTest, type DeviceTestProgress } from "@/lib/services/graphics/deviceTest";
   import { runDeviceExtras } from "@/lib/services/graphics/deviceTestExtras";
   import { currentTier } from "@/lib/services/graphics/deviceQuality";
-  import { fastestConfig, formatReport } from "@/lib/services/graphics/deviceReport";
-  import { KNOBS, TIER_NAMES } from "@/lib/services/graphics/voxelQuality";
+  import { fastestConfig, formatReport, tierCapNote } from "@/lib/services/graphics/deviceReport";
+  import { TIER_NAMES } from "@/lib/services/graphics/voxelQuality";
   import type { DeviceSignals } from "@/lib/services/graphics/deviceSignals";
   import type { DeviceTestResult } from "@/lib/services/graphics/deviceTestTypes";
   import { copyTextToClipboard } from "@/lib/utils/clipboard";
@@ -132,11 +132,7 @@
     return tier ? `Tier: ${TIER_NAMES[tier]}` : "";
   });
   // The test runs uncapped (work per frame is the metric), so the tier's own cap is only named here
-  const capNote = computed(() => {
-    const tier = result.value?.tier;
-    const fps = tier ? KNOBS[tier].heroFps : 0;
-    return tier && fps > 0 ? `${TIER_NAMES[tier]} caps the hero at ${fps} fps` : "";
-  });
+  const capNote = computed(() => tierCapNote(result.value?.tier ?? null));
 
   const cannotDrawHero = computed(() => result.value?.configs[0]?.supported === false);
 
