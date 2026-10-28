@@ -1,7 +1,7 @@
 /**
- * What the Town Clerk says when the family's road to the city is not open yet: the family server (`xp-family/v1`) is
- * still being built on the site, so Link a phone and the Town Hall boards cannot reach it and nothing will reach a
- * second phone. One line, one place, so every screen tells the same story and the wording is tested without a screen.
+ * What the Town Clerk says when the family's road to the city is not open: the family server (`xp-family/v1`) did not
+ * answer (no signal, or an error page), so Link a phone and the Town Hall boards cannot reach it and nothing will reach
+ * a second phone. One line, one place, so every screen tells the same story and the wording is tested without a screen.
  */
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import { courierLatePrompt } from "@/lib/services/hometown/hometownPrompts";

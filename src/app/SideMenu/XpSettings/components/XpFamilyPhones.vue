@@ -41,6 +41,8 @@
           </ion-button>
         </ion-buttons>
       </ion-item>
+
+      <xp-family-sync-lock />
     </ion-list>
 
     <!-- The clerk's dialog: the game's own prompt, not a native sheet or toast -->
@@ -78,6 +80,7 @@ import {
   modalController,
 } from "@ionic/vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
+import XpFamilySyncLock from "./XpFamilySyncLock.vue";
 import XpHeroPhonesModal from "./XpHeroPhonesModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
@@ -94,6 +97,7 @@ import debug from "@/lib/utils/debug";
 /**
  * The family card in Family Settings (Game Master only): each hero's nickname check and age group, the home-device
  * banners, and a Phones button per hero. Shown only with the multiplayer flag on and the family linked to the Town Hall.
+ * Linking a phone is free; a family without XP Pro also sees the Family Sync lock under the heroes.
  */
 const family = useFamilyStore();
 const userStore = useUserStore();

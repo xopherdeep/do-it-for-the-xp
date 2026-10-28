@@ -47,11 +47,11 @@ describe("the XP Pro page", () => {
     Object.assign(mockPro, { isPro: false, plan: null, expiresAt: null, licenseKey: "" });
   });
 
-  it("shows Free, the plans and the four perks for a free family", () => {
+  it("shows Free, the plans and the five perks for a free family", () => {
     const wrapper = mountPage();
     expect(wrapper.find('[data-cy="pro-state"]').text()).toBe("Free");
     expect(wrapper.findAll(".buy-button").length).toBe(2);
-    expect(wrapper.findAll('[data-cy="perk"]')).toHaveLength(4);
+    expect(wrapper.findAll('[data-cy="perk"]')).toHaveLength(5);
     expect(wrapper.text()).toContain("Heroes, custom quests and custom beasts stay free forever.");
     expect(wrapper.find('[data-cy="manage-button"]').exists()).toBe(false);
   });

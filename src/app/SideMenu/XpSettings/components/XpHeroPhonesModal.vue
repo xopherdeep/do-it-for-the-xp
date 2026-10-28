@@ -88,6 +88,8 @@
             Remove
           </ion-button>
         </ion-item>
+
+        <xp-family-sync-lock />
       </ion-list>
     </ion-card>
 
@@ -117,6 +119,7 @@ import {
 } from "@ionic/vue";
 import { Capacitor } from "@capacitor/core";
 import QRCode from "qrcode";
+import XpFamilySyncLock from "./XpFamilySyncLock.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useVoice } from "@/hooks/useVoice";

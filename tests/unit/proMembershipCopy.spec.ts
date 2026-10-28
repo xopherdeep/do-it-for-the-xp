@@ -41,7 +41,7 @@ jest.mock("@ionic/vue", () => {
 const mountPage = () =>
   mount(XpMembership, { global: { stubs: { "router-link": { template: "<a class='rl'><slot /></a>" } } } });
 
-/** The XP Pro page tells only what is built: two-phone play is a core feature now, not a perk to come */
+/** The XP Pro page tells only what is built: two-phone play is free and core, Family Sync (the whole game on a hero's phone) is the perk */
 describe("the XP Pro page copy", () => {
   beforeEach(() => {
     mockNative.value = false;
@@ -56,10 +56,11 @@ describe("the XP Pro page copy", () => {
     });
   });
 
-  it("no longer promises Family Sync as a coming perk", () => {
-    const text = mountPage().text();
-    expect(text).not.toContain("Family Sync");
-    expect(text).not.toContain("across devices");
+  it("lists Family Sync as a perk now that it is built", () => {
+    const perks = mountPage()
+      .findAll('[data-cy="perk"]')
+      .map((perk) => perk.text());
+    expect(perks.some((perk) => perk.includes("Family Sync"))).toBe(true);
   });
 
   it("still lists what is coming that is not built yet", () => {

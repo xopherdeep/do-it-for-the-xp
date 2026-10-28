@@ -1,8 +1,8 @@
 /**
  * The switch for multiplayer (part 1, the shared base). A build turns it on with VUE_APP_MULTIPLAYER=true, and
- * .env.production does, so it is on in production. The family server is still being built on the site, so the app
- * shows the road-not-open line until it answers. A development build also reads localStorage["xp:multiplayer"] =
- * "on", so the shared dev server needs no restart. With the flag off nothing is queued and nothing is sent.
+ * .env.production does, so it is on in production. When the family server does not answer, the app shows the
+ * road-not-open line. A development build also reads localStorage["xp:multiplayer"] = "on", so the shared dev
+ * server needs no restart. With the flag off nothing is queued and nothing is sent.
  */
 
 /** The development override */

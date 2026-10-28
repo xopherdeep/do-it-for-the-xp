@@ -41,6 +41,9 @@ jest.mock("@/lib/store/stores/family", () => ({
   useFamilyStore: () => mockFamily,
 }));
 
+const mockPro = reactive({ isPro: false, init: jest.fn(), requirePro: jest.fn() });
+jest.mock("@/lib/store/stores/pro", () => ({ __esModule: true, useProStore: () => mockPro }));
+
 /** The clerk's dialog stub */
 const PromptStub = defineComponent({
   props: ["prompt"],
@@ -92,6 +95,10 @@ describe("XpHeroPhonesModal", () => {
     mockFamily.loadPhones.mockResolvedValue(undefined);
     mockFamily.queueSheets.mockResolvedValue(undefined);
     mockFamily.removePhone.mockResolvedValue(undefined);
+    // A family without Pro: linking works the same for it (only the Family Sync lock differs), so every test here also checks that linking stays free
+    mockPro.isPro = false;
+    mockPro.init.mockResolvedValue(undefined);
+    mockPro.requirePro.mockResolvedValue(false);
     (QRCode.toDataURL as jest.Mock).mockResolvedValue("data:image/png;base64,mockqr");
   });
 
@@ -351,6 +358,28 @@ describe("XpHeroPhonesModal", () => {
       await cy(wrapper, "prompt-yes").trigger("click");
       await flushPromises();
       expect(mockFamily.removePhone).toHaveBeenCalledWith(3);
+    });
+  });
+
+  describe("Family Sync", () => {
+    it("shows a family without Pro the Family Sync lock", async () => {
+      expect((await open()).find('[data-cy="family-sync-lock"]').exists()).toBe(true);
+    });
+
+    it("shows a Pro family no lock", async () => {
+      mockPro.isPro = true;
+      expect((await open()).find('[data-cy="family-sync-lock"]').exists()).toBe(false);
+    });
+
+    it("keeps linking free: a family without Pro still gets a code and a QR, with no upsell", async () => {
+      const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+      mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+      const wrapper = await open();
+      await cy(wrapper, "link-phone").trigger("click");
+      await flushPromises();
+      expect(cy(wrapper, "link-code").text()).toBe("ABCD-EFGH");
+      expect(cy(wrapper, "qr-image").exists()).toBe(true);
+      expect(mockPro.requirePro).not.toHaveBeenCalled();
     });
   });
 

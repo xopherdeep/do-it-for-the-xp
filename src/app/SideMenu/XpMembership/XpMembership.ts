@@ -21,6 +21,7 @@ const PERK_TEXT: Record<ProGate, string> = {
   advancedSchedule: "custom repeats, times of day, several times a day",
   aiHelpers: "beast names, quest checklists, schedule ideas",
   gameStyles: "Dragon Quest, Pokémon, Secret of Mana, Phantasy Star, Virtual Boy and Mario RPG looks",
+  familySync: "play the whole game on a hero's own phone, with every device in step",
 };
 
 /** What the page shows before (or without) the server catalog: the two subscriptions, lifetime hidden. */
