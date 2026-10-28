@@ -26,21 +26,28 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <video-test-card ref="testCard" :signals="signals" @running="isRunning = $event"></video-test-card>
     </ion-content>
 
     <!-- Controls sit at the bottom of the phone: the Test button and the quality picker land here -->
     <ion-footer>
       <ion-toolbar class="rpg-box">
-        <div class="video-settings__footer" data-cy="video-footer-slot"></div>
+        <div class="video-settings__footer" data-cy="video-footer-slot">
+          <ion-button expand="block" data-cy="video-test-button" :disabled="isRunning" @click="runTest">
+            {{ isRunning ? "Testing..." : "Test this device" }}
+          </ion-button>
+        </div>
       </ion-toolbar>
     </ion-footer>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent } from "vue";
+  import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { readDeviceSignals, type DeviceSignals } from "@/lib/services/graphics/deviceSignals";
+  import VideoTestCard from "./video/VideoTestCard.vue";
 
   const UNKNOWN = "unknown";
 
@@ -66,10 +73,18 @@
   export default defineComponent({
     name: "video-settings",
     mixins: [ionic],
+    components: { VideoTestCard },
     setup() {
       // Read once: the numbers do not change while the page is open
-      const rows = rowsFor(readDeviceSignals());
-      return { rows };
+      const signals = readDeviceSignals();
+      const rows = rowsFor(signals);
+      const testCard = ref<{ run: () => Promise<void> } | null>(null);
+      const isRunning = ref(false);
+      const runTest = () => {
+        if (isRunning.value) return;
+        void testCard.value?.run();
+      };
+      return { signals, rows, testCard, isRunning, runTest };
     },
   });
 </script>
