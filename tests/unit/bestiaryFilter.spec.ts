@@ -1,6 +1,6 @@
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { ProposalState } from "@/lib/services/creations/creations";
-import { beastBadge, bestiaryFilter } from "@/app/Admin/XpCompendium/views/XpBestiary/bestiaryFilter";
+import { beastBadge, bestiaryFilter, emptyBestiaryLine } from "@/app/Admin/XpCompendium/views/XpBestiary/bestiaryFilter";
 
 const proposalOf = (state: ProposalState) => ({ by: "ronan", on: "2026-10-27T10:00:00.000Z", state });
 
@@ -50,6 +50,13 @@ describe("bestiaryFilter", () => {
   it("shows an empty bestiary as empty under both segments", () => {
     expect(bestiaryFilter([], "all", "")).toEqual([]);
     expect(bestiaryFilter([], "creations", "")).toEqual([]);
+  });
+});
+
+describe("emptyBestiaryLine", () => {
+  it("says there are no creations yet under Creations and keeps the bestiary line under All", () => {
+    expect(emptyBestiaryLine("creations")).toBe("No creations yet");
+    expect(emptyBestiaryLine("all")).toBe("No beasts found in the bestiary...");
   });
 });
 

@@ -46,6 +46,13 @@ describe("tamedBeastsOf", () => {
     expect(tamed[1].image).toBe("");
   });
 
+  it("shows the kid's own picture of a beast over a library portrait it also has", () => {
+    const drawn = { id: "b-sock", name: "Socktopus", avatar: 7, localImage: "data:image/jpeg;base64,CCC" } as Beast;
+    const tamed = tamedBeastsOf([entry("q1")], "hero-1", { ...context, beasts: [drawn] });
+
+    expect(tamed[0].image).toBe("data:image/jpeg;base64,CCC");
+  });
+
   it("leaves out held or voided claims, other heroes, deleted quests and quests with no beast", () => {
     const tamed = tamedBeastsOf(
       [

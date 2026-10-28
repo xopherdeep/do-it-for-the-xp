@@ -221,14 +221,14 @@ describe("a row's credit", () => {
   it("gives no credit to a quest from the Compendium, even one that has a creator", () => {
     const [plain, wizard] = rowsOf(onBoard(makeQuest({ id: "plain" })), onBoard(makeQuest({ id: "wizard", createdBy: "jack" })));
 
-    expect(toLogRow(plain, context()).credit).toBe("");
-    expect(toLogRow(wizard, context()).credit).toBe("");
+    expect(toLogRow(plain, context())).not.toHaveProperty("credit");
+    expect(toLogRow(wizard, context())).not.toHaveProperty("credit");
   });
 
   it("gives no credit when the maker is no hero the family knows", () => {
     const [row] = rowsOf(onBoard(makeQuest({ proposal: { by: "stranger", on: sentOn, state: "approved" } })));
 
-    expect(toLogRow(row, context()).credit).toBe("");
+    expect(toLogRow(row, context())).not.toHaveProperty("credit");
   });
 });
 

@@ -25,6 +25,11 @@ export function bestiaryFilter(beasts: readonly Beast[], segment: BestiarySegmen
   });
 }
 
+/** What the page says when a segment lists nothing. */
+export function emptyBestiaryLine(segment: BestiarySegment): string {
+  return segment === "creations" ? "No creations yet" : "No beasts found in the bestiary...";
+}
+
 /**
  * The small chip on a beast's card: "Waiting" for one no Game Master has looked at, "Came back" for one sent back, the
  * credit line ("Drawn by Ronan") for an approved kid beast, and nothing for any other beast.

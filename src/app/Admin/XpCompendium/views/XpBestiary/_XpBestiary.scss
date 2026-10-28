@@ -26,7 +26,6 @@ ion-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
     gap: 16px;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -76,21 +75,6 @@ ion-content {
     padding: 8px 12px;
     border-radius: 20px;
     border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
-  }
-
-  // The All | Creations switch takes the second row of the bar, under the search box
-  .beast-segment {
-    flex: 1 1 100%;
-    --background: rgba(255, 255, 255, 0.05);
-
-    ion-segment-button {
-      --color: rgba(255, 255, 255, 0.6);
-      --color-checked: var(--gs-text, #e7e6b3);
-      --indicator-color: rgba(255, 255, 255, 0.18);
-      min-height: 32px;
-      font-family: "Press Start 2P";
-      font-size: 0.6rem;
-    }
   }
 
   .beast-grid {

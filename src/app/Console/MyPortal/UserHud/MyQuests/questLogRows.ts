@@ -157,8 +157,8 @@ export interface QuestLogRow {
   id: string;
   title: string;
   subtitle: string;
-  /** "Suggested by Jack" on a quest a hero suggested and a Game Master approved; "" on every other quest */
-  credit: string;
+  /** "Suggested by Jack" on a quest a hero suggested and a Game Master approved; absent on every other quest */
+  credit?: string;
   /** The tile's picture: the beast's own picture, else its library portrait, else the quest's own; "" when the tile shows the icon */
   image: string;
   /** The tile's icon when there is no picture (a Font Awesome name) */
@@ -210,7 +210,7 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl, nic
     id: row.id,
     title: formatQuestName(row.title),
     subtitle: subtitleOf(row),
-    credit,
+    ...(credit ? { credit } : {}),
     image,
     icon: STATUS_ICONS[row.status],
     status: row.status,

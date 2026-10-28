@@ -8,6 +8,21 @@
       </ion-button>
     </template>
 
+    <!-- All: the beasts in play. Creations: every beast a hero made, waiting or not. A bar at the bottom, in thumb
+         reach; the round button floats in the page just above it -->
+    <template #footer>
+      <ion-toolbar>
+        <ion-segment v-model="segment" aria-label="Show beasts">
+          <ion-segment-button value="all">
+            <ion-label>All</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="creations">
+            <ion-label>Creations</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
+    </template>
+
     <!-- Search Area -->
     <div class="search-container">
       <div class="search-box">
@@ -15,23 +30,14 @@
         <input type="text" v-model="searchQuery" placeholder="Search bestiary..." class="beast-search-input" />
       </div>
       <div class="beast-count">{{ filteredBeasts.length }} Beasts</div>
-      <!-- All: the beasts in play. Creations: every beast a hero made, waiting or not -->
-      <ion-segment v-model="segment" class="beast-segment" aria-label="Show beasts">
-        <ion-segment-button value="all">
-          <ion-label>All</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="creations">
-          <ion-label>Creations</ion-label>
-        </ion-segment-button>
-      </ion-segment>
     </div>
 
     <!-- Grid Area -->
     <div class="beast-grid">
       <ion-grid>
         <ion-row>
-          <!-- Add New Card -->
-          <ion-col size="4" size-md="3" size-lg="2">
+          <!-- Add New Card (a Game Master's own beast: not among the kids' creations) -->
+          <ion-col v-if="!isCreations" size="4" size-md="3" size-lg="2">
             <XpBeastSelectorItem id="__add_new__" name="Add New" icon="fa-paw-claws" :bg1="addNewBg1" :bg2="addNewBg2"
               class="add-new-card" @click="clickAddBeast()" />
           </ion-col>
@@ -45,7 +51,7 @@
 
       <div v-if="filteredBeasts.length === 0" class="no-results">
         <i class="fad fa-ghost fa-3x"></i>
-        <p>No beasts found in the bestiary...</p>
+        <p>{{ emptyLine }}</p>
       </div>
     </div>
 
@@ -88,7 +94,7 @@ import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb
 import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
-import { beastBadge, bestiaryFilter } from "./bestiaryFilter";
+import { beastBadge, bestiaryFilter, emptyBestiaryLine } from "./bestiaryFilter";
 import type { BestiarySegment } from "./bestiaryFilter";
 import { useUserStore } from "@/lib/store/stores/user";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
@@ -414,6 +420,8 @@ export default defineComponent({
     const isLoading = ref(true);
     const userStore = useUserStore();
 
+    const isCreations = computed(() => segment.value === "creations");
+    const emptyLine = computed(() => emptyBestiaryLine(segment.value));
     const filteredBeasts = computed(() => bestiaryFilter(beasts.value, segment.value, searchQuery.value));
     const badgeOf = (beast: Beast) => beastBadge(beast, (id) => userStore.users[id]?.name?.nick ?? "");
 
@@ -434,6 +442,8 @@ export default defineComponent({
       router,
       searchQuery,
       segment,
+      isCreations,
+      emptyLine,
       filteredBeasts,
       badgeOf,
       addNewBg1,

@@ -59,7 +59,8 @@ export function tamedBeastsOf(
     tamed.set(beastId, {
       id: beastId,
       name: own?.name || libraryEntryOf(beastId)?.name || formatQuestName(quest.achievementName),
-      image: portraitUrl(face.avatar) || face.picture || "",
+      // A kid's own picture of the beast wins over the library portrait it may also carry
+      image: face.picture || portraitUrl(face.avatar) || "",
       count: 1,
       lastTamedAt: entry.completedAt,
       quest,
