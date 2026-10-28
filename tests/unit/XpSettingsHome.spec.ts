@@ -72,7 +72,7 @@ describe("the Settings page", () => {
     const wrapper = await open();
 
     const rows = rowsOf(wrapper);
-    expect(rows).toEqual(["settings-chore", "settings-reward", "settings-notifications", "settings-sound", "settings-theme", "settings-general", "settings-unlink-phone"]);
+    expect(rows).toEqual(["settings-chore", "settings-reward", "settings-notifications", "settings-sound", "settings-video", "settings-theme", "settings-general", "settings-unlink-phone"]);
     expect(wrapper.find("[data-cy='backup-nudge-stub']").exists()).toBe(false);
   });
 
