@@ -154,6 +154,8 @@ describe("Video tier picker", () => {
     const wrapper = await open();
 
     expect(wrapper.find("[data-cy='tier-restart']").exists()).toBe(false);
+    // the live region is in the page before there is anything to announce, so a screen reader hears the notice later
+    expect(wrapper.find("[aria-live='polite']").exists()).toBe(true);
     wrapper.unmount();
   });
 
@@ -164,7 +166,7 @@ describe("Video tier picker", () => {
 
     const notice = wrapper.find("[data-cy='tier-restart']");
     expect(notice.exists()).toBe(true);
-    expect(notice.attributes("aria-live")).toBe("polite");
+    expect(notice.element.closest("[aria-live='polite']")).not.toBeNull();
     expect(notice.text()).toContain("close the game completely");
     wrapper.unmount();
   });

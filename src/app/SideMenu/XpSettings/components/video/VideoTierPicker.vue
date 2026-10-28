@@ -1,28 +1,37 @@
 <template>
   <div ref="root" class="video-tier" data-cy="video-tier-content">
-    <!-- Mounted only once the page has painted twice, so a slow first hero cannot freeze the page it is meant to fix -->
-    <div class="video-tier__preview" data-cy="tier-preview">
-      <xp-hero-model v-if="isPreviewReady" :key="voxelTier" :look="previewLook" />
-    </div>
+    <!-- On a card like the other settings: loose on the page, this text sat on the busy checkerboard and could not be read -->
+    <ion-card class="settings-card max-w-2xl">
+      <ion-card-content>
+        <!-- Mounted only once the page has painted twice, so a slow first hero cannot freeze the page it is meant to fix -->
+        <div class="video-tier__preview" data-cy="tier-preview">
+          <xp-hero-model v-if="isPreviewReady" :key="voxelTier" :look="previewLook" />
+        </div>
 
-    <p :id="blurbId" class="video-tier__blurb" data-cy="tier-blurb">{{ TIER_BLURBS[voxelTier] }}</p>
+        <p :id="blurbId" class="video-tier__blurb" data-cy="tier-blurb">{{ TIER_BLURBS[voxelTier] }}</p>
 
-    <details class="video-tier__details" data-cy="tier-details">
-      <summary>Details</summary>
-      <ul>
-        <li v-for="fact in facts" :key="fact.label">
-          <span class="video-tier__fact-label">{{ fact.label }}</span> {{ fact.value }}
-        </li>
-      </ul>
-    </details>
+        <details class="video-tier__details" data-cy="tier-details">
+          <summary>Details</summary>
+          <ul>
+            <li v-for="fact in facts" :key="fact.label">
+              <span class="video-tier__fact-label">{{ fact.label }}</span> {{ fact.value }}
+            </li>
+          </ul>
+        </details>
 
-    <p class="video-tier__note" data-cy="tier-note">
-      This changes only this device. The preview switches right away. Other heroes switch the next time their screen opens.
-    </p>
+        <p class="video-tier__note" data-cy="tier-note">
+          This changes only this device. The preview switches right away. Other heroes switch the next time their screen
+          opens.
+        </p>
 
-    <p v-if="needsRestart" class="video-tier__restart" aria-live="polite" data-cy="tier-restart">
-      Towns and maps finish switching after you close the game completely (swipe it away) and open it again.
-    </p>
+        <!-- The live region is always in the page, so screen readers announce the note when it appears inside it -->
+        <div aria-live="polite">
+          <p v-if="needsRestart" class="video-tier__restart" data-cy="tier-restart">
+            Towns and maps finish switching after you close the game completely (swipe it away) and open it again.
+          </p>
+        </div>
+      </ion-card-content>
+    </ion-card>
   </div>
 
   <!-- The segment lives in the page footer, within thumb reach; it is teleported there once the footer exists -->
@@ -43,7 +52,7 @@
 
 <script setup lang="ts">
   import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-  import { IonLabel, IonSegment, IonSegmentButton } from "@ionic/vue";
+  import { IonCard, IonCardContent, IonLabel, IonSegment, IonSegmentButton } from "@ionic/vue";
   import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
   import { BENCH_LOOKS } from "@/components/organisms/HeroModel/voxel/benchLooks";
   import {
@@ -126,7 +135,7 @@
   }
 
   .video-tier__details {
-    margin: 8px 16px;
+    margin: 8px 0;
     color: var(--gs-text-dim);
   }
 
@@ -147,12 +156,12 @@
   }
 
   .video-tier__note {
-    margin: 8px 16px;
+    margin: 8px 0;
     color: var(--gs-text-dim);
   }
 
   .video-tier__restart {
-    margin: 8px 16px;
+    margin: 8px 0;
     padding: 8px 12px;
     border: 1px solid var(--gs-accent);
     color: var(--gs-accent);
@@ -162,7 +171,15 @@
     margin: 0 0 8px;
   }
 
+  /* The pixel font is wide: with the default padding "Classic" was cut to "CLAS…" on a 390px phone */
   .video-tier__segment ion-segment-button {
     min-height: 44px;
+    --padding-start: 6px;
+    --padding-end: 6px;
+  }
+
+  .video-tier__segment ion-label {
+    font-size: 1rem;
+    letter-spacing: 0;
   }
 </style>
