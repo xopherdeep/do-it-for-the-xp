@@ -102,6 +102,8 @@ interface Request {
 
 export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThumbnailer => {
   const knobs = currentKnobs();
+  /** Captured with the knobs: a picture is keyed by the tier whose knobs drew it, even if the stored tier changes later */
+  const tier = currentTier();
   const perFrame = options.perFrame ?? knobs.thumbPerFrame;
   const defaultSize = cappedSize(DEFAULT_SIZE, knobs);
   const cacheSize = options.cacheSize ?? CACHE_SIZE;
@@ -180,7 +182,7 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
   const get = (look: HeroLook, framing: SnapshotFraming, size = defaultSize): string => {
     if (isShutDown()) return "";
     const stored = withoutHands(look);
-    const key = `${currentTier()}|${framing}|${size}|${JSON.stringify(stored)}`;
+    const key = `${tier}|${framing}|${size}|${JSON.stringify(stored)}`;
     const picture = pictures.get(key);
     const isDrawn = picture !== undefined;
     if (isDrawn) return picture;

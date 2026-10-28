@@ -37,9 +37,7 @@ const manualFrames = () => {
   const runs: (() => void)[] = [];
   return {
     runs,
-    schedule: (run: () => void) => {
-      runs.push(run);
-    },
+    schedule: (run: () => void) => runs.push(run),
     flush: () => runs.shift()?.(),
   };
 };
@@ -134,7 +132,6 @@ describe("createLookThumbnailer", () => {
     flush();
     expect(drawnHair(draw)).toEqual(["#000004", "#000003", "#000002"]);
     expect(runs).toHaveLength(1);
-
     flush();
     expect(drawnHair(draw)).toEqual(["#000004", "#000003", "#000002", "#000001"]);
     expect(runs).toHaveLength(0);
@@ -193,7 +190,6 @@ describe("createLookThumbnailer", () => {
       flush();
     });
     expect(draw).toHaveBeenCalledTimes(3);
-
     expect(thumbs.get(look(3), "bust")).not.toBe("");
     expect(thumbs.get(look(2), "bust")).not.toBe("");
     expect(draw).toHaveBeenCalledTimes(3);
@@ -431,15 +427,19 @@ describe("the Video tier", () => {
     expect(draw).toHaveBeenCalledTimes(2);
   });
 
-  it("makes two pictures of one look and size on two tiers", () => {
+  it("keys a picture by the tier whose knobs drew it, and a thumbnailer made on another tier draws its own", () => {
     const draw = fakeDraw();
     const { schedule, flush } = manualFrames();
-    const thumbs = createLookThumbnailer({ draw, schedule });
-    thumbs.get(DEFAULT_LOOK, "bust", 8);
-    flush();
+    const ask = (thumbs: LookThumbnailer) => {
+      thumbs.get(DEFAULT_LOOK, "bust", 8);
+      flush();
+    };
+    const first = createLookThumbnailer({ draw, schedule });
+    ask(first);
     setVoxelTier("classic");
-    thumbs.get(DEFAULT_LOOK, "bust", 8);
-    flush();
+    ask(first);
+    expect(draw).toHaveBeenCalledTimes(1);
+    ask(createLookThumbnailer({ draw, schedule }));
     expect(draw).toHaveBeenCalledTimes(2);
   });
 
