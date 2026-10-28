@@ -4,7 +4,7 @@
 // (c) how many canvases the page holds right now (free, and it shows whether earlier Ionic pages stay mounted).
 // Never throws: a part that fails reports ms null, an abort leaves the later parts out.
 // PRIVACY: memory only, the result is never stored or sent.
-import { DEFAULT_LOOK, FANTASY_SKIN_TONES, REAL_SKIN_TONES } from "@/lib/hero-look/types";
+import { DEFAULT_LOOK, REAL_SKIN_TONES } from "@/lib/hero-look/types";
 import type { HeroLook } from "@/lib/hero-look/types";
 import { createLookThumbnailer } from "@/components/organisms/HeroModel/useLookThumbnails";
 import type { ThumbDraw } from "@/components/organisms/HeroModel/useLookThumbnails";
@@ -31,8 +31,9 @@ const TILE_BUDGET_MS = 6000;
 const TOWN_BUILDINGS = ["town-hall", "bank", "shop", "hospital", "hero-home", "old-house", "hotel"];
 const TOWN_STAGE = "world-plains";
 
+/** Nine different real skin tones: the tones only make the nine pictures differ, so none is served from the cache */
 const tileLooks = (): HeroLook[] =>
-  [...REAL_SKIN_TONES, ...FANTASY_SKIN_TONES].slice(0, TILE_COUNT).map((skin) => ({ ...DEFAULT_LOOK, skin }));
+  REAL_SKIN_TONES.slice(0, TILE_COUNT).map((skin) => ({ ...DEFAULT_LOOK, skin }));
 
 export async function runDeviceExtras(options: DeviceExtrasOptions = {}): Promise<DeviceExtras> {
   const now = options.now ?? (() => performance.now());

@@ -7,6 +7,24 @@ import { buildStageMeshData } from "@/components/organisms/StageModel/voxel/stag
  * batch, the Home Town mesh bake and the live canvas count. No WebGL here, so the thumbnailer gets an injected draw.
  */
 
+// The real thumbnailer, with its dispose watched: the speed test must hand the GL context back
+const mockDisposeSpy = jest.fn();
+jest.mock("@/components/organisms/HeroModel/useLookThumbnails", () => {
+  const actual = jest.requireActual("@/components/organisms/HeroModel/useLookThumbnails");
+  return {
+    ...actual,
+    createLookThumbnailer: (options: unknown) => {
+      const thumbnailer = actual.createLookThumbnailer(options);
+      return {
+        ...thumbnailer,
+        dispose: () => {
+          mockDisposeSpy();
+          thumbnailer.dispose();
+        },
+      };
+    },
+  };
+});
 jest.mock("@/components/organisms/BuildingModel/voxel/buildingShapes", () => ({ buildBuildingMeshData: jest.fn() }));
 jest.mock("@/components/organisms/StageModel/voxel/stageShapes", () => ({ buildStageMeshData: jest.fn() }));
 
@@ -28,6 +46,7 @@ describe("runDeviceExtras", () => {
 
   beforeEach(() => {
     clock = 0;
+    mockDisposeSpy.mockClear();
     buildBuilding.mockReset().mockImplementation(() => {
       clock += BUILD_MS;
     });
@@ -106,6 +125,34 @@ describe("runDeviceExtras", () => {
     expect(result.tiles).toEqual({ count: TILE_COUNT, ms: null });
     expect(result.town?.ms).toBe(8 * BUILD_MS);
     expect(result.canvases).toBe(3);
+  });
+
+  it("releases the thumbnailer after a normal run", async () => {
+    await runDeviceExtras({ now, raf, draw: slowDraw, countCanvases: () => 1 });
+    expect(mockDisposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases the thumbnailer when the draw throws", async () => {
+    const broken = jest.fn(() => {
+      throw new Error("lost context");
+    });
+    await runDeviceExtras({ now, raf, draw: broken, countCanvases: () => 1 });
+    expect(mockDisposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up waiting for the tiles after the cap, and the run still resolves", async () => {
+    const TILE_CAP_PASSED_MS = 7000;
+    const neverFinishes = jest.fn(() => "");
+    const jumpPastCap = (callback: FrameRequestCallback): number => {
+      clock += TILE_CAP_PASSED_MS;
+      callback(clock);
+      return 1;
+    };
+    const result = await runDeviceExtras({ now, raf: jumpPastCap, draw: neverFinishes, countCanvases: () => 4 });
+    expect(result.tiles).toEqual({ count: TILE_COUNT, ms: null });
+    expect(result.town?.ms).toBe(8 * BUILD_MS);
+    expect(result.canvases).toBe(4);
+    expect(mockDisposeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("gives null ms for the town when a build throws", async () => {
