@@ -244,7 +244,7 @@ describe("the Beast Maker opening on the list", () => {
     signIn(age);
     read.mockResolvedValue(beasts as never);
     readQuests.mockResolvedValue(quests as never);
-    const wrapper = mount(XpBeastMakerModal, { props: { open: true, heroId: "hero" }, global: { stubs } });
+    const wrapper = mount(XpBeastMakerModal, { props: { open: true }, global: { stubs } });
     await flushPromises();
     return wrapper;
   };
@@ -276,7 +276,7 @@ describe("the Beast Maker opening on the list", () => {
   it("opens on the steps when the stores cannot be read: the Maker is still there", async () => {
     signIn();
     read.mockRejectedValue(new Error("storage"));
-    const wrapper = mount(XpBeastMakerModal, { props: { open: true, heroId: "hero" }, global: { stubs } });
+    const wrapper = mount(XpBeastMakerModal, { props: { open: true }, global: { stubs } });
     await flushPromises();
 
     expect(wrapper.find('[data-test="step-look"]').exists()).toBe(true);

@@ -359,9 +359,10 @@ describe("MyCalendar", () => {
 
       sheetButtons()[2].handler?.();
       await flushPromises();
+      // The Maker reads the signed-in hero from the store itself, so the page hands it nothing but the open flag
       const maker = wrapper.findComponent({ name: "XpBeastMakerModal" });
       expect(maker.props("open")).toBe(true);
-      expect(maker.props("heroId")).toBe("hero-1");
+      expect(maker.props("heroId")).toBeUndefined();
 
       maker.vm.$emit("quest", { id: "b9", name: "Socktopus", checklist: ["Match the pairs"] });
       await flushPromises();

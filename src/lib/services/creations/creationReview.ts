@@ -92,10 +92,6 @@ export const settleNotices = (key: string): void => {
   }
 };
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Approve
-// ---------------------------------------------------------------------------------------------------------------------
-
 /** What one approved record paid: to whom, for what, and how much (0 when it was paid before) */
 interface Paid {
   maker: string;
@@ -137,7 +133,8 @@ const tellMakers = (paid: readonly Paid[]): number => {
     byMaker.set(one.maker, told ? { ...told, ap: told.ap + one.ap } : one);
   }
   for (const one of byMaker.values()) {
-    if (one.ap > 0) notify(creationApprovedNotification(one.maker, one.ref, one.ap));
+    const wasPaidNow = one.ap > 0;
+    if (wasPaidNow) notify(creationApprovedNotification(one.maker, one.ref, one.ap));
   }
   return paid.reduce((sum, one) => sum + one.ap, 0);
 };
@@ -248,10 +245,6 @@ export const approveStoredQuest = async (questId: string, reviewerId: string, st
   tellMakers(await approveQuestAndBeast(quest, reviewerId, new Date(), undefined, stores));
   return true;
 };
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Send back
-// ---------------------------------------------------------------------------------------------------------------------
 
 /**
  * Send a row back to its maker with the Game Master's note (blank means none), the quest a beast was sent with along

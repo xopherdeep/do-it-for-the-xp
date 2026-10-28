@@ -91,7 +91,7 @@ const mountMaker = async (age = 10) => {
   const year = new Date().getFullYear();
   store.addUser({ id: "hero", isAdult: false, birthday: `${year - age}-01-01`, name: { first: "Mia", nick: "Mimi" } });
   store.loginUser(store.users.hero);
-  const wrapper = mount(XpBeastMakerModal, { props: { open: true, heroId: "hero" }, global: { stubs } });
+  const wrapper = mount(XpBeastMakerModal, { props: { open: true }, global: { stubs } });
   await flushPromises();
   return wrapper;
 };

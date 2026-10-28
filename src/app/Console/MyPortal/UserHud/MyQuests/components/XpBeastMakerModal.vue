@@ -251,8 +251,6 @@ import XpMyCreations from "./XpMyCreations.vue";
 
 const props = defineProps<{
   open: boolean;
-  /** The signed-in hero: the beast is made by them and credited to them */
-  heroId: string;
 }>();
 
 const emit = defineEmits<{
@@ -267,6 +265,9 @@ const { voice } = useVoice();
 const { startAutoReading, stopReading } = useReadAloud();
 const { showToast } = useToast();
 const userStore = useUserStore();
+// The signed-in hero, as the Quest Wizard reads them: the beast is made by them and credited to them, whatever page
+// the Maker opened from (a page at a sibling's address must not make as the sibling)
+const me = computed(() => String(userStore.currentUser.id ?? ""));
 
 // ---- The draft -----------------------------------------------------------------------------------------------------
 
@@ -274,7 +275,7 @@ const draft = ref<BeastDraft>(newBeastDraft());
 const steps = computed(() => makerSteps(voice.value));
 const position = ref(0);
 // The list of what the hero already made opens first; Fix it and Draw a new beast hand the steps their draft
-const { state: creations, open: openList, refresh, startNew, startFix } = useMyCreations(() => props.heroId, draft, position);
+const { state: creations, open: openList, refresh, startNew, startFix } = useMyCreations(() => me.value, draft, position);
 const { sendAgain, removeRow, openRow } = useCreationRows(creations, refresh);
 const saving = ref(false);
 const shell = ref<InstanceType<typeof XpWizardShell> | null>(null);
@@ -437,11 +438,11 @@ const nickOfHero = (id: string): string => {
   return name?.nick || name?.first || "";
 };
 // "Drawn by Mia" for a drawing, "Made by Mia" for a library look; nothing for a hero the device does not know
-const credit = computed(() => creditLine({ madeBy: props.heroId, localImage: draft.value.localImage }, "beast", nickOfHero));
+const credit = computed(() => creditLine({ madeBy: me.value, localImage: draft.value.localImage }, "beast", nickOfHero));
 
 // The Bestiary makes an id up and never hands it back, so the beast gets one here: the Quest Wizard opens on it
 const saveNewBeast = async (): Promise<Beast> => {
-  const beast: Beast = { ...proposedBeast(draft.value, props.heroId, new Date()), id: uuidv4() };
+  const beast: Beast = { ...proposedBeast(draft.value, me.value, new Date()), id: uuidv4() };
   await new BestiaryDb(beastStorage).setBeast(beast);
   return beast;
 };
@@ -457,7 +458,7 @@ const send = async () => {
   saving.value = true;
   try {
     // The cap counts this hero's beasts and quests still with the Game Master, together; a beast that came back is among them
-    const isCapped = !creations.fixing && !(await mayPropose(props.heroId));
+    const isCapped = !creations.fixing && !(await mayPropose(me.value));
     if (isCapped) {
       play$fx("no");
       say(t("beastMaker.cap"));

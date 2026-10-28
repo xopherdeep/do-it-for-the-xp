@@ -71,8 +71,7 @@
         @saved="onQuestSaved" />
 
       <!-- The Beast Maker: the signed-in maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
-      <XpBeastMakerModal :open="makerOpen" :heroId="makerId" @close="makerOpen = false" @saved="loadBoard"
-        @quest="openWizardWith" />
+      <XpBeastMakerModal :open="makerOpen" @close="makerOpen = false" @saved="loadBoard" @quest="openWizardWith" />
 
       <!-- A tap on a quest opens its bestiary entry: the beast, its checklist, and Hunt / Claim -->
       <XpBeastCardModal v-if="activeRow" @didDismiss="onTaskDismissed" :quest="activeRow.quest"

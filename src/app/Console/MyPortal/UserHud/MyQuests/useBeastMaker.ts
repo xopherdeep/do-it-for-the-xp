@@ -5,7 +5,8 @@
  * opens the wizard on the new beast, whose id rides on the page's prefill until the wizard closes.
  *
  * The maker is the signed-in hero, never the hero whose page is on screen: a page opened at a sibling's address
- * (/my-tasks/<sibling>) must not draw, send again or delete as the sibling. The Quest Wizard trusts the same hero.
+ * (/my-tasks/<sibling>) must not draw, send again or delete as the sibling. The Quest Wizard and the Beast Maker read
+ * the same hero from the store themselves.
  */
 import { computed, ref, watch } from "vue";
 import type { Beast } from "@/lib/databases/BestiaryDb";
@@ -21,7 +22,7 @@ export function useBeastMaker(basePrefill: () => QuestPrefill) {
   const rules = useGameRulesStore();
   void rules.load();
 
-  /** The signed-in hero: the one the Maker makes for and credits */
+  /** The signed-in hero: the one who may be a maker */
   const makerId = computed(() => String(userStore.currentUser.id ?? ""));
 
   // Only a profile flagged as a Game Master (or a Game Master playing as a hero) is kept out: they make beasts in the
@@ -51,5 +52,5 @@ export function useBeastMaker(basePrefill: () => QuestPrefill) {
     wizardOpen.value = true;
   };
 
-  return { makerId, isMaker, makerOpen, wizardOpen, wizardPrefill, openWizardWith };
+  return { isMaker, makerOpen, wizardOpen, wizardPrefill, openWizardWith };
 }
