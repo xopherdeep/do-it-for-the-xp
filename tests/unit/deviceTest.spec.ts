@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import { runDeviceTest } from "@/lib/services/graphics/deviceTest";
+import { setVoxelTier } from "@/lib/services/graphics/deviceQuality";
 
 /**
- * The speed test's runner with a fake WebGL renderer, a fake clock and a fake animation frame: the grid of four render
- * configs, what the meter is fed (render work, never the gap between frames) and how the run stops early.
+ * The speed test's runner with a fake WebGL renderer, a fake clock and a fake animation frame: the grid of five render
+ * configs (six when a tier other than Super is chosen), what the meter is fed (render work, never the gap between
+ * frames) and how the run stops early.
  */
 
 jest.mock("three", () => {
@@ -58,6 +60,7 @@ describe("runDeviceTest", () => {
 
   afterEach(() => {
     window.devicePixelRatio = originalDpr;
+    setVoxelTier("super");
   });
 
   beforeEach(() => {
@@ -84,12 +87,13 @@ describe("runDeviceTest", () => {
     });
   });
 
-  it("runs the four configs in order and frees each context", async () => {
+  it("runs the five configs in order on Super, with no chosen line, and frees each context", async () => {
     const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 30 });
     expect(result.aborted).toBe(false);
-    expect(result.configs.map((c) => c.id)).toEqual(["today", "noMsaa", "noMsaaDpr1", "noMsaaDpr1Simple"]);
+    expect(result.tier).toBe("super");
+    expect(result.configs.map((c) => c.id)).toEqual(["today", "noMsaa", "noMsaaDpr1", "noMsaaDpr1Simple", "noMsaaDpr1Flat"]);
     expect(result.configs.every((c) => c.supported)).toBe(true);
-    expect(renderers).toHaveLength(4);
+    expect(renderers).toHaveLength(5);
     renderers.forEach((r) => expect(r.forceContextLoss).toHaveBeenCalledTimes(1));
     renderers.forEach((r) => expect(r.dispose).toHaveBeenCalledTimes(1));
     expect(result.coldBuildMs).not.toBeNull();
@@ -101,16 +105,43 @@ describe("runDeviceTest", () => {
   it("turns MSAA off from the second config and the pixel ratio down to 1 from the third", async () => {
     await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 12 });
     const antialias = MockRenderer.mock.calls.map(([options]) => options.antialias);
-    expect(antialias).toEqual([false, false, false, false]); // a ratio of 2 already turns it off on today's config
+    expect(antialias).toEqual([false, false, false, false, false]); // a ratio of 2 already turns it off on today's config
     const ratios = renderers.map((r) => r.setPixelRatio.mock.calls[0][0]);
-    expect(ratios).toEqual([2, 2, 1, 1]);
+    expect(ratios).toEqual([2, 2, 1, 1, 1]);
+  });
+
+  it("adds the chosen config on Classic: six configs, MSAA off and a pixel ratio of 1.5 at a ratio of 2", async () => {
+    setVoxelTier("classic");
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 12 });
+    expect(result.tier).toBe("classic");
+    expect(result.configs.map((c) => c.id)).toEqual([
+      "today",
+      "noMsaa",
+      "noMsaaDpr1",
+      "noMsaaDpr1Simple",
+      "noMsaaDpr1Flat",
+      "chosen",
+    ]);
+    expect(renderers).toHaveLength(6);
+    expect(MockRenderer.mock.calls[5][0].antialias).toBe(false);
+    expect(renderers[5].setPixelRatio.mock.calls[0][0]).toBe(1.5);
+    renderers.forEach((r) => expect(r.forceContextLoss).toHaveBeenCalledTimes(1));
+  });
+
+  it("runs the chosen config uncapped, like the others", async () => {
+    setVoxelTier("pocket");
+    renderMs = FAST_RENDER_MS;
+    await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
+    expect(renderers).toHaveLength(6);
+    expect(renderers[5].setPixelRatio.mock.calls[0][0]).toBe(1);
+    expect(drawnFrames(renderers[5])).toBe(FRAMES);
   });
 
   it("keeps MSAA on for today's config on a 1x screen", async () => {
     window.devicePixelRatio = 1;
     await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 12 });
     const antialias = MockRenderer.mock.calls.map(([options]) => options.antialias);
-    expect(antialias).toEqual([true, false, false, false]);
+    expect(antialias).toEqual([true, false, false, false, false]);
   });
 
   it("feeds the meter render work, not the gap between frames", async () => {
@@ -137,7 +168,7 @@ describe("runDeviceTest", () => {
     renderMs = SLOW_RENDER_MS;
     const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
     expect(result.aborted).toBe(false);
-    expect(result.configs).toHaveLength(4);
+    expect(result.configs).toHaveLength(5);
     renderers.forEach((r) => {
       expect(drawnFrames(r)).toBeLessThan(FRAMES);
       expect(drawnFrames(r)).toBeGreaterThanOrEqual(WARMUP_FRAMES + MIN_KEPT_FRAMES);
@@ -156,7 +187,7 @@ describe("runDeviceTest", () => {
     renderMs = HUGE_RENDER_MS;
     const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
     expect(result.aborted).toBe(false);
-    expect(result.configs).toHaveLength(4);
+    expect(result.configs).toHaveLength(5);
     renderers.forEach((r) => {
       expect(drawnFrames(r)).toBeGreaterThan(0);
       expect(drawnFrames(r)).toBeLessThan(WARMUP_FRAMES + MIN_KEPT_FRAMES);

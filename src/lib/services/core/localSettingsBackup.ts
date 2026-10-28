@@ -4,7 +4,9 @@ import type { BackupStorage } from "@/lib/services/core/BackupService";
  * The settings the app keeps in localStorage that a family would want on a new phone: sound, haptics, text speed,
  * game style, the family lock, reminder choices and the bestiary backgrounds. Device state stays out on purpose:
  * who is signed in, masquerading, which quests were already reminded, dev switches, when the last backup was made.
- * Add a key here when a new family-wide setting lands in localStorage.
+ * Add a key here when a new family-wide setting lands in localStorage. A setting that belongs to this phone and not
+ * to the family (xp.voxelQuality, the Video tier) is device-only: never list it, or a restore from a fast phone
+ * would overwrite what an old phone needs.
  */
 export const LOCAL_SETTING_KEYS: readonly string[] = [
   "xp-audio-settings",

@@ -45,7 +45,8 @@ const result: DeviceTestResult = {
 
 const GOLDEN = [
   "XP video test v1 2026-10-28",
-  "Tier: classic",
+  "Tier: Classic",
+  "Classic caps the hero at 30 fps",
   "Chrome: 78",
   "Android: 8",
   "Memory: 2 GB",
@@ -109,6 +110,13 @@ describe("formatReport", () => {
   it("says plainly when a config cannot draw 3D", () => {
     const text = formatReport(signals, { ...result, configs: [config("today", null, false)] }, NOW);
     expect(text).toContain("today (today): cannot draw 3D");
+  });
+
+  it("names each tier and notes the cap only for the capped ones", () => {
+    const super_ = formatReport(signals, { ...result, tier: "super" }, NOW);
+    expect(super_).toContain("Tier: Super");
+    expect(super_).not.toContain("caps the hero");
+    expect(formatReport(signals, { ...result, tier: "pocket" }, NOW)).toContain("Pocket caps the hero at 20 fps");
   });
 
   it("notes an aborted run", () => {

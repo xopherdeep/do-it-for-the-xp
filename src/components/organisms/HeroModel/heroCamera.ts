@@ -246,8 +246,10 @@ export const renderHeroSnapshot = (
   hero: THREE.Object3D,
   size: number,
   framing: SnapshotFraming,
+  /** MSAA samples; the default keeps the saved avatar at full quality on every tier */
+  samples = 4,
 ): string => {
-  const target = new THREE.WebGLRenderTarget(size, size, { samples: 4, colorSpace: THREE.SRGBColorSpace });
+  const target = new THREE.WebGLRenderTarget(size, size, { samples, colorSpace: THREE.SRGBColorSpace });
   const shotCamera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
   placeCamera(shotCamera, framing === "full" ? fullFrame(hero) : bustFrame(hero), 1);
 

@@ -1,7 +1,8 @@
-// The "Test this device" runner: builds and draws the real voxel hero on a throwaway canvas under four render
-// configs, one WebGL context alive at a time, and times the renderer, the build, the first render (shader compile
-// included) and the per-frame work. Frames are timed by their own render plus gl.finish, never by the gap between
-// animation frames, which would read slow under the tiers' own 30 and 20 fps caps.
+// The "Test this device" runner: builds and draws the real voxel hero on a throwaway canvas under five fixed render
+// configs plus the chosen tier's own (when it is not Super), one WebGL context alive at a time, and times the
+// renderer, the build, the first render (shader compile included) and the per-frame work. Frames are timed by their
+// own render plus gl.finish, never by the gap between animation frames, which would read slow under the tiers' own
+// 30 and 20 fps caps.
 // Each config draws against a clock: a fast device draws every frame, a slow one stops once a time budget is spent and
 // enough frames are kept to read, and a hopeless one at a hard cap (its numbers then read "unknown"), so the whole run
 // is bounded instead of waiting out every frame at hundreds of milliseconds each.
@@ -12,9 +13,12 @@ import { animateHero } from "@/components/organisms/HeroModel/voxel/animate";
 import { buildHero, disposeHero } from "@/components/organisms/HeroModel/voxel/build";
 import { BENCH_LOOKS } from "@/components/organisms/HeroModel/voxel/benchLooks";
 import { measureHero } from "@/components/organisms/HeroModel/voxel/measure";
+import { DEFAULT_DETAIL, detailOf, materialOptionsOf } from "@/components/organisms/HeroModel/voxel/detail";
 import { createVoxelMaterial } from "@/components/organisms/voxel/voxelMaterial";
 import type { HeroLook } from "@/lib/hero-look/types";
+import { currentKnobs, currentTier } from "@/lib/services/graphics/deviceQuality";
 import { createSampleMeter } from "@/lib/services/graphics/frameMeter";
+import { KNOBS, rendererOptionsFor, TIER_NAMES, type VoxelKnobs } from "@/lib/services/graphics/voxelQuality";
 import type { DeviceTestConfigId, DeviceTestConfigResult, DeviceTestResult } from "@/lib/services/graphics/deviceTestTypes";
 
 export interface DeviceTestProgress {
@@ -39,18 +43,32 @@ export interface DeviceTestOptions {
 interface ConfigSpec {
   id: DeviceTestConfigId;
   label: string;
-  /** false: the renderer's own pixel ratio rule (min of the screen's and 2) with MSAA only at 1.5 or less. */
-  isToday: boolean;
+  /**
+   * The tier knobs the renderer and the hero are set up from, exactly as the app would; null for the fixed grid
+   * configs, which turn MSAA off and draw today's hero.
+   */
+  knobs: VoxelKnobs | null;
+  /** Overrides the renderer's own pixel ratio; null keeps what the knobs (or Super's rule) give. */
   pixelRatio: number | null;
-  isSimple: boolean;
+  /** The material put on a hero built with today's detail; null leaves it as built. */
+  material: "simple" | "flat" | null;
 }
 
-const CONFIGS: ConfigSpec[] = [
-  { id: "today", label: "Today's settings", isToday: true, pixelRatio: null, isSimple: false },
-  { id: "noMsaa", label: "No smoothing (MSAA off)", isToday: false, pixelRatio: null, isSimple: false },
-  { id: "noMsaaDpr1", label: "No smoothing, 1x pixels", isToday: false, pixelRatio: 1, isSimple: false },
-  { id: "noMsaaDpr1Simple", label: "No smoothing, 1x pixels, simple shading", isToday: false, pixelRatio: 1, isSimple: true },
+const GRID: ConfigSpec[] = [
+  { id: "today", label: "Today's settings", knobs: KNOBS.super, pixelRatio: null, material: null },
+  { id: "noMsaa", label: "No smoothing (MSAA off)", knobs: null, pixelRatio: null, material: null },
+  { id: "noMsaaDpr1", label: "No smoothing, 1x pixels", knobs: null, pixelRatio: 1, material: null },
+  { id: "noMsaaDpr1Simple", label: "No smoothing, 1x pixels, simple shading", knobs: null, pixelRatio: 1, material: "simple" },
+  { id: "noMsaaDpr1Flat", label: "No smoothing, 1x pixels, flat shading", knobs: null, pixelRatio: 1, material: "flat" },
 ];
+
+/** The grid, plus the tier in use when it is not Super: Super equals today's line, so it would only repeat it */
+const configsFor = (): ConfigSpec[] => {
+  const isSuper = currentTier() === "super";
+  if (isSuper) return GRID;
+  const label = `Your tier: ${TIER_NAMES[currentTier()]}`;
+  return [...GRID, { id: "chosen", label, knobs: currentKnobs(), pixelRatio: null, material: null }];
+};
 
 /** A small square, like a hero in the party row: the test is about the device, not the layout */
 const STAGE_CSS_PX = 160;
@@ -126,7 +144,8 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
       raf(finish);
     });
 
-  const result: DeviceTestResult = { configs: [], coldBuildMs: null, tier: null, aborted: false };
+  const configs = configsFor();
+  const result: DeviceTestResult = { configs: [], coldBuildMs: null, tier: currentTier(), aborted: false };
   if (shouldStop()) return { ...result, aborted: true };
 
   result.coldBuildMs = measureHero(buildLook).ms;
@@ -135,15 +154,16 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
   const runConfig = async (spec: ConfigSpec): Promise<DeviceTestConfigResult | null> => {
     const canvas = createCanvas();
     const rendererStart = now();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const pixelRatio = spec.pixelRatio ?? dpr;
+    // The grid configs size the renderer by Super's rule; only the ones that carry knobs keep that rule's MSAA
+    const rendererOpts = rendererOptionsFor(spec.knobs ?? KNOBS.super, window.devicePixelRatio);
+    const pixelRatio = spec.pixelRatio ?? rendererOpts.dpr;
+    const detail = spec.knobs ? detailOf(spec.knobs) : DEFAULT_DETAIL;
     let renderer: THREE.WebGLRenderer;
     try {
-      // VQ16: use rendererOptionsFor
       renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: true,
-        antialias: spec.isToday && dpr <= 1.5,
+        antialias: spec.knobs !== null && rendererOpts.antialias,
         powerPreference: "low-power",
       });
     } catch {
@@ -163,17 +183,17 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
       addHeroLights(scene);
       const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
       const buildStart = now();
-      const built = buildHero(buildLook);
+      const built = buildHero(buildLook, detail);
       const buildMs = now() - buildStart;
       disposeHero(built);
 
-      hero = buildHero(frameLook);
-      if (spec.isSimple) {
-        const simple = createVoxelMaterial({ simple: true });
+      hero = buildHero(frameLook, detail);
+      if (spec.material) {
+        const swapped = createVoxelMaterial(materialOptionsOf({ material: spec.material }));
         hero.traverse((node) => {
           const mesh = node as THREE.Mesh;
           const isShadow = !mesh.isMesh || mesh.name === "shadow";
-          if (!isShadow) mesh.material = simple;
+          if (!isShadow) mesh.material = swapped;
         });
       }
       scene.add(hero);
@@ -228,10 +248,10 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
     }
   };
 
-  for (let index = 0; index < CONFIGS.length; index++) {
-    const spec = CONFIGS[index];
+  for (let index = 0; index < configs.length; index++) {
+    const spec = configs[index];
     if (shouldStop()) return { ...result, aborted: true };
-    onProgress?.({ id: spec.id, label: spec.label, index, count: CONFIGS.length });
+    onProgress?.({ id: spec.id, label: spec.label, index, count: configs.length });
     // The progress callback may be what aborts the run
     if (shouldStop()) return { ...result, aborted: true };
     const config = await runConfig(spec);

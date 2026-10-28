@@ -32,9 +32,18 @@ const nothing: DeviceSignals = {
   majorPerformanceCaveat: null,
 };
 
+const opened: Array<{ unmount: () => void }> = [];
+
+afterEach(() => {
+  opened.splice(0).forEach((w) => w.unmount());
+  document.body.innerHTML = "";
+});
+
 const open = async (signals: DeviceSignals) => {
   (readDeviceSignals as jest.Mock).mockReturnValue(signals);
-  const wrapper = mount(VideoSettings, { global: { stubs: { "xp-back-button": true } } });
+  // Attached, because the picker teleports its segment into the footer by selector
+  const wrapper = mount(VideoSettings, { attachTo: document.body, global: { stubs: { "xp-back-button": true, "xp-hero-model": true } } });
+  opened.push(wrapper);
   await flushPromises();
   return wrapper;
 };
@@ -99,5 +108,12 @@ describe("Settings, Video", () => {
 
     expect(wrapper.find("ion-footer").exists()).toBe(true);
     expect(wrapper.find("[data-cy='video-footer-slot']").exists()).toBe(true);
+  });
+
+  it("mounts the quality picker with its segment in the footer", async () => {
+    const wrapper = await open(known);
+
+    expect(wrapper.find("[data-cy='video-tier-content']").exists()).toBe(true);
+    expect(document.querySelector("ion-footer [data-cy='video-tier']")).not.toBeNull();
   });
 });

@@ -6,7 +6,11 @@ import { animateHero } from "./voxel/animate";
 import { buildHero, disposeHero } from "./voxel/build";
 import { DEFAULT_YAW, FOV, addHeroLights, framingOf, placeCamera, renderHeroSnapshot, stageFrame, stepFrame } from "./heroCamera";
 import type { Frame, SnapshotFraming } from "./heroCamera";
+import { DEFAULT_DETAIL, detailOf } from "./voxel/detail";
 import debug from "@/lib/utils/debug";
+import { currentKnobs } from "@/lib/services/graphics/deviceQuality";
+import { rendererOptionsFor } from "@/lib/services/graphics/voxelQuality";
+import type { VoxelKnobs } from "@/lib/services/graphics/voxelQuality";
 
 export type { SnapshotFraming } from "./heroCamera";
 
@@ -16,6 +20,8 @@ export interface HeroSceneOptions {
   background?: "transparent";
   /** What the camera frames: the whole hero or a head close-up. A change eases over; it starts on this value. */
   focus?: Ref<SnapshotFraming>;
+  /** What the Video tier changes; read once at mount. Defaults to this device's tier. */
+  knobs?: VoxelKnobs;
 }
 
 export interface HeroScene {
@@ -39,6 +45,9 @@ export function useHeroScene(
 ): HeroScene {
   const supported = ref(true);
   const interactive = options.interactive ?? false;
+  const knobs = options.knobs ?? currentKnobs();
+  /** Seconds between drawn frames; 0 draws every display frame. The margin keeps a 60 Hz display from skipping to the next vsync. */
+  const frameGap = knobs.heroFps > 0 ? 1 / knobs.heroFps - 0.004 : 0;
 
   let renderer: THREE.WebGLRenderer | null = null;
   let scene: THREE.Scene | null = null;
@@ -131,7 +140,7 @@ export function useHeroScene(
       scene.remove(hero);
       disposeHero(hero);
     }
-    hero = buildHero(look.value);
+    hero = buildHero(look.value, detailOf(knobs));
     builtKey = key;
     hero.rotation.y = yaw;
     scene.add(hero);
@@ -172,6 +181,11 @@ export function useHeroScene(
     const isStopped = !running || disposed;
     if (isStopped) return;
     const time = now();
+    const isTooSoon = frameGap > 0 && time - lastFrame < frameGap;
+    if (isTooSoon) {
+      raf = requestAnimationFrame(tick);
+      return;
+    }
     const dt = Math.min(0.1, time - lastFrame);
     lastFrame = time;
     const isCoasting = !dragging && Math.abs(spin) > 0.01;
@@ -234,12 +248,12 @@ export function useHeroScene(
     const canvas = canvasRef.value;
     const cannotInit = !canvas || renderer !== null || disposed;
     if (cannotInit) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const { dpr, antialias } = rendererOptionsFor(knobs, window.devicePixelRatio);
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: true,
-        antialias: dpr <= 1.5,
+        antialias,
         powerPreference: "low-power",
       });
     } catch {
@@ -290,7 +304,20 @@ export function useHeroScene(
     const stageScene = scene;
     const isStageMissing = !stageRenderer || !stageHero || !stageScene;
     if (isStageMissing) return "";
-    return renderHeroSnapshot(stageRenderer, stageScene, stageHero, size, framing);
+    // The saved avatar travels to other devices, so it is always drawn at Super detail whatever this device runs
+    const isWeakerThanSuper = detailOf(knobs).material !== DEFAULT_DETAIL.material;
+    if (!isWeakerThanSuper) return renderHeroSnapshot(stageRenderer, stageScene, stageHero, size, framing);
+    const shot = buildHero(look.value, DEFAULT_DETAIL);
+    shot.rotation.y = stageHero.rotation.y;
+    stageScene.remove(stageHero);
+    stageScene.add(shot);
+    try {
+      return renderHeroSnapshot(stageRenderer, stageScene, shot, size, framing);
+    } finally {
+      stageScene.remove(shot);
+      stageScene.add(stageHero);
+      disposeHero(shot);
+    }
   };
 
   // 20 rad/s with the 0.04^dt friction in tick coasts 20 / -ln(0.04) = about 6.2 rad: one turn

@@ -1,9 +1,7 @@
 // The shape of one "Test this device" run. Types only: the runner fills it, the card shows it and
 // deviceReport.ts turns it into the text the owner pastes. PRIVACY: memory only, never stored.
 import type { SampleStats } from "@/lib/services/graphics/frameMeter";
-
-// Inline until the tier module lands (VQ8), which then replaces this with its own export.
-export type VoxelTier = "super" | "classic" | "pocket";
+import type { VoxelTier } from "@/lib/services/graphics/voxelQuality";
 
 export type DeviceTestConfigId = "today" | "noMsaa" | "noMsaaDpr1" | "noMsaaDpr1Simple" | "noMsaaDpr1Flat" | "chosen";
 
