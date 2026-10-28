@@ -49,6 +49,14 @@
               </ion-card-content>
             </ion-card>
 
+            <!-- A linked phone whose card has not come from the family device: never a blank page -->
+            <ion-card v-else-if="isCardWaiting" class="card-waiting rpg-box" data-cy="card-waiting">
+              <ion-card-content class="ion-text-center">
+                <ion-text class="card-waiting-text" data-cy="card-waiting-text">{{ cardWaitingText }}</ion-text>
+                <ion-text v-if="syncNote" class="sync-note" data-cy="sync-note">{{ syncNote }}</ion-text>
+              </ion-card-content>
+            </ion-card>
+
             <!-- Two-phone play: the hero's numbers and quests from the family device, and their claims -->
             <hero-phone-board v-if="isBoardShown" :read-only="isBoardReadOnly" />
 

@@ -650,9 +650,13 @@ export const useFamilyStore = defineStore("family", () => {
     try {
       const answer = await getFamily(auth);
       const matched = answer.heroes.find((h) => h.heroId === current.heroId);
-      const hasCard = Boolean(matched?.card);
-      if (hasCard) {
-        const updated = { ...current, card: matched!.card };
+      if (!matched) return;
+      const hasCard = Boolean(matched.card);
+      const nickname = matched.nickname || current.nickname;
+      const isNewName = nickname !== current.nickname;
+      const isChanged = hasCard || isNewName;
+      if (isChanged) {
+        const updated = { ...current, card: hasCard ? matched.card : current.card, nickname };
         device.value = updated;
         await getHeroDeviceDb().saveDevice(updated);
       }
