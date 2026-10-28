@@ -101,7 +101,6 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
     sharedCanvas = document.createElement("canvas");
     // The tier decides MSAA; Super keeps the old rule (phones at 2x and up are sharp enough without it)
     const { antialias } = landmarkRendererOptions(currentKnobs(), window.devicePixelRatio);
-    noteLandmarkContext(antialias);
     sharedRenderer = new THREE.WebGLRenderer({
       canvas: sharedCanvas,
       alpha: true,
@@ -112,6 +111,7 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
       precision: "mediump",
       preserveDrawingBuffer: true,
     });
+    noteLandmarkContext(antialias); // only once the context exists: a throwing constructor must not ask for a restart
     sharedRenderer.setPixelRatio(1);
     sharedRenderer.outputColorSpace = THREE.SRGBColorSpace;
     sharedRenderer.autoClear = true;
