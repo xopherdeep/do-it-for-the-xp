@@ -270,7 +270,8 @@ describe("Video, Test this device", () => {
     await wrapper.find("[data-cy='test-copy']").trigger("click");
     await flushPromises();
     expect(live().text()).toBe("Report copied.");
-    expect(wrapper.findAll("[aria-live]")).toHaveLength(1);
+    // the card owns exactly one live region; the page also holds the picker's own, so count inside the card only
+    expect(wrapper.find(".video-test-card__root").findAll("[aria-live]")).toHaveLength(1);
   });
 
   it("says the test stopped and skips the extras when the run was aborted", async () => {
