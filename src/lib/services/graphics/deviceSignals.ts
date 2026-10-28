@@ -100,7 +100,6 @@ function release(gl: Gl): void {
 
 export function readDeviceSignals(env: DeviceEnv = defaultEnv()): DeviceSignals {
   const gl = openGl(env);
-  const strict = gl ? openGl(env, { failIfMajorPerformanceCaveat: true }) : null;
   const signals: DeviceSignals = {
     chromeMajor: uaMajor(env, /Chrome\/(\d+)/),
     androidMajor: uaMajor(env, /Android (\d+)/),
@@ -112,9 +111,13 @@ export function readDeviceSignals(env: DeviceEnv = defaultEnv()): DeviceSignals 
     glRenderer: gl ? readRenderer(gl) : null,
     maxTextureSize: gl ? readNumber(() => gl.getParameter(gl.MAX_TEXTURE_SIZE)) : null,
     fragmentHighp: gl ? readHighp(gl) : null,
-    majorPerformanceCaveat: gl ? strict === null : null,
+    majorPerformanceCaveat: null,
   };
-  if (strict) release(strict);
   if (gl) release(gl);
+  // The strict context opens only after the plain one is released: a phone that holds few contexts must not
+  // read as a slow GPU just because two were open at once
+  const strict = gl ? openGl(env, { failIfMajorPerformanceCaveat: true }) : null;
+  if (gl) signals.majorPerformanceCaveat = strict === null;
+  if (strict) release(strict);
   return signals;
 }

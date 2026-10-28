@@ -13,6 +13,7 @@ interface EnvOptions {
   gl?: ReturnType<typeof fakeGl>;
   caveat?: boolean;
   throws?: boolean;
+  onContext?: (isStrict: boolean) => void;
 }
 
 const PARAMS: Record<number, unknown> = { 37446: "Mali-400 MP", 3379: 4096 };
@@ -45,6 +46,7 @@ function fakeEnv(over: EnvOptions = {}): DeviceEnv {
           const isStrictAsk = attrs?.failIfMajorPerformanceCaveat === true;
           const isRefused = kind !== "webgl2" || (isStrictAsk && over.caveat === true);
           if (over.throws) throw new Error("no gl");
+          over.onContext?.(isStrictAsk);
           return isRefused ? null : gl;
         },
       }) as unknown as HTMLCanvasElement,
@@ -86,6 +88,7 @@ describe("readDeviceSignals", () => {
     expect(signals.glRenderer).toBeNull();
     expect(signals.maxTextureSize).toBeNull();
     expect(signals.fragmentHighp).toBeNull();
+    expect(signals.majorPerformanceCaveat).toBeNull();
   });
 
   it("no debug extension gives glRenderer null", () => {
@@ -103,6 +106,21 @@ describe("readDeviceSignals", () => {
   it("releases the probe context", () => {
     const loseContext = jest.fn();
     readDeviceSignals(fakeEnv({ gl: fakeGl({ loseContext }) }));
-    expect(loseContext).toHaveBeenCalled();
+    expect(loseContext).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens the strict context only after the plain one is released", () => {
+    // a phone that holds few contexts must not read as a slow GPU because two were open at once
+    const loseContext = jest.fn();
+    const releasedWhenStrictOpened: number[] = [];
+    readDeviceSignals(
+      fakeEnv({
+        gl: fakeGl({ loseContext }),
+        onContext: (isStrict) => {
+          if (isStrict) releasedWhenStrictOpened.push(loseContext.mock.calls.length);
+        },
+      }),
+    );
+    expect(releasedWhenStrictOpened).toEqual([1]);
   });
 });
