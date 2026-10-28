@@ -2,8 +2,10 @@ import {
   CODE_ALPHABET,
   familyDeviceLabel,
   formatCode,
+  linkLocation,
   linkUrl,
   normalizeCode,
+  PUBLIC_APP_ORIGIN,
   phoneLabel,
   readLink,
 } from "@/lib/services/multiplayer/deviceLink";
@@ -73,6 +75,21 @@ describe("deviceLink", () => {
     it("includes site parameter when provided", () => {
       const url = linkUrl("ABCDEFGH", { origin: "https://app.forthexp.com", pathname: "/" }, true, "http://localhost:8090");
       expect(url).toBe("https://app.forthexp.com/#/link?code=ABCDEFGH&site=http%3A%2F%2Flocalhost%3A8090");
+    });
+  });
+
+  describe("linkLocation", () => {
+    it("keeps the page's own address in a browser", () => {
+      const web = { origin: "https://app.doit.forthexp.com", pathname: "/" };
+      expect(linkLocation(web, false)).toEqual(web);
+      const hosted = { origin: "https://doit.forthexp.com", pathname: "/play/" };
+      expect(linkLocation(hosted, false)).toEqual(hosted);
+    });
+
+    it("sends the native app's QR to the public web app, not Capacitor's localhost", () => {
+      const native = { origin: "https://localhost", pathname: "/" };
+      expect(linkLocation(native, true)).toEqual({ origin: PUBLIC_APP_ORIGIN, pathname: "/" });
+      expect(linkUrl("ABCDEFGH", linkLocation(native, true), true)).toBe("https://app.doit.forthexp.com/#/link?code=ABCDEFGH");
     });
   });
 

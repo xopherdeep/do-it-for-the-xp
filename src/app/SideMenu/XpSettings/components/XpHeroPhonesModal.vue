@@ -115,11 +115,12 @@ import {
   IonToolbar,
   modalController,
 } from "@ionic/vue";
+import { Capacitor } from "@capacitor/core";
 import QRCode from "qrcode";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useVoice } from "@/hooks/useVoice";
-import { formatCode, linkUrl } from "@/lib/services/multiplayer/deviceLink";
+import { formatCode, linkLocation, linkUrl } from "@/lib/services/multiplayer/deviceLink";
 import { removePhonePrompt } from "@/lib/services/multiplayer/familyPrompts";
 import type { HeroPhone } from "@/lib/services/multiplayer/familyServer";
 import { useFamilyStore } from "@/lib/store/stores/family";
@@ -220,7 +221,7 @@ async function createCode(): Promise<void> {
     expiresAtMs.value = targetMs;
 
     const isHash = usesHashHistory();
-    const url = linkUrl(link.code, window.location, isHash);
+    const url = linkUrl(link.code, linkLocation(window.location, Capacitor.isNativePlatform()), isHash);
     qrDataUrl.value = await QRCode.toDataURL(url, { margin: 1, width: 240 });
 
     updateCountdown();

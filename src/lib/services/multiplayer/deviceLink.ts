@@ -26,6 +26,18 @@ export const formatCode = (code: string): string => {
   return isFull ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 };
 
+/** The public web app, which any phone can open */
+export const PUBLIC_APP_ORIGIN = "https://app.doit.forthexp.com";
+
+/**
+ * The address a link QR starts from: the page's own in a browser (app.doit.forthexp.com, or a WordPress page hosting
+ * the app); the public web app from the native app, whose own address is Capacitor's localhost and reaches no other phone.
+ */
+export const linkLocation = (
+  loc: { origin: string; pathname: string },
+  isNative: boolean
+): { origin: string; pathname: string } => (isNative ? { origin: PUBLIC_APP_ORIGIN, pathname: "/" } : loc);
+
 /**
  * Builds the URL for linking a phone with a code.
  * In hash mode, places the /link route after #. Outside production, passes site if given.

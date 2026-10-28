@@ -16,6 +16,12 @@ jest.mock("qrcode", () => ({
   toDataURL: jest.fn(),
 }));
 
+let mockIsNative = false;
+jest.mock("@capacitor/core", () => {
+  const actual = jest.requireActual("@capacitor/core");
+  return { ...actual, Capacitor: { ...actual.Capacitor, isNativePlatform: () => mockIsNative } };
+});
+
 jest.mock("@/router/historyMode", () => ({
   __esModule: true,
   usesHashHistory: () => true,
@@ -175,6 +181,25 @@ describe("XpHeroPhonesModal", () => {
       const img = cy(wrapper, "qr-image");
       expect(img.exists()).toBe(true);
       expect(img.attributes("src")).toBe("data:image/png;base64,mockqr");
+    });
+
+    it("in the native app the QR carries the public web app, not Capacitor's localhost", async () => {
+      mockIsNative = true;
+      try {
+        const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
+        mockFamily.linkCode.mockResolvedValue({ code: "ABCDEFGH", expiresAt });
+
+        const wrapper = await open();
+        await cy(wrapper, "link-phone").trigger("click");
+        await flushPromises();
+
+        expect(QRCode.toDataURL).toHaveBeenCalledWith(
+          "https://app.doit.forthexp.com/#/link?code=ABCDEFGH",
+          { margin: 1, width: 240 }
+        );
+      } finally {
+        mockIsNative = false;
+      }
     });
 
     it("the countdown reads 10:00, then 9:59", async () => {
