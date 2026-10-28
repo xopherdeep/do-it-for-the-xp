@@ -112,6 +112,42 @@ export const beastMaker = {
     adventure: "Done",
   },
 
+  // My creations, the Maker's opening screen when the hero has made things (myCreations.ts, XpMyCreations.vue)
+  "beastMaker.state.waiting": {
+    adventure: "Waiting",
+    classic: "Pending",
+  },
+  "beastMaker.state.back": {
+    adventure: "Came back",
+    classic: "Returned",
+  },
+  "beastMaker.state.inGame": {
+    adventure: "In the game",
+    classic: "Approved",
+  },
+  "beastMaker.list.title": {
+    simple: "Your beasts",
+    adventure: "Your creations",
+  },
+  "beastMaker.list.new": {
+    adventure: "Draw a new beast",
+  },
+  "beastMaker.list.fix": {
+    adventure: "Fix it",
+  },
+  "beastMaker.list.resend": {
+    adventure: "Send again",
+  },
+  "beastMaker.list.delete": {
+    adventure: "Delete",
+  },
+  // Under a beast that is in the game, on its card: the card there only shows it
+  "beastMaker.list.cardNote": {
+    simple: "Hunt it in the Beast Log.",
+    adventure: "Hunt this beast from the Beast Log.",
+    classic: "Hunt it from the Beast Log.",
+  },
+
   // Toasts
   "beastMaker.cap": {
     simple: "Ask a grown-up to look at your creations first.",
@@ -121,6 +157,9 @@ export const beastMaker = {
   "beastMaker.error.notSaved": {
     simple: "It did not save. Try again.",
     adventure: "Your beast could not be saved. Try again.",
+  },
+  "beastMaker.error.list": {
+    adventure: "That did not work. Try again.",
   },
   "beastMaker.error.photo": {
     simple: "That picture didn't work. Try again.",

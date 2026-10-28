@@ -363,10 +363,11 @@ describe("the Beast Maker in the shell", () => {
     const proposal = (n: number) => ({ by: "hero", on: "2026-10-20T08:00:00.000Z", state: n % 2 ? "proposed" : "returned" });
     const beasts = Array.from({ length: 5 }, (_, n) => ({ id: `b${n}`, name: `Beast ${n}`, checklist: [], proposal: proposal(n) }));
     const quests = Array.from({ length: 5 }, (_, n) => ({ id: `q${n}`, achievementName: `Quest ${n}`, draft: true, proposal: proposal(n) }));
-    read.mockResolvedValue([...beasts, null] as never);
-    readQuests.mockResolvedValue([...quests, null] as never);
     const wrapper = await mountMaker();
     await toReady(wrapper);
+    // The tenth creation arrives while the card is being made (another phone): the Send reads the stores again
+    read.mockResolvedValue([...beasts, null] as never);
+    readQuests.mockResolvedValue([...quests, null] as never);
     await tap(wrapper, "submit");
     expect(saved).not.toHaveBeenCalled();
     expect(toast.mock.calls[0][0].message).toBe("Ask a Game Master to look at your creations first.");

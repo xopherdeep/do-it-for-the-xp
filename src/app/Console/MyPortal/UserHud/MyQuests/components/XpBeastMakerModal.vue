@@ -7,8 +7,11 @@
     :backdrop-dismiss="false"
     @didDismiss="emit('close')"
   >
+    <!-- What the hero already made, when they have made something: the Maker opens on it -->
+    <xp-my-creations v-if="creations.view === 'list'" :rows="creations.rows" :full="creations.isAtCap" @new="startNew" @fix="startFix" @resend="sendAgain" @open="openRow" @delete="removeRow" @close="emit('close')" />
+
     <xp-wizard-shell
-      v-if="!sentBeast"
+      v-else-if="creations.view === 'steps' && !sentBeast"
       ref="shell"
       v-model:index="position"
       :steps="steps"
@@ -141,7 +144,7 @@
     </xp-wizard-shell>
 
     <!-- Sent: the beast once more, then Make a quest with it or Done, at the bottom -->
-    <div v-else class="bm-sent" data-test="sent">
+    <div v-else-if="sentBeast" class="bm-sent" data-test="sent">
       <ion-header>
         <ion-toolbar>
           <xp-app-header :title="t('beastMaker.title')" icon="paint-brush" :meta="t('beastMaker.done.title')">
@@ -189,6 +192,9 @@
       @background-changed="onBackgroundChanged"
     />
 
+    <!-- A beast in the game opens its Beast Card from the list, to look at: Hunt and Claim stay in the Beast Log -->
+    <xp-beast-card-modal v-if="creations.cardQuest" :quest="creations.cardQuest" status="open" :user-id="heroId" :locked-notice="t('beastMaker.list.cardNote')" @didDismiss="creations.cardQuest = null" />
+
     <!-- Fanfare reveal once the beast is sent: staged over the modal, then the two buttons -->
     <xp-hero-fanfare
       :open="showFanfare"
@@ -225,18 +231,22 @@ import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 import { addMakerChore, libraryLook, makerSteps, MAX_MAKER_CHORES, proposedBeast, suggestNames } from "@/lib/services/creations/beastMaker";
 import { creditLine } from "@/lib/services/creations/creations";
 import { mayPropose } from "@/lib/services/creations/makerCap";
+import { sendFixedBeast } from "@/lib/services/creations/myCreations";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { useCreationRows, useMyCreations } from "../useMyCreations";
+import XpBeastCardModal from "./XpBeastCardModal.vue";
 import XpBeastLookStep from "./XpBeastLookStep.vue";
 import XpBeastStage from "./XpBeastStage.vue";
 import XpChoreRows from "./XpChoreRows.vue";
+import XpMyCreations from "./XpMyCreations.vue";
 
 /**
  * The Beast Maker (kid-creations design, section 5): a maker kid gives a beast a look (a photo of their drawing, or a
  * library portrait on its battlefield), a name, the chores that beat it, and sends it to the Game Master as a proposal.
  * The screens are the steps of the shared wizard shell; every rule is beastMaker.ts over the Game Master's own draft
- * (beastWizard.ts). After the fanfare, "Make a quest with it" hands the beast to the page, which opens the Quest
- * Wizard on it; "Done" closes.
+ * (beastWizard.ts). A hero who has made things opens on the list of them (XpMyCreations). After the fanfare, "Make a
+ * quest with it" hands the beast to the page, which opens the Quest Wizard on it; "Done" closes.
  */
 
 const props = defineProps<{
@@ -263,6 +273,9 @@ const userStore = useUserStore();
 const draft = ref<BeastDraft>(newBeastDraft());
 const steps = computed(() => makerSteps(voice.value));
 const position = ref(0);
+// The list of what the hero already made opens first; Fix it and Draw a new beast hand the steps their draft
+const { state: creations, open: openList, refresh, startNew, startFix } = useMyCreations(() => props.heroId, draft, position);
+const { sendAgain, removeRow, openRow } = useCreationRows(creations, refresh);
 const saving = ref(false);
 const shell = ref<InstanceType<typeof XpWizardShell> | null>(null);
 // The library beast the look came from: its chore seeds the name suggestions
@@ -291,6 +304,7 @@ watch(
     saving.value = false;
     showFanfare.value = false;
     sentBeast.value = null;
+    void openList();
   },
   { immediate: true }
 );
@@ -298,9 +312,10 @@ watch(
 // The guide's question in the hero's voice; the simple voice reads each one aloud as it appears
 const guideLine = computed(() => steps.value[position.value]?.guide ?? "");
 watch(
-  [() => props.open, guideLine],
-  ([isOpen, line]) => {
-    if (isOpen) startAutoReading(line);
+  [() => props.open, guideLine, () => creations.view],
+  ([isOpen, line, screen]) => {
+    const readsAloud = isOpen && screen === "steps";
+    if (readsAloud) startAutoReading(line);
   },
   { immediate: true }
 );
@@ -423,6 +438,13 @@ const nickOfHero = (id: string): string => {
 // "Drawn by Mia" for a drawing, "Made by Mia" for a library look; nothing for a hero the device does not know
 const credit = computed(() => creditLine({ madeBy: props.heroId, localImage: draft.value.localImage }, "beast", nickOfHero));
 
+// The Bestiary makes an id up and never hands it back, so the beast gets one here: the Quest Wizard opens on it
+const saveNewBeast = async (): Promise<Beast> => {
+  const beast: Beast = { ...proposedBeast(draft.value, props.heroId, new Date()), id: uuidv4() };
+  await new BestiaryDb(beastStorage).setBeast(beast);
+  return beast;
+};
+
 const send = async () => {
   if (saving.value) return;
   const problem = beastProblem(draft.value);
@@ -433,16 +455,21 @@ const send = async () => {
   }
   saving.value = true;
   try {
-    // The cap counts this hero's beasts and quests still with the Game Master, together
-    const isCapped = !(await mayPropose(props.heroId));
+    // The cap counts this hero's beasts and quests still with the Game Master, together; a beast that came back is among them
+    const isCapped = !creations.fixing && !(await mayPropose(props.heroId));
     if (isCapped) {
       play$fx("no");
       say(t("beastMaker.cap"));
       return;
     }
-    // The Bestiary makes an id up and never hands it back, so the beast gets one here: the Quest Wizard opens on it
-    const beast: Beast = { ...proposedBeast(draft.value, props.heroId, new Date()), id: uuidv4() };
-    await new BestiaryDb(beastStorage).setBeast(beast);
+    const beast = creations.fixing ? await sendFixedBeast(draft.value, new Date()) : await saveNewBeast();
+    // The Game Master settled the beast while it was being fixed: the list shows where it stands now
+    if (!beast) {
+      play$fx("no");
+      say(t("beastMaker.error.list"));
+      await refresh();
+      return;
+    }
     sentBeast.value = beast;
     showFanfare.value = true;
     emit("saved", beast);

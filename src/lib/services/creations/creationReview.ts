@@ -64,8 +64,11 @@ export const loadCreationRows = async (
   return creationRows(present<Beast>(beasts), present<Achievement>(quests), states);
 };
 
-/** A creation was settled: the "a creation awaits" notices about it are read in every Game Master's feed. Never throws. */
-const settleNotices = (key: string): void => {
+/**
+ * A creation was settled (approved, sent back, or taken away by its maker): the "a creation awaits" notices about it are
+ * read in every Game Master's feed. Never throws.
+ */
+export const settleNotices = (key: string): void => {
   try {
     useNotificationsStore().markReadByRef("creation-waiting", key);
   } catch (error) {

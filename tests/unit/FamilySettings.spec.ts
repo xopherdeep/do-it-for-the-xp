@@ -10,6 +10,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { DEFAULT_FAMILY_SETTINGS, canMake, loadFamilySettings } from "@/lib/services/family/familySettings";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { ProfileDb } from "@/lib/databases";
+import * as creations from "@/lib/services/creations/myCreations";
 
 /** How the "Your recovery code" dialog ends: the parent taps "I wrote it down", or the app closes with it still up */
 let mockCodeDialog: "tapped" | "appClosed" = "tapped";
@@ -272,5 +274,66 @@ describe("the Maker setting: which kids may draw beasts and suggest quests", () 
     setActivePinia(createPinia());
     await useGameRulesStore().setMaker("hero-1", true);
     expect(stored).toMatchObject({ streaks: false, approveAllPurchases: true, makers: ["hero-1"] });
+  });
+});
+
+describe("Settings > Family: deleting a profile", () => {
+  const mountFamily = () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    return mount(FamilySettings, {
+      global: { plugins: [pinia], stubs: { "xp-back-button": true, "xp-profile-item": true, "xp-family-phones": true } },
+    });
+  };
+
+  const mia = { id: "mia", isAdult: false, name: { full: "Mia" } } as any;
+  let removed: jest.SpyInstance;
+  let orphaned: jest.SpyInstance;
+
+  beforeEach(() => {
+    const actual = jest.requireActual("@/lib/store/stores/user");
+    (useUserStore as unknown as jest.Mock).mockImplementation(actual.useUserStore);
+    removed = jest.spyOn(ProfileDb.prototype, "removeProfile").mockResolvedValue(undefined);
+    jest.spyOn(ProfileDb.prototype, "showDeleteToast").mockResolvedValue(undefined as never);
+    orphaned = jest.spyOn(creations, "orphanCreations").mockResolvedValue(2);
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  const signedInAsDad = (wrapper: ReturnType<typeof mountFamily>) => {
+    const store = useUserStore();
+    store.users["dad"] = { id: "dad", isAdult: true, name: { full: "Dad" } } as any;
+    store.users["mia"] = mia;
+    store.currentUser.id = "dad";
+    return wrapper;
+  };
+
+  it("sends the deleted hero's waiting creations back as 'maker gone' once the profile is removed", async () => {
+    const wrapper = signedInAsDad(mountFamily());
+
+    await (wrapper.vm as any).deleteProfile(mia);
+
+    expect(removed).toHaveBeenCalledWith("mia");
+    expect(orphaned).toHaveBeenCalledWith("mia", expect.any(Date));
+    expect(removed.mock.invocationCallOrder[0]).toBeLessThan(orphaned.mock.invocationCallOrder[0]);
+  });
+
+  it("deletes the profile all the same when the creations cannot be sent back", async () => {
+    orphaned.mockRejectedValue(new Error("storage"));
+    const wrapper = signedInAsDad(mountFamily());
+
+    await expect((wrapper.vm as any).deleteProfile(mia)).resolves.toBeUndefined();
+
+    expect(removed).toHaveBeenCalledWith("mia");
+  });
+
+  it("sends nothing back when the delete is refused (a hero cannot delete a profile, only a Game Master)", async () => {
+    const wrapper = signedInAsDad(mountFamily());
+    useUserStore().currentUser.id = "mia";
+
+    await (wrapper.vm as any).deleteProfile(mia);
+
+    expect(removed).not.toHaveBeenCalled();
+    expect(orphaned).not.toHaveBeenCalled();
   });
 });

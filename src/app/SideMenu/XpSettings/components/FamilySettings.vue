@@ -152,6 +152,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { dialogMessage } from "@/lib/utils/dialogMessage";
+import { orphanCreations } from "@/lib/services/creations/myCreations";
 import { canReissueRecoveryCode } from "@/lib/services/profile/pinRecovery";
 import { reissueRecoveryCode } from "@/app/SideMenu/SwitchProfile/pinRecoveryPrompts";
 import debug from "@/lib/utils/debug";
@@ -275,8 +276,17 @@ export default defineComponent({
       const { profileDb, loadProfiles } = this;
       await profileDb
         .removeProfile(profile.id)
+        .then(() => this.returnCreationsOf(profile.id))
         .then(loadProfiles)
         .then(profileDb.showDeleteToast);
+    },
+    /** The deleted hero's creations still waiting go back to the Game Master as "maker gone"; a failure here never blocks the delete */
+    async returnCreationsOf(heroId: string) {
+      try {
+        await orphanCreations(heroId, new Date());
+      } catch (error) {
+        debug.warn("Could not send the deleted hero's creations back", error);
+      }
     },
     async clickDeleteProfile(profile: User) {
       const problem = deleteProfileProblem(profile, this.userStore);
