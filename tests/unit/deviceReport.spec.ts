@@ -99,7 +99,7 @@ describe("formatReport", () => {
   });
 
   it("prints not run for the extras that are absent", () => {
-    const { tiles, town, canvases, ...bare } = result;
+    const { tiles: _tiles, town: _town, canvases: _canvases, ...bare } = result;
     const text = formatReport(signals, bare, NOW);
     expect(text).toContain("Tiles: not run");
     expect(text).toContain("Town: not run");

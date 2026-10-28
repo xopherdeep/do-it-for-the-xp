@@ -39,8 +39,6 @@ const open = async (signals: DeviceSignals) => {
   return wrapper;
 };
 
-const rowText = (wrapper: Awaited<ReturnType<typeof open>>, key: string) => wrapper.find(`[data-cy='device-${key}']`).text();
-
 // Finds a row by its visible label, then reads that row's own value line
 const valueOf = (wrapper: Awaited<ReturnType<typeof open>>, label: string): string => {
   const row = wrapper.findAll("ion-item").find((item) => item.find("h2").text() === label);
