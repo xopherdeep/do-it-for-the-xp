@@ -13,6 +13,8 @@
       <!-- The test sits above the readout: when it starts it is already in view, with no scroll to time on a slow phone -->
       <video-test-card ref="testCard" :signals="signals" @running="isRunning = $event"></video-test-card>
 
+      <video-tier-picker></video-tier-picker>
+
       <ion-card class="settings-card max-w-2xl">
         <ion-list>
           <ion-item-group>
@@ -35,6 +37,7 @@
     <ion-footer>
       <ion-toolbar class="rpg-box">
         <div class="video-settings__footer" data-cy="video-footer-slot">
+          <div data-cy="video-tier-slot"></div>
           <ion-button expand="block" color="rpg" data-cy="video-test-button" :disabled="isRunning" @click="runTest">
             {{ isRunning ? "Testing..." : "Test this device" }}
           </ion-button>
@@ -49,6 +52,7 @@
   import ionic from "@/lib/mixins/ionic";
   import { readDeviceSignals, type DeviceSignals } from "@/lib/services/graphics/deviceSignals";
   import VideoTestCard from "./video/VideoTestCard.vue";
+  import VideoTierPicker from "./video/VideoTierPicker.vue";
 
   const UNKNOWN = "unknown";
 
@@ -77,7 +81,7 @@
   export default defineComponent({
     name: "video-settings",
     mixins: [ionic],
-    components: { VideoTestCard },
+    components: { VideoTestCard, VideoTierPicker },
     setup() {
       // Read once: the numbers do not change while the page is open
       const signals = readDeviceSignals();
