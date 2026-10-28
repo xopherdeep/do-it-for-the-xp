@@ -3,15 +3,20 @@ import { arrowBack } from "ionicons/icons";
 import { computed, ref } from "vue";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { MOVING_TEMPLE_ID } from "@/lib/services/core/packs/movingTemple";
+import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
+import { readTower } from "@/lib/services/projects/projectService";
+import { useVoice } from "@/hooks/useVoice";
 import debug from "@/lib/utils/debug";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal, onIonViewDidEnter } from "@ionic/vue";
+import ProjectTowerSheet from "./components/ProjectTowerSheet.vue";
+import { towerSpotOf } from "./components/towerSpot";
 
 export default dC({
   name: "home-town",
-  components: { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal },
+  components: { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal, ProjectTowerSheet },
 
   setup() {
     const userStore = useUserStore();
@@ -102,9 +107,29 @@ export default dC({
       router.push({ name: "temple", params: { userId: userId.value, temple: MOVING_TEMPLE_ID } });
     };
 
+    // The family's project tower stands on the plaza while a project is running; a tap opens its sheet
+    const { voice } = useVoice();
+    const tower = ref<ProjectRecord | null>(null);
+    const isTowerOpen = ref(false);
+    const towerSpot = computed(() => (tower.value ? towerSpotOf(tower.value, voice.value) : null));
+    const findTower = async (): Promise<void> => {
+      try {
+        tower.value = (await readTower())?.project ?? null;
+      } catch (error) {
+        debug.warn("[HomeTown] could not look for the project tower", error);
+        tower.value = null;
+      }
+    };
+    const enterTower = () => {
+      isTowerOpen.value = false;
+      const templeId = tower.value?.templeId;
+      if (templeId) router.push({ name: "temple", params: { userId: userId.value, temple: templeId } });
+    };
+
     onIonViewDidEnter(() => {
       setActions("home-town", userActions);
       void findOldHouse();
+      void findTower();
     })
 
     return {
@@ -114,6 +139,10 @@ export default dC({
       userActions,
       hasOldHouse,
       enterOldHouse,
+      towerSpot,
+      isTowerOpen,
+      findTower,
+      enterTower,
     };
   },
 });

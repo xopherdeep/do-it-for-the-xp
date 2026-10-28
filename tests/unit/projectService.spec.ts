@@ -8,12 +8,25 @@ import AchievementDb, { type Achievement } from "@/lib/databases/AchievementDb";
 import { ProjectDb } from "@/lib/databases/ProjectDb";
 import { QuestLogDb } from "@/lib/databases/QuestLogDb";
 import { TempleDb } from "@/lib/databases/TempleDb";
+import { TempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import { floorMultiplier } from "@/lib/services/projects/floorBonus";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { projectStartsOn } from "@/lib/services/projects/projectQuests";
 import { phaseWindows } from "@/lib/services/projects/projectSchedule";
-import { abandonProject, extendProject, markRewardGiven, markSeen, onEntryPaid, onQuestPaid, settleReadyFloors, startProject } from "@/lib/services/projects/projectService";
+import {
+  abandonProject,
+  extendProject,
+  markFloorSeen,
+  markRewardGiven,
+  markSeen,
+  onEntryPaid,
+  onFloorReached,
+  onQuestPaid,
+  readTower,
+  settleReadyFloors,
+  startProject,
+} from "@/lib/services/projects/projectService";
 import { buildProjectTower } from "@/lib/services/projects/projectTower";
 import { newProjectRecord } from "@/lib/services/projects/projectRecord";
 import { FAMILIES, ROOM_SETS } from "./movingHouseFixtures";
@@ -45,7 +58,7 @@ const ROOMS = ROOM_SETS[0][1];
 const REWARD = "Pizza night, your pick";
 
 /** The real databases over in-memory storage: more than the service asks of them, so the specs can read back what it saved */
-let stores: { projects: ProjectDb; quests: AchievementDb; log: QuestLogDb; temples: TempleDb };
+let stores: { projects: ProjectDb; quests: AchievementDb; log: QuestLogDb; temples: TempleDb; progress: TempleProgressDb; engine: { forgetTempleRun: jest.Mock } };
 
 beforeEach(() => {
   paidBonus.mockReset();
@@ -54,6 +67,8 @@ beforeEach(() => {
     quests: new AchievementDb(fakeStorage() as never),
     log: new QuestLogDb(fakeStorage() as never),
     temples: new TempleDb(fakeStorage() as never),
+    progress: new TempleProgressDb(fakeStorage() as never),
+    engine: { forgetTempleRun: jest.fn() },
   };
 });
 
@@ -505,5 +520,184 @@ describe("the reward and the credits", () => {
     await markSeen("twelve", "reward", stores);
     await markSeen("twelve", "credits", stores);
     expect(await stores.projects.getAll()).toEqual(before);
+  });
+});
+
+describe("onFloorReached", () => {
+  const ARRIVED = new Date(2027, 3, 5, 18);
+
+  it("wakes the floor for the family: the record and every chore of the floor", async () => {
+    const project = await begin();
+    const arrival = await onFloorReached("2F", ARRIVED, stores);
+
+    expect(arrival?.woken.map((quest) => String(quest.id)).sort()).toEqual([...floorOf(project, "2F").questIds].sort());
+    const saved = await active();
+    expect(floorOf(saved, "2F").wokenAt).toBe(ARRIVED.toISOString());
+    (await questsOf(floorOf(saved, "2F"))).forEach((quest) => expect(quest.project?.wokenAt).toBe(ARRIVED.toISOString()));
+    // only the floor reached wakes
+    expect(floorOf(saved, "3F").wokenAt).toBeUndefined();
+  });
+
+  it("changes nothing when the floor is awake: waking twice, or reaching the ground floor", async () => {
+    await begin();
+    await onFloorReached("2F", ARRIVED, stores);
+    const once = await active();
+
+    const again = await onFloorReached("2F", new Date(2027, 3, 6, 9), stores);
+    const ground = await onFloorReached("1F", new Date(2027, 3, 6, 9), stores);
+
+    expect(again?.woken).toEqual([]);
+    expect(ground?.woken).toEqual([]);
+    expect(await active()).toEqual(once);
+  });
+
+  it("settles a floor emptied by deleted chores on arrival, and climbs", async () => {
+    const project = await begin();
+    for (const quest of await questsOf(floorOf(project, "1F"))) await stores.quests.remove(String(quest.id));
+
+    const arrival = await onFloorReached("1F", ARRIVED, stores);
+
+    expect(arrival?.settled?.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
+    const saved = await active();
+    expect(floorOf(saved, "1F").clearedAt).toBe(ARRIVED.toISOString());
+    expect(floorOf(saved, "2F").wokenAt).toBeDefined();
+  });
+
+  it("is quiet when no project is running, and when the project was cleared", async () => {
+    expect(await onFloorReached("1F", ARRIVED, stores)).toBeNull();
+    await begin();
+    await abandonProject(stores);
+    expect(await onFloorReached("1F", ARRIVED, stores)).toBeNull();
+  });
+
+  it("takes its turn with the other calls: an arrival and a payment together settle the floor once", async () => {
+    const project = await begin();
+    const quests = await questsOf(floorOf(project, "1F"));
+    for (const quest of quests) await payQuest(quest, "2027-04-04");
+
+    await Promise.all([onFloorReached("1F", ARRIVED, stores), onQuestPaid(quests[0], "2027-04-04T12:00:00.000Z", stores), settleReadyFloors(ARRIVED, stores)]);
+
+    const heroes = new Set(quests.map((quest) => quest.assignee[0]));
+    expect(paidBonus.mock.calls.length).toBeLessThanOrEqual(heroes.size);
+    expect(floorOf(await active(), "1F").clearedAt).toBeDefined();
+  });
+});
+
+describe("readTower", () => {
+  it("is null when no project is running", async () => {
+    expect(await readTower(stores)).toBeNull();
+  });
+
+  it("gives the running project and the floors that read cleared, settled or not yet", async () => {
+    const project = await begin();
+    for (const quest of await questsOf(floorOf(project, "1F"))) await payQuest(quest, "2027-04-04");
+
+    const waiting = await readTower(stores);
+    expect(waiting?.project.id).toBe(project.id);
+    expect(waiting?.cleared).toEqual(["1F"]);
+
+    await settleReadyFloors(new Date(2027, 3, 5, 18), stores);
+    expect((await readTower(stores))?.cleared).toEqual(["1F"]);
+  });
+
+  it("reads a floor with every chore deleted as cleared", async () => {
+    const project = await begin();
+    for (const quest of await questsOf(floorOf(project, "2F"))) await stores.quests.remove(String(quest.id));
+    expect((await readTower(stores))?.cleared).toEqual(["2F"]);
+  });
+});
+
+describe("markFloorSeen", () => {
+  it("remembers that a hero was shown a floor's clear, once, and keeps the other heroes' marks", async () => {
+    const project = await begin();
+    await clearFloor(project, "1F", "2027-04-04");
+
+    await markFloorSeen("kai", "1F", stores);
+    await markFloorSeen("kai", "1F", stores);
+    await markFloorSeen("lia", "1F", stores);
+
+    expect(floorOf(await active(), "1F").seenBy).toEqual(["kai", "lia"]);
+    expect(floorOf(await active(), "2F").seenBy).toBeUndefined();
+  });
+
+  it("is quiet when no project is running", async () => {
+    await expect(markFloorSeen("kai", "1F", stores)).resolves.toBeUndefined();
+  });
+});
+
+describe("the heroes' saved walks in the tower", () => {
+  const TOWER = "gen-project-spring-cleaning";
+  const walk = (userId: string, templeId: string) => stores.progress.saveProgress({ userId, templeId } as never);
+
+  it("starting forgets every hero's saved walk and the run the engine holds, and no other temple's", async () => {
+    await walk("kai", TOWER);
+    await walk("lia", TOWER);
+    await walk("kai", "wind-temple");
+
+    await begin();
+
+    expect(await stores.progress.getProgressForTemple(TOWER)).toEqual([]);
+    expect(await stores.progress.getProgress("kai", "wind-temple")).not.toBeNull();
+    expect(stores.engine.forgetTempleRun).toHaveBeenCalledWith(TOWER);
+  });
+
+  it("abandoning forgets them the same way", async () => {
+    await begin();
+    await walk("kai", TOWER);
+    await walk("kai", "wind-temple");
+    stores.engine.forgetTempleRun.mockClear();
+
+    await abandonProject(stores);
+
+    expect(await stores.progress.getProgressForTemple(TOWER)).toEqual([]);
+    expect(await stores.progress.getProgress("kai", "wind-temple")).not.toBeNull();
+    expect(stores.engine.forgetTempleRun).toHaveBeenCalledWith(TOWER);
+  });
+
+  it("keeps going when one hero's walk cannot be forgotten: the project still starts and the others are cleared", async () => {
+    await walk("kai", TOWER);
+    await walk("lia", TOWER);
+    const clear = stores.progress.clearProgress.bind(stores.progress);
+    jest.spyOn(stores.progress, "clearProgress").mockImplementation(async (userId: string, templeId: string) => {
+      const isKai = userId === "kai";
+      if (isKai) throw new Error("storage is full");
+      await clear(userId, templeId);
+    });
+
+    await expect(begin()).resolves.toMatchObject({ status: "active" });
+
+    expect((await stores.progress.getProgressForTemple(TOWER)).map((entry) => entry.userId)).toEqual(["kai"]);
+  });
+
+  it("is untouched by an abandon with nothing running", async () => {
+    await walk("kai", TOWER);
+    await abandonProject(stores);
+    expect(await stores.progress.getProgress("kai", TOWER)).not.toBeNull();
+    expect(stores.engine.forgetTempleRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("a restart on the same day", () => {
+  it("gets a fresh id, so the abandoned run's paid chores settle nothing in the new tower", async () => {
+    const first = await begin();
+    const firstQuests = await questsOf(floorOf(first, "1F"));
+    await clearFloor(first, "1F", "2027-04-04");
+    await abandonProject(stores);
+
+    const second = await begin();
+
+    expect(second.id).toBe(`${first.id}~2`);
+    floorOf(second, "1F").questIds.forEach((id) => expect(id.startsWith(`pq-${second.id}-`)).toBe(true));
+    expect(await settleReadyFloors(new Date(2027, 3, 5, 18), stores)).toBeNull();
+    expect(floorOf(await active(), "1F").clearedAt).toBeUndefined();
+    // the first run's paid chores stay as they were
+    for (const quest of firstQuests) expect(await stores.quests.get(String(quest.id))).not.toBeNull();
+
+    await abandonProject(stores);
+    expect((await begin()).id).toBe(`${first.id}~3`);
+  });
+
+  it("keeps the wizard's id when no run holds it", async () => {
+    expect((await begin()).id).toBe("spring-cleaning-2027-04-03");
   });
 });

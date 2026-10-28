@@ -42,6 +42,10 @@
           <xp-building-model building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
         </xp-draggable-spot>
 
+        <xp-draggable-spot v-if="towerSpot" screen="home-town" spot-id="project-tower" :default-x="50" :default-y="46">
+          <xp-building-model :building-id="towerSpot.sceneId" :label="towerSpot.label" :sublabel="towerSpot.cue" :size="105" @click="isTowerOpen = true" />
+        </xp-draggable-spot>
+
         <xp-draggable-spot screen="home-town" spot-id="hotel" :default-x="76" :default-y="74">
           <xp-building-model building-id="hotel" label="Hotel" :size="115" />
         </xp-draggable-spot>
@@ -113,6 +117,9 @@
       </ion-card>
     </ion-modal>
     </ion-content>
+
+    <!-- The project tower: where the family is on it, and the Game Master's two controls -->
+    <project-tower-sheet :open="isTowerOpen" @close="isTowerOpen = false" @enter="enterTower" @changed="findTower" @abandoned="findTower" />
   </ion-page>
 </template>
 

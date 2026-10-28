@@ -27,6 +27,8 @@ export interface ProjectFloor {
   multiplier?: number;
   /** Set once the floor's bonus is paid, so it is never paid twice */
   bonusPaidAt?: string;
+  /** The heroes who were shown the floor's "Floor cleared!" (towerView.withFloorSeen), so each sees it once */
+  seenBy?: string[];
 }
 
 export interface ProjectReward {

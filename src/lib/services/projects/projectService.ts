@@ -10,15 +10,19 @@
  * arrival at the tower, a board refresh.
  *
  * QuestCompletionService calls `onQuestPaid` (or `onEntryPaid`, when it only has the log entry) after a project chore is
- * paid, and wraps the call so a failure here never holds up the payment.
+ * paid, and wraps the call so a failure here never holds up the payment. The temple screen calls `onFloorReached` when a
+ * hero arrives on a floor (the floor wakes for the whole family), `readTower` for the clock and the stairs' lock, and
+ * `markFloorSeen` once it has told a hero a floor was cleared.
  */
 import AchievementDb, { achievementStorage, type Achievement } from "@/lib/databases/AchievementDb";
 import { getProjectDb, type ProjectDb } from "@/lib/databases/ProjectDb";
 import { getQuestLogDb, type QuestLogDb } from "@/lib/databases/QuestLogDb";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
+import { getTempleProgressDb, type TempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import { applyQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import debug from "@/lib/utils/debug";
+import { phaseNameOf } from "./floorClock";
 import {
   hasSeen,
   newestCleared,
@@ -26,16 +30,18 @@ import {
   questsWokenBy,
   rescheduleFloors,
   settleReady,
+  wakeOnArrival,
   withRewardGiven,
   withSeen,
+  type ArrivalWake,
   type ReadySettlement,
   type SettledFloor,
 } from "./projectProgress";
-import { isProjectQuestId } from "./projectIds";
+import { freshProjectId, isProjectQuestId } from "./projectIds";
 import type { ProjectTowerInput } from "./projectQuests";
 import { newProjectRecord, type ProjectRecord } from "./projectRecord";
-import { ROOF_PHASE_ID } from "./projectSchedule";
 import { buildProjectTower } from "./projectTower";
+import { clearedFloorKeys, withFloorSeen } from "./towerView";
 
 /** The databases the service reads and writes; the specs hand it ones over in-memory storage */
 export interface ProjectStores {
@@ -43,6 +49,10 @@ export interface ProjectStores {
   quests: Pick<AchievementDb, "getTasks" | "get" | "set" | "remove">;
   log: Pick<QuestLogDb, "getEntries">;
   temples: Pick<TempleDb, "setTemple" | "remove">;
+  /** The heroes' saved walks through a tower */
+  progress: Pick<TempleProgressDb, "getProgressForTemple" | "clearProgress">;
+  /** The temple engine, which holds a run in memory after the screen is gone */
+  engine: { forgetTempleRun(templeId: string): void | Promise<void> };
 }
 
 let live: ProjectStores | null = null;
@@ -54,6 +64,14 @@ const liveStores = (): ProjectStores => {
       quests: new AchievementDb(achievementStorage),
       log: getQuestLogDb(),
       temples: new TempleDb(templeStorage),
+      progress: getTempleProgressDb(),
+      // Loaded when it is needed: the engine is a heavy module, and only starting and abandoning a project reach for it
+      engine: {
+        forgetTempleRun: async (templeId) => {
+          const { TempleSystem } = await import("@/lib/engine/core/dungeons/TempleSystem");
+          TempleSystem.getInstance().forgetTempleRun(templeId);
+        },
+      },
     };
   }
   return live;
@@ -68,15 +86,10 @@ const inTurn = <T>(task: () => Promise<T>): Promise<T> => {
   return run;
 };
 
-/** The roof is no phase, so it has no phase name to give its bonus line */
-const ROOF_NAME = "The Roof";
-
 /** What the wallet's history calls a floor: the phase's name ("Deep Clean"), the roof's, or the floor's key if the type is gone */
 const floorNameOf = (project: ProjectRecord, floorKey: string): string => {
   const floor = project.floors.find((each) => each.floorKey === floorKey);
-  if (floor?.phaseId === ROOF_PHASE_ID) return ROOF_NAME;
-  const phase = projectTypeOf(project.typeId)?.phases.find((each) => each.id === floor?.phaseId);
-  return phase?.name ?? floorKey;
+  return floor ? phaseNameOf(project.typeId, floor) : floorKey;
 };
 
 /** One floor's bonus into each hero's pocket: XP and GP only (AP is never multiplied); one hero failing does not hold up the rest */
@@ -147,20 +160,102 @@ export function settleReadyFloors(now: Date = new Date(), stores: ProjectStores 
   });
 }
 
+/** What reaching a floor did: the chores that woke with it, and the floors that were ready and got settled */
+export interface FloorArrival {
+  woken: Achievement[];
+  settled: ReadySettlement | null;
+}
+
+/** An arrival's wake, committed the way a settling's is: the quests first, then the record */
+const commitArrival = async (arrival: ArrivalWake, stores: ProjectStores): Promise<void> => {
+  for (const quest of arrival.quests) await stores.quests.set(String(quest.id), quest);
+  await stores.projects.save(arrival.project);
+};
+
+/**
+ * A hero reached the floor of the running project (walking in, stairs, a pit, a teleport): the floor wakes for the whole
+ * family if it was asleep, and whatever is ready to settle is settled (a floor emptied by deleted chores settles here,
+ * and its climb goes on). Waking twice changes nothing. Null when no project is running.
+ */
+export function onFloorReached(floorKey: string, now: Date = new Date(), stores: ProjectStores = liveStores()): Promise<FloorArrival | null> {
+  return inTurn(async () => {
+    const project = await stores.projects.getActive();
+    if (!project) return null;
+    const arrival = wakeOnArrival(project, floorKey, await stores.quests.getTasks(), now);
+    if (arrival) await commitArrival(arrival, stores);
+    const settled = await settleAndCommit(arrival?.project ?? project, now.toISOString(), now, stores);
+    return { woken: arrival?.quests ?? [], settled };
+  });
+}
+
+/** The running project as the temple and the town read it: the record, and the floors whose chores were all paid */
+export interface TowerSnapshot {
+  project: ProjectRecord;
+  cleared: string[];
+}
+
+/** The running project and which of its floors read cleared (settled or not yet); null when none is running */
+export function readTower(stores: ProjectStores = liveStores()): Promise<TowerSnapshot | null> {
+  return inTurn(async () => {
+    const project = await stores.projects.getActive();
+    if (!project) return null;
+    const [quests, entries] = await Promise.all([stores.quests.getTasks(), stores.log.getEntries()]);
+    return { project, cleared: clearedFloorKeys(project, quests, entries) };
+  });
+}
+
+/** The hero was shown the "Floor cleared!" of this floor of the running project; once is enough. Quiet when none is running. */
+export function markFloorSeen(heroId: string, floorKey: string, stores: ProjectStores = liveStores()): Promise<void> {
+  return inTurn(async () => {
+    const project = await stores.projects.getActive();
+    if (!project) return;
+    const told = withFloorSeen(project, floorKey, heroId);
+    const hasNewMark = told !== project;
+    if (hasNewMark) await stores.projects.save(told);
+  });
+}
+
+/** One hero's saved walk could not be forgotten: said, never thrown (the worst it leaves is a hero resuming in the old tower) */
+const warnIfFailed = (result: PromiseSettledResult<unknown>, heroId: string, templeId: string): void => {
+  const didFail = result.status === "rejected";
+  if (didFail) debug.warn(`[Projects] could not forget ${heroId}'s walk through ${templeId}`, result.reason);
+};
+
+/**
+ * A tower about to be raised, or taken down, must not be walked from an old run: every hero's saved walk through the
+ * temple is cleared, and the run the temple engine still holds in memory is dropped (it would otherwise be saved over the
+ * cleared walk on the next visit). A failure is said and never stops the project from starting or being abandoned.
+ */
+const forgetRuns = async (templeId: string, stores: ProjectStores): Promise<void> => {
+  try {
+    const walks = await stores.progress.getProgressForTemple(templeId);
+    const cleared = await Promise.allSettled(walks.map((walk) => stores.progress.clearProgress(walk.userId, templeId)));
+    cleared.forEach((result, index) => warnIfFailed(result, walks[index].userId, templeId));
+    await stores.engine.forgetTempleRun(templeId);
+  } catch (error) {
+    debug.warn(`[Projects] could not forget the runs in ${templeId}`, error);
+  }
+};
+
 /**
  * Builds the tower for the input and saves its temple, its quests and the project record (what is already in the
  * databases stays: the temple is replaced under its own id, the quests are added). One project runs at a time. The input
- * carries the heroes, which decide whose big chores wait for the Game Master.
+ * carries the heroes, which decide whose big chores wait for the Game Master. A run never takes the id of an earlier one
+ * (an abandoned run started the same day has it): the new tower is built under a fresh id, and the heroes' old walks in
+ * the type's tower are forgotten.
  */
 export function startProject(input: ProjectTowerInput, rewardText: string, stores: ProjectStores = liveStores()): Promise<ProjectRecord> {
   return inTurn(async () => {
     const running = await stores.projects.getActive();
     if (running) throw new Error(`The project ${running.id} is already running`);
-    const tower = buildProjectTower(input);
-    const record = newProjectRecord(tower, input, rewardText);
+    const held = (await stores.projects.getAll()).map((each) => each.id);
+    const fresh = { ...input, projectId: freshProjectId(input.projectId, held) };
+    const tower = buildProjectTower(fresh);
+    const record = newProjectRecord(tower, fresh, rewardText);
     await stores.temples.setTemple(tower.record);
     for (const quest of tower.quests) await stores.quests.set(String(quest.id), quest);
     await stores.projects.save(record);
+    await forgetRuns(tower.record.id, stores);
     return record;
   });
 }
@@ -197,6 +292,7 @@ export function abandonProject(stores: ProjectStores = liveStores()): Promise<vo
     await stores.projects.save({ ...project, status: "abandoned" });
     for (const id of open) await stores.quests.remove(id);
     await stores.temples.remove(project.templeId);
+    await forgetRuns(project.templeId, stores);
   });
 }
 

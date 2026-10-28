@@ -51,6 +51,8 @@ export interface RoomOutcomeDeps
   beastCard: ReturnType<typeof useRoomBeast>['getBeastCard'];
   activeMonster: ReturnType<typeof useRoomBeast>['activeMonster'];
   templeElement?: { value: string } | string;
+  /** Whether the stairs of a floor may climb: answered by a project tower (useProjectTower), undefined by every other temple */
+  isFloorCleared?: (level: string) => boolean | undefined;
 }
 
 /** How long the temple holds the "carried to the Hospital" line before the Hospital screen takes over */
@@ -94,7 +96,8 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     openChoiceReveal,
     beastCard,
     activeMonster,
-    templeElement
+    templeElement,
+    isFloorCleared
   } = deps;
 
   // Hand the hero to the battle screen for the combat room they stand in
@@ -130,13 +133,17 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     const room = templeSystem.getCurrentRoom(props.temple);
     const hasNoLiveRoom = !state || !room || !progressHeroId;
     if (hasNoLiveRoom) return null;
+    // A project tower's stairs climb from a floor whose chores are done; the other temples carry no such field
+    const floorCleared = isFloorCleared?.(state.currentLevel);
+    const hasFloorLock = floorCleared !== undefined;
     return {
       room,
       ctx: {
         userId: String(progressHeroId),
         templeId: props.temple,
         level: state.currentLevel,
-        position: [state.currentPosition[0], state.currentPosition[1]]
+        position: [state.currentPosition[0], state.currentPosition[1]],
+        ...(hasFloorLock ? { floorCleared } : {})
       }
     };
   };

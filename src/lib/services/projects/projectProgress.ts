@@ -66,6 +66,26 @@ export function wakeFloor(
   };
 }
 
+/** What reaching a floor changed: the record with the floor awake, and the quests that woke with it */
+export interface ArrivalWake {
+  project: ProjectRecord;
+  quests: Achievement[];
+}
+
+/**
+ * A hero reached the floor, which wakes it for the whole family (not for that hero alone): the floor and its chores
+ * carry the instant. Null when nothing wakes: the project is not running, the project has no such floor, or the floor
+ * is awake already (so waking twice changes nothing). The record and the quests given are not touched.
+ */
+export function wakeOnArrival(project: ProjectRecord, floorKey: string, quests: readonly Achievement[], now: Date): ArrivalWake | null {
+  const isRunning = project.status === "active";
+  const floor = floorOf(project, floorKey);
+  const isAsleep = Boolean(floor) && !floor?.wokenAt;
+  const canWake = isRunning && isAsleep;
+  if (!canWake) return null;
+  return wakeFloor(project, floorKey, quests, now);
+}
+
 /** Whether the floor is awake now and was asleep in `before` */
 const isNewlyWoken = (before: ProjectRecord, floor: ProjectFloor): boolean => {
   const wasAwake = Boolean(floorOf(before, floor.floorKey)?.wokenAt);

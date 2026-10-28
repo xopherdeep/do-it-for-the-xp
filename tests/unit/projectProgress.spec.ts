@@ -16,6 +16,7 @@ import {
   settleFloor,
   settleReady,
   wakeFloor,
+  wakeOnArrival,
   withRewardGiven,
   withSeen,
 } from "@/lib/services/projects/projectProgress";
@@ -147,6 +148,42 @@ describe("wakeFloor", () => {
     const woken = wakeFloor(projectOf(), "9F", QUESTS(), NOW);
     expect(woken.project).toEqual(projectOf());
     expect(woken.quests).toEqual([]);
+  });
+});
+
+describe("wakeOnArrival", () => {
+  it("wakes the floor reached for the family: the floor and its quests carry the instant", () => {
+    const woke = wakeOnArrival(projectOf(), "2F", QUESTS(), NOW)!;
+    expect(floorByKey(woke.project, "2F").wokenAt).toBe(NOW.toISOString());
+    expect(floorByKey(woke.project, "3F").wokenAt).toBeUndefined();
+    expect(woke.quests.map((quest) => quest.id)).toEqual(["pq-c"]);
+    expect(woke.quests[0].project?.wokenAt).toBe(NOW.toISOString());
+  });
+
+  it("wakes a floor above the open one when it is reached out of order (a pit, a teleport)", () => {
+    const woke = wakeOnArrival(projectOf(), "3F", QUESTS(), NOW)!;
+    expect(floorByKey(woke.project, "3F").wokenAt).toBe(NOW.toISOString());
+    expect(floorByKey(woke.project, "2F").wokenAt).toBeUndefined();
+  });
+
+  it("is null for a floor that is awake already, so waking twice changes nothing", () => {
+    expect(wakeOnArrival(projectOf(), "1F", QUESTS(), NOW)).toBeNull();
+    const woke = wakeOnArrival(projectOf(), "2F", QUESTS(), NOW)!;
+    expect(wakeOnArrival(woke.project, "2F", QUESTS(), april(9))).toBeNull();
+  });
+
+  it("is null for a floor the project does not have and for a project that is not running", () => {
+    expect(wakeOnArrival(projectOf(), "9F", QUESTS(), NOW)).toBeNull();
+    expect(wakeOnArrival(projectOf({ status: "cleared" }), "2F", QUESTS(), NOW)).toBeNull();
+    expect(wakeOnArrival(projectOf({ status: "abandoned" }), "2F", QUESTS(), NOW)).toBeNull();
+  });
+
+  it("does not touch the record or the quests it was given", () => {
+    const project = projectOf();
+    const quests = QUESTS();
+    wakeOnArrival(project, "2F", quests, NOW);
+    expect(floorByKey(project, "2F").wokenAt).toBeUndefined();
+    expect(quests[2].project?.wokenAt).toBeUndefined();
   });
 });
 

@@ -1,7 +1,20 @@
 import { defineComponent, ref } from "vue";
-import { mount } from "@vue/test-utils";
+import { addDays, format } from "date-fns";
+import { flushPromises, mount } from "@vue/test-utils";
 import { getTempleWorldLocation } from "@/app/Console/TempleGrounds/templeGrounds/useTempleMeta";
+import { useProjectTower } from "@/app/Console/TempleGrounds/templeGrounds/useProjectTower";
 import { resolveSwipeDirection, useTempleMovement } from "@/app/Console/TempleGrounds/templeGrounds/useTempleMovement";
+import { dateKey } from "@/lib/services/core/packs/packCommon";
+import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
+import { markFloorSeen, onFloorReached, readTower } from "@/lib/services/projects/projectService";
+
+// The tower in play reads and writes the project through its service: the screen's composable is tested over a stub of it
+jest.mock("@/lib/services/projects/projectService", () => ({
+  __esModule: true,
+  onFloorReached: jest.fn(),
+  readTower: jest.fn(),
+  markFloorSeen: jest.fn(),
+}));
 
 // Characterization: what the temple screen's pure helpers return today, pinned when they left TempleGrounds.ts
 
@@ -129,5 +142,206 @@ describe("useTempleMovement: what a tap or a swipe toward each kind of side does
     const boss = walk("master");
     boss.movement.handleMove("east");
     expect(boss.deps.showLockedDoor).toHaveBeenCalledWith("east");
+  });
+});
+
+describe("useProjectTower: the tower in play on the temple screen", () => {
+  const TOWER = "gen-project-spring-cleaning";
+  const reach = onFloorReached as jest.Mock;
+  const readIt = readTower as jest.Mock;
+  const seen = markFloorSeen as jest.Mock;
+  const templeSystem = { whenProgressReady: jest.fn(async () => undefined), refreshQuestRooms: jest.fn(async () => undefined) };
+
+  const inDays = (days: number): string => dateKey(addDays(new Date(), days));
+  const floorOf = (floorKey: string, phaseId: string, dueIn: number, extra: Partial<ProjectFloor> = {}): ProjectFloor => ({
+    floorKey,
+    phaseId,
+    window: { phaseId, opensOn: inDays(dueIn - 9), dueOn: inDays(dueIn) },
+    questIds: [`pq-${floorKey}`],
+    wokenAt: "2027-04-01T09:00:00.000Z",
+    ...extra,
+  });
+  const projectOf = (floors: ProjectFloor[]): ProjectRecord => ({
+    id: "spring-cleaning-2027-04-01",
+    typeId: "spring-cleaning",
+    templeId: TOWER,
+    status: "active",
+    startOn: inDays(-6),
+    endOn: inDays(10),
+    house: { rooms: { kitchen: 1 } },
+    floors,
+    chores: [],
+    reward: { text: "Pizza night", seenBy: [] },
+    creditsSeenBy: [],
+  });
+  const openTower = (): ProjectRecord => projectOf([floorOf("1F", "declutter", 3), floorOf("2F", "deep-clean", 6, { wokenAt: undefined })]);
+
+  /** The temple screen's tower composable over a temple, shown (Ionic's ionViewDidEnter) when the test says so */
+  const screen = (temple: string, level = "1F") => {
+    const currentLevel = ref(level);
+    let tower!: ReturnType<typeof useProjectTower>;
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          tower = useProjectTower({ temple, heroId: "kai", whenOpened: Promise.resolve(true), currentLevel, templeSystem: templeSystem as never });
+          return { ready: true };
+        },
+        render: () => null,
+      })
+    );
+    const vm = wrapper.vm as unknown as { onIonViewDidEnter?: Array<() => void> };
+    const showPage = async () => {
+      for (const hook of vm.onIonViewDidEnter ?? []) hook();
+      await flushPromises();
+    };
+    return { tower, currentLevel, showPage };
+  };
+
+  beforeEach(() => {
+    for (const mock of [reach, readIt, seen, templeSystem.whenProgressReady, templeSystem.refreshQuestRooms]) mock.mockClear();
+    reach.mockResolvedValue({ woken: [], settled: null });
+    readIt.mockResolvedValue({ project: openTower(), cleared: [] });
+    seen.mockResolvedValue(undefined);
+  });
+
+  it("does nothing for any other temple: no wake, no read, no clock, no lock", async () => {
+    const { tower, showPage } = screen("wind-temple");
+
+    await showPage();
+
+    expect(reach).not.toHaveBeenCalled();
+    expect(readIt).not.toHaveBeenCalled();
+    expect(tower.floorClock.value).toBeNull();
+    expect(tower.isFloorCleared("1F")).toBeUndefined();
+    expect(tower.towerPrompt.value).toBeNull();
+  });
+
+  it("wakes the floor the hero stands on when the page shows, and reads the tower", async () => {
+    const { showPage } = screen(TOWER, "2F");
+
+    await showPage();
+
+    expect(reach).toHaveBeenCalledWith("2F", expect.any(Date));
+    expect(readIt).toHaveBeenCalled();
+  });
+
+  it("wakes the floor the hero arrives on as they climb", async () => {
+    const { currentLevel, showPage } = screen(TOWER, "1F");
+    await showPage();
+    reach.mockClear();
+
+    currentLevel.value = "2F";
+    await flushPromises();
+
+    expect(reach).toHaveBeenCalledWith("2F", expect.any(Date));
+  });
+
+  it("has the rooms read the hero's board again each time, after the wake: the chores woken since the run read it must fight", async () => {
+    const { showPage } = screen(TOWER);
+
+    await showPage();
+
+    expect(templeSystem.refreshQuestRooms).toHaveBeenCalledWith(TOWER);
+    expect(reach.mock.invocationCallOrder[0]).toBeLessThan(templeSystem.refreshQuestRooms.mock.invocationCallOrder[0]);
+    expect(templeSystem.refreshQuestRooms.mock.invocationCallOrder[0]).toBeLessThan(readIt.mock.invocationCallOrder[0]);
+  });
+
+  it("reads the board again even when the wake failed, and keeps going when the board cannot be read", async () => {
+    reach.mockRejectedValue(new Error("boom"));
+    templeSystem.refreshQuestRooms.mockRejectedValueOnce(new Error("no board"));
+    const { tower, showPage } = screen(TOWER);
+
+    await showPage();
+
+    expect(templeSystem.refreshQuestRooms).toHaveBeenCalledTimes(1);
+    expect(tower.floorClock.value).not.toBeNull();
+  });
+
+  it("lets the stairs climb only from a floor that reads cleared", async () => {
+    readIt.mockResolvedValue({ project: openTower(), cleared: ["1F"] });
+    const { tower, showPage } = screen(TOWER);
+
+    expect(tower.isFloorCleared("1F")).toBe(false);
+    await showPage();
+
+    expect(tower.isFloorCleared("1F")).toBe(true);
+    expect(tower.isFloorCleared("2F")).toBe(false);
+  });
+
+  it("keeps the stairs shut when the tower cannot be read, and opens them when the project is over", async () => {
+    readIt.mockRejectedValue(new Error("storage is full"));
+    const broken = screen(TOWER);
+    await broken.showPage();
+    expect(broken.tower.isFloorCleared("1F")).toBe(false);
+
+    readIt.mockResolvedValue(null);
+    const over = screen(TOWER);
+    await over.showPage();
+    expect(over.tower.isFloorCleared("1F")).toBe(true);
+  });
+
+  it("shows the clock of the floor the hero stands on, with the offer, and follows them up", async () => {
+    const { tower, currentLevel, showPage } = screen(TOWER, "1F");
+    await showPage();
+
+    const due = format(addDays(new Date(), 3), "EEE");
+    expect(tower.floorClock.value).toMatchObject({ floorKey: "1F", name: "Declutter", state: "open" });
+    expect(tower.floorClock.value?.line).toContain(`due ${due}, 3 days`);
+    expect(tower.floorClock.value?.offer).toMatch(/×\d\.\d/);
+
+    currentLevel.value = "2F";
+    expect(tower.floorClock.value?.floorKey).toBe("2F");
+  });
+
+  it("tells the hero a floor was cleared, once: Floor cleared! with the bonus, marked seen as it shows", async () => {
+    const cleared = projectOf([floorOf("1F", "declutter", 3, { clearedAt: "2027-04-02T09:00:00.000Z", multiplier: 1.6 }), floorOf("2F", "deep-clean", 6)]);
+    readIt.mockResolvedValue({ project: cleared, cleared: ["1F"] });
+    const { tower, showPage } = screen(TOWER);
+
+    await showPage();
+
+    const prompt = tower.towerPrompt.value;
+    expect(prompt?.options.title).toBe("Floor cleared!");
+    expect(prompt?.options.lines.join(" ")).toContain("×1.6");
+    expect(seen).toHaveBeenCalledWith("kai", "1F");
+
+    tower.answerTowerPrompt({ id: "onward", amount: null });
+    await flushPromises();
+    expect(tower.towerPrompt.value).toBeNull();
+    expect(seen).toHaveBeenCalledTimes(1);
+
+    // the page shows again, and the record says kai saw it
+    const told = projectOf([{ ...cleared.floors[0], seenBy: ["kai"] }, cleared.floors[1]]);
+    readIt.mockResolvedValue({ project: told, cleared: ["1F"] });
+    await showPage();
+    expect(tower.towerPrompt.value).toBeNull();
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells each cleared floor in turn, lowest first", async () => {
+    const two = projectOf([
+      floorOf("1F", "declutter", 3, { clearedAt: "2027-04-02T09:00:00.000Z", multiplier: 1 }),
+      floorOf("2F", "deep-clean", 6, { clearedAt: "2027-04-03T09:00:00.000Z", multiplier: 1.2 }),
+      floorOf("3F", "organize", 8),
+    ]);
+    readIt.mockResolvedValue({ project: two, cleared: ["1F", "2F"] });
+    const { tower, showPage } = screen(TOWER);
+
+    await showPage();
+    expect(tower.towerPrompt.value?.options.lines[0]).toContain("Declutter");
+    tower.answerTowerPrompt({ id: "onward", amount: null });
+    await flushPromises();
+    expect(tower.towerPrompt.value?.options.lines[0]).toContain("Deep Clean");
+    expect(seen.mock.calls.map((call) => call[1])).toEqual(["1F", "2F"]);
+  });
+
+  it("does not stop the screen when the wake fails: the tower is still read", async () => {
+    reach.mockRejectedValue(new Error("boom"));
+    const { tower, showPage } = screen(TOWER);
+
+    await showPage();
+
+    expect(readIt).toHaveBeenCalled();
+    expect(tower.floorClock.value).not.toBeNull();
   });
 });
