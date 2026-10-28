@@ -13,6 +13,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { dateKey } from "@/lib/services/core/packs/packCommon";
 import { floorBonusPool, floorMultiplier, splitFloorBonus, type FloorBonus } from "./floorBonus";
+import { newestClearedFirst } from "./projectOrder";
 import { projectStartsOn } from "./projectQuests";
 import type { ProjectFloor, ProjectRecord } from "./projectRecord";
 import { ROOF_PHASE_ID, extendWindows, type PhaseWindow } from "./projectSchedule";
@@ -354,13 +355,10 @@ export function openQuestIds(project: ProjectRecord, quests: readonly Achievemen
   return quests.map((quest) => String(quest.id)).filter(isOpen);
 }
 
-/** Negative, zero or positive by plain character order (the stamps are ISO text, which sorts as time does) */
-const compareText = (a: string, b: string): number => Number(a > b) - Number(a < b);
-
-/** The cleared project that was cleared last (a tie goes to the later id), optionally only among those `wants` */
+/** The cleared project that was cleared last (a tie goes to the later id: projectOrder.ts), optionally only among those `wants` */
 export function newestCleared(records: readonly ProjectRecord[], wants: (record: ProjectRecord) => boolean = () => true): ProjectRecord | null {
   const isWanted = (record: ProjectRecord): boolean => record.status === "cleared" && wants(record);
-  const latestFirst = records.filter(isWanted).sort((a, b) => compareText(b.clearedAt ?? "", a.clearedAt ?? "") || compareText(b.id, a.id));
+  const latestFirst = records.filter(isWanted).sort(newestClearedFirst);
   return latestFirst[0] ?? null;
 }
 

@@ -13,6 +13,7 @@ import { FALLBACK_VOICE, type Voice } from "@/lib/services/copy/voices";
 import { dateKey, parseLocalDate } from "@/lib/services/core/packs/packCommon";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import { phaseNameOf } from "./floorClock";
+import { newestClearedFirst } from "./projectOrder";
 import { hasSeen, newestCleared } from "./projectProgress";
 import type { ProjectRecord } from "./projectRecord";
 
@@ -46,14 +47,12 @@ export function daysEarly(project: ProjectRecord): number {
   return Math.max(0, differenceInCalendarDays(parseLocalDate(project.endOn), at));
 }
 
-/** Negative, zero or positive by plain character order (the stamps are ISO text, which sorts as time does) */
-const compareText = (a: string, b: string): number => Number(a > b) - Number(a < b);
-
-/** The cleared runs, the one cleared last first (a tie goes to the later id) */
+/**
+ * The cleared runs, the one cleared last first. It is the order newestCleared picks its run from (projectOrder.ts), so
+ * the first trophy is always the run markSeen and markRewardGiven write to.
+ */
 export const trophiesOf = (records: readonly ProjectRecord[]): ProjectRecord[] =>
-  records
-    .filter((record) => record.status === "cleared")
-    .sort((a, b) => compareText(b.clearedAt ?? "", a.clearedAt ?? "") || compareText(b.id, a.id));
+  records.filter((record) => record.status === "cleared").sort(newestClearedFirst);
 
 /** A reward the family earned that nobody has handed over yet */
 export const isRewardToGive = (record: ProjectRecord): boolean => Boolean(record.reward.earnedAt) && !record.reward.givenAt;

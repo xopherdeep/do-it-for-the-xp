@@ -190,6 +190,24 @@ describe("when the finish waits", () => {
     expect(vm(wrapper).finishPrompt?.options.title).toBe("Family reward unlocked!");
   });
 
+  it("does not roll the credits over a fight that began while the reward showed, and rolls them when it is over", async () => {
+    const wrapper = await mountFor();
+    expect(vm(wrapper).finishPrompt).not.toBeNull();
+
+    useBattleStore().active = true;
+    await answer(wrapper);
+
+    expect(vm(wrapper).credits).toBeNull();
+    expect(seen).not.toHaveBeenCalledWith("twelve", "credits");
+    expect(finish).not.toHaveBeenCalled();
+
+    useBattleStore().active = false;
+    await flushPromises();
+
+    expect(vm(wrapper).credits?.towerName).toBe("The Spring Spire");
+    expect(seen).toHaveBeenCalledWith("twelve", "credits");
+  });
+
   it("holds off during a fight", async () => {
     useBattleStore().active = true;
     const wrapper = await mountFor();

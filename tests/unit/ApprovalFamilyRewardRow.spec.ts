@@ -59,6 +59,29 @@ describe("the Approvals row for the family reward", () => {
     expect(wrapper.emitted("given")).toHaveLength(1);
   });
 
+  it("stays shut after it saved: a quick second tap cannot hand over the next run's reward before the page reads again", async () => {
+    const wrapper = mountRow();
+
+    await wrapper.get('[data-test="family-reward-give"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.get('[data-test="family-reward-give"]').attributes("disabled")).toBeDefined();
+    await wrapper.get('[data-test="family-reward-give"]').trigger("click");
+    await flushPromises();
+
+    expect(give).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("given")).toHaveLength(1);
+  });
+
+  it("opens again only when it did not save", async () => {
+    give.mockRejectedValueOnce(new Error("no storage"));
+    const wrapper = mountRow();
+
+    await wrapper.get('[data-test="family-reward-give"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get('[data-test="family-reward-give"]').attributes("disabled")).toBeUndefined();
+  });
+
   it("tells the Game Master when it did not save, and lets them try again", async () => {
     give.mockRejectedValueOnce(new Error("no storage"));
     const wrapper = mountRow();

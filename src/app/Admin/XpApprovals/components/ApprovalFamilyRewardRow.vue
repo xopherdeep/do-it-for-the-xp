@@ -52,8 +52,10 @@ const give = async () => {
     isSaving.value = false;
     return;
   }
+  // Left shut on purpose: until the page reads again this row still stands for the run just handed over, and a second tap
+  // would stamp the next run's reward, which the Game Master has not seen. The page keys the row by the run, so a next
+  // reward gets a fresh row.
   play$fx("select");
-  isSaving.value = false;
   emit("given");
 };
 </script>

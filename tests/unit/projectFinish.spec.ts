@@ -10,6 +10,7 @@ import { VOICES } from "@/lib/services/copy/voices";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { creditHeroesOf, creditsViewOf, daysEarly, finishStepFor, rewardToGive, trophiesOf, trophyOf } from "@/lib/services/projects/projectFinish";
 import { rewardRevealPrompt } from "@/lib/services/projects/finishPrompts";
+import { newestCleared } from "@/lib/services/projects/projectProgress";
 
 const floorOf = (floorKey: string, phaseId: string, questIds: string[], extra: Partial<ProjectFloor> = {}): ProjectFloor => ({
   floorKey,
@@ -72,6 +73,23 @@ describe("trophiesOf", () => {
       "spring-cleaning-2027-04-03",
       "spring-cleaning-2026-04-03",
     ]);
+  });
+
+  it("starts with the run newestCleared picks (the one markSeen stamps), over a tie and a run with no clear time, in any input order", () => {
+    const stamp = new Date(2027, 3, 8, 20).toISOString();
+    const records = [
+      clearedProject({ id: "run-a", clearedAt: stamp }),
+      clearedProject({ id: "run-b", clearedAt: stamp }),
+      clearedProject({ id: "run-undated", clearedAt: undefined }),
+      clearedProject({ id: "run-old", clearedAt: new Date(2026, 3, 8, 20).toISOString() }),
+    ];
+    const orders = [records, [...records].reverse(), [records[2], records[0], records[3], records[1]]];
+    for (const order of orders) {
+      expect(trophiesOf(order)[0].id).toBe(newestCleared(order)?.id);
+      expect(trophiesOf(order).map((record) => record.id)).toEqual(["run-b", "run-a", "run-old", "run-undated"]);
+    }
+    const onlyUndated = [clearedProject({ id: "run-x", clearedAt: undefined }), clearedProject({ id: "run-y", clearedAt: undefined })];
+    expect(trophiesOf(onlyUndated)[0].id).toBe(newestCleared(onlyUndated)?.id);
   });
 
   it("is empty when nothing was cleared", () => {

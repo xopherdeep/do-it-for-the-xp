@@ -40,7 +40,7 @@
       <template v-else>
         <ion-list v-if="activeSegment === 'achievements'">
           <!-- A cleared project's family reward, earned and waiting for the Game Master to hand it over -->
-          <approval-family-reward-row v-if="familyReward" :text="familyReward.reward.text" @given="loadApprovals" />
+          <approval-family-reward-row v-if="familyReward" :key="familyReward.id" :text="familyReward.reward.text" @given="loadApprovals" />
           <approval-claim-row
             v-for="entry in pendingAchievements"
             :key="entry.id"

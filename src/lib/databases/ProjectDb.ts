@@ -1,6 +1,7 @@
 import { Drivers, Storage } from "@ionic/storage";
 import DbStorageApi from "./DbStorageApi";
 import type { ProjectTypeId } from "@/lib/services/core/packs/projects";
+import { newestFirstBy } from "@/lib/services/projects/projectOrder";
 import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
 
 /**
@@ -19,15 +20,9 @@ const isRecord = (value: unknown): value is ProjectRecord => {
   return typeof id === "string" && typeof status === "string";
 };
 
-/** Negative, zero or positive by plain character order: the stamps are ISO text, which sorts as time does */
-const compareText = (a: string, b: string): number => Number(a > b) - Number(a < b);
-
-/** The record with the latest stamp; a tie goes to the later id, so the answer never depends on the order they were stored in */
+/** The record with the latest stamp; a tie goes to the later id, so the answer never depends on the order they were stored in (projectOrder.ts) */
 const newestBy = (records: readonly ProjectRecord[], stamp: (record: ProjectRecord) => string): ProjectRecord | null => {
-  const latestFirst = [...records].sort((a, b) => {
-    const byStamp = compareText(stamp(b), stamp(a));
-    return byStamp !== 0 ? byStamp : compareText(b.id, a.id);
-  });
+  const latestFirst = [...records].sort(newestFirstBy(stamp));
   return latestFirst[0] ?? null;
 };
 

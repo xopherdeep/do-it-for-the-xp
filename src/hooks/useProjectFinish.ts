@@ -79,7 +79,9 @@ export function useProjectFinish(heroId: string) {
   const tell = async (): Promise<void> => {
     for (let moment = 0; moment < MOMENTS; moment += 1) {
       const owed = await nextMoment();
-      const hasNothingToTell = !owed || isGone;
+      // Looked at again before each moment: a fight can begin while the reward shows (the ambush), and the credits must
+      // not roll over it. What waits is told at the next look, when the fight is over.
+      const hasNothingToTell = !owed || isGone || isHeld();
       if (hasNothingToTell) return;
       await markSeen(heroId, owed.step);
       const isReward = owed.step === "reward";
