@@ -27,7 +27,7 @@ import { beastQuestPatch, beastToAdopt } from "@/lib/services/quests/questFormRu
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
 import { choreName, defaultChore, suggestChore } from "@/lib/services/quests/questWizardChores";
-import { familyBeastFields, partyOf, proposeForMaker } from "@/lib/services/quests/questWizardMaker";
+import { familyBeastFields, partyOf, proposeCopyBeast, proposeForMaker } from "@/lib/services/quests/questWizardMaker";
 import type { FamilyBeastRef, LinkBeast } from "@/lib/services/quests/questWizardMaker";
 import { suggestedRewards } from "@/lib/services/quests/sizeRewards";
 import type { SizeRewards } from "@/lib/services/quests/sizeRewards";
@@ -383,6 +383,8 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
   const steps = cleanSteps(draft.steps);
   const isEdited = !sameSteps(steps, cleanSteps(entry.checklist));
   let beast: Beast | null;
+  // The family's copy of a library beast, when the edited steps make one: a maker's work, so it waits with a proposed quest
+  let copy: Beast | null = null;
   let beastFields: Pick<Achievement, "beastId" | "adventureType" | "noBeast">;
   if (draft.beastId) {
     beast = null;
@@ -390,6 +392,7 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
   } else if (isEdited) {
     const copyId = `${entry.id}-${questId.slice(0, 8)}`;
     beast = { ...adoptLibraryBeast(entry), id: copyId, checklist: steps };
+    copy = beast;
     beastFields = { beastId: copyId, adventureType: "beast", noBeast: false };
   } else {
     beast = beastToAdopt(entry, ctx.familyBeasts);
@@ -424,7 +427,8 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     createdBy: ctx.creatorId,
   };
 
-  return { beast, ...proposeForMaker(quest, draft, ctx) };
+  const built = proposeForMaker(quest, draft, ctx);
+  return { beast: copy ? proposeCopyBeast(copy, built.quest, ctx) : beast, ...built };
 }
 
 /** The ticked weekdays, in week order; none ticked means the weekday the quest starts on. */

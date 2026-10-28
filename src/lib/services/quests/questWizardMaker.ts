@@ -83,7 +83,9 @@ export function willPropose(
 
 /**
  * The finished quest as it should be saved: untouched when it stays live, else a draft with a proposal on it (the date
- * is the build date), plus the waiting family beast to point at it (`linkBeast`) when it fights one.
+ * is the build date), plus the waiting family beast to point at it (`linkBeast`) when it fights one. A beast keeps the
+ * first quest it was linked to: a second quest made with it proposes on its own, pointing at the beast by id, and the
+ * review (creationReview) still approves the beast with whichever quest the Game Master takes first.
  */
 export function proposeForMaker(quest: Achievement, draft: WizardDraft, ctx: BuildContext): { quest: Achievement; linkBeast?: LinkBeast } {
   const isProposal = willPropose(draft, ctx);
@@ -91,5 +93,19 @@ export function proposeForMaker(quest: Achievement, draft: WizardDraft, ctx: Bui
   const proposed = propose({ ...quest, draft: true }, ctx.creatorId, ctx.today ?? new Date());
   const waitingBeast = familyBeastOf(draft, ctx);
   if (!isUnapproved(waitingBeast)) return { quest: proposed };
+  const linked = waitingBeast.proposal.questId;
+  const namesAnotherQuest = Boolean(linked) && linked !== String(quest.id);
+  if (namesAnotherQuest) return { quest: proposed };
   return { quest: proposed, linkBeast: { id: String(waitingBeast.id), proposal: { ...waitingBeast.proposal, questId: quest.id } } };
+}
+
+/**
+ * A library beast whose steps a maker edited is the family's own copy of it, and the maker's work: when the quest waits
+ * for a Game Master the copy waits too, pointed at the quest and credited to the maker, so the pair is approved
+ * together and the edited steps never go live first. With a quest that stays live (D5) the copy is as it always was.
+ */
+export function proposeCopyBeast(copy: Beast, quest: Achievement, ctx: Pick<BuildContext, "creatorId" | "today">): Beast {
+  const staysLive = !quest.proposal;
+  if (staysLive) return copy;
+  return propose({ ...copy, madeBy: ctx.creatorId }, ctx.creatorId, ctx.today ?? new Date(), String(quest.id));
 }

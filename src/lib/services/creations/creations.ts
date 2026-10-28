@@ -200,10 +200,22 @@ const baseRow = (kind: CreationKind, id: string, name: string, proposal: Proposa
   note: proposal.note,
 });
 
+/** A record with a proposal on it: a creation, whatever state it is in */
+const hasProposal = (record: Proposed): record is { proposal: Proposal } => Boolean(record.proposal);
+
+/** The quest a beast is reviewed with: the one its proposal names, else the first waiting quest that fights it */
+const pairOf = (beast: Beast & { proposal: Proposal }, waiting: readonly Achievement[]): Achievement | undefined => {
+  const named = beast.proposal.questId;
+  const namedQuest = named ? waiting.find((quest) => String(quest.id) === named) : undefined;
+  return namedQuest ?? waiting.find((quest) => String(quest.beastId ?? "") === String(beast.id));
+};
+
 /**
  * The rows for the Game Master's Creations list: one per beast or quest whose proposal is in `states` (waiting ones by
- * default), oldest first. A beast whose proposal names a quest in `quests` carries that quest as `pairedQuest`, and the
- * quest gets no row of its own.
+ * default), oldest first. A beast not yet in the game is one row with the quest it is reviewed with (`pairedQuest`: the
+ * quest its proposal names, else a waiting quest that fights it), whatever state either is in, so a beast that was sent
+ * back and the quest the kid sent again on its own show as one line; that quest gets no row of its own, and a second
+ * quest on the same beast does. A quest whose beast is in the game, or is nobody's creation, is its own row.
  */
 export const creationRows = (
   beasts: readonly Beast[],
@@ -211,13 +223,17 @@ export const creationRows = (
   states: readonly ProposalState[] = ["proposed"]
 ): CreationRow[] => {
   const isAsked = (record: Proposed): record is { proposal: Proposal } => !!record.proposal && states.includes(record.proposal.state);
-  const questById = new Map(quests.map((quest) => [String(quest.id), quest]));
+  // Only a quest still to be approved rides on a beast's row: an approved one is in the game already
+  const stillToApprove = quests.filter((quest) => hasProposal(quest) && !isLive(quest));
   const pairedIds = new Set<string>();
   const rows: CreationRow[] = [];
 
   for (const beast of beasts) {
-    if (!isAsked(beast)) continue;
-    const pairedQuest = beast.proposal.questId ? questById.get(beast.proposal.questId) : undefined;
+    if (!hasProposal(beast)) continue;
+    const unpaired = stillToApprove.filter((quest) => !pairedIds.has(String(quest.id)));
+    const pairedQuest = isLive(beast) ? undefined : pairOf(beast, unpaired);
+    const isWanted = isAsked(beast) || (pairedQuest !== undefined && isAsked(pairedQuest));
+    if (!isWanted) continue;
     if (pairedQuest) pairedIds.add(String(pairedQuest.id));
     rows.push({ ...baseRow("beast", String(beast.id), beast.name, beast.proposal), beast, pairedQuest });
   }

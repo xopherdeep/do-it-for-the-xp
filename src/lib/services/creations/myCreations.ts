@@ -162,8 +162,23 @@ export const loadMyCreations = async (heroId: string, stores: ReviewStores = app
 // ---------------------------------------------------------------------------------------------------------------------
 
 /**
- * Send a creation that came back again, as it is: waiting, dated now, the Game Master's note cleared. A record that is
- * no longer sent back (approved, waiting, or gone) is left alone.
+ * The other half of a pair, when it came back too: the quest a beast was sent with (its proposal names it), or the
+ * beast a quest fights. The Game Master returns both with one note, so the kid sends both again with one tap.
+ */
+const returnedPairOf = async (kind: CreationKind, record: Stored, stores: ReviewStores): Promise<{ kind: CreationKind; record: Stored } | undefined> => {
+  const isBeast = kind === "beast";
+  const otherKind: CreationKind = isBeast ? "quest" : "beast";
+  const otherId = isBeast ? (record as Beast).proposal?.questId : (record as Achievement).beastId;
+  if (!otherId) return undefined;
+  const other = await storedOf({ kind: otherKind, id: String(otherId) }, stores);
+  const cameBackToo = other !== undefined && isReturned(other);
+  return cameBackToo ? { kind: otherKind, record: other } : undefined;
+};
+
+/**
+ * Send a creation that came back again, as it is: waiting, dated now, the Game Master's note cleared, and the other
+ * half of its pair with it when that came back too. A record that is no longer sent back (approved, waiting, or gone)
+ * is left alone.
  */
 export const resendCreation = async (
   row: Pick<MyCreationRow, "kind" | "id">,
@@ -174,6 +189,8 @@ export const resendCreation = async (
   const cannotBeSentAgain = record === undefined || !isReturned(record);
   if (cannotBeSentAgain) return { ok: false };
   await write(row.kind, resend(record, now), stores);
+  const other = await returnedPairOf(row.kind, record, stores);
+  if (other) await write(other.kind, resend(other.record, now), stores);
   return { ok: true };
 };
 
@@ -199,8 +216,9 @@ export const sendFixedBeast = async (draft: BeastDraft, now: Date, stores: Revie
 /**
  * Delete a creation that is waiting or came back. A beast takes the quest sent with it along, while that quest is not in
  * the game either; a quest goes through the Compendium's own delete so nothing is left pointing at it. What is in the
- * game is never deleted from here (`ok: false`); a record that is gone already counts as deleted. The Game Master's
- * "a creation awaits" notices about it are settled.
+ * game is never deleted from here (`ok: false`), and nor is a beast a live quest fights (approving the quest approves
+ * the beast, so that is old data, but the quest must not be left pointing at nothing); a record that is gone already
+ * counts as deleted. The Game Master's "a creation awaits" notices about it are settled.
  */
 export const deleteCreation = async (row: Pick<MyCreationRow, "kind" | "id" | "key">, stores: DeleteStores = appStores()): Promise<{ ok: boolean }> => {
   const record = await storedOf(row, stores);
@@ -214,11 +232,14 @@ export const deleteCreation = async (row: Pick<MyCreationRow, "kind" | "id" | "k
     await stores.removeQuest(record as Achievement);
   } else {
     const beast = record as Beast;
+    const quests = present<Achievement>(await stores.achievementDb.getTasks());
     const sentWithId = beast.proposal?.questId;
-    const sentWith = sentWithId ? present<Achievement>(await stores.achievementDb.getTasks()).find((quest) => String(quest.id) === sentWithId) : undefined;
+    const fightsIt = (quest: Achievement) => String(quest.id) === sentWithId || String(quest.beastId ?? "") === String(beast.id);
+    const isFoughtLive = quests.some((quest) => isLive(quest) && fightsIt(quest));
+    if (isFoughtLive) return { ok: false };
     // The quest first: if the beast then fails to go, the kid still sees its row and can try again
-    const isSentWithStillACreation = sentWith !== undefined && !isLive(sentWith);
-    if (isSentWithStillACreation) {
+    const sentWith = sentWithId ? quests.find((quest) => String(quest.id) === sentWithId) : undefined;
+    if (sentWith) {
       await stores.removeQuest(sentWith);
       settleNotices(`quest:${sentWith.id}`);
     }
@@ -235,7 +256,8 @@ export const deleteCreation = async (row: Pick<MyCreationRow, "kind" | "id" | "k
 /**
  * A hero's profile was deleted: every creation of theirs still waiting goes back to the Game Master as returned with the
  * note "maker gone", so the history shows what became of it. The signed-in Game Master is the reviewer. Ones already sent
- * back keep their note and ones in the game stay (their credit line keeps the maker's name). Answers how many it sent back.
+ * back keep their note and ones in the game stay, though their credit line goes blank (creditLine has no name to give
+ * for a hero who is gone) until follow-up #1586 keeps the name. Answers how many it sent back.
  */
 export const orphanCreations = async (heroId: string, now: Date, stores: ReviewStores = appStores()): Promise<number> => {
   const reviewerId = String(useUserStore().currentUser.id ?? "");

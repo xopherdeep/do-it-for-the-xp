@@ -531,6 +531,37 @@ describe("what a maker may do", () => {
     expect(linkBeast).toBeUndefined();
   });
 
+  it("keeps a beast's first link: a second quest made with it proposes on its own, pointing at the beast by id", () => {
+    const linked = { ...familyBeast("proposed"), proposal: { ...familyBeast("proposed").proposal, questId: "quest-first" } };
+    const { quest, linkBeast } = buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts: [linked] });
+    expect(quest).toMatchObject({ beastId: "beast-sock", draft: true });
+    expect(quest.proposal?.state).toBe("proposed");
+    expect(linkBeast).toBeUndefined();
+  });
+
+  it("still links a beast that already names this very quest (the quest saved again)", () => {
+    const linked = { ...familyBeast("proposed"), proposal: { ...familyBeast("proposed").proposal, questId: "quest-abcdef123456" } };
+    const { linkBeast } = buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts: [linked] });
+    expect(linkBeast?.proposal.questId).toBe("quest-abcdef123456");
+  });
+
+  it("proposes the family's copy of a library beast with the quest when the maker edited its steps for a sibling (M3)", () => {
+    const draft = addStep(picked("dish-goblin", { heroIds: ["kid-1", "kid-2"] }), "Say thank you to the dishwasher");
+    const { quest, beast } = buildWizardQuest(draft, makerCtx);
+    expect(quest.proposal?.state).toBe("proposed");
+    expect(beast).toMatchObject({ id: "beast-dish-goblin-quest-ab", madeBy: "kid-1" });
+    expect(beast?.proposal).toEqual({ by: "kid-1", on: TODAY.toISOString(), state: "proposed", questId: quest.id });
+    expect(beast?.checklist.slice(-1)[0]).toBe("Say thank you to the dishwasher");
+  });
+
+  it("keeps the copy live, nobody's creation, when the quest stays live (D5): edited steps for themself", () => {
+    const draft = addStep(picked("dish-goblin"), "Say thank you to the dishwasher");
+    const { quest, beast } = buildWizardQuest(draft, makerCtx);
+    expect(quest.proposal).toBeUndefined();
+    expect(beast?.proposal).toBeUndefined();
+    expect(beast?.madeBy).toBeUndefined();
+  });
+
   it("never proposes for a hero who may not make things, whatever the draft says", () => {
     const familyBeasts = [familyBeast("proposed")];
     const draft = forBeast({ heroIds: ["kid-1", "kid-2"] });

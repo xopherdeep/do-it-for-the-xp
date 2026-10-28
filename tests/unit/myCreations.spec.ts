@@ -253,6 +253,39 @@ describe("resendCreation", () => {
 
     expect(beast("b1")?.proposal?.state).toBe("approved");
   });
+
+  it("sends the beast a returned quest fights again too, when that beast came back with it", async () => {
+    const sentBack = beastOf("b1", "returned", TUE, { proposal: proposal("returned", TUE, { note: "Bigger teeth", questId: "q1" }) });
+    const { stores, beast, quest } = fakeStores([sentBack], [questOf("q1", "returned", TUE, { beastId: "b1", proposal: proposal("returned", TUE, { note: "Bigger teeth" }) })]);
+    const row = rowOf(myCreationRows([sentBack], [quest("q1") as Achievement], "ronan"), "quest:q1");
+
+    expect(await resendCreation(row, NOW, stores)).toEqual({ ok: true });
+
+    expect(quest("q1")?.proposal).toMatchObject({ state: "proposed", on: NOW.toISOString() });
+    expect(beast("b1")?.proposal).toMatchObject({ state: "proposed", on: NOW.toISOString(), questId: "q1" });
+    expect(beast("b1")?.proposal?.note).toBeUndefined();
+  });
+
+  it("sends the quest a returned beast was sent with again too, the way the Game Master returned both", async () => {
+    const sentBack = beastOf("b1", "returned", TUE, { proposal: proposal("returned", TUE, { questId: "q1" }) });
+    const { stores, beast, quest } = fakeStores([sentBack], [questOf("q1", "returned", TUE, { beastId: "b1" })]);
+
+    expect(await resendCreation(rowOf(myCreationRows([sentBack], [], "ronan"), "beast:b1"), NOW, stores)).toEqual({ ok: true });
+
+    expect(beast("b1")?.proposal?.state).toBe("proposed");
+    expect(quest("q1")?.proposal).toMatchObject({ state: "proposed", on: NOW.toISOString() });
+  });
+
+  it("leaves the other half alone when it is not sent back: a returned beast whose quest is already in the game", async () => {
+    const sentBack = beastOf("b1", "returned", TUE, { proposal: proposal("returned", TUE, { questId: "q1" }) });
+    const live = questOf("q1", "approved", MON, { beastId: "b1", draft: false });
+    const { stores, beast, quest } = fakeStores([sentBack], [live]);
+
+    expect(await resendCreation(rowOf(myCreationRows([sentBack], [live], "ronan"), "beast:b1"), NOW, stores)).toEqual({ ok: true });
+
+    expect(beast("b1")?.proposal?.state).toBe("proposed");
+    expect(quest("q1")?.proposal).toEqual(live.proposal);
+  });
 });
 
 describe("resentBeast and sendFixedBeast (Fix it, then Send)", () => {
@@ -321,15 +354,24 @@ describe("deleteCreation", () => {
     expect(removed).toEqual(["q1"]);
   });
 
-  it("keeps a quest sent with the beast once the Game Master has approved that quest", async () => {
-    const waitingBeast = beastOf("b1", "proposed", MON, { proposal: proposal("proposed", MON, { questId: "q1" }) });
-    const { stores, beast, quest, removed } = fakeStores([waitingBeast], [questOf("q1", "approved", MON)]);
+  it("refuses to delete a beast whose quest is in the game: a live quest never loses the beast it fights", async () => {
+    const sentBack = beastOf("b1", "returned", TUE, { proposal: proposal("returned", TUE, { questId: "q1" }) });
+    const live = questOf("q1", "approved", MON, { beastId: "b1", draft: false });
+    const { stores, beast, quest, removed } = fakeStores([sentBack], [live]);
 
-    expect(await deleteCreation(rowOf(myCreationRows([waitingBeast], [], "ronan"), "beast:b1"), stores)).toEqual({ ok: true });
+    expect(await deleteCreation(rowOf(myCreationRows([sentBack], [live], "ronan"), "beast:b1"), stores)).toEqual({ ok: false });
 
-    expect(beast("b1")).toBeUndefined();
+    expect(beast("b1")).toBeDefined();
     expect(removed).toEqual([]);
     expect(quest("q1")).toBeDefined();
+  });
+
+  it("refuses too when a live quest fights the beast without being the one sent with it", async () => {
+    const waitingBeast = beastOf("b1", "proposed", MON);
+    const { stores, beast } = fakeStores([waitingBeast], [questOf("q9", "approved", MON, { beastId: "b1", draft: false, proposal: undefined, createdBy: "mom" })]);
+
+    expect(await deleteCreation(rowOf(myCreationRows([waitingBeast], [], "ronan"), "beast:b1"), stores)).toEqual({ ok: false });
+    expect(beast("b1")).toBeDefined();
   });
 
   it("deletes a quest of its own through the Compendium's delete, so nothing is left pointing at it", async () => {

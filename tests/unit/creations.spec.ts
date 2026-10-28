@@ -322,4 +322,54 @@ describe("creationRows", () => {
     const rows = creationRows([approvedBeast], [proposedQuest("q1", "2026-10-25T00:00:00.000Z")]);
     expect(rows.map((row) => row.key)).toEqual(["quest:q1"]);
   });
+
+  it("pairs a beast that was sent back with the quest the kid sent again on its own: one row in the waiting lane, the beast's", () => {
+    const sentBack = beast("b1", {
+      proposal: { by: "ronan", on: "2026-10-24T00:00:00.000Z", state: "returned", note: "Bigger teeth", questId: "q1" },
+    });
+    const resent = proposedQuest("q1", "2026-10-26T00:00:00.000Z", { beastId: "b1" });
+    const rows = creationRows([sentBack], [resent]);
+    expect(rows.map((row) => row.key)).toEqual(["beast:b1"]);
+    expect(rows[0]).toMatchObject({ state: "returned", note: "Bigger teeth" });
+    expect(rows[0].pairedQuest).toBe(resent);
+    // and the same one row in the history lane
+    expect(creationRows([sentBack], [resent], ["returned"]).map((row) => row.key)).toEqual(["beast:b1"]);
+  });
+
+  it("pairs a quest with the waiting beast it fights, even when the beast does not name it back", () => {
+    const waiting = proposedBeast("b1", "2026-10-24T00:00:00.000Z");
+    const onIt = proposedQuest("q1", "2026-10-25T00:00:00.000Z", { beastId: "b1" });
+    const rows = creationRows([waiting], [onIt]);
+    expect(rows.map((row) => row.key)).toEqual(["beast:b1"]);
+    expect(rows[0].pairedQuest).toBe(onIt);
+  });
+
+  it("pairs the beast with the quest its proposal names first; a second quest on the same beast is its own row", () => {
+    const b = proposedBeast("b1", "2026-10-24T00:00:00.000Z", {
+      proposal: { by: "ronan", on: "2026-10-24T00:00:00.000Z", state: "proposed", questId: "q1" },
+    });
+    const first = proposedQuest("q1", "2026-10-24T00:00:05.000Z", { beastId: "b1" });
+    const second = proposedQuest("q2", "2026-10-25T00:00:00.000Z", { beastId: "b1" });
+    const rows = creationRows([b], [second, first]);
+    expect(rows.map((row) => row.key)).toEqual(["beast:b1", "quest:q2"]);
+    expect(rows[0].pairedQuest).toBe(first);
+  });
+
+  it("gives a quest its own row when the beast it fights is in the game, or a Game Master's", () => {
+    const live = beast("b1", { proposal: { by: "ronan", on: "2026-10-24T00:00:00.000Z", state: "approved" } });
+    const gm = beast("gm");
+    const rows = creationRows(
+      [live, gm],
+      [proposedQuest("q1", "2026-10-25T00:00:00.000Z", { beastId: "b1" }), proposedQuest("q2", "2026-10-26T00:00:00.000Z", { beastId: "gm" })]
+    );
+    expect(rows.map((row) => row.key)).toEqual(["quest:q1", "quest:q2"]);
+  });
+
+  it("pairs only a quest still to be approved: a beast sent back whose quest is in the game stands alone", () => {
+    const sentBack = beast("b1", { proposal: { by: "ronan", on: "2026-10-24T00:00:00.000Z", state: "returned", questId: "q1" } });
+    const live = quest("q1", { beastId: "b1", draft: false, proposal: { by: "ronan", on: "2026-10-24T00:00:05.000Z", state: "approved" } });
+    const rows = creationRows([sentBack], [live], ["returned"]);
+    expect(rows.map((row) => row.key)).toEqual(["beast:b1"]);
+    expect(rows[0].pairedQuest).toBeUndefined();
+  });
 });

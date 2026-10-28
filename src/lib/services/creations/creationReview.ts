@@ -1,12 +1,17 @@
 /**
  * The Game Master's review of a kid's creation, the glue (creations.ts holds the pure transitions): read the stored
- * beast or quest fresh, write the verdict, pay the maker's AP once and tell them. The Approvals screen and the two
- * edit forms (a Game Master who saves a proposed beast or quest in their own form approves it with the edits) all
- * settle creations through here, so they behave the same.
+ * beast or quest fresh, write the verdict, pay the maker's AP once and tell them. The Approvals screen, the Bestiary's
+ * menu and the two edit forms (a Game Master who saves a proposed beast or quest in their own form approves it with
+ * the edits) all settle creations through here, so they behave the same.
+ *
+ * The one invariant: a quest never goes live on a beast that is not in the game. Every path that approves a quest
+ * (`approveRow` on a quest row or a paired row, `approveStoredQuest` from the Compendium) first approves the beast the
+ * quest fights when that beast is still waiting or was sent back, and pays its maker for it, in the same call.
  *
  * Paying once rests on `proposal.paidOn` read fresh from storage, never on the row the screen holds: a replayed tap, a
  * second Game Master or a synced device that arrives late finds the date and pays nothing. The record is written with
- * the date before the AP moves, so a save that fails pays nothing.
+ * the date before the AP moves, so a save that fails pays nothing. One call tells each maker once, whatever it approved
+ * for them: a beast and the quest sent with it are one piece of news, named after the beast, with the AP of both.
  *
  * The two stores are passed in so a spec can use plain objects; the app passes none and gets the real ones.
  */
@@ -65,6 +70,16 @@ export const loadCreationRows = async (
 };
 
 /**
+ * The proposal the stored quest carries now, to spread over the record a form writes: a Game Master's open form must
+ * never write the waiting proposal it opened with back over an approval made elsewhere meanwhile. Nothing for a quest
+ * that is not stored or carries no proposal, so the form's own record stands.
+ */
+export const freshProposalOf = async (questId: string, stores: ReviewStores = realStores()): Promise<{ proposal?: Proposal }> => {
+  const quest = await storedQuest(questId, stores);
+  return quest?.proposal ? { proposal: quest.proposal } : {};
+};
+
+/**
  * A creation was settled (approved, sent back, or taken away by its maker): the "a creation awaits" notices about it are
  * read in every Game Master's feed. Never throws.
  */
@@ -77,37 +92,63 @@ export const settleNotices = (key: string): void => {
   }
 };
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Approve
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** What one approved record paid: to whom, for what, and how much (0 when it was paid before) */
+interface Paid {
+  maker: string;
+  ref: CreationRef;
+  ap: number;
+}
+
 /**
- * Write an approved record, dated with the day its AP was paid, then pay the maker and tell them. The AP moves only
- * when the stored record carried no `paidOn` (the date written is the stored one, or now). Gives back the AP paid.
+ * Write an approved record, dated with the day its AP was paid, then pay the maker. The AP moves only when the stored
+ * record carried no `paidOn` (the date written is the stored one, or now). The maker is told later, once per call.
  */
-const payAndTell = async <T extends Proposed & MadeRecord>(
+const payOnce = async <T extends Proposed & MadeRecord>(
   kind: CreationKind,
   before: T,
   approved: T,
   ref: CreationRef,
   now: Date,
   save: (record: T) => Promise<unknown>
-): Promise<number> => {
+): Promise<Paid> => {
   const wasPaid = Boolean(before.proposal?.paidOn);
   const paidOn = before.proposal?.paidOn ?? now.toISOString();
   await save({ ...approved, proposal: { ...(approved.proposal as Proposal), paidOn } });
   settleNotices(ref.key);
-  if (wasPaid) return 0;
-  const ap = creationAp(kind);
   const maker = makerOf(before);
+  if (wasPaid) return { maker, ref, ap: 0 };
+  const ap = creationAp(kind);
   useUserStore().recordAPGain({ userId: maker, amount: ap, source: "creation", at: now.toISOString() });
-  notify(creationApprovedNotification(maker, ref, ap));
-  return ap;
+  return { maker, ref, ap };
 };
 
-const approveBeastRecord = (beast: Beast, reviewerId: string, now: Date, stores: ReviewStores): Promise<number> =>
-  payAndTell("beast", beast, approveCreation(beast, reviewerId, now), { key: `beast:${String(beast.id)}`, name: beast.name, kind: "beast" }, now, (record) =>
+/**
+ * Tell each maker once what one call approved for them, named after the first record of theirs it approved (the beast
+ * of a pair) with the AP of all of them; nothing when nothing was paid. Gives back the AP paid in all.
+ */
+const tellMakers = (paid: readonly Paid[]): number => {
+  const byMaker = new Map<string, Paid>();
+  for (const one of paid) {
+    const told = byMaker.get(one.maker);
+    byMaker.set(one.maker, told ? { ...told, ap: told.ap + one.ap } : one);
+  }
+  for (const one of byMaker.values()) {
+    if (one.ap > 0) notify(creationApprovedNotification(one.maker, one.ref, one.ap));
+  }
+  return paid.reduce((sum, one) => sum + one.ap, 0);
+};
+
+const approveBeastRecord = (beast: Beast, reviewerId: string, now: Date, stores: ReviewStores): Promise<Paid> =>
+  payOnce("beast", beast, approveCreation(beast, reviewerId, now), { key: `beast:${String(beast.id)}`, name: beast.name, kind: "beast" }, now, (record) =>
     stores.bestiaryDb.setBeast(record)
   );
 
-const approveQuestRecord = (quest: Achievement, reviewerId: string, now: Date, assignee: string[] | undefined, stores: ReviewStores): Promise<number> =>
-  payAndTell(
+const approveQuestRecord = (quest: Achievement, reviewerId: string, now: Date, assignee: string[] | undefined, stores: ReviewStores): Promise<Paid> =>
+  payOnce(
     "quest",
     quest,
     approveQuest(quest, reviewerId, now, assignee),
@@ -115,6 +156,30 @@ const approveQuestRecord = (quest: Achievement, reviewerId: string, now: Date, a
     now,
     (record) => stores.achievementDb.setTask(record)
   );
+
+/** The beast a quest fights, when it is stored and not in the game yet: it must go live with the quest, never after */
+const unapprovedBeastOf = async (quest: Achievement, stores: ReviewStores): Promise<Beast | undefined> => {
+  const beastId = quest.beastId ? String(quest.beastId) : "";
+  if (!beastId) return undefined;
+  const beast = await storedBeast(beastId, stores);
+  const isStillWaiting = beast !== undefined && !isLive(beast);
+  return isStillWaiting ? beast : undefined;
+};
+
+/** Every quest approval comes through here: the beast it fights first, when that beast is still waiting, then the quest */
+const approveQuestAndBeast = async (
+  quest: Achievement,
+  reviewerId: string,
+  now: Date,
+  assignee: string[] | undefined,
+  stores: ReviewStores
+): Promise<Paid[]> => {
+  const beast = await unapprovedBeastOf(quest, stores);
+  const paid: Paid[] = [];
+  if (beast) paid.push(await approveBeastRecord(beast, reviewerId, now, stores));
+  paid.push(await approveQuestRecord(quest, reviewerId, now, assignee, stores));
+  return paid;
+};
 
 /** The quest a beast was sent with, when it is still to be approved (an approved one is left as it is) */
 const pairedToSettle = async (row: CreationRow, stores: ReviewStores): Promise<Achievement | undefined> => {
@@ -133,8 +198,9 @@ export interface ApproveOptions {
 }
 
 /**
- * Approve a row: the beast or quest goes live, its maker is paid and told, and so is the quest a beast was sent with.
- * `gone` when the record is no longer stored, `settled` when it is already in the game (or was never a creation).
+ * Approve a row: the beast or quest goes live, its maker is paid and told, and so is the quest a beast was sent with
+ * (and the beast a quest fights, when that beast still waits). `gone` when the record is no longer stored, `settled`
+ * when it is already in the game (or was never a creation).
  */
 export const approveRow = async (
   row: CreationRow,
@@ -148,14 +214,44 @@ export const approveRow = async (
   if (isGone) return { ok: false, reason: "gone" };
   const isSettled = isLive(record);
   if (isSettled) return { ok: false, reason: "settled" };
-  const own =
+  const paid: Paid[] =
     row.kind === "beast"
-      ? await approveBeastRecord(record as Beast, reviewerId, now, stores)
-      : await approveQuestRecord(record as Achievement, reviewerId, now, options.assignee, stores);
+      ? [await approveBeastRecord(record as Beast, reviewerId, now, stores)]
+      : await approveQuestAndBeast(record as Achievement, reviewerId, now, options.assignee, stores);
   const paired = await pairedToSettle(row, stores);
-  const pairedAp = paired ? await approveQuestRecord(paired, reviewerId, now, options.assignee, stores) : 0;
-  return { ok: true, ap: own + pairedAp };
+  if (paired) paid.push(...(await approveQuestAndBeast(paired, reviewerId, now, options.assignee, stores)));
+  return { ok: true, ap: tellMakers(paid) };
 };
+
+/**
+ * The edit path: the Game Master saved a proposed beast in their own form, or tapped Approve on it in the Bestiary, so
+ * it is approved as it stands (paid and told like any approval). The quest sent with it keeps waiting, as its own row,
+ * which breaks nothing: only the other way round is unsafe. False when there is nothing to do: no such beast, or one
+ * already in the game.
+ */
+export const approveStoredBeast = async (beastId: string, reviewerId: string, stores: ReviewStores = realStores()): Promise<boolean> => {
+  const beast = await storedBeast(beastId, stores);
+  const isWaiting = beast !== undefined && !isLive(beast);
+  if (!isWaiting) return false;
+  tellMakers([await approveBeastRecord(beast, reviewerId, new Date(), stores)]);
+  return true;
+};
+
+/**
+ * The edit path for a quest: the Game Master's own form saved it, so it goes live for the heroes it was for, and the
+ * beast it fights goes live with it when that beast still waits.
+ */
+export const approveStoredQuest = async (questId: string, reviewerId: string, stores: ReviewStores = realStores()): Promise<boolean> => {
+  const quest = await storedQuest(questId, stores);
+  const isWaiting = quest !== undefined && !isLive(quest);
+  if (!isWaiting) return false;
+  tellMakers(await approveQuestAndBeast(quest, reviewerId, new Date(), undefined, stores));
+  return true;
+};
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Send back
+// ---------------------------------------------------------------------------------------------------------------------
 
 /**
  * Send a row back to its maker with the Game Master's note (blank means none), the quest a beast was sent with along
@@ -181,22 +277,20 @@ export const returnRow = async (
 };
 
 /**
- * The edit path: the Game Master saved a proposed beast in their own form, so it is approved with the edits (paid and
- * told like any approval). False when there is nothing to do: no such beast, or one already in the game.
+ * The Bestiary's Send back on a beast that is not in the game: the same as from the lane, the quest sent with it going
+ * back too. False when there is nothing to send back: no such beast, or one already in the game.
  */
-export const approveStoredBeast = async (beastId: string, reviewerId: string, stores: ReviewStores = realStores()): Promise<boolean> => {
+export const returnStoredBeast = async (
+  beastId: string,
+  reviewerId: string,
+  note: string | undefined,
+  stores: ReviewStores = realStores()
+): Promise<boolean> => {
   const beast = await storedBeast(beastId, stores);
-  const isWaiting = beast !== undefined && !isLive(beast);
-  if (!isWaiting) return false;
-  await approveBeastRecord(beast, reviewerId, new Date(), stores);
-  return true;
-};
-
-/** The edit path for a quest: the Game Master's own form saved it, so it goes live for the heroes it was for. */
-export const approveStoredQuest = async (questId: string, reviewerId: string, stores: ReviewStores = realStores()): Promise<boolean> => {
-  const quest = await storedQuest(questId, stores);
-  const isWaiting = quest !== undefined && !isLive(quest);
-  if (!isWaiting) return false;
-  await approveQuestRecord(quest, reviewerId, new Date(), undefined, stores);
-  return true;
+  const cannotBeReturned = beast === undefined || isLive(beast);
+  if (cannotBeReturned) return false;
+  const quests = present<Achievement>(await stores.achievementDb.getTasks());
+  const [row] = creationRows([beast], quests, ["proposed", "returned"]);
+  const { ok } = await returnRow(row, reviewerId, note, stores);
+  return ok;
 };

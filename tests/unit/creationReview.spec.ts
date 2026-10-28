@@ -12,8 +12,10 @@ import {
   approveRow,
   approveStoredBeast,
   approveStoredQuest,
+  freshProposalOf,
   loadCreationRows,
   returnRow,
+  returnStoredBeast,
 } from "@/lib/services/creations/creationReview";
 import type { ReviewStores } from "@/lib/services/creations/creationReview";
 import { creationWaitingNotification } from "@/lib/services/notifications/Notifications";
@@ -204,6 +206,61 @@ describe("approveRow", () => {
     expect(paid).not.toHaveBeenCalled();
     expect(feedOf("ronan")).toEqual([]);
   });
+
+  it("approves a beast that was sent back with the quest the kid sent again on its own, from the lane: both in the game, both paid once, one notice", async () => {
+    const sentBack = sockMonster({ proposal: waiting("ronan", { state: "returned", note: "Bigger teeth", questId: "q1" }) });
+    const resent = dishQuest({ beastId: "b1", createdBy: "ronan", proposal: waiting("ronan") });
+    const { stores, beast, quest } = fakeStores([sentBack], [resent]);
+    const [row] = await loadCreationRows(["proposed"], stores);
+    expect(row).toMatchObject({ key: "beast:b1", pairedQuest: expect.objectContaining({ id: "q1" }) });
+
+    const both = creationAp("beast") + creationAp("quest");
+    expect(await approveRow(row, "mom", { now: NOW }, stores)).toEqual({ ok: true, ap: both });
+
+    expect(beast("b1")?.proposal).toMatchObject({ state: "approved", paidOn: NOW.toISOString() });
+    expect(beast("b1")?.proposal).not.toHaveProperty("note");
+    expect(quest("q1")).toMatchObject({ draft: false, proposal: { state: "approved", paidOn: NOW.toISOString() } });
+    expect(paid).toHaveBeenCalledTimes(2);
+    // The pair is one piece of news: the beast's name, the AP of both (M7)
+    expect(feedOf("ronan")).toEqual([
+      expect.objectContaining({ kind: "creation-approved", refId: "beast:b1", body: `"Sock Monster" was approved. +${both} AP.` }),
+    ]);
+
+    expect(await approveRow(row, "mom", { now: LATER }, stores)).toEqual({ ok: false, reason: "settled" });
+    expect(paid).toHaveBeenCalledTimes(2);
+  });
+
+  it("never writes a live quest on an unapproved beast: a quest row approves the beast it fights first", async () => {
+    const sentBack = sockMonster({ proposal: waiting("ronan", { state: "returned" }) });
+    const { stores, beast, quest } = fakeStores([sentBack], [dishQuest({ beastId: "b1" })]);
+    // A row from a screen that read the lists before the beast was paired: the stored records decide
+    const [row] = creationRows([], [dishQuest({ beastId: "b1" })]);
+
+    expect(await approveRow(row, "mom", { now: NOW }, stores)).toEqual({ ok: true, ap: creationAp("beast") + creationAp("quest") });
+
+    expect(beast("b1")?.proposal).toMatchObject({ state: "approved", reviewedBy: "mom", paidOn: NOW.toISOString() });
+    expect(quest("q1")).toMatchObject({ draft: false, proposal: { state: "approved" } });
+    expect(paid).toHaveBeenCalledWith(expect.objectContaining({ userId: "ronan", amount: creationAp("beast") }));
+    expect(paid).toHaveBeenCalledWith(expect.objectContaining({ userId: "jack", amount: creationAp("quest") }));
+    // Two makers, two pieces of news
+    expect(feedOf("ronan")).toEqual([expect.objectContaining({ refId: "beast:b1" })]);
+    expect(feedOf("jack")).toEqual([expect.objectContaining({ refId: "quest:q1" })]);
+  });
+
+  it("approves a beast sent back whose quest is already in the game on its own, paying the beast once", async () => {
+    const sentBack = sockMonster({ proposal: waiting("ronan", { state: "returned", questId: "q1" }) });
+    const live = dishQuest({ beastId: "b1", draft: false, proposal: waiting("jack", { state: "approved", paidOn: SENT }) });
+    const { stores, beast, quest } = fakeStores([sentBack], [live]);
+    const [row] = await loadCreationRows(["returned"], stores);
+    expect(row.pairedQuest).toBeUndefined();
+
+    expect(await approveRow(row, "mom", { now: NOW }, stores)).toEqual({ ok: true, ap: creationAp("beast") });
+
+    expect(beast("b1")?.proposal).toMatchObject({ state: "approved" });
+    expect(quest("q1")?.proposal).toEqual(live.proposal);
+    expect(paid).toHaveBeenCalledTimes(1);
+    expect(feedOf("jack")).toEqual([]);
+  });
 });
 
 describe("returnRow", () => {
@@ -271,5 +328,65 @@ describe("the edit path: saving in the Game Master's own form approves the creat
 
     expect(await approveStoredQuest("q1", "mom", stores)).toBe(false);
     expect(paid).toHaveBeenCalledTimes(1);
+  });
+
+  it("approves the waiting beast a quest fights along with the quest, from the Compendium, paying both once with one notice", async () => {
+    const pairedBeast = sockMonster({ proposal: waiting("ronan", { questId: "q1" }) });
+    const { stores, beast, quest } = fakeStores([pairedBeast], [dishQuest({ beastId: "b1", createdBy: "ronan", proposal: waiting("ronan") })]);
+
+    expect(await approveStoredQuest("q1", "mom", stores)).toBe(true);
+
+    expect(beast("b1")?.proposal).toMatchObject({ state: "approved", reviewedBy: "mom", paidOn: expect.any(String) });
+    expect(quest("q1")).toMatchObject({ draft: false, proposal: { state: "approved", paidOn: expect.any(String) } });
+    expect(paid).toHaveBeenCalledTimes(2);
+    expect(feedOf("ronan")).toEqual([
+      expect.objectContaining({ refId: "beast:b1", body: expect.stringContaining(`+${creationAp("beast") + creationAp("quest")} AP`) }),
+    ]);
+
+    // Approving either again pays nothing
+    expect(await approveStoredQuest("q1", "mom", stores)).toBe(false);
+    expect(await approveStoredBeast("b1", "mom", stores)).toBe(false);
+    expect(paid).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("returnStoredBeast: the Bestiary's Send back", () => {
+  it("sends a stored beast back with the note, the quest sent with it too, and tells the maker", async () => {
+    const pairedBeast = sockMonster({ proposal: waiting("ronan", { questId: "q1" }) });
+    const { stores, beast, quest } = fakeStores([pairedBeast], [dishQuest({ beastId: "b1" })]);
+
+    expect(await returnStoredBeast("b1", "mom", " Bigger teeth ", stores)).toBe(true);
+
+    expect(beast("b1")?.proposal).toMatchObject({ state: "returned", note: "Bigger teeth", reviewedBy: "mom" });
+    expect(quest("q1")?.proposal).toMatchObject({ state: "returned", note: "Bigger teeth" });
+    expect(feedOf("ronan")).toEqual([expect.objectContaining({ kind: "creation-returned", refId: "beast:b1" })]);
+  });
+
+  it("leaves a beast that is in the game, or one that is gone, alone", async () => {
+    const { stores } = fakeStores([sockMonster({ proposal: waiting("ronan", { state: "approved" }) })], []);
+    expect(await returnStoredBeast("b1", "mom", "Too late", stores)).toBe(false);
+    expect(await returnStoredBeast("nope", "mom", "Too late", stores)).toBe(false);
+    expect(feedOf("ronan")).toEqual([]);
+  });
+});
+
+describe("freshProposalOf: what a form spreads over the record it writes", () => {
+  it("answers the proposal the stored quest carries now, so an open form never writes a stale one back", async () => {
+    const { stores } = fakeStores([], [dishQuest()]);
+    const [row] = creationRows([], [dishQuest()]);
+    await approveRow(row, "mom", { now: NOW }, stores);
+
+    // The form still holds the waiting proposal it opened with
+    const staleForm = { ...dishQuest(), difficulty: 3 };
+    const written = { ...staleForm, ...(await freshProposalOf("q1", stores)) };
+
+    expect(written.proposal).toMatchObject({ state: "approved", paidOn: NOW.toISOString() });
+    expect(written.difficulty).toBe(3);
+  });
+
+  it("answers nothing for a quest that is not stored, or one with no proposal", async () => {
+    const { stores } = fakeStores([], [dishQuest({ id: "gm", proposal: undefined })]);
+    expect(await freshProposalOf("nope", stores)).toEqual({});
+    expect(await freshProposalOf("gm", stores)).toEqual({});
   });
 });
