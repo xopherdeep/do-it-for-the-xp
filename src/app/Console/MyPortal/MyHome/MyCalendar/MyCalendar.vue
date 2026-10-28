@@ -46,8 +46,8 @@
       <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
         @saved="onQuestSaved" />
 
-      <!-- The Beast Maker: a maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
-      <XpBeastMakerModal :open="makerOpen" :heroId="heroId" @close="makerOpen = false" @saved="onQuestSaved"
+      <!-- The Beast Maker: the signed-in maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
+      <XpBeastMakerModal :open="makerOpen" :heroId="makerId" @close="makerOpen = false" @saved="onQuestSaved"
         @quest="openWizardWith" />
 
       <!-- FAB (the same one the town's buildings and the Gold Bank use) to open the calendar's actions -->
@@ -331,11 +331,10 @@ const prevDay = () => {
 };
 
 // Every player can start a quest. The Quest Wizard opens on the day and part of the day on screen (a hero's quest waits
-// for the Game Master's approval; the rules live in questWizard.ts). A maker can also draw a beast, and the wizard then
-// opens on it (useBeastMaker owns both open flags and the hand-off).
-const { isMaker, makerOpen, wizardOpen, wizardPrefill, openWizardWith } = useBeastMaker(
-  () => heroId.value,
-  () => questPrefill(prefillQueryFor(selectedDate.value, activeSegment.value, heroId.value))
+// for the Game Master's approval; the rules live in questWizard.ts). The signed-in maker can also draw a beast, and the
+// wizard then opens on it (useBeastMaker owns both open flags and the hand-off).
+const { makerId, isMaker, makerOpen, wizardOpen, wizardPrefill, openWizardWith } = useBeastMaker(() =>
+  questPrefill(prefillQueryFor(selectedDate.value, activeSegment.value, heroId.value))
 );
 
 const openAddQuest = () => {

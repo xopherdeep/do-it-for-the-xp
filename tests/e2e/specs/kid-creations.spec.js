@@ -1,6 +1,7 @@
 // Kid Creations walk-through (board #1581): a maker kid draws a beast, adds its chores, sends it, makes a quest with it for
-// everyone; the Game Master sees the pair in Approvals > Creations, approves it, and the beast stands in the Bestiary with the
-// kid's name on it while the kid is paid AP. Keeps a screenshot of every phase.
+// his little sibling Pip; the Game Master sees the pair in Approvals > Creations, keeps the kid's choice and approves it, the
+// beast stands in the Bestiary with the kid's name on it, the kid is paid AP and Pip finds the quest on his board (the design
+// spec's section 10 walk). Keeps a screenshot of every phase.
 // The world is tests/e2e/fixtures/kid-creations-backup.json: the battle world plus Dad (Game Master), Pip (a little sibling who
 // is not a maker) and Settings > Party with Max, hero-1, as a maker.
 // Run (dev server first, on any port; this one serves the worktree on :8102):
@@ -8,6 +9,7 @@
 
 const WORLD = "kid-creations-backup.json";
 const KID = "hero-1";
+const SIBLING = "hero-2";
 const GAME_MASTER = "gm-1";
 
 // What an approval pays a maker: creationAp("beast") is a size 3 quest's AP (4), creationAp("quest") a size 1 quest's (1),
@@ -124,7 +126,7 @@ describe("Kid Creations", () => {
     Cypress.on("uncaught:exception", (error) => !/play\(\)|AbortError|NotAllowedError/.test(error.message));
   });
 
-  it("a maker draws a beast, makes a quest with it, and the Game Master approves the pair", () => {
+  it("a maker draws a beast, makes a quest with it for Pip, and the Game Master approves the pair as sent", () => {
     const BEAST = "Sockzilla";
     const CHORES = ["Match the socks", "Fold them flat"];
     let apBefore = 0;
@@ -162,14 +164,16 @@ describe("Kid Creations", () => {
     wizard("[data-test=step-when]").should("be.visible");
     wizard("[data-test=next]").click(); // how big
     wizard("[data-test=step-size]").should("be.visible");
-    wizard("[data-test=next]").click(); // who: a maker's tiles are Me, the others, Everyone
+    wizard("[data-test=next]").click(); // who: a maker's tiles are Me, the others, Everyone (the Everyone tile is the wizard spec's)
     wizard("[data-test=step-who]").should("be.visible");
-    wizard("[data-test=who-everyone]").click().should("have.attr", "aria-pressed", "true");
-    shot("09-quest-who-everyone");
+    // For Pip alone: Me off, Pip on
+    wizard("[data-test=who-me]").click().should("have.attr", "aria-pressed", "false");
+    wizard(`[data-test=hero-${SIBLING}]`).click().should("have.attr", "aria-pressed", "true");
+    shot("09-quest-who-pip");
     wizard("[data-test=next]").click();
     wizard("[data-test=step-ready]").should("be.visible");
     wizard("[data-test=ready-name]").should("have.text", BEAST);
-    wizard(".qw-card__party").should("contain", "Max").and("contain", "Pip");
+    wizard(".qw-card__party").should("contain", "Pip").and("not.contain", "Max");
     shot("10-quest-ready");
     wizard("[data-test=submit]").click();
     finishFanfare("ion-modal.quest-wizard", "11-quest-reveal");
@@ -195,11 +199,11 @@ describe("Kid Creations", () => {
     cy.get("[data-test=creation-paired]").should("contain", "a quest for");
     shot("13-approvals-creations");
 
-    // Approve: the target chooser (Max gave the quest to everyone, so Everyone is checked) and keep it, then the confirm
+    // Approve: the target chooser (a box per profile; Max gave the quest to Pip, so Pip alone is ticked) kept as sent, then the confirm
     cy.get("[data-test=creation-approve]").click();
     cy.get("ion-alert .alert-title", { timeout: 10000 }).invoke("text").should("match", /^Who is ".+" for\?$/);
-    cy.get("ion-alert .alert-radio-label").should("contain", "Everyone");
-    cy.get("ion-alert .alert-radio-button[aria-checked=true]").should("contain", "Everyone");
+    cy.get("ion-alert .alert-checkbox-label").should("have.length", 3);
+    cy.get("ion-alert .alert-checkbox-button[aria-checked=true]").should("have.length", 1).and("contain", "Pip");
     shot("14-approve-chooser");
     tapAlert("Next");
     cy.get("ion-alert", { timeout: 10000 }).should("contain", "Approve Beast");
@@ -221,11 +225,17 @@ describe("Kid Creations", () => {
     // The AP lands on the kid's profile: the beast's and, with it, the quest's
     expectAp(KID, () => apBefore + BEAST_AP + QUEST_AP, "the beast and the quest are paid");
 
-    // The quest is live for everyone Max gave it to: Pip (not a maker) finds it on their own Beast Log
-    signInAs("hero-2");
-    openBeastLog("hero-2");
+    // The quest is live for the one Max gave it to: Pip (not a maker) finds it on his own Beast Log
+    signInAs(SIBLING);
+    openBeastLog(SIBLING);
     cy.contains(".quest-log-row", new RegExp(BEAST, "i"), { timeout: 30000 }).should("exist");
     shot("18-sibling-board");
+
+    // ...and not on Max's: the Game Master kept the choice as the kid sent it
+    signInAs(KID);
+    openBeastLog(KID);
+    cy.get(".quest-log-row, .quest-empty", { timeout: 30000 }).should("exist");
+    cy.contains(".quest-log-row", new RegExp(BEAST, "i")).should("not.exist");
   });
 
   it("a drawing: a photo from the file input is cropped into the beast's portrait and signed 'Drawn by'", () => {

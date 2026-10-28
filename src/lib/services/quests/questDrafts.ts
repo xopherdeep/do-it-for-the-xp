@@ -17,7 +17,15 @@ export interface DraftLike {
   id?: string | number;
   achievementName?: string;
   draft?: boolean;
+  /** A kid's proposal (creations.ts): a draft while it waits, but the kid's to finish, not the Game Master's */
+  proposal?: { state: string };
 }
+
+/** A kid's quest still with the Game Master (waiting, or sent back): hidden like a draft, but not one New Quest resumes */
+const isKidsProposal = (quest: Pick<DraftLike, "proposal">): boolean => Boolean(quest.proposal) && quest.proposal?.state !== "approved";
+
+/** The badge on a hidden quest in the Compendium: "Waiting" on a kid's proposal (it is with the Game Master), "Draft" on the Game Master's own */
+export const draftLabel = (quest: Pick<DraftLike, "proposal">): string => (isKidsProposal(quest) ? "Waiting" : "Draft");
 
 /** A draft: saved, but not made Ready yet. A quest with no marker (saved before it existed) is published. */
 export const isDraft = (quest: Pick<DraftLike, "draft"> | null | undefined): boolean => quest?.draft === true;
@@ -44,9 +52,9 @@ export const isDraftOnSave = ({ isPublished, isComplete }: DraftSaveState): bool
   return !isLiveEdit;
 };
 
-/** Every draft waiting in the Compendium, in the order stored; empty rows are skipped */
+/** Every draft of the Game Master's own waiting in the Compendium, in the order stored; kids' proposals and empty rows are skipped */
 export const unfinishedDrafts = <Q extends DraftLike>(quests: readonly (Q | null | undefined)[]): Q[] =>
-  quests.filter((quest): quest is Q => isDraft(quest));
+  quests.filter((quest): quest is Q => isDraft(quest) && !isKidsProposal(quest as Q));
 
 /** The draft New Quest offers to resume (the first one stored), or null when none waits */
 export const findUnfinishedDraft = <Q extends DraftLike>(quests: readonly (Q | null | undefined)[]): Q | null =>

@@ -387,12 +387,9 @@ export default defineComponent({
     const timers = useTimers();
     const t = useCopy();
     const { rootClass, rootStyle } = useAppSkin("quests");
-    // The Beast Maker (a maker's door) and the Quest Wizard it hands a beast to; the wizard opens on today for the
-    // hero whose log this is
-    const maker = useBeastMaker(
-      () => String(props.userId),
-      () => questPrefill(prefillQueryFor(new Date(), "all", String(props.userId)))
-    );
+    // The Beast Maker (the signed-in maker's door) and the Quest Wizard it hands a beast to; the wizard opens on today
+    // for the hero whose log this is
+    const maker = useBeastMaker(() => questPrefill(prefillQueryFor(new Date(), "all", String(props.userId))));
 
     const board = ref<QuestBoardItem[]>([]);
     // Quest id -> why the family locked it for being late ("Too late: this one closed at 6:00pm")

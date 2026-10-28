@@ -70,8 +70,8 @@
       <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
         @saved="onQuestSaved" />
 
-      <!-- The Beast Maker: a maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
-      <XpBeastMakerModal :open="makerOpen" :heroId="String(userId)" @close="makerOpen = false" @saved="loadBoard"
+      <!-- The Beast Maker: the signed-in maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
+      <XpBeastMakerModal :open="makerOpen" :heroId="makerId" @close="makerOpen = false" @saved="loadBoard"
         @quest="openWizardWith" />
 
       <!-- A tap on a quest opens its bestiary entry: the beast, its checklist, and Hunt / Claim -->

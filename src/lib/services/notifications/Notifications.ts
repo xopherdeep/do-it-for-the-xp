@@ -300,14 +300,20 @@ export const creationApprovedNotification = (heroId: string, row: CreationRef, a
 });
 
 /** The Game Master sent the kid's creation back, with their note when they wrote one. */
+/** The Game Master's note as a sentence of its own, so the next one can follow it */
+const noteSentence = (note: string): string => (/[.!?]$/.test(note) ? note : `${note}.`);
+
+/**
+ * The Game Master sent the kid's creation back. The note comes first when there is one; either kind is fixed or sent
+ * again from the Beast Maker (its list holds the kid's quests too), and the link is the quest board, where the Maker
+ * opens from, as there is no route for the list itself.
+ */
 export const creationReturnedNotification = (heroId: string, row: CreationRef, note?: string): NewXpNotification => ({
   heroId,
   kind: "creation-returned",
   refId: row.key,
   title: "Your creation came back",
-  body: note
-    ? `"${row.name}" came back: ${note}`
-    : `"${row.name}" came back. Open the ${row.kind === "beast" ? "Beast Maker" : "Quest Wizard"} to fix it.`,
+  body: `"${row.name}" came back${note ? `: ${noteSentence(note)}` : "."} Open the Beast Maker to fix it or send it again.`,
   link: questBoardLink(heroId),
 });
 

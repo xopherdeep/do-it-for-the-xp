@@ -33,9 +33,6 @@ export interface CreationDeps {
   runReview: (entry: { id: string }, review: () => Promise<ReviewMessage>) => Promise<void>;
 }
 
-/** The radio value that gives a quest to every profile, as the maker's Everyone tile does */
-const EVERYONE = "*";
-
 export const useCreationApprovals = (deps: CreationDeps) => {
   const router = useRouter();
   const pending = ref<CreationRow[]>([]);
@@ -65,31 +62,28 @@ export const useCreationApprovals = (deps: CreationDeps) => {
   const apOf = (row: CreationRow): number => creationAp(row.kind) + (row.pairedQuest ? creationAp("quest") : 0);
 
   /**
-   * The target chooser: every profile as a radio, plus Everyone, with the kid's choice checked (the maker when the
-   * hero they chose is gone). Answers the heroes chosen, or null when the Game Master backed out.
+   * The target chooser: a checkbox per profile, every hero the kid chose ticked already (the maker alone when the
+   * kid's choice names no hero still here), so Next keeps the whole choice as the kid sent it. Answers the heroes
+   * ticked (the ones ticked to begin with when the Game Master unticks them all), or null when they backed out.
    */
   const chooseTarget = async (row: CreationRow, quest: Achievement): Promise<string[] | null> => {
     const ids = deps.profiles().map((hero) => String(hero.id));
     const asked = quest.assignee.map(String).filter((id) => ids.includes(id));
-    const isEveryone = ids.length > 0 && ids.every((id) => asked.includes(id));
-    const checked = isEveryone ? EVERYONE : asked[0] ?? row.by;
+    const checked = asked.length ? asked : [row.by];
     const alert = await alertController.create({
       header: `Who is "${quest.achievementName}" for?`,
-      inputs: [
-        ...ids.map((id) => ({ type: "radio" as const, label: deps.heroName(id), value: id, checked: id === checked })),
-        { type: "radio" as const, label: "Everyone", value: EVERYONE, checked: checked === EVERYONE },
-      ],
+      inputs: ids.map((id) => ({ type: "checkbox" as const, label: deps.heroName(id), value: id, checked: checked.includes(id) })),
       buttons: [
         { text: "Cancel", role: "cancel" },
         { text: "Next", role: "confirm" },
       ],
     });
     await alert.present();
-    const { data, role } = await alert.onDidDismiss<{ values?: string }>();
+    const { data, role } = await alert.onDidDismiss<{ values?: string[] }>();
     const isChosen = role === "confirm";
     if (!isChosen) return null;
-    const chosen = String(data?.values ?? checked);
-    return chosen === EVERYONE ? ids : [chosen];
+    const ticked = Array.isArray(data?.values) ? data.values.map(String) : [];
+    return ticked.length ? ticked : checked;
   };
 
   const unsettled = (reason: Extract<ApproveOutcome, { ok: false }>["reason"]): ReviewMessage =>
@@ -151,7 +145,8 @@ export const useCreationApprovals = (deps: CreationDeps) => {
             const note = String(data?.note ?? "").trim();
             void deps.runReview({ id: row.key }, async () => {
               const result = await returnRow(row, deps.reviewerId(), note || undefined);
-              if (!result.ok) return { message: "That creation is no longer waiting for a look.", color: "warning" };
+              const isUnsettled = !result.ok;
+              if (isUnsettled) return { message: "That creation is no longer waiting for a look.", color: "warning" };
               return { message: `Sent back. ${maker} can fix "${row.name}" and send it again.`, color: "medium" };
             });
           },

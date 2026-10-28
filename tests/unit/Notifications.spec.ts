@@ -189,15 +189,18 @@ describe("Notifications helpers", () => {
       link: "/my-tasks/hero-1/",
     });
 
+    // The note first, then where to go: the Beast Maker holds the kid's list, quests too, with Fix it and Send again
     expect(creationReturnedNotification(HERO, beast, "Bigger teeth")).toMatchObject({
       heroId: HERO,
       kind: "creation-returned",
       refId: "beast:b1",
       title: "Your creation came back",
-      body: '"Sock Monster" came back: Bigger teeth',
+      body: '"Sock Monster" came back: Bigger teeth. Open the Beast Maker to fix it or send it again.',
+      link: "/my-tasks/hero-1/",
     });
-    expect(creationReturnedNotification(HERO, beast).body).toBe('"Sock Monster" came back. Open the Beast Maker to fix it.');
-    expect(creationReturnedNotification(HERO, quest).body).toBe('"Do The Dishes" came back. Open the Quest Wizard to fix it.');
+    expect(creationReturnedNotification(HERO, quest, "Which day?").body).toBe('"Do The Dishes" came back: Which day? Open the Beast Maker to fix it or send it again.');
+    expect(creationReturnedNotification(HERO, beast).body).toBe('"Sock Monster" came back. Open the Beast Maker to fix it or send it again.');
+    expect(creationReturnedNotification(HERO, quest).body).toBe('"Do The Dishes" came back. Open the Beast Maker to fix it or send it again.');
   });
 });
 
