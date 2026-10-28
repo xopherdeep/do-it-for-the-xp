@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="video-test-card">
+  <div ref="root" class="video-test-card__root">
     <!-- Always in the page, so screen readers announce text that changes inside it -->
     <div class="video-test-card__live" aria-live="polite" data-cy="test-live">{{ liveText }}</div>
     <ion-card v-if="hasStarted" class="settings-card video-test-card max-w-2xl" data-cy="video-test-card">
@@ -26,11 +26,11 @@
                 <thead>
                   <tr>
                     <th>Setup</th>
-                    <th>Renderer</th>
-                    <th>Build</th>
-                    <th>First render</th>
                     <th>Work median</th>
                     <th>Work p95</th>
+                    <th>First render</th>
+                    <th>Renderer</th>
+                    <th>Build</th>
                     <th>fps</th>
                   </tr>
                 </thead>
@@ -38,11 +38,11 @@
                   <tr v-for="row in rows" :key="row.id">
                     <th scope="row">{{ row.label }}</th>
                     <template v-if="row.supported">
-                      <td>{{ row.renderer }}</td>
-                      <td>{{ row.build }}</td>
-                      <td>{{ row.firstRender }}</td>
                       <td>{{ row.median }}</td>
                       <td>{{ row.p95 }}</td>
+                      <td>{{ row.firstRender }}</td>
+                      <td>{{ row.renderer }}</td>
+                      <td>{{ row.build }}</td>
                       <td>{{ row.fps }}</td>
                     </template>
                     <td v-else colspan="6">cannot draw 3D</td>
@@ -131,9 +131,9 @@
   });
 
   /**
-   * On a small phone the card starts below the fold, so bring it up when a run begins and again when the results land.
-   * Block start, not nearest: the page scroller runs under the footer, so nearest stops while the card is still
-   * behind it. Instant, not smooth: a busy test starves a smooth scroll of frames on a weak phone.
+   * The card sits at the top of the page, so scrolling it to the start shows it whole even when the person had scrolled
+   * down the device readout, on a run's start and again when the results land. Instant, not smooth: a busy test
+   * starves a smooth scroll of frames on a weak phone.
    */
   const bringIntoView = async () => {
     await nextTick();
@@ -229,9 +229,14 @@
 </script>
 
 <style scoped>
-  /* The positioned parent of the visually hidden live region below */
-  .video-test-card {
+  /*
+   * Positioned for the visually hidden live region below. The scroll margin keeps scrollIntoView from parking the card
+   * under the translucent header bar. The columns are ordered so the figures that decide things (work per frame, first
+   * render) fit a phone, and the setup costs to the right stay a swipe away (the shared report has all of them).
+   */
+  .video-test-card__root {
     position: relative;
+    scroll-margin-top: 5rem;
   }
 
   .video-test-card__live {
@@ -261,6 +266,15 @@
     text-align: left;
     white-space: nowrap;
     border-bottom: 1px solid var(--gs-divider);
+  }
+
+  /* Headers and row names wrap, so the long setup names do not take the width the numbers need on a phone */
+  .video-test-card__table th {
+    white-space: normal;
+  }
+
+  .video-test-card__table th[scope="row"] {
+    width: 7rem;
   }
 
   .video-test-card__actions {
