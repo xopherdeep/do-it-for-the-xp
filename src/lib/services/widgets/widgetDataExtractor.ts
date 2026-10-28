@@ -66,6 +66,17 @@ export const extractWidgetQuestPayload = (
   }));
 };
 
+/** Streak bonus tiers, longest streak first: a streak earns the first tier it reaches */
+const STREAK_TIERS = [
+  { minDays: 7, multiplier: 1.5 },
+  { minDays: 3, multiplier: 1.2 }
+];
+
+export const streakMultiplierFor = (streak: number): number => {
+  const tier = STREAK_TIERS.find((candidate) => streak >= candidate.minDays);
+  return tier ? tier.multiplier : 1.0;
+};
+
 export const buildWidgetSyncPayload = (
   user: any,
   questRows: QuestListRow[],
@@ -74,7 +85,7 @@ export const buildWidgetSyncPayload = (
 ): WidgetSyncPayload => {
   const hero = extractWidgetHeroPayload(user, streakCount);
   const quests = extractWidgetQuestPayload(questRows);
-  const multiplier = streakCount >= 7 ? 1.5 : streakCount >= 3 ? 1.2 : 1.0;
+  const multiplier = streakMultiplierFor(streakCount);
 
   return {
     hero,

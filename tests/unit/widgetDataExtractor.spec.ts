@@ -1,7 +1,8 @@
 import {
   extractWidgetHeroPayload,
   extractWidgetQuestPayload,
-  buildWidgetSyncPayload
+  buildWidgetSyncPayload,
+  streakMultiplierFor
 } from "@/lib/services/widgets/widgetDataExtractor";
 import type { QuestListRow } from "@/lib/services/quests/QuestList";
 
@@ -78,6 +79,17 @@ describe("widgetDataExtractor", () => {
     it("handles non-array inputs gracefully", () => {
       expect(extractWidgetQuestPayload(null as any)).toEqual([]);
       expect(extractWidgetQuestPayload(undefined as any)).toEqual([]);
+    });
+  });
+
+  describe("streakMultiplierFor", () => {
+    it("steps up at three and seven days", () => {
+      expect(streakMultiplierFor(0)).toBe(1.0);
+      expect(streakMultiplierFor(2)).toBe(1.0);
+      expect(streakMultiplierFor(3)).toBe(1.2);
+      expect(streakMultiplierFor(6)).toBe(1.2);
+      expect(streakMultiplierFor(7)).toBe(1.5);
+      expect(streakMultiplierFor(30)).toBe(1.5);
     });
   });
 

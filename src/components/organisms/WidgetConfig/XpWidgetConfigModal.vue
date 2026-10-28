@@ -182,6 +182,7 @@ import { WIDGET_THEMES, type WidgetThemeId } from "@/lib/services/widgets/widget
 import { useUserStore } from "@/lib/store/stores/user";
 import { syncAllWidgets } from "@/lib/services/widgets/widgetSyncTrigger";
 import { reloadAllWidgets } from "@/lib/services/widgets/widgetSync";
+import { streakMultiplierFor } from "@/lib/services/widgets/widgetDataExtractor";
 
 const emit = defineEmits(["dismiss"]);
 
@@ -217,7 +218,7 @@ const heroMp = computed(() => Number(heroStats.value.mp ?? 10));
 const heroMaxMp = computed(() => Math.max(1, Number(heroStats.value.maxMp ?? 10)));
 const heroGp = computed(() => Number(heroStats.value.gp ?? 0));
 const currentStreak = computed(() => Number(heroStats.value.streak ?? 0));
-const streakMultiplier = computed(() => (currentStreak.value >= 7 ? "1.5" : currentStreak.value >= 3 ? "1.2" : "1.0"));
+const streakMultiplier = computed(() => streakMultiplierFor(currentStreak.value).toFixed(1));
 const savingsGp = computed(() => Number(heroStats.value.savings ?? 0));
 
 const hpPercent = computed(() => Math.min(100, Math.max(0, (heroHp.value / heroMaxHp.value) * 100)));
