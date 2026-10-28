@@ -55,6 +55,9 @@
     value === null ? UNKNOWN : format(value);
 
   const speedHint = (signals: DeviceSignals): string => {
+    // No 3D at all is a clearer answer than "unknown" next to a 3D row that says No
+    const canDraw3d = signals.webgl2;
+    if (!canDraw3d) return "Cannot draw 3D here";
     const isUnreported = signals.majorPerformanceCaveat === null;
     if (isUnreported) return UNKNOWN;
     return signals.majorPerformanceCaveat ? "Slow: this device draws 3D in software" : "Looks fine: the graphics chip draws 3D";

@@ -41,6 +41,13 @@ const open = async (signals: DeviceSignals) => {
 
 const rowText = (wrapper: Awaited<ReturnType<typeof open>>, key: string) => wrapper.find(`[data-cy='device-${key}']`).text();
 
+// Finds a row by its visible label, then reads that row's own value line
+const valueOf = (wrapper: Awaited<ReturnType<typeof open>>, label: string): string => {
+  const row = wrapper.findAll("ion-item").find((item) => item.find("h2").text() === label);
+  if (!row) throw new Error(`no row labelled ${label}`);
+  return row.find("p").text();
+};
+
 describe("Settings, Video", () => {
   it("renders the title and the This device card", async () => {
     const wrapper = await open(known);
@@ -52,23 +59,34 @@ describe("Settings, Video", () => {
   it("shows a row for each signal the device reported", async () => {
     const wrapper = await open(known);
 
-    expect(rowText(wrapper, "android")).toContain("7");
-    expect(rowText(wrapper, "engine")).toContain("86");
-    expect(rowText(wrapper, "memory")).toContain("2");
-    expect(rowText(wrapper, "cores")).toContain("4");
-    expect(rowText(wrapper, "screen")).toContain("360");
-    expect(rowText(wrapper, "screen")).toContain("640");
-    expect(rowText(wrapper, "webgl")).toContain("Yes");
+    expect(valueOf(wrapper, "Android")).toBe("7");
+    expect(valueOf(wrapper, "Browser engine")).toBe("Chrome 86");
+    expect(valueOf(wrapper, "Memory")).toBe("2 GB");
+    expect(valueOf(wrapper, "Processor cores")).toBe("4");
+    expect(valueOf(wrapper, "Screen")).toBe("360 x 640");
+    expect(valueOf(wrapper, "3D drawing")).toBe("Yes");
     expect(wrapper.find("[data-cy='device-speed']").exists()).toBe(true);
   });
 
   it("says unknown for every signal the device would not report", async () => {
     const wrapper = await open(nothing);
 
-    for (const key of ["android", "engine", "memory", "cores", "screen", "speed"]) {
-      expect(rowText(wrapper, key)).toContain("unknown");
+    for (const label of ["Android", "Browser engine", "Memory", "Processor cores", "Screen"]) {
+      expect(valueOf(wrapper, label)).toBe("unknown");
     }
-    expect(rowText(wrapper, "webgl")).toContain("No");
+    expect(valueOf(wrapper, "3D drawing")).toBe("No");
+  });
+
+  it("says the speed cannot be judged when the device cannot draw 3D", async () => {
+    const wrapper = await open(nothing);
+
+    expect(valueOf(wrapper, "Speed hint")).toBe("Cannot draw 3D here");
+  });
+
+  it("keeps the speed wording when 3D works but the caveat is unreported", async () => {
+    const wrapper = await open({ ...known, majorPerformanceCaveat: null });
+
+    expect(valueOf(wrapper, "Speed hint")).toBe("unknown");
   });
 
   it("reads the signals once", async () => {
