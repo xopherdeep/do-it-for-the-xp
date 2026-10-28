@@ -124,6 +124,64 @@ describe("runDeviceTest", () => {
     expect(result.configs).toHaveLength(0);
   });
 
+  it("stops at once when the signal aborts while a frame is pending and frees the context", async () => {
+    const controller = new AbortController();
+    const stalledRaf = (): number => 1; // a backgrounded app: the frame never arrives
+    const run = runDeviceTest({ now, raf: stalledRaf, createCanvas, framesPerConfig: 12, signal: controller.signal });
+    await Promise.resolve();
+    controller.abort();
+    const result = await run;
+    expect(result.aborted).toBe(true);
+    expect(result.configs).toHaveLength(0);
+    expect(renderers).toHaveLength(1);
+    expect(renderers[0].forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops at once when the page goes hidden while a frame is pending", async () => {
+    const stalledRaf = (): number => 1;
+    const hidden = jest.spyOn(document, "hidden", "get").mockReturnValue(false);
+    const run = runDeviceTest({ now, raf: stalledRaf, createCanvas, framesPerConfig: 12 });
+    await Promise.resolve();
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+    const result = await run;
+    hidden.mockRestore();
+    expect(result.aborted).toBe(true);
+    expect(result.configs).toHaveLength(0);
+    expect(renderers).toHaveLength(1);
+    expect(renderers[0].forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+
+  it("records an unsupported config when drawing throws, keeping the configs measured before", async () => {
+    let calls = 0;
+    MockRenderer.mockImplementation(function () {
+      const renderer: FakeRenderer = {
+        setSize: jest.fn(),
+        setPixelRatio: jest.fn(),
+        setClearColor: jest.fn(),
+        shadowMap: { enabled: false },
+        render: jest.fn(() => {
+          calls += 1;
+          const isSecond = renderers.length === 2;
+          if (isSecond) throw new Error("shader failed");
+          clock += RENDER_MS;
+        }),
+        dispose: jest.fn(),
+        forceContextLoss: jest.fn(),
+        getContext: jest.fn(() => ({ finish: jest.fn(), readPixels: jest.fn() })),
+      };
+      renderers.push(renderer);
+      return renderer;
+    });
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 5 });
+    expect(calls).toBeGreaterThan(0);
+    expect(result.configs.map((c) => [c.id, c.supported])).toEqual([
+      ["today", true],
+      ["noMsaa", false],
+    ]);
+    renderers.forEach((r) => expect(r.forceContextLoss).toHaveBeenCalledTimes(1));
+  });
+
   it("records an unsupported config and runs no further ones when the renderer cannot open", async () => {
     MockRenderer.mockReset();
     MockRenderer.mockImplementation(() => {

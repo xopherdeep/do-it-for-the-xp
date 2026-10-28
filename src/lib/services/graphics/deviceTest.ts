@@ -83,7 +83,19 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
   const { signal, onProgress } = options;
 
   const shouldStop = (): boolean => !!signal?.aborted || document.hidden;
-  const nextFrame = (): Promise<void> => new Promise((resolve) => raf(() => resolve()));
+  // A hidden page or a backgrounded app stops firing animation frames, so the wait also ends on the page going hidden
+  // or the signal aborting; the loop then sees shouldStop() and the config releases its WebGL context at once.
+  const nextFrame = (): Promise<void> =>
+    new Promise((resolve) => {
+      const finish = (): void => {
+        document.removeEventListener("visibilitychange", finish);
+        signal?.removeEventListener("abort", finish);
+        resolve();
+      };
+      document.addEventListener("visibilitychange", finish);
+      signal?.addEventListener("abort", finish);
+      raf(finish);
+    });
 
   const result: DeviceTestResult = { configs: [], coldBuildMs: null, tier: null, aborted: false };
   if (shouldStop()) return { ...result, aborted: true };
@@ -144,6 +156,8 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
       waitForGpu(renderer, pixel);
       const firstRenderMs = now() - firstStart;
 
+      // Frames wait on animation frames, so fps tops out at the display rate: it is headroom below that rate, and the
+      // work time per frame is the speed figure (a 60 fps result on a 60 Hz screen does not mean there is spare power).
       const meter = createSampleMeter();
       const runStart = now();
       let drawn = 0;
@@ -171,6 +185,9 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
         work: meter.stats(),
         fps: hasElapsed ? (drawn * 1000) / elapsed : null,
       };
+    } catch {
+      // A throw while building or drawing (shader compile, lost context) keeps the configs already measured
+      return unsupported(spec);
     } finally {
       if (hero) disposeHero(hero);
       renderer.dispose();
