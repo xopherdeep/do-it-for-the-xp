@@ -53,9 +53,9 @@ const stubs = {
   XpCloseButton: { template: "<button class='close-stub' data-test='wizard-close'></button>" },
   XpSpeakButton: { props: ["text"], template: "<button class='speak-stub' :data-text='text'></button>" },
   XpHeroFanfare: {
-    props: ["open", "name"],
+    props: ["open", "name", "title"],
     emits: ["done"],
-    template: "<div class='fanfare-stub' :data-open='String(open)' :data-name='name'><button data-test='fanfare-done' @click=\"$emit('done')\"></button></div>",
+    template: "<div class='fanfare-stub' :data-open='String(open)' :data-name='name' :data-title='title'><button data-test='fanfare-done' @click=\"$emit('done')\"></button></div>",
   },
 };
 
@@ -297,9 +297,21 @@ describe("the Quest Wizard for a maker", () => {
     await tap(wrapper, "next");
     expect(wrapper.get('[data-test="kid-note"]').text()).toBe("A Game Master looks at it first.");
 
+    // The saved quest is a proposal, so the reveal says it went to the Game Master, not that it joined the log
+    save.mockResolvedValueOnce({ id: "q1", achievementName: "Make The Bed", assignee: ["hero", "sib"], draft: true, proposal: { by: "hero", on: "2026-10-27T10:00:00.000Z", state: "proposed" } });
     await tap(wrapper, "submit");
     expect(save.mock.calls[0][0]).toMatchObject({ heroIds: ["hero", "sib"] });
     expect(save.mock.calls[0][1]).toMatchObject({ isGm: false, isMaker: true, creatorId: "hero" });
+    expect(wrapper.get(".fanfare-stub").attributes("data-title")).toBe("Sent to the Game Master!");
+  });
+
+  it("reveals a quest for the maker alone as one that joins the log", async () => {
+    const wrapper = await mountMaker();
+    await toWho(wrapper);
+    await tap(wrapper, "next");
+    save.mockResolvedValueOnce({ id: "q1", achievementName: "Make The Bed", assignee: ["hero"], draft: false });
+    await tap(wrapper, "submit");
+    expect(wrapper.get(".fanfare-stub").attributes("data-title")).toBe("A new quest joins the log!");
   });
 
   it("keeps today's note when the quest is for the maker alone", async () => {

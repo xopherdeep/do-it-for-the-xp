@@ -55,6 +55,50 @@ export const beastMaker = {
     classic: "Background",
   },
 
+  // The snap-a-drawing sheet (BeastPhotoPicker): the Maker's photo path, and the Game Master's beast form too. The
+  // guide line is read aloud in the simple voice when the sheet opens from the Maker; the error line is beastMaker.error.photo
+  "beastMaker.photo.title": {
+    simple: "Snap your drawing",
+    adventure: "Snap a drawing",
+    classic: "Photograph a drawing",
+  },
+  "beastMaker.photo.guide": {
+    simple: "Take a picture. Then slide the box over your beast.",
+    adventure: "Take a picture of the drawing, then slide the frame over the part that is the beast.",
+    classic: "Photograph the drawing, then frame the beast.",
+  },
+  "beastMaker.photo.opening": {
+    adventure: "Opening the picture...",
+    classic: "Loading the picture...",
+  },
+  "beastMaker.photo.notNow": {
+    adventure: "Not now",
+    classic: "Cancel",
+  },
+  "beastMaker.photo.take": {
+    adventure: "Take a picture",
+    classic: "Take a photo",
+  },
+  "beastMaker.photo.another": {
+    simple: "Try another",
+    adventure: "Another",
+    classic: "Retake",
+  },
+  "beastMaker.photo.use": {
+    simple: "Use it!",
+    adventure: "Use it",
+    classic: "Use this",
+  },
+  "beastMaker.photo.smaller": {
+    adventure: "Smaller",
+  },
+  "beastMaker.photo.fit": {
+    adventure: "Fit",
+  },
+  "beastMaker.photo.bigger": {
+    adventure: "Bigger",
+  },
+
   // 2. Name
   "beastMaker.name.placeholder": {
     simple: "Type its name",

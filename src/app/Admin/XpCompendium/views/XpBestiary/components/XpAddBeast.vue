@@ -137,7 +137,7 @@
           </button>
           <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="snap-drawing" @click="snapDrawing">
             <i class="fad fa-camera" aria-hidden="true"></i>
-            Snap a drawing
+            {{ t("beastMaker.photo.title") }}
           </button>
           <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="pick-background" @click="pickBackground">
             <i class="fad fa-image" aria-hidden="true"></i>
@@ -245,6 +245,7 @@ import {
   withLibraryLook,
 } from "../beastWizard";
 import type { BeastDraft, BeastStepId } from "../beastWizard";
+import { useCopy } from "@/hooks/useVoice";
 
 /**
  * The Game Master's beast form on the shared wizard shell (docs: compendium-wizards-design, W1): Pick its look, Name it,
@@ -262,6 +263,8 @@ const router = useRouter();
 const route = useRoute();
 const bestiary = new BestiaryDb(beastStorage);
 const userStore = useUserStore();
+// The drawing tile shares the snap-a-drawing sheet's words (beastMaker.photo.*)
+const t = useCopy();
 // The Bestiary is the Beast Log's purple (owner: each app keeps its accent, cream text on it)
 const { rootClass, rootStyle } = useAppSkin("quests");
 

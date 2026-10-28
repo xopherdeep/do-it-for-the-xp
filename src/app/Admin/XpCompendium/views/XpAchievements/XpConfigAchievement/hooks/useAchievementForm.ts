@@ -35,7 +35,7 @@ import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../
 import { isDraftOnSave, newQuestOpening } from "@/lib/services/quests/questDrafts";
 import { suggestedRewards } from "@/lib/services/quests/questWizard";
 import { isLive } from "@/lib/services/creations/creations";
-import { approveStoredQuest } from "@/lib/services/creations/creationReview";
+import { approveStoredQuest, freshProposalOf } from "@/lib/services/creations/creationReview";
 import { useUserStore } from "@/lib/store/stores/user";
 import { rpgToastOptions } from "@/hooks/useToast";
 
@@ -535,8 +535,8 @@ export function useAchievementForm() {
   /** What New Quest opens on: a fresh quest when no draft waits, else the draft to ask about (questDrafts.ts) */
   const loadNewQuestOpening = async () => newQuestOpening(await achievementDb.getTasks());
 
-  /** What goes to storage: no empty times of day, no unusable minutes */
-  const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
+  /** What goes to storage: no empty times of day, no unusable minutes, and never a stale proposal over the stored one */
+  const questForStorage = async () => ({ ...withoutUnsetMinutes(withoutEmptyTimes(achievement.value)), ...(await freshProposalOf(achievement.value.id)) });
 
   /**
    * A kid's quest opened from Approvals: a live save (Ready, never a draft autosave) approves it with the edits, pays
@@ -576,7 +576,7 @@ export function useAchievementForm() {
       );
       achievement.value.draft = isDraftOnSave({ isPublished: isPublished.value, isComplete: isValidAdventure.value });
       await applySuggestedBeast();
-      await achievementDb.setTask(questForStorage());
+      await achievementDb.setTask(await questForStorage());
       await approveIfProposed();
       // Taken after the edits above, so they don't trigger another save
       lastSavedState.value = JSON.stringify(achievement.value);
@@ -624,7 +624,7 @@ export function useAchievementForm() {
       );
       achievement.value.draft = false;
       await applySuggestedBeast();
-      await achievementDb.setTask(questForStorage());
+      await achievementDb.setTask(await questForStorage());
       await approveIfProposed();
       isPublished.value = true;
       lastSavedState.value = JSON.stringify(achievement.value);
@@ -798,7 +798,7 @@ export function useAchievementForm() {
           (ids) => {
             achievement.value.beastId = ids[0] || "";
             // Immediately save when a beast is selected to prevent loss during route transitions
-            achievementDb.setTask(questForStorage());
+            void questForStorage().then((quest) => achievementDb.setTask(quest));
           }
         );
         router.push({ name: "xp-bestiary-select" });

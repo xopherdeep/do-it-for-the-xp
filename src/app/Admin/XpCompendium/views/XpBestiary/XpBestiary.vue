@@ -76,14 +76,7 @@ import {
   IonCol,
   IonButton, // Added IonButton import
 } from "@ionic/vue";
-import {
-  createOutline,
-  saveOutline,
-  trashOutline,
-  attachOutline,
-  createSharp,
-  listOutline,
-} from "ionicons/icons";
+import { createOutline, saveOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import XpAttachBeast from "./components/XpAttachBeast.vue";
 import XpBeastSelectorItem from "./components/XpBeastSelectorItem.vue";
@@ -94,8 +87,11 @@ import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb
 import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
+import { creationAp } from "@/lib/services/creations/creations";
+import { approveStoredBeast, returnStoredBeast } from "@/lib/services/creations/creationReview";
 import { beastBadge, bestiaryFilter, emptyBestiaryLine } from "./bestiaryFilter";
 import type { BestiarySegment } from "./bestiaryFilter";
+import { beastSheetButtons } from "./beastSheet";
 import { useUserStore } from "@/lib/store/stores/user";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
@@ -116,49 +112,69 @@ export default defineComponent({
     return {};
   },
   methods: {
+    // The lines are beastSheet.ts's: a kid's beast not yet in the game offers Approve and Send back in place of Attach
     async presentBeastOptions(beast: Beast) {
       const actionSheet = await actionSheetController.create({
         header: beast.name,
         subHeader: `${beast.checklist?.length || 0} Checks | ${beast.achievementIds?.length || 0
           } Quests`,
         mode: "ios",
+        buttons: beastSheetButtons(beast, {
+          edit: () => this.clickAddBeast(beast),
+          tasks: () => this.presentBeastTasks(beast),
+          attach: () => this.clickAttachBeast(beast),
+          approve: () => this.approveCreation(beast),
+          sendBack: () => this.sendBackCreation(beast),
+          remove: () => this.clickDeleteBeast(beast),
+        }),
+      });
+      await actionSheet.present();
+    },
+    // Approve a kid's beast from here: the same verdict as Approvals > Creations, through creationReview
+    async approveCreation(beast: Beast) {
+      const alert = await alertController.create({
+        header: "Approve Beast",
+        mode: "ios",
+        message: `Approve ${escapeHtml(beast.name)}? Its maker earns ${creationAp("beast")} AP.`,
         buttons: [
+          { text: "Cancel", role: "cancel" },
           {
-            text: "Edit Beast",
-            icon: createSharp,
+            text: "Approve",
             handler: () => {
-              this.clickAddBeast(beast);
+              void approveStoredBeast(String(beast.id), this.reviewerId()).then((isApproved) =>
+                isApproved
+                  ? this.loadBeasts(true).then(() => this.toast(`Approved! ${beast.name} is in the game.`, "success"))
+                  : this.toast("That beast is already in the game.", "warning")
+              );
             },
-          },
-          {
-            text: "View Task List",
-            icon: listOutline,
-            handler: () => {
-              this.presentBeastTasks(beast);
-            },
-          },
-          {
-            text: "Attach to Quests",
-            icon: attachOutline,
-            handler: () => {
-              this.clickAttachBeast(beast);
-            },
-          },
-          {
-            text: "Delete Beast",
-            role: "destructive",
-            icon: trashOutline,
-            handler: () => {
-              this.clickDeleteBeast(beast);
-            },
-          },
-          {
-            text: "Cancel",
-            role: "cancel",
           },
         ],
       });
-      await actionSheet.present();
+      await alert.present();
+    },
+    // Send a kid's beast back with a note, the quest sent with it too (the same sheet as the lane's)
+    async sendBackCreation(beast: Beast) {
+      const alert = await alertController.create({
+        header: "Send Beast Back",
+        mode: "ios",
+        message: `Send ${escapeHtml(beast.name)} back to its maker? They can fix it and send it again.`,
+        inputs: [{ name: "note", type: "textarea", placeholder: "A short note for the maker (optional)", attributes: { maxlength: 140 } }],
+        buttons: [
+          { text: "Cancel", role: "cancel" },
+          {
+            text: "Send back",
+            handler: (data) => {
+              const note = String(data?.note ?? "").trim();
+              void returnStoredBeast(String(beast.id), this.reviewerId(), note || undefined).then((isSentBack) =>
+                isSentBack
+                  ? this.loadBeasts(true).then(() => this.toast(`Sent back. ${beast.name} waits for its maker.`, "medium"))
+                  : this.toast("That beast is no longer waiting for a look.", "warning")
+              );
+            },
+          },
+        ],
+      });
+      await alert.present();
     },
     async toast(message: string, color?: string) {
       const toast = await toastController.create({
@@ -424,6 +440,8 @@ export default defineComponent({
     const emptyLine = computed(() => emptyBestiaryLine(segment.value));
     const filteredBeasts = computed(() => bestiaryFilter(beasts.value, segment.value, searchQuery.value));
     const badgeOf = (beast: Beast) => beastBadge(beast, (id) => userStore.users[id]?.name?.nick ?? "");
+    /** The signed-in Game Master, who approves or sends back a kid's beast from the card's menu */
+    const reviewerId = () => String(userStore.currentUser.id ?? "");
 
     // Generate fresh backgrounds for Add New box (refs so they can be updated)
     const addNewBg1 = ref(Math.floor(Math.random() * 325));
@@ -446,6 +464,7 @@ export default defineComponent({
       emptyLine,
       filteredBeasts,
       badgeOf,
+      reviewerId,
       addNewBg1,
       addNewBg2,
       isLoading,

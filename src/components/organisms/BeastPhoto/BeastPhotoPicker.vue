@@ -1,8 +1,8 @@
 <template>
   <ion-content class="beast-photo" :scroll-y="true">
     <div class="beast-photo__box" role="dialog" aria-labelledby="beast-photo-title">
-      <h2 id="beast-photo-title" class="beast-photo__title">Snap a drawing</h2>
-      <p class="beast-photo__sub">Take a picture of the drawing, then slide the frame over the part that is the beast.</p>
+      <h2 id="beast-photo-title" class="beast-photo__title">{{ t("beastMaker.photo.title") }}</h2>
+      <p class="beast-photo__sub">{{ t("beastMaker.photo.guide") }}</p>
 
       <div class="beast-photo__stage">
         <!-- The picture fills this box exactly, so the frame's percentages are the picture's -->
@@ -24,7 +24,7 @@
       </div>
 
       <p v-if="error" class="beast-photo__error" role="alert" data-test="photo-error">{{ error }}</p>
-      <p v-else-if="working" class="beast-photo__sub">Opening the picture...</p>
+      <p v-else-if="working" class="beast-photo__sub">{{ t("beastMaker.photo.opening") }}</p>
 
       <!-- The camera on a phone; a file picker on a computer -->
       <input
@@ -41,24 +41,24 @@
       <div class="beast-photo__controls">
         <div v-if="picture" class="beast-photo__row beast-photo__row--tools">
           <button type="button" class="beast-photo__btn" data-test="photo-smaller" @click="smaller">
-            <i class="fad fa-search-minus" aria-hidden="true"></i> Smaller
+            <i class="fad fa-search-minus" aria-hidden="true"></i> {{ t("beastMaker.photo.smaller") }}
           </button>
           <button type="button" class="beast-photo__btn" data-test="photo-fit" @click="fit">
-            <i class="fad fa-expand" aria-hidden="true"></i> Fit
+            <i class="fad fa-expand" aria-hidden="true"></i> {{ t("beastMaker.photo.fit") }}
           </button>
           <button type="button" class="beast-photo__btn" data-test="photo-bigger" @click="bigger">
-            <i class="fad fa-search-plus" aria-hidden="true"></i> Bigger
+            <i class="fad fa-search-plus" aria-hidden="true"></i> {{ t("beastMaker.photo.bigger") }}
           </button>
         </div>
         <div class="beast-photo__row">
           <button type="button" class="beast-photo__btn beast-photo__btn--quiet" data-test="photo-cancel" @click="cancel">
-            Not now
+            {{ t("beastMaker.photo.notNow") }}
           </button>
           <button type="button" class="beast-photo__btn" data-test="photo-take" :disabled="working" @click="take">
-            <i class="fad fa-camera" aria-hidden="true"></i> {{ picture ? "Another" : "Take a picture" }}
+            <i class="fad fa-camera" aria-hidden="true"></i> {{ picture ? t("beastMaker.photo.another") : t("beastMaker.photo.take") }}
           </button>
           <button v-if="picture" type="button" class="beast-photo__btn beast-photo__btn--go" data-test="photo-use" @click="use">
-            <i class="fad fa-check" aria-hidden="true"></i> Use it
+            <i class="fad fa-check" aria-hidden="true"></i> {{ t("beastMaker.photo.use") }}
           </button>
         </div>
       </div>
@@ -67,9 +67,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { IonContent, modalController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
+import { useCopy, useReadAloud } from "@/hooks/useVoice";
 import { largestSquare, moveFrame, resizeFrame } from "@/lib/services/creations/beastPhoto";
 import type { CropFrame } from "@/lib/services/creations/beastPhoto";
 import { openPicture, portraitFromImage } from "@/lib/services/creations/beastPhotoImage";
@@ -82,13 +83,16 @@ defineOptions({ name: "beast-photo-picker" });
  * A kid's drawing becomes a beast's portrait: Take a picture opens the camera (a file input with capture), the picture
  * is shown with a square frame the player slides (a drag) and sizes (Bigger / Smaller / Fit), and Use it cuts the frame
  * out as a 512px JPEG and hands the data URL to whoever opened the sheet. Not now closes it with nothing. The maths are
- * beastPhoto.ts; the canvas is beastPhotoImage.ts.
+ * beastPhoto.ts; the canvas is beastPhotoImage.ts. The words are the Beast Maker's catalog (beastMaker.photo.*), in
+ * the hero's voice; opened from the Maker (`autoRead`) the guide line is read aloud as the Maker's own screens are.
  */
+const props = withDefaults(defineProps<{ autoRead?: boolean }>(), { autoRead: false });
+
+const t = useCopy();
+const { startAutoReading } = useReadAloud();
 
 /** Bigger and Smaller change the frame by this share of the picture's short side per tap */
 const STEP_SHARE = 0.1;
-
-const TRY_AGAIN = "That picture didn't work. Try again or pick one from the library.";
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const pictureEl = ref<HTMLImageElement | null>(null);
@@ -126,6 +130,10 @@ const letGo = (opened: OpenedPicture | null) => {
 
 onBeforeUnmount(() => letGo(picture.value));
 
+onMounted(() => {
+  if (props.autoRead) startAutoReading(t("beastMaker.photo.guide"));
+});
+
 const take = () => {
   play$fx("cursor");
   error.value = "";
@@ -149,7 +157,7 @@ const onPicked = async (event: Event) => {
     frame.value = largestSquare(width, height);
   } catch (caught) {
     debug.warn("[BeastPhoto] could not read the picture", caught);
-    error.value = TRY_AGAIN;
+    error.value = t("beastMaker.error.photo");
     play$fx("no");
   } finally {
     working.value = false;
@@ -216,7 +224,7 @@ const use = () => {
     void modalController.dismiss(portrait, "picked");
   } catch (caught) {
     debug.warn("[BeastPhoto] could not cut the portrait", caught);
-    error.value = TRY_AGAIN;
+    error.value = t("beastMaker.error.photo");
     play$fx("no");
   }
 };

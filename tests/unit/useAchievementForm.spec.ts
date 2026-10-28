@@ -89,11 +89,13 @@ jest.mock("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/com
 jest.mock("@/lib/services/creations/creationReview", () => ({
   __esModule: true,
   approveStoredQuest: jest.fn().mockResolvedValue(true),
+  freshProposalOf: jest.fn().mockResolvedValue({}),
 }));
 jest.mock("@/lib/store/stores/user", () => ({ useUserStore: () => ({ currentUser: { id: "mom" } }) }));
 import { toastController } from "@ionic/vue";
-import { approveStoredQuest } from "@/lib/services/creations/creationReview";
+import { approveStoredQuest, freshProposalOf } from "@/lib/services/creations/creationReview";
 const approveQuest = approveStoredQuest as jest.Mock;
+const freshProposal = freshProposalOf as jest.Mock;
 
 const achievementDb = new AchievementDb(achievementStorage);
 const bestiaryDb = new BestiaryDb(beastStorage);
@@ -504,6 +506,17 @@ describe("a kid's quest opened from Approvals", () => {
     form.achievement.value.difficulty = 3;
     expect(await savedQuest(form)).toMatchObject({ draft: true, proposal: { state: "proposed" } });
     expect(approveQuest).not.toHaveBeenCalled();
+  });
+
+  it("writes the proposal storage holds now, never the one it opened with (an approval made elsewhere meanwhile)", async () => {
+    await achievementDb.setTask(kidQuest());
+    const form = useAchievementForm();
+    await form.loadData("q-kid");
+    const approved = { ...kidQuest().proposal, state: "approved" as const, reviewedBy: "dad", paidOn: "2026-10-27T10:00:00.000Z" };
+    freshProposal.mockResolvedValueOnce({ proposal: approved });
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ difficulty: 3, proposal: approved });
+    expect(freshProposal).toHaveBeenCalledWith("q-kid");
   });
 
   it("is never asked about a quest a Game Master made", async () => {

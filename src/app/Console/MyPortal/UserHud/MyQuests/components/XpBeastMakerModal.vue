@@ -349,7 +349,8 @@ const pick = (entry: LibraryEntry) => {
 const snapDrawing = async () => {
   play$fx("openMenu");
   try {
-    const modal = await modalController.create({ component: BeastPhotoPicker, cssClass: "beast-photo-modal" });
+    // From the Maker the sheet reads its guide line aloud, as the Maker's own screens do (the simple voice)
+    const modal = await modalController.create({ component: BeastPhotoPicker, cssClass: "beast-photo-modal", componentProps: { autoRead: true } });
     await modal.present();
     const { data, role } = await modal.onDidDismiss<string | null>();
     const isNotNow = role !== "picked";

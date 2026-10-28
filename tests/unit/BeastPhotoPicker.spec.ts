@@ -1,5 +1,6 @@
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils";
 import BeastPhotoPicker from "@/components/organisms/BeastPhoto/BeastPhotoPicker.vue";
+import { copyFor } from "@/lib/services/copy/copy";
 import { openPicture, portraitFromImage } from "@/lib/services/creations/beastPhotoImage";
 import { PhotoRejectedError } from "@/lib/services/quests/claimPhotoImage";
 
@@ -10,6 +11,13 @@ import { PhotoRejectedError } from "@/lib/services/quests/claimPhotoImage";
  */
 
 jest.mock("@/assets/fx", () => ({ __esModule: true, play$fx: jest.fn() }));
+
+// The words are real (the catalog, in the adventure voice with nobody signed in); the reading is watched
+const mockRead = jest.fn();
+jest.mock("@/hooks/useVoice", () => ({
+  ...jest.requireActual("@/hooks/useVoice"),
+  useReadAloud: () => ({ startAutoReading: mockRead, stopReading: jest.fn(), playLine: jest.fn(), canRead: { value: true } }),
+}));
 
 const mockDismiss = jest.fn();
 jest.mock("@ionic/vue", () => ({
@@ -32,7 +40,7 @@ const image = { naturalWidth: 400, naturalHeight: 300 };
 
 const pass = { template: "<div><slot /></div>" };
 
-const mountPicker = () => mount(BeastPhotoPicker, { global: { stubs: { IonContent: pass } } });
+const mountPicker = (props: { autoRead?: boolean } = {}) => mount(BeastPhotoPicker, { props, global: { stubs: { IonContent: pass } } });
 
 /** Pick a file the way the browser does: the input's files, then a change */
 const pickFile = async (wrapper: VueWrapper) => {
@@ -60,6 +68,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   mockDismiss.mockClear();
+  mockRead.mockClear();
   mockPortrait.mockReset().mockReturnValue(PORTRAIT);
   mockOpenPicture.mockReset().mockResolvedValue({ image, url: "blob:drawing" });
 });
@@ -68,10 +77,26 @@ describe("the first screen", () => {
   it("offers a picture to take or Not now, and nothing to crop yet", () => {
     const wrapper = mountPicker();
     expect(wrapper.find('[data-test="photo-take"]').text()).toContain("Take a picture");
-    expect(wrapper.find('[data-test="photo-cancel"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="photo-cancel"]').text()).toBe("Not now");
     expect(wrapper.find('[data-test="photo-frame"]').exists()).toBe(false);
     expect(wrapper.find('[data-test="photo-use"]').exists()).toBe(false);
     expect(wrapper.find('[data-test="photo-error"]').exists()).toBe(false);
+  });
+
+  it("speaks through the catalog: the title and the guide line are the Beast Maker's words", () => {
+    const wrapper = mountPicker();
+    expect(wrapper.find(".beast-photo__title").text()).toBe(copyFor("beastMaker.photo.title", "adventure"));
+    expect(wrapper.find(".beast-photo__sub").text()).toBe(copyFor("beastMaker.photo.guide", "adventure"));
+    expect(copyFor("beastMaker.photo.title", "simple")).toBe("Snap your drawing");
+    expect(copyFor("beastMaker.photo.use", "classic")).toBe("Use this");
+  });
+
+  it("reads the guide line aloud when it opens from the Maker, and keeps quiet from the Game Master's form", () => {
+    mountPicker({ autoRead: true });
+    expect(mockRead).toHaveBeenCalledWith(copyFor("beastMaker.photo.guide", "adventure"));
+    mockRead.mockClear();
+    mountPicker();
+    expect(mockRead).not.toHaveBeenCalled();
   });
 
   it("asks the camera on a phone and a file on a computer", () => {

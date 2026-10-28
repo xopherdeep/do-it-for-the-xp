@@ -349,7 +349,7 @@
       :open="showFanfare"
       :name="savedQuestTitle"
       :subtitle="savedQuestSubtitle"
-      :title="t('questWizard.fanfare.title')"
+      :title="fanfareTitle"
       :action-text="t('questWizard.fanfare.action')"
       :portrait="savedQuestPortrait"
       @burst="playQuestAdventureSong"
@@ -453,6 +453,8 @@ const savedQuest = ref<Achievement | null>(null);
 const savedQuestTitle = ref("");
 const savedQuestSubtitle = ref("");
 const savedQuestPortrait = ref("");
+// A proposal is not in the log yet: the reveal says it went to the Game Master
+const fanfareTitle = computed(() => t(savedQuest.value?.proposal ? "questWizard.fanfare.proposed" : "questWizard.fanfare.title"));
 
 // ---- Who is asking -------------------------------------------------------------------------------------------------
 

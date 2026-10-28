@@ -99,6 +99,12 @@ export const questWizard = {
     adventure: "A new quest joins the log!",
     classic: "Quest added to the log.",
   },
+  // The same reveal on a proposal: the quest is with the Game Master, not in the log yet
+  "questWizard.fanfare.proposed": {
+    simple: "Sent!",
+    adventure: "Sent to the Game Master!",
+    classic: "Sent for review.",
+  },
   "questWizard.fanfare.action": {
     simple: "Accept",
     adventure: "Accept quest",
