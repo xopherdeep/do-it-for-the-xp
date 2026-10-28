@@ -78,7 +78,7 @@
   onMounted(() => {
     // The footer is a sibling rendered after this component, so the slot exists only from here on. Look inside this
     // page first: Ionic keeps earlier pages in the document, and each has its own footer.
-    const scope = root.value?.closest("ion-page") ?? (root.value?.getRootNode() as ParentNode | undefined);
+    const scope = root.value?.closest("ion-page") ?? (root.value?.getRootNode() as Document | undefined);
     slot.value = scope?.querySelector(props.footerTarget) ?? null;
     frameHandle = requestAnimationFrame(() => {
       frameHandle = requestAnimationFrame(() => {
