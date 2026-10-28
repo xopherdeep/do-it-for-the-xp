@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_bg_earthbound">#18233c</color>
+    <color name="widget_border_earthbound">#4a75a0</color>
+    <color name="widget_accent_earthbound">#ffd84a</color>
+
+    <color name="widget_bg_gameboy">#0f380f</color>
+    <color name="widget_border_gameboy">#306230</color>
+    <color name="widget_accent_gameboy">#8bac0f</color>
+
+    <color name="widget_bg_lava">#2b0d0d</color>
+    <color name="widget_border_lava">#b71c1c</color>
+    <color name="widget_accent_lava">#ff5252</color>
+
+    <color name="widget_bg_gold">#261c02</color>
+    <color name="widget_border_gold">#ffb300</color>
+    <color name="widget_accent_gold">#ffd700</color>
+
+    <color name="widget_text_primary">#ffffff</color>
+    <color name="widget_text_secondary">#cbd5e1</color>
+    <color name="widget_text_muted">#94a3b8</color>
+    <color name="widget_gold">#ffd700</color>
+    <color name="widget_flame">#ff6d00</color>
+    <color name="widget_hp_green">#10b981</color>
+    <color name="widget_mp_blue">#3b82f6</color>
+    <color name="widget_track">#334155</color>
+</resources>

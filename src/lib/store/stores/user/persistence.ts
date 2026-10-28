@@ -2,6 +2,7 @@ import { ProfileDb } from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/lib/databases/profileStorage';
 import debug from '@/lib/utils/debug';
 import { trackWrite } from '@/lib/services/sync/recordSignals';
+import { syncAllWidgets } from '@/lib/services/widgets/widgetSyncTrigger';
 
 /**
  * The store's persistUser, bound to the store's `users` record. The write queue (profileDb, pendingPersist,
@@ -29,6 +30,7 @@ export function createProfilePersister(users: Record<string, any>): (userId: str
         debug.error(`[user] failed to persist profile ${userId}`, error);
       }
     }
+    void syncAllWidgets().catch(() => undefined);
   }
 
   /**

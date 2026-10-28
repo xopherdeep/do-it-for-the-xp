@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_window_earthbound"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="6dp">
+
+    <TextView
+        android:id="@+id/btn_action_add"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="+ TASK"
+        android:textColor="@color/widget_accent_earthbound"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/btn_action_chores"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="CHORES"
+        android:textColor="@color/widget_text_primary"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/btn_action_dungeon"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="DUNGEON"
+        android:textColor="@color/widget_hp_green"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/btn_action_party"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="PARTY"
+        android:textColor="@color/widget_gold"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</LinearLayout>

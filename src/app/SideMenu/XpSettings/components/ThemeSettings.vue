@@ -92,6 +92,24 @@
         </ion-list>
       </ion-card>
 
+      <ion-card class="max-w-2xl">
+        <ion-list>
+          <ion-item-group>
+            <ion-item-divider>
+              <ion-label>Home Screen</ion-label>
+            </ion-item-divider>
+
+            <ion-item button :detail="true" data-cy="open-widget-config" @click="openWidgetConfigModal">
+              <i slot="start" class="fad fa-th-large text-yellow-400 text-xl mr-2"></i>
+              <ion-label>
+                <h2>Android Widgets</h2>
+                <p>Preview and customize retro home screen widgets for your phone.</p>
+              </ion-label>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
+      </ion-card>
+
       <xp-coming-soon-card title="Display" :items="comingSoon" />
     </ion-content>
   </ion-page>
@@ -115,7 +133,9 @@
     IonSelectOption,
     IonItemGroup,
     IonItemDivider,
+    modalController,
   } from "@ionic/vue";
+  import XpWidgetConfigModal from "@/components/organisms/WidgetConfig/XpWidgetConfigModal.vue";
   import ionic from "@/lib/mixins/ionic";
   import { useProStore } from "@/lib/store/stores/pro";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
@@ -213,6 +233,14 @@
           rpg: ev.detail.value,
           ui,
         });
+      },
+
+      async openWidgetConfigModal() {
+        this.play$fx();
+        const modal = await modalController.create({
+          component: XpWidgetConfigModal,
+        });
+        await modal.present();
       },
     },
   });
