@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { POINT_ICONS } from "@/constants/POINT_ICONS";
+import type { CreationKind } from "@/lib/services/creations/creations";
 
 /**
  * The hero's notification feed, the pure part: what a notification is, how two are told apart
@@ -22,6 +23,9 @@ export type XpNotificationKind =
   | "hospital"
   | "gold"
   | "weekly-recap"
+  | "creation-waiting"
+  | "creation-approved"
+  | "creation-returned"
   | "system";
 
 export interface XpNotification {
@@ -159,6 +163,12 @@ export const iconOfKind = (kind: XpNotificationKind): string => {
       return "fa-coins";
     case "weekly-recap":
       return "fa-scroll-old";
+    case "creation-waiting":
+      return "fa-paint-brush";
+    case "creation-approved":
+      return "fa-sparkles";
+    case "creation-returned":
+      return "fa-undo";
     default:
       return "fa-bell";
   }
@@ -256,6 +266,49 @@ export const claimsWaitingSummary = (gmId: string, count: number, now: Date = ne
   body: count === 1 ? "A hero is waiting for you to check their chore." : "Heroes are waiting for you to check their chores.",
   link: APPROVALS_LINK,
   createdAt: now.toISOString(),
+});
+
+/** The Creations lane of the Game Master's approvals screen, where creation-waiting notifications lead. */
+export const CREATIONS_LINK = "/game-master/approvals?segment=creations";
+
+/** A kid's creation as its notifications name it: the row key is the refId, so one notice per creation per day */
+export interface CreationRef {
+  key: string;
+  name: string;
+  kind: CreationKind;
+}
+
+/** A kid made a beast or suggested a quest, and a Game Master has to look at it. */
+export const creationWaitingNotification = (gmId: string, row: CreationRef, makerName: string, now: Date = new Date()): NewXpNotification => ({
+  heroId: gmId,
+  kind: "creation-waiting",
+  refId: row.key,
+  title: "A new creation awaits",
+  body: row.kind === "beast" ? `${makerName} made a beast: "${row.name}".` : `${makerName} suggested a quest: "${row.name}".`,
+  link: CREATIONS_LINK,
+  createdAt: now.toISOString(),
+});
+
+/** The Game Master approved the kid's creation: it is in the game and the AP is theirs. */
+export const creationApprovedNotification = (heroId: string, row: CreationRef, ap: number): NewXpNotification => ({
+  heroId,
+  kind: "creation-approved",
+  refId: row.key,
+  title: "Your creation is in the game!",
+  body: `"${row.name}" was approved. +${ap} AP.`,
+  link: questBoardLink(heroId),
+});
+
+/** The Game Master sent the kid's creation back, with their note when they wrote one. */
+export const creationReturnedNotification = (heroId: string, row: CreationRef, note?: string): NewXpNotification => ({
+  heroId,
+  kind: "creation-returned",
+  refId: row.key,
+  title: "Your creation came back",
+  body: note
+    ? `"${row.name}" came back: ${note}`
+    : `"${row.name}" came back. Open the ${row.kind === "beast" ? "Beast Maker" : "Quest Wizard"} to fix it.`,
+  link: questBoardLink(heroId),
 });
 
 export const levelUpNotification = (heroId: string, newLevel: number, levelsGained = 1): NewXpNotification => ({

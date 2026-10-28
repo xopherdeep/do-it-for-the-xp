@@ -225,6 +225,9 @@ import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+import { isLive } from "@/lib/services/creations/creations";
+import { approveStoredBeast } from "@/lib/services/creations/creationReview";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import BeastDetailsModal from "./BeastDetailsModal.vue";
 import {
@@ -258,6 +261,7 @@ const props = defineProps<{ id?: string }>();
 const router = useRouter();
 const route = useRoute();
 const bestiary = new BestiaryDb(beastStorage);
+const userStore = useUserStore();
 // The Bestiary is the Beast Log's purple (owner: each app keeps its accent, cream text on it)
 const { rootClass, rootStyle } = useAppSkin("quests");
 
@@ -277,6 +281,8 @@ const position = ref(0);
 const isLoaded = ref(!beastId);
 const isSaving = ref(false);
 const isEditing = computed(() => draft.value.id !== "");
+// A kid's beast opened from Approvals: saving it here approves it with the edits (creationReview)
+const awaitsApproval = ref(false);
 
 // A snapped drawing is the portrait when there is one, even over a library beast picked before it
 const portrait = computed(() => draft.value.localImage || (beastPortraitUrl(draft.value.avatar) ?? ""));
@@ -288,7 +294,10 @@ const loadBeast = async () => {
   try {
     const stored = (await bestiary.getBeasts()).find((beast) => beast?.id === beastId);
     // An id that is no beast opens a new one
-    if (stored) draft.value = draftFromBeast(stored);
+    if (stored) {
+      draft.value = draftFromBeast(stored);
+      awaitsApproval.value = !isLive(stored);
+    }
   } catch (error) {
     debug.error("Error loading beast data:", error);
   } finally {
@@ -525,7 +534,10 @@ const summon = async () => {
       savedPortrait.value = portrait.value;
       showFanfare.value = true;
     } else {
-      await bestiary.showSuccessToast("Beast Updated Successfully");
+      // The Game Master's save of a kid's beast is its approval, with the edits; the maker is paid and told
+      const reviewerId = String(userStore.currentUser.id ?? "");
+      const isApproved = awaitsApproval.value && (await approveStoredBeast(draft.value.id, reviewerId));
+      await bestiary.showSuccessToast(isApproved ? "Approved, with changes" : "Beast Updated Successfully");
       await goToBestiary();
     }
   } catch (error) {

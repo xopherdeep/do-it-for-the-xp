@@ -70,13 +70,16 @@ export const isReturned = (record: Proposed): boolean => record.proposal?.state 
 
 /**
  * Approve a creation: it goes live. An approved record, and a record with no proposal, come back as the very same
- * object, which is how a second approval stays a no-op.
+ * object, which is how a second approval stays a no-op. The note of an earlier return is dropped: there is nothing
+ * left to fix, and the maker's screen must not keep asking for it.
  */
 export const approveCreation = <T extends Proposed>(record: T, reviewerId: string, now: Date): T => {
   const { proposal } = record;
   const hasNothingToApprove = !proposal || proposal.state === "approved";
   if (hasNothingToApprove) return record;
-  return { ...record, proposal: { ...proposal, state: "approved", reviewedBy: reviewerId, reviewedOn: now.toISOString() } };
+  const approved: Proposal = { ...proposal, state: "approved", reviewedBy: reviewerId, reviewedOn: now.toISOString() };
+  delete approved.note;
+  return { ...record, proposal: approved };
 };
 
 /**

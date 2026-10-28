@@ -112,9 +112,11 @@ describe("approveCreation", () => {
     expect(approveCreation(old, "mom", NOW)).toBe(old);
   });
 
-  it("approves a returned record too", () => {
+  it("approves a returned record too, and drops the note: there is nothing left to fix", () => {
     const sentBack = returnCreation(propose(beast("b1"), "ronan", NOW), "mom", "Bigger teeth", NOW);
-    expect(approveCreation(sentBack, "mom", LATER).proposal?.state).toBe("approved");
+    const approved = approveCreation(sentBack, "mom", LATER);
+    expect(approved.proposal?.state).toBe("approved");
+    expect(approved.proposal).not.toHaveProperty("note");
   });
 });
 

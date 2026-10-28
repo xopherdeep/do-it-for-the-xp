@@ -88,6 +88,14 @@ jest.mock("@/app/Admin/XpCompendium/views/XpBestiary/components/BeastDetailsModa
   __esModule: true,
   default: { name: "BeastDetailsModalStub" },
 }));
+// The review service is the creation rules' own (tests/unit/creationReview.spec.ts); here only the call is proven
+jest.mock("@/lib/services/creations/creationReview", () => ({
+  __esModule: true,
+  approveStoredBeast: jest.fn().mockResolvedValue(true),
+}));
+import { approveStoredBeast } from "@/lib/services/creations/creationReview";
+import { useUserStore } from "@/lib/store/stores/user";
+const approveBeast = approveStoredBeast as jest.Mock;
 
 const create = modalController.create as jest.Mock;
 const toast = toastController.create as jest.Mock;
@@ -516,6 +524,41 @@ describe("editing a beast", () => {
     const wrapper = await mountForm({ id: "beast-gone" });
     expect(wrapper.get(".xp-app-header__title").text()).toBe("New Beast");
     expect(wrapper.find('[data-test="step-look"]').exists()).toBe(true);
+  });
+});
+
+describe("a kid's beast opened from Approvals", () => {
+  const sockMonster = (): Beast => ({
+    ...grownBeast(),
+    id: "beast-sock",
+    name: "Sock Monster",
+    madeBy: "ronan",
+    proposal: { by: "ronan", on: "2026-10-26T08:00:00.000Z", state: "proposed" },
+  });
+
+  it("is approved with the edits when the Game Master saves it, and the toast says so", async () => {
+    await bestiaryDb.setBeast(sockMonster());
+    approveBeast.mockResolvedValue(true);
+    const wrapper = await mountForm({ id: "beast-sock" });
+    useUserStore().currentUser.id = "mom";
+    await tap(wrapper, "summary-name");
+    await setField(wrapper, "name-input", "Sock Gobbo");
+    await tap(wrapper, "next");
+    await tap(wrapper, "next");
+    await tap(wrapper, "submit");
+
+    expect((await storedBeasts())[0]).toMatchObject({ id: "beast-sock", name: "Sock Gobbo", madeBy: "ronan" });
+    expect(approveBeast).toHaveBeenCalledWith("beast-sock", "mom");
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ message: "Approved, with changes" }));
+    expect(mockPush).toHaveBeenCalledWith({ name: "xp-bestiary" });
+  });
+
+  it("leaves a beast the family already fights alone", async () => {
+    await bestiaryDb.setBeast(grownBeast());
+    const wrapper = await mountForm({ id: "beast-dish-goblin" });
+    await tap(wrapper, "submit");
+    expect(approveBeast).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("Updated") }));
   });
 });
 

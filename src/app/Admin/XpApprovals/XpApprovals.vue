@@ -26,6 +26,10 @@
           Accessories
           <ion-badge color="warning">{{ pendingAccessories.length }}</ion-badge>
         </ion-segment-button>
+        <ion-segment-button value="creations">
+          Creations
+          <ion-badge color="primary">{{ creationLists.pending.length }}</ion-badge>
+        </ion-segment-button>
         <ion-segment-button value="town-hall">
           Town Hall
           <ion-badge color="tertiary">{{ townHallWaiting.length }}</ion-badge>
@@ -82,6 +86,30 @@
           </p>
         </ion-list>
 
+        <ion-list v-if="activeSegment === 'creations'">
+          <approval-creation-row
+            v-for="row in creationLists.pending"
+            :key="row.key"
+            :row="row"
+            :maker-name="heroName(row.by)"
+            :avatar="heroAvatar(row.by)"
+            :target-names="targetsOf(row)"
+            :portrait="portraitOf(row)"
+            @approve="approveCreation"
+            @reject="sendBackCreation"
+            @edit="editCreation"
+          />
+          <ion-item v-if="creationLists.pending.length === 0">
+            <ion-label class="ion-text-center">
+              <i class="fad fa-paint-brush fa-3x text-success"></i>
+              <p>No creations waiting</p>
+            </ion-label>
+          </ion-item>
+          <p v-else class="swipe-hint">
+            Tap Approve, Send back, or Edit to fix it yourself. You can also swipe a creation left.
+          </p>
+        </ion-list>
+
         <xp-town-hall-approvals v-if="activeSegment === 'town-hall'" />
 
         <ion-list v-if="activeSegment === 'history'">
@@ -123,16 +151,13 @@
   import { computed, defineComponent, getCurrentInstance, onMounted, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { useUserStore } from "@/lib/store/stores/user";
-  import {
-    alertController,
-    onIonViewWillEnter,
-    toastController,
-  } from "@ionic/vue";
+  import { onIonViewWillEnter, toastController } from "@ionic/vue";
   import { format } from "date-fns";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
   import ApprovalPhoto from "./components/ApprovalPhoto.vue";
   import ApprovalClaimRow from "./components/ApprovalClaimRow.vue";
+  import ApprovalCreationRow from "./components/ApprovalCreationRow.vue";
   import ApprovalPurchaseRow from "./components/ApprovalPurchaseRow.vue";
   import XpHeroWriteGate from "@/components/organisms/HeroWriteGate/XpHeroWriteGate.vue";
   import { saveHeroEdit, type HeroWriteGate } from "@/hooks/useHeroWrite";
@@ -140,44 +165,21 @@
   import { useSentVerdicts } from "./useSentVerdicts";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
-  import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
-  import { withHuntBonus } from "@/lib/services/quests/huntBonus";
+  import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
   import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
   import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
-  import { approveClaim, rejectClaim } from "@/lib/services/quests/approvalFlow";
-  import type { ReviewOutcome } from "@/lib/services/quests/approvalFlow";
   import { claimsFor } from "@/lib/services/quests/waitingClaims";
-  import { play$fx } from "@/assets/fx";
   import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
-  import {
-    fulfillPurchase,
-    PurchaseError,
-    refundPurchase,
-  } from "@/lib/services/shop/PurchaseService";
+  import { HISTORY_LIMIT, latestHistory, purchaseHistoryRow, questHistoryRow } from "./approvalHistory";
+  import type { HistoryRow } from "./approvalHistory";
+  import { creationPortrait, creationTargets } from "./components/creationMeta";
+  import type { CreationRow } from "@/lib/services/creations/creations";
+  import { useApprovalReviews } from "./useApprovalReviews";
+  import type { ToastColor } from "./useApprovalReviews";
 
-  const HISTORY_LIMIT = 20;
-
-  type ToastColor = "success" | "warning" | "danger" | "medium";
-  interface ReviewMessage {
-    message: string;
-    color?: ToastColor;
-  }
-
-  // One line of the History tab: a reviewed quest or a reviewed shop purchase.
-  interface HistoryRow {
-    key: string;
-    title: string;
-    userId: string;
-    /** When the hero finished the quest or bought the item */
-    at: string;
-    /** Approved or delivered (true) versus rejected or refunded (false) */
-    good: boolean;
-    detail: string;
-    note?: string;
-    badge: { label: string; color: string };
-    /** A quest that asked for a photo: its thumbnail shows while the device still holds it (7 days) */
-    photoEntry?: QuestLogEntry;
-  }
+  type Segment = "achievements" | "accessories" | "creations" | "town-hall" | "history";
+  const SEGMENTS: readonly Segment[] = ["achievements", "accessories", "creations", "town-hall", "history"];
+  const isSegment = (value: string): value is Segment => SEGMENTS.includes(value as Segment);
 
   export default defineComponent({
     name: "xp-approvals",
@@ -187,6 +189,7 @@
       XpTownHallApprovals,
       ApprovalPhoto,
       ApprovalClaimRow,
+      ApprovalCreationRow,
       ApprovalPurchaseRow,
       XpHeroWriteGate,
     },
@@ -201,11 +204,16 @@
       const heroGate = ref<HeroWriteGate | null>(null);
       const writeHero = (heroId: string, change: () => Promise<void>): Promise<boolean> =>
         saveHeroEdit(heroGate.value ?? undefined, heroId, change);
-      const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
-      const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
-        "achievements"
-      );
+      const instance = getCurrentInstance();
+      const globalProps = instance?.appContext.config.globalProperties;
+      const activeSegment = ref<Segment>("achievements");
       const isLoading = ref(true);
+
+      // A link may ask for a segment (a "creation awaits" notification opens Creations)
+      const openAskedSegment = () => {
+        const asked = String(instance?.proxy?.$route.query.segment ?? "");
+        if (isSegment(asked)) activeSegment.value = asked;
+      };
 
       // Heroes' Town Hall posts waiting on the Game Master (the store keeps them on this device)
       const townHall = useTownHallStore();
@@ -258,60 +266,6 @@
         return format(date, "MMM d, h:mma");
       };
 
-      const rewardLine = (rewards: QuestRewards) =>
-        `+${rewards.xp} XP · +${rewards.gp} GP · +${rewards.ap} AP`;
-
-      const statusBadge = (status: QuestLogEntry["status"]) => {
-        const isApproved = status === "approved";
-        if (isApproved) return { label: "Approved", color: "success" };
-        const isRejected = status === "rejected";
-        if (isRejected) return { label: "Rejected", color: "danger" };
-        return { label: "Pending", color: "warning" };
-      };
-
-      const purchaseBadge = (status: PurchaseLogEntry["status"]) => {
-        const isFulfilled = status === "fulfilled";
-        if (isFulfilled) return { label: "Delivered", color: "success" };
-        const isRefunded = status === "refunded";
-        if (isRefunded) return { label: "Refunded", color: "danger" };
-        return { label: "Pending", color: "warning" };
-      };
-
-      // Reviewed quests and reviewed shop purchases in one list, newest first
-      const historyRows = computed<HistoryRow[]>(() => {
-        const quests = recentReviews.value.map(
-          (entry): HistoryRow => ({
-            key: `quest:${entry.id}`,
-            title: entry.questName,
-            userId: entry.userId,
-            at: entry.completedAt,
-            good: entry.status === "approved",
-            detail: entry.status === "approved" ? rewardLine(withHuntBonus(entry)) : "",
-            note: entry.note,
-            badge: statusBadge(entry.status),
-            photoEntry: entry.requiresPhoto ? entry : undefined,
-          })
-        );
-        const purchases = recentPurchaseReviews.value.map(
-          (entry): HistoryRow => ({
-            key: `purchase:${entry.id}`,
-            title: entry.itemName,
-            userId: entry.userId,
-            at: entry.createdAt,
-            good: entry.status === "fulfilled",
-            detail:
-              entry.status === "fulfilled"
-                ? `Delivered · paid ${entry.price} GP`
-                : `Refunded · ${entry.price} GP given back`,
-            note: entry.note,
-            badge: purchaseBadge(entry.status),
-          })
-        );
-        return [...quests, ...purchases]
-          .sort((a, b) => b.at.localeCompare(a.at))
-          .slice(0, HISTORY_LIMIT);
-      });
-
       const showToast = async (message: string, color: ToastColor = "success") => {
         const toast = await toastController.create({
           message: message,
@@ -322,6 +276,21 @@
         await toast.present();
       };
 
+      const { approveItem, rejectItem, confirmDelivery, sendRefund, creations } = useApprovalReviews({
+        heroName,
+        isKnownHero: (userId) => Boolean(heroFor(userId)),
+        profiles: () => userStore.usersAz,
+        reviewerId: () => userStore.currentUser.id ?? undefined,
+        showToast,
+        reload: () => loadApprovals(),
+        writeHero,
+      });
+
+      // Reviewed quests, reviewed shop purchases and reviewed creations in one list, newest first
+      const historyRows = computed<HistoryRow[]>(() =>
+        latestHistory(recentReviews.value.map(questHistoryRow), recentPurchaseReviews.value.map(purchaseHistoryRow), creations.lists.history)
+      );
+
       // Only the newest load may write to the lists, so a slow earlier read can never
       // overwrite the fresh data that follows an approve/reject.
       let latestLoad = 0;
@@ -331,10 +300,11 @@
         try {
           const questLog = getQuestLogDb();
           const purchaseLog = getPurchaseLogDb();
-          // Read the two logs separately so one broken store can't hide the other list.
-          const [quests, purchases] = await Promise.allSettled([
+          // Read the stores separately so one broken store can't hide the other lists.
+          const [quests, purchases, creationsRead] = await Promise.allSettled([
             Promise.all([questLog.getPending(), questLog.getEntries()]),
             Promise.all([purchaseLog.getPending(), purchaseLog.getEntries()]),
+            creations.loadCreations(() => isLatestLoad(thisLoad)),
           ]);
           if (isLatestLoad(thisLoad)) {
             const isQuestsLoaded = quests.status === "fulfilled";
@@ -356,16 +326,17 @@
             }
           }
 
+          const reads = [
+            ["quest approvals", quests],
+            ["accessory purchases", purchases],
+            ["creations", creationsRead],
+          ] as const;
           const failed: string[] = [];
-          const isQuestsFailed = quests.status === "rejected";
-          if (isQuestsFailed) {
-            debug.error("Failed to load quest approvals:", quests.reason);
-            failed.push("quest approvals");
-          }
-          const isPurchasesFailed = purchases.status === "rejected";
-          if (isPurchasesFailed) {
-            debug.error("Failed to load accessory purchases:", purchases.reason);
-            failed.push("accessory purchases");
+          for (const [name, read] of reads) {
+            const isFailed = read.status === "rejected";
+            if (!isFailed) continue;
+            debug.error(`Failed to load ${name}:`, read.reason);
+            failed.push(name);
           }
           const hasFailures = failed.length > 0;
           if (hasFailures) {
@@ -394,232 +365,14 @@
         if (isLoaded) void showToast("Approvals refreshed!");
       };
 
-      onMounted(loadApprovals);
-      onIonViewWillEnter(loadApprovals);
-
-      // Entries with a review in flight. approveCompletion and refundPurchase are
-      // read-then-write, so a double tap must not reach them twice for the same entry
-      // (that would pay or refund twice).
-      const reviewing = new Set<string>();
-
-      const runReview = async (
-        entry: { id: string },
-        review: () => Promise<ReviewMessage>
-      ) => {
-        const isInFlight = reviewing.has(entry.id);
-        if (isInFlight) return;
-        reviewing.add(entry.id);
-        let outcome: ReviewMessage;
-        try {
-          outcome = await review();
-        } catch (error) {
-          debug.error("Failed to save the review:", error);
-          outcome = {
-            message: "Couldn't save that decision. Please try again.",
-            color: "danger",
-          };
-        } finally {
-          reviewing.delete(entry.id);
-        }
-        await loadApprovals();
-        // A verdict sent to the hero's device has no toast: its row says so
-        const hasMessage = outcome.message !== "";
-        if (hasMessage) void showToast(outcome.message, outcome.color);
-      };
-
-      const unsettled = (reason: Extract<ReviewOutcome, { ok: false }>["reason"]): ReviewMessage =>
-        reason === "own-claim"
-          ? { message: "Another Game Master has to check your own quest.", color: "warning" }
-          : { message: "That quest is no longer waiting for approval.", color: "warning" };
-
-      const approveItem = async (entry: QuestLogEntry) => {
-        const hero = heroName(entry.userId);
-        const isKnownHero = Boolean(heroFor(entry.userId));
-        if (!isKnownHero) {
-          // applyQuestRewards silently skips unknown heroes, so don't claim a payout.
-          void showToast(
-            "That hero no longer exists, so there is no one to pay. Send the quest back instead.",
-            "warning"
-          );
-          return;
-        }
-
-        const alert = await alertController.create({
-          header: "Approve Quest",
-          message: `Approve "${entry.questName}" for ${hero}? They will earn ${rewardLine(
-            withHuntBonus(entry)
-          )}.`,
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Approve",
-              handler: () => {
-                void runReview(entry, async () => {
-                  const result = await approveClaim(entry.id, userStore.currentUser.id ?? undefined);
-                  const isUnsettled = !result.ok;
-                  if (isUnsettled) return unsettled(result.reason);
-                  play$fx("select");
-                  if (result.remote) return { message: "" };
-                  return {
-                    message: `Approved! ${hero} earned ${result.line}`,
-                  };
-                });
-              },
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      const rejectItem = async (entry: QuestLogEntry) => {
-        const hero = heroName(entry.userId);
-        const alert = await alertController.create({
-          header: "Send Quest Back",
-          message: `Send "${entry.questName}" back to ${hero}? The quest will open up again for them.`,
-          inputs: [
-            {
-              name: "note",
-              type: "textarea",
-              placeholder: "A short note for the hero (optional)",
-              attributes: { maxlength: 140 },
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Send back",
-              handler: (data) => {
-                const note = String(data?.note ?? "").trim();
-                void runReview(entry, async () => {
-                  const result = await rejectClaim(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
-                  const isUnsettled = !result.ok;
-                  if (isUnsettled) return unsettled(result.reason);
-                  if (result.remote) return { message: "" };
-                  return {
-                    message: `Sent back. "${entry.questName}" is open again for ${hero}.`,
-                    color: "medium",
-                  };
-                });
-              },
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      // The hero already paid; the Game Master hands over the real thing and marks it done.
-      const fulfilItem = async (entry: PurchaseLogEntry) => {
-        const hero = heroName(entry.userId);
-        const alert = await alertController.create({
-          header: entry.packed ? "Hand Over Item" : "Deliver Accessory",
-          message: entry.packed
-            ? `Give ${hero} "${entry.itemName}"? It goes into their bag.`
-            : `Has ${hero} received "${entry.itemName}"? It will be marked delivered.`,
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Fulfil",
-              handler: () => {
-                void runReview(entry, async () => {
-                  const done: { entry: PurchaseLogEntry | null } = { entry: null };
-                  try {
-                    const isWritten = await writeHero(entry.userId, async () => {
-                      done.entry = await fulfillPurchase(entry.id, userStore.currentUser.id ?? undefined);
-                    });
-                    // The clerk said why: another device plays the hero
-                    if (!isWritten) return { message: "" };
-                  } catch (error) {
-                    // A held game item that has no room in the bag stays waiting, and says why
-                    const isBagFull = error instanceof PurchaseError && error.code === "bag-full";
-                    if (isBagFull) return { message: `${hero}'s bag is full. It waits here until they store something at home.`, color: "warning" };
-                    const isPurchaseRefusal = error instanceof PurchaseError;
-                    if (isPurchaseRefusal) return { message: error.message, color: "warning" };
-                    throw error;
-                  }
-                  const isFulfilled = done.entry?.status === "fulfilled";
-                  if (!isFulfilled) {
-                    return {
-                      message: "That purchase is no longer waiting for delivery.",
-                      color: "warning",
-                    };
-                  }
-                  return {
-                    message: `Delivered! "${entry.itemName}" is marked as given to ${hero}.`,
-                  };
-                });
-              },
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      const refundItem = async (entry: PurchaseLogEntry) => {
-        const hero = heroName(entry.userId);
-        const isKnownHero = Boolean(heroFor(entry.userId));
-        if (!isKnownHero) {
-          // refundPurchase can't credit a missing profile, so don't claim a refund.
-          void showToast(
-            "That hero no longer exists, so there is no one to refund. Fulfil the purchase to clear it.",
-            "warning"
-          );
-          return;
-        }
-
-        const alert = await alertController.create({
-          header: "Refund Purchase",
-          message: `Refund "${entry.itemName}" to ${hero}? They will get ${entry.price} GP back.`,
-          inputs: [
-            {
-              name: "note",
-              type: "textarea",
-              placeholder: "Reason for the refund (optional)",
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Refund",
-              handler: (data) => {
-                const note = String(data?.note ?? "").trim();
-                void runReview(entry, async () => {
-                  const done: { entry: PurchaseLogEntry | null } = { entry: null };
-                  const isWritten = await writeHero(entry.userId, async () => {
-                    done.entry = await refundPurchase(entry.id, userStore.currentUser.id ?? undefined, note || undefined);
-                  });
-                  // The clerk said why: another device plays the hero
-                  if (!isWritten) return { message: "" };
-                  const refunded = done.entry;
-                  const isRefunded = refunded?.status === "refunded";
-                  if (!isRefunded) {
-                    return {
-                      message: "That purchase is no longer waiting for delivery.",
-                      color: "warning",
-                    };
-                  }
-                  return {
-                    message: `Refunded. ${hero} got ${refunded.price} GP back for "${entry.itemName}".`,
-                    color: "medium",
-                  };
-                });
-              },
-            },
-          ],
-        });
-        await alert.present();
-      };
+      onMounted(() => {
+        openAskedSegment();
+        void loadApprovals();
+      });
+      onIonViewWillEnter(() => {
+        openAskedSegment();
+        void loadApprovals();
+      });
 
       return {
         heroGate,
@@ -628,6 +381,7 @@
         activeSegment,
         pendingAchievements,
         pendingAccessories,
+        creationLists: creations.lists,
         townHallWaiting,
         historyRows,
         heroName,
@@ -636,8 +390,13 @@
         formatDate,
         approveItem,
         rejectItem,
-        fulfilItem,
-        refundItem,
+        fulfilItem: confirmDelivery,
+        refundItem: sendRefund,
+        targetsOf: (row: CreationRow) => creationTargets(row, heroName),
+        portraitOf: creationPortrait,
+        approveCreation: creations.approveCreation,
+        sendBackCreation: creations.sendBackCreation,
+        editCreation: creations.editCreation,
         refreshApprovals,
         isLoading,
       };

@@ -34,6 +34,10 @@ import { useBeastSuggestion } from "./useBeastSuggestion";
 import { cleanCategoryName, findCategory, isQuestReady, questMissing } from "../../questConfigWizard";
 import { isDraftOnSave, newQuestOpening } from "@/lib/services/quests/questDrafts";
 import { suggestedRewards } from "@/lib/services/quests/questWizard";
+import { isLive } from "@/lib/services/creations/creations";
+import { approveStoredQuest } from "@/lib/services/creations/creationReview";
+import { useUserStore } from "@/lib/store/stores/user";
+import { rpgToastOptions } from "@/hooks/useToast";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -102,6 +106,8 @@ export function useAchievementForm() {
   const publishedReadFor = ref("");
   const isGeneratingSchedule = ref(false);
   const lastSavedState = ref("");
+  /** A kid's quest opened from Approvals: a live save here (Ready) approves it with the edits (creationReview) */
+  const awaitsApproval = ref(false);
 
   // UI State
   const addCategoryModalOpen = ref(false);
@@ -476,11 +482,13 @@ export function useAchievementForm() {
       categories.value = allCategories.sort(sortCategoryByName);
       users.value = allUsers;
 
+      awaitsApproval.value = false;
       if (isSavedQuestId(id.value)) {
         const task = await achievementDb.getTaskById(id.value);
         if (task) {
           loaded = { isSaved: true, wasDraft: task.draft === true };
           achievement.value = { ...achievement.value, ...task };
+          awaitsApproval.value = !isLive(task);
 
           // Honor stored adventureType, or infer if legacy
           const storedAdventureType = task.adventureType;
@@ -530,6 +538,23 @@ export function useAchievementForm() {
   /** What goes to storage: no empty times of day, no unusable minutes */
   const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
 
+  /**
+   * A kid's quest opened from Approvals: a live save (Ready, never a draft autosave) approves it with the edits, pays
+   * the maker and tells them. Once: the approved proposal is read back so later autosaves keep it, not the waiting one.
+   */
+  const approveIfProposed = async () => {
+    const isLiveSave = awaitsApproval.value && !achievement.value.draft;
+    if (!isLiveSave) return;
+    awaitsApproval.value = false;
+    const isApproved = await approveStoredQuest(achievement.value.id, String(useUserStore().currentUser.id ?? ""));
+    if (!isApproved) return;
+    const approved = await achievementDb.getTaskById(achievement.value.id);
+    if (approved?.proposal) achievement.value.proposal = approved.proposal;
+    isPublished.value = true;
+    const toast = await toastController.create(rpgToastOptions("Approved, with changes", 2600));
+    await toast.present();
+  };
+
   // Debounced Autosave. A quest that was never made Ready is saved as a draft, which heroes never see
   // (questDrafts.ts, QuestEngine.getAllQuests), however complete it is: only Ready publishes it. A published quest
   // stays live while it is complete and hides while an edit leaves it incomplete.
@@ -552,6 +577,7 @@ export function useAchievementForm() {
       achievement.value.draft = isDraftOnSave({ isPublished: isPublished.value, isComplete: isValidAdventure.value });
       await applySuggestedBeast();
       await achievementDb.setTask(questForStorage());
+      await approveIfProposed();
       // Taken after the edits above, so they don't trigger another save
       lastSavedState.value = JSON.stringify(achievement.value);
       saveState.value = achievement.value.draft ? "draft" : "saved";
@@ -599,6 +625,7 @@ export function useAchievementForm() {
       achievement.value.draft = false;
       await applySuggestedBeast();
       await achievementDb.setTask(questForStorage());
+      await approveIfProposed();
       isPublished.value = true;
       lastSavedState.value = JSON.stringify(achievement.value);
       saveState.value = "saved";
