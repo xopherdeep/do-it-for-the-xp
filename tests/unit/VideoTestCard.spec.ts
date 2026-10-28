@@ -200,4 +200,96 @@ describe("Video, Test this device", () => {
 
     expect(signal.aborted).toBe(true);
   });
+
+  it("leaves no notice when a later share is dismissed", async () => {
+    const wrapper = await open();
+    await tap(wrapper);
+    await wrapper.find("[data-cy='test-copy']").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-cy='test-notice']").text()).toBe("Report copied.");
+
+    (Share.share as jest.Mock).mockRejectedValue({ name: "AbortError", message: "Share canceled" });
+    await wrapper.find("[data-cy='test-share']").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find("[data-cy='test-notice']").exists()).toBe(false);
+  });
+
+  it("clears an old notice when a new run starts", async () => {
+    const wrapper = await open();
+    await tap(wrapper);
+    await wrapper.find("[data-cy='test-copy']").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-cy='test-notice']").exists()).toBe(true);
+
+    pendingRun();
+    await tap(wrapper);
+
+    expect(wrapper.find("[data-cy='test-notice']").exists()).toBe(false);
+  });
+
+  it("keeps one polite live region in the page from the start and fills it with progress and notices", async () => {
+    const finish = pendingRun();
+    const wrapper = await open();
+    const live = () => wrapper.find("[data-cy='test-live']");
+    expect(live().exists()).toBe(true);
+    expect(live().attributes("aria-live")).toBe("polite");
+    expect(live().text()).toBe("");
+
+    await tap(wrapper);
+    const { onProgress } = (runDeviceTest as jest.Mock).mock.calls[0][0];
+    onProgress({ id: "noMsaa", label: "No smoothing", index: 1, count: 4 });
+    await flushPromises();
+    expect(live().text()).toContain("Test 2 of 5");
+
+    finish(result());
+    await flushPromises();
+    expect(live().text()).toBe("");
+
+    await wrapper.find("[data-cy='test-copy']").trigger("click");
+    await flushPromises();
+    expect(live().text()).toBe("Report copied.");
+    expect(wrapper.findAll("[aria-live]")).toHaveLength(1);
+  });
+
+  it("says the test stopped and skips the extras when the run was aborted", async () => {
+    (runDeviceTest as jest.Mock).mockResolvedValue({ ...result(), aborted: true });
+    const wrapper = await open();
+
+    await tap(wrapper);
+
+    expect(runDeviceExtras).not.toHaveBeenCalled();
+    expect(wrapper.find("[data-cy='test-table']").text()).toContain("Today's settings");
+    expect(wrapper.find("[data-cy='test-notice']").text()).toBe(
+      "The test stopped early because the app left the screen.",
+    );
+    expect(isDisabled(wrapper)).toBe(false);
+  });
+
+  describe("small screens", () => {
+    const original = Element.prototype.scrollIntoView;
+    afterEach(() => {
+      Element.prototype.scrollIntoView = original;
+    });
+
+    it("brings the card into view when a run starts", async () => {
+      const scrollIntoView = jest.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      const wrapper = await open();
+
+      await tap(wrapper);
+
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" });
+    });
+
+    it("does nothing where scrollIntoView does not exist", async () => {
+      // @ts-expect-error simulating an environment without the method
+      Element.prototype.scrollIntoView = undefined;
+      const wrapper = await open();
+
+      await tap(wrapper);
+
+      expect(wrapper.find("[data-cy='test-table']").exists()).toBe(true);
+    });
+  });
 });

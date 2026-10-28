@@ -1,74 +1,78 @@
 <template>
-  <ion-card v-if="hasStarted" class="settings-card video-test-card max-w-2xl" data-cy="video-test-card">
-    <ion-list>
-      <ion-item-group>
-        <ion-item-divider>
-          <ion-label>Test this device</ion-label>
-        </ion-item-divider>
+  <div ref="root">
+    <!-- Always in the page, so screen readers announce text that changes inside it -->
+    <div class="video-test-card__live" aria-live="polite" data-cy="test-live">{{ liveText }}</div>
+    <ion-card v-if="hasStarted" class="settings-card video-test-card max-w-2xl" data-cy="video-test-card">
+      <ion-list>
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>Test this device</ion-label>
+          </ion-item-divider>
 
-        <ion-item v-if="isRunning" lines="none" data-cy="test-progress">
-          <ion-label class="ion-text-wrap" aria-live="polite">
-            <h2>Test {{ step }} of {{ stepCount }}</h2>
-            <p>{{ stepLabel }}</p>
-          </ion-label>
-        </ion-item>
-
-        <template v-if="result">
-          <ion-item v-if="cannotDrawHero" lines="none" data-cy="test-unsupported">
-            <ion-label class="ion-text-wrap">This device cannot draw the 3D hero at all.</ion-label>
+          <ion-item v-if="isRunning" lines="none" data-cy="test-progress">
+            <ion-label class="ion-text-wrap">
+              <h2>Test {{ step }} of {{ stepCount }}</h2>
+              <p>{{ stepLabel }}</p>
+            </ion-label>
           </ion-item>
 
-          <div class="video-test-card__scroll">
-            <table class="video-test-card__table" data-cy="test-table">
-              <thead>
-                <tr>
-                  <th>Setup</th>
-                  <th>Renderer</th>
-                  <th>Build</th>
-                  <th>First render</th>
-                  <th>Work median</th>
-                  <th>Work p95</th>
-                  <th>fps</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in rows" :key="row.id">
-                  <th scope="row">{{ row.label }}</th>
-                  <template v-if="row.supported">
-                    <td>{{ row.renderer }}</td>
-                    <td>{{ row.build }}</td>
-                    <td>{{ row.firstRender }}</td>
-                    <td>{{ row.median }}</td>
-                    <td>{{ row.p95 }}</td>
-                    <td>{{ row.fps }}</td>
-                  </template>
-                  <td v-else colspan="6">cannot draw 3D</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <template v-if="result">
+            <ion-item v-if="cannotDrawHero" lines="none" data-cy="test-unsupported">
+              <ion-label class="ion-text-wrap">This device cannot draw the 3D hero at all.</ion-label>
+            </ion-item>
 
-          <ion-item v-if="fastestLabel" lines="none" data-cy="test-fastest">
-            <ion-label class="ion-text-wrap">Fastest here: {{ fastestLabel }}.</ion-label>
-          </ion-item>
-
-          <ion-item v-if="!isRunning" lines="none">
-            <div class="video-test-card__actions">
-              <ion-button size="small" data-cy="test-share" @click="onShare">Share report</ion-button>
-              <ion-button size="small" fill="outline" data-cy="test-copy" @click="onCopy">Copy</ion-button>
+            <div class="video-test-card__scroll">
+              <table class="video-test-card__table" data-cy="test-table">
+                <thead>
+                  <tr>
+                    <th>Setup</th>
+                    <th>Renderer</th>
+                    <th>Build</th>
+                    <th>First render</th>
+                    <th>Work median</th>
+                    <th>Work p95</th>
+                    <th>fps</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in rows" :key="row.id">
+                    <th scope="row">{{ row.label }}</th>
+                    <template v-if="row.supported">
+                      <td>{{ row.renderer }}</td>
+                      <td>{{ row.build }}</td>
+                      <td>{{ row.firstRender }}</td>
+                      <td>{{ row.median }}</td>
+                      <td>{{ row.p95 }}</td>
+                      <td>{{ row.fps }}</td>
+                    </template>
+                    <td v-else colspan="6">cannot draw 3D</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+
+            <ion-item v-if="fastestLabel" lines="none" data-cy="test-fastest">
+              <ion-label class="ion-text-wrap">Fastest here: {{ fastestLabel }}.</ion-label>
+            </ion-item>
+
+            <ion-item v-if="!isRunning" lines="none">
+              <div class="video-test-card__actions">
+                <ion-button size="small" data-cy="test-share" @click="onShare">Share report</ion-button>
+                <ion-button size="small" fill="outline" data-cy="test-copy" @click="onCopy">Copy</ion-button>
+              </div>
+            </ion-item>
+          </template>
+          <ion-item v-if="notice" lines="none">
+            <ion-label class="ion-text-wrap" data-cy="test-notice">{{ notice }}</ion-label>
           </ion-item>
-        </template>
-        <ion-item v-if="notice" lines="none">
-          <ion-label class="ion-text-wrap" aria-live="polite" data-cy="test-notice">{{ notice }}</ion-label>
-        </ion-item>
-      </ion-item-group>
-    </ion-list>
-  </ion-card>
+        </ion-item-group>
+      </ion-list>
+    </ion-card>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, ref } from "vue";
+  import { computed, nextTick, onBeforeUnmount, ref } from "vue";
   import { IonButton, IonCard, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonList } from "@ionic/vue";
   import { Share } from "@capacitor/share";
   import { runDeviceTest, type DeviceTestProgress } from "@/lib/services/graphics/deviceTest";
@@ -92,6 +96,7 @@
   const stepLabel = ref("Getting ready");
   const result = ref<DeviceTestResult | null>(null);
   const notice = ref("");
+  const root = ref<HTMLElement | null>(null);
 
   let controller: AbortController | null = null;
 
@@ -119,6 +124,20 @@
     return current?.configs.find((c) => c.id === id)?.label ?? "";
   });
 
+  // What a screen reader hears: the running step while a test runs, otherwise the latest notice
+  const liveText = computed(() => {
+    if (isRunning.value) return `Test ${step.value} of ${stepCount.value}: ${stepLabel.value}`;
+    return notice.value;
+  });
+
+  /** On a small phone the card starts below the fold, so bring it up when a run begins. */
+  const bringIntoView = async () => {
+    await nextTick();
+    const element = root.value;
+    const canScroll = element !== null && typeof element.scrollIntoView === "function";
+    if (canScroll) element.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
   const onProgress = (progress: DeviceTestProgress) => {
     step.value = progress.index + 1;
     stepCount.value = progress.count + 1;
@@ -138,8 +157,18 @@
     step.value = 1;
     stepCount.value = CONFIG_STEPS + 1;
     stepLabel.value = "Getting ready";
+    void bringIntoView();
     try {
       const base = await runDeviceTest({ signal, onProgress });
+      const stoppedEarly = base.aborted && !signal.aborted;
+      if (stoppedEarly) {
+        // The page went hidden mid-run: keep what was measured and say so, the extras would only stall too
+        result.value = base;
+        notice.value = "The test stopped early because the app left the screen.";
+        isRunning.value = false;
+        emit("running", false);
+        return;
+      }
       step.value = stepCount.value;
       stepLabel.value = "Drawing tiles and the town";
       const extras = await runDeviceExtras({ signal });
@@ -161,12 +190,14 @@
   };
 
   const copy = async (text: string) => {
+    notice.value = "";
     notice.value = (await copyTextToClipboard(text)) ? "Report copied." : "Could not copy the report.";
   };
 
   const onCopy = () => copy(reportText());
 
   const onShare = async () => {
+    notice.value = "";
     const text = reportText();
     try {
       const { value: canShareNatively } = await Share.canShare();
@@ -190,6 +221,15 @@
 </script>
 
 <style scoped>
+  .video-test-card__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
   .video-test-card__scroll {
     overflow-x: auto;
     padding: 0 16px;
