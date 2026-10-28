@@ -19,6 +19,16 @@ const MockRenderer = THREE.WebGLRenderer as unknown as jest.Mock;
 
 const RENDER_MS = 4;
 const FRAME_GAP_MS = 16;
+// Work per frame in the slow-device specs: 400 ms is over the meter's default 250 ms stall limit, which used to drop
+// every frame of a device this slow; 3000 ms is so slow that the hard cap, not the frame count, ends a config
+const SLOW_RENDER_MS = 400;
+const FAST_RENDER_MS = 8;
+const HUGE_RENDER_MS = 3000;
+// The runner's own numbers (deviceTest.ts keeps them private): its default frame count, the frames the meter drops as
+// warm-up and the frames it needs kept before it reports anything
+const FRAMES = 60;
+const WARMUP_FRAMES = 3;
+const MIN_KEPT_FRAMES = 5;
 
 interface FakeRenderer {
   setSize: jest.Mock;
@@ -33,6 +43,7 @@ interface FakeRenderer {
 
 describe("runDeviceTest", () => {
   let clock = 0;
+  let renderMs = RENDER_MS; // what one render costs on the fake clock; the slow-device specs raise it
   let renderers: FakeRenderer[] = [];
   const now = (): number => clock;
   const raf = (callback: FrameRequestCallback): number => {
@@ -41,6 +52,8 @@ describe("runDeviceTest", () => {
     return 1;
   };
   const createCanvas = (): HTMLCanvasElement => document.createElement("canvas");
+  /** Frames the loop drew on one renderer: every render but the first, which is timed apart as firstRenderMs */
+  const drawnFrames = (renderer: FakeRenderer): number => renderer.render.mock.calls.length - 1;
   const originalDpr = window.devicePixelRatio;
 
   afterEach(() => {
@@ -49,6 +62,7 @@ describe("runDeviceTest", () => {
 
   beforeEach(() => {
     clock = 0;
+    renderMs = RENDER_MS;
     renderers = [];
     window.devicePixelRatio = 2;
     MockRenderer.mockReset();
@@ -59,7 +73,7 @@ describe("runDeviceTest", () => {
         setClearColor: jest.fn(),
         shadowMap: { enabled: false },
         render: jest.fn(() => {
-          clock += RENDER_MS;
+          clock += renderMs;
         }),
         dispose: jest.fn(),
         forceContextLoss: jest.fn(),
@@ -107,6 +121,50 @@ describe("runDeviceTest", () => {
     // fps comes from frames over elapsed time, which does include the gap
     const fps = result.configs[1].fps as number;
     expect(fps).toBeCloseTo(1000 / (RENDER_MS + FRAME_GAP_MS), 0);
+  });
+
+  it("measures frames that take 400 ms of work instead of dropping them as stalls", async () => {
+    renderMs = SLOW_RENDER_MS;
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
+    result.configs.forEach((config) => {
+      expect(config.work.medianMs).toBe(SLOW_RENDER_MS);
+      expect(config.work.p95Ms).toBe(SLOW_RENDER_MS);
+      expect(config.work.worstMs).toBe(SLOW_RENDER_MS);
+    });
+  });
+
+  it("stops drawing once the time budget is spent on slow frames, keeping enough to read", async () => {
+    renderMs = SLOW_RENDER_MS;
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
+    expect(result.aborted).toBe(false);
+    expect(result.configs).toHaveLength(4);
+    renderers.forEach((r) => {
+      expect(drawnFrames(r)).toBeLessThan(FRAMES);
+      expect(drawnFrames(r)).toBeGreaterThanOrEqual(WARMUP_FRAMES + MIN_KEPT_FRAMES);
+    });
+    result.configs.forEach((config) => expect(config.work.count).toBeGreaterThanOrEqual(MIN_KEPT_FRAMES));
+  });
+
+  it("still draws every frame on a fast device, dropping only the warm-up ones", async () => {
+    renderMs = FAST_RENDER_MS;
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
+    renderers.forEach((r) => expect(drawnFrames(r)).toBe(FRAMES));
+    result.configs.forEach((config) => expect(config.work.count).toBe(FRAMES - WARMUP_FRAMES));
+  });
+
+  it("gives up at the hard cap when each frame takes seconds, and still resolves with the frames it drew", async () => {
+    renderMs = HUGE_RENDER_MS;
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: FRAMES });
+    expect(result.aborted).toBe(false);
+    expect(result.configs).toHaveLength(4);
+    renderers.forEach((r) => {
+      expect(drawnFrames(r)).toBeGreaterThan(0);
+      expect(drawnFrames(r)).toBeLessThan(WARMUP_FRAMES + MIN_KEPT_FRAMES);
+    });
+    result.configs.forEach((config) => {
+      expect(config.work.medianMs).toBeNull(); // too few frames to read: reported as unknown, not as a made up number
+      expect(config.fps).toBeGreaterThan(0);
+    });
   });
 
   it("stops early when the signal is aborted", async () => {

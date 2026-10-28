@@ -2,6 +2,9 @@
 // configs, one WebGL context alive at a time, and times the renderer, the build, the first render (shader compile
 // included) and the per-frame work. Frames are timed by their own render plus gl.finish, never by the gap between
 // animation frames, which would read slow under the tiers' own 30 and 20 fps caps.
+// Each config draws against a clock: a fast device draws every frame, a slow one stops once a time budget is spent and
+// enough frames are kept to read, and a hopeless one at a hard cap (its numbers then read "unknown"), so the whole run
+// is bounded instead of waiting out every frame at hundreds of milliseconds each.
 // PRIVACY: memory only, the result is never stored or sent.
 import * as THREE from "three";
 import { DEFAULT_YAW, FOV, addHeroLights, placeCamera, stageFrame } from "@/components/organisms/HeroModel/heroCamera";
@@ -52,6 +55,19 @@ const CONFIGS: ConfigSpec[] = [
 /** A small square, like a hero in the party row: the test is about the device, not the layout */
 const STAGE_CSS_PX = 160;
 const DEFAULT_FRAMES = 60;
+/** Frames dropped as warm-up: the first render already paid the shader compile, and a slow device draws few frames */
+const WARMUP_FRAMES = 3;
+/**
+ * A work time over this is the OS suspending the app, not the device. Work is timed around the render itself, which a
+ * hidden tab cannot inflate, so the meter's 250 ms default would only throw away the frames of the slow phones.
+ */
+const STALL_MS = 5000;
+/** A config stops drawing after this long once it has enough frames: at 600 ms a frame, 60 frames would be 40 s */
+const CONFIG_BUDGET_MS = 3000;
+/** Frames the budget waits to keep after the warm-up: the meter reports unknown under five kept samples */
+const MIN_KEPT_FRAMES = 5;
+/** Even short of those frames a config stops here, so a hopeless device reads "unknown" instead of looking frozen */
+const HARD_CAP_MS = 10000;
 const NO_STATS = { count: 0, medianMs: null, p95Ms: null, worstMs: null };
 
 const unsupported = ({ id, label }: ConfigSpec): DeviceTestConfigResult => ({
@@ -71,6 +87,15 @@ const waitForGpu = (renderer: THREE.WebGLRenderer, pixel?: Uint8Array): void => 
   if (!gl) return;
   gl.finish();
   if (pixel) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+};
+
+/** The measuring loop's clock: the budget is spent with enough frames to read, or the hard cap is passed regardless */
+const isTimeUp = (spentMs: number, drawn: number): boolean => {
+  const hasEnoughFrames = drawn >= WARMUP_FRAMES + MIN_KEPT_FRAMES;
+  const isOverBudget = spentMs > CONFIG_BUDGET_MS;
+  const isBudgetSpent = isOverBudget && hasEnoughFrames;
+  const isOverHardCap = spentMs > HARD_CAP_MS;
+  return isBudgetSpent || isOverHardCap;
 };
 
 export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<DeviceTestResult> {
@@ -164,10 +189,12 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
 
       // Frames wait on animation frames, so fps tops out at the display rate: it is headroom below that rate, and the
       // work time per frame is the speed figure (a 60 fps result on a 60 Hz screen does not mean there is spare power).
-      const meter = createSampleMeter();
+      // The loop also watches the clock (isTimeUp): a slow device draws fewer than `frames`, fps counts what it drew.
+      const meter = createSampleMeter({ warmup: WARMUP_FRAMES, maxMs: STALL_MS });
       const runStart = now();
       let drawn = 0;
       for (let i = 0; i < frames; i++) {
+        if (isTimeUp(now() - runStart, drawn)) break;
         await nextFrame();
         if (shouldStop()) return null;
         const seconds = (now() - runStart) / 1000;
