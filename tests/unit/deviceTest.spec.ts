@@ -41,6 +41,11 @@ describe("runDeviceTest", () => {
     return 1;
   };
   const createCanvas = (): HTMLCanvasElement => document.createElement("canvas");
+  const originalDpr = window.devicePixelRatio;
+
+  afterEach(() => {
+    window.devicePixelRatio = originalDpr;
+  });
 
   beforeEach(() => {
     clock = 0;
@@ -192,5 +197,46 @@ describe("runDeviceTest", () => {
     expect(result.configs[0]).toMatchObject({ id: "today", supported: false, rendererMs: null, buildMs: null, firstRenderMs: null, fps: null });
     expect(result.aborted).toBe(false);
     expect(MockRenderer).toHaveBeenCalledTimes(1);
+  });
+
+  it("frees the context and records the config as unsupported when setting up the renderer throws", async () => {
+    MockRenderer.mockImplementation(function () {
+      const renderer: FakeRenderer = {
+        setSize: jest.fn(() => {
+          throw new Error("context lost");
+        }),
+        setPixelRatio: jest.fn(),
+        setClearColor: jest.fn(),
+        shadowMap: { enabled: false },
+        render: jest.fn(),
+        dispose: jest.fn(),
+        forceContextLoss: jest.fn(),
+        getContext: jest.fn(() => ({ finish: jest.fn(), readPixels: jest.fn() })),
+      };
+      renderers.push(renderer);
+      return renderer;
+    });
+    const result = await runDeviceTest({ now, raf, createCanvas, framesPerConfig: 5 });
+    expect(result.configs.map((c) => [c.id, c.supported])).toEqual([["today", false]]);
+    expect(renderers).toHaveLength(1);
+    expect(renderers[0].dispose).toHaveBeenCalledTimes(1);
+    expect(renderers[0].forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps waiting when the page becomes visible again instead of drawing an unpaced frame", async () => {
+    const stalledRaf = (): number => 1;
+    const controller = new AbortController();
+    const hidden = jest.spyOn(document, "hidden", "get").mockReturnValue(false);
+    const run = runDeviceTest({ now, raf: stalledRaf, createCanvas, framesPerConfig: 12, signal: controller.signal });
+    await Promise.resolve();
+    document.dispatchEvent(new Event("visibilitychange")); // visible: must not end the wait
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(renderers[0].render).toHaveBeenCalledTimes(1); // the first render only, no frame was drawn
+    controller.abort();
+    const result = await run;
+    hidden.mockRestore();
+    expect(result.aborted).toBe(true);
+    expect(renderers[0].render).toHaveBeenCalledTimes(1);
   });
 });

@@ -88,11 +88,15 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
   const nextFrame = (): Promise<void> =>
     new Promise((resolve) => {
       const finish = (): void => {
-        document.removeEventListener("visibilitychange", finish);
+        document.removeEventListener("visibilitychange", onVisibility);
         signal?.removeEventListener("abort", finish);
         resolve();
       };
-      document.addEventListener("visibilitychange", finish);
+      // Only going hidden ends the wait early: coming back visible would draw a frame without vsync pacing
+      const onVisibility = (): void => {
+        if (document.hidden) finish();
+      };
+      document.addEventListener("visibilitychange", onVisibility);
       signal?.addEventListener("abort", finish);
       raf(finish);
     });
@@ -120,17 +124,19 @@ export async function runDeviceTest(options: DeviceTestOptions = {}): Promise<De
     } catch {
       return unsupported(spec);
     }
-    renderer.setPixelRatio(pixelRatio);
-    renderer.setClearColor(0x000000, 0);
-    renderer.shadowMap.enabled = false;
-    renderer.setSize(STAGE_CSS_PX, STAGE_CSS_PX);
-    const rendererMs = now() - rendererStart;
-
-    const scene = new THREE.Scene();
-    addHeroLights(scene);
-    const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
+    // Everything after the constructor sits inside the try so a throw (a context lost at once on an old phone) still
+    // releases the WebGL context in the finally below.
     let hero: THREE.Object3D | null = null;
     try {
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setClearColor(0x000000, 0);
+      renderer.shadowMap.enabled = false;
+      renderer.setSize(STAGE_CSS_PX, STAGE_CSS_PX);
+      const rendererMs = now() - rendererStart;
+
+      const scene = new THREE.Scene();
+      addHeroLights(scene);
+      const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
       const buildStart = now();
       const built = buildHero(buildLook);
       const buildMs = now() - buildStart;
