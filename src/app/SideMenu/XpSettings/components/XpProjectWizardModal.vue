@@ -270,14 +270,15 @@ import { getProjectDb } from "@/lib/databases/ProjectDb";
 import { MOVING_ROOMS } from "@/lib/services/core/packs/movingPack";
 import type { MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import { FIBONACCI_STEPS, dateKey, nearestDifficulty, rewardsFor } from "@/lib/services/core/packs/packCommon";
+import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import { PROJECT_TYPES, projectTypeOf } from "@/lib/services/core/packs/projects";
 import type { ProjectTypeId } from "@/lib/services/core/packs/projects";
-import { carriedQuestIds } from "@/lib/services/projects/movingOutPrefill";
+import { carriedQuestIds, withCarried } from "@/lib/services/projects/movingOutPrefill";
 import { houseRoomsOf } from "@/lib/services/projects/projectChores";
 import type { ProjectChore, ProjectHouse } from "@/lib/services/projects/projectChores";
 import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { ROOF_PHASE_ID, minimumEndOn } from "@/lib/services/projects/projectSchedule";
-import { retireOldHouse, startProject } from "@/lib/services/projects/projectService";
+import { readOpenMoveQuests, retireOldHouse, startProject } from "@/lib/services/projects/projectService";
 import * as wizard from "@/lib/services/projects/projectWizard";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -291,11 +292,13 @@ const { dayText, draftType, projectTypeIcon } = wizard;
  * change the list, what the tower is built from) lives in projectWizard.ts; this file holds the draft and the body of
  * each step. One project runs at a time, so with one running the wizard only says to finish or abandon it first.
  *
- * It can open on a draft it is handed (`initial`: Moving Out from the Moving House dialog, with the family's rooms and
- * moving chores in place) and then starts on the house, the project being chosen. Whoever builds Moving Out retires the
- * Old House, and the moving chores still in the list leave the board for the tower.
+ * It can open on a draft it is handed (`initial`: Moving Out from the Moving House dialog) on the house step, with the
+ * dialog's `heroes` (one sitting out included) for the whole build. Building Moving Out retires the Old House and takes
+ * the moving chores in the list off the board; picking it on the card brings those chores in too.
  */
-const props = defineProps<{ open: boolean; typeId?: ProjectTypeId; initial?: wizard.ProjectDraft }>();
+/** What the wizard is given: a type to start on, or the draft and the heroes of the Moving House dialog's handover */
+interface WizardProps { open: boolean; typeId?: ProjectTypeId; initial?: wizard.ProjectDraft; heroes?: PackHero[] }
+const props = defineProps<WizardProps>();
 const emit = defineEmits<{ close: [] }>();
 
 const { rootClass, rootStyle } = useAppSkin("quests");
@@ -321,9 +324,6 @@ const lastRuns = ref<Partial<Record<ProjectTypeId, ProjectRecord | null>>>({});
 
 let opening = 0;
 
-/** A draft handed in has its project already, so the wizard starts on the house; the steps before it are one Back away */
-const HOUSE_STEP = 1;
-
 /** A read that fails reads as "nothing there": starting a project still refuses while one is running */
 const readOrNull = async (read: () => Promise<ProjectRecord | null>): Promise<ProjectRecord | null> => {
   try {
@@ -339,7 +339,7 @@ const begin = async () => {
   const ticket = opening;
   today.value = dateKey(new Date());
   draft.value = props.initial ?? wizard.newProjectDraft(today.value);
-  position.value = props.initial ? HOUSE_STEP : 0;
+  position.value = props.initial ? 1 : 0; // a draft handed in has its project: start on the house, the project step is one Back away
   isLoaded.value = false;
   const db = getProjectDb();
   const ids = types.map((kind) => kind.id);
@@ -375,7 +375,7 @@ const runningName = computed(() => (running.value ? projectTypeOf(running.value.
 
 // ---- The draft ------------------------------------------------------------------------------------------------------
 
-const heroes = computed(() => wizard.heroesFrom(userStore.usersAz));
+const heroes = computed(() => props.heroes ?? wizard.heroesFrom(userStore.usersAz));
 const lastChoresOf = (typeId: ProjectTypeId | undefined): ProjectChore[] | null => (typeId ? lastRuns.value[typeId]?.chores ?? null : null);
 const context = () => ({ today: today.value, heroes: heroes.value, lastChores: lastChoresOf(draft.value.typeId) });
 
@@ -383,11 +383,27 @@ const steps = computed(() => wizard.projectWizardSteps(voice.value, () => today.
 const chosen = computed(() => draftType(draft.value));
 const isRerunChosen = computed(() => wizard.isRerun(chosen.value, lastChoresOf(draft.value.typeId)));
 
+const MOVING_OUT_ID: ProjectTypeId = "moving-out";
+/** Moving Out picked on the card: the open moving chores of the board come in (a re-run keeps last time's list; an unreadable board leaves the suggestions) */
+const carryMovingChores = async (typeId: ProjectTypeId): Promise<void> => {
+  const isRerun = wizard.isRerun(draftType(draft.value), lastChoresOf(typeId));
+  const wantsTheBoard = typeId === MOVING_OUT_ID && !isRerun;
+  if (!wantsTheBoard) return;
+  try {
+    const open = await readOpenMoveQuests();
+    const isStale = draft.value.typeId !== typeId;
+    if (!isStale) draft.value = withCarried(draft.value, open);
+  } catch (error) {
+    debug.warn("[ProjectWizard] the open moving chores could not be read", error);
+  }
+};
+
 const pickType = (typeId: ProjectTypeId) => {
   const isAlready = draft.value.typeId === typeId;
   if (isAlready) return;
   play$fx("select");
   draft.value = wizard.withType(draft.value, typeId, { ...context(), lastChores: lastChoresOf(typeId) });
+  void carryMovingChores(typeId);
 };
 
 // ---- The house ------------------------------------------------------------------------------------------------------
@@ -455,7 +471,7 @@ const windowTexts = computed(() => wizard.windowLines(draft.value, today.value, 
 
 /** A Moving Out tower replaces the Old House: its record goes and the moving chores now in the list leave the board (the service never throws) */
 const retireIfMovingOut = async (typeId: ProjectTypeId): Promise<void> => {
-  const isMovingOut = typeId === "moving-out";
+  const isMovingOut = typeId === MOVING_OUT_ID;
   if (isMovingOut) await retireOldHouse(carriedQuestIds(draft.value));
 };
 

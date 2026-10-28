@@ -46,7 +46,8 @@ const clearedRun = (extra: Partial<ProjectRecord> = {}): ProjectRecord => ({
   endOn: "2027-04-10",
   house: { rooms: { kitchen: 1 } },
   floors: [{ floorKey: "1F", phaseId: "roof", window: { phaseId: "roof", opensOn: "2027-04-03", dueOn: "2027-04-10" }, questIds: ["pq-a"] }],
-  chores: [],
+  // Twelve, Six and Late had chores in the run; Newcomer's profile was added after it
+  chores: ["twelve", "six", "late"].map((hero) => ({ id: `a-${hero}`, phaseId: "roof", roomId: "roof", name: "A chore", difficulty: 3, assignee: [hero] })),
   reward: { text: "Pizza night", earnedAt: "2027-04-08T20:00:00.000Z", seenBy: [] },
   creditsSeenBy: [],
   clearedAt: "2027-04-08T20:00:00.000Z",
@@ -127,6 +128,15 @@ describe("the reward reveal on opening the portal", () => {
   it("reads in the hero's own voice", async () => {
     const wrapper = await mountFor("six");
     expect(vm(wrapper).finishPrompt?.options.title).toBe("You won a prize!");
+  });
+
+  it("shows nothing to a hero who had no chore in the run, such as a profile added months later", async () => {
+    useUserStore().addUser({ id: "newcomer", isAdult: false, name: { first: "New", nick: "New" } } as never);
+    const wrapper = await mountFor("newcomer");
+
+    expect(vm(wrapper).finishPrompt).toBeNull();
+    expect(vm(wrapper).credits).toBeNull();
+    expect(seen).not.toHaveBeenCalled();
   });
 
   it("shows nothing to a hero who was already told, and nothing before the roof is beaten", async () => {

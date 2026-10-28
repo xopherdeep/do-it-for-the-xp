@@ -240,6 +240,10 @@ describe("settleFloor", () => {
     expect(settleFloor(projectOf(), "9F", QUESTS(), [], NOW)).toBeNull();
   });
 
+  it("settles nothing when none of the project's quests was read", () => {
+    expect(settleFloor(projectOf(), "1F", [], [], NOW)).toBeNull();
+  });
+
   it("gives the part that does not divide to the hero who cleared the floor last", () => {
     // x1.5 of 300 XP and 30 GP is 150 XP and 15 GP: 75 and 7 each, and the odd gold piece goes to ben
     const settled = settleFloor(projectOf(), "1F", QUESTS(), [entryOf("pq-a", "ann", april(5, 9)), entryOf("pq-b", "ben", april(5, 17))], NOW)!;
@@ -256,6 +260,37 @@ describe("settleFloor", () => {
     const settled = settleFloor(projectOf(), "1F", QUESTS(), team, NOW)!;
     // the same 300 XP and 30 GP pool, now among three
     expect(settled.grants).toEqual({ ann: { xp: 100, gp: 10 }, ben: { xp: 100, gp: 10 }, cat: { xp: 100, gp: 10 } });
+  });
+
+  it("counts every assignee of a paid team chore as a worker, though only the hero who claimed it was paid", () => {
+    const quests = QUESTS();
+    quests[0] = questOf("pq-a", "1F", 200, 20, { type: "collaborate", assignee: ["ann", "ben", "cat"] });
+    const paid = [entryOf("pq-a", "ann", april(4)), entryOf("pq-b", "ben", april(4, 13))];
+
+    const settled = settleFloor(projectOf(), "1F", quests, paid, NOW)!;
+
+    // the 300 XP and 30 GP pool among the three of the team (ben is both on it and the claimer of the other chore)
+    expect(settled.grants).toEqual({ ann: { xp: 100, gp: 10 }, ben: { xp: 100, gp: 10 }, cat: { xp: 100, gp: 10 } });
+  });
+
+  it("gives the part that does not divide to the hero who cleared the floor last, a team chore's assignees among the workers", () => {
+    const quests = QUESTS();
+    quests[0] = questOf("pq-a", "1F", 200, 20, { type: "collaborate", assignee: ["ann", "ben", "cat"] });
+    // x1.5: a 150 XP and 15 GP pool among ann, ben, cat and dan (who claimed pq-b last): 37 and 3 each, the odd 2 XP and 3 GP to dan
+    const paid = [entryOf("pq-a", "ann", april(5, 9)), entryOf("pq-b", "dan", april(5, 17))];
+
+    const settled = settleFloor(projectOf(), "1F", quests, paid, NOW)!;
+
+    expect(settled.grants).toEqual({ ann: { xp: 37, gp: 3 }, ben: { xp: 37, gp: 3 }, cat: { xp: 37, gp: 3 }, dan: { xp: 39, gp: 6 } });
+  });
+
+  it("does not make workers of the assignees of a chore that is not a team chore", () => {
+    const quests = QUESTS();
+    quests[0] = questOf("pq-a", "1F", 200, 20, { type: "individual", assignee: ["ann", "ben", "cat"] });
+
+    const settled = settleFloor(projectOf(), "1F", quests, bothPaidOn(4), NOW)!;
+
+    expect(Object.keys(settled.grants).sort()).toEqual(["ann", "ben"]);
   });
 
   it("pays no bonus on a floor cleared on its last day, but still settles it", () => {
@@ -425,6 +460,27 @@ describe("settleReady", () => {
     expect(settled.wake).toBeUndefined();
     expect(settled.project.status).toBe("cleared");
     expect(settled.project.reward.earnedAt).toBe(NOW.toISOString());
+  });
+
+  it("settles nothing when the quest read comes back with none of the project's quests, so no floor reads cleared and no project finishes", () => {
+    expect(settleReady(stuck(), [], paidBoth(), NOW)).toBeNull();
+    const roofAwake = projectOf({
+      floors: [
+        floorOf("1F", "sort", FIRST, ["pq-a", "pq-b"], { wokenAt: "x", clearedAt: "2027-04-04T12:00:00.000Z", multiplier: 2 }),
+        floorOf("2F", "clean", SECOND, ["pq-c"], { wokenAt: "x", clearedAt: "2027-04-08T12:00:00.000Z", multiplier: 1.5 }),
+        floorOf("3F", "roof", SECOND, ["pq-fin"], { wokenAt: "x" }),
+      ],
+    });
+    expect(settleReady(roofAwake, [], [], NOW)).toBeNull();
+    // quests of another project are as good as none
+    const others = [questOf("pq-x", "1F", 100, 10, { project: { projectId: "moving-out-2027-01-01", floor: "1F", dueOn: "2027-04-06" } })];
+    expect(settleReady(stuck(), others, paidBoth(), NOW)).toBeNull();
+  });
+
+  it("still settles a floor emptied by deleting its chores while the project has others", () => {
+    const quests = QUESTS().filter((quest) => quest.id === "pq-fin");
+    const settled = settleReady(projectOf(), quests, [], NOW)!;
+    expect(settled.floors.map((floor) => floor.floorKey)).toEqual(["1F"]);
   });
 
   it("settles nothing for a project that is no longer running", () => {

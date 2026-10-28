@@ -307,10 +307,15 @@ export function abandonProject(stores: ProjectStores = liveStores()): Promise<vo
   });
 }
 
-/** What the wizard opens on for Moving Out: the board's open moving chores (and the log that says which are paid) and the family's last moving answers */
-export async function readMovingOutPrefill(answers: MovingAnswers | null, heroes: readonly PackHero[], stores: ProjectStores = liveStores()): Promise<ProjectDraft> {
+/** The Moving House pack's chores still open on the board: the board and the log that says which were paid or wait for approval */
+export async function readOpenMoveQuests(stores: ProjectStores = liveStores()): Promise<Achievement[]> {
   const [quests, entries] = await Promise.all([stores.quests.getTasks(), stores.log.getEntries()]);
-  return prefillMovingOut(answers, openMoveQuests(quests, entries), heroes);
+  return openMoveQuests(quests, entries);
+}
+
+/** What the wizard opens on for Moving Out: the board's open moving chores and the family's last moving answers */
+export async function readMovingOutPrefill(answers: MovingAnswers | null, heroes: readonly PackHero[], stores: ProjectStores = liveStores()): Promise<ProjectDraft> {
+  return prefillMovingOut(answers, await readOpenMoveQuests(stores), heroes);
 }
 
 const sayIfFailed = (result: PromiseSettledResult<unknown>, what: string): void => {

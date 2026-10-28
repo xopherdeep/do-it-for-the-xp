@@ -62,13 +62,19 @@ export const rewardToGive = (records: readonly ProjectRecord[]): ProjectRecord |
 
 export type FinishStep = "reward" | "credits";
 
+/** Whether the hero was given a chore of the run (the list the tower was built from), alone or with others */
+const hadChoreIn = (project: ProjectRecord, heroId: string): boolean => project.chores.some((chore) => chore.assignee.includes(heroId));
+
 /**
  * What a hero is still owed from the project's finish: the reward reveal first, then the credits, then nothing. Only a
- * cleared project (the roof beaten) owes anything, and each hero is asked for themselves.
+ * cleared project (the roof beaten) owes anything, each hero is asked for themselves, and only a hero who had a chore in
+ * the run is owed it (a profile added months later was not there to play it).
  */
 export function finishStepFor(project: ProjectRecord | null, heroId: string): FinishStep | null {
   const isNotOver = project === null || project.status !== "cleared";
   if (isNotOver) return null;
+  const wasNotThere = !hadChoreIn(project, heroId);
+  if (wasNotThere) return null;
   if (!hasSeen(project, heroId, "reward")) return "reward";
   return hasSeen(project, heroId, "credits") ? null : "credits";
 }

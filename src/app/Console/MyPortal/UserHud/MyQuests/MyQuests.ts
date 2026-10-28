@@ -40,6 +40,7 @@ import { useTimers } from "@/hooks/useTimers";
 import { useCopy } from "@/hooks/useVoice";
 import { linkedQuestRow, sectionsByWindow, toLogRow } from "./questLogRows";
 import { reloadOnReturn } from "./reloadOnReturn";
+import { settleInBackground } from "@/lib/services/projects/settleInBackground";
 import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
 import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 import type { QuestLogRow } from "./questLogRows";
@@ -453,6 +454,7 @@ export default defineComponent({
     };
 
     onMounted(() => {
+      void settleInBackground();
       void loadBeasts().then(loadTamed);
       return loadBoard();
     });
@@ -462,6 +464,7 @@ export default defineComponent({
     // the due counts and the tamed beasts. The first visit mounts and loads above, so it is skipped.
     onIonViewWillEnter(
       reloadOnReturn(() => {
+        void settleInBackground();
         void loadBoard();
         void loadTamed();
       }),

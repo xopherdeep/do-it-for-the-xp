@@ -12,13 +12,13 @@ import { TempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import { DEFAULT_MOVING_ROOMS, buildMovingPack } from "@/lib/services/core/packs/movingPack";
 import { dateKey, nearestDifficulty, parseLocalDate } from "@/lib/services/core/packs/packCommon";
 import { MOVING_OUT } from "@/lib/services/core/packs/projects/movingOut";
-import { carriedQuestIds, openMoveQuests, prefillMovingOut } from "@/lib/services/projects/movingOutPrefill";
+import { carriedQuestIds, openMoveQuests, prefillMovingOut, withCarried } from "@/lib/services/projects/movingOutPrefill";
 import { OLD_HOUSE_ID, showsOldHouse } from "@/lib/services/projects/oldHouse";
 import { suggestChores } from "@/lib/services/projects/projectChores";
-import { ROOF_PHASE_ID } from "@/lib/services/projects/projectSchedule";
-import { readMovingOutPrefill, retireOldHouse } from "@/lib/services/projects/projectService";
+import { ROOF_PHASE_ID, minimumEndOn } from "@/lib/services/projects/projectSchedule";
+import { readMovingOutPrefill, readOpenMoveQuests, retireOldHouse } from "@/lib/services/projects/projectService";
 import { buildProjectTower } from "@/lib/services/projects/projectTower";
-import { towerInputOf } from "@/lib/services/projects/projectWizard";
+import { newProjectDraft, towerInputOf, withType } from "@/lib/services/projects/projectWizard";
 import { SIX, TWELVE, answers } from "./movingHouseFixtures";
 
 jest.mock("@/lib/services/quests/QuestCompletionService", () => ({ applyQuestRewards: jest.fn() }));
@@ -46,7 +46,26 @@ describe("prefillMovingOut", () => {
     expect(draft.typeId).toBe("moving-out");
     expect(draft.house.rooms).toEqual(rooms);
     expect(draft.house.basement).toBe(true);
-    expect(draft.endOn).toBe(dateKey(addDays(parseLocalDate(TODAY), MOVING_OUT.defaultDays)));
+  });
+
+  it("ends on the move day the parent typed when it lies beyond the earliest end the floors allow", () => {
+    expect(GIVEN.moveDate).toBe("2026-11-20");
+    expect(prefillMovingOut(GIVEN, [], HEROES).endOn).toBe("2026-11-20");
+  });
+
+  it("never ends before the earliest day the floors allow, however near or past the move day is", () => {
+    const earliest = minimumEndOn(MOVING_OUT.phases.length, TODAY);
+
+    expect(prefillMovingOut({ ...GIVEN, moveDate: TODAY }, [], HEROES).endOn).toBe(earliest);
+    expect(prefillMovingOut({ ...GIVEN, moveDate: "2025-01-01" }, [], HEROES).endOn).toBe(earliest);
+  });
+
+  it("ends on the type's usual day when the move day is not a real day", () => {
+    const usual = dateKey(addDays(parseLocalDate(TODAY), MOVING_OUT.defaultDays));
+
+    expect(prefillMovingOut({ ...GIVEN, moveDate: "" }, [], HEROES).endOn).toBe(usual);
+    expect(prefillMovingOut({ ...GIVEN, moveDate: "2026-02-31" }, [], HEROES).endOn).toBe(usual);
+    expect(prefillMovingOut({ ...GIVEN, moveDate: "soon" }, [], HEROES).endOn).toBe(usual);
   });
 
   it("counts a basement only while storage is ticked, and never changes the answers it was given", () => {
@@ -140,6 +159,38 @@ describe("prefillMovingOut", () => {
 
     const input = towerInputOf(draft, { today: TODAY, now: new Date(2026, 9, 1, 9), heroes: HEROES });
     expect(() => buildProjectTower(input)).not.toThrow();
+  });
+});
+
+describe("withCarried", () => {
+  /** Moving Out as the Start a Project card fills it: the type's suggestions for the house, nothing carried */
+  const started = () => withType(newProjectDraft(TODAY), "moving-out", { today: TODAY, heroes: HEROES, lastChores: null });
+
+  it("puts the open moving chores on a Moving Out draft the card started, the way the handover does", () => {
+    const draft = started();
+
+    const carried = withCarried(draft, TOWER_QUESTS);
+
+    const handed = prefillMovingOut({ ...GIVEN, rooms: draft.house.rooms }, TOWER_QUESTS, HEROES);
+    expect(carried.chores).toEqual(handed.chores);
+    expect(carried.house).toEqual(draft.house);
+    expect(carried.endOn).toBe(draft.endOn);
+  });
+
+  it("keeps the suggestions on a floor with no open chore, and changes nothing when none is open", () => {
+    const draft = started();
+
+    expect(withCarried(draft, [])).toEqual(draft);
+    const declutter = withCarried(draft, inPhases(["declutter"]));
+    expect(declutter.chores.filter((chore) => chore.phaseId === "quiet")).toEqual(draft.chores.filter((chore) => chore.phaseId === "quiet"));
+    expect(declutter.chores.filter((chore) => chore.phaseId === "declutter").every((chore) => chore.custom)).toBe(true);
+  });
+
+  it("leaves a draft of another project, or with no project, as it is", () => {
+    const spring = withType(newProjectDraft(TODAY), "spring-cleaning", { today: TODAY, heroes: HEROES, lastChores: null });
+
+    expect(withCarried(spring, TOWER_QUESTS)).toBe(spring);
+    expect(withCarried(newProjectDraft(TODAY), TOWER_QUESTS).chores).toEqual([]);
   });
 });
 
@@ -243,6 +294,18 @@ beforeEach(async () => {
   await stores.progress.saveProgress({ userId: "twelve", templeId: OLD_HOUSE_ID } as never);
   await stores.progress.saveProgress({ userId: "six", templeId: OLD_HOUSE_ID } as never);
   await stores.progress.saveProgress({ userId: "twelve", templeId: OTHER_TEMPLE } as never);
+});
+
+describe("readOpenMoveQuests", () => {
+  it("reads the board and the log: the pack's chores nobody was paid for, and no other chore", async () => {
+    const [paid] = TOWER_QUESTS;
+    await pay(paid, "approved");
+    await stores.quests.set("my-own-chore", { ...paid, id: "my-own-chore" });
+
+    const open = await readOpenMoveQuests(stores as never);
+
+    expect(ids(open)).toEqual(ids(PACK.quests.filter((quest) => quest.id !== paid.id)));
+  });
 });
 
 describe("readMovingOutPrefill", () => {

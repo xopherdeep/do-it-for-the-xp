@@ -137,9 +137,21 @@ interface Bonus {
 }
 
 /**
+ * The heroes who worked the floor: whoever was paid for one of its chores, and every assignee of a paid team chore (a Team
+ * Effort pays only the hero who claimed it, but the whole team did it).
+ */
+const workersOf = (live: readonly Achievement[], work: readonly QuestLogEntry[]): string[] => {
+  const paidIds = new Set(work.map((entry) => String(entry.questId)));
+  const isPaidTeamChore = (quest: Achievement): boolean => quest.type === "collaborate" && paidIds.has(String(quest.id));
+  const team = live.filter(isPaidTeamChore).flatMap((quest) => (quest.assignee ?? []).map(String));
+  return [...work.map((entry) => entry.userId), ...team];
+};
+
+/**
  * What clearing the floor earns: the multiplier of the day its last chore was claimed and the pool above x1 of the
- * chores' own XP and GP, split among the heroes paid for them. AP never grows. A floor with no chores left earned
- * nothing, so it is stamped x1 whatever its window says.
+ * chores' own XP and GP, split among the heroes who worked the floor (workersOf); what does not divide goes to the hero
+ * who claimed its last chore. AP never grows. A floor with no chores left earned nothing, so it is stamped x1 whatever
+ * its window says.
  */
 const bonusOf = (floor: ProjectFloor, quests: readonly Achievement[], paid: readonly QuestLogEntry[]): Bonus => {
   const work = workOn(floor, quests, paid).sort(byClaim);
@@ -148,7 +160,7 @@ const bonusOf = (floor: ProjectFloor, quests: readonly Achievement[], paid: read
   const multiplier = last ? floorMultiplier(floor.window, dayOfEntry(last)) : 1;
   const chores = live.map((quest) => ({ xp: Number(quest.xp) || 0, gp: Number(quest.gp) || 0 }));
   const pool = floorBonusPool(chores, multiplier);
-  const split = splitFloorBonus(pool, work.map((entry) => entry.userId), last?.userId ?? "");
+  const split = splitFloorBonus(pool, workersOf(live, work), last?.userId ?? "");
   return { multiplier, grants: payable(split) };
 };
 
@@ -199,9 +211,19 @@ const climb = (project: ProjectRecord, below: ProjectFloor, quests: readonly Ach
 };
 
 /**
+ * Whether the read found any quest of the project at all. A read that came back empty (or failed) must not read as "the
+ * Game Master deleted every chore": every woken floor would clear, the cascade would finish the project and earn the reward.
+ */
+const hasProjectQuests = (project: ProjectRecord, quests: readonly Achievement[]): boolean => {
+  const ids = new Set(project.floors.flatMap((floor) => floor.questIds));
+  return quests.some((quest) => ids.has(String(quest.id)));
+};
+
+/**
  * The floor settled at `now`: its multiplier and bonus stamped, the bonus split into grants, the floor above woken (and
  * the roof's clear finishing the project). Null when the floor is not cleared, or was settled before (a second approval,
- * a second phone): the bonus is paid once and the next floor woken once. The record given is not touched.
+ * a second phone): the bonus is paid once and the next floor woken once; and null when none of the project's quests was
+ * read (see hasProjectQuests). The record given is not touched.
  */
 export function settleFloor(
   project: ProjectRecord,
@@ -214,7 +236,7 @@ export function settleFloor(
   const floor = floorOf(base, floorKey);
   if (!floor) return null;
   const isSettled = Boolean(floor.clearedAt);
-  const canSettle = !isSettled && isFloorCleared(floor, quests, paid);
+  const canSettle = !isSettled && hasProjectQuests(base, quests) && isFloorCleared(floor, quests, paid);
   if (!canSettle) return null;
   const bonus = bonusOf(floor, quests, paid);
   const settled = settledFloor(floor, bonus.multiplier, now);

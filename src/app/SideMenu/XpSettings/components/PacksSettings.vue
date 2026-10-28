@@ -125,7 +125,7 @@
 
       <moving-house-modal :is-open="showMoving" @close="closeMoving" @tower="startMovingOut" />
       <home-chores-modal :is-open="showHome" @close="closeBuilder" />
-      <xp-project-wizard-modal :open="showProject" :initial="movingDraft" @close="closeBuilder" />
+      <xp-project-wizard-modal :open="showProject" :initial="movingDraft" :heroes="movingHeroes" @close="closeBuilder" />
     </ion-content>
   </ion-page>
 </template>
@@ -158,6 +158,7 @@ import {
   usePackLibrary,
 } from "@/hooks/usePackLibrary";
 import type { MovingAnswers } from "@/lib/services/core/packs/movingPack";
+import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { BUILT_IN_PACKS } from "@/lib/services/core/packs/catalog";
 import { prefillMovingOut } from "@/lib/services/projects/movingOutPrefill";
@@ -180,8 +181,9 @@ const t = useCopy();
 const showMoving = ref(false);
 const showHome = ref(false);
 const showProject = ref(false);
-/** Moving Out from the Moving House dialog: the draft the project wizard opens on; none while it opens from its own card */
+/** Moving Out from the Moving House dialog: the draft the project wizard opens on and the heroes of that dialog (who plays, how); none while it opens from its own card */
 const movingDraft = ref<ProjectDraft | undefined>(undefined);
+const movingHeroes = ref<PackHero[] | undefined>(undefined);
 
 onMounted(refreshPacks);
 onIonViewWillEnter(refreshPacks);
@@ -192,6 +194,7 @@ const openBuilder = async (which: "moving" | "home" | "project") => {
   if (!isPermitted) return;
   play$fx("select");
   movingDraft.value = undefined;
+  movingHeroes.value = undefined;
   showMoving.value = which === "moving";
   showHome.value = which === "home";
   showProject.value = which === "project";
@@ -208,6 +211,7 @@ const startMovingOut = async (answers: MovingAnswers) => {
     debug.warn("[Packs] the open moving chores could not be read", error);
     movingDraft.value = prefillMovingOut(answers, [], answers.heroes);
   }
+  movingHeroes.value = answers.heroes;
   showMoving.value = false;
   showProject.value = true;
 };

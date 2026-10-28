@@ -7,6 +7,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { copyFor } from "@/lib/services/copy/copy";
 import { VOICES } from "@/lib/services/copy/voices";
+import type { ProjectChore } from "@/lib/services/projects/projectChores";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 import { creditHeroesOf, creditsViewOf, daysEarly, finishStepFor, rewardToGive, trophiesOf, trophyOf } from "@/lib/services/projects/projectFinish";
 import { rewardRevealPrompt } from "@/lib/services/projects/finishPrompts";
@@ -20,7 +21,10 @@ const floorOf = (floorKey: string, phaseId: string, questIds: string[], extra: P
   ...extra,
 });
 
-/** Spring Cleaning cleared on the evening of 2027-04-08, two days before its end day */
+/** A chore of the run's list, handed to the heroes given */
+const choreFor = (id: string, ...assignee: string[]): ProjectChore => ({ id, phaseId: "declutter", roomId: "house", name: id, difficulty: 3, assignee });
+
+/** Spring Cleaning cleared on the evening of 2027-04-08, two days before its end day; Twelve and Six had chores in it */
 const clearedProject = (extra: Partial<ProjectRecord> = {}): ProjectRecord => ({
   id: "spring-cleaning-2027-04-03",
   typeId: "spring-cleaning",
@@ -34,7 +38,7 @@ const clearedProject = (extra: Partial<ProjectRecord> = {}): ProjectRecord => ({
     floorOf("2F", "deep-clean", ["pq-c"], { multiplier: 1.4, clearedAt: new Date(2027, 3, 6, 12).toISOString() }),
     floorOf("3F", "roof", ["pq-fin"], { multiplier: 1, clearedAt: new Date(2027, 3, 8, 20).toISOString() }),
   ],
-  chores: [],
+  chores: [choreFor("a", "twelve"), choreFor("b", "six"), choreFor("c", "twelve", "six")],
   reward: { text: "Pizza night", earnedAt: new Date(2027, 3, 8, 20).toISOString(), seenBy: [] },
   creditsSeenBy: [],
   clearedAt: new Date(2027, 3, 8, 20).toISOString(),
@@ -133,6 +137,18 @@ describe("finishStepFor", () => {
 
   it("owes the reward reveal to a hero who has watched the credits but not been told of the reward", () => {
     expect(finishStepFor(clearedProject({ creditsSeenBy: ["six"] }), "six")).toBe("reward");
+  });
+
+  it("owes nothing to a hero who had no chore in the run, such as a profile added months later", () => {
+    const project = clearedProject();
+    expect(finishStepFor(project, "late")).toBeNull();
+    expect(finishStepFor(clearedProject({ chores: [] }), "twelve")).toBeNull();
+  });
+
+  it("owes it to a hero who was given a chore alone or with others, a team chore included", () => {
+    const project = clearedProject({ chores: [choreFor("a", "mom"), choreFor("b", "twelve", "six", "dad")] });
+    for (const hero of ["mom", "twelve", "six", "dad"]) expect(finishStepFor(project, hero)).toBe("reward");
+    expect(finishStepFor(project, "other")).toBeNull();
   });
 
   it("owes nothing before the roof is beaten, or without a project", () => {

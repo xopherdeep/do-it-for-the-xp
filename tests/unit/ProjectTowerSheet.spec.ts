@@ -134,6 +134,12 @@ describe("what a hero reads in the tower sheet", () => {
     expect(sheet.get('[data-test="floor-clock"]').text()).toBe(`Deep Clean: due ${due}, 3 days left`);
   });
 
+  it("calls the tower of a project type that is gone a project tower, never by the type's raw id", async () => {
+    const sheet = await mountSheet({ project: { ...projectOf(), typeId: "tiny-house" as never } });
+
+    expect(sheet.get('[data-test="sheet-title"]').text()).toBe("Project tower");
+  });
+
   it("offers the bonus of clearing the floor today", async () => {
     const sheet = await mountSheet();
     const multiplier = floorMultiplier(projectOf().floors[1].window, TODAY);

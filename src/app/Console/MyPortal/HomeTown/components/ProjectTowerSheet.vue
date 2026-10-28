@@ -32,7 +32,7 @@
         </ol>
       </section>
 
-      <!-- No tower is standing. The trophy of the last cleared run takes this slot (Task 11); until then, a plain line -->
+      <!-- No tower is standing: a plain line, unless the caller fills this slot (the trophy opens from the plaza's spot instead) -->
       <slot v-else name="empty">
         <p class="pt-empty" data-test="empty">{{ t("projectTower.sheet.empty") }}</p>
       </slot>
@@ -85,8 +85,8 @@ import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { useToast } from "@/hooks/useToast";
 import { useCopy, useVoice } from "@/hooks/useVoice";
 import { dateKey } from "@/lib/services/core/packs/packCommon";
-import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import { floorClockView } from "@/lib/services/projects/floorClock";
+import { towerNameOf } from "@/lib/services/projects/projectFinish";
 import { abandonProject, extendProject, readTower, settleReadyFloors } from "@/lib/services/projects/projectService";
 import type { TowerSnapshot } from "@/lib/services/projects/projectService";
 import { dayText } from "@/lib/services/projects/projectWizard";
@@ -99,7 +99,8 @@ import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
  * The tower's spot in Hometown opens this sheet: the tower's name, the floor the family is on with its clock and bonus
  * offer, and every floor. A Game Master also gets "Move the end date" (a day no earlier than today, then extendProject)
  * and "Abandon project" (the game's own confirm, then abandonProject). The rules are projectService, floorClock and
- * towerView; this holds what is on screen. With no tower standing it shows the `empty` slot, where Task 11's trophy goes.
+ * towerView; this holds what is on screen. With no tower standing it shows the `empty` slot (a plain line by default; the
+ * trophy of a cleared run has its own sheet, opened from the same spot).
  */
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits(["close", "enter", "changed", "abandoned"]);
@@ -169,7 +170,7 @@ watch(
 
 const view = computed(() => (isLoaded.value ? "ready" : "loading"));
 const project = computed(() => snapshot.value?.project ?? null);
-const title = computed(() => (project.value ? (projectTypeOf(project.value.typeId)?.towerName ?? project.value.typeId) : t("projectTower.sheet.title")));
+const title = computed(() => (project.value ? towerNameOf(project.value, voice.value) : t("projectTower.sheet.title")));
 const clock = computed(() => {
   const running = project.value;
   const floor = running ? currentFloorOf(running) : undefined;

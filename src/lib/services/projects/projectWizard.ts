@@ -17,6 +17,7 @@ import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import { projectTypeOf } from "@/lib/services/core/packs/projects";
 import type { ProjectType, ProjectTypeId } from "@/lib/services/core/packs/projects";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
+import { isCarriedChore } from "./carriedChores";
 import { WHOLE_HOUSE_ID, choresFromLastRun, houseRoomsOf, rehomeChores, suggestChores } from "./projectChores";
 import type { ProjectChore, ProjectHouse } from "./projectChores";
 import type { ProjectTowerInput } from "./projectQuests";
@@ -104,12 +105,32 @@ const fitsType = (type: ProjectType, last: readonly ProjectChore[]): boolean => 
 export const isRerun = (type: ProjectType | undefined, lastChores: readonly ProjectChore[] | null): boolean =>
   type !== undefined && lastChores !== null && fitsType(type, lastChores);
 
+/** The floor's place in the list: the type's floors bottom to top, the roof (and a floor the type does not have) after them */
+const floorRank = (type: ProjectType, phaseId: string): number => {
+  const rank = type.phases.findIndex((phase) => phase.id === phaseId);
+  return rank === -1 ? type.phases.length : rank;
+};
+
 /** The chores for a type and a house: last run's list when there is one, else the type's suggestions; always new copies */
 const filledChores = (type: ProjectType, house: ProjectHouse, ctx: Pick<DraftContext, "heroes" | "lastChores">): ProjectChore[] => {
   const list = isRerun(type, ctx.lastChores)
     ? rehomeChores(choresFromLastRun(ctx.lastChores ?? [], ctx.heroes), house)
     : suggestChores(type, house, ctx.heroes);
   return list.map(copyChore);
+};
+
+/**
+ * The list again for new rooms: the type's suggestions (or the last run's list) made for them, except on a floor that holds
+ * chores carried from the board, which are that floor's list; and the chores that are the Game Master's, or the board's,
+ * stay, each in a room the house still has. A re-run's own chores come back with its list and are not doubled.
+ */
+const refilledChores = (type: ProjectType, house: ProjectHouse, current: readonly ProjectChore[], ctx: Pick<DraftContext, "heroes" | "lastChores">): ProjectChore[] => {
+  const carriedFloors = new Set(current.filter(isCarriedChore).map((chore) => chore.phaseId));
+  const filled = filledChores(type, house, ctx).filter((chore) => !carriedFloors.has(chore.phaseId));
+  const filledIds = new Set(filled.map((chore) => chore.id));
+  const own = current.filter((chore) => chore.custom === true && !filledIds.has(chore.id));
+  const kept = rehomeChores(own, house).map(copyChore);
+  return [...filled, ...kept].sort((a, b) => floorRank(type, a.phaseId) - floorRank(type, b.phaseId));
 };
 
 /** The draft with a type chosen: its suggested end, and the chores it fills for the house the draft has */
@@ -123,7 +144,8 @@ const roomsKey = (house: ProjectHouse): string => houseRoomsOf(house).map((room)
 
 /**
  * The draft with other rooms. When the rooms themselves changed (not just the basement) and a type is chosen, the list
- * is filled again for them, so a room that comes back gets its chores back; edits made to the list are replaced.
+ * is filled again for them, so a room that comes back gets its chores back; edits made to the suggested chores are
+ * replaced, but the chores the Game Master added or carried from the board stay (see refilledChores).
  */
 export const withHouse = (draft: ProjectDraft, house: ProjectHouse, ctx: Pick<DraftContext, "heroes" | "lastChores">): ProjectDraft => {
   const own = copyHouse(house);
@@ -131,7 +153,7 @@ export const withHouse = (draft: ProjectDraft, house: ProjectHouse, ctx: Pick<Dr
   if (!type) return { ...draft, house: own };
   const hasSameRooms = roomsKey(draft.house) === roomsKey(own);
   if (hasSameRooms) return { ...draft, house: own };
-  return { ...draft, house: own, chores: filledChores(type, own, ctx) };
+  return { ...draft, house: own, chores: refilledChores(type, own, draft.chores, ctx) };
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -211,11 +233,6 @@ const customIdFor = (chores: readonly ProjectChore[], phaseId: string): string =
   let serial = 1;
   while (used.has(`${phaseId}:custom-${serial}`)) serial += 1;
   return `${phaseId}:custom-${serial}`;
-};
-
-const floorRank = (type: ProjectType, phaseId: string): number => {
-  const rank = type.phases.findIndex((phase) => phase.id === phaseId);
-  return rank === -1 ? type.phases.length : rank;
 };
 
 /**

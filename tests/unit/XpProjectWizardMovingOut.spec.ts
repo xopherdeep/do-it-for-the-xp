@@ -6,7 +6,7 @@ import { getProjectDb } from "@/lib/databases/ProjectDb";
 import { buildMovingPack } from "@/lib/services/core/packs/movingPack";
 import { dateKey } from "@/lib/services/core/packs/packCommon";
 import { carriedQuestIds, prefillMovingOut } from "@/lib/services/projects/movingOutPrefill";
-import { retireOldHouse, startProject } from "@/lib/services/projects/projectService";
+import { readOpenMoveQuests, retireOldHouse, startProject } from "@/lib/services/projects/projectService";
 import { useUserStore } from "@/lib/store/stores/user";
 import { answers } from "./movingHouseFixtures";
 
@@ -25,7 +25,7 @@ jest.mock("@/lib/engine/audio/speech", () => ({
   hasReadingVoice: () => false,
   onReadingVoiceChange: () => () => undefined,
 }));
-jest.mock("@/lib/services/projects/projectService", () => ({ __esModule: true, startProject: jest.fn(), retireOldHouse: jest.fn() }));
+jest.mock("@/lib/services/projects/projectService", () => ({ __esModule: true, startProject: jest.fn(), retireOldHouse: jest.fn(), readOpenMoveQuests: jest.fn() }));
 jest.mock("@/lib/databases/ProjectDb", () => ({ __esModule: true, getProjectDb: jest.fn() }));
 jest.mock("@/lib/api", () => ({ __esModule: true, default: { get: jest.fn() } }));
 jest.mock("@/lib/databases/ProfileDb", () => ({ __esModule: true, ProfileDb: class { setProfile() { return Promise.resolve(); } }, default: class {} }));
@@ -35,6 +35,7 @@ jest.mock("@/lib/services/notifications/notify", () => ({ notify: jest.fn() }));
 
 const start = startProject as jest.Mock;
 const retire = retireOldHouse as jest.Mock;
+const openQuests = readOpenMoveQuests as jest.Mock;
 const projectDb = { getActive: jest.fn(), lastOfType: jest.fn() };
 const slot = { template: "<div><slot /></div>" };
 const stubs = {
@@ -100,6 +101,8 @@ beforeEach(() => {
   start.mockResolvedValue({ id: "ok" });
   retire.mockReset();
   retire.mockResolvedValue(undefined);
+  openQuests.mockReset();
+  openQuests.mockResolvedValue([]);
   projectDb.getActive.mockReset();
   projectDb.getActive.mockResolvedValue(null);
   projectDb.lastOfType.mockReset();
@@ -190,5 +193,86 @@ describe("building Moving Out retires the Old House", () => {
 
     expect(retire).not.toHaveBeenCalled();
     expect(wrapper.emitted("close")).toBeUndefined();
+  });
+});
+
+describe("changing the rooms after the handover", () => {
+  it("keeps the chores carried from the board, so the tower does not get them as suggestions on top", async () => {
+    const draft = prefill();
+    const wrapper = await mountWizard({ open: true, initial: draft });
+
+    await tap(wrapper, "room-less-bedroom");
+    await tap(wrapper, "next");
+
+    const carried = carriedQuestIds(draft).length;
+    expect(carried).toBeGreaterThan(10);
+    expect(wrapper.findAll('[data-test="chore-row"][data-custom="true"]')).toHaveLength(carried);
+    await tap(wrapper, "next");
+    await wrapper.get('[data-test="reward"]').setValue("Pizza night");
+    await flushPromises();
+    await tap(wrapper, "next");
+    await tap(wrapper, "submit");
+    expect(retire.mock.calls[0][0]).toHaveLength(carried);
+  });
+});
+
+describe("Moving Out picked on the Start a Project card", () => {
+  it("carries the open moving chores in, as the handover does, and retires the Old House with them", async () => {
+    openQuests.mockResolvedValue(QUESTS);
+    const wrapper = await mountWizard({ open: true });
+
+    await tap(wrapper, "type-moving-out");
+    await buildFromType(wrapper);
+
+    expect(openQuests).toHaveBeenCalledTimes(1);
+    const taken = retire.mock.calls[0][0] as string[];
+    expect(taken.length).toBeGreaterThan(10);
+    expect(start.mock.calls[0][0].chores.filter((chore: { custom?: boolean }) => chore.custom)).toHaveLength(taken.length);
+  });
+
+  it("reads no board for another kind of project", async () => {
+    const wrapper = await mountWizard({ open: true });
+
+    await tap(wrapper, "type-spring-cleaning");
+
+    expect(openQuests).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-test="next"]').attributes("disabled")).toBeUndefined();
+  });
+
+  it("starts from the suggestions when the board cannot be read, and still builds", async () => {
+    openQuests.mockRejectedValue(new Error("no storage"));
+    const wrapper = await mountWizard({ open: true });
+
+    await tap(wrapper, "type-moving-out");
+    await buildFromType(wrapper);
+
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(retire).toHaveBeenCalledWith([]);
+  });
+});
+
+describe("the heroes the dialog handed over", () => {
+  const HANDED = [
+    { id: "mom", name: "Mom", band: "grownup" as const },
+    { id: "kai", name: "Kai", band: "kid" as const },
+    { id: "lia", name: "Lia", band: "out" as const },
+  ];
+
+  it("are the heroes of the whole build: Lia, sitting out in the dialog, is not made a hero of the tower", async () => {
+    const given = answers({ heroes: HANDED, today: undefined, moveDate: dateKey(addDays(new Date(), 40)) });
+    const draft = prefillMovingOut(given, buildMovingPack(given).quests, HANDED);
+    const wrapper = await mountWizard({ open: true, initial: draft, heroes: HANDED });
+
+    await buildFromHouse(wrapper);
+
+    expect(start.mock.calls[0][0].heroes).toEqual(HANDED);
+  });
+
+  it("are not asked for when the wizard opens by itself: the family's profiles are the heroes", async () => {
+    const wrapper = await mountWizard({ open: true, initial: prefill() });
+
+    await buildFromHouse(wrapper);
+
+    expect(start.mock.calls[0][0].heroes.map((hero: { id: string; band: string }) => `${hero.id}:${hero.band}`).sort()).toEqual(["kai:kid", "lia:little", "mom:grownup"]);
   });
 });

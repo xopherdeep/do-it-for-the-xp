@@ -9,7 +9,7 @@ import { PROJECT_TYPES } from "@/lib/services/core/packs/projects";
 import { suggestChores } from "@/lib/services/projects/projectChores";
 import type { ProjectChore } from "@/lib/services/projects/projectChores";
 import { minimumEndOn } from "@/lib/services/projects/projectSchedule";
-import { startProject } from "@/lib/services/projects/projectService";
+import { readOpenMoveQuests, retireOldHouse, startProject } from "@/lib/services/projects/projectService";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
@@ -29,7 +29,7 @@ jest.mock("@/lib/engine/audio/speech", () => ({
   hasReadingVoice: () => false,
   onReadingVoiceChange: () => () => undefined,
 }));
-jest.mock("@/lib/services/projects/projectService", () => ({ __esModule: true, startProject: jest.fn() }));
+jest.mock("@/lib/services/projects/projectService", () => ({ __esModule: true, startProject: jest.fn(), retireOldHouse: jest.fn(), readOpenMoveQuests: jest.fn() }));
 jest.mock("@/lib/databases/ProjectDb", () => ({ __esModule: true, getProjectDb: jest.fn() }));
 jest.mock("@/lib/api", () => ({ __esModule: true, default: { get: jest.fn() } }));
 jest.mock("@/lib/databases/ProfileDb", () => ({ __esModule: true, ProfileDb: class { setProfile() { return Promise.resolve(); } }, default: class {} }));
@@ -98,6 +98,10 @@ const rows = (wrapper: Wizard) => wrapper.findAll('[data-test="chore-row"]');
 beforeEach(() => {
   start.mockReset();
   start.mockResolvedValue({ id: "ok" });
+  (retireOldHouse as jest.Mock).mockReset();
+  (retireOldHouse as jest.Mock).mockResolvedValue(undefined);
+  (readOpenMoveQuests as jest.Mock).mockReset();
+  (readOpenMoveQuests as jest.Mock).mockResolvedValue([]);
   mockToast.mockReset();
   projectDb.getActive.mockReset();
   projectDb.getActive.mockResolvedValue(null);
