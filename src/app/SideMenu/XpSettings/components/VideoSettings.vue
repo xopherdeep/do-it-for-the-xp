@@ -10,6 +10,9 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+      <!-- The test sits above the readout: when it starts it is already in view, with no scroll to time on a slow phone -->
+      <video-test-card ref="testCard" :signals="signals" @running="isRunning = $event"></video-test-card>
+
       <ion-card class="settings-card max-w-2xl">
         <ion-list>
           <ion-item-group>
@@ -26,8 +29,6 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
-
-      <video-test-card ref="testCard" :signals="signals" @running="isRunning = $event"></video-test-card>
     </ion-content>
 
     <!-- Controls sit at the bottom of the phone: the Test button and the quality picker land here -->
