@@ -19,6 +19,8 @@ import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
 export interface VoxelMaterialOptions {
   /** Leave out the bevel and rim: occlusion only */
   simple?: boolean;
+  /** Leave out the per-cell tint as well (implies `simple`): the lightest variant, plain colour and occlusion */
+  flat?: boolean;
 }
 
 /** How dark full occlusion gets the sky light (1 = as baked) */
@@ -100,7 +102,8 @@ const BEVEL_RIM_FRAGMENT = /* glsl */ `
 
 export const createVoxelMaterial = (options: VoxelMaterialOptions = {}): THREE.MeshLambertMaterial => {
   const material = new THREE.MeshLambertMaterial({ vertexColors: true });
-  const simple = !!options.simple;
+  const flat = !!options.flat;
+  const simple = !!options.simple || flat;
   material.onBeforeCompile = (shader, renderer) => {
     const lowPrecision = renderer.capabilities.precision === "lowp";
     const withBevel = !simple && !lowPrecision;
@@ -112,7 +115,7 @@ export const createVoxelMaterial = (options: VoxelMaterialOptions = {}): THREE.M
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${FRAGMENT_PARS}`)
-      .replace("#include <color_fragment>", `#include <color_fragment>\n${TINT_FRAGMENT}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>\n${flat ? "" : TINT_FRAGMENT}`)
       .replace("#include <aomap_fragment>", `#include <aomap_fragment>\n${AO_FRAGMENT}`);
     if (withBevel) {
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -121,8 +124,11 @@ export const createVoxelMaterial = (options: VoxelMaterialOptions = {}): THREE.M
       );
     }
   };
-  // Programs are cached by this key: the simple and full variants must not share one
-  material.customProgramCacheKey = () => (simple ? "voxel-simple" : "voxel");
+  // Programs are cached by this key: the flat, simple and full variants must not share one
+  let cacheKey = "voxel";
+  if (flat) cacheKey = "voxel-flat";
+  else if (simple) cacheKey = "voxel-simple";
+  material.customProgramCacheKey = () => cacheKey;
   return material;
 };
 
