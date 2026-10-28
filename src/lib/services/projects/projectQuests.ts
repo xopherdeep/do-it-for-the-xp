@@ -63,8 +63,7 @@ const needsApproval = (chore: ProjectChore, heroes: readonly PackHero[] | undefi
   const bands = chore.assignee.map((heroId) => heroes.find((hero) => hero.id === heroId)?.band);
   const hasChild = bands.some((band) => CHILD_BANDS.has(band));
   const hasGrownUp = bands.includes("grownup");
-  const isChildrenAlone = hasChild && !hasGrownUp;
-  return isChildrenAlone;
+  return hasChild && !hasGrownUp;
 };
 
 const questOf = (input: ProjectTowerInput, chore: ProjectChore, floor: string): Achievement => {

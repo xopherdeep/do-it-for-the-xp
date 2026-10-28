@@ -16,8 +16,7 @@ export const projectStorage = new Storage({
 const isRecord = (value: unknown): value is ProjectRecord => {
   const isObject = typeof value === "object" && value !== null;
   const { id, status } = (isObject ? value : {}) as Partial<ProjectRecord>;
-  const hasIdAndStatus = typeof id === "string" && typeof status === "string";
-  return hasIdAndStatus;
+  return typeof id === "string" && typeof status === "string";
 };
 
 /** Negative, zero or positive by plain character order: the stamps are ISO text, which sorts as time does */

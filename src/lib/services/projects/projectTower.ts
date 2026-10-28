@@ -87,10 +87,13 @@ const checkChores = (input: ProjectTowerInput): void => {
   const { type, chores } = input;
   const floorIds = new Set([...type.phases.map((phase) => phase.id), ROOF_PHASE_ID]);
   const stray = chores.filter((chore) => !floorIds.has(chore.phaseId));
-  if (stray.length > 0) throw new Error(`${type.towerName} has no floor for ${namesOf(stray)}`);
+  const hasStray = stray.length > 0;
+  if (hasStray) throw new Error(`${type.towerName} has no floor for ${namesOf(stray)}`);
   const roof = chores.filter((chore) => chore.phaseId === ROOF_PHASE_ID);
-  if (roof.length === 0) throw new Error(`${type.towerName} has no finale for its roof`);
-  if (roof.length > 1) throw new Error(`The roof of ${type.towerName} holds one finale, not ${namesOf(roof)}`);
+  const hasNoFinale = roof.length === 0;
+  if (hasNoFinale) throw new Error(`${type.towerName} has no finale for its roof`);
+  const hasManyFinales = roof.length > 1;
+  if (hasManyFinales) throw new Error(`The roof of ${type.towerName} holds one finale, not ${namesOf(roof)}`);
   const last = type.phases[type.phases.length - 1];
   const hasLastChore = chores.some((chore) => chore.phaseId === last?.id);
   if (!hasLastChore) throw new Error(`The last phase of ${type.name} needs a chore: its boss keeps the Boss Key`);
@@ -103,11 +106,9 @@ const checkChores = (input: ProjectTowerInput): void => {
 const phaseDrafts = (anchor: Draft, chores: readonly ProjectChore[], rooms: readonly ProjectRoom[], questId: (choreId: string) => string, isLast: boolean): Draft[] => {
   const boss = biggestOf(chores);
   const roomCells = rooms.flatMap((room): Draft[] => {
-    const held = chores.filter((chore) => {
-      const isHeldHere = chore.roomId === room.id && chore !== boss;
-      return isHeldHere;
-    });
-    if (held.length === 0) return [];
+    const held = chores.filter((chore) => chore.roomId === room.id && chore !== boss);
+    const holdsNothing = held.length === 0;
+    if (holdsNothing) return [];
     const cell: TowerCell = { id: `room:${room.id}`, name: room.name, role: "chores", questIds: held.map((chore) => questId(chore.id)), biggest: biggestOf(held)?.difficulty ?? 0 };
     return [{ cell, parents: [anchor.cell.id] }];
   });
