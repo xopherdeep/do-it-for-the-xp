@@ -94,6 +94,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         route: "/xp-settings/sound",
       },
       {
+        id: "video",
+        title: "Video",
+        description: "How heroes and towns are drawn on this device.",
+        icon: require("@/assets/icons/mobile-game.svg"),
+        route: "/xp-settings/video",
+      },
+      {
         id: "theme",
         title: "Theme",
         description: "The game style the app wears and its menu sounds.",

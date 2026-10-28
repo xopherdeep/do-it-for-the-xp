@@ -38,8 +38,12 @@
           <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
         </xp-draggable-spot>
 
-        <xp-draggable-spot v-if="hasOldHouse" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
+        <xp-draggable-spot v-if="isOldHouseShown" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
           <xp-building-model building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot v-if="towerSpot" screen="home-town" spot-id="project-tower" :default-x="50" :default-y="46">
+          <xp-building-model :building-id="towerSpot.sceneId" :label="towerSpot.label" :sublabel="towerSpot.cue" :size="105" @click="openTower" />
         </xp-draggable-spot>
 
         <xp-draggable-spot screen="home-town" spot-id="hotel" :default-x="76" :default-y="74">
@@ -113,6 +117,13 @@
       </ion-card>
     </ion-modal>
     </ion-content>
+
+    <!-- The project tower: where the family is on it, and the Game Master's two controls -->
+    <project-tower-sheet :open="isTowerOpen" @close="isTowerOpen = false" @enter="enterTower" @changed="findTower" @abandoned="findTower" />
+
+    <!-- Once the roof is beaten the tower stays as a trophy: the cleared runs, the credits again, and Start again -->
+    <project-trophy-sheet :open="isTrophyOpen" @close="isTrophyOpen = false" @start-again="startAgain" />
+    <xp-project-wizard-modal :open="isWizardOpen" :type-id="restartType" @close="closeWizard" />
   </ion-page>
 </template>
 

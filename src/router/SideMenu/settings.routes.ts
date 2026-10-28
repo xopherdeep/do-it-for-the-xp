@@ -46,6 +46,14 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
         ),
     },
     {
+      path: "video",
+      name: "xp-settings-video",
+      component: () =>
+        import(
+          "@/app/SideMenu/XpSettings/components/VideoSettings.vue"
+        ),
+    },
+    {
       path: "notifications",
       name: "xp-settings-notifications",
       component: () =>

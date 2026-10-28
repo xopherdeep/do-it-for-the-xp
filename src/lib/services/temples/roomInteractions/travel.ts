@@ -129,7 +129,8 @@ const CLIMB_UNLOCKED_LINES: Record<KeyLock, string> = {
 
 /** What the stairs say of the lock that bars them, in the voice of the hero who stands before them (the floor line is in the copy catalogue) */
 const lockLine = (lock: ClimbLock, ctx: RoomContext): string => {
-  if (lock !== 'floorCleared') return CLIMB_LOCK_LINES[lock];
+  const isKeyLock = lock !== 'floorCleared';
+  if (isKeyLock) return CLIMB_LOCK_LINES[lock];
   const voice: Voice = voiceFor(useUserStore().getUserById(ctx.userId));
   return copyFor('temple.floorClearedLock', voice);
 };
@@ -140,25 +141,24 @@ const lockLine = (lock: ClimbLock, ctx: RoomContext): string => {
  */
 const lockToOpen = (room: Room, ctx: RoomContext): ClimbLock | undefined => {
   const lock = climbLockOf(room);
-  if (lock === 'floorCleared') return ctx.floorCleared === true ? undefined : lock;
+  const isFloorLock = lock === 'floorCleared';
+  if (isFloorLock) return ctx.floorCleared === true ? undefined : lock;
   const isFreeOrOpen = !lock || temples().isClimbUnlocked(ctx.templeId, ctx.level, ctx.position);
   return isFreeOrOpen ? undefined : lock;
 };
 
-/**
- * Whether the hero holds what the lock wants: a small key in the bag, or the Boss Key (kept, not spent). Nothing in the
- * bag opens a floor-cleared lock (`lockToOpen` has let a cleared floor through already).
- */
-const canOpenClimb = (templeId: string, lock: ClimbLock): boolean => {
-  switch (lock) {
-    case 'small':
-      return (temples().getTempleState(templeId)?.playerKeys ?? 0) > 0;
-    case 'master':
-      return temples().hasMasterKey(templeId);
-    case 'floorCleared':
-      return false;
-  }
+/** What each lock wants of the hero's bag: a small key, or the Boss Key (kept, not spent); nothing in the bag opens a floor-cleared lock */
+const HOLDS_WHAT_LOCK_WANTS: Record<ClimbLock, (templeId: string) => boolean> = {
+  small: (templeId) => (temples().getTempleState(templeId)?.playerKeys ?? 0) > 0,
+  master: (templeId) => temples().hasMasterKey(templeId),
+  floorCleared: () => false,
 };
+
+/**
+ * Whether the hero holds what the lock wants. A floor-cleared lock is never opened from the bag (`lockToOpen` has let
+ * a cleared floor through already).
+ */
+const canOpenClimb = (templeId: string, lock: ClimbLock): boolean => HOLDS_WHAT_LOCK_WANTS[lock](templeId);
 
 /**
  * The sheet of a flight of stairs: Climb on a free flight, or one already opened in this run, or one whose floor is

@@ -16,7 +16,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { TempleInterface } from "@/lib/databases/TempleDb";
 import { HOUSE_FRAME, planHouse, type HousePlan } from "@/lib/services/core/packs/movingTemple/housePlanner";
 import type { HouseCell, HouseCellKind, HouseZone } from "@/lib/services/core/packs/movingTemple/houseRooms";
-import { houseRoomsOf, type ProjectChore, type ProjectRoom } from "./projectChores";
+import { houseRoomsOf, rehomeChores, type ProjectChore, type ProjectRoom } from "./projectChores";
 import { ROOF_PHASE_ID, type PhaseWindow } from "./projectSchedule";
 import { projectQuestId, questsForProject, windowOfPhase, type ProjectTowerInput } from "./projectQuests";
 import { roofFloorKey, towerFloorKeys, towerLayout, type PlacedTowerCell, type TowerCell, type TowerFloor, type TowerRole } from "./towerRecord";
@@ -49,9 +49,6 @@ export interface ProjectTower {
 
 /** The way in: the middle of the frame's bottom row, where the Old House has its porch */
 const DOOR_AT: [number, number] = [HOUSE_FRAME - 1, Math.floor(HOUSE_FRAME / 2)];
-
-/** The room a chore goes to when its own is not in the house (houseRoomsOf always ends with it) */
-const WHOLE_HOUSE_ID = "house";
 
 /** What the planner is told each cell is; it only treats the Boss Key's drawer differently, and that is not used here */
 const PLANNER_KINDS: Record<TowerRole, HouseCellKind> = {
@@ -90,10 +87,13 @@ const checkChores = (input: ProjectTowerInput): void => {
   const { type, chores } = input;
   const floorIds = new Set([...type.phases.map((phase) => phase.id), ROOF_PHASE_ID]);
   const stray = chores.filter((chore) => !floorIds.has(chore.phaseId));
-  if (stray.length > 0) throw new Error(`${type.towerName} has no floor for ${namesOf(stray)}`);
+  const hasStray = stray.length > 0;
+  if (hasStray) throw new Error(`${type.towerName} has no floor for ${namesOf(stray)}`);
   const roof = chores.filter((chore) => chore.phaseId === ROOF_PHASE_ID);
-  if (roof.length === 0) throw new Error(`${type.towerName} has no finale for its roof`);
-  if (roof.length > 1) throw new Error(`The roof of ${type.towerName} holds one finale, not ${namesOf(roof)}`);
+  const hasNoFinale = roof.length === 0;
+  if (hasNoFinale) throw new Error(`${type.towerName} has no finale for its roof`);
+  const hasManyFinales = roof.length > 1;
+  if (hasManyFinales) throw new Error(`The roof of ${type.towerName} holds one finale, not ${namesOf(roof)}`);
   const last = type.phases[type.phases.length - 1];
   const hasLastChore = chores.some((chore) => chore.phaseId === last?.id);
   if (!hasLastChore) throw new Error(`The last phase of ${type.name} needs a chore: its boss keeps the Boss Key`);
@@ -106,11 +106,9 @@ const checkChores = (input: ProjectTowerInput): void => {
 const phaseDrafts = (anchor: Draft, chores: readonly ProjectChore[], rooms: readonly ProjectRoom[], questId: (choreId: string) => string, isLast: boolean): Draft[] => {
   const boss = biggestOf(chores);
   const roomCells = rooms.flatMap((room): Draft[] => {
-    const held = chores.filter((chore) => {
-      const isHeldHere = chore.roomId === room.id && chore !== boss;
-      return isHeldHere;
-    });
-    if (held.length === 0) return [];
+    const held = chores.filter((chore) => chore.roomId === room.id && chore !== boss);
+    const holdsNothing = held.length === 0;
+    if (holdsNothing) return [];
     const cell: TowerCell = { id: `room:${room.id}`, name: room.name, role: "chores", questIds: held.map((chore) => questId(chore.id)), biggest: biggestOf(held)?.difficulty ?? 0 };
     return [{ cell, parents: [anchor.cell.id] }];
   });
@@ -204,13 +202,7 @@ const planTower = (input: ProjectTowerInput, chores: readonly ProjectChore[], se
 };
 
 /** The chores as the tower places them: one whose room the house lacks goes to the Whole House (the roof's stay put) */
-const rehomed = (input: ProjectTowerInput): ProjectChore[] => {
-  const known = new Set(houseRoomsOf(input.house).map((room) => room.id));
-  return input.chores.map((chore) => {
-    const isLost = chore.phaseId !== ROOF_PHASE_ID && !known.has(chore.roomId);
-    return isLost ? { ...chore, roomId: WHOLE_HOUSE_ID } : chore;
-  });
-};
+const rehomed = (input: ProjectTowerInput): ProjectChore[] => rehomeChores(input.chores, input.house);
 
 /**
  * The tower for a project: its temple record, a quest for every chore and its floors with their windows. Throws for a

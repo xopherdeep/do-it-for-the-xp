@@ -56,6 +56,14 @@ jest.mock("@/lib/databases/QuestLogDb", () => ({
   }),
 }));
 
+// The tower floors a paid project chore may clear: the rules are projectService.spec.ts, here only that they are asked
+const mockOnQuestPaid = jest.fn();
+const mockOnEntryPaid = jest.fn();
+jest.mock("@/lib/services/projects/projectService", () => ({
+  onQuestPaid: (...args: unknown[]) => mockOnQuestPaid(...args),
+  onEntryPaid: (...args: unknown[]) => mockOnEntryPaid(...args),
+}));
+
 // The family's late chore rules: off, as a family that never opened the card has them
 let mockLateChores: Record<string, unknown> = {};
 jest.mock("@/lib/services/family/familySettings", () => {
@@ -100,6 +108,8 @@ beforeEach(() => {
   setActivePinia(createPinia());
   log.length = 0;
   mockLateChores = {};
+  mockOnQuestPaid.mockReset();
+  mockOnEntryPaid.mockReset();
 });
 
 describe("paidQuestRewards", () => {
@@ -610,5 +620,79 @@ describe("completeQuest and late chores", () => {
     mockLateChores = { reducedPay: true, lateShare: 50 };
     const result = await completeQuest(lateQuest({ dueByTime: "23:59" }), HERO_ID, "claim");
     expect(result.paid).toEqual({ xp: 30, gp: 40, ap: 2 });
+  });
+});
+
+describe("a paid project chore settles its tower floor", () => {
+  const projectQuest = (requiresApproval = false): Achievement =>
+    ({
+      ...quest(requiresApproval),
+      id: "pq-spring-cleaning-2027-04-03-sweep",
+      project: { projectId: "spring-cleaning-2027-04-03", floor: "1F", dueOn: "2027-04-06" },
+    }) as unknown as Achievement;
+
+  it("asks after a claim paid at once, once the entry says it was paid", async () => {
+    addHero("Warrior");
+    const paidWhenAsked: boolean[] = [];
+    mockOnQuestPaid.mockImplementation(async () => {
+      paidWhenAsked.push(log[0].rewardsApplied);
+      return null;
+    });
+    const chore = projectQuest();
+    await completeQuest(chore, HERO_ID, "claim");
+    expect(mockOnQuestPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnQuestPaid).toHaveBeenCalledWith(chore, expect.any(String));
+    expect(paidWhenAsked).toEqual([true]);
+    expect(stats().xp.now).toBe(30);
+  });
+
+  it("waits for the Game Master's approval of a held claim, and asks once for it", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+    await approveCompletion(held.entry.id, "gm-1");
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(mockOnEntryPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnEntryPaid).toHaveBeenCalledWith("pq-spring-cleaning-2027-04-03-sweep", held.entry.completedAt);
+  });
+
+  it("asks nothing for a rejected claim", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    await rejectCompletion(held.entry.id, "gm-1", "not done");
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+  });
+
+  it("asks after a win logged once the battle paid its own rewards", async () => {
+    addHero("Warrior");
+    const chore = projectQuest();
+    const entry = await recordBattleCompletion(chore, HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(mockOnQuestPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnQuestPaid).toHaveBeenCalledWith(chore, entry.completedAt);
+  });
+
+  it("leaves a plain chore alone, paid at once or approved", async () => {
+    addHero("Warrior");
+    await completeQuest(quest(), HERO_ID, "claim");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    await approveCompletion(held.entry.id, "gm-1");
+    await recordBattleCompletion(quest(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+  });
+
+  it("never holds up the payment when the floor cannot be settled", async () => {
+    addHero("Warrior");
+    mockOnQuestPaid.mockRejectedValue(new Error("the storage is gone"));
+    mockOnEntryPaid.mockRejectedValue(new Error("the storage is gone"));
+    const paid = await completeQuest(projectQuest(), HERO_ID, "claim");
+    expect(paid.entry.rewardsApplied).toBe(true);
+    expect(stats().xp.now).toBe(30);
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    const approved = await approveCompletion(held.entry.id, "gm-1");
+    expect(approved?.status).toBe("approved");
+    expect(stats().xp.now).toBe(60);
   });
 });

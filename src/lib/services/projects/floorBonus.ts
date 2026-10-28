@@ -42,7 +42,8 @@ export const floorBonusPool = (quests: readonly FloorBonus[], multiplier: number
  */
 export const splitFloorBonus = (pool: FloorBonus, workerIds: readonly string[], lastWorkerId: string): Record<string, FloorBonus> => {
   const workers = [...new Set(workerIds)];
-  if (workers.length === 0) return {};
+  const hasNoWorkers = workers.length === 0;
+  if (hasNoWorkers) return {};
   const each = { xp: Math.floor(pool.xp / workers.length), gp: Math.floor(pool.gp / workers.length) };
   const remainder = { xp: pool.xp - each.xp * workers.length, gp: pool.gp - each.gp * workers.length };
   const receiver = workers.includes(lastWorkerId) ? lastWorkerId : workers[0];

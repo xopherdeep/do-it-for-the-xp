@@ -4,4 +4,9 @@
     <string name="title_activity_main">Do it for the XP</string>
     <string name="package_name">com.forthexp.doit</string>
     <string name="custom_url_scheme">com.forthexp.doit</string>
+    <string name="widget_hero_card_name">XP: Hero Card</string>
+    <string name="widget_quest_board_name">XP: Quest Board</string>
+    <string name="widget_streak_altar_name">XP: Streak Flame</string>
+    <string name="widget_quick_dock_name">XP: Action Dock</string>
+    <string name="widget_gold_vault_name">XP: Gold Bank</string>
 </resources>

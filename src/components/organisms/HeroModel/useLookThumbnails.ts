@@ -2,11 +2,14 @@ import * as THREE from "three";
 import { onBeforeUnmount, ref, shallowReactive } from "vue";
 import type { Ref } from "vue";
 import type { HeroLook } from "@/lib/hero-look/types";
+import { currentKnobs, currentTier } from "@/lib/services/graphics/deviceQuality";
+import type { VoxelKnobs } from "@/lib/services/graphics/voxelQuality";
 import debug from "@/lib/utils/debug";
 import { addHeroLights, renderHeroSnapshot } from "./heroCamera";
 import type { SnapshotFraming } from "./heroCamera";
 import { withoutHands } from "./lookEditor";
 import { buildHero, disposeHero } from "./voxel/build";
+import { detailOf } from "./voxel/detail";
 
 /**
  * The builder's option tiles show the player's own hero with that option, drawn by ONE hidden WebGL renderer: a
@@ -37,14 +40,20 @@ export interface ThumbnailerOptions {
 }
 
 const DEFAULT_SIZE = 96;
-const PER_FRAME = 3;
 const CACHE_SIZE = 200;
+
+/** A tier with a thumbnail cap never asks for a larger picture than that; 0 means no cap */
+const cappedSize = (size: number, knobs: VoxelKnobs): number =>
+  knobs.thumbMaxPx > 0 ? Math.min(size, knobs.thumbMaxPx) : size;
 
 /**
  * One renderer on a detached canvas and one lit scene; every look is built, shot and thrown away. null without WebGL.
  * `onContextLost` is called when the browser takes the GL context away (a phone does that under memory pressure).
  */
-export const createThreeDraw = (onContextLost?: () => void): { draw: ThumbDraw; dispose: () => void } | null => {
+export const createThreeDraw = (
+  onContextLost?: () => void,
+  knobs: VoxelKnobs = currentKnobs(),
+): { draw: ThumbDraw; dispose: () => void } | null => {
   const canvas = document.createElement("canvas");
   let renderer: THREE.WebGLRenderer;
   try {
@@ -64,10 +73,11 @@ export const createThreeDraw = (onContextLost?: () => void): { draw: ThumbDraw; 
     draw: (look, framing, size) => {
       // three.js renders nothing on a lost context and does not throw: a picture from one is blank, so refuse it
       if (isLost()) throw new Error("WebGL context lost");
-      const hero = buildHero(look);
+      const hero = buildHero(look, detailOf(knobs));
       scene.add(hero);
       try {
-        const picture = renderHeroSnapshot(renderer, scene, hero, size, framing);
+        const shot = cappedSize(size, knobs);
+        const picture = renderHeroSnapshot(renderer, scene, hero, shot, framing, knobs.snapshotSamples);
         if (isLost()) throw new Error("WebGL context lost while drawing");
         return picture;
       } finally {
@@ -91,7 +101,11 @@ interface Request {
 }
 
 export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThumbnailer => {
-  const perFrame = options.perFrame ?? PER_FRAME;
+  const knobs = currentKnobs();
+  /** Captured with the knobs: a picture is keyed by the tier whose knobs drew it, even if the stored tier changes later */
+  const tier = currentTier();
+  const perFrame = options.perFrame ?? knobs.thumbPerFrame;
+  const defaultSize = cappedSize(DEFAULT_SIZE, knobs);
   const cacheSize = options.cacheSize ?? CACHE_SIZE;
   const schedule =
     options.schedule ??
@@ -125,7 +139,7 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
     const hasCustomDraw = customDraw !== undefined;
     if (hasCustomDraw) return customDraw;
     const isRendererUntried = three === undefined;
-    if (isRendererUntried) three = createThreeDraw(giveUp);
+    if (isRendererUntried) three = createThreeDraw(giveUp, knobs);
     return three ? three.draw : null;
   };
 
@@ -165,10 +179,10 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
     schedule(frame);
   };
 
-  const get = (look: HeroLook, framing: SnapshotFraming, size = DEFAULT_SIZE): string => {
+  const get = (look: HeroLook, framing: SnapshotFraming, size = defaultSize): string => {
     if (isShutDown()) return "";
     const stored = withoutHands(look);
-    const key = `${framing}|${size}|${JSON.stringify(stored)}`;
+    const key = `${tier}|${framing}|${size}|${JSON.stringify(stored)}`;
     const picture = pictures.get(key);
     const isDrawn = picture !== undefined;
     if (isDrawn) return picture;

@@ -62,6 +62,10 @@
       <!-- FAMILY SYNC: the clerk's took-over line and the busy question for this hero -->
       <xp-reveal-prompt :prompt="turnPrompt" @respond="answerTurn" />
 
+      <!-- A WON TOWER: the family reward is told once to each hero, then the credits roll once -->
+      <xp-reveal-prompt :prompt="finishPrompt" @respond="answerFinish" />
+      <credits-roll v-if="credits" :credits="credits" @done="closeCredits" />
+
       <!-- FIRST-RUN TOUR: once per hero, a ring of light walks the HUD and the bottom nav -->
       <template v-if="guidesOn">
         <xp-first-run-tour v-if="user?.id && user.stats && !battleState('active')" :hero-id="String(user.id)"

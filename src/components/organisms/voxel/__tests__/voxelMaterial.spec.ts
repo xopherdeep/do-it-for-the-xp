@@ -22,3 +22,27 @@ describe("voxelMaterial: the bevel", () => {
     expect(compile(undefined, "lowp").fragmentShader).not.toContain("min(size.x, size.y)");
   });
 });
+
+describe("voxelMaterial: the flat variant", () => {
+  const TINT_HASH = "fract(sin(dot(cell";
+  const cacheKey = (options?: VoxelMaterialOptions) => createVoxelMaterial(options).customProgramCacheKey!();
+
+  it("compiles out the per-cell tint and the bevel but keeps the occlusion", () => {
+    const { fragmentShader } = compile({ flat: true });
+    expect(fragmentShader).not.toContain(TINT_HASH);
+    expect(fragmentShader).not.toContain("min(size.x, size.y)");
+    expect(fragmentShader).toContain("float aoShade");
+  });
+
+  it("keeps the tint in the default and simple variants", () => {
+    expect(compile().fragmentShader).toContain(TINT_HASH);
+    expect(compile({ simple: true }).fragmentShader).toContain(TINT_HASH);
+    expect(compile(undefined, "lowp").fragmentShader).toContain(TINT_HASH);
+  });
+
+  it("gives each variant its own program cache key", () => {
+    expect(cacheKey()).toBe("voxel");
+    expect(cacheKey({ simple: true })).toBe("voxel-simple");
+    expect(cacheKey({ flat: true })).toBe("voxel-flat");
+  });
+});

@@ -2,16 +2,24 @@ import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
 import { computed, ref } from "vue";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
-import { MOVING_TEMPLE_ID } from "@/lib/services/core/packs/movingTemple";
+import { OLD_HOUSE_ID, showsOldHouse } from "@/lib/services/projects/oldHouse";
+import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
+import type { ProjectTypeId } from "@/lib/services/core/packs/projects";
+import { readTower, readTrophies } from "@/lib/services/projects/projectService";
+import { useVoice } from "@/hooks/useVoice";
 import debug from "@/lib/utils/debug";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal, onIonViewDidEnter } from "@ionic/vue";
+import XpProjectWizardModal from "@/app/SideMenu/XpSettings/components/XpProjectWizardModal.vue";
+import ProjectTowerSheet from "./components/ProjectTowerSheet.vue";
+import ProjectTrophySheet from "./components/ProjectTrophySheet.vue";
+import { standingProjectOf, towerSpotOf } from "./components/towerSpot";
 
 export default dC({
   name: "home-town",
-  components: { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal },
+  components: { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal, ProjectTowerSheet, ProjectTrophySheet, XpProjectWizardModal },
 
   setup() {
     const userStore = useUserStore();
@@ -84,13 +92,13 @@ export default dC({
       },
     ];
 
-    // The Moving House pack's temple is not one of the nine on the world map: it lives in the temple store, so the
-    // plaza gets a building for it once the family has built it
+    // The Moving House pack's old temple is not one of the nine on the world map: it lives in the temple store, so the
+    // plaza has a building for it while the family still has it; a Moving Out tower takes its place (oldHouse.ts)
     const hasOldHouse = ref(false);
     const findOldHouse = async (): Promise<void> => {
       try {
         await templeStorage.create();
-        hasOldHouse.value = Boolean(await new TempleDb(templeStorage).getTempleById(MOVING_TEMPLE_ID));
+        hasOldHouse.value = Boolean(await new TempleDb(templeStorage).getTempleById(OLD_HOUSE_ID));
       } catch (error) {
         // No temple store (private mode): the town just has no old house
         debug.warn("[HomeTown] could not look for the old house", error);
@@ -99,12 +107,62 @@ export default dC({
     };
 
     const enterOldHouse = () => {
-      router.push({ name: "temple", params: { userId: userId.value, temple: MOVING_TEMPLE_ID } });
+      router.push({ name: "temple", params: { userId: userId.value, temple: OLD_HOUSE_ID } });
+    };
+
+    // The family's project tower stands on the plaza while a project is running, and stays as a trophy once the roof is
+    // beaten (the newest cleared run); a tap opens the tower's sheet, or the trophy's
+    const { voice } = useVoice();
+    const tower = ref<ProjectRecord | null>(null);
+    const isOldHouseShown = computed(() => showsOldHouse(hasOldHouse.value, tower.value));
+    const isTowerOpen = ref(false);
+    const isTrophyOpen = ref(false);
+    const isWizardOpen = ref(false);
+    const restartType = ref<ProjectTypeId | undefined>(undefined);
+    const towerSpot = computed(() => (tower.value ? towerSpotOf(tower.value, voice.value) : null));
+    const isTrophy = computed(() => tower.value?.status === "cleared");
+    // A trophy that cannot be read leaves the running tower where it is
+    const readTrophiesQuietly = async (): Promise<ProjectRecord[]> => {
+      try {
+        return await readTrophies();
+      } catch (error) {
+        debug.warn("[HomeTown] could not look for the trophies", error);
+        return [];
+      }
+    };
+    const findTower = async (): Promise<void> => {
+      try {
+        const [running, cleared] = await Promise.all([readTower(), readTrophiesQuietly()]);
+        tower.value = standingProjectOf(running?.project ?? null, cleared);
+      } catch (error) {
+        debug.warn("[HomeTown] could not look for the project tower", error);
+        tower.value = null;
+      }
+    };
+    const openTower = () => {
+      if (isTrophy.value) isTrophyOpen.value = true;
+      else isTowerOpen.value = true;
+    };
+    // The trophy's Start again: the project wizard on the run's type, and the plaza looks again when it closes
+    const startAgain = (typeId: ProjectTypeId) => {
+      isTrophyOpen.value = false;
+      restartType.value = typeId;
+      isWizardOpen.value = true;
+    };
+    const closeWizard = () => {
+      isWizardOpen.value = false;
+      void findTower();
+    };
+    const enterTower = () => {
+      isTowerOpen.value = false;
+      const templeId = tower.value?.templeId;
+      if (templeId) router.push({ name: "temple", params: { userId: userId.value, temple: templeId } });
     };
 
     onIonViewDidEnter(() => {
       setActions("home-town", userActions);
       void findOldHouse();
+      void findTower();
     })
 
     return {
@@ -113,7 +171,18 @@ export default dC({
       arrowBack,
       userActions,
       hasOldHouse,
+      isOldHouseShown,
       enterOldHouse,
+      towerSpot,
+      isTowerOpen,
+      isTrophyOpen,
+      isWizardOpen,
+      restartType,
+      findTower,
+      openTower,
+      startAgain,
+      closeWizard,
+      enterTower,
     };
   },
 });

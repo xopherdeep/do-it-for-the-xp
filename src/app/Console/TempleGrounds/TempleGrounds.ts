@@ -27,6 +27,7 @@ import TempleWallReveal from './components/TempleWallReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import TempleLoading from './components/TempleLoading.vue';
 import TempleBossBanner from './components/TempleBossBanner.vue';
+import TempleFloorClock from './components/TempleFloorClock.vue';
 import TempleItemFanfare from './components/TempleItemFanfare.vue';
 import TempleRoomArrival from './components/TempleRoomArrival.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
@@ -42,6 +43,7 @@ import { useTempleLayout } from './templeGrounds/useTempleLayout';
 import { useTempleEntry } from './templeGrounds/useTempleEntry';
 import { useChestReveal, useChoiceReveal, useDoorReveal, useDropReveal, usePegasusReveal, useWallReveal } from './templeGrounds/templeReveals';
 import { useRoomBeast } from './templeGrounds/useRoomBeast';
+import { useProjectTower } from './templeGrounds/useProjectTower';
 import { useRoomOutcomes } from './templeGrounds/useRoomOutcomes';
 import { useTempleMovement } from './templeGrounds/useTempleMovement';
 import { useTemplePreload } from './templeGrounds/useTemplePreload';
@@ -49,24 +51,7 @@ import { useBossEntrance } from './templeGrounds/useBossEntrance';
 import { useRoomArrival } from './templeGrounds/useRoomArrival';
 import { useItemFanfare } from './templeGrounds/useItemFanfare';
 import { mapCellIconOf } from './templeGrounds/mapCellIcon';
-
-// Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
-const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
-
-const toStartPosition = (x: unknown, y: unknown): [number, number] | undefined => {
-  const isStartIncomplete = isBlankParam(x) || isBlankParam(y);
-  if (isStartIncomplete) return undefined;
-  const col = Number(x);
-  const row = Number(y);
-  return Number.isInteger(col) && Number.isInteger(row) && col >= 0 && row >= 0 ? [row, col] : undefined;
-};
-
-// The temple route has no :level segment: a battle returns with ?level=2F. A floor only means something
-// next to the start position it qualifies, and the temple ignores floors it does not have.
-const toStartLevel = (level: unknown, startPosition: [number, number] | undefined): string | undefined => {
-  const raw = Array.isArray(level) ? level[0] : level;
-  return startPosition && typeof raw === 'string' && raw !== '' ? raw : undefined;
-};
+import { toStartLevel, toStartPosition } from './templeGrounds/routeStart';
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],
@@ -83,6 +68,7 @@ export default defineComponent({
     'temple-pegasus-reveal': TemplePegasusReveal,
     'temple-loading': TempleLoading,
     'temple-boss-banner': TempleBossBanner,
+    'temple-floor-clock': TempleFloorClock,
     'temple-item-fanfare': TempleItemFanfare,
     'temple-room-arrival': TempleRoomArrival,
     XpVitalsBar,
@@ -281,6 +267,8 @@ export default defineComponent({
     const itemFanfare = useItemFanfare();
     const roomDrama = { ...useBossEntrance(bossEntranceDeps), ...useRoomArrival(currentPosition), ...itemFanfare };
 
+    // A project tower in play (wakes floors for the family, header clock, stairs lock, Floor cleared!); inert for other temples
+    const tower = useProjectTower({ temple: props.temple, heroId: progressHeroId, whenOpened, currentLevel, templeSystem });
     // What rooms and items do: fights, chests, riddles, shops, teleports, traps, the way out
     const { isShaking, getLiveContext: liveContext, applyOutcome, handleArrival: arrive, showRoomActions } = useRoomOutcomes({
       props,
@@ -304,7 +292,8 @@ export default defineComponent({
       openChoiceReveal,
       beastCard,
       activeMonster,
-      templeElement
+      templeElement,
+      isFloorCleared: tower.isFloorCleared
     });
 
     // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
@@ -484,7 +473,8 @@ export default defineComponent({
       activeMonster,
       // The prompt that tells the hero a floor's beasts stirred
       floorWakePrompt,
-      answerFloorWake
+      answerFloorWake,
+      ...tower
     };
   },
   computed: {

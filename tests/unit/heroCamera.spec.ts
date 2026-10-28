@@ -257,4 +257,29 @@ describe("renderHeroSnapshot", () => {
     expect(renderer.setRenderTarget).toHaveBeenLastCalledWith(previousTarget);
     expect(renderer.readRenderTargetPixels).toHaveBeenCalledWith(expect.anything(), 0, 0, 8, 8, expect.any(Uint8Array));
   });
+
+  it("shoots with 4 samples unless asked for another number", () => {
+    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+      putImageData: jest.fn(),
+    } as never);
+    jest.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;shot");
+    const hero = buildHero(DEFAULT_LOOK);
+    const renderer = {
+      getRenderTarget: jest.fn(() => null),
+      setRenderTarget: jest.fn(),
+      setClearColor: jest.fn(),
+      clear: jest.fn(),
+      render: jest.fn(),
+      readRenderTargetPixels: jest.fn(),
+    };
+
+    renderHeroSnapshot(renderer as never, new THREE.Scene(), hero, 8, "bust");
+    renderHeroSnapshot(renderer as never, new THREE.Scene(), hero, 8, "bust", 0);
+
+    const firstTarget = renderer.setRenderTarget.mock.calls[0][0] as THREE.WebGLRenderTarget;
+    const secondShot = renderer.setRenderTarget.mock.calls[2][0] as THREE.WebGLRenderTarget;
+    expect(firstTarget.samples).toBe(4);
+    expect(secondShot.samples).toBe(0);
+  });
 });

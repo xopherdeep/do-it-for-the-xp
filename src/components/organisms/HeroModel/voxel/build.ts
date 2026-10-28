@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { HeroLook } from "@/lib/hero-look/types";
 import { createSoftShadowMaterial, createVoxelMaterial, voxelGeometry } from "@/components/organisms/voxel/voxelMaterial";
 import { assembleHero } from "./assemble";
+import { DEFAULT_DETAIL, materialOptionsOf } from "./detail";
+import type { HeroDetail } from "./detail";
 import { buildMeshData } from "./mesh";
 import type { Box, MeshData } from "./mesh";
 import { partMeshInput } from "./partMesh";
@@ -67,10 +69,10 @@ const setRest = (group: THREE.Group, rot: [number, number, number] = [0, 0, 0]):
   group.rotation.set(rot[0], rot[1], rot[2]);
 };
 
-export const buildHero = (look: HeroLook): THREE.Group => {
+export const buildHero = (look: HeroLook, detail: HeroDetail = DEFAULT_DETAIL): THREE.Group => {
   const parts = assembleHero(look);
   const byName = new Map<PartName, Part>(parts.map((p) => [p.name, p]));
-  const material = createVoxelMaterial();
+  const material = createVoxelMaterial(materialOptionsOf(detail));
 
   const root = new THREE.Group();
   root.name = "hero";
