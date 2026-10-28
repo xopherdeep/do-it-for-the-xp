@@ -34,7 +34,7 @@
     <ion-footer>
       <ion-toolbar class="rpg-box">
         <div class="video-settings__footer" data-cy="video-footer-slot">
-          <ion-button expand="block" data-cy="video-test-button" :disabled="isRunning" @click="runTest">
+          <ion-button expand="block" color="rpg" data-cy="video-test-button" :disabled="isRunning" @click="runTest">
             {{ isRunning ? "Testing..." : "Test this device" }}
           </ion-button>
         </div>
