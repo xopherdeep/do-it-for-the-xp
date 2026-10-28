@@ -4,6 +4,7 @@
  */
 import { BACKUP_STORES } from "@/lib/services/core/BackupService";
 import { ProjectDb, getProjectDb, projectStorage } from "@/lib/databases/ProjectDb";
+import { newestCleared } from "@/lib/services/projects/projectProgress";
 import type { ProjectFloor, ProjectRecord } from "@/lib/services/projects/projectRecord";
 
 const fakeStorage = () => {
@@ -157,6 +158,18 @@ describe("ProjectDb", () => {
       await db.save(recordOf("spring-live"));
       await db.save(clearedOn("spring-old", "2026-04-30T10:00:00.000Z"));
       expect(await db.lastOfType("moving-out")).toBeNull();
+    });
+
+    it("picks the very run newestCleared picks over a tie and an undated run, whatever order they were saved in", async () => {
+      const stamp = "2027-04-30T10:00:00.000Z";
+      const runs = [clearedOn("spring-a", stamp), clearedOn("spring-b", stamp), recordOf("undated", { status: "cleared" })];
+      for (const order of [runs, [...runs].reverse()]) {
+        const fresh = new ProjectDb(fakeStorage() as never);
+        for (const run of order) await fresh.save(run);
+        const picked = (await fresh.lastOfType("spring-cleaning"))?.id;
+        expect(picked).toBe(newestCleared(order)?.id);
+        expect(picked).toBe("spring-b");
+      }
     });
 
     it("keeps a cleared run with no clearing time behind every dated one", async () => {

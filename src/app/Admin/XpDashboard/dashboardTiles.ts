@@ -34,5 +34,9 @@ export const tileStatsOf = (system?: TileSource | null): TileStats => ({
   items: wholeCount(system?.items),
 });
 
-/** Quests waiting on the Game Master plus shop purchases waiting to be handed over */
-export const approvalsTotal = (chores: unknown, rewards: unknown): number => wholeCount(chores) + wholeCount(rewards);
+/**
+ * Quests waiting on the Game Master plus shop purchases waiting to be handed over, plus the family reward of a cleared
+ * project that is earned and not yet handed over (1 while one waits, 0 otherwise)
+ */
+export const approvalsTotal = (chores: unknown, rewards: unknown, familyReward: unknown = 0): number =>
+  wholeCount(chores) + wholeCount(rewards) + wholeCount(familyReward);

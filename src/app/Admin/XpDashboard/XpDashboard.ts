@@ -13,6 +13,7 @@ import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
+import { readRewardToGive } from "@/lib/services/projects/projectService";
 import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import {
   toastController,
@@ -327,11 +328,13 @@ export default defineComponent({
           return 0;
         }
       };
-      const [chores, rewards] = await Promise.all([
+      const [chores, rewards, familyReward] = await Promise.all([
         countPending(() => getQuestLogDb().getPending(), "quest approvals"),
         countPending(() => getPurchaseLogDb().getPending(), "accessory purchases"),
+        // A cleared project's family reward waits on the Game Master like a purchase does: one at most
+        countPending(async () => ((await readRewardToGive()) ? [true] : []), "family rewards"),
       ]);
-      approvals.value = { chores, rewards, total: approvalsTotal(chores, rewards) };
+      approvals.value = { chores, rewards, total: approvalsTotal(chores, rewards, familyReward) };
     };
 
     const loadDashboardData = async () => {

@@ -27,6 +27,8 @@ import { guidesOn as isGuidesOn } from "@/lib/services/core/profilePrefs";
 import { areaTabFor, isPartyRoute, navTabFor } from "./areaTab";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { usePortalTurn } from "@/hooks/useHeroTurn";
+import { useProjectFinish } from "@/hooks/useProjectFinish";
+import CreditsRoll from "@/components/organisms/CreditsRoll/CreditsRoll.vue";
 
 // Define interface for equipment items
 interface EquipmentItem {
@@ -64,7 +66,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour, XpGuide, XpRevealPrompt },
+  components: { ...components, XpPortalPage, XpBottomNav, XpPowerTimerBar, XpFirstRunTour, XpGuide, XpRevealPrompt, CreditsRoll },
   mixins: [ionic],
   name: "my-portal",
   data() {
@@ -261,6 +263,9 @@ export default defineComponent({
     // Family Sync: the clerk says once when another device took this hero over, and asks when the turn is busy
     const { prompt: turnPrompt, respond: answerTurn } = usePortalTurn(String(userId));
 
+    // A won tower: the family reward once, then the credits once, for each hero (hooks/useProjectFinish.ts)
+    const { finishPrompt, answerFinish, credits, closeCredits } = useProjectFinish(String(userId));
+
     const pageIcon = computed(() => route.meta.faIcon);
     const fabStyle = computed(() => gameStore.fabStyle);
 
@@ -314,6 +319,10 @@ export default defineComponent({
       setActions,
       turnPrompt,
       answerTurn,
+      finishPrompt,
+      answerFinish,
+      credits,
+      closeCredits,
     };
   },
 });

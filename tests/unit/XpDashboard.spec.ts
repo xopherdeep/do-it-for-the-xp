@@ -37,6 +37,13 @@ describe("dashboard tile counts", () => {
     expect(approvalsTotal(0, 0)).toBe(0);
     expect(approvalsTotal(undefined, 4)).toBe(4);
   });
+
+  it("counts a family reward that is earned and not yet handed over as one more", () => {
+    expect(approvalsTotal(2, 3, 1)).toBe(6);
+    expect(approvalsTotal(0, 0, 1)).toBe(1);
+    expect(approvalsTotal(2, 3, 0)).toBe(5);
+    expect(approvalsTotal(2, 3, undefined)).toBe(5);
+  });
 });
 
 describe("dashboard page", () => {

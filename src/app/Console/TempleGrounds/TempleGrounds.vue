@@ -49,6 +49,8 @@
         <!-- Where in the house the hero stands: the room's name, when it has one -->
         <ion-title v-if="currentRoom?.content?.name" class="temple-room-name" data-cy="temple-room-name">{{ currentRoom.content.name }}</ion-title>
       </ion-toolbar>
+      <!-- A project tower: how long this floor has, and the offer to clear it early for a bigger bonus -->
+      <temple-floor-clock v-if="floorClock" :clock="floorClock" />
     </ion-header>
     <ion-content
       ref="gameArea"
@@ -379,6 +381,9 @@
 
     <!-- The beasts of a floor stirred as the hero arrived on it: the game's own prompt, never a native alert -->
     <xp-reveal-prompt :prompt="floorWakePrompt" @respond="answerFloorWake" />
+
+    <!-- A floor of a project tower was cleared: Floor cleared!, with the early bonus when there was one -->
+    <xp-reveal-prompt :prompt="towerPrompt" @respond="answerTowerPrompt" />
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />

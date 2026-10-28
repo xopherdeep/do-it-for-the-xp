@@ -135,6 +135,9 @@ export default defineComponent({
       return Boolean(user?.stats?.pegasi?.[pegasus.value.index]);
     });
 
+    // A project tower (HomeTown's tower spot): its scene id carries the floor count and the element; the caller opens its sheet
+    const isTower = computed(() => props.buildingId.startsWith("project-tower"));
+
     const isHotel = computed(() => {
       const isNamedHotel = props.buildingId === "hotel";
       const isSuffixHotel = props.buildingId.endsWith("-hotel");
@@ -180,7 +183,7 @@ export default defineComponent({
         "front-door",
         "world-plains",
         "plains",
-      ].includes(props.buildingId) && !isPegasus.value && !isHotel.value;
+      ].includes(props.buildingId) && !isPegasus.value && !isHotel.value && !isTower.value;
     });
 
     const displayName = computed(() => {
@@ -273,7 +276,8 @@ export default defineComponent({
       emit("click", props.buildingId);
 
       const userId = route.params.userId;
-      if (!userId) return;
+      const hasNowhereToGo = !userId || isTower.value;
+      if (hasNowhereToGo) return;
 
       if (isPegasus.value) {
         router.push({ name: "world-map", params: { userId } });

@@ -37,32 +37,9 @@
           </div>
         </section>
 
-        <section class="moving-section">
-          <h3>Floors</h3>
-          <span class="moving-bands" role="radiogroup" aria-label="How many floors the home has">
-            <button
-              type="button"
-              role="radio"
-              data-cy="moving-floors-1"
-              :aria-checked="floors === 1"
-              :class="{ 'is-on': floors === 1 }"
-              @click="floors = 1"
-            >
-              1 floor
-            </button>
-            <button
-              type="button"
-              role="radio"
-              data-cy="moving-floors-2"
-              :aria-checked="floors === 2"
-              :class="{ 'is-on': floors === 2 }"
-              @click="floors = 2"
-            >
-              2 floors
-            </button>
-          </span>
+        <section v-if="hasStorage" class="moving-section">
+          <h3>Storage</h3>
           <button
-            v-if="hasStorage"
             type="button"
             class="moving-check"
             :class="{ 'is-on': basement }"
@@ -97,30 +74,9 @@
           </div>
         </section>
 
-        <section class="moving-section">
-          <h3>Moving Day temple</h3>
-          <button
-            type="button"
-            class="moving-check moving-temple-check"
-            :class="{ 'is-on': wantsTemple }"
-            role="checkbox"
-            :aria-checked="wantsTemple"
-            @click="wantsTemple = !wantsTemple"
-          >
-            <i :class="['fad', wantsTemple ? 'fa-check-square' : 'fa-square']"></i>
-            Build the Moving Day temple
-          </button>
-          <p class="moving-note">Walk the old house room by room and fight the packing. Find it in Hometown.</p>
-        </section>
-
         <p class="moving-preview" aria-live="polite">
-          <template v-if="canBuild">
-            This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts<template v-if="previewTemple"> and a {{ floorsWord }} house temple with {{ previewTemple.rooms.length }} rooms</template>.
-          </template>
+          <template v-if="canBuild">This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts.</template>
           <template v-else>Pick a move date and at least one hero.</template>
-        </p>
-        <p v-if="canBuild && templeFailed" class="moving-note" role="status">
-          The temple could not be laid out for this house. Untick the temple to build the pack.
         </p>
         <p v-if="error" class="moving-error" role="alert">{{ error }}</p>
       </template>
@@ -128,6 +84,10 @@
       <template v-else>
         <p class="moving-summary">{{ summary }}</p>
         <p class="moving-note">Everything else you made was kept. Reload the app so every screen shows the new quests.</p>
+        <p class="moving-note">{{ t("projectWizard.fromMoving.hint") }}</p>
+        <ion-button class="moving-tower" expand="block" data-cy="moving-to-tower" @click="toTower">
+          {{ t("projectWizard.fromMoving.action") }}
+        </ion-button>
       </template>
     </div>
 
@@ -161,17 +121,21 @@ import {
   buildMovingPack,
   dateKey,
   movingBandFor,
+  movingPackBackup,
   movingPackSummary,
 } from "@/lib/services/core/packs/movingPack";
 import type { MovingAnswers, MovingRole, MovingRoomId } from "@/lib/services/core/packs/movingPack";
-import { buildMovingTemple, movingTempleBackup, movingTempleSummary } from "@/lib/services/core/packs/movingTemple";
-import type { MovingTemple } from "@/lib/services/core/packs/movingTemple";
-import { forgetOldHouseRun, forgetOldHouseWalks } from "@/lib/services/core/packs/movingTempleReset";
-import debug from "@/lib/utils/debug";
+import { useCopy } from "@/hooks/useVoice";
 
+/**
+ * Builds the Moving House pack's quests and beasts from the family's answers. The old house is no longer built here:
+ * Moving Out is a project tower, and once the pack is in, the dialog offers to open the project wizard on it (`tower`,
+ * with the answers), which carries the family's rooms and open moving chores into the tower.
+ */
 const props = defineProps<{ isOpen: boolean }>();
-const emit = defineEmits<{ (event: "close"): void }>();
+const emit = defineEmits<{ (event: "close"): void; (event: "tower", answers: MovingAnswers): void }>();
 
+const t = useCopy();
 const userStore = useUserStore();
 const bands = MOVING_BANDS;
 const rooms = MOVING_ROOMS;
@@ -180,9 +144,6 @@ const todayKey = dateKey(new Date());
 const moveDate = ref(dateKey(addDays(new Date(), 14)));
 const counts = reactive<Record<string, number>>({ ...DEFAULT_MOVING_ROOMS } as Record<string, number>);
 const roles = reactive<Record<string, MovingRole>>({});
-// The old house goes in with the pack unless the family turns it off
-const wantsTemple = ref(true);
-const floors = ref<1 | 2>(1);
 const basement = ref(false);
 const summary = ref("");
 const error = ref("");
@@ -221,24 +182,10 @@ const answers = computed<MovingAnswers>(() => ({
   moveDate: moveDate.value,
   rooms: { ...counts },
   heroes: heroes.value.map((hero) => ({ id: hero.id, name: hero.nick, band: roles[hero.id] ?? "kid" })),
-  floors: floors.value,
   basement: basement.value && hasStorage.value,
 }));
 
 const preview = computed(() => buildMovingPack(answers.value));
-// The matrix says every setup lays out, but a setup it missed throws: the preview then counts no temple and says so
-const previewBuild = computed((): { temple: MovingTemple | null; failed: boolean } => {
-  if (!wantsTemple.value) return { temple: null, failed: false };
-  try {
-    return { temple: buildMovingTemple(preview.value, answers.value), failed: false };
-  } catch (error) {
-    debug.warn("[MovingHouse] the temple could not be laid out for this house", error);
-    return { temple: null, failed: true };
-  }
-});
-const previewTemple = computed(() => previewBuild.value.temple);
-const templeFailed = computed(() => previewBuild.value.failed);
-const floorsWord = computed(() => (previewTemple.value?.floors.includes("2F") ? "two-floor" : "one-floor"));
 const canBuild = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(moveDate.value) && preview.value.heroCount > 0);
 
 const step = (room: MovingRoomId, by: number) => {
@@ -250,6 +197,10 @@ const toggle = (room: MovingRoomId) => {
 
 const close = () => emit("close");
 const reload = () => window.location.reload();
+const toTower = () => {
+  play$fx("select");
+  emit("tower", answers.value);
+};
 
 const build = async () => {
   const isBlocked = !canBuild.value || isBusy.value;
@@ -258,15 +209,9 @@ const build = async () => {
   error.value = "";
   try {
     const pack = buildMovingPack(answers.value);
-    // A setup that cannot be laid out throws here, before anything is forgotten or loaded, and shows in the error line
-    const temple = wantsTemple.value ? buildMovingTemple(pack, answers.value) : null;
-    // The rooms of a rebuilt house moved, so no hero resumes a walk through the old plan
-    if (temple) await forgetOldHouseWalks(userStore.usersAz.map((hero) => String(hero.id)));
-    await backupService.restoreBackup(movingTempleBackup(pack, temple), { mode: "merge" });
-    // The run a hero left in memory is on the old plan too: once the new house is in, it goes, so nobody resumes it
-    if (temple) forgetOldHouseRun();
+    await backupService.restoreBackup(movingPackBackup(pack), { mode: "merge" });
     play$fx("select");
-    summary.value = temple ? [movingPackSummary(pack), movingTempleSummary(temple)].join("\n") : movingPackSummary(pack);
+    summary.value = movingPackSummary(pack);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {

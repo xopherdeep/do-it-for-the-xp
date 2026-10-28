@@ -7,6 +7,8 @@ import templeDb, { type TempleInterface } from "@/lib/databases/TempleDb";
 import { getTempleProgressDb, toTempleProgress, templeProgressKey, type TempleProgressEntry } from "@/lib/databases/TempleProgressDb";
 import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
 import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
+import { isProjectQuestId } from "@/lib/services/projects/projectIds";
+import { settleInBackground } from "@/lib/services/projects/settleInBackground";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { useUserStore } from "@/lib/store/stores/user";
 import type { Ability } from "@/hooks/abilities/abilityConstants";
@@ -86,6 +88,8 @@ export async function deleteQuest(quest: Pick<Achievement, "id">): Promise<void>
 
   // A claim the hero already made stays in Approvals: it carries its own name and rewards, so it can still be paid
   await achievementDb.deleteTask(quest as Achievement);
+  // A tower chore may have been its floor's last open one: the project settles what is ready (the next floor wakes)
+  if (isProjectQuestId(questId)) void settleInBackground();
 }
 
 // ---- Items -------------------------------------------------------------------------------------------------------

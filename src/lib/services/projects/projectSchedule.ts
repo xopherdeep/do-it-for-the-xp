@@ -27,7 +27,8 @@ const spreadDays = (shares: readonly number[], totalDays: number): number[] => {
   const sum = weights.reduce((total, weight) => total + weight, 0);
   const useEven = sum <= 0;
   const reach = (index: number): number => {
-    if (index === weights.length - 1) return totalDays;
+    const isLastPhase = index === weights.length - 1;
+    if (isLastPhase) return totalDays;
     const part = useEven ? index + 1 : weights.slice(0, index + 1).reduce((total, weight) => total + weight, 0);
     return roundSettled((part / (useEven ? weights.length : sum)) * totalDays);
   };
@@ -57,7 +58,8 @@ const windowsFrom = (phaseIds: readonly string[], days: readonly number[], start
 };
 
 const assertRoomForPhases = (phaseCount: number, totalDays: number, what: string): void => {
-  if (totalDays < phaseCount) throw new RangeError(`${what} leaves ${totalDays} day(s) for ${phaseCount} phase(s)`);
+  const isTooShort = totalDays < phaseCount;
+  if (isTooShort) throw new RangeError(`${what} leaves ${totalDays} day(s) for ${phaseCount} phase(s)`);
 };
 
 /**
@@ -65,7 +67,8 @@ const assertRoomForPhases = (phaseCount: number, totalDays: number, what: string
  * RangeError when the dates leave fewer days than phases.
  */
 export const phaseWindows = (phases: readonly { id: string; share: number }[], startOn: string, endOn: string): PhaseWindow[] => {
-  if (phases.length === 0) return [];
+  const hasNoPhases = phases.length === 0;
+  if (hasNoPhases) return [];
   const totalDays = daysBetween(startOn, endOn) + 1;
   assertRoomForPhases(phases.length, totalDays, `${startOn} to ${endOn}`);
   const days = spreadDays(phases.map((phase) => phase.share), totalDays);
@@ -89,7 +92,8 @@ export const extendWindows = (
   newEndOn: string
 ): PhaseWindow[] => {
   const totalDays = daysBetween(today, newEndOn) + 1;
-  if (totalDays < 1) throw new RangeError(`The new end ${newEndOn} is before ${today}`);
+  const isBeforeToday = totalDays < 1;
+  if (isBeforeToday) throw new RangeError(`The new end ${newEndOn} is before ${today}`);
   const open = windows.filter((window) => !clearedIds.has(window.phaseId));
   assertRoomForPhases(open.length, totalDays, `${today} to ${newEndOn}`);
   const spread = phaseWindows(open.map((window) => ({ id: window.phaseId, share: shares[window.phaseId] ?? 0 })), today, newEndOn);
