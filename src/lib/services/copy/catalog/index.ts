@@ -9,6 +9,7 @@ import { beastCard } from "./beastCard";
 import { demo } from "./demo";
 import { family } from "./family";
 import { npc } from "./npc";
+import { projectWizard } from "./projectWizard";
 import { questWizard } from "./questWizard";
 import { quickStart } from "./quickStart";
 import { speech } from "./speech";
@@ -17,8 +18,8 @@ import { temple } from "./temple";
 import { wallet } from "./wallet";
 
 /** The files the catalogue is made of, so a spec can check that no key is written twice */
-export const CATALOG_PARTS: readonly CopyCatalog[] = [demo, questWizard, beastCard, apps, npc, speech, family, wallet, temple, sync, quickStart];
+export const CATALOG_PARTS: readonly CopyCatalog[] = [demo, questWizard, beastCard, apps, npc, speech, family, wallet, temple, sync, quickStart, projectWizard];
 
-export const CATALOG = { ...demo, ...questWizard, ...beastCard, ...apps, ...npc, ...speech, ...family, ...wallet, ...temple, ...sync, ...quickStart } satisfies CopyCatalog;
+export const CATALOG = { ...demo, ...questWizard, ...beastCard, ...apps, ...npc, ...speech, ...family, ...wallet, ...temple, ...sync, ...quickStart, ...projectWizard } satisfies CopyCatalog;
 
 export type CopyKey = keyof typeof CATALOG;

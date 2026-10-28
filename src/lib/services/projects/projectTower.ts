@@ -16,7 +16,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { TempleInterface } from "@/lib/databases/TempleDb";
 import { HOUSE_FRAME, planHouse, type HousePlan } from "@/lib/services/core/packs/movingTemple/housePlanner";
 import type { HouseCell, HouseCellKind, HouseZone } from "@/lib/services/core/packs/movingTemple/houseRooms";
-import { houseRoomsOf, type ProjectChore, type ProjectRoom } from "./projectChores";
+import { houseRoomsOf, rehomeChores, type ProjectChore, type ProjectRoom } from "./projectChores";
 import { ROOF_PHASE_ID, type PhaseWindow } from "./projectSchedule";
 import { projectQuestId, questsForProject, windowOfPhase, type ProjectTowerInput } from "./projectQuests";
 import { roofFloorKey, towerFloorKeys, towerLayout, type PlacedTowerCell, type TowerCell, type TowerFloor, type TowerRole } from "./towerRecord";
@@ -49,9 +49,6 @@ export interface ProjectTower {
 
 /** The way in: the middle of the frame's bottom row, where the Old House has its porch */
 const DOOR_AT: [number, number] = [HOUSE_FRAME - 1, Math.floor(HOUSE_FRAME / 2)];
-
-/** The room a chore goes to when its own is not in the house (houseRoomsOf always ends with it) */
-const WHOLE_HOUSE_ID = "house";
 
 /** What the planner is told each cell is; it only treats the Boss Key's drawer differently, and that is not used here */
 const PLANNER_KINDS: Record<TowerRole, HouseCellKind> = {
@@ -204,13 +201,7 @@ const planTower = (input: ProjectTowerInput, chores: readonly ProjectChore[], se
 };
 
 /** The chores as the tower places them: one whose room the house lacks goes to the Whole House (the roof's stay put) */
-const rehomed = (input: ProjectTowerInput): ProjectChore[] => {
-  const known = new Set(houseRoomsOf(input.house).map((room) => room.id));
-  return input.chores.map((chore) => {
-    const isLost = chore.phaseId !== ROOF_PHASE_ID && !known.has(chore.roomId);
-    return isLost ? { ...chore, roomId: WHOLE_HOUSE_ID } : chore;
-  });
-};
+const rehomed = (input: ProjectTowerInput): ProjectChore[] => rehomeChores(input.chores, input.house);
 
 /**
  * The tower for a project: its temple record, a quest for every chore and its floors with their windows. Throws for a

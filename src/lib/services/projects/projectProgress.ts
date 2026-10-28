@@ -243,7 +243,8 @@ export function settleReady(
   paid: readonly QuestLogEntry[],
   now: Date
 ): ReadySettlement | null {
-  if (project.status !== "active") return null;
+  const isRunning = project.status === "active";
+  if (!isRunning) return null;
   const readyIn = (record: ProjectRecord): ProjectFloor | undefined => record.floors.find((floor) => isReadyToSettle(floor, quests, paid));
   let current = project;
   let last: FloorSettlement | null = null;

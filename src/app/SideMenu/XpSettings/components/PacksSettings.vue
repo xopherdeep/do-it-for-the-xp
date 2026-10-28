@@ -86,6 +86,26 @@
           <ion-card class="pack-card">
             <ion-card-header>
               <div class="pack-card__head">
+                <i class="fad fa-dungeon fa-2x icon-colors"></i>
+                <div>
+                  <ion-card-title>{{ t("projectWizard.card.title") }}</ion-card-title>
+                  <ion-card-subtitle>{{ t("projectWizard.card.subtitle") }}</ion-card-subtitle>
+                </div>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <p>{{ t("projectWizard.card.body") }}</p>
+              <div class="pack-card__actions">
+                <ion-button size="small" :disabled="isBusy" data-cy="packs-project" @click="openBuilder('project')">
+                  {{ t("projectWizard.card.action") }}
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+
+          <ion-card class="pack-card">
+            <ion-card-header>
+              <div class="pack-card__head">
                 <i class="fad fa-broom fa-2x icon-colors"></i>
                 <div>
                   <ion-card-title>Home chores</ion-card-title>
@@ -105,6 +125,7 @@
 
       <moving-house-modal :is-open="showMoving" @close="closeBuilder" />
       <home-chores-modal :is-open="showHome" @close="closeBuilder" />
+      <xp-project-wizard-modal :open="showProject" @close="closeBuilder" />
     </ion-content>
   </ion-page>
 </template>
@@ -138,8 +159,10 @@ import {
 } from "@/hooks/usePackLibrary";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { BUILT_IN_PACKS } from "@/lib/services/core/packs/catalog";
+import { useCopy } from "@/hooks/useVoice";
 import HomeChoresModal from "./HomeChoresModal.vue";
 import MovingHouseModal from "./MovingHouseModal.vue";
+import XpProjectWizardModal from "./XpProjectWizardModal.vue";
 
 const builtIns = BUILT_IN_PACKS;
 const shelf = usePackLibrary();
@@ -148,25 +171,28 @@ const confirmLoad = (pack: XpPack) => confirmLoadPack(shelf, pack);
 const confirmRemove = (pack: XpPack) => confirmRemovePack(shelf, pack);
 const importFromFile = () => importPackFile(shelf);
 const exportToFile = () => exportPackFile(shelf);
+const t = useCopy();
 const showMoving = ref(false);
 const showHome = ref(false);
+const showProject = ref(false);
 
 onMounted(refreshPacks);
 onIonViewWillEnter(refreshPacks);
 
-/** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog */
-const openBuilder = async (which: "moving" | "home") => {
+/** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog; so does a family project */
+const openBuilder = async (which: "moving" | "home" | "project") => {
   const isPermitted = await allowedToManagePacks();
   if (!isPermitted) return;
   play$fx("select");
-  const isMovingPack = which === "moving";
-  if (isMovingPack) showMoving.value = true;
-  else showHome.value = true;
+  showMoving.value = which === "moving";
+  showHome.value = which === "home";
+  showProject.value = which === "project";
 };
 
 const closeBuilder = () => {
   showMoving.value = false;
   showHome.value = false;
+  showProject.value = false;
   refreshPacks();
 };
 </script>

@@ -49,6 +49,9 @@ export interface ProjectChore {
 // ---------------------------------------------------------------------------------------------------------------
 // The rooms
 
+/** The room every house has: a chore with no room of its own, or whose room is gone, lands here */
+export const WHOLE_HOUSE_ID = "house";
+
 const WHOLE_HOUSE_NAME = "The Whole House";
 
 const roomCountOf = (house: ProjectHouse, room: (typeof MOVING_ROOMS)[number]): number => {
@@ -71,8 +74,20 @@ const roomsOfKind = (room: (typeof MOVING_ROOMS)[number], count: number): Projec
 /** The rooms a house has, in the setup's order: counted ones numbered, then "The Whole House" */
 export const houseRoomsOf = (house: ProjectHouse): ProjectRoom[] => [
   ...MOVING_ROOMS.flatMap((room) => roomsOfKind(room, roomCountOf(house, room))),
-  { id: "house", kind: "house", name: WHOLE_HOUSE_NAME },
+  { id: WHOLE_HOUSE_ID, kind: "house", name: WHOLE_HOUSE_NAME },
 ];
+
+/**
+ * The chores as the house holds them: one whose room the house lacks (a re-run into a smaller home) goes to the Whole
+ * House, none is dropped, and the roof's finale stays where it is. Chores are copied only when they move.
+ */
+export const rehomeChores = (chores: readonly ProjectChore[], house: ProjectHouse): ProjectChore[] => {
+  const known = new Set(houseRoomsOf(house).map((room) => room.id));
+  return chores.map((chore) => {
+    const isLost = chore.phaseId !== ROOF_PHASE_ID && !known.has(chore.roomId);
+    return isLost ? { ...chore, roomId: WHOLE_HOUSE_ID } : chore;
+  });
+};
 
 // ---------------------------------------------------------------------------------------------------------------
 // The heroes: who can take a chore, and in what turn
