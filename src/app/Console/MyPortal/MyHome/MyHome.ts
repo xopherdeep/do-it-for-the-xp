@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
