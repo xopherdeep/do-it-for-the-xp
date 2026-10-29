@@ -50,7 +50,7 @@ export const usePartyStore = defineStore("party", () => {
       .catch((error) => debug.error("party: could not save", error));
   }
 
-  async function load(): Promise<void> {
+  async function read(): Promise<void> {
     const saved = cleanPartyState(await getPartyDb().getState());
     heroModes.value = saved.heroModes;
     approvedParties.value = saved.approvedParties;
@@ -58,6 +58,18 @@ export const usePartyStore = defineStore("party", () => {
     paid.value = saved.paid;
     defaultWindow.value = saved.defaultWindow;
     raidAlerts.value = saved.raidAlerts;
+  }
+
+  /** Reads the saved record once however often it is asked (a read that failed is tried again); await it before showing raids or striking */
+  let reading: Promise<void> | null = null;
+  function load(): Promise<void> {
+    if (!reading) {
+      reading = read().catch((error) => {
+        reading = null;
+        throw error;
+      });
+    }
+    return reading;
   }
 
   function modeOf(heroId: string): HeroPartyMode {

@@ -176,6 +176,21 @@ describe("party store: load", () => {
     expect(store.raidAlerts).toBe(false);
   });
 
+  it("reads the saved record once however often it is asked", async () => {
+    const store = usePartyStore();
+    await Promise.all([store.load(), store.load()]);
+    await store.load();
+    expect(mockGetState).toHaveBeenCalledTimes(1);
+  });
+
+  it("tries again after a read that failed", async () => {
+    mockGetState.mockRejectedValueOnce(new Error("disk")).mockResolvedValue(null);
+    const store = usePartyStore();
+    await expect(store.load()).rejects.toThrow("disk");
+    await expect(store.load()).resolves.toBeUndefined();
+    expect(mockGetState).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps the defaults when nothing was saved", async () => {
     const store = usePartyStore();
     await store.load();

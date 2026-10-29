@@ -56,6 +56,7 @@ import { requestPersistentStorage } from '@/lib/services/core/persistentStorage'
 import { createPinia } from 'pinia';
 import { useProStore } from '@/lib/store/stores/pro';
 import { listenForStreakChests } from '@/lib/services/streaks/StreakService';
+import { listenForRaidStrikes } from '@/lib/services/party/strikeCapture';
 
 // Capacitor (the phone apps)
 import { Capacitor } from '@capacitor/core';
@@ -179,6 +180,9 @@ function readyRouterMountApp() {
 
   // Streak chests: paid whenever a quest pays and a run reaches 3, 7, 14, 30 days
   listenForStreakChests();
+
+  // Raids: every paid quest strikes the household's raid (and any party raid the hero is in)
+  listenForRaidStrikes();
 
   // Family registration from the phone apps comes back through the app's own address
   listenForTownHallReturn();
