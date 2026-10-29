@@ -29,11 +29,11 @@ export interface QuestSeed {
   timesOfDay?: TimeOfDay[];
 }
 
-/** Rewards grow with difficulty: a daily tidy pays a little, a weekly haul pays a lot */
+/** Rewards grow with difficulty: a daily tidy pays a little, a weekly haul pays a lot (GP = 15 x difficulty, AP = difficulty) */
 export const SEED_REWARDS: Record<QuestSeed["difficulty"], { xp: number; gp: number; ap: number }> = {
   1: { xp: 60, gp: 15, ap: 1 },
   2: { xp: 120, gp: 30, ap: 2 },
-  3: { xp: 220, gp: 60, ap: 4 },
+  3: { xp: 220, gp: 45, ap: 3 },
 };
 
 export const questFromSeed = (seed: QuestSeed): Achievement => ({
@@ -73,8 +73,8 @@ export interface DoDontSeed {
   notes?: string;
 }
 
-/** GP per point of effort, as the Add Do form prices it (a do pays it, a don't takes it away) */
-export const DO_DONT_GP_PER_EFFORT = 20;
+/** GP per point of effort, as the Add Do form prices it (a do pays it, a don't takes it away): the chore rate, 15 GP per point */
+export const DO_DONT_GP_PER_EFFORT = 15;
 
 export const doDontFromSeed = (seed: DoDontSeed): DosDont => ({
   id: seed.id,

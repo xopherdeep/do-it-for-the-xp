@@ -1,7 +1,10 @@
 import { mount } from "@vue/test-utils";
+import * as THREE from "three";
 import XpHeroModel from "@/components/organisms/HeroModel/XpHeroModel.vue";
 import { FRAME_WIDTH, placeCamera, stageFrame, type Frame } from "@/components/organisms/HeroModel/heroCamera";
-import { buildHero } from "@/components/organisms/HeroModel/voxel/build";
+import { buildHero, disposeHero } from "@/components/organisms/HeroModel/voxel/build";
+import { DEFAULT_DETAIL } from "@/components/organisms/HeroModel/voxel/detail";
+import { setVoxelTier } from "@/lib/services/graphics/deviceQuality";
 import { DEFAULT_LOOK } from "@/lib/hero-look/types";
 import type { HeroLook } from "@/lib/hero-look/types";
 
@@ -32,16 +35,23 @@ jest.mock("three", () => {
 
 jest.mock("@/components/organisms/HeroModel/heroCamera", () => {
   const actual = jest.requireActual("@/components/organisms/HeroModel/heroCamera");
-  return { __esModule: true, ...actual, placeCamera: jest.fn(actual.placeCamera) };
+  return {
+    __esModule: true,
+    ...actual,
+    placeCamera: jest.fn(actual.placeCamera),
+    renderHeroSnapshot: jest.fn(() => "data:image/png;base64,"),
+  };
 });
 
 jest.mock("@/components/organisms/HeroModel/voxel/build", () => {
   const actual = jest.requireActual("@/components/organisms/HeroModel/voxel/build");
-  return { __esModule: true, ...actual, buildHero: jest.fn(actual.buildHero) };
+  return { __esModule: true, ...actual, buildHero: jest.fn(actual.buildHero), disposeHero: jest.fn(actual.disposeHero) };
 });
 
 const mockPlaceCamera = placeCamera as unknown as jest.Mock;
 const mockBuildHero = buildHero as unknown as jest.Mock;
+const mockDisposeHero = disposeHero as unknown as jest.Mock;
+const mockRenderer = THREE.WebGLRenderer as unknown as jest.Mock;
 
 /**
  * The close-up squeezes the view to the head's width: heroCamera's BUST_STAGE_WIDTH, or wider for a head that sweeps more
@@ -80,9 +90,109 @@ describe("useHeroScene", () => {
     jest.spyOn(window, "requestAnimationFrame").mockImplementation((run) => animationFrames.push(() => run(0)));
     mockPlaceCamera.mockClear();
     mockBuildHero.mockClear();
+    mockDisposeHero.mockClear();
+    mockRenderer.mockClear();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    setVoxelTier("super");
+    jest.restoreAllMocks();
+  });
+
+  const withDpr = (ratio: number) => Object.defineProperty(window, "devicePixelRatio", { value: ratio, configurable: true });
+  const rendererOptions = () => mockRenderer.mock.calls[0][0];
+  const pixelRatioSet = () => (mockRenderer.mock.results[0].value.setPixelRatio as jest.Mock).mock.calls[0][0];
+  const drawCalls = (wrapper: ReturnType<typeof show>) => {
+    const renderer = mockRenderer.mock.results[0].value.render as jest.Mock;
+    renderer.mockClear();
+    return { renderer, wrapper };
+  };
+  type Snapshotter = { snapshot: (size?: number) => string };
+
+  it("keeps today's renderer options for Super at every pixel ratio", () => {
+    withDpr(1.25);
+    show().unmount();
+    expect(rendererOptions().antialias).toBe(true);
+    expect(pixelRatioSet()).toBe(1.25);
+
+    mockRenderer.mockClear();
+    withDpr(2);
+    show().unmount();
+    expect(rendererOptions().antialias).toBe(false);
+    expect(pixelRatioSet()).toBe(2);
+  });
+
+  it.each([
+    ["classic", 1.5],
+    ["pocket", 1],
+  ] as const)("%s turns antialiasing off and caps the pixel ratio", (tier, cap) => {
+    setVoxelTier(tier);
+    withDpr(2);
+    show().unmount();
+    expect(rendererOptions().antialias).toBe(false);
+    expect(pixelRatioSet()).toBe(cap);
+
+    mockRenderer.mockClear();
+    withDpr(1.25);
+    show().unmount();
+    expect(rendererOptions().antialias).toBe(false);
+  });
+
+  it("draws Pocket at 20 fps: a frame 16 ms after the last is skipped", () => {
+    setVoxelTier("pocket");
+    const { renderer, wrapper } = drawCalls(show());
+    frame(16);
+    expect(renderer).not.toHaveBeenCalled();
+    frame(16);
+    expect(renderer).not.toHaveBeenCalled();
+    frame(20);
+    expect(renderer).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("draws Classic at 30 fps: frames 33 ms apart both render", () => {
+    setVoxelTier("classic");
+    const { renderer, wrapper } = drawCalls(show());
+    frame(33);
+    frame(33);
+    expect(renderer).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+  });
+
+  it("draws Super at every display frame", () => {
+    const { renderer, wrapper } = drawCalls(show());
+    frame(16);
+    frame(16);
+    expect(renderer).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+  });
+
+  it("builds the stage hero with the tier's shading", () => {
+    setVoxelTier("pocket");
+    show().unmount();
+    expect(mockBuildHero).toHaveBeenCalledWith(expect.anything(), { material: "flat" });
+  });
+
+  it("snapshots from a Super-detail hero on Pocket and disposes it", () => {
+    setVoxelTier("pocket");
+    const wrapper = show();
+    mockBuildHero.mockClear();
+    mockDisposeHero.mockClear();
+    const dataUrl = (wrapper.vm as unknown as Snapshotter).snapshot(64);
+    expect(dataUrl).toContain("data:image/png");
+    expect(mockBuildHero).toHaveBeenCalledTimes(1);
+    expect(mockBuildHero).toHaveBeenCalledWith(expect.anything(), DEFAULT_DETAIL);
+    expect(mockDisposeHero).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("snapshots the stage hero itself on Super", () => {
+    const wrapper = show();
+    mockBuildHero.mockClear();
+    (wrapper.vm as unknown as Snapshotter).snapshot(64);
+    expect(mockBuildHero).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
 
   it("builds nothing for an equal look and eases the camera to the new focus", async () => {
     const wrapper = show();

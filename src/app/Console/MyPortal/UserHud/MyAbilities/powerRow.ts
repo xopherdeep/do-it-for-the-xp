@@ -67,6 +67,7 @@ export const stateLineOf = (ability: Ability, status: AbilityStatus, earned: num
 };
 
 export interface PowerRow {
+  ability: Ability;
   id: string;
   name: string;
   description: string;
@@ -124,6 +125,7 @@ export const buildPowerRow = (
   const stateLine = running ? `Running · ${timerLeft} left` : restingLine;
 
   return {
+    ability,
     id: ability.id,
     name: ability.name,
     description: ability.description ?? "",

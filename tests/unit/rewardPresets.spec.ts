@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { AccessoryType } from "@/lib/databases/AccessoriesDb";
 import { ALL_REWARD_PRESETS, BASIC_CONSUMABLE_PRESETS, REAL_REWARD_PRESETS, presetsNotIn, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
 import { WALLET_TIERS } from "@/lib/services/gp/wallet";
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { REAL_LIFE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
 
 describe("real-life reward presets", () => {
@@ -18,6 +19,19 @@ describe("real-life reward presets", () => {
       expect(preset.basePrice).toBeGreaterThan(0);
       expect(preset.basePrice).toBeLessThanOrEqual(biggestWallet);
     }
+  });
+
+  it("derives every money-valued price from its dollars", () => {
+    const withDollars = REAL_REWARD_PRESETS.filter((preset) => preset.dollars !== undefined);
+    expect(withDollars.length).toBe(REAL_REWARD_PRESETS.length);
+    for (const preset of withDollars) expect(preset.basePrice).toBe(gpForDollars(preset.dollars as number));
+  });
+
+  it("stocks the cheap presets and no longer sells the Daddy Date", () => {
+    const ids = REAL_REWARD_PRESETS.map((preset) => preset.id);
+    expect(ids).toEqual(expect.arrayContaining(["reward-sticker", "reward-sticker-sheet", "reward-candy-pouch", "reward-trading-cards"]));
+    expect(ids).not.toContain("reward-daddy-date");
+    expect(REAL_REWARD_PRESETS.find((preset) => preset.id === "reward-sticker")?.basePrice).toBe(75);
   });
 
   it("keeps at least one reward within a new hero's first wallet", () => {

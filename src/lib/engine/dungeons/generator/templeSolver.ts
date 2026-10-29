@@ -78,29 +78,26 @@ const WAITING_LOCKS = new Set<LockKind>(["master", "bomb", "floorCleared"]);
 /** The stairs that wait for `floor` to be cleared: the doors its last room to clear lets the hero through. */
 const waitsOnFloor =
   (floor: string) =>
-  (door: Door): boolean => {
-    const isItsStairs = door.lock === "floorCleared" && floorOfKey(door.from) === floor;
-    return isItsStairs;
-  };
+  (door: Door): boolean =>
+    door.lock === "floorCleared" && floorOfKey(door.from) === floor;
+
+/** Whether a door of one kind of lock lets the hero through, given the doors opened so far and what they carry. */
+type Passes = (door: Door, opened: ReadonlySet<string>, carried: Carried) => boolean;
+
+const PASSES: Record<LockKind, Passes> = {
+  none: () => true,
+  small: (door, opened) => opened.has(door.id),
+  master: (_door, _opened, carried) => carried.master,
+  bomb: (_door, _opened, carried) => carried.bombs,
+  floorCleared: (door, _opened, carried) => carried.cleared.has(floorOfKey(door.from)),
+};
 
 /**
  * A door the hero can walk through now. A Bomb opens only a cracked wall, the Boss Key only a boss door, and a cleared
  * floor only the stairs of that floor.
  */
-const passable = (door: Door, opened: ReadonlySet<string>, carried: Carried): boolean => {
-  switch (door.lock) {
-    case "none":
-      return true;
-    case "small":
-      return opened.has(door.id);
-    case "master":
-      return carried.master;
-    case "bomb":
-      return carried.bombs;
-    case "floorCleared":
-      return carried.cleared.has(floorOfKey(door.from));
-  }
-};
+const passable = (door: Door, opened: ReadonlySet<string>, carried: Carried): boolean =>
+  PASSES[door.lock](door, opened, carried);
 
 /**
  * Everything in reach from the entrance with `opened` doors unlocked. Keys, the master key and Bombs are picked up on

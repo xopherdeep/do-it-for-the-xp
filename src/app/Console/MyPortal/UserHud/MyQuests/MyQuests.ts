@@ -32,6 +32,7 @@ import { questLogActions } from "./questLogActions";
 import type { QuestLogActionId } from "./questLogActions";
 import { useBeastMaker } from "./useBeastMaker";
 import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
+import { QUICK_TASK_QUERY } from "@/lib/services/widgets/widgetLinks";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
@@ -41,6 +42,7 @@ import { useTimers } from "@/hooks/useTimers";
 import { useCopy } from "@/hooks/useVoice";
 import { linkedQuestRow, sectionsByWindow, toLogRow } from "./questLogRows";
 import { reloadOnReturn } from "./reloadOnReturn";
+import { settleInBackground } from "@/lib/services/projects/settleInBackground";
 import { questRewardsCard } from "@/lib/services/quests/questRewardsCard";
 import { showRewards } from "@/components/organisms/RewardsOverlay/rewardsOverlay";
 import type { QuestLogRow } from "./questLogRows";
@@ -96,12 +98,15 @@ export default defineComponent({
       landed: "",
       // the linked quest has been looked for (once, so closing its card does not reopen it)
       linkedQuestChecked: false,
+      // the home-screen "+" has been honoured (once, so dismissing the sheet does not reopen it)
+      quickTaskLinkChecked: false,
     };
   },
   mixins: [ionic],
   watch: {
     isLoading() {
       this.openLinkedQuest();
+      this.openQuickTaskFromLink();
     },
     // Another notification's link while this page is open
     taskId() {
@@ -178,6 +183,18 @@ export default defineComponent({
   },
   methods: {
     // The board has loaded: open the quest the link points at, if it is still there
+    // The Quick Dock's "+" lands here carrying QUICK_TASK_QUERY. Open the sheet once, then drop the
+    // query: without that, going back to the board would reopen it.
+    openQuickTaskFromLink() {
+      const [param, value] = Object.entries(QUICK_TASK_QUERY)[0];
+      const isAsked = String(this.$route?.query?.[param] ?? "") === value;
+      if (!isAsked || this.quickTaskLinkChecked) return;
+      this.quickTaskLinkChecked = true;
+      this.addOpen = true;
+      const { [param]: dropped, ...kept } = this.$route.query;
+      void dropped;
+      void this.$router.replace({ query: kept });
+    },
     openLinkedQuest() {
       const isNotReady = !this.taskId || this.linkedQuestChecked || this.isLoading;
       if (isNotReady) return;
@@ -456,6 +473,7 @@ export default defineComponent({
     };
 
     onMounted(() => {
+      void settleInBackground();
       void loadBeasts().then(loadTamed);
       return loadBoard();
     });
@@ -465,6 +483,7 @@ export default defineComponent({
     // the due counts and the tamed beasts. The first visit mounts and loads above, so it is skipped.
     onIonViewWillEnter(
       reloadOnReturn(() => {
+        void settleInBackground();
         void loadBoard();
         void loadTamed();
       }),

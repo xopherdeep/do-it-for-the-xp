@@ -142,17 +142,17 @@ describe("resources: HP, MP, GP", () => {
   });
 
   it("adds to the purse and overflows the wallet into savings", () => {
-    const stats = applyGpChange({ gp: { wallet: 90, savings: 7, debt: 0 } }, { userId: "ava", wallet: 80, debt: 4 });
-    expect(stats.gp).toEqual({ wallet: 100, savings: 77, debt: 4 });
+    const stats = applyGpChange({ gp: { wallet: 450, savings: 7, debt: 0 } }, { userId: "ava", wallet: 80, debt: 4 });
+    expect(stats.gp).toEqual({ wallet: 500, savings: 37, debt: 4 });
   });
 
   it("starts a purse when there are no stats, or stats without one", () => {
     expect(applyGpChange(undefined, { userId: "ava", savings: 3 })).toEqual({
-      gp: { wallet: 0, savings: 3, debt: 0, hospitalBill: 0, limit: 100 },
+      gp: { wallet: 0, savings: 3, debt: 0, hospitalBill: 0, limit: 500 },
     });
     expect(applyGpChange({ level: 2 }, { userId: "ava", wallet: 3 })).toEqual({
       level: 2,
-      gp: { wallet: 3, savings: 0, debt: 0, hospitalBill: 0, limit: 100 },
+      gp: { wallet: 3, savings: 0, debt: 0, hospitalBill: 0, limit: 500 },
     });
   });
 
@@ -167,7 +167,7 @@ describe("resources: HP, MP, GP", () => {
     const user = { stats: { gp: { wallet: 10, savings: 20, debt: 3, limit: 100, extra: "kept" } } };
     expect(applyWallet(user, { wallet: "40" as unknown as number, limit: 300 })).toBe(user.stats);
     expect(user.stats.gp).toEqual({ wallet: 40, savings: 20, debt: 3, hospitalBill: 0, limit: 300, extra: "kept" });
-    expect(applyWallet({}, { wallet: Number.NaN, limit: -5 })).toEqual({ gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 } });
+    expect(applyWallet({}, { wallet: Number.NaN, limit: -5 })).toEqual({ gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 500 } });
   });
 
   it("carries the hospital bill through a wholesale purse replacement", () => {

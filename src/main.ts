@@ -2,7 +2,7 @@
 import './publicPath'
 
 // FRAMEWORK LIBS
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { IonicVue } from '@ionic/vue';
 
 // PLUGINS
@@ -34,6 +34,7 @@ import appConfig from "./app.config"
 
 // ROUTER & STORE
 import { createAppRouter as useRouter } from './router';
+import type { Router } from 'vue-router';
 
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
@@ -56,6 +57,7 @@ import { requestPersistentStorage } from '@/lib/services/core/persistentStorage'
 import { createPinia } from 'pinia';
 import { useProStore } from '@/lib/store/stores/pro';
 import { listenForStreakChests } from '@/lib/services/streaks/StreakService';
+import { listenForRaidStrikes } from '@/lib/services/party/strikeCapture';
 
 // Capacitor (the phone apps)
 import { Capacitor } from '@capacitor/core';
@@ -119,6 +121,46 @@ function listenForTownHallReturn() {
     .catch((error) => debug.warn('The Town Hall return is unavailable', error));
 }
 
+/** How long a widget tap waits for a hero to sign in before the app keeps the screen it landed on. */
+const WIDGET_TAP_WAIT_MS = 15000;
+
+// Phone apps: a tap on a home-screen widget opens the app at one of its own addresses (see widgetLinks.ts).
+// Registered once, beside the Town Hall's listener; both hear every address and each one takes only its own.
+function listenForWidgetLinks(router: Router) {
+  if (!Capacitor.isNativePlatform()) return;
+  import('@/lib/services/widgets/widgetLinks')
+    .then(({ heroPath, listenForWidgetLink }) =>
+      listenForWidgetLink((destination) => {
+        const userStore = useUserStore();
+        // A widget on the home screen knows nothing about the family: the tap belongs to whoever is signed in
+        const open = (userId: string | number) =>
+          router
+            .push(heroPath(destination, String(userId)))
+            .catch((error) => debug.warn('A widget tap could not be followed', error));
+
+        const signedIn = userStore.currentUser?.id;
+        if (signedIn) {
+          void open(signedIn);
+          return;
+        }
+
+        // A cold start is what a widget is for, and the address lands before App.vue has read the roster, so
+        // there is nobody to open it for yet. Hold the tap for the hero who signs in; if the app only ever
+        // reaches the start screen, let it go rather than yank the family off it minutes later.
+        const stopWaiting = watch(
+          () => userStore.currentUser?.id,
+          (hero) => {
+            if (!hero) return;
+            stopWaiting();
+            void open(hero);
+          }
+        );
+        setTimeout(stopWaiting, WIDGET_TAP_WAIT_MS);
+      })
+    )
+    .catch((error) => debug.warn('The widget links are unavailable', error));
+}
+
 
 function readyRouterMountApp() {
   // WordPress sends the parent back with the new password in the address: it leaves the address bar and the history
@@ -180,8 +222,14 @@ function readyRouterMountApp() {
   // Streak chests: paid whenever a quest pays and a run reaches 3, 7, 14, 30 days
   listenForStreakChests();
 
+  // Raids: every paid quest strikes the household's raid (and any party raid the hero is in)
+  listenForRaidStrikes();
+
   // Family registration from the phone apps comes back through the app's own address
   listenForTownHallReturn();
+
+  // Home-screen widgets open the app at the screen the tap meant
+  listenForWidgetLinks(router);
 
   // Initialize the AbilitySystem
   const abilitiesDb = new AbilitiesDb(abilitiesStorage);
@@ -219,13 +267,17 @@ if (process.env.NODE_ENV !== 'production') {
 
 readyRouterMountApp()
 
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register(`${process.env.BASE_URL ?? './'}alerts-sw.js`).catch(() => undefined);
+}
+
 // Refresh the temples shipped in code in this device's TempleDb before any temple opens (a Game Master's edited copy is kept)
 import('@/lib/engine/core/dungeons/importAllTemples').then(({ ensureBuiltInTemples }) => ensureBuiltInTemples()).catch(() => undefined);
 
 // E2E seam, development builds only: the Cypress suite seeds every store from a backup file and
 // signs a hero in without driving the whole onboarding flow (tests/e2e/support/commands.js).
 if (process.env.NODE_ENV !== 'production') {
-  import('./lib/services/core/BackupService').then(({ backupService }) => {
+  Promise.all([import('./lib/services/core/BackupService'), import('./lib/utils/e2eProjectSeam'), import('./lib/utils/e2ePartySeam')]).then(([{ backupService }, { projectTowerSeam }, { partySeam }]) => {
     (window as any).__xp = {
       restoreBackup: (backup: unknown) => backupService.restoreBackup(backup as any),
       // Restoring a backup is Game Master only, so a spec signs in as a throwaway Game Master first.
@@ -243,6 +295,10 @@ if (process.env.NODE_ENV !== 'production') {
         return Boolean(user);
       },
       getUser: (userId: string) => JSON.parse(JSON.stringify(useUserStore().users[userId] ?? null)),
+      // Reads and claims for the project tower walk (tests/e2e/specs/project-tower.spec.js)
+      ...projectTowerSeam(),
+      // A worn-down raid and a chore claimed as a hero, for the party walk (tests/e2e/specs/party.spec.js)
+      ...partySeam(),
     };
   });
 }

@@ -13,6 +13,7 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
 import { adoptLibraryBeast, isClassicBeast } from "@/lib/services/bestiary/librarySuggest";
+import { rewardsFor } from "@/lib/services/core/packs/packCommon";
 import { scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import { questBeastId, questTier, type QuestTier } from "@/lib/services/temples/questRooms";
 import {
@@ -98,9 +99,7 @@ export function questFromTemplate(
     repeatOnDays: [...(template.repeatOnDays ?? [])],
     difficulty,
     ...(hasEstimate ? { estimatedMinutes: Number(template.estimatedMinutes) } : {}),
-    xp: difficulty * 100,
-    gp: difficulty * 10,
-    ap: difficulty,
+    ...rewardsFor(difficulty),
     adventureType: "beast",
   };
 }

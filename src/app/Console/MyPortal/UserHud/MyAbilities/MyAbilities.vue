@@ -23,51 +23,20 @@
       />
       <div v-else class="powers-list">
         <xp-app-section v-for="group in groups" :key="group.type" :label="group.label">
-          <xp-app-row
-            v-for="row in group.rows"
-            :key="row.id"
-            class="power-row"
-            :class="{ 'is-locked': row.locked, 'is-open': openId === row.id }"
-            :data-ability-id="row.id"
-            :title="row.name"
-            :subtitle="row.description"
-            :icon="row.icon"
-            :chevron="false"
-            :active="openId === row.id"
-            @click="toggleOpen(row.id)"
-          >
-            <template #chips>
-              <div v-if="row.needed > 0" class="power-ap">
-                <div
-                  class="power-meter"
-                  role="progressbar"
-                  aria-label="AP toward this Power"
-                  aria-valuemin="0"
-                  :aria-valuemax="row.needed"
-                  :aria-valuenow="Math.min(row.earned, row.needed)"
-                >
-                  <div class="power-meter-fill" :style="{ width: row.meterWidth }" />
-                </div>
-                <span class="power-ap-text">{{ row.apText }}</span>
-              </div>
-              <xp-app-chip kind="tag" :value="row.typeLabel" />
-              <xp-app-chip kind="mp" :value="row.mpCost" />
-              <xp-app-chip kind="tag" :value="row.frequencyLabel" />
-              <xp-app-chip v-if="row.timerLabel" kind="tag" :value="row.timerLabel" />
-              <p v-if="row.stateLine" class="power-state">{{ row.stateLine }}</p>
-            </template>
-            <template #trailing>
-              <button
-                type="button"
-                class="xp-app-btn cast-btn"
-                :disabled="!row.canCast"
-                :aria-label="`Cast ${row.name}`"
-                @click="cast(row.id)"
-              >
-                Cast
-              </button>
-            </template>
-          </xp-app-row>
+          <div class="powers-grid">
+            <xp-power-card
+              v-for="row in group.rows"
+              :key="row.id"
+              :ability="row.ability"
+              :status="statuses[row.id] || 'locked'"
+              :unlocked="Boolean(unlocks[row.id])"
+              :snapshot="snapshot"
+              :casting="casting === row.id"
+              :grounded-reason="groundedReason"
+              :timer-left="timerLeftOf[row.id] ?? null"
+              @cast="cast"
+            />
+          </div>
         </xp-app-section>
       </div>
     </ion-content>

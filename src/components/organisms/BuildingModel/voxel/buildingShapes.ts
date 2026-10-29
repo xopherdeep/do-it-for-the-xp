@@ -6,6 +6,8 @@ export type BuildingId =
   // Hometown
   | "hero-home"
   | "old-house"
+  | "project-tower"
+  | `project-tower-${number}-${string}`
   | "hometown-market"
   | "shop"
   | "hospital"
@@ -765,6 +767,74 @@ const homeDoorBoxes = (): Box[] => [
   b(2.5, 5.5, 2.2, 1.0, 1.6, 1.0, "#ffb300"),
 ];
 
+/** A project tower's colours by its element: the walls, the trim between floors, the roof and the glow of its windows */
+export interface ProjectTowerTheme {
+  wall: string;
+  trim: string;
+  roof: string;
+  glow: string;
+}
+
+export const PROJECT_TOWER_THEMES: Readonly<Record<string, ProjectTowerTheme>> = {
+  wind: { wall: "#eadfc4", trim: "#8fb8d6", roof: "#4a86a8", glow: "#fff2d0" },
+  earth: { wall: "#cdb88c", trim: "#6f9a4a", roof: "#7a5530", glow: "#b4d26e" },
+  fire: { wall: "#d9a58a", trim: "#c8452c", roof: "#8a2a1c", glow: "#ff7828" },
+  ice: { wall: "#dceaf2", trim: "#8ec9ec", roof: "#5b8fb8", glow: "#bfe6ff" },
+  water: { wall: "#cfe3df", trim: "#3a9fb0", roof: "#2b6f8a", glow: "#7fe0ea" },
+  light: { wall: "#f2e8c4", trim: "#d9b24a", roof: "#c8923a", glow: "#ffe9a0" },
+  shadow: { wall: "#8c8aa6", trim: "#6a4aa8", roof: "#3f2f66", glow: "#b48cff" },
+  moon: { wall: "#d6d6ea", trim: "#8f8fc8", roof: "#5a5a96", glow: "#dcdcff" },
+  storm: { wall: "#b9c0cc", trim: "#e0c040", roof: "#4b5668", glow: "#ffe45c" },
+};
+
+/** The stone every tower stands on and the oak of its door */
+const TOWER_STONE = "#6b6f76";
+const TOWER_DOOR = "#5a3a22";
+
+/** A tower shows one to eight floors; the plain id is a four-floor wind tower */
+const TOWER_FLOORS = { min: 1, max: 8, standard: 4 };
+
+/** The scene id of a tower with this many floors (the roof not counted) in this element's colours */
+export const projectTowerSceneId = (floors: number, element: string): string => `project-tower-${floors}-${element}`;
+
+const PROJECT_TOWER_ID = /^project-tower(?:-(\d+)-([a-z-]+))?$/;
+
+/**
+ * A project tower: a narrow stack with one band per floor (so the floors read at a glance), a window in each, the door
+ * on the ground floor, then a stepped roof with a pennant. The bands shrink as floors are added, so eight still fit the
+ * landmark camera's frame; the colours are the element's.
+ */
+const projectTowerBoxes = (floorCount: number, element: string): Box[] => {
+  const floors = Math.min(TOWER_FLOORS.max, Math.max(TOWER_FLOORS.min, Math.round(floorCount)));
+  const theme = PROJECT_TOWER_THEMES[element] ?? PROJECT_TOWER_THEMES.wind;
+  const bandHeight = Math.min(2.2, Math.max(1.3, 10 / floors));
+  const base = 0.8;
+  const boxes: Box[] = [b(-3.5, 0, -3.5, 7, base, 7, TOWER_STONE)];
+
+  for (let floor = 0; floor < floors; floor += 1) {
+    const y = base + floor * bandHeight;
+    const windowY = y + bandHeight * 0.3;
+    const windowHeight = bandHeight * 0.45;
+    const isGroundFloor = floor === 0;
+    const isEvenFloor = floor % 2 === 0;
+    boxes.push(b(-2.5, y, -2.5, 5, bandHeight - 0.25, 5, theme.wall));
+    boxes.push(b(-2.8, y + bandHeight - 0.25, -2.8, 5.6, 0.25, 5.6, theme.trim));
+    // The front of the ground floor is the door; the others have a window, and a window looks out to the side
+    if (isGroundFloor) boxes.push(b(-0.8, y, 2.5, 1.6, Math.min(1.6, bandHeight - 0.5), 0.15, TOWER_DOOR));
+    else boxes.push(b(-0.6, windowY, 2.5, 1.2, windowHeight, 0.15, theme.glow));
+    boxes.push(isEvenFloor ? b(2.5, windowY, -0.6, 0.15, windowHeight, 1.2, theme.glow) : b(-2.65, windowY, -0.6, 0.15, windowHeight, 1.2, theme.glow));
+  }
+
+  const top = base + floors * bandHeight;
+  boxes.push(b(-3.1, top, -3.1, 6.2, 0.7, 6.2, theme.roof));
+  boxes.push(b(-2.3, top + 0.7, -2.3, 4.6, 0.8, 4.6, theme.roof));
+  boxes.push(b(-1.5, top + 1.5, -1.5, 3, 0.8, 3, theme.roof));
+  boxes.push(b(-0.7, top + 2.3, -0.7, 1.4, 0.9, 1.4, theme.roof));
+  boxes.push(b(-0.1, top + 3.2, -0.1, 0.2, 1.1, 0.2, theme.trim));
+  boxes.push(b(0.1, top + 3.9, -0.1, 1, 0.5, 0.1, theme.glow));
+  return boxes;
+};
+
 const BUILDINGS: Record<string, () => Box[]> = {
   // Hometown
   "hero-home": heroHomeBoxes,
@@ -824,6 +894,8 @@ export const getBuildingBoxes = (buildingId: string): Box[] => {
   if (isPegasusTravel) {
     return getPegasusBoxesById(buildingId);
   }
+  const tower = PROJECT_TOWER_ID.exec(buildingId);
+  if (tower) return projectTowerBoxes(tower[1] ? Number(tower[1]) : TOWER_FLOORS.standard, tower[2] ?? "wind");
   const factory = BUILDINGS[buildingId] || BUILDINGS["hero-home"];
   return factory();
 };

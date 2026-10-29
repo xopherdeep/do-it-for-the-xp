@@ -4,6 +4,13 @@ import { isOrganizeMode } from "@/components/organisms/DraggableSpot/spotState";
 import { fitCamera, fitPosition, measurePositions } from "@/components/organisms/voxel/fitCamera";
 import { createSoftShadowMaterial, createVoxelMaterial, voxelGeometry } from "@/components/organisms/voxel/voxelMaterial";
 import type { Bounds, Ring } from "@/components/organisms/voxel/fitCamera";
+import {
+  landmarkBufferScale,
+  landmarkMaterialOptions,
+  landmarkRendererOptions,
+  noteLandmarkContext,
+} from "@/components/organisms/BuildingModel/voxel/landmarkQuality";
+import { currentKnobs } from "@/lib/services/graphics/deviceQuality";
 
 export interface LandmarkOptions {
   getMeshData: () => MeshData;
@@ -92,17 +99,19 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
 
   try {
     sharedCanvas = document.createElement("canvas");
+    // The tier decides MSAA; Super keeps the old rule (phones at 2x and up are sharp enough without it)
+    const { antialias } = landmarkRendererOptions(currentKnobs(), window.devicePixelRatio);
     sharedRenderer = new THREE.WebGLRenderer({
       canvas: sharedCanvas,
       alpha: true,
-      // Phones (2x and up) are sharp enough without it; a 1x screen gets smooth block edges
-      antialias: (window.devicePixelRatio || 1) <= 1.5,
+      antialias,
       powerPreference: "high-performance",
       depth: true,
       stencil: false,
       precision: "mediump",
       preserveDrawingBuffer: true,
     });
+    noteLandmarkContext(antialias); // only once the context exists: a throwing constructor must not ask for a restart
     sharedRenderer.setPixelRatio(1);
     sharedRenderer.outputColorSpace = THREE.SRGBColorSpace;
     sharedRenderer.autoClear = true;
@@ -152,7 +161,7 @@ const buildClientMesh = (client: LandmarkClient): void => {
 
   const data = client.getMeshData();
   const geometry = voxelGeometry(data);
-  const material = createVoxelMaterial();
+  const material = createVoxelMaterial(landmarkMaterialOptions(currentKnobs()));
   client.mesh = new THREE.Mesh(geometry, material);
   client.mesh.position.y = 0;
   client.group.add(client.mesh);
@@ -246,7 +255,7 @@ const resizeClient = (client: LandmarkClient): void => {
   const host = canvas.parentElement ?? canvas;
   const width = Math.max(host.clientWidth, 64);
   const height = Math.max(host.clientHeight, 64);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = landmarkBufferScale(currentKnobs(), window.devicePixelRatio);
 
   const pixelWidth = Math.round(width * dpr);
   const pixelHeight = Math.round(height * dpr);

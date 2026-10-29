@@ -1,4 +1,5 @@
 /** The Homeschool pack: a school day at home, with lessons, projects and routine for a parent who teaches */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const HOMESCHOOL_PACK = definePack(
@@ -45,7 +46,7 @@ export const HOMESCHOOL_PACK = definePack(
       reward("hs-reward-recess", "Extra Recess", "Fifteen more minutes of recess.", 80, "running"),
       reward("hs-reward-library", "Library Trip", "A trip to the library to pick new books.", 100, "book-open"),
       reward("hs-reward-order", "Choose the Subject Order", "Decide the order of tomorrow's lessons.", 120, "list-ol"),
-      reward("hs-reward-field-trip", "Pick the Field Trip", "Choose the next field trip: museum, zoo, park or farm.", 400, "map-marked-alt"),
+      reward("hs-reward-field-trip", "Pick the Field Trip", "Choose the next field trip: museum, zoo, park or farm.", gpForDollars(30), "map-marked-alt"), // about $30
     ],
     powers: [
       "irl-extra-time",

@@ -1,0 +1,208 @@
+// The Hometown tower sheet: a full-screen app sheet in the kit's tokens (both skins, Retro and Modern). What the family
+// reads sits above; the actions sit in the bar at the bottom, in thumb reach.
+.tower-sheet {
+  background: transparent;
+  --background: var(--xp-app-bg);
+  --box-shadow: none;
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+
+  &::part(content) {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--xp-app-bg);
+  }
+}
+
+.pt-loading,
+.pt-empty {
+  padding: 32px 16px;
+  color: var(--xp-app-text-dim);
+  text-align: center;
+}
+
+.pt-section {
+  padding: 12px;
+}
+
+.pt-sub {
+  margin: 18px 2px 8px;
+  color: var(--xp-app-text);
+  font-family: var(--xp-app-font-title);
+  font-size: 1rem;
+  text-transform: var(--xp-app-title-transform);
+}
+
+// ---- The floor the family is on ---------------------------------------------------------------------------------
+
+.pt-current {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-section);
+  color: var(--xp-app-text);
+
+  &__label {
+    color: var(--xp-app-text-dim);
+    font-size: 0.8rem;
+    text-transform: var(--xp-app-title-transform);
+  }
+
+  &__name {
+    margin: 0;
+    color: var(--xp-app-accent);
+    font-family: var(--xp-app-font-title);
+    font-size: 1.3rem;
+    text-transform: var(--xp-app-title-transform);
+  }
+}
+
+.pt-clock,
+.pt-offer,
+.pt-ends {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.pt-clock {
+  &[data-state="late"] {
+    color: var(--gs-danger, var(--xp-app-text));
+  }
+
+  &[data-state="today"] {
+    color: var(--xp-app-accent);
+  }
+
+  &[data-state="cleared"] {
+    color: var(--gs-good, var(--xp-app-text));
+  }
+}
+
+.pt-offer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--xp-app-accent);
+
+  i {
+    --fa-primary-color: var(--xp-app-accent);
+  }
+}
+
+.pt-ends {
+  color: var(--xp-app-text-dim);
+}
+
+// ---- Every floor ------------------------------------------------------------------------------------------------
+
+.pt-floors {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pt-floor {
+  display: grid;
+  grid-template-columns: 24px 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+  color: var(--xp-app-text);
+
+  &__key {
+    font-family: var(--xp-app-font-title);
+    text-transform: var(--xp-app-title-transform);
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__state {
+    color: var(--xp-app-text-dim);
+    font-size: 0.8rem;
+    text-transform: var(--xp-app-title-transform);
+  }
+
+  &[data-state="cleared"] i {
+    color: var(--gs-good, var(--xp-app-accent));
+  }
+
+  &[data-state="open"] {
+    border-color: var(--xp-app-accent);
+  }
+
+  &[data-state="asleep"] {
+    opacity: 0.6;
+  }
+}
+
+// ---- The bar at the bottom --------------------------------------------------------------------------------------
+
+.pt-bar {
+  gap: 10px;
+}
+
+.pt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &__enter {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+
+  button {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+
+  &__abandon {
+    color: var(--gs-danger, var(--xp-app-text));
+  }
+}
+
+.pt-end {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.pt-field {
+  display: grid;
+  gap: 4px;
+
+  &__label {
+    color: var(--xp-app-text-dim);
+    font-size: 0.8rem;
+  }
+}
+
+.pt-date {
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-control);
+  color: var(--xp-app-text);
+  font-family: var(--xp-app-font-body);
+}
+
+.pt-problem {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--gs-danger, var(--xp-app-text));
+  font-size: 0.85rem;
+}

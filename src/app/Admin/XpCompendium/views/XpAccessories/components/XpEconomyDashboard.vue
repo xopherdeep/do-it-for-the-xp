@@ -33,11 +33,14 @@
         <i class="fad fa-hand-holding-box fa-2x" />
       </ion-fab-button>
     </ion-fab>
+
+    <!-- Opt-in: move saved starter prices and AP gates onto the new economy, only the rows the GM ticks -->
+    <xp-rebalance-prompt :open="rebalanceOpen" @close="rebalanceOpen = false" />
   </xp-rpg-page>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import { useRouter } from "vue-router";
 import { actionSheetController, IonRouterOutlet } from "@ionic/vue";
 import {
@@ -46,19 +49,23 @@ import {
   keyOutline,
   closeOutline,
   homeOutline,
+  scaleOutline,
 } from "ionicons/icons";
 import Ionic from "@/lib/mixins/ionic";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import XpRebalancePrompt from "@/app/Admin/XpCompendium/components/XpRebalancePrompt.vue";
 
 export default defineComponent({
   name: "XpEconomyDashboard",
   mixins: [Ionic],
   components: {
     IonRouterOutlet,
-    XpRpgPage
+    XpRpgPage,
+    XpRebalancePrompt
   },
   setup() {
     const router = useRouter();
+    const rebalanceOpen = ref(false);
 
     const presentActionSheet = async () => {
       const actionSheet = await actionSheetController.create({
@@ -89,6 +96,13 @@ export default defineComponent({
             },
           },
           {
+            text: "Rebalance my shop and Powers",
+            icon: scaleOutline,
+            handler: () => {
+              rebalanceOpen.value = true;
+            },
+          },
+          {
             text: "Cancel",
             role: "cancel",
             icon: closeOutline,
@@ -100,6 +114,7 @@ export default defineComponent({
 
     return {
       presentActionSheet,
+      rebalanceOpen,
       storefrontOutline,
       shirtOutline,
       keyOutline,

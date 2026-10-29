@@ -49,6 +49,9 @@ export interface ProjectChore {
 // ---------------------------------------------------------------------------------------------------------------
 // The rooms
 
+/** The room every house has: a chore with no room of its own, or whose room is gone, lands here */
+export const WHOLE_HOUSE_ID = "house";
+
 const WHOLE_HOUSE_NAME = "The Whole House";
 
 const roomCountOf = (house: ProjectHouse, room: (typeof MOVING_ROOMS)[number]): number => {
@@ -71,8 +74,20 @@ const roomsOfKind = (room: (typeof MOVING_ROOMS)[number], count: number): Projec
 /** The rooms a house has, in the setup's order: counted ones numbered, then "The Whole House" */
 export const houseRoomsOf = (house: ProjectHouse): ProjectRoom[] => [
   ...MOVING_ROOMS.flatMap((room) => roomsOfKind(room, roomCountOf(house, room))),
-  { id: "house", kind: "house", name: WHOLE_HOUSE_NAME },
+  { id: WHOLE_HOUSE_ID, kind: "house", name: WHOLE_HOUSE_NAME },
 ];
+
+/**
+ * The chores as the house holds them: one whose room the house lacks (a re-run into a smaller home) goes to the Whole
+ * House, none is dropped, and the roof's finale stays where it is. Chores are copied only when they move.
+ */
+export const rehomeChores = (chores: readonly ProjectChore[], house: ProjectHouse): ProjectChore[] => {
+  const known = new Set(houseRoomsOf(house).map((room) => room.id));
+  return chores.map((chore) => {
+    const isLost = chore.phaseId !== ROOF_PHASE_ID && !known.has(chore.roomId);
+    return isLost ? { ...chore, roomId: WHOLE_HOUSE_ID } : chore;
+  });
+};
 
 // ---------------------------------------------------------------------------------------------------------------
 // The heroes: who can take a chore, and in what turn
@@ -99,8 +114,7 @@ const clampToBand = (difficulty: number, band: PackBand): number => {
 
 const rangeHolds = (band: PackBand, size: number): boolean => {
   const [low, high] = BAND_RANGES[band];
-  const isInRange = size >= low && size <= high;
-  return isInRange;
+  return size >= low && size <= high;
 };
 
 /** The oldest band whose range holds a size: a size two or three is a kid's, five and up a grown-up's */
@@ -126,7 +140,8 @@ const rosterOf = (heroes: readonly PackHero[]): Roster => {
   const everyone = heroes.filter(isPlaying);
   const turns = new Map<string, number>();
   const rotate = (key: string, pool: readonly Player[]): Player | undefined => {
-    if (pool.length === 0) return undefined;
+    const isPoolEmpty = pool.length === 0;
+    if (isPoolEmpty) return undefined;
     const turn = turns.get(key) ?? 0;
     turns.set(key, turn + 1);
     return pool[turn % pool.length];
@@ -168,7 +183,8 @@ const choreOf = (suggestion: ProjectChoreSuggestion, place: Place, assignee: rea
 /** One shared chore: the whole team's, or one hero's by rotation, sized to that hero's band */
 const sharedChore = (suggestion: ProjectChoreSuggestion, place: Place, roster: Roster): ProjectChore => {
   const { who } = suggestion;
-  if (who === "team") return choreOf(suggestion, place, roster.everyone, nearestDifficulty(suggestion.difficulty));
+  const isTeamChore = who === "team";
+  if (isTeamChore) return choreOf(suggestion, place, roster.everyone, nearestDifficulty(suggestion.difficulty));
   const hero = isBandWho(who) ? roster.next(who) : roster.nextAny();
   if (!hero) return choreOf(suggestion, place, [], nearestDifficulty(suggestion.difficulty));
   return choreOf(suggestion, place, [hero], clampToBand(suggestion.difficulty, hero.band));
@@ -177,7 +193,8 @@ const sharedChore = (suggestion: ProjectChoreSuggestion, place: Place, roster: R
 /** One chore for each hero of the band (of everyone, for an anyone or team chore), each sized to that hero */
 const heroChores = (suggestion: ProjectChoreSuggestion, place: Place, roster: Roster): ProjectChore[] => {
   const heroes = isBandWho(suggestion.who) ? roster.pool(suggestion.who) : roster.everyone;
-  if (heroes.length === 0) return [choreOf(suggestion, place, [], nearestDifficulty(suggestion.difficulty))];
+  const hasNoHeroes = heroes.length === 0;
+  if (hasNoHeroes) return [choreOf(suggestion, place, [], nearestDifficulty(suggestion.difficulty))];
   return heroes.map((hero) => choreOf(suggestion, place, [hero], clampToBand(suggestion.difficulty, hero.band), hero.id));
 };
 

@@ -1,6 +1,7 @@
 import {
   computed,
   defineComponent,
+  onMounted,
   ref,
 } from "vue";
 import {
@@ -41,9 +42,12 @@ import {
 
 
 import { useQueryProvider } from "vue-query";
+import { Capacitor } from "@capacitor/core";
 
 import XpSideMenu from "@/app/SideMenu/SideMenu.vue";
 import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
+import XpDlcModal from "@/components/molecules/Modals/XpDlcModal.vue";
+import { dlcService } from "@/lib/services/dlc/assetDlcService";
 import XpStudioSplash from "@/components/organisms/Splash/XpStudioSplash.vue";
 import { claimStudioSplash } from "@/components/organisms/Splash/splash";
 import XpSceneTransition from "@/components/organisms/SceneTransition/XpSceneTransition.vue";
@@ -102,6 +106,7 @@ export default defineComponent({
     IonSplitPane,
     XpSideMenu,
     XpAudioPermissionModal,
+    XpDlcModal,
     XpStudioSplash,
     XpGlobalDialog,
     XpRewardsOverlay,
@@ -351,7 +356,19 @@ export default defineComponent({
       .catch(() => undefined)
       .finally(() => (proChecked.value = true));
 
+    const isDlcModalOpen = ref(false);
+    onMounted(async () => {
+      const isNative = Boolean(Capacitor.isNativePlatform());
+      if (isNative) {
+        const isReady = await dlcService.checkStatus();
+        if (!isReady) {
+          isDlcModalOpen.value = true;
+        }
+      }
+    });
+
     return {
+      isDlcModalOpen,
       // Ionic's own page slide stays off while a scene transition plays over it
       sceneTransitionActive,
       audioStore,

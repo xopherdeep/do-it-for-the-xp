@@ -1,77 +1,147 @@
+// The hero's notifications feed: Phone App Kit rows and badge styling.
+// Colours, frames and fonts come from the kit tokens (`.xp-app--retro` / `.xp-app--modern`, _xp-app.scss).
+
 .xp-notifications {
-  .notification-container {
-    padding: 8px;
+  font-family: var(--xp-app-font-body);
+
+  .notifications-content {
+    --background: var(--xp-app-bg);
   }
 
-  .unread-count {
-    margin-left: 6px;
-    padding: 0 6px;
-    border-radius: 8px;
-    background: var(--ion-color-danger);
-    color: #fff;
-    font-size: 0.7rem;
+  .notifications-feed {
+    padding: 4px 0 24px;
   }
 
-  ion-item {
-    --background: transparent;
+  .notifications-empty {
+    margin-top: 3rem;
+  }
 
-    &.unread {
-      --background: rgba(var(--ion-color-primary-rgb), 0.1);
-      font-weight: 500;
+  .notification-row {
+    &.is-unread :deep(.xp-app-row__title) {
+      font-weight: 700;
     }
+
+    &.kind-quest-due :deep(.xp-app-row__tile) { color: var(--ion-color-warning, rgb(240, 163, 48)); }
+    &.kind-quest-overdue :deep(.xp-app-row__tile),
+    &.kind-rejected :deep(.xp-app-row__tile),
+    &.kind-late-penalty :deep(.xp-app-row__tile) { color: var(--ion-color-danger, rgb(240, 90, 91)); }
+    &.kind-approved :deep(.xp-app-row__tile),
+    &.kind-purchase :deep(.xp-app-row__tile) { color: var(--ion-color-success, rgb(63, 191, 95)); }
+    &.kind-level-up :deep(.xp-app-row__tile) { color: var(--ion-color-primary, rgb(56, 128, 255)); }
+    &.kind-power-cast :deep(.xp-app-row__tile) { color: var(--xp-color-ap, rgb(127, 208, 240)); }
+    &.kind-gold :deep(.xp-app-row__tile) { color: var(--ion-color-warning, rgb(212, 160, 23)); }
+    &.kind-blood-moon :deep(.xp-app-row__tile) { color: var(--ion-color-danger, rgb(184, 45, 86)); }
   }
 
   .unread-dot {
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-right: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: var(--ion-color-danger);
-    vertical-align: middle;
+    background: var(--xp-app-accent, var(--ion-color-danger));
+    box-shadow: 0 0 6px var(--xp-app-accent, var(--ion-color-danger));
   }
 
-  .notification-time {
-    font-size: 0.8rem;
-    color: var(--ion-color-medium);
-    margin-top: 4px;
-  }
-
-  .empty-state {
-    margin-top: 2rem;
-    color: var(--ion-color-medium);
-
-    i {
-      margin-bottom: 1rem;
-    }
-  }
-
-  // The kind of each row, as a coloured coin
-  .kind-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+  .row-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background-color: var(--ion-color-medium);
+    gap: 6px;
+  }
 
-    i {
-      color: #fff;
-      font-size: 1.2rem;
+  .row-action-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--xp-app-radius-control, 8px);
+    background: var(--xp-app-surface-2);
+    border: 1px solid var(--xp-app-line);
+    color: var(--xp-app-text-dim);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: var(--xp-app-text);
+      border-color: var(--xp-app-accent);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &.read-btn:hover {
+      color: var(--ion-color-success);
+    }
+
+    &.delete-btn:hover {
+      color: var(--ion-color-danger);
     }
   }
 
-  .kind-quest-due .kind-icon { background-color: var(--ion-color-warning); }
-  .kind-quest-overdue .kind-icon,
-  .kind-rejected .kind-icon { background-color: var(--ion-color-danger); }
-  .kind-approved .kind-icon,
-  .kind-purchase .kind-icon { background-color: var(--ion-color-success); }
-  .kind-level-up .kind-icon { background-color: var(--ion-color-primary); }
-  .kind-blood-moon .kind-icon { background-color: #7a1f3d; }
-  .kind-power-cast .kind-icon { background-color: var(--xp-color-ap); }
+  .notifications-footer {
+    background: transparent;
 
-  ion-footer {
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    .xp-app-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+    }
+  }
+
+  .filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--xp-app-radius-chip, 999px);
+    background: var(--xp-app-surface-2);
+    border: 1px solid var(--xp-app-line);
+    color: var(--xp-app-text-dim);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &.is-active {
+      background: var(--xp-app-accent);
+      color: var(--xp-app-on-accent);
+      border-color: var(--xp-app-accent);
+      text-shadow: var(--xp-app-on-accent-shadow, none);
+    }
+  }
+
+  .pill-badge {
+    padding: 1px 6px;
+    border-radius: var(--xp-app-radius-chip, 999px);
+    background: var(--ion-color-danger);
+    color: rgb(255, 255, 255);
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  .footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mark-all-btn,
+  .clear-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 0.72rem;
   }
 }
+

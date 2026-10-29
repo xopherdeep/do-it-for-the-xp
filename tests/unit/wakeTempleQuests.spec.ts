@@ -112,8 +112,8 @@ describe("questFromTemplate", () => {
   });
 
   it("pays as the quest form pays: xp 100x, gp 10x, ap 1x the difficulty", () => {
-    expect(made(template({ difficulty: 2 }))).toMatchObject({ difficulty: 2, xp: 200, gp: 20, ap: 2 });
-    expect(made(template({ difficulty: 13 }))).toMatchObject({ difficulty: 13, xp: 1300, gp: 130, ap: 13 });
+    expect(made(template({ difficulty: 2 }))).toMatchObject({ difficulty: 2, xp: 200, gp: 30, ap: 2 });
+    expect(made(template({ difficulty: 13 }))).toMatchObject({ difficulty: 13, xp: 1300, gp: 195, ap: 13 });
   });
 
   it("carries a daily template's times: due time, parts of the day, minutes", () => {

@@ -1091,6 +1091,32 @@ describe("family store", () => {
       expect(mockSaveDevice).toHaveBeenCalledWith(expect.objectContaining({ card: expect.objectContaining({ level: 7 }) }));
     });
 
+    it("refreshCard keeps the hero's name from the site while the card has not arrived", async () => {
+      mockHeroDevice = { ...sampleDevice(), card: null };
+      getFamily.mockResolvedValue({
+        familyId: FAMILY,
+        heroes: [{ heroId: "h-1", nickname: "Mia", card: null }],
+      });
+      const store = useFamilyStore();
+      store.device = mockHeroDevice;
+      await store.refreshCard();
+      expect(store.device?.card).toBeNull();
+      expect(store.device?.nickname).toBe("Mia");
+      expect(mockSaveDevice).toHaveBeenCalledWith(expect.objectContaining({ nickname: "Mia", card: null }));
+    });
+
+    it("refreshCard saves nothing when the site has no card and the name is already kept", async () => {
+      mockHeroDevice = { ...sampleDevice(), card: null, nickname: "Mia" };
+      getFamily.mockResolvedValue({
+        familyId: FAMILY,
+        heroes: [{ heroId: "h-1", nickname: "Mia", card: null }],
+      });
+      const store = useFamilyStore();
+      store.device = mockHeroDevice;
+      await store.refreshCard();
+      expect(mockSaveDevice).not.toHaveBeenCalled();
+    });
+
     it("a key-revoked sets unlinked: true", async () => {
       mockHeroDevice = { ...sampleDevice(), unlinked: false };
       getFamily.mockRejectedValue(failWith(401, "xp_family_key_revoked"));

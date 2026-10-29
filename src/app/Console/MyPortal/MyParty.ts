@@ -8,6 +8,7 @@ import {
   IonCardSubtitle,
   IonChip,
   IonContent,
+  IonFooter,
   IonHeader,
   IonIcon,
   IonLabel,
@@ -29,11 +30,17 @@ import {
 } from "ionicons/icons";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue";
+import { usePartyScope, type HomeScope } from "@/hooks/usePartyScope";
+import { usePartyVoice } from "@/hooks/usePartyVoice";
 import ionic from "@/lib/mixins/ionic";
 import { getQuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
+import { problemText } from "@/lib/services/party/partyProblemText";
+import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import {
   calculatePartyStreak,
+  heroesFinishedOn,
   partyActivityFeed,
+  toDayKey,
   type PartyMember,
 } from "@/lib/services/party/partyStats";
 import { useFamilyStore } from "@/lib/store/stores/family";
@@ -41,9 +48,13 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import debug from "@/lib/utils/debug";
 import PartyActivityTab from "./party/PartyActivityTab.vue";
+import PartyFormJoin from "./party/PartyFormJoin.vue";
+import PartyPresetBar from "./party/PartyPresetBar.vue";
 import PartyRaidsTab from "./party/PartyRaidsTab.vue";
 import PartyRosterTab from "./party/PartyRosterTab.vue";
+import PartySwitcher from "./party/PartySwitcher.vue";
 import PartySynergiesTab from "./party/PartySynergiesTab.vue";
+import { inviteCodeText, sentWordToast } from "./party/partyWording";
 
 export default defineComponent({
   name: "my-party",
@@ -63,10 +74,14 @@ export default defineComponent({
     IonCardHeader,
     IonCardSubtitle,
     IonChip,
+    IonFooter,
     PartyRosterTab,
     PartyActivityTab,
     PartySynergiesTab,
     PartyRaidsTab,
+    PartySwitcher,
+    PartyFormJoin,
+    PartyPresetBar,
   },
   mixins: [ionic as any],
   setup() {
@@ -101,6 +116,16 @@ export default defineComponent({
       partyActivityFeed(questLogEntries.value, userStore.users)
     );
 
+    // The party the tabs show: the household's own, or one with other families (the tabs read one scope either way)
+    const homeScope = computed<HomeScope>(() => ({
+      members: partyMembers.value,
+      activity: activityFeed.value,
+      heroIdsToday: heroesFinishedOn(questLogEntries.value, toDayKey()),
+    }));
+    const { activePartyId, parties, outsideParty, isNewParty, scope } = usePartyScope(homeScope, activeTab);
+    const showHome = computed(() => activePartyId.value === HOME_PARTY_ID);
+    const { senderHeroId, showWords, partyHeroes, sendWordTo } = usePartyVoice(outsideParty);
+
     const showToast = async (message: string, color = "success") => {
       const toast = await toastController.create({
         message,
@@ -111,14 +136,44 @@ export default defineComponent({
       await toast.present();
     };
 
+    /** The party code is read out or copied by a Game Master, so its toast stays long enough and has a close button (the project's rpg-toast) */
+    const showCodeToast = async (message: string): Promise<void> => {
+      const toast = await toastController.create({
+        header: "Invite a family",
+        message,
+        duration: 12000,
+        position: "middle",
+        buttons: [{ text: "Close", role: "cancel" }],
+        cssClass: "rpg-toast",
+        color: "success",
+      });
+      await toast.present();
+    };
+
+    /** A cheer or a poke: a toast at home, and one of the fixed words aimed at the member in a party with other families */
+    const sayTo = async (member: PartyMember, word: "cheer" | "poke"): Promise<void> => {
+      const sent = sentWordToast(word, member.name?.nick || "");
+      const isAtHome = !outsideParty.value;
+      if (isAtHome) {
+        await showToast(sent.text, sent.color);
+        return;
+      }
+
+      const result = await sendWordTo(String(member.id), word);
+      await showToast(result.ok ? sent.text : problemText(result.problem), result.ok ? sent.color : "warning");
+    };
+
     const cheerMember = (member: PartyMember) => {
-      const name = member.name?.nick || "Hero";
-      void showToast(`💚 Sent encouragement to ${name}!`);
+      void sayTo(member, "cheer");
     };
 
     const pokeMember = (member: PartyMember) => {
-      const name = member.name?.nick || "Hero";
-      void showToast(`👋 Nudged ${name}!`, "warning");
+      void sayTo(member, "poke");
+    };
+
+    /** A party with other families was just formed: show it */
+    const showFormedParty = (partyId: string) => {
+      activePartyId.value = partyId;
     };
 
     const openMemberProfile = (member: PartyMember) => {
@@ -187,6 +242,13 @@ export default defineComponent({
     };
 
     const handleInviteMember = async () => {
+      // In a party with other families, inviting means handing a friend's Game Master the code
+      const party = outsideParty.value;
+      if (party) {
+        void showCodeToast(inviteCodeText(party.code));
+        return;
+      }
+
       const isManager = canManage.value;
       if (!isManager) {
         void showToast("Only the Game Master can add party members.", "warning");
@@ -259,13 +321,22 @@ export default defineComponent({
       settingsOutline,
       // State
       activeTab,
+      activePartyId,
+      parties,
+      scope,
+      showHome,
+      isNewParty,
+      outsideParty,
+      senderHeroId,
+      showWords,
+      partyHeroes,
       partyMembers,
       partyStreak,
-      activityFeed,
       canManage,
       // Methods
       cheerMember,
       pokeMember,
+      showFormedParty,
       openMemberProfile,
       openPartySettings,
       handleInviteMember,

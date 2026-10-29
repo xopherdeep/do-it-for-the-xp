@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
@@ -12,7 +12,7 @@ import { quoteBedRest } from "@/lib/services/hometown/Lodging";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useBedRest } from "./useBedRest";
-import { goAfterSignOut } from "@/router/signOutRoute";
+import { useSaveAndQuit } from "@/hooks/useSaveAndQuit";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -76,33 +76,18 @@ export default defineComponent({
 
     const userId = computed(() => String(route.params.userId));
     const user = computed(() => userStore.getUserById(userId.value));
-    const showSaveQuitModal = ref(false);
+    const {
+      isOpen: showSaveQuitModal,
+      open: openSaveQuitModal,
+      cancel: closeSaveQuitModal,
+      confirm: confirmSaveQuit,
+    } = useSaveAndQuit();
     // The bed asks in the game's own dialog, in the hero's voice
     const { prompt, submitAnswer, confirmBedRest } = useBedRest();
 
     const closeModal = () => modalController.dismiss()
     const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
 
-    const shouldNavigateToProfile = ref(false);
-
-    const closeSaveQuitModal = () => {
-      showSaveQuitModal.value = false;
-      if (shouldNavigateToProfile.value) {
-        shouldNavigateToProfile.value = false;
-        // Signing out rests the hero's turn (the sync store watches who is signed in): what waits goes up first
-        userStore.logoutUser();
-        goAfterSignOut(router);
-      }
-    };
-
-    const confirmSaveQuit = () => {
-      shouldNavigateToProfile.value = true;
-      showSaveQuitModal.value = false;
-    };
-
-    const openSaveQuitModal = () => {
-      showSaveQuitModal.value = true;
-    };
 
     const userAvatar = computed(() => {
       return heroAvatarSrc(user.value, requireAvatar);

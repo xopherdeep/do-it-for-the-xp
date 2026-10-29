@@ -34,6 +34,15 @@ export const family = {
   "family.questsElsewhere": {
     adventure: "Your quests are on the family device.",
   },
+  "family.cardWaiting": {
+    adventure: "{nickname}'s card hasn't come from the family device yet. Open the app there and I'll check again.",
+  },
+  "family.syncOffNote": {
+    adventure: "Family sync is off on this phone. It needs the family's XP Pro.",
+  },
+  "family.syncProblemNote": {
+    adventure: "Family sync is on, but the site says: {problem}.",
+  },
   "family.phoneQuests": {
     adventure: "Quests",
   },

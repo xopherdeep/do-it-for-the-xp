@@ -56,6 +56,20 @@ jest.mock("@/lib/databases/QuestLogDb", () => ({
   }),
 }));
 
+// The tower floors a paid project chore may clear: the rules are projectService.spec.ts, here only that they are asked
+const mockOnQuestPaid = jest.fn();
+const mockOnEntryPaid = jest.fn();
+jest.mock("@/lib/services/projects/projectService", () => ({
+  onQuestPaid: (...args: unknown[]) => mockOnQuestPaid(...args),
+  onEntryPaid: (...args: unknown[]) => mockOnEntryPaid(...args),
+}));
+
+// How big an approved chore was is read off the board by id: the lookup has its own spec (questDifficulty.spec.ts)
+const mockDifficultyOfQuest = jest.fn();
+jest.mock("@/lib/services/quests/questDifficulty", () => ({
+  difficultyOfQuest: (...args: unknown[]) => mockDifficultyOfQuest(...args),
+}));
+
 // The family's late chore rules: off, as a family that never opened the card has them
 let mockLateChores: Record<string, unknown> = {};
 jest.mock("@/lib/services/family/familySettings", () => {
@@ -100,6 +114,8 @@ beforeEach(() => {
   setActivePinia(createPinia());
   log.length = 0;
   mockLateChores = {};
+  mockOnQuestPaid.mockReset();
+  mockOnEntryPaid.mockReset();
 });
 
 describe("paidQuestRewards", () => {
@@ -500,7 +516,7 @@ describe("the quest-paid signal", () => {
   it("a claim paid at once says so, with the owed XP, after the XP landed", async () => {
     addHero("Warrior");
     await completeQuest(quest(), HERO_ID, "claim");
-    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false }]);
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false, entryId: expect.any(String) }]);
     expect(xpWhenHeard).toEqual([30]);
   });
 
@@ -508,7 +524,7 @@ describe("the quest-paid signal", () => {
     addHero("Warrior");
     useUserStore().users[HERO_ID].questEffects = { trustedUntil: new Date(Date.now() + 3600_000).toISOString() };
     await completeQuest(quest(true), HERO_ID, "battle");
-    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true, entryId: expect.any(String) }]);
   });
 
   it("a held claim says nothing", async () => {
@@ -522,7 +538,7 @@ describe("the quest-paid signal", () => {
     const held = await completeQuest(quest(true), HERO_ID, "claim");
     await approveCompletion(held.entry.id, "gm-1");
     await approveCompletion(held.entry.id, "gm-1");
-    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false }]);
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false, entryId: expect.any(String) }]);
     expect(xpWhenHeard).toEqual([30]);
   });
 
@@ -530,7 +546,7 @@ describe("the quest-paid signal", () => {
     addHero("Warrior");
     const held = await completeQuest(quest(true), HERO_ID, "battle");
     await approveCompletion(held.entry.id, "gm-1");
-    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true, entryId: expect.any(String) }]);
   });
 
   it("a rejection says nothing", async () => {
@@ -543,7 +559,7 @@ describe("the quest-paid signal", () => {
   it("a win logged after the battle paid its own rewards is a fight", async () => {
     addHero("Warrior");
     await recordBattleCompletion(quest(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
-    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true, entryId: expect.any(String) }]);
   });
 });
 
@@ -610,5 +626,129 @@ describe("completeQuest and late chores", () => {
     mockLateChores = { reducedPay: true, lateShare: 50 };
     const result = await completeQuest(lateQuest({ dueByTime: "23:59" }), HERO_ID, "claim");
     expect(result.paid).toEqual({ xp: 30, gp: 40, ap: 2 });
+  });
+});
+
+describe("a paid project chore settles its tower floor", () => {
+  const projectQuest = (requiresApproval = false): Achievement =>
+    ({
+      ...quest(requiresApproval),
+      id: "pq-spring-cleaning-2027-04-03-sweep",
+      project: { projectId: "spring-cleaning-2027-04-03", floor: "1F", dueOn: "2027-04-06" },
+    }) as unknown as Achievement;
+
+  it("asks after a claim paid at once, once the entry says it was paid", async () => {
+    addHero("Warrior");
+    const paidWhenAsked: boolean[] = [];
+    mockOnQuestPaid.mockImplementation(async () => {
+      paidWhenAsked.push(log[0].rewardsApplied);
+      return null;
+    });
+    const chore = projectQuest();
+    await completeQuest(chore, HERO_ID, "claim");
+    expect(mockOnQuestPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnQuestPaid).toHaveBeenCalledWith(chore, expect.any(String));
+    expect(paidWhenAsked).toEqual([true]);
+    expect(stats().xp.now).toBe(30);
+  });
+
+  it("waits for the Game Master's approval of a held claim, and asks once for it", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+    await approveCompletion(held.entry.id, "gm-1");
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(mockOnEntryPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnEntryPaid).toHaveBeenCalledWith("pq-spring-cleaning-2027-04-03-sweep", held.entry.completedAt);
+  });
+
+  it("asks nothing for a rejected claim", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    await rejectCompletion(held.entry.id, "gm-1", "not done");
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+  });
+
+  it("asks after a win logged once the battle paid its own rewards", async () => {
+    addHero("Warrior");
+    const chore = projectQuest();
+    const entry = await recordBattleCompletion(chore, HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(mockOnQuestPaid).toHaveBeenCalledTimes(1);
+    expect(mockOnQuestPaid).toHaveBeenCalledWith(chore, entry.completedAt);
+  });
+
+  it("leaves a plain chore alone, paid at once or approved", async () => {
+    addHero("Warrior");
+    await completeQuest(quest(), HERO_ID, "claim");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    await approveCompletion(held.entry.id, "gm-1");
+    await recordBattleCompletion(quest(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(mockOnQuestPaid).not.toHaveBeenCalled();
+    expect(mockOnEntryPaid).not.toHaveBeenCalled();
+  });
+
+  it("never holds up the payment when the floor cannot be settled", async () => {
+    addHero("Warrior");
+    mockOnQuestPaid.mockRejectedValue(new Error("the storage is gone"));
+    mockOnEntryPaid.mockRejectedValue(new Error("the storage is gone"));
+    const paid = await completeQuest(projectQuest(), HERO_ID, "claim");
+    expect(paid.entry.rewardsApplied).toBe(true);
+    expect(stats().xp.now).toBe(30);
+    const held = await completeQuest(projectQuest(true), HERO_ID, "claim");
+    const approved = await approveCompletion(held.entry.id, "gm-1");
+    expect(approved?.status).toBe("approved");
+    expect(stats().xp.now).toBe(60);
+  });
+});
+
+describe("the paid signal names the chore, its size and its log entry", () => {
+  const heard: QuestPaid[] = [];
+  let stop: () => void;
+
+  beforeEach(() => {
+    heard.length = 0;
+    mockDifficultyOfQuest.mockReset();
+    stop = onQuestPaid((paid) => heard.push(paid));
+  });
+  afterEach(() => stop());
+
+  const rated = (requiresApproval = false): Achievement => ({ ...quest(requiresApproval), difficulty: 5 } as Achievement);
+
+  it("carries them for a claim paid at once", async () => {
+    addHero("Warrior");
+    const result = await completeQuest(rated(), HERO_ID, "claim");
+    expect(heard).toEqual([
+      expect.objectContaining({ heroId: HERO_ID, questId: "q1", fight: false, difficulty: 5, entryId: result.entry.id }),
+    ]);
+  });
+
+  it("carries them for a battle win", async () => {
+    addHero("Warrior");
+    const entry = await recordBattleCompletion(rated(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(heard).toEqual([expect.objectContaining({ fight: true, difficulty: 5, entryId: entry.id })]);
+  });
+
+  it("says nothing for a held claim, then reads the size off the board when a Game Master approves it", async () => {
+    addHero("Warrior");
+    mockDifficultyOfQuest.mockResolvedValue(8);
+    const held = await completeQuest(rated(true), HERO_ID, "claim");
+    expect(heard).toEqual([]);
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(mockDifficultyOfQuest).toHaveBeenCalledWith("q1");
+    expect(heard).toEqual([expect.objectContaining({ difficulty: 8, entryId: held.entry.id })]);
+  });
+
+  it("says nothing for a rejected claim, and nothing for a second approval of the same claim", async () => {
+    addHero("Warrior");
+    mockDifficultyOfQuest.mockResolvedValue(8);
+    const rejected = await completeQuest(rated(true), HERO_ID, "claim");
+    await rejectCompletion(rejected.entry.id, "gm-1", "not done");
+    expect(heard).toEqual([]);
+    const held = await completeQuest(rated(true), HERO_ID, "claim");
+    await approveCompletion(held.entry.id, "gm-1");
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(heard).toHaveLength(1);
   });
 });

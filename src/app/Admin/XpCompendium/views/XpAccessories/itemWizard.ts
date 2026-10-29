@@ -80,7 +80,7 @@ export const RARITY_CHOICES: readonly { value: Rarity; label: string }[] = [
 ];
 
 /** Quick prices for the thumb: the price field stays for anything else */
-export const PRICE_CHOICES: readonly number[] = [5, 10, 25, 50, 100, 250];
+export const PRICE_CHOICES: readonly number[] = [25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
 
 const blankStats = (): GearStats => ({ hp: 0, mp: 0, attack: 0, defense: 0, speed: 0 });
 

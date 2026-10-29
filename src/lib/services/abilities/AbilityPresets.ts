@@ -7,6 +7,7 @@
 import { Ability, AbilityType, TimePeriod, ABILITY_CLASSES } from '@/hooks/abilities/abilityConstants';
 import { HYBRID_PRESETS } from './hybridPresets';
 import { createCustomAbility } from './customAbility';
+import { TECH_MAGE_PRESETS } from './techMagePresets';
 
 /**
  * Time Mage Ability Presets
@@ -20,7 +21,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 10,
     apRequirement: {
-      amount: 100,
+      amount: 10,
       period: TimePeriod.Daily
     },
     icon: 'timeOutline',
@@ -44,7 +45,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'timeOutline',
@@ -68,7 +69,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 25,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'timeOutline',
@@ -92,7 +93,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 40,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'refreshOutline',
@@ -115,112 +116,6 @@ export const TIME_MAGE_PRESETS: Ability[] = [
 ];
 
 /**
- * Tech Mage (Technician) Ability Presets
- */
-export const TECH_MAGE_PRESETS: Ability[] = [
-  {
-    id: 'tech-mage-debug',
-    name: 'Debug',
-    description: 'Find and fix problems in your code or projects more efficiently.',
-    type: AbilityType.InGame,
-    frequency: TimePeriod.Daily,
-    mpCost: 15,
-    apRequirement: {
-      amount: 100,
-      period: TimePeriod.Daily
-    },
-    icon: 'appsOutline',
-    prerequisites: [],
-    isPreset: true,
-    battleEffect: 'weaken',
-    effect: 'Increase problem-solving speed by 25% for technical tasks',
-    characterRequirement: {
-      level: 1,
-      class: {
-        [ABILITY_CLASSES.Technician]: 1
-      }
-    },
-    position: { x: 500, y: 100 }
-  },
-  {
-    id: 'tech-mage-quicksave',
-    name: 'Quick Save',
-    description: 'Save your progress automatically to prevent losing work.',
-    type: AbilityType.InGame,
-    frequency: TimePeriod.Daily,
-    mpCost: 5,
-    apRequirement: {
-      amount: 50,
-      period: TimePeriod.Daily
-    },
-    icon: 'saveOutline',
-    prerequisites: [],
-    isPreset: true,
-    battleEffect: 'none',
-    effect: 'Automatically save your work every 15 minutes for the next 4 hours',
-    characterRequirement: {
-      level: 1,
-      class: {
-        [ABILITY_CLASSES.Technician]: 1
-      }
-    },
-    position: { x: 600, y: 100 }
-  },
-  {
-    id: 'tech-mage-overclock',
-    name: 'Overclock',
-    description: 'Push yourself to work faster for a limited time.',
-    type: AbilityType.InGame,
-    frequency: TimePeriod.Weekly,
-    mpCost: 30,
-    apRequirement: {
-      amount: 250,
-      period: TimePeriod.Weekly
-    },
-    icon: 'flashOutline',
-    prerequisites: ['tech-mage-debug'],
-    isPreset: true,
-    battleEffect: 'stun',
-    effect: 'Double your productivity for the next hour, but requires a cooldown period after',
-    characterRequirement: {
-      level: 5,
-      class: {
-        [ABILITY_CLASSES.Technician]: 3
-      }
-    },
-    position: { x: 700, y: 200 }
-  },
-  {
-    id: 'tech-mage-system-restore',
-    name: 'System Restore',
-    description: 'Reset your environment after a major disruption.',
-    type: AbilityType.InGame,
-    frequency: TimePeriod.Monthly,
-    mpCost: 50,
-    apRequirement: {
-      amount: 400,
-      period: TimePeriod.Monthly
-    },
-    icon: 'refreshOutline',
-    prerequisites: ['tech-mage-overclock'],
-    isPreset: true,
-    battleEffect: 'heal',
-    effect: 'Reset all cooldowns and restore 50% of MP',
-    characterRequirement: {
-      level: 10,
-      class: {
-        [ABILITY_CLASSES.Technician]: 5
-      }
-    },
-    scaling: {
-      attribute: 'intelligence',
-      rate: 0.05
-    },
-    position: { x: 800, y: 300 }
-  }
-];
-
-/**
  * Real Life Privilege Presets
  *
  * Privileges only: freedoms a hero unlocks with AP and spends MP to use. Anything that costs the family money
@@ -235,7 +130,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'steering-wheel',
@@ -252,7 +147,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'moon-stars',
@@ -270,7 +165,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'gamepad',
@@ -288,7 +183,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 250,
+      amount: 50,
       period: TimePeriod.Weekly
     },
     icon: 'popcorn',
@@ -305,7 +200,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 15,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'hat-chef',
@@ -322,7 +217,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 20,
     apRequirement: {
-      amount: 500,
+      amount: 100,
       period: TimePeriod.Monthly
     },
     icon: 'campfire',
@@ -339,7 +234,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 50,
     apRequirement: {
-      amount: 1000,
+      amount: 200,
       period: TimePeriod.Monthly
     },
     icon: 'couch',
@@ -357,7 +252,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'alarm-snooze',
@@ -375,7 +270,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'hourglass-half',
@@ -393,7 +288,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 15,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'eye-slash',
@@ -411,7 +306,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 20,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'user-shield',
@@ -429,7 +324,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'music',
@@ -447,7 +342,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 100,
+      amount: 20,
       period: TimePeriod.Weekly
     },
     icon: 'hourglass-half',
@@ -465,7 +360,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 50,
     apRequirement: {
-      amount: 2500,
+      amount: 300,
       period: TimePeriod.Monthly
     },
     icon: 'crown',
@@ -473,11 +368,28 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     prerequisites: [],
     isPreset: true,
     position: { x: 700, y: 600 }
+  },
+  {
+    id: 'irl-daddy-date',
+    name: 'Daddy Date Adventure',
+    description: 'One-on-one time and an adventure of your choosing with Dad.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 30,
+      period: TimePeriod.Weekly
+    },
+    icon: 'user-friends',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 800, y: 600 }
   }
 ];
 
 // The hybrid presets and the custom ability live beside this file (hybridPresets.ts, customAbility.ts)
-export { HYBRID_PRESETS, createCustomAbility };
+export { HYBRID_PRESETS, TECH_MAGE_PRESETS, createCustomAbility };
 
 export default {
   TIME_MAGE_PRESETS,

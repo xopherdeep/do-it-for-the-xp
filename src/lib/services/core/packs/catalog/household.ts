@@ -1,4 +1,5 @@
 /** The Roommates & household pack: shared chores, supplies and bills for adults living together */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const HOUSEHOLD_PACK = definePack(
@@ -46,7 +47,7 @@ export const HOUSEHOLD_PACK = definePack(
     rewards: [
       reward("house-reward-movie", "Pick the House Movie", "Choose what everyone watches on movie night.", 100, "film"),
       reward("house-reward-skip", "Skip-a-Chore Ticket", "Someone else takes one of your chores this week.", 200, "ticket-alt"),
-      reward("house-reward-takeout", "Takeout Night", "The house orders in, and you pick the place.", 300, "pizza-slice"),
+      reward("house-reward-takeout", "Takeout Night", "The house orders in, and you pick the place.", gpForDollars(40), "pizza-slice"), // about $40
       reward("house-reward-thermostat", "Thermostat Control", "Set the temperature your way for a weekend.", 150, "thermometer-half"),
     ],
     powers: [

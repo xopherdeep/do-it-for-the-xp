@@ -41,10 +41,9 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: "party",
         title: "Party",
-        description: "Play together with other families.",
+        description: "Raids together, and who may join parties with other families.",
         icon: require("@/assets/icons/collaboration.png"),
         route: "/xp-settings/party",
-        soon: true,
       },
     ],
   },
@@ -92,6 +91,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         description: "Volume for music, sound effects and menus.",
         icon: require("@/assets/icons/listener.png"),
         route: "/xp-settings/sound",
+      },
+      {
+        id: "video",
+        title: "Video",
+        description: "How heroes and towns are drawn on this device.",
+        icon: require("@/assets/icons/mobile-game.svg"),
+        route: "/xp-settings/video",
       },
       {
         id: "theme",

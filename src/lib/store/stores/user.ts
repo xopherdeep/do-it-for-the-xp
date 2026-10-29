@@ -8,6 +8,7 @@ import { levelUpNotification } from '@/lib/services/notifications/Notifications'
 import { notify } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
 import { createProfilePersister } from './user/persistence';
+import { queueWidgetSync } from '@/lib/services/widgets/widgetSyncTrigger';
 import { createProfileSetters } from './user/profileFields';
 import {
   newLevelUpInfo,
@@ -85,6 +86,7 @@ export const useUserStore = defineStore('user', () => {
     syncCurrentUser(userData);
     // Persist the login
     saveCurrentUserId(userData.id);
+    queueWidgetSync();
   }
 
   function logoutUser() {
@@ -92,6 +94,9 @@ export const useUserStore = defineStore('user', () => {
     currentUser.isAuthenticated = false;
     currentUser.id = null;
     saveCurrentUserId(null);
+    // Still written, with no primary hero in it: an unbound widget shows the signed-out face
+    // instead of leaving the last hero's numbers on the family's home screen.
+    queueWidgetSync();
   }
 
   const {
@@ -142,6 +147,9 @@ export const useUserStore = defineStore('user', () => {
           else loginUser(users[savedUserId]);
         }
       }
+      // The roster is the only place the widgets can learn about the family, and loadUsers is what
+      // runs at boot: without this the home screen holds yesterday's payload until a stat changes.
+      queueWidgetSync();
     } catch (error) {
       debug.error('[user] failed to load users', error);
     }
@@ -294,6 +302,7 @@ export const useUserStore = defineStore('user', () => {
       // Persist the selection to localStorage
       saveCurrentUserId(userId);
       localStorage.setItem(IMPERSONATING_FLAG_KEY, 'true');
+      queueWidgetSync();
     }
   }
 
@@ -306,6 +315,9 @@ export const useUserStore = defineStore('user', () => {
     if (canReturnToGameMaster) {
       loginUser(users[returnTo]);
     }
+    // Also when the Game Master is gone and nobody took their place: the debounce folds this into
+    // loginUser's own sync when there was one to hand control back to.
+    queueWidgetSync();
   }
 
   /**

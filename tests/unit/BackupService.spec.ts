@@ -228,6 +228,7 @@ describe("BACKUP_STORES registry", () => {
     "__xp_pro",
     "__xp_claim_photos",
     "__xp_sync",
+    "__xp_party",
   ];
 
   it("keeps device-only and private stores out of the file", () => {

@@ -52,6 +52,8 @@
         </ion-list>
       </ion-card>
 
+      <xp-family-cloud-card v-if="canManage" />
+
       <xp-family-phones v-if="canManage" />
 
       <ion-card v-if="canManage" class="max-w-2xl family-items">
@@ -147,6 +149,7 @@ import User from "@/lib/utils/User";
 import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import XpFamilyPhones from "./XpFamilyPhones.vue";
+import XpFamilyCloudCard from "./XpFamilyCloudCard.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
@@ -186,7 +189,7 @@ const writeFamilyLock = (locked: boolean): void => {
 export default defineComponent({
   name: "xp-settings-family",
   mixins: [ionic],
-  components: { XpProfileItem, XpFamilyPhones },
+  components: { XpProfileItem, XpFamilyPhones, XpFamilyCloudCard },
   setup() {
     // "Family setup is complete" hides the add, edit and delete buttons; kept on this device across visits
     const lockFamily = ref(readFamilyLock());

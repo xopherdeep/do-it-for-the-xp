@@ -21,6 +21,10 @@ describe("the Settings page sections", () => {
     }
   });
 
+  it("marks no page as Soon: every page listed is built (Party is the Game Master's control room)", () => {
+    expect(items.filter((item) => item.soon)).toEqual([]);
+  });
+
   it("opens only pages that exist, and leaves none out", () => {
     const paths = pathsOf();
     expect(paths.length).toBeGreaterThan(0);

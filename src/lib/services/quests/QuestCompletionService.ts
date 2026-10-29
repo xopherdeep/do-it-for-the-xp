@@ -1,17 +1,20 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
-import { countedHeroesOf, isQuestOpenFor, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { countedHeroesOf, isProjectQuest, isQuestOpenFor, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
+import { isProjectQuestId } from "@/lib/services/projects/projectIds";
 import { adjustForLateness } from "@/lib/services/quests/lateChores";
 import { lateRewardLine } from "@/lib/services/quests/lateRules";
 import { AUTO_APPROVED_NOTE, isSoleGameMaster } from "@/lib/services/quests/approvalRouting";
 import { announceClaim } from "@/lib/services/quests/approvalFlow";
 import { asksForPhoto, claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
+import { difficultyOfQuest } from "@/lib/services/quests/questDifficulty";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { rewardGpPayload } from "@/lib/services/gp/autoSave";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
+import debug from "@/lib/utils/debug";
 
 /**
  * The one place a quest becomes "done".
@@ -37,6 +40,10 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  *
  * A Game Master's own chore goes to ANOTHER Game Master (approvalRouting.ts); the only Game Master on the device is
  * approved at once, with a note. A held claim tells every Game Master who may settle it (approvalFlow.ts).
+ *
+ * A paid project chore may clear its tower floor (services/projects/projectService.ts): the floor's bonus is paid, the next
+ * floor's chores wake, the roof finishes the project. That runs after the payment, in a claim paid at once, an approval and
+ * a battle win; a failure there is logged and never undoes or holds up the payment.
  *
  * Multiplayer hears of every payment through emitQuestPaid (services/multiplayer/gameSignals.ts), after the rewards
  * are in the pocket: a claim paid at once, an approval, a battle win. A held claim says nothing until it is paid.
@@ -104,9 +111,29 @@ const clearGrudges = (quest: Pick<Achievement, "id" | "type" | "assignee">, user
 };
 
 /** Tells multiplayer a quest paid `xp`; a quest finished by winning its battle is a fight */
-const announcePaid = (heroId: string, questId: string, xp: number, source: QuestLogSource | undefined): void => {
+const announcePaid = (
+  heroId: string,
+  questId: string,
+  xp: number,
+  source: QuestLogSource | undefined,
+  settled: { difficulty?: number; entryId: string }
+): void => {
   const fight = source === "battle";
-  emitQuestPaid({ heroId, questId: String(questId), xp, fight });
+  emitQuestPaid({ heroId, questId: String(questId), xp, fight, ...settled });
+};
+
+/**
+ * Lets a paid project chore clear its tower floor (projectService). The service is loaded on the first project payment: it
+ * brings the whole tower builder, which a plain chore never needs, and it calls back into this file. Whatever goes wrong
+ * is logged: the hero has been paid already.
+ */
+const settleFloorAfterPayment = async (chore: Achievement | string, at: string): Promise<void> => {
+  try {
+    const projects = await import("@/lib/services/projects/projectService");
+    await (typeof chore === "string" ? projects.onEntryPaid(chore, at) : projects.onQuestPaid(chore, at));
+  } catch (error) {
+    debug.warn("The tower floor could not be settled after the payment", error);
+  }
 };
 
 /** A claim made somewhere else: a hero phone's claim is logged at the time the hero made it, under the phone's claim id */
@@ -165,7 +192,8 @@ export const completeQuest = async (
   const paid = paidQuestRewards(userId, owed);
   const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`, undefined, `Quest: ${quest.achievementName}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
-  announcePaid(userId, quest.id, owed.xp, source);
+  announcePaid(userId, quest.id, owed.xp, source, { difficulty: quest.difficulty, entryId: entry.id });
+  if (isProjectQuest(quest)) await settleFloorAfterPayment(quest, at.toISOString());
   return { entry: settled || entry, levelUp, awaitingApproval, paid, lateNote };
 };
 
@@ -195,7 +223,8 @@ export const recordBattleCompletion = async (quest: Achievement, userId: string,
     rewardsApplied: true,
   });
   clearGrudges(quest, userId);
-  announcePaid(userId, quest.id, rewards.xp, "battle");
+  announcePaid(userId, quest.id, rewards.xp, "battle", { difficulty: quest.difficulty, entryId: entry.id });
+  if (isProjectQuest(quest)) await settleFloorAfterPayment(quest, entry.completedAt);
   return entry;
 };
 
@@ -234,7 +263,12 @@ export const approveCompletion = (entryId: string, reviewerId?: string): Promise
       reviewedAt: new Date().toISOString(),
       reviewedBy: reviewerId,
     });
-    if (shouldPay) announcePaid(entry.userId, entry.questId, owed.xp, entry.source);
+    if (shouldPay) {
+      const difficulty = await difficultyOfQuest(entry.questId);
+      announcePaid(entry.userId, entry.questId, owed.xp, entry.source, { difficulty, entryId: entry.id });
+      // An approval has the log entry, not the quest: the project service reads the chore by its id
+      if (isProjectQuestId(entry.questId)) await settleFloorAfterPayment(String(entry.questId), entry.completedAt);
+    }
     return settled;
   });
 

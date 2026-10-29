@@ -1,7 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, watch } from "vue";
-import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
 import { getFamilyEventsDb, type FamilyEventsState, type HomeStatus } from "@/lib/databases/FamilyEventsDb";
 import { getHeroDeviceDb, type HeroDevice } from "@/lib/databases/HeroDeviceDb";
 import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
@@ -29,6 +28,7 @@ import { sheetEvent, sheetKey } from "@/lib/services/multiplayer/heroSheet";
 import { buildHeroSheet, isPhoneClaim, takePhoneClaim } from "@/lib/services/multiplayer/phoneClaimIntake";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { adoptFamily, ensureIdentity } from "@/lib/services/pro/familyIdentity";
+import { difficultyOfQuest } from "@/lib/services/quests/questDifficulty";
 import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
@@ -70,19 +70,6 @@ const DOWNLOAD_INTERVAL_MS = 120_000;
 const PHONE_SYNC_INTERVAL_MS = 60_000;
 /** Taken hero-phone claims are remembered this long (the server keeps events no longer) */
 const TAKEN_CLAIMS_MS = 90 * 24 * 60 * 60 * 1000;
-
-/** The quest's difficulty for quest.done; 0 when the quest is gone or has none */
-const difficultyOf = async (questId: string): Promise<number> => {
-  try {
-    const quest = (await new AchievementDb(achievementStorage).get(questId)) as { difficulty?: unknown } | null;
-    const difficulty = Number(quest?.difficulty);
-    const isRated = Number.isFinite(difficulty) && difficulty > 0;
-    return isRated ? difficulty : 0;
-  } catch (error) {
-    debug.warn(`family: could not read quest ${questId}`, error);
-    return 0;
-  }
-};
 
 /**
  * The family on the server, seen from this device (multiplayer, part 1): whether this device is the family's home, the
@@ -246,7 +233,7 @@ export const useFamilyStore = defineStore("family", () => {
     if (!mayQueue) return;
     const isKnown = cards.isKnown(paid.heroId, (await loaded()).lastCards);
     if (!isKnown) return;
-    const difficulty = await difficultyOf(paid.questId);
+    const difficulty = await difficultyOfQuest(paid.questId);
     const { deviceId } = await ensureIdentity();
     await queueEvents([questDoneEvent(paid.heroId, deviceId, { difficulty, xp: paid.xp, fight: paid.fight })]);
   }
@@ -650,9 +637,13 @@ export const useFamilyStore = defineStore("family", () => {
     try {
       const answer = await getFamily(auth);
       const matched = answer.heroes.find((h) => h.heroId === current.heroId);
-      const hasCard = Boolean(matched?.card);
-      if (hasCard) {
-        const updated = { ...current, card: matched!.card };
+      if (!matched) return;
+      const hasCard = Boolean(matched.card);
+      const nickname = matched.nickname || current.nickname;
+      const isNewName = nickname !== current.nickname;
+      const isChanged = hasCard || isNewName;
+      if (isChanged) {
+        const updated = { ...current, card: hasCard ? matched.card : current.card, nickname };
         device.value = updated;
         await getHeroDeviceDb().saveDevice(updated);
       }

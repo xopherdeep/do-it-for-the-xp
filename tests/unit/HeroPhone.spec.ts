@@ -50,6 +50,7 @@ const mockFamily = {
     card: mockHeroCard,
     unlinked: false,
   } as any,
+  problem: null as string | null,
   refreshCard: jest.fn().mockResolvedValue(undefined),
   forgetDevice: jest.fn().mockResolvedValue(undefined),
   syncPhone: jest.fn().mockResolvedValue(undefined),
@@ -171,6 +172,7 @@ describe("HeroPhone", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFamily.isKidMode = true;
+    mockFamily.problem = null;
     mockSync.isOn = false;
     mockSync.isFullPortal = false;
     mockSync.problem = null;
@@ -206,6 +208,66 @@ describe("HeroPhone", () => {
     expect(model.exists()).toBe(true);
     expect(model.props("look")).toEqual(mockHeroCard.look);
     expect(model.props("animation")).toBe("idle");
+  });
+
+  describe("when the hero's card has not come from the family device", () => {
+    beforeEach(() => {
+      mockFamily.device = { ...mockFamily.device, card: null, nickname: "Mia" };
+    });
+
+    it("never sits blank: it names the hero and says the card is still to come", async () => {
+      const wrapper = await open();
+      const waiting = wrapper.find('[data-cy="card-waiting"]');
+      expect(waiting.exists()).toBe(true);
+      expect(waiting.text()).toContain("Mia's card hasn't come from the family device yet");
+      expect(wrapper.text()).toContain("Mia");
+      expect(wrapper.find('[data-cy="hero-card"]').exists()).toBe(false);
+    });
+
+    it("keeps the Hero Phone title and a plain line when the site has not told the phone the hero's name", async () => {
+      mockFamily.device = { ...mockFamily.device, nickname: undefined };
+      const wrapper = await open();
+      expect(wrapper.text()).toContain("Hero Phone");
+      expect(wrapper.find('[data-cy="card-waiting"]').text()).toContain("Your hero's card hasn't come from the family device yet");
+    });
+
+    it("tells the Game Master when family sync is off on this phone", async () => {
+      mockSync.isOn = false;
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="sync-note"]').text()).toContain("Family sync is off on this phone");
+    });
+
+    it("names the site's trouble when family sync is on but has a problem", async () => {
+      mockSync.isOn = true;
+      mockSync.problem = "pro-required";
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="sync-note"]').text()).toContain("pro-required");
+    });
+
+    it("adds no note when family sync is on and well", async () => {
+      mockSync.isOn = true;
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="sync-note"]').exists()).toBe(false);
+    });
+
+    it("says the road to the city is closed when the family server did not answer", async () => {
+      mockFamily.problem = "offline";
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="card-waiting"]').text()).toContain("The family's road to the city isn't open yet");
+    });
+
+    it("shows nothing of the kind for a phone that has its card", async () => {
+      mockFamily.device = { ...mockFamily.device, card: { ...mockHeroCard } };
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="card-waiting"]').exists()).toBe(false);
+    });
+
+    it("shows the unlinked card, not the waiting one, for an unlinked phone", async () => {
+      mockFamily.device = { ...mockFamily.device, unlinked: true };
+      const wrapper = await open();
+      expect(wrapper.find('[data-cy="unlinked-card"]').exists()).toBe(true);
+      expect(wrapper.find('[data-cy="card-waiting"]').exists()).toBe(false);
+    });
   });
 
   it("calls refreshCard on mount", async () => {

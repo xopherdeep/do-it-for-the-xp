@@ -1,5 +1,5 @@
 <template>
-  <xp-rpg-page title="Choose A Profile" :loading="isLoading" bg-class="bg-slide">
+  <xp-rpg-page title="Choose A Profile" :loading="isLoading" bg-class="bg-slide" class="xp-settings-page switch-profile" content-class="ion-padding">
     <template #start-actions>
       <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
       <ion-icon :ios="fingerPrintOutline" :md="fingerPrintSharp" class="fa-2x ml-2" />
@@ -142,7 +142,8 @@
           :class="{ 'justify-content-center items-center': users.length === 1 }">
           <ion-col v-for="(user, key) in users" :key="key" :size="users.length === 1 ? '12' : '6'"
             :size-sm="users.length === 1 ? '10' : '4'" :size-md="users.length === 1 ? '8' : '3'"
-            :size-xl="users.length === 1 ? '6' : '2'" class="profile-card-col">
+            :size-xl="users.length === 1 ? '6' : '2'" class="profile-card-col"
+            :class="{ 'full-row': users.length === 1 }">
             <XpProfileCard :user="user" :is-large="users.length === 1" @select="selectProfile" />
           </ion-col>
         </ion-row>
@@ -226,20 +227,20 @@
         </div>
 
         <ion-row class="ion-no-padding hidden md:block">
-          <ion-card v-show="!isLoading" class="max-w-4xl">
+          <ion-card v-show="!isLoading" class="settings-card max-w-2xl">
             <ion-list>
               <ion-item v-if="!isKidMode" detail button @click="openNewProfileModal">
                 <ion-buttons slot="start" class="icon-colors">
                   <i class="fad fa-heartbeat fa-3x"></i>
                 </ion-buttons>
-                <ion-label class="py-4">
+                <ion-label>
                   New Profile
                   <p>New players Start Here.</p>
                 </ion-label>
               </ion-item>
               <ion-item v-for="user in users" :key="user.id" @click="selectProfile(user)" button detail
                 class="profile-item rpg-box">
-                <div slot="start" class="profile-info stats-container py-4">
+                <div slot="start" class="profile-info stats-container">
                   <div class="level">
                     <span class="label">LVL</span>
                     <span class="value">{{ user?.stats?.level || 1 }}</span>

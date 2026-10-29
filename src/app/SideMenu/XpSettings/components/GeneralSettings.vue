@@ -49,6 +49,39 @@
         </ion-list>
       </ion-card>
 
+      <xp-dlc-modal
+        :is-open="isDlcModalOpen"
+        @close="isDlcModalOpen = false"
+        @completed="handleDlcCompleted"
+      />
+
+      <ion-card class="settings-card max-w-2xl">
+        <ion-list>
+          <ion-item-group>
+            <ion-item-divider>
+              <ion-label>Game Assets &amp; Storage</ion-label>
+            </ion-item-divider>
+
+            <ion-item
+              button
+              :detail="true"
+              lines="none"
+              data-cy="dlc-settings-row"
+              @click="openDlcModal"
+            >
+              <ion-icon slot="start" color="rpg" :icon="cloudDownloadOutline"></ion-icon>
+              <ion-label class="ion-text-wrap">
+                <h2>Game Asset Pack</h2>
+                <p>{{ dlcSummaryText }}</p>
+              </ion-label>
+              <ion-badge slot="end" :color="isDlcReady ? 'success' : 'warning'">
+                {{ isDlcReady ? "Ready" : "Download" }}
+              </ion-badge>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
+      </ion-card>
+
       <ion-card class="settings-card max-w-2xl">
         <ion-list>
           <ion-item-group>
@@ -158,6 +191,8 @@
   import { canManageFamily } from "@/router/_Guards/gm.guard";
   import { dialogMessage } from "@/lib/utils/dialogMessage";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
+  import XpDlcModal from "@/components/molecules/Modals/XpDlcModal.vue";
+  import { dlcService } from "@/lib/services/dlc/assetDlcService";
   import { GENERAL_COMING_SOON } from "./comingSoon";
   import { resetTour } from "@/lib/services/tutorial/firstRunTour";
   import {
@@ -181,7 +216,7 @@
 
   export default defineComponent({
     name: "general-settings",
-    components: { XpComingSoonCard },
+    components: { XpComingSoonCard, XpDlcModal },
 
     mixins: [ionic],
     methods: {
@@ -285,6 +320,30 @@
       // Restore is for a Game Master, or for anybody while the device has no profile yet
       const canRestore = computed(() => canRestoreHere(userStore));
 
+      const isDlcModalOpen = ref(false);
+      const isDlcReady = ref(false);
+
+      const checkDlcStatus = async () => {
+        isDlcReady.value = await dlcService.checkStatus();
+      };
+      void checkDlcStatus();
+
+      const dlcSummaryText = computed(() => {
+        if (isDlcReady.value) {
+          return "All monsters, dungeon art, and soundtrack loops are saved locally for offline play.";
+        }
+        return "Currently streaming art on-demand. Download all ~82 MB of assets for zero-lag offline play.";
+      });
+
+      const openDlcModal = () => {
+        isDlcModalOpen.value = true;
+      };
+
+      const handleDlcCompleted = () => {
+        isDlcModalOpen.value = false;
+        isDlcReady.value = true;
+      };
+
       return {
         isBackupBusy,
         isKidMode,
@@ -306,6 +365,11 @@
         runWithLoading,
         cloudDownloadOutline,
         cloudUploadOutline,
+        isDlcModalOpen,
+        isDlcReady,
+        dlcSummaryText,
+        openDlcModal,
+        handleDlcCompleted,
       };
     },
   });

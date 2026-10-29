@@ -178,7 +178,7 @@ describe("buildHomePack for a typical home", () => {
   it("pays the Fibonacci form's rewards and never ends a quest", () => {
     for (const quest of pack.quests) {
       expect(quest.xp).toBe(quest.difficulty * 100);
-      expect(quest.gp).toBe(quest.difficulty * 10);
+      expect(quest.gp).toBe(quest.difficulty * 15);
       expect(quest.ap).toBe(quest.difficulty);
       expect(quest.endsOn).toBe("");
     }

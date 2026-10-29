@@ -11,6 +11,7 @@ import type { SnapshotFraming } from "@/components/organisms/HeroModel/heroCamer
 import { withoutHands } from "@/components/organisms/HeroModel/lookEditor";
 import { groupMesh } from "@/components/organisms/HeroModel/voxel/build";
 import { DEFAULT_LOOK, type HeroLook } from "@/lib/hero-look/types";
+import { setVoxelTier } from "@/lib/services/graphics/deviceQuality";
 
 /**
  * The hidden thumbnail renderer without WebGL: the queue, the cache and the give-up rules run against a fake
@@ -36,9 +37,7 @@ const manualFrames = () => {
   const runs: (() => void)[] = [];
   return {
     runs,
-    schedule: (run: () => void) => {
-      runs.push(run);
-    },
+    schedule: (run: () => void) => runs.push(run),
     flush: () => runs.shift()?.(),
   };
 };
@@ -69,6 +68,7 @@ const stubCanvas = () => {
 };
 
 afterEach(() => {
+  setVoxelTier("super");
   mockRenderer = null;
   jest.restoreAllMocks();
   (THREE.WebGLRenderer as unknown as jest.Mock).mockClear();
@@ -132,7 +132,6 @@ describe("createLookThumbnailer", () => {
     flush();
     expect(drawnHair(draw)).toEqual(["#000004", "#000003", "#000002"]);
     expect(runs).toHaveLength(1);
-
     flush();
     expect(drawnHair(draw)).toEqual(["#000004", "#000003", "#000002", "#000001"]);
     expect(runs).toHaveLength(0);
@@ -191,7 +190,6 @@ describe("createLookThumbnailer", () => {
       flush();
     });
     expect(draw).toHaveBeenCalledTimes(3);
-
     expect(thumbs.get(look(3), "bust")).not.toBe("");
     expect(thumbs.get(look(2), "bust")).not.toBe("");
     expect(draw).toHaveBeenCalledTimes(3);
@@ -402,6 +400,70 @@ describe("createThreeDraw", () => {
 
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
     expect(renderer.forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the Video tier", () => {
+  it("draws per frame as the tier says unless told otherwise", () => {
+    const perFrameOn = (tier: "super" | "classic" | "pocket") => {
+      setVoxelTier(tier);
+      const draw = fakeDraw();
+      const { schedule, flush } = manualFrames();
+      const thumbs = createLookThumbnailer({ draw, schedule });
+      [1, 2, 3, 4].forEach((n) => thumbs.get(look(n), "bust", 8));
+      flush();
+      return draw.mock.calls.length;
+    };
+    expect([perFrameOn("super"), perFrameOn("classic"), perFrameOn("pocket")]).toEqual([3, 2, 1]);
+  });
+
+  it("keeps an explicit perFrame whatever the tier", () => {
+    setVoxelTier("pocket");
+    const draw = fakeDraw();
+    const { schedule, flush } = manualFrames();
+    const thumbs = createLookThumbnailer({ draw, schedule, perFrame: 2 });
+    [1, 2, 3].forEach((n) => thumbs.get(look(n), "bust", 8));
+    flush();
+    expect(draw).toHaveBeenCalledTimes(2);
+  });
+
+  it("keys a picture by the tier whose knobs drew it, and a thumbnailer made on another tier draws its own", () => {
+    const draw = fakeDraw();
+    const { schedule, flush } = manualFrames();
+    const ask = (thumbs: LookThumbnailer) => {
+      thumbs.get(DEFAULT_LOOK, "bust", 8);
+      flush();
+    };
+    const first = createLookThumbnailer({ draw, schedule });
+    ask(first);
+    setVoxelTier("classic");
+    ask(first);
+    expect(draw).toHaveBeenCalledTimes(1);
+    ask(createLookThumbnailer({ draw, schedule }));
+    expect(draw).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps the requested size at the tier's longest side and leaves Super alone", () => {
+    stubCanvas();
+    const sizesOn = (tier: "super" | "pocket") => {
+      setVoxelTier(tier);
+      const renderer = fakeRenderer();
+      mockRenderer = () => renderer;
+      const three = createThreeDraw()!;
+      three.draw(DEFAULT_LOOK, "bust", 128);
+      three.dispose();
+      return renderer.readRenderTargetPixels.mock.calls[0][3];
+    };
+    expect([sizesOn("super"), sizesOn("pocket")]).toEqual([128, 64]);
+  });
+
+  it("shoots without MSAA on a tier that says so", () => {
+    stubCanvas();
+    setVoxelTier("pocket");
+    const renderer = fakeRenderer();
+    mockRenderer = () => renderer;
+    createThreeDraw()!.draw(DEFAULT_LOOK, "bust", 8);
+    expect((renderer.setRenderTarget.mock.calls[0][0] as THREE.WebGLRenderTarget).samples).toBe(0);
   });
 });
 

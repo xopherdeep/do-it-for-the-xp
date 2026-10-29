@@ -20,6 +20,8 @@ export interface HeroDevice {
   label: string;
   linkedAt: number;
   card: HeroCard | null;
+  /** The hero's name as the site lists it, kept so the phone can name them before the family device has sent a card */
+  nickname?: string;
   unlinked?: boolean;
 }
 

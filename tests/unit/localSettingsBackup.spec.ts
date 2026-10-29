@@ -21,6 +21,7 @@ describe("the localStorage settings a backup carries", () => {
     localStorage.setItem("xp.familyLocked", "true");
     localStorage.setItem("xp.currentUser", "ava");
     localStorage.setItem("xp-dev-mode", "true");
+    localStorage.setItem("xp.voxelQuality", "pocket");
     expect(await read()).toEqual([
       ["xp-audio-settings", '{"music":0.4}'],
       ["xp.haptics", "false"],
@@ -41,6 +42,15 @@ describe("the localStorage settings a backup carries", () => {
     expect(localStorage.getItem("xp.themeChoice")).toBe("retro");
     expect(localStorage.getItem("xp.choreReminders")).toBe('{"on":true}');
     expect(localStorage.getItem("xp.currentUser")).toBe("ava");
+  });
+
+  it("keeps the Video tier on this device: a restore never sets it and a clear never removes it", async () => {
+    localStorage.setItem("xp.voxelQuality", "pocket");
+    await storage.set("xp.voxelQuality", "super");
+    expect(localStorage.getItem("xp.voxelQuality")).toBe("pocket");
+    await storage.clear();
+    expect(localStorage.getItem("xp.voxelQuality")).toBe("pocket");
+    expect(LOCAL_SETTING_KEYS).not.toContain("xp.voxelQuality");
   });
 
   it("never lists a key twice", () => {

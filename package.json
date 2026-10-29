@@ -1,7 +1,7 @@
 {
   "name": "@xopherdeep/do-it-for-the-xp",
   "description": "Do it for the XP",
-  "version": "26.10.15-1206",
+  "version": "26.10.28-27",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
@@ -19,6 +19,12 @@
     "vue-build": "vue-cli-service build",
     "build": "ionic build",
     "build:compass": "XP_OUTPUT_DIR=${XP_OUTPUT_DIR:-../Xophz-COMPASS/wp-content/plugins/xophz-compass-xp/public/dist} ionic build",
+    "assets:pack": "node scripts/package-mobile-assets.mjs --pack-only",
+    "assets:prune": "node scripts/package-mobile-assets.mjs --prune-only",
+    "assets:analyze": "node scripts/package-mobile-assets.mjs --dry-run",
+    "cap:sync:mobile": "npx cap sync && node scripts/package-mobile-assets.mjs --prune-only",
+    "build:mobile": "ionic build && npx cap sync && node scripts/package-mobile-assets.mjs",
+    "assets:upload:r2": "node scripts/upload-dlc-r2.mjs",
     "typecheck": "tsc --noEmit",
     "test": "sh -c 'if [ \"$1\" = \"--\" ]; then shift; fi; exec jest \"$@\"' sh",
     "test:unit": "vue-cli-service test:unit",

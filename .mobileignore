@@ -1,0 +1,14 @@
+# .mobileignore
+# Defines asset patterns excluded from native mobile app bundles (APK / IPA).
+# Excluded assets are packaged into `dist-dlc/assets-bundle.zip` for post-download / CDN hydration.
+# The web build (`dist/`) retains all assets untouched.
+
+# Heavy Audio (Background Music and Sound Effects)
+media/**
+
+# Heavy Dungeon Room Tiles and Map Renderings
+img/[*,*].*.webp
+img/world-map.*.webp
+
+# Redundant Font Awesome SVG font files emitted by Webpack
+img/fa-*.svg

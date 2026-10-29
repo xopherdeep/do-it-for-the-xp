@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  CHEMX_VERSION: 26.10.19-530
+  CHEMX_VERSION: 26.10.29-360
 
 jobs:
   # One job, one checkout and one install: Lint runs first so a lint error fails fast, then Verify.
@@ -150,14 +150,17 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
 
       # One cypress run per spec so a failure names the spec; all three run even if an earlier one fails.
+      # `--browser chrome` (Google Chrome ships on the ubuntu runner image) instead of Cypress 8.7's bundled Electron 93:
+      # three.js 0.186 uses class static blocks (ES2022, Chromium 94+) and Vue CLI leaves node_modules untranspiled,
+      # so Electron 93 throws "Unexpected token '{'" in chunk-vendors.js and every spec fails. Local runs need the same flag.
       - name: Spec new-hero
-        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/new-hero.spec.js
+        run: pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/new-hero.spec.js
       - name: Spec battle
         if: ${{ !cancelled() }}
-        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
+        run: pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
       - name: Spec quest beast card
         if: ${{ !cancelled() }}
-        run: pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/quest-detail-fab.spec.js
+        run: pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/quest-detail-fab.spec.js
 
       - name: Upload screenshots and server log
         if: ${{ failure() }}

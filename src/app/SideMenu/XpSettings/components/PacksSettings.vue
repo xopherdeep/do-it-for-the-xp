@@ -76,9 +76,29 @@
               </div>
             </ion-card-header>
             <ion-card-content>
-              <p>Quests for packing and moving your home, sized for each hero, with your old house as a temple.</p>
+              <p>Quests for packing and moving your home, sized for each hero, then a Moving Out tower to climb.</p>
               <div class="pack-card__actions">
                 <ion-button size="small" :disabled="isBusy" @click="openBuilder('moving')">Set up</ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+
+          <ion-card class="pack-card">
+            <ion-card-header>
+              <div class="pack-card__head">
+                <i class="fad fa-dungeon fa-2x icon-colors"></i>
+                <div>
+                  <ion-card-title>{{ t("projectWizard.card.title") }}</ion-card-title>
+                  <ion-card-subtitle>{{ t("projectWizard.card.subtitle") }}</ion-card-subtitle>
+                </div>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <p>{{ t("projectWizard.card.body") }}</p>
+              <div class="pack-card__actions">
+                <ion-button size="small" :disabled="isBusy" data-cy="packs-project" @click="openBuilder('project')">
+                  {{ t("projectWizard.card.action") }}
+                </ion-button>
               </div>
             </ion-card-content>
           </ion-card>
@@ -103,8 +123,9 @@
         </div>
       </div>
 
-      <moving-house-modal :is-open="showMoving" @close="closeBuilder" />
+      <moving-house-modal :is-open="showMoving" @close="closeMoving" @tower="startMovingOut" />
       <home-chores-modal :is-open="showHome" @close="closeBuilder" />
+      <xp-project-wizard-modal :open="showProject" :initial="movingDraft" :heroes="movingHeroes" @close="closeBuilder" />
     </ion-content>
   </ion-page>
 </template>
@@ -136,10 +157,18 @@ import {
   importPackFile,
   usePackLibrary,
 } from "@/hooks/usePackLibrary";
+import type { MovingAnswers } from "@/lib/services/core/packs/movingPack";
+import type { PackHero } from "@/lib/services/core/packs/packCommon";
 import type { XpPack } from "@/lib/services/core/packs/packFormat";
 import { BUILT_IN_PACKS } from "@/lib/services/core/packs/catalog";
+import { prefillMovingOut } from "@/lib/services/projects/movingOutPrefill";
+import { readMovingOutPrefill } from "@/lib/services/projects/projectService";
+import type { ProjectDraft } from "@/lib/services/projects/projectWizard";
+import debug from "@/lib/utils/debug";
+import { useCopy } from "@/hooks/useVoice";
 import HomeChoresModal from "./HomeChoresModal.vue";
 import MovingHouseModal from "./MovingHouseModal.vue";
+import XpProjectWizardModal from "./XpProjectWizardModal.vue";
 
 const builtIns = BUILT_IN_PACKS;
 const shelf = usePackLibrary();
@@ -148,25 +177,55 @@ const confirmLoad = (pack: XpPack) => confirmLoadPack(shelf, pack);
 const confirmRemove = (pack: XpPack) => confirmRemovePack(shelf, pack);
 const importFromFile = () => importPackFile(shelf);
 const exportToFile = () => exportPackFile(shelf);
+const t = useCopy();
 const showMoving = ref(false);
 const showHome = ref(false);
+const showProject = ref(false);
+/** Moving Out from the Moving House dialog: the draft the project wizard opens on and the heroes of that dialog (who plays, how); none while it opens from its own card */
+const movingDraft = ref<ProjectDraft | undefined>(undefined);
+const movingHeroes = ref<PackHero[] | undefined>(undefined);
 
 onMounted(refreshPacks);
 onIonViewWillEnter(refreshPacks);
 
-/** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog */
-const openBuilder = async (which: "moving" | "home") => {
+/** The Moving House and Home chores packs are built from the family's answers, so they open a setup dialog; so does a family project */
+const openBuilder = async (which: "moving" | "home" | "project") => {
   const isPermitted = await allowedToManagePacks();
   if (!isPermitted) return;
   play$fx("select");
-  const isMovingPack = which === "moving";
-  if (isMovingPack) showMoving.value = true;
-  else showHome.value = true;
+  movingDraft.value = undefined;
+  movingHeroes.value = undefined;
+  showMoving.value = which === "moving";
+  showHome.value = which === "home";
+  showProject.value = which === "project";
+};
+
+/**
+ * The Moving House dialog's tower button: the project wizard opens on Moving Out, with the rooms the family just
+ * answered and the moving chores still open on the board. A board that cannot be read opens it with the suggestions only.
+ */
+const startMovingOut = async (answers: MovingAnswers) => {
+  try {
+    movingDraft.value = await readMovingOutPrefill(answers, answers.heroes);
+  } catch (error) {
+    debug.warn("[Packs] the open moving chores could not be read", error);
+    movingDraft.value = prefillMovingOut(answers, [], answers.heroes);
+  }
+  movingHeroes.value = answers.heroes;
+  showMoving.value = false;
+  showProject.value = true;
 };
 
 const closeBuilder = () => {
   showMoving.value = false;
   showHome.value = false;
+  showProject.value = false;
+  refreshPacks();
+};
+
+/** The Moving House dialog says it closed when it hands over to the wizard too: that must not shut the wizard it just opened, so it closes only itself */
+const closeMoving = () => {
+  showMoving.value = false;
   refreshPacks();
 };
 </script>
