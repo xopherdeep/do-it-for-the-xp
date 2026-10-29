@@ -99,6 +99,25 @@ export const calculatePartyStreak = (
 
 export const partyStreak = calculatePartyStreak;
 
+/** The heroes with an approved chore on this calendar day, each once, in the order they first finished */
+export const heroesFinishedOn = (
+  entries: ReadonlyArray<QuestLogEntryLike | null | undefined>,
+  dayKey: string
+): string[] => {
+  const heroes: string[] = [];
+  for (const entry of entries) {
+    const isApproved = Boolean(entry && entry.status === "approved");
+    const hasHero = Boolean(entry?.userId);
+    const hasCompletedAt = Boolean(entry?.completedAt);
+    const computedKey = hasCompletedAt ? toDayKey(new Date(entry!.completedAt!)) : "";
+    const entryDay = entry?.dayKey || computedKey;
+    const isOnDay = isApproved && hasHero && entryDay === dayKey;
+    const isNewHero = isOnDay && !heroes.includes(entry!.userId!);
+    if (isNewHero) heroes.push(entry!.userId!);
+  }
+  return heroes;
+};
+
 /** Resolves hero nickname from users map or array */
 export const nicknameOf = (
   userId: string | undefined,

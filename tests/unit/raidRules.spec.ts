@@ -7,6 +7,7 @@ import {
   raidMaxHp,
   raidState,
   rewardFor,
+  rewardKey,
   strikeDamage,
   type Raid,
   type RaidWindow,
@@ -194,6 +195,12 @@ describe("raidRules", () => {
       let raid = makeRaid({ maxHp: 50 });
       raid = addStrike(raid, hit("k1", "ana", 50, when(0)));
       expect(raidState(raid, new Date(START.getTime() + 30 * DAY_MS)).status).toBe("defeated");
+    });
+  });
+
+  describe("rewardKey", () => {
+    it("names one hero's reward from one raid", () => {
+      expect(rewardKey("r1", "ana")).toBe("raid:r1:ana");
     });
   });
 

@@ -185,6 +185,9 @@ export const raidState = (raid: Raid, now: Date): RaidState => {
   };
 };
 
+/** The key one hero's reward from one raid is remembered by, so it is paid once */
+export const rewardKey = (raidId: string, heroId: string): string => `raid:${raidId}:${heroId}`;
+
 /**
  * What the hero is owed from this raid: the base reward, the same for one blow or many, once the beast is down. Nothing
  * while it stands, for a member who never struck, or for a hero who left the party before it fell (their strikes still count).

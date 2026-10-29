@@ -8,6 +8,7 @@ import {
   IonCardSubtitle,
   IonChip,
   IonContent,
+  IonFooter,
   IonHeader,
   IonIcon,
   IonLabel,
@@ -31,18 +32,23 @@ import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue";
 import ionic from "@/lib/mixins/ionic";
 import { getQuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
+import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import {
   calculatePartyStreak,
+  heroesFinishedOn,
   partyActivityFeed,
+  toDayKey,
   type PartyMember,
 } from "@/lib/services/party/partyStats";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import debug from "@/lib/utils/debug";
+import { HOME_CHIP, type PartyChip } from "./party/partyChips";
 import PartyActivityTab from "./party/PartyActivityTab.vue";
 import PartyRaidsTab from "./party/PartyRaidsTab.vue";
 import PartyRosterTab from "./party/PartyRosterTab.vue";
+import PartySwitcher from "./party/PartySwitcher.vue";
 import PartySynergiesTab from "./party/PartySynergiesTab.vue";
 
 export default defineComponent({
@@ -63,10 +69,12 @@ export default defineComponent({
     IonCardHeader,
     IonCardSubtitle,
     IonChip,
+    IonFooter,
     PartyRosterTab,
     PartyActivityTab,
     PartySynergiesTab,
     PartyRaidsTab,
+    PartySwitcher,
   },
   mixins: [ionic as any],
   setup() {
@@ -96,6 +104,11 @@ export default defineComponent({
     const partyStreak = computed(() =>
       calculatePartyStreak(questLogEntries.value)
     );
+
+    // The party the tabs show; the household's own until outside parties exist
+    const activePartyId = ref(HOME_PARTY_ID);
+    const parties = computed<PartyChip[]>(() => [HOME_CHIP]);
+    const heroIdsToday = computed(() => heroesFinishedOn(questLogEntries.value, toDayKey()));
 
     const activityFeed = computed(() =>
       partyActivityFeed(questLogEntries.value, userStore.users)
@@ -259,9 +272,12 @@ export default defineComponent({
       settingsOutline,
       // State
       activeTab,
+      activePartyId,
+      parties,
       partyMembers,
       partyStreak,
       activityFeed,
+      heroIdsToday,
       canManage,
       // Methods
       cheerMember,

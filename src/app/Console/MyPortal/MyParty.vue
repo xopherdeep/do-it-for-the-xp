@@ -75,11 +75,24 @@
       />
 
       <!-- SYNERGIES TAB -->
-      <party-synergies-tab v-if="activeTab === 'synergies'" />
+      <party-synergies-tab
+        v-if="activeTab === 'synergies'"
+        :members="partyMembers"
+        :hero-ids-today="heroIdsToday"
+      />
 
       <!-- RAIDS TAB -->
-      <party-raids-tab v-if="activeTab === 'raids'" />
+      <party-raids-tab
+        v-if="activeTab === 'raids'"
+        :members="partyMembers"
+        :party-id="activePartyId"
+      />
     </ion-content>
+
+    <!-- Which party the tabs show, at the foot of the screen where a thumb reaches -->
+    <ion-footer>
+      <party-switcher :parties="parties" :active="activePartyId" @select="activePartyId = $event" />
+    </ion-footer>
   </ion-page>
 </template>
 

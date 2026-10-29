@@ -1,0 +1,58 @@
+// What every party card and button shares. Colors and fonts come from the Game Style tokens (--gs-*), never a raw color,
+// so the cards follow the chosen look.
+@use "@/styles/themes/earthbound.scss" as *;
+
+// A framed window, with room around it for the frame's outer ring
+@mixin party-window() {
+  @include eb-box();
+  margin: 22px 20px;
+  padding: 14px;
+  font-family: var(--gs-font);
+}
+
+// A chunky button, at least a thumb tall
+@mixin party-button() {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-family: var(--gs-font);
+  font-size: 1rem;
+  color: var(--gs-text);
+  background: var(--gs-button);
+  border: 2px solid var(--gs-button-edge);
+  border-radius: var(--gs-radius);
+
+  &:disabled {
+    opacity: 0.45;
+  }
+
+  &.is-active,
+  &.is-chosen {
+    color: var(--gs-accent);
+    outline: 2px solid var(--gs-accent);
+  }
+
+  &.is-primary {
+    color: var(--gs-accent);
+  }
+}
+
+// A health or damage bar drawn on a native <progress>
+@mixin party-meter($fill) {
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  border: 2px solid var(--gs-button-edge);
+  background: var(--gs-bar);
+
+  &::-webkit-progress-bar {
+    background: var(--gs-bar);
+  }
+
+  &::-webkit-progress-value {
+    background: $fill;
+  }
+
+  &::-moz-progress-bar {
+    background: $fill;
+  }
+}

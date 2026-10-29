@@ -9,6 +9,7 @@ import {
   raidMaxHp,
   raidState,
   rewardFor,
+  rewardKey,
   type Raid,
   type RaidReward,
   type RaidWindow,
@@ -161,7 +162,7 @@ export const usePartyStore = defineStore("party", () => {
 
   /** What the hero is owed from a felled raid, once: the first claim gets it and marks it paid, any other gets nothing */
   function claimReward(raidId: string, heroId: string): RaidReward | null {
-    const key = `raid:${raidId}:${heroId}`;
+    const key = rewardKey(raidId, heroId);
     const raid = raids.value.find((counted) => counted.id === raidId);
     const reward = raid ? rewardFor(raid, heroId) : null;
     const isPaid = paid.value.includes(key);
