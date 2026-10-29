@@ -34,7 +34,6 @@ export const usePartyStore = defineStore("party", () => {
   const raids = ref<Raid[]>([]);
   const paid = ref<string[]>([]);
   const defaultWindow = ref<RaidWindow>("standard");
-  const raidAlerts = ref(true);
 
   const snapshot = (): PartyState => ({
     heroModes: heroModes.value,
@@ -42,7 +41,6 @@ export const usePartyStore = defineStore("party", () => {
     raids: raids.value,
     paid: paid.value,
     defaultWindow: defaultWindow.value,
-    raidAlerts: raidAlerts.value,
   });
 
   function save(): void {
@@ -58,7 +56,6 @@ export const usePartyStore = defineStore("party", () => {
     raids.value = saved.raids;
     paid.value = saved.paid;
     defaultWindow.value = saved.defaultWindow;
-    raidAlerts.value = saved.raidAlerts;
   }
 
   /** Reads the saved record once however often it is asked (a read that failed is tried again); await it before showing raids or striking */
@@ -99,11 +96,6 @@ export const usePartyStore = defineStore("party", () => {
 
   function setDefaultWindow(window: RaidWindow): void {
     defaultWindow.value = window;
-    save();
-  }
-
-  function setRaidAlerts(on: boolean): void {
-    raidAlerts.value = on;
     save();
   }
 
@@ -179,14 +171,12 @@ export const usePartyStore = defineStore("party", () => {
     raids,
     paid,
     defaultWindow,
-    raidAlerts,
     load,
     modeOf,
     setMode,
     isApproved,
     approveParty,
     setDefaultWindow,
-    setRaidAlerts,
     raidsOf,
     activeRaidOf,
     activeRaidsFor,

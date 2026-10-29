@@ -30,13 +30,15 @@ export const ALERTS_COMING_SOON: ComingSoonItem[] = [
 
 /**
  * Parties across families go through the family server. The multiplayer flag is on in production builds
- * (.env.production), but the server is still being built on the site, so these stay planned
+ * (.env.production), but the server is still being built on the site, so these stay planned. Raid alerts need an OS
+ * alert booked ahead (alertBridge.scheduleAlert) and a device to test it on, so they wait too
  */
 export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Parties with friends", description: "Form parties and guilds with other families" },
   { title: "Family circle posts", description: "See posts from families in your circle, and choose who can post or read" },
   { title: "Join requests", description: "Approve who joins your party" },
   { title: "Party invites", description: "Let members invite others, and choose who can" },
+  { title: "Raid alerts", description: "Hear when a raid beast is about to flee" },
 ];
 
 /** Social sign-in is a site job (a login plugin on the Town Hall network); the app's link flow picks it up once the site offers it */

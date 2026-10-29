@@ -58,13 +58,11 @@ describe("party store: hero settings", () => {
     expect(store.approvedParties.ana).toEqual(["party-9"]);
   });
 
-  it("starts with the standard window and raid alerts on, and saves a change", () => {
+  it("starts with the standard window and saves a change", () => {
     const store = usePartyStore();
     expect(store.defaultWindow).toBe("standard");
-    expect(store.raidAlerts).toBe(true);
     store.setDefaultWindow("epic");
-    store.setRaidAlerts(false);
-    expect(mockSaveState).toHaveBeenLastCalledWith(expect.objectContaining({ defaultWindow: "epic", raidAlerts: false }));
+    expect(mockSaveState).toHaveBeenLastCalledWith(expect.objectContaining({ defaultWindow: "epic" }));
   });
 });
 
@@ -165,7 +163,6 @@ describe("party store: load", () => {
       raids: [],
       paid: ["raid:r1:ana"],
       defaultWindow: "epic",
-      raidAlerts: false,
     });
     const store = usePartyStore();
     await store.load();
@@ -173,7 +170,6 @@ describe("party store: load", () => {
     expect(store.isApproved("ana", "p1")).toBe(true);
     expect(store.paid).toEqual(["raid:r1:ana"]);
     expect(store.defaultWindow).toBe("epic");
-    expect(store.raidAlerts).toBe(false);
   });
 
   it("reads the saved record once however often it is asked", async () => {
@@ -205,14 +201,12 @@ describe("party store: load", () => {
       raids: [{ id: 5 }, "nope", null],
       paid: { not: "a list" },
       defaultWindow: "forever",
-      raidAlerts: "yes",
     });
     const store = usePartyStore();
     await store.load();
     expect(store.raids).toEqual([]);
     expect(store.paid).toEqual([]);
     expect(store.defaultWindow).toBe("standard");
-    expect(store.raidAlerts).toBe(true);
     expect(store.modeOf("ana")).toBe("ask");
   });
 });

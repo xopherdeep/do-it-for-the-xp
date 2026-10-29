@@ -21,21 +21,7 @@
       </li>
     </ul>
 
-    <div class="raid-start__windows" role="group" aria-label="How long the raid lasts">
-      <button
-        v-for="option in WINDOW_OPTIONS"
-        :key="option.id"
-        type="button"
-        class="raid-start__window"
-        :class="{ 'is-chosen': isWindow(option.id) }"
-        :aria-pressed="isWindow(option.id)"
-        :data-cy="`raid-window-${option.id}`"
-        @click="chosenWindow = option.id"
-      >
-        {{ option.label }}
-        <small>{{ RAID_DAYS[option.id] }} days</small>
-      </button>
-    </div>
+    <raid-window-picker v-model="chosenWindow" class="raid-start__windows" cy-prefix="raid-window" />
 
     <div class="raid-start__actions">
       <button type="button" class="raid-start__button" data-cy="raid-cancel" @click="emit('cancel')">Back</button>
@@ -55,20 +41,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Beast } from "@/lib/databases/BestiaryDb";
-import { RAID_DAYS, type RaidWindow } from "@/lib/services/party/raidRules";
+import type { RaidWindow } from "@/lib/services/party/raidRules";
 import { raidBeastImage } from "./beastFace";
+import RaidWindowPicker from "./RaidWindowPicker.vue";
 
 const props = defineProps<{ beasts: Beast[]; defaultWindow: RaidWindow; initialBeastId?: string }>();
 const emit = defineEmits<{
   (event: "begin", choice: { beastId: string; window: RaidWindow }): void;
   (event: "cancel"): void;
 }>();
-
-const WINDOW_OPTIONS: { id: RaidWindow; label: string }[] = [
-  { id: "quick", label: "Quick" },
-  { id: "standard", label: "Standard" },
-  { id: "epic", label: "Epic" },
-];
 
 const chosenId = ref(props.initialBeastId ?? "");
 const chosenWindow = ref<RaidWindow>(props.defaultWindow);
@@ -77,7 +58,6 @@ const hasNoBeasts = computed(() => props.beasts.length === 0);
 const cannotBegin = computed(() => chosenId.value === "");
 
 const isChosen = (beast: Beast): boolean => String(beast.id) === chosenId.value;
-const isWindow = (id: RaidWindow): boolean => id === chosenWindow.value;
 const imageOf = (beast: Beast): string => raidBeastImage(beast);
 const hasImage = (beast: Beast): boolean => imageOf(beast) !== "";
 const choose = (beast: Beast): void => {
@@ -126,17 +106,7 @@ const begin = (): void => emit("begin", { beastId: chosenId.value, window: chose
 }
 
 .raid-start__windows {
-  display: flex;
-  gap: 10px;
   margin-bottom: 14px;
-}
-
-.raid-start__window {
-  @include party-button();
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 // The actions stay at the foot of the window, in thumb reach

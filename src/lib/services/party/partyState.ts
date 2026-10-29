@@ -13,7 +13,6 @@ export interface PartyState {
   /** One key per reward paid: "raid:{raidId}:{heroId}" */
   paid: string[];
   defaultWindow: RaidWindow;
-  raidAlerts: boolean;
 }
 
 const MODES: readonly string[] = ["open", "ask", "home"];
@@ -25,7 +24,6 @@ export const emptyPartyState = (): PartyState => ({
   raids: [],
   paid: [],
   defaultWindow: "standard",
-  raidAlerts: true,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -82,13 +80,11 @@ export const cleanPartyState = (saved: unknown): PartyState => {
   const source = isRecord(saved) ? saved : {};
   const raids = (Array.isArray(source.raids) ? source.raids : []).map(cleanRaid);
   const hasWindow = WINDOWS.includes(String(source.defaultWindow));
-  const hasAlerts = typeof source.raidAlerts === "boolean";
   return {
     heroModes: cleanModes(source.heroModes),
     approvedParties: cleanApproved(source.approvedParties),
     raids: raids.filter((raid): raid is Raid => raid !== null),
     paid: textsOf(source.paid),
     defaultWindow: hasWindow ? (source.defaultWindow as RaidWindow) : defaults.defaultWindow,
-    raidAlerts: hasAlerts ? (source.raidAlerts as boolean) : defaults.raidAlerts,
   };
 };
