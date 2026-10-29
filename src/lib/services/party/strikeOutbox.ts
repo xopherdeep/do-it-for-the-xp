@@ -5,7 +5,7 @@
  * gone, the strike is stale, the hero is not in the party) is dropped rather than kept for ever.
  */
 import { myParties, partyProblem, sendStrike, type PartyProblem } from "./partyClient";
-import type { QueuedStrike } from "./partyState";
+import { queueKeyOf, type QueuedStrike } from "./partyState";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useProStore } from "@/lib/store/stores/pro";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
@@ -50,8 +50,26 @@ export const settleStrikes = async (
 let flushing = false;
 
 /**
+ * One try at what the queue holds now. The strikes it settled (taken, refused for good) leave the queue as it is after
+ * the sends, so a strike queued while they were on their way stays queued.
+ */
+const sendRound = async (): Promise<{ sent: number; isStalled: boolean }> => {
+  const store = usePartyStore();
+  const townHall = useTownHallStore();
+  const round = [...store.outbox];
+  const { left, sent } = await settleStrikes(round, ({ raidId, key, heroId, damage, day, at }) =>
+    sendStrike(townHall.auth, raidId, { key, heroId, damage, day, at })
+  );
+  const staying = new Set(left.map(queueKeyOf));
+  const settled = new Set(round.map(queueKeyOf).filter((name) => !staying.has(name)));
+  store.setOutbox(store.outbox.filter((strike) => !settled.has(queueKeyOf(strike))));
+  return { sent, isStalled: left.length > 0 };
+};
+
+/**
  * Sends what the outbox holds, if the family holds XP Pro and an account is linked, then asks the site for the
- * parties again so the raid shows the strikes. Two flushes never overlap.
+ * parties again so the raid shows the strikes. Two flushes never overlap: a strike queued while one runs is sent by
+ * it, in another round, unless the connection is down.
  */
 export const flushOutbox = async (): Promise<void> => {
   const store = usePartyStore();
@@ -64,10 +82,13 @@ export const flushOutbox = async (): Promise<void> => {
 
   flushing = true;
   try {
-    const { left, sent } = await settleStrikes(store.outbox, ({ raidId, key, heroId, damage, day, at }) =>
-      sendStrike(townHall.auth, raidId, { key, heroId, damage, day, at })
-    );
-    store.setOutbox(left);
+    let sent = 0;
+    let isStalled = false;
+    while (!isStalled && store.outbox.length > 0) {
+      const round = await sendRound();
+      sent += round.sent;
+      isStalled = round.isStalled;
+    }
     const sentSome = sent > 0;
     if (sentSome) store.applyServer(await myParties(townHall.auth));
   } catch (error) {

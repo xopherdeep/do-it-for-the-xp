@@ -110,3 +110,31 @@ export const cleanPartyState = (saved: unknown): PartyState => {
     outbox: (Array.isArray(source.outbox) ? source.outbox : []).map(cleanQueued).filter((item): item is QueuedStrike => item !== null),
   };
 };
+
+const unionOf = (first: readonly string[], second: readonly string[]): string[] => [...new Set([...first, ...second])];
+
+const approvalsUnion = (saved: Record<string, string[]>, memory: Record<string, string[]>): Record<string, string[]> => {
+  const heroIds = unionOf(Object.keys(saved), Object.keys(memory));
+  return Object.fromEntries(heroIds.map((heroId) => [heroId, unionOf(saved[heroId] ?? [], memory[heroId] ?? [])]));
+};
+
+/** What names a queued strike: the raid and the key (a strike is queued, and counted by the site, once for each) */
+export const queueKeyOf = (strike: QueuedStrike): string => `${strike.raidId}\n${strike.key}`;
+
+/**
+ * The saved record folded under what changed in memory before it was read: a change made here wins over the saved one,
+ * and everything saved that was not touched stays. A screen that heard from the site before the record was read must
+ * never leave the device with an empty record saved over the real one (the loot already paid, the raids, the queue).
+ */
+export const foldSavedState = (saved: PartyState, memory: PartyState, keepMemoryWindow: boolean): PartyState => {
+  const memoryRaids = new Set(memory.raids.map((raid) => raid.id));
+  const memoryQueued = new Set(memory.outbox.map(queueKeyOf));
+  return {
+    heroModes: { ...saved.heroModes, ...memory.heroModes },
+    approvedParties: approvalsUnion(saved.approvedParties, memory.approvedParties),
+    raids: [...saved.raids.filter((raid) => !memoryRaids.has(raid.id)), ...memory.raids],
+    paid: unionOf(saved.paid, memory.paid),
+    defaultWindow: keepMemoryWindow ? memory.defaultWindow : saved.defaultWindow,
+    outbox: [...saved.outbox.filter((strike) => !memoryQueued.has(queueKeyOf(strike))), ...memory.outbox],
+  };
+};

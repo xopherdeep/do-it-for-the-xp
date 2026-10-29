@@ -5,6 +5,7 @@ import { activityOf, heroIdsToday, rosterOf } from "@/lib/services/party/partyFe
 import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import { toDayKey, type PartyActivityItem, type PartyMember } from "@/lib/services/party/partyStats";
 import { usePartyStore } from "@/lib/store/stores/party";
+import debug from "@/lib/utils/debug";
 
 /** What the four tabs read: who is in the party, what it did, and which heroes have struck or finished a chore today */
 export interface HomeScope {
@@ -42,10 +43,12 @@ export const usePartyScope = (home: Ref<HomeScope>, activeTab: Ref<string>) => {
     if (!stillThere) activePartyId.value = HOME_PARTY_ID;
   });
 
-  // Keep the parties with other families fresh while the screen is open, and read the open party's feed for Activity
+  // Read the saved record first (who may party, the raids), then keep the parties with other families fresh while the screen
+  // is open, and read the open party's feed for Activity
   const isInScreen = Boolean(getCurrentInstance());
   if (isInScreen) {
     onMounted(() => {
+      store.load().catch((error) => debug.error("party: could not read the saved parties", error));
       feed.start();
     });
   }

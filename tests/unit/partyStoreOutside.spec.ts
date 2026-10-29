@@ -122,8 +122,9 @@ describe("party store: outside parties", () => {
         },
       });
 
-    it("keeps a copy of each party's raid with the household's own, and saves that copy to the device", () => {
+    it("keeps a copy of each party's raid with the household's own, and saves that copy to the device", async () => {
       const store = usePartyStore();
+      await store.load();
       store.applyServer({ parties: [withRaid("p1", "r1")], incoming: [], outgoing: [] });
       expect(store.raidsOf("p1").map((raid) => [raid.id, raid.memberIds, raid.strikes[0].heroId])).toEqual([["r1", ["f1|ana"], "f1|ana"]]);
       expect(mockSaveState).toHaveBeenCalledWith(expect.objectContaining({ raids: [expect.objectContaining({ id: "r1" })] }));
@@ -150,8 +151,9 @@ describe("party store: outside parties", () => {
   describe("the strike outbox", () => {
     const item = (key: string, raidId = "r1") => ({ raidId, key, heroId: "ana", damage: 30, day: "2026-10-28", at: "2026-10-28T09:00:00.000Z" });
 
-    it("queues a strike once however often it is queued, and saves the queue", () => {
+    it("queues a strike once however often it is queued, and saves the queue", async () => {
       const store = usePartyStore();
+      await store.load();
       store.queueStrike(item("k1"));
       store.queueStrike(item("k1"));
       store.queueStrike(item("k1", "r2"));

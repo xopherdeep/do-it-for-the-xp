@@ -134,4 +134,30 @@ describe("flushOutbox", () => {
     await Promise.all([first, second]);
     expect(mockSendStrike).toHaveBeenCalledTimes(1);
   });
+
+  it("sends a strike queued while another was on its way, and loses neither", async () => {
+    const store = usePartyStore();
+    store.queueStrike(item("k1"));
+    let finish: (value: unknown) => void = () => undefined;
+    mockSendStrike.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    const first = flushOutbox();
+    store.queueStrike(item("k2"));
+    await flushOutbox(); // refused: one flush at a time, so the first must carry k2 as well
+    finish({ accepted: true, damage: 30, reason: "", raid: {} });
+    await first;
+    expect(mockSendStrike.mock.calls.map(([, , sent]) => sent.key)).toEqual(["k1", "k2"]);
+    expect(store.outbox).toEqual([]);
+  });
+
+  it("keeps a strike queued while another was on its way when the connection drops after that one", async () => {
+    const store = usePartyStore();
+    store.queueStrike(item("k1"));
+    let finish: (value: unknown) => void = () => undefined;
+    mockSendStrike.mockReturnValueOnce(new Promise((resolve) => (finish = resolve))).mockRejectedValue(fail("offline"));
+    const first = flushOutbox();
+    store.queueStrike(item("k2"));
+    finish({ accepted: true, damage: 30, reason: "", raid: {} });
+    await first;
+    expect(store.outbox.map((queued) => queued.key)).toEqual(["k2"]);
+  });
 });

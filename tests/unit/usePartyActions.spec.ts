@@ -5,6 +5,7 @@ import { usePartyMembership } from "@/hooks/usePartyMembership";
 import { usePartyRaids } from "@/hooks/usePartyRaids";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useUserStore } from "@/lib/store/stores/user";
+import type { WireParty } from "@/lib/services/party/partyWire";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
 
 /**
@@ -137,6 +138,61 @@ describe("usePartyActions: forming and joining", () => {
   it("refuses a hero it does not know", async () => {
     expect(await actions().requestJoin("ABCD2345", "nobody")).toEqual({ ok: false, problem: "invalid" });
     expect(mockClient.joinByCode).not.toHaveBeenCalled();
+  });
+});
+
+describe("usePartyActions: a hero who stays home", () => {
+  const card = (heroId: string) => ({ heroId, nickname: heroId, level: 3, jobClass: "knight", look: null });
+  const partyWith = (id: string, name: string, heroes: [string, string][]): WireParty => ({
+    id,
+    name,
+    emblem: "dragon",
+    inviteRule: "leader",
+    leader: { familyId: heroes[0][0], heroId: heroes[0][1] },
+    members: heroes.map(([familyId, heroId]) => ({ familyId, heroId, card: card(heroId), role: "member" as const, joinedAt: "" })),
+    raid: null,
+    seq: 1,
+  });
+  const seedParties = (): void =>
+    usePartyStore().applyServer({
+      parties: [
+        partyWith("p1", "Raiders", [["fam-1", "ana"], ["fam-2", "dot"]]),
+        partyWith("p2", "Dragons", [["fam-3", "eli"], ["fam-1", "ana"], ["fam-1", "ben"]]),
+        partyWith("p3", "Knights", [["fam-1", "ben"], ["fam-2", "dot"]]),
+      ],
+      incoming: [],
+      outgoing: [],
+    });
+
+  it("takes a hero out of every party with other families they are in, and no other hero", async () => {
+    seedParties();
+    mockClient.leaveParty.mockResolvedValue({ disbanded: false });
+    const result = await usePartyMembership().removeHeroFromParties("ana");
+    expect(result).toEqual({ ok: true, value: 2 });
+    expect(mockClient.leaveParty).toHaveBeenCalledTimes(2);
+    expect(mockClient.leaveParty).toHaveBeenCalledWith(AUTH, "p1", "fam-1", "ana");
+    expect(mockClient.leaveParty).toHaveBeenCalledWith(AUTH, "p2", "fam-1", "ana");
+  });
+
+  it("asks the site for nothing when the hero is in no party with other families", async () => {
+    seedParties();
+    expect(await usePartyMembership().removeHeroFromParties("cam")).toEqual({ ok: true, value: 0 });
+    expect(mockClient.leaveParty).not.toHaveBeenCalled();
+  });
+
+  it("answers the first refusal in words and stops there", async () => {
+    seedParties();
+    mockClient.leaveParty.mockRejectedValue(new TownHallError("offline", "no", undefined, undefined));
+    const result = await usePartyMembership().removeHeroFromParties("ana");
+    expect(result).toEqual({ ok: false, problem: "offline" });
+    expect(mockClient.leaveParty).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends no word for a hero who stays home, even in a party they joined before", async () => {
+    usePartyStore().setMode("ana", "home");
+    const result = await usePartyControls().sendWord("p1", "ana", "gg");
+    expect(result).toEqual({ ok: false, problem: "forbidden" });
+    expect(mockClient.sendPreset).not.toHaveBeenCalled();
   });
 });
 

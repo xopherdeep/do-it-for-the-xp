@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getPartyDb } from "@/lib/databases/PartyDb";
 import type { MyParties, PartyProblem } from "@/lib/services/party/partyClient";
 import { HOME_PARTY_ID, defaultModeFor, toHeroCard, type HeroPartyMode, type PartyHeroCard } from "@/lib/services/party/partyRules";
-import { cleanPartyState, type PartyState, type QueuedStrike } from "@/lib/services/party/partyState";
+import { cleanPartyState, foldSavedState, type PartyState, type QueuedStrike } from "@/lib/services/party/partyState";
 import {
   addStrike,
   raidMaxHp,
@@ -58,20 +58,38 @@ export const usePartyStore = defineStore("party", () => {
     outbox: outbox.value,
   });
 
-  function save(): void {
+  /** Set once the saved record has been read: until then a save would put this empty state over it */
+  let hasRead = false;
+  /** Whether the usual raid length was chosen here before the record was read (the saved one must not replace it) */
+  let hasChosenWindow = false;
+
+  function persist(): void {
     getPartyDb()
       .saveState(snapshot())
       .catch((error) => debug.error("party: could not save", error));
   }
 
+  /** Saves at once when the record has been read; before that it waits for the read, which folds this state under what was saved */
+  function save(): void {
+    if (hasRead) {
+      persist();
+      return;
+    }
+    load()
+      .then(persist)
+      .catch((error) => debug.error("party: not saved, the saved record could not be read", error));
+  }
+
   async function read(): Promise<void> {
     const saved = cleanPartyState(await getPartyDb().getState());
-    heroModes.value = saved.heroModes;
-    approvedParties.value = saved.approvedParties;
-    raids.value = saved.raids;
-    paid.value = saved.paid;
-    defaultWindow.value = saved.defaultWindow;
-    outbox.value = saved.outbox;
+    const folded = foldSavedState(saved, snapshot(), hasChosenWindow);
+    heroModes.value = folded.heroModes;
+    approvedParties.value = folded.approvedParties;
+    raids.value = folded.raids;
+    paid.value = folded.paid;
+    defaultWindow.value = folded.defaultWindow;
+    outbox.value = folded.outbox;
+    hasRead = true;
   }
 
   /** Reads the saved record once however often it is asked (a read that failed is tried again); await it before showing raids or striking */
@@ -122,6 +140,7 @@ export const usePartyStore = defineStore("party", () => {
 
   function setDefaultWindow(window: RaidWindow): void {
     defaultWindow.value = window;
+    hasChosenWindow = true;
     save();
   }
 

@@ -1,4 +1,5 @@
-import { nextTick, ref } from "vue";
+import { defineComponent, h, nextTick, ref } from "vue";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { usePartyScope, type HomeScope } from "@/hooks/usePartyScope";
 import { usePartyStore } from "@/lib/store/stores/party";
@@ -9,9 +10,10 @@ import type { WireParty } from "@/lib/services/party/partyWire";
  * tabs read one scope whichever it is, so they stay the same four tabs.
  */
 
+const mockGetState = jest.fn().mockResolvedValue(null);
 jest.mock("@/lib/databases/PartyDb", () => ({
   __esModule: true,
-  getPartyDb: () => ({ getState: async () => null, saveState: async () => undefined }),
+  getPartyDb: () => ({ getState: (...args: unknown[]) => mockGetState(...args), saveState: async () => undefined }),
 }));
 jest.mock("@/lib/services/temples/templeQuestRows", () => ({ libraryEntryOf: () => undefined }));
 const mockRefreshParty = jest.fn();
@@ -104,6 +106,23 @@ describe("usePartyScope: reading a party's feed", () => {
     tab.value = "activity";
     await nextTick();
     expect(mockRefreshParty).not.toHaveBeenCalled();
+  });
+});
+
+describe("usePartyScope: when the screen opens", () => {
+  beforeEach(() => mockGetState.mockClear());
+
+  it("reads the saved party record, so who stays home is known before the screens ask", async () => {
+    const Screen = defineComponent({
+      setup() {
+        usePartyScope(ref(HOME), ref("roster"));
+        return () => h("div");
+      },
+    });
+    const screen = mount(Screen);
+    await flushPromises();
+    expect(mockGetState).toHaveBeenCalledTimes(1);
+    screen.unmount();
   });
 });
 

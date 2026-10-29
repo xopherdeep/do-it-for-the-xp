@@ -98,3 +98,19 @@ export const claimRows = (raid: Raid, names: Readonly<Record<string, string>>, p
     isClaimed: paid.includes(rewardKey(raid.id, heroId)),
   }));
 };
+
+/**
+ * Whether a hero was already paid a raid's loot, on any device of the family: the claim leaves its raid in the hero's AP
+ * history (source "raid:{raidId}"), and the hero's record syncs while the device's own ledger of paid loot does not. Without
+ * this a family with two devices could claim the same loot once on each.
+ */
+export const isLootPaid = (hero: LootHero | undefined, raidId: string): boolean => {
+  const stats = hero?.stats;
+  const history = stats?.ap?.history ?? [];
+  return history.some((gain) => gain.source === `raid:${raidId}`);
+};
+
+/** The part of a hero's record the loot check reads */
+export interface LootHero {
+  stats?: { ap?: { history?: readonly { source?: unknown }[] } };
+}

@@ -1,5 +1,5 @@
 import { addStrike, rewardKey, type Raid } from "@/lib/services/party/raidRules";
-import { claimRows, raidSummary, timeLeftLabel } from "@/lib/services/party/raidView";
+import { claimRows, isLootPaid, raidSummary, timeLeftLabel } from "@/lib/services/party/raidView";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -151,5 +151,22 @@ describe("claimRows", () => {
   it("leaves out a hero who left the party before the beast fell", () => {
     const left = { ...felled(), memberIds: ["ana", "cam"] };
     expect(claimRows(left, NAMES, []).map((row) => row.heroId)).toEqual(["ana"]);
+  });
+});
+
+describe("isLootPaid", () => {
+  it("knows a raid's loot was paid when the hero's AP history names the raid", () => {
+    const history = [
+      { amount: 3, timestamp: "2026-10-27T09:00:00.000Z", source: "quest-1" },
+      { amount: 5, timestamp: "2026-10-28T09:00:00.000Z", source: "raid:r1" },
+    ];
+    expect(isLootPaid({ stats: { ap: { history } } }, "r1")).toBe(true);
+    expect(isLootPaid({ stats: { ap: { history } } }, "r2")).toBe(false);
+  });
+
+  it("says no for a hero with no AP history, or no record", () => {
+    expect(isLootPaid(undefined, "r1")).toBe(false);
+    expect(isLootPaid({}, "r1")).toBe(false);
+    expect(isLootPaid({ stats: { ap: { history: [] } } }, "r1")).toBe(false);
   });
 });

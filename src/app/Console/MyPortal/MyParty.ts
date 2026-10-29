@@ -54,6 +54,7 @@ import PartyRaidsTab from "./party/PartyRaidsTab.vue";
 import PartyRosterTab from "./party/PartyRosterTab.vue";
 import PartySwitcher from "./party/PartySwitcher.vue";
 import PartySynergiesTab from "./party/PartySynergiesTab.vue";
+import { sentWordToast } from "./party/partyWording";
 
 export default defineComponent({
   name: "my-party",
@@ -137,18 +138,15 @@ export default defineComponent({
 
     /** A cheer or a poke: a toast at home, and one of the fixed words aimed at the member in a party with other families */
     const sayTo = async (member: PartyMember, word: "cheer" | "poke"): Promise<void> => {
-      const name = member.name?.nick || "Hero";
-      const isCheer = word === "cheer";
-      const sentText = isCheer ? `💚 Sent encouragement to ${name}!` : `👋 Nudged ${name}!`;
-      const sentColor = isCheer ? "success" : "warning";
+      const sent = sentWordToast(word, member.name?.nick || "");
       const isAtHome = !outsideParty.value;
       if (isAtHome) {
-        await showToast(sentText, sentColor);
+        await showToast(sent.text, sent.color);
         return;
       }
 
       const result = await sendWordTo(String(member.id), word);
-      await showToast(result.ok ? sentText : problemText(result.problem), result.ok ? sentColor : "warning");
+      await showToast(result.ok ? sent.text : problemText(result.problem), result.ok ? sent.color : "warning");
     };
 
     const cheerMember = (member: PartyMember) => {

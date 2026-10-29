@@ -2,6 +2,9 @@
   <div class="party-outside" data-cy="party-outside">
     <p v-if="feedProblem" class="party-outside__problem" data-cy="party-outside-problem">{{ feedProblem }}</p>
     <p v-if="actionError" class="party-outside__problem" data-cy="party-outside-error">{{ actionError }}</p>
+    <p v-if="isReadOnly" class="party-outside__note" data-cy="party-outside-readonly">
+      Only a Game Master can answer requests, take a hero out of a party or change a party code.
+    </p>
 
     <ion-card class="max-w-2xl" data-cy="party-requests">
       <ion-card-header>
@@ -13,12 +16,12 @@
         <ul class="party-outside__list">
           <li v-for="request in store.incoming" :key="request.id" :data-cy="`party-request-in-${request.id}`">
             <span>{{ request.card.nickname }} (Lv.{{ request.card.level }} {{ request.card.jobClass }}) wants to join {{ request.partyName }}</span>
-            <button type="button" class="party-outside__button is-primary" :data-cy="`party-accept-${request.id}`" @click="answer(request, 'approve')">Accept</button>
-            <button type="button" class="party-outside__button" :data-cy="`party-decline-${request.id}`" @click="answer(request, 'decline')">Decline</button>
+            <button v-if="canEdit" type="button" class="party-outside__button is-primary" :data-cy="`party-accept-${request.id}`" @click="answer(request, 'approve')">Accept</button>
+            <button v-if="canEdit" type="button" class="party-outside__button" :data-cy="`party-decline-${request.id}`" @click="answer(request, 'decline')">Decline</button>
           </li>
           <li v-for="request in store.outgoing" :key="request.id" :data-cy="`party-request-out-${request.id}`">
             <span>{{ request.card.nickname }} asked to join {{ request.partyName }}</span>
-            <button type="button" class="party-outside__button" :data-cy="`party-withdraw-${request.id}`" @click="answer(request, 'decline')">Withdraw</button>
+            <button v-if="canEdit" type="button" class="party-outside__button" :data-cy="`party-withdraw-${request.id}`" @click="answer(request, 'decline')">Withdraw</button>
           </li>
         </ul>
       </ion-card-content>
@@ -35,13 +38,13 @@
           <ul class="party-outside__list">
             <li v-for="member in ourMembers(party)" :key="member.heroId">
               <span>{{ member.card.nickname }}</span>
-              <button type="button" class="party-outside__button" :data-cy="`party-leave-${party.id}-${member.heroId}`" @click="leaveParty(party.id, member.heroId)">
+              <button v-if="canEdit" type="button" class="party-outside__button" :data-cy="`party-leave-${party.id}-${member.heroId}`" @click="leaveParty(party.id, member.heroId)">
                 Leave
               </button>
             </li>
           </ul>
 
-          <div v-if="hasCode(party)" class="party-outside__code" :data-cy="`party-my-code-${party.id}`">
+          <div v-if="canEdit && hasCode(party)" class="party-outside__code" :data-cy="`party-my-code-${party.id}`">
             <p>Party code: <strong :data-cy="`party-code-${party.id}`">{{ party.code }}</strong></p>
             <img v-if="qr[party.id]" :src="qr[party.id]" alt="QR code of the party code" :data-cy="`party-qr-${party.id}`" />
             <button type="button" class="party-outside__button" :data-cy="`party-rotate-${party.id}`" @click="newCode(party.id)">
@@ -66,6 +69,10 @@ import { problemText } from "@/lib/services/party/partyProblemText";
 import type { WireParty, WireRequest } from "@/lib/services/party/partyWire";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useProStore } from "@/lib/store/stores/pro";
+
+/** Whoever is signed in may read the lists; only a Game Master may answer a request, take a hero out or change a code (a party code is the way in) */
+const props = defineProps<{ canEdit: boolean }>();
+const isReadOnly = computed(() => !props.canEdit);
 
 const store = usePartyStore();
 const pro = useProStore();
@@ -99,7 +106,7 @@ const newCode = (partyId: string) => settle(rotateCode(partyId));
 
 /** A QR of each code the site handed us, redrawn whenever a code changes */
 async function drawCodes(): Promise<void> {
-  const coded = store.outside.filter(hasCode);
+  const coded = props.canEdit ? store.outside.filter(hasCode) : [];
   const drawn = await Promise.all(coded.map(async (party) => [party.id, await QRCode.toDataURL(String(party.code), { margin: 1, width: 200 })] as const));
   qr.value = Object.fromEntries(drawn);
 }
@@ -112,6 +119,11 @@ onMounted(() => feed.start());
 .party-outside__problem {
   margin: 12px 16px;
   color: var(--gs-danger);
+}
+
+.party-outside__note {
+  margin: 12px 16px;
+  opacity: 0.8;
 }
 
 .party-outside__list {

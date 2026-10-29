@@ -6,6 +6,9 @@ import type { WireParty } from "@/lib/services/party/partyWire";
 import { DAILY_STRIKE_CAP } from "@/lib/services/party/raidRules";
 import { usePartyStore } from "@/lib/store/stores/party";
 
+/** The most the site takes for one strike: the biggest chore (13 steps of ten) with the biggest synergy buff (x1.2). Twin of MAX_STRIKE_DAMAGE in the plugin's Party_Rest */
+const SITE_STRIKE_MAX = 156;
+
 const mockSaveState = jest.fn().mockResolvedValue(undefined);
 const mockGetState = jest.fn().mockResolvedValue(null);
 jest.mock("@/lib/databases/PartyDb", () => ({
@@ -183,6 +186,37 @@ describe("recordPaidStrike: a raid with other families", () => {
     const store = await open(outsideParty({ strikers: [["fam-2", "ben"]] }));
     await recordPaidStrike(paid());
     expect(store.outbox[0].damage).toBe(55);
+  });
+
+  it("queues the strike from the saved copy of the raid when the site's list was not read yet (a chore approved right after the app starts)", async () => {
+    const store = await open(outsideParty({ strikers: [["fam-2", "ben"]] }));
+    store.clearServer(); // what a restart leaves: the raid copy is saved on the device, what the site said is not
+    await recordPaidStrike(paid());
+    expect(store.outbox).toEqual([expect.objectContaining({ raidId: "r1", key: "completion:e1", heroId: "ana", damage: 55 })]);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+  });
+
+  it("queues nothing from a saved copy for a hero who is not in that party", async () => {
+    const store = await open(outsideParty({ members: [["fam-2", "ana"], ["fam-2", "ben"]] }));
+    store.clearServer();
+    await recordPaidStrike(paid({ heroId: "ana" }));
+    expect(store.outbox).toEqual([]);
+  });
+
+  it("queues nothing for a hero who stays home, even in a party they joined before", async () => {
+    const store = await open(outsideParty());
+    store.setMode("ana", "home");
+    await recordPaidStrike(paid());
+    expect(store.outbox).toEqual([]);
+    expect(mockFlush).not.toHaveBeenCalled();
+  });
+
+  it("never queues a blow above what the site takes: the biggest chore with every hero of a party striking", async () => {
+    const heroes: [string, string][] = [["fam-1", "ana"], ["fam-2", "ben"], ["fam-3", "cam"]];
+    const store = await open(outsideParty({ members: heroes, strikers: [["fam-2", "ben"], ["fam-3", "cam"]] }));
+    await recordPaidStrike(paid({ difficulty: 13 }));
+    expect(store.outbox[0].damage).toBe(156);
+    expect(store.outbox[0].damage).toBeLessThanOrEqual(SITE_STRIKE_MAX);
   });
 
   it("counts a payment once however often it is heard", async () => {

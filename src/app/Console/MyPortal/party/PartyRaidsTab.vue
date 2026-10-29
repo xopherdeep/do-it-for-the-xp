@@ -32,7 +32,7 @@
     <section v-else class="party-raids__empty" data-cy="party-raids-waiting">
       <i class="fad fa-dragon" aria-hidden="true"></i>
       <h2>No raid yet</h2>
-      <p>Waiting for the party leader to start a raid.</p>
+      <p>{{ waitingNote }}</p>
     </section>
   </div>
 </template>
@@ -47,12 +47,14 @@ import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { problemText } from "@/lib/services/party/partyProblemText";
 import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import type { PartyMember } from "@/lib/services/party/partyStats";
-import { raidState, type Raid, type RaidReward, type RaidWindow } from "@/lib/services/party/raidRules";
-import { claimRows, raidSummary } from "@/lib/services/party/raidView";
+import { raidState, rewardKey, type Raid, type RaidReward, type RaidWindow } from "@/lib/services/party/raidRules";
+import { claimRows, isLootPaid, raidSummary } from "@/lib/services/party/raidView";
 import { applyQuestRewards, paidQuestRewards } from "@/lib/services/quests/QuestCompletionService";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useProStore } from "@/lib/store/stores/pro";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { canManageFamily } from "@/router/_Guards/gm.guard";
 import { raidBeastImage } from "./beastFace";
 import PartyRaidStart from "./PartyRaidStart.vue";
 import RaidCard from "./RaidCard.vue";
@@ -61,6 +63,7 @@ const props = withDefaults(defineProps<{ members: PartyMember[]; partyId?: strin
 
 const store = usePartyStore();
 const pro = useProStore();
+const userStore = useUserStore();
 const { startRaid } = usePartyRaids();
 const timers = useTimers();
 const beasts = ref<Beast[]>([]);
@@ -71,8 +74,10 @@ const claimedLines = ref<Record<string, string>>({});
 
 const isOutside = computed(() => props.partyId !== HOME_PARTY_ID);
 const outsideParty = computed(() => store.outsideParty(props.partyId));
-/** The household starts its own raids; in a party with other families only the leader's family does */
-const mayStart = computed(() => !isOutside.value || outsideParty.value?.leader.familyId === pro.familyId);
+const mayManage = computed(() => canManageFamily(userStore));
+/** A Game Master picks the beast and the length (a hero could lock the household into a fortnight); in a party with other families only the leader's family does */
+const mayStart = computed(() => mayManage.value && (!isOutside.value || outsideParty.value?.leader.familyId === pro.familyId));
+const waitingNote = computed(() => (mayManage.value ? "Waiting for the party leader to start a raid." : "Ask a Game Master to start a raid."));
 /** A raid with other families takes a beast from the shipped library, so no family's own words cross to another */
 const pickable = computed<Beast[]>(() => (isOutside.value ? BEAST_LIBRARY : beasts.value));
 
@@ -82,7 +87,18 @@ const names = computed(() =>
 
 /** Whether a hero named in a raid is ours to pay: all of the household's, only this family's in a party with others */
 const isOurs = (heroKey: string): boolean => !isOutside.value || heroKey.startsWith(`${pro.familyId}|`);
-const ourClaims = (candidate: Raid) => claimRows(candidate, names.value, store.paid).filter((row) => isOurs(row.heroId));
+/** A hero's own id: the household's raids name heroes by id, a party with other families names them "family|hero" */
+const heroIdOf = (heroKey: string): string => (isOutside.value ? heroKey.split("|")[1] : heroKey);
+
+/** The loot already paid: marked on this device, or paid on another device of the family (the hero's synced AP history names the raid) */
+const paidKeys = (candidate: Raid): string[] => {
+  const paidElsewhere = candidate.memberIds
+    .filter(isOurs)
+    .filter((heroKey) => isLootPaid(userStore.users[heroIdOf(heroKey)], candidate.id))
+    .map((heroKey) => rewardKey(candidate.id, heroKey));
+  return [...store.paid, ...paidElsewhere];
+};
+const ourClaims = (candidate: Raid) => claimRows(candidate, names.value, paidKeys(candidate)).filter((row) => isOurs(row.heroId));
 
 /** The newest raid, unless an older one that fell still has loot waiting for one of our heroes */
 const raid = computed<Raid>(() => {
@@ -114,7 +130,7 @@ const claim = (heroKey: string): void => {
   const reward = store.claimReward(raid.value.id, heroKey);
   const isOwed = reward !== null;
   if (!isOwed) return;
-  const heroId = isOutside.value ? heroKey.split("|")[1] : heroKey;
+  const heroId = heroIdOf(heroKey);
   applyQuestRewards(heroId, reward, `raid:${raid.value.id}`, undefined, `Raid: ${beastName.value}`);
   play$fx("openChest");
   claimedLines.value = { ...claimedLines.value, [heroKey]: rewardLine(paidQuestRewards(heroId, reward)) };

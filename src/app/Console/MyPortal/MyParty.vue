@@ -70,6 +70,7 @@
           v-if="activeTab === 'roster'"
           :members="scope.members"
           :can-manage="canManage"
+          :is-home="showHome"
           @cheer="cheerMember"
           @poke="pokeMember"
           @open-profile="openMemberProfile"

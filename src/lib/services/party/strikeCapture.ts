@@ -2,8 +2,8 @@ import { onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSign
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useProStore } from "@/lib/store/stores/pro";
 import debug from "@/lib/utils/debug";
-import { heroIdsToday, memberKey } from "./partyFeedView";
-import { synergyBuff } from "./partyRules";
+import { memberKey } from "./partyFeedView";
+import { HOME_PARTY_ID, synergyBuff } from "./partyRules";
 import { toDayKey } from "./partyStats";
 import { raidState, strikeDamage, type Raid } from "./raidRules";
 import { flushOutbox } from "./strikeOutbox";
@@ -29,19 +29,21 @@ const strikeKeyOf = (paid: QuestPaid, now: Date): string => {
 /**
  * Queues a strike for every raid with other families that this hero may strike now, and starts sending. The site counts
  * the strike (its caps, its health), so nothing is counted here: the raid shows the blow once the site has taken it.
+ * The saved copy of each raid says who is in the party and who struck today, so a chore approved right after the app
+ * starts (before the site's list of parties was read) strikes too.
  */
 const queueOutsideStrikes = (paid: QuestPaid, base: number, now: Date): void => {
   const store = usePartyStore();
-  const familyId = useProStore().familyId;
+  const hero = memberKey(useProStore().familyId, paid.heroId);
   const day = toDayKey(now);
   let queued = false;
-  for (const party of store.outside) {
-    const raid = store.raids.find((candidate) => candidate.partyId === party.id && candidate.id === party.raid?.id);
-    const isOurs = party.members.some((member) => member.familyId === familyId && member.heroId === paid.heroId);
-    const isActive = raid ? raidState(raid, now).status === "active" : false;
-    const mayStrike = raid !== undefined && isOurs && isActive;
+  for (const raid of store.raids) {
+    const isOutside = raid.partyId !== HOME_PARTY_ID;
+    const isOurs = raid.memberIds.includes(hero);
+    const isActive = raidState(raid, now).status === "active";
+    const mayStrike = isOutside && isOurs && isActive;
     if (!mayStrike) continue;
-    const buff = synergyBuff([...heroIdsToday(party, day), memberKey(familyId, paid.heroId)]);
+    const buff = synergyBuff([...heroesOnDay(raid, day), hero]);
     store.queueStrike({
       raidId: raid.id,
       key: strikeKeyOf(paid, now),
@@ -72,7 +74,8 @@ export const recordPaidStrike = async (paid: QuestPaid, now: Date = new Date()):
     const damage = Math.round(base * buff);
     store.strike(raid.id, { key: strikeKeyOf(paid, now), heroId: paid.heroId, damage, at: now.toISOString() });
   }
-  queueOutsideStrikes(paid, base, now);
+  const staysHome = store.modeOf(paid.heroId) === "home";
+  if (!staysHome) queueOutsideStrikes(paid, base, now);
 };
 
 /** Starts striking on every paid quest. Call once at start-up; returns how to stop. */

@@ -29,8 +29,9 @@
       </ul>
 
       <p class="party-modes__note">
-        Open: joins a party once its leader accepts. Ask first: waits for a Game Master's yes, once per party. Home only:
-        stays in the household party.
+        Open and Ask first: a Game Master can add this hero to another family's party with its code (heroes cannot ask from
+        their own phones yet, so for now the two work the same). Home only: stays in the household party, and takes them
+        out of any other party they are in.
       </p>
     </ion-card-content>
   </ion-card>

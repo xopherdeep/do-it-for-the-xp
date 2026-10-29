@@ -7,11 +7,13 @@ import PartyRosterTab from "@/app/Console/MyPortal/party/PartyRosterTab.vue";
 import { play$fx } from "@/assets/fx";
 import type { PartyMember } from "@/lib/services/party/partyStats";
 import { usePartyStore } from "@/lib/store/stores/party";
+import { useUserStore } from "@/lib/store/stores/user";
 
 /**
- * My Party's tabs. Raids: start a raid on a bestiary beast, watch its health and each hero's damage, claim the loot once
- * when it falls, see it flee when the window closes. Synergies: today's strike buff. The switcher picks the party. Roster
- * drops the Party Roles legend, which described roles nothing in the game uses.
+ * My Party's tabs. Raids: a Game Master starts a raid on a bestiary beast, everyone watches its health and each hero's
+ * damage, each striker claims the loot once when it falls, and the beast flees when the window closes. Synergies:
+ * today's strike buff. The switcher picks the party. Roster drops the Party Roles legend, which described roles nothing
+ * in the game uses, and keeps the household's own controls (link a phone, add a hero) out of a party with other families.
  */
 
 jest.mock("@/app.config", () => ({ __esModule: true, default: { $getUserAvatar: () => "avatar.png" } }));
@@ -64,9 +66,20 @@ const inDays = (days: number): string => new Date(Date.now() + days * DAY_MS).to
 let pinia: ReturnType<typeof createPinia>;
 let wrapper: VueWrapper | null = null;
 
+/** The household: a Game Master (gm) and a hero (ana), with the one named signed in */
+const signIn = (who: "gm" | "ana"): void => {
+  const users = useUserStore();
+  Object.assign(users.users, {
+    gm: { id: "gm", isAdult: true, name: { nick: "Dad" } },
+    ana: { id: "ana", isAdult: false, name: { nick: "Ana" } },
+  });
+  users.currentUser.id = who;
+};
+
 beforeEach(() => {
   pinia = createPinia();
   setActivePinia(pinia);
+  signIn("gm");
   mockApplyQuestRewards.mockClear();
   (play$fx as jest.Mock).mockClear();
 });
@@ -115,6 +128,23 @@ describe("Party Raids tab", () => {
     expect(store.raids[0]).toMatchObject({ beastId: "b2", window: "quick", memberIds: ["ana", "ben"] });
     expect(tab.find('[data-cy="raid-start"]').exists()).toBe(false);
     expect(tab.find('[data-cy="raid-card"]').exists()).toBe(true);
+  });
+
+  it("leaves starting a raid to a Game Master: a hero is told to ask one, and cannot override the usual length", async () => {
+    signIn("ana");
+    const tab = await mountRaids();
+    expect(tab.find('[data-cy="party-start-raid"]').exists()).toBe(false);
+    expect(tab.find('[data-cy="party-raids-waiting"]').text()).toContain("Ask a Game Master to start a raid");
+  });
+
+  it("does not let a hero start the next raid either once the beast has fled", async () => {
+    const store = usePartyStore();
+    await store.load();
+    store.raids = [{ id: "old", partyId: "home", beastId: "b1", window: "quick", startedAt: inDays(-5), maxHp: 180, memberIds: ["ana", "ben"], strikes: [] }];
+    signIn("ana");
+    const tab = await mountRaids();
+    expect(tab.find('[data-cy="raid-status"]').text().toLowerCase()).toContain("fled");
+    expect(tab.find('[data-cy="raid-again"]').exists()).toBe(false);
   });
 
   it("can back out of starting a raid", async () => {
@@ -174,6 +204,19 @@ describe("Party Raids tab", () => {
     expect(tab.find('[data-cy="raid-claimed-ana"]').text()).toContain("+300 XP");
     expect(tab.find('[data-cy="raid-claim-ben"]').exists()).toBe(true);
     expect(store.paid).toEqual([`raid:${raid.id}:ana`]);
+  });
+
+  it("does not offer loot the hero was already paid on another device of the family (their AP history, which syncs, names the raid)", async () => {
+    const { store, raid } = await startedRaid();
+    store.strike(raid.id, { key: "k1", heroId: "ana", damage: 60, at: inDays(0) });
+    store.strike(raid.id, { key: "k2", heroId: "ben", damage: 60, at: inDays(0) });
+    store.strike(raid.id, { key: "k3", heroId: "ana", damage: 60, at: inDays(1) });
+    useUserStore().users.ana.stats = { ap: { total: 5, history: [{ amount: 5, timestamp: inDays(0), source: `raid:${raid.id}` }] } };
+    const tab = await mountRaids();
+    expect(tab.find('[data-cy="raid-claim-ana"]').exists()).toBe(false);
+    expect(tab.find('[data-cy="raid-claimed-ana"]').exists()).toBe(true);
+    expect(tab.find('[data-cy="raid-claim-ben"]').exists()).toBe(true);
+    expect(mockApplyQuestRewards).not.toHaveBeenCalled();
   });
 
   it("keeps the next raid back until every striker has claimed", async () => {
@@ -291,5 +334,19 @@ describe("Party Roster tab", () => {
 
     expect(rosterTab.emitted("openProfile")?.[0]).toEqual([MEMBERS[1]]);
     expect(rosterTab.emitted("inviteMember")).toHaveLength(1);
+  });
+
+  it("offers a Game Master to link a phone for each hero of the household", () => {
+    const rosterTab = mountRoster();
+    expect(rosterTab.findAll('[data-cy="party-link-phone"]')).toHaveLength(2);
+    expect(rosterTab.find('[data-cy="party-add-member"]').text()).toContain("Add Hero");
+  });
+
+  it("offers no household controls in a party with other families: their heroes have no phone to link here, and inviting is sharing the code", () => {
+    const rosterTab = mount(PartyRosterTab, { props: { members: MEMBERS, canManage: true, isHome: false } });
+    expect(rosterTab.findAll('[data-cy="party-link-phone"]')).toHaveLength(0);
+    const invite = rosterTab.find('[data-cy="party-add-member"]');
+    expect(invite.text()).toContain("Invite a family");
+    expect(invite.text()).not.toContain("Create a hero profile");
   });
 });

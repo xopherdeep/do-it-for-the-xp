@@ -169,12 +169,24 @@ const PARTY: WireParty = {
 const REQUEST = (id: string, partyId = "p1"): WireRequest => ({ id, partyId, partyName: "Raiders", familyId: "fam-2", heroId: "dot", card: card("dot", "Dot"), createdAt: "" });
 
 describe("Settings > Party: requests, parties and codes", () => {
-  const open = async (party: WireParty = PARTY, incoming: WireRequest[] = [], outgoing: WireRequest[] = []) => {
+  const open = async (party: WireParty = PARTY, incoming: WireRequest[] = [], outgoing: WireRequest[] = [], canEdit = true) => {
     usePartyStore().applyServer({ parties: [party], incoming, outgoing });
-    wrapper = mount(PartyOutside);
+    wrapper = mount(PartyOutside, { props: { canEdit } });
     await flushPromises();
     return wrapper;
   };
+
+  it("shows a hero the requests and parties with nothing to press: only a Game Master answers, leaves or changes a code", async () => {
+    const page = await open(PARTY, [REQUEST("q1")], [REQUEST("q3", "p7")], false);
+    expect(page.find('[data-cy="party-request-in-q1"]').text()).toContain("Dot");
+    expect(page.find('[data-cy="party-request-out-q3"]').exists()).toBe(true);
+    expect(page.find('[data-cy="party-my-parties"]').text()).toContain("Raiders");
+    for (const hook of ["party-accept-q1", "party-decline-q1", "party-withdraw-q3", "party-leave-p1-ana", "party-rotate-p1", "party-code-p1", "party-qr-p1"]) {
+      expect(page.find(`[data-cy="${hook}"]`).exists()).toBe(false);
+    }
+    expect(page.text()).toContain("Only a Game Master");
+    expect(page.text()).not.toContain("ABCD2345");
+  });
 
   it("starts the feed so the lists fill, and shows why when it cannot", async () => {
     mockFeed.problem.value = "pro-required";

@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from "pinia";
 import PartyRaidsTab from "@/app/Console/MyPortal/party/PartyRaidsTab.vue";
 import { rosterOf } from "@/lib/services/party/partyFeedView";
 import { usePartyStore } from "@/lib/store/stores/party";
+import { useUserStore } from "@/lib/store/stores/user";
 import type { WireParty, WireRaid } from "@/lib/services/party/partyWire";
 
 /**
@@ -98,6 +99,10 @@ let wrapper: VueWrapper | null = null;
 
 beforeEach(() => {
   setActivePinia(createPinia());
+  // A Game Master of the family is signed in: starting a raid, in a party with other families too, is theirs to do
+  const users = useUserStore();
+  Object.assign(users.users, { gm: { id: "gm", isAdult: true, name: { nick: "Dad" } } });
+  users.currentUser.id = "gm";
   mockPro.familyId = "fam-1";
   mockStartRaid.mockReset();
   mockApplyQuestRewards.mockClear();

@@ -13,6 +13,9 @@ import { useUserStore } from "@/lib/store/stores/user";
 const mockFamily = reactive({ isKidMode: false });
 jest.mock("@/lib/store/stores/family", () => ({ __esModule: true, useFamilyStore: () => mockFamily }));
 
+const mockMembership = { removeHeroFromParties: jest.fn() };
+jest.mock("@/hooks/usePartyMembership", () => ({ usePartyMembership: () => mockMembership }));
+
 const mockSaveState = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/databases/PartyDb", () => ({
   __esModule: true,
@@ -45,6 +48,7 @@ beforeEach(() => {
   setActivePinia(createPinia());
   mockFamily.isKidMode = false;
   mockSaveState.mockClear();
+  mockMembership.removeHeroFromParties.mockReset().mockResolvedValue({ ok: true, value: 0 });
 });
 
 afterEach(() => {
@@ -75,6 +79,49 @@ describe("Settings, Party", () => {
     expect(pressed(page, '[data-cy="party-mode-ana-ask"]')).toBe("false");
     expect(pressed(page, '[data-cy="party-mode-ben-ask"]')).toBe("true");
     expect(mockSaveState).toHaveBeenLastCalledWith(expect.objectContaining({ heroModes: { ana: "home" } }));
+  });
+
+  it("takes a hero out of the parties with other families when a Game Master sets Home only, and says how many", async () => {
+    mockMembership.removeHeroFromParties.mockResolvedValue({ ok: true, value: 2 });
+    const page = await open("dad");
+    await page.find('[data-cy="party-mode-ana-home"]').trigger("click");
+    await flushPromises();
+    expect(mockMembership.removeHeroFromParties).toHaveBeenCalledWith("ana");
+    expect(page.find('[data-cy="party-home-note"]').text()).toContain("Ana left 2 parties");
+  });
+
+  it("says so when a hero set to stay home could not leave a party, and where to leave it by hand", async () => {
+    mockMembership.removeHeroFromParties.mockResolvedValue({ ok: false, problem: "offline" });
+    const page = await open("dad");
+    await page.find('[data-cy="party-mode-ana-home"]').trigger("click");
+    await flushPromises();
+    const note = page.find('[data-cy="party-home-note"]').text();
+    expect(note).toContain("Ana is set to stay home");
+    expect(note).toContain("No connection");
+    expect(note).toContain("Leave");
+    expect(usePartyStore().modeOf("ana")).toBe("home");
+  });
+
+  it("leaves the parties alone for every other mode", async () => {
+    const page = await open("dad");
+    await page.find('[data-cy="party-mode-ana-open"]').trigger("click");
+    await flushPromises();
+    expect(mockMembership.removeHeroFromParties).not.toHaveBeenCalled();
+    expect(page.find('[data-cy="party-home-note"]').exists()).toBe(false);
+  });
+
+  it("tells the parties panel whether the viewer may change anything in it", async () => {
+    expect((await open("dad")).findComponent({ name: "PartyOutside" }).props("canEdit")).toBe(true);
+    await wrapper!.unmount();
+    setActivePinia(createPinia());
+    expect((await open("ana")).findComponent({ name: "PartyOutside" }).props("canEdit")).toBe(false);
+  });
+
+  it("describes the modes as they work: a Game Master adds the hero, and Home only takes them out of other parties", async () => {
+    const text = (await open("dad")).find('[data-cy="party-hero-modes"]').text();
+    expect(text).toContain("heroes cannot ask from their own phones yet");
+    expect(text).toContain("takes them out of any other party");
+    expect(text).not.toContain("waits for a Game Master");
   });
 
   it("shows a hero the modes but does not let them change one", async () => {

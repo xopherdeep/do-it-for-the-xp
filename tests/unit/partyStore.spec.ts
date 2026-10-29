@@ -42,8 +42,9 @@ describe("party store: hero settings", () => {
     expect(store.modeOf("cam")).toBe("open");
   });
 
-  it("keeps a chosen mode and saves it", () => {
+  it("keeps a chosen mode and saves it", async () => {
     const store = usePartyStore();
+    await store.load();
     store.setMode("ana", "home");
     expect(store.modeOf("ana")).toBe("home");
     expect(mockSaveState).toHaveBeenCalledWith(expect.objectContaining({ heroModes: { ana: "home" } }));
@@ -58,8 +59,9 @@ describe("party store: hero settings", () => {
     expect(store.approvedParties.ana).toEqual(["party-9"]);
   });
 
-  it("starts with the standard window and saves a change", () => {
+  it("starts with the standard window and saves a change", async () => {
     const store = usePartyStore();
+    await store.load();
     expect(store.defaultWindow).toBe("standard");
     store.setDefaultWindow("epic");
     expect(mockSaveState).toHaveBeenLastCalledWith(expect.objectContaining({ defaultWindow: "epic" }));
@@ -67,8 +69,9 @@ describe("party store: hero settings", () => {
 });
 
 describe("party store: home raids", () => {
-  it("starts a raid for the household, sized to its members", () => {
+  it("starts a raid for the household, sized to its members", async () => {
     const store = usePartyStore();
+    await store.load();
     const raid = startRaid(store, ["ana", "ben", "ana"]);
     expect(raid).toMatchObject({ partyId: HOME_PARTY_ID, beastId: "beast-1", window: "quick", memberIds: ["ana", "ben"] });
     expect(raid.maxHp).toBe(raidMaxHp("quick", 2));
@@ -129,8 +132,9 @@ describe("party store: rewards", () => {
     return raid;
   };
 
-  it("pays a striker the base reward once, and a second claim gets nothing", () => {
+  it("pays a striker the base reward once, and a second claim gets nothing", async () => {
     const store = usePartyStore();
+    await store.load();
     const raid = felled(store);
     expect(store.claimReward(raid.id, "ana")).toEqual(RAID_BASE_REWARD);
     expect(store.claimReward(raid.id, "ana")).toBeNull();
@@ -208,5 +212,90 @@ describe("party store: load", () => {
     expect(store.paid).toEqual([]);
     expect(store.defaultWindow).toBe("standard");
     expect(store.modeOf("ana")).toBe("ask");
+  });
+});
+
+describe("party store: a change made before the saved record is read", () => {
+  const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+  const raidOf = (id: string, strikes: unknown[] = []) => ({
+    id,
+    partyId: "p9",
+    beastId: "beast-1",
+    window: "quick",
+    startedAt: new Date().toISOString(),
+    maxHp: 180,
+    memberIds: ["fam-1|ana"],
+    strikes,
+  });
+  const queued = (key: string) => ({ raidId: "r1", key, heroId: "ana", damage: 20, day: "2026-10-28", at: new Date().toISOString() });
+  const saved = {
+    heroModes: { ana: "home" },
+    approvedParties: { ana: ["p1"] },
+    raids: [raidOf("old")],
+    paid: ["raid:r1:ana"],
+    defaultWindow: "epic",
+    outbox: [queued("saved")],
+  };
+
+  it("never saves an empty record over the saved one (the party feed answers before anything reads it)", async () => {
+    mockGetState.mockResolvedValue(saved);
+    const store = usePartyStore();
+    store.setMode("ben", "open");
+    await settle();
+    expect(mockSaveState).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        heroModes: { ana: "home", ben: "open" },
+        approvedParties: { ana: ["p1"] },
+        paid: ["raid:r1:ana"],
+        defaultWindow: "epic",
+        outbox: [expect.objectContaining({ key: "saved" })],
+      })
+    );
+    expect(mockSaveState.mock.calls.every(([state]) => state.raids.length === 1)).toBe(true);
+  });
+
+  it("keeps what it changed over what was saved once the read lands, and everything else that was saved", async () => {
+    mockGetState.mockResolvedValue(saved);
+    const store = usePartyStore();
+    store.setMode("ana", "open");
+    store.setDefaultWindow("quick");
+    store.approveParty("ana", "p2");
+    await store.load();
+    expect(store.modeOf("ana")).toBe("open");
+    expect(store.defaultWindow).toBe("quick");
+    expect(store.approvedParties.ana).toEqual(["p1", "p2"]);
+    expect(store.paid).toEqual(["raid:r1:ana"]);
+  });
+
+  it("folds raids and queued strikes by what names them, the one changed here winning", async () => {
+    mockGetState.mockResolvedValue({ ...saved, raids: [raidOf("old"), raidOf("same")], outbox: [queued("saved"), queued("both")] });
+    const store = usePartyStore();
+    store.queueStrike(queued("both"));
+    store.queueStrike(queued("fresh"));
+    store.applyServer({
+      parties: [{ id: "p9", name: "Raiders", emblem: "dragon", inviteRule: "leader", leader: { familyId: "fam-1", heroId: "ana" }, members: [], raid: { id: "same", beastId: "beast-fluffalo", window: "quick", maxHp: 180, memberCount: 1, startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + DAY_MS).toISOString(), hp: 180, status: "active", top: null, last: null, strikes: [] }, seq: 1 }],
+      incoming: [],
+      outgoing: [],
+    });
+    await store.load();
+    expect(store.raids.map((raid) => raid.id).sort()).toEqual(["old", "same"]);
+    expect(store.raids.find((raid) => raid.id === "same")?.beastId).toBe("beast-fluffalo");
+    expect(store.outbox.map((item) => item.key).sort()).toEqual(["both", "fresh", "saved"]);
+  });
+
+  it("saves at once when the record has been read", async () => {
+    const store = usePartyStore();
+    await store.load();
+    mockSaveState.mockClear();
+    store.setMode("ana", "home");
+    expect(mockSaveState).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves nothing when the record could not be read, so what it could not see is not erased", async () => {
+    mockGetState.mockRejectedValue(new Error("disk"));
+    const store = usePartyStore();
+    store.setMode("ana", "home");
+    await settle();
+    expect(mockSaveState).not.toHaveBeenCalled();
   });
 });
