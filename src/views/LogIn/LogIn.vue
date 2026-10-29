@@ -11,6 +11,13 @@
       <!-- Static background overlay that doesn't animate -->
       <div class="static-background"></div>
 
+      <!-- The way back to the side menu (Select Profile lives there) -->
+      <ion-menu-toggle class="menu-corner">
+        <ion-button fill="clear" aria-label="Open menu" @click.stop="play$fx('openMenu')">
+          <i class="fad fa-bars"></i>
+        </ion-button>
+      </ion-menu-toggle>
+
       <!-- Content container with fixed height to prevent scrolling -->
       <div class="content-wrapper">
         <ion-grid

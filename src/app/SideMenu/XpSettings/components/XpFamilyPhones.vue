@@ -79,6 +79,7 @@ import {
 } from "@ionic/vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "./XpHeroPhonesModal.vue";
+import XpFamilyConflictModal from "./XpFamilyConflictModal.vue";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { useCopy, useVoice } from "@/hooks/useVoice";
@@ -198,6 +199,14 @@ const lineOfProblem = (problem: FamilyProblem | null): string | undefined => {
   return key ? t(key) : undefined;
 };
 
+async function openConflictModal(): Promise<void> {
+  const modal = await modalController.create({
+    component: XpFamilyConflictModal,
+    cssClass: "rpg-modal",
+  });
+  await modal.present();
+}
+
 const banners = computed((): Banner[] => {
   const found: Banner[] = [];
   const isHomeElsewhere = family.home === "home-elsewhere";
@@ -205,7 +214,13 @@ const banners = computed((): Banner[] => {
   if (isHomeElsewhere) {
     found.push({ id: "home-elsewhere", line: t("family.homeElsewhere"), action: { cy: "family-make-home", label: "Make this home", run: askToMakeHome } });
   }
-  if (isOtherFamily) found.push({ id: "other-family", line: t("family.otherFamily") });
+  if (isOtherFamily) {
+    found.push({
+      id: "other-family",
+      line: t("family.otherFamily"),
+      action: { cy: "family-resolve-other", label: "Resolve", run: openConflictModal },
+    });
+  }
   const isHomeTaken = (family.home as string) === "taken";
   const isHomeNotMember = (family.home as string) === "not-member";
   const hasHomeProblem = isHomeTaken || isHomeNotMember;

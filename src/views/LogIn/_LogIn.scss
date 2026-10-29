@@ -460,3 +460,15 @@ ion-modal {
     transform: translateY(0);
   }
 }
+// Always-visible menu button, top left (the start screen has no header)
+.menu-corner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 8px;
+  z-index: 10;
+
+  ion-button {
+    --color: rgba(255, 255, 255, 0.85);
+    font-size: 1.4rem;
+  }
+}

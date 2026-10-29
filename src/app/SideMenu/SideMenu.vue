@@ -90,6 +90,7 @@
         </ion-item>
 
         <ion-item
+          v-if="isLoggedIn"
           @click="
             setMenuItem(-1);
             $fx.ui[$fx.theme.ui].select.play();
@@ -170,12 +171,27 @@
           lockClosedOutline,
           lockClosedSharp,
         },
+        // Save & Quit lands on the profile picker signed out: the menu must keep a door back to it
         appPagesAnon: [
+          {
+            title: "Select Profile",
+            url: "/xp-profile/",
+            iosIcon: fingerPrintOutline,
+            mdIcon: fingerPrintSharp,
+            lines: "none",
+          },
           {
             title: "Log In",
             url: "/log-in",
             iosIcon: logInOutline,
             mdIcon: logInSharp,
+            lines: "none",
+          },
+          {
+            title: "About XP",
+            url: "/xp-intro",
+            iosIcon: informationOutline,
+            mdIcon: informationSharp,
             lines: "none",
           },
         ],

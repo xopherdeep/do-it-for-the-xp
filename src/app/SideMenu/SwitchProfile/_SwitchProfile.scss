@@ -110,7 +110,7 @@ ion-content {
 
   .empty-window {
     max-width: 520px;
-    margin: 1rem auto 2rem auto;
+    margin: 16px auto;
   }
 
   .empty-banner {
@@ -181,8 +181,9 @@ ion-content {
     0 0 0 10px #68d0b8,
     0 0 0 12px #f7e8a8,
     0 0 0 16px #3d3c55;
-  margin: 16px 16px 24px 16px;
+  margin: 16px auto;
   width: calc(100% - 32px);
+  max-width: 520px;
   overflow: hidden;
 
   .eb-window-header {
@@ -386,16 +387,36 @@ ion-content {
   }
 }
 
-// Profile grid spacing
+// Profile grid spacing: two cards per row, 16px outer box-shadow requires 48px gap
+// so that every visible gap between cards and viewport edges is exactly 16px
 .profile-grid {
-  padding-bottom: 80px; // Space for FAB
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+  padding: 16px 16px 96px 16px;
+  width: 100%;
 }
 
-// Profile card column - adds spacing between cards
+// Profile card column - strips default ion-col padding to prevent shadow collision
 .profile-card-col {
-  padding: 8px !important;
   display: flex;
-  flex-direction: column;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  flex: none !important;
+
+  &.full-row {
+    grid-column: 1 / -1;
+    max-width: 520px;
+    margin: 0 auto !important;
+    width: 100% !important;
+  }
+}
+
+:deep(.xp-profile-card) {
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 // FAB styling and pulse animation
@@ -467,8 +488,11 @@ ion-modal {
 }
 
 .profile-item {
-  --padding-start: 1rem;
-  --inner-padding-end: 1rem;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  --min-height: 64px;
   margin-bottom: 0.5rem;
 
   &::part(native) {

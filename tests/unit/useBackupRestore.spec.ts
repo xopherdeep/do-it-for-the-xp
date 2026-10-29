@@ -151,22 +151,44 @@ describe("the flow on an empty device", () => {
     (alerts[0].buttons[1] as { handler: () => void }).handler();
 
     await waitFor(() => expect(alerts).toHaveLength(2));
-    expect(backupService.restoreBackup).toHaveBeenCalledWith(parsed);
+    expect(backupService.restoreBackup).toHaveBeenCalledWith(parsed, { mode: "replace" });
     expect(alerts[1].header).toBe("Restore complete");
     expect((alerts[1].buttons[0] as { text: string }).text).toBe("Reload app");
   });
 });
 
 describe("the flow on a device that has profiles", () => {
-  it("still asks before replacing everything, as a danger prompt", async () => {
+  it("asks before restoring or merging, offering merge and destructive replace", async () => {
     withUsers(2);
     useBackupRestore().selectRestoreFile();
     choose();
 
     await waitFor(() => expect(alerts).toHaveLength(1));
-    expect(alerts[0].header).toBe("Replace everything?");
+    expect(alerts[0].header).toBe("Restore or merge backup?");
     expect(alerts[0].cssClass).toContain("rpg-alert--danger");
-    expect((alerts[0].buttons[1] as { text: string; role?: string }).role).toBe("destructive");
+    expect((alerts[0].buttons[1] as { text: string }).text).toBe("Merge with current data");
+    expect((alerts[0].buttons[2] as { text: string; role?: string }).role).toBe("destructive");
+  });
+
+  it("merges records without replacing when Merge is chosen", async () => {
+    (backupService.restoreBackup as jest.Mock).mockResolvedValue({
+      total: 7,
+      exportedAt: parsed.exportedAt,
+      ignored: [],
+      untouched: [],
+      usersReloaded: true,
+      mode: "merge",
+    });
+    withUsers(2);
+    useBackupRestore().selectRestoreFile();
+    choose();
+    await waitFor(() => expect(alerts).toHaveLength(1));
+
+    (alerts[0].buttons[1] as { handler: () => void }).handler();
+
+    await waitFor(() => expect(alerts).toHaveLength(2));
+    expect(backupService.restoreBackup).toHaveBeenCalledWith(parsed, { mode: "merge" });
+    expect(alerts[1].header).toBe("Merge complete");
   });
 });
 
