@@ -114,14 +114,14 @@ describe("sizes", () => {
   it("pays what the Quick Start quests pay for the same size: Small is 120 XP, 30 GP and 2 AP", () => {
     expect(rewardsOf(1)).toEqual({ xp: 60, gp: 15, ap: 1 });
     expect(rewardsOf(2)).toEqual({ xp: 120, gp: 30, ap: 2 });
-    expect(rewardsOf(3)).toEqual({ xp: 220, gp: 60, ap: 4 });
+    expect(rewardsOf(3)).toEqual({ xp: 220, gp: 45, ap: 3 });
     for (const size of [1, 2, 3] as const) expect(rewardsOf(size)).toEqual(SEED_REWARDS[size]);
   });
 
   it("goes on past the packs' sizes at the rate of the largest one, so Tiny pays less than Small and a bigger size never pays less", () => {
-    expect(rewardsOf(5)).toEqual({ xp: 370, gp: 100, ap: 7 });
-    expect(rewardsOf(8)).toEqual({ xp: 590, gp: 160, ap: 11 });
-    expect(rewardsOf(13)).toEqual({ xp: 950, gp: 260, ap: 17 });
+    expect(rewardsOf(5)).toEqual({ xp: 370, gp: 75, ap: 5 });
+    expect(rewardsOf(8)).toEqual({ xp: 590, gp: 120, ap: 8 });
+    expect(rewardsOf(13)).toEqual({ xp: 950, gp: 195, ap: 13 });
     const sizes = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
     for (let at = 1; at < sizes.length; at++) {
       const smaller = suggestedRewards(sizes[at - 1]);
@@ -301,8 +301,8 @@ describe("building the quest", () => {
       timesOfDay: ["evening"],
       difficulty: 3,
       xp: 220,
-      gp: 60,
-      ap: 4,
+      gp: 45,
+      ap: 3,
       type: "individual",
       draft: false,
       bonusAchievement: false,
@@ -376,7 +376,7 @@ describe("how a hero's quest is protected", () => {
 
   it("is never bigger than Big, whatever the draft says", () => {
     const { quest } = buildWizardQuest(picked("bed-basilisk", { difficulty: 13 }), kidCtx);
-    expect(quest).toMatchObject({ difficulty: 5, xp: 370, gp: 100, ap: 7 });
+    expect(quest).toMatchObject({ difficulty: 5, xp: 370, gp: 75, ap: 5 });
   });
 
   it("a chore that asks for a photo carries the flag and forces approval on for a Game Master too", () => {

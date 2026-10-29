@@ -22,37 +22,37 @@ describe("wallet upgrades", () => {
     expect(walletLimitOf({ limit: 1000 })).toBe(1000);
   });
 
-  it("offers the next tier at half its size with its level, and nothing past the biggest", () => {
-    expect(nextWalletUpgrade({ limit: 100 })).toEqual({ limit: 300, minLevel: 3, price: 150 });
-    expect(nextWalletUpgrade({ limit: 1000 })).toEqual({ limit: 2500, minLevel: 15, price: 1250 });
+  it("offers the next tier at a fifth of its size with its level, and nothing past the biggest", () => {
+    expect(nextWalletUpgrade({ limit: 500 })).toEqual({ limit: 1500, minLevel: 3, price: 300 });
+    expect(nextWalletUpgrade({ limit: 6000 })).toEqual({ limit: 12000, minLevel: 15, price: 2400 });
     // an odd limit (an old profile) still steps up to the next tier above it
-    expect(nextWalletUpgrade({ limit: 700 })).toEqual({ limit: 1000, minLevel: 10, price: 500 });
+    expect(nextWalletUpgrade({ limit: 2000 })).toEqual({ limit: 3000, minLevel: 5, price: 600 });
     expect(nextWalletUpgrade({ limit: WALLET_TIERS[WALLET_TIERS.length - 1].limit })).toBeNull();
   });
 
   it("pays from savings first, then the wallet", () => {
-    const result = buyWalletUpgrade({ limit: 100, wallet: 80, savings: 100 }, 3);
+    const result = buyWalletUpgrade({ limit: 500, wallet: 150, savings: 200 }, 3);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.gp).toMatchObject({ limit: 300, savings: 0, wallet: 30 });
+    if (result.ok) expect(result.gp).toMatchObject({ limit: 1500, savings: 0, wallet: 50 });
   });
 
   it("leaves the wallet alone when savings cover it, and keeps the debt", () => {
-    const result = buyWalletUpgrade({ limit: 100, wallet: 50, savings: 400, debt: 10 }, 5);
+    const result = buyWalletUpgrade({ limit: 500, wallet: 50, savings: 1000, debt: 10 }, 5);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.gp).toEqual({ limit: 300, savings: 250, wallet: 50, debt: 10, hospitalBill: 0 });
+    if (result.ok) expect(result.gp).toEqual({ limit: 1500, savings: 700, wallet: 50, debt: 10, hospitalBill: 0 });
   });
 
   it("is locked under the tier's level, like Majora's Mask", () => {
-    expect(buyWalletUpgrade({ limit: 100, wallet: 500, savings: 500 }, 2)).toMatchObject({ ok: false, reason: "locked" });
-    expect(buyWalletUpgrade({ limit: 100, wallet: 500, savings: 500 }, 3).ok).toBe(true);
+    expect(buyWalletUpgrade({ limit: 500, wallet: 500, savings: 500 }, 2)).toMatchObject({ ok: false, reason: "locked" });
+    expect(buyWalletUpgrade({ limit: 500, wallet: 500, savings: 500 }, 3).ok).toBe(true);
   });
 
   it("refuses when the hero is short, and says by how much", () => {
-    expect(buyWalletUpgrade({ limit: 100, wallet: 20, savings: 30 }, 9)).toMatchObject({ ok: false, reason: "poor", short: 100 });
+    expect(buyWalletUpgrade({ limit: 500, wallet: 20, savings: 30 }, 9)).toMatchObject({ ok: false, reason: "poor", short: 250 });
   });
 
   it("refuses at the biggest wallet", () => {
-    expect(buyWalletUpgrade({ limit: 10000, wallet: 9999, savings: 99999 }, 99)).toMatchObject({ ok: false, reason: "maxed" });
+    expect(buyWalletUpgrade({ limit: 50000, wallet: 9999, savings: 99999 }, 99)).toMatchObject({ ok: false, reason: "maxed" });
   });
 });
 

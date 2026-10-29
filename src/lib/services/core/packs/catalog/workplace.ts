@@ -1,4 +1,5 @@
 /** The Workplace pack: a team's routine work as quests, with tech debt and inbox clutter as beasts to beat */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const WORKPLACE_PACK = definePack(
@@ -45,8 +46,8 @@ export const WORKPLACE_PACK = definePack(
       { id: "work-dont-dishes", type: "dont", whatFor: "Leaving dishes in the office sink", difficulty: 1 },
     ],
     rewards: [
-      reward("work-reward-coffee", "Team Coffee Run", "Someone else fetches your coffee order.", 80, "coffee"),
-      reward("work-reward-plant", "Desk Plant", "A small plant for your desk.", 150, "seedling"),
+      reward("work-reward-coffee", "Team Coffee Run", "Someone else fetches your coffee order.", gpForDollars(6), "coffee"), // about $6
+      reward("work-reward-plant", "Desk Plant", "A small plant for your desk.", gpForDollars(10), "seedling"), // about $10
       reward("work-reward-focus", "Focus Afternoon", "An afternoon with no meetings.", 200, "headphones"),
       reward("work-reward-late-start", "Late Start", "Start an hour later one morning.", 250, "clock"),
       reward("work-reward-lunch", "Pick the Team Lunch", "Choose where the team goes for lunch.", 400, "utensils"),

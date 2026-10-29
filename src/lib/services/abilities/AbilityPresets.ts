@@ -20,7 +20,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 10,
     apRequirement: {
-      amount: 100,
+      amount: 10,
       period: TimePeriod.Daily
     },
     icon: 'timeOutline',
@@ -44,7 +44,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'timeOutline',
@@ -68,7 +68,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 25,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'timeOutline',
@@ -92,7 +92,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 40,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'refreshOutline',
@@ -126,7 +126,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 15,
     apRequirement: {
-      amount: 100,
+      amount: 10,
       period: TimePeriod.Daily
     },
     icon: 'appsOutline',
@@ -150,7 +150,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'saveOutline',
@@ -174,7 +174,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 30,
     apRequirement: {
-      amount: 250,
+      amount: 50,
       period: TimePeriod.Weekly
     },
     icon: 'flashOutline',
@@ -198,7 +198,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 50,
     apRequirement: {
-      amount: 400,
+      amount: 80,
       period: TimePeriod.Monthly
     },
     icon: 'refreshOutline',
@@ -235,7 +235,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'steering-wheel',
@@ -252,7 +252,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'moon-stars',
@@ -270,7 +270,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'gamepad',
@@ -288,7 +288,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 250,
+      amount: 50,
       period: TimePeriod.Weekly
     },
     icon: 'popcorn',
@@ -305,7 +305,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 15,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'hat-chef',
@@ -322,7 +322,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 20,
     apRequirement: {
-      amount: 500,
+      amount: 100,
       period: TimePeriod.Monthly
     },
     icon: 'campfire',
@@ -339,7 +339,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 50,
     apRequirement: {
-      amount: 1000,
+      amount: 200,
       period: TimePeriod.Monthly
     },
     icon: 'couch',
@@ -357,7 +357,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'alarm-snooze',
@@ -375,7 +375,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 150,
+      amount: 30,
       period: TimePeriod.Weekly
     },
     icon: 'hourglass-half',
@@ -393,7 +393,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 15,
     apRequirement: {
-      amount: 200,
+      amount: 40,
       period: TimePeriod.Weekly
     },
     icon: 'eye-slash',
@@ -411,7 +411,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 20,
     apRequirement: {
-      amount: 300,
+      amount: 60,
       period: TimePeriod.Weekly
     },
     icon: 'user-shield',
@@ -429,7 +429,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Daily,
     mpCost: 5,
     apRequirement: {
-      amount: 50,
+      amount: 8,
       period: TimePeriod.Daily
     },
     icon: 'music',
@@ -447,7 +447,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 10,
     apRequirement: {
-      amount: 100,
+      amount: 20,
       period: TimePeriod.Weekly
     },
     icon: 'hourglass-half',
@@ -465,7 +465,7 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     frequency: TimePeriod.Monthly,
     mpCost: 50,
     apRequirement: {
-      amount: 2500,
+      amount: 300,
       period: TimePeriod.Monthly
     },
     icon: 'crown',
@@ -473,6 +473,23 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     prerequisites: [],
     isPreset: true,
     position: { x: 700, y: 600 }
+  },
+  {
+    id: 'irl-daddy-date',
+    name: 'Daddy Date Adventure',
+    description: 'One-on-one time and an adventure of your choosing with Dad.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 30,
+      period: TimePeriod.Weekly
+    },
+    icon: 'user-friends',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 800, y: 600 }
   }
 ];
 

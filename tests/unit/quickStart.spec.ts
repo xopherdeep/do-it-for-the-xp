@@ -196,7 +196,7 @@ describe("running Quick start", () => {
     expect(stores.__beasts.data.size).toBe(3);
     expect(stores.__accessories.data.size).toBe(3);
     const market = stores.__shops.data.get("hometown-market") as { items: { itemId: string }[] };
-    expect(market.items.map((item) => item.itemId)).toEqual(["quick-reward-dessert", "reward-frost-treat", "quick-reward-movie"]);
+    expect(market.items.map((item) => item.itemId)).toEqual(["quick-reward-dessert", "reward-sticker", "quick-reward-movie"]);
   });
 
   it("never runs once a profile exists, and leaves that game alone", async () => {
