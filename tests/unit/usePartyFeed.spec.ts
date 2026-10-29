@@ -107,7 +107,8 @@ describe("usePartyFeed: refresh", () => {
     finish(ANSWER);
     await Promise.all([first, second]);
     expect(mockMyParties).toHaveBeenCalledTimes(1);
-    expect(feed.isBusy.value).toBe(false);
+    await feed.refresh();
+    expect(mockMyParties).toHaveBeenCalledTimes(2);
   });
 });
 

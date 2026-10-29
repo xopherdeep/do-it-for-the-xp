@@ -78,5 +78,5 @@ export const usePartyFeed = () => {
     return () => timers.cancel(beat);
   }
 
-  return { problem, isBusy, refresh, refreshParty, start };
+  return { problem, blocker, refresh, refreshParty, start };
 };

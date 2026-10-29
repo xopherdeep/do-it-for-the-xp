@@ -34,7 +34,7 @@ const open = async (viewerId: string): Promise<VueWrapper> => {
     ben: { id: "ben", isAdult: false, name: { nick: "Ben" } },
   });
   users.currentUser.id = viewerId;
-  wrapper = mount(PartySettings, { global: { stubs: { "xp-back-button": true } } });
+  wrapper = mount(PartySettings, { global: { stubs: { "xp-back-button": true, PartyOutside: true } } });
   await flushPromises();
   return wrapper;
 };
@@ -99,11 +99,10 @@ describe("Settings, Party", () => {
     expect(heroPage.find('[data-cy="party-default-window-quick"]').attributes("disabled")).toBeDefined();
   });
 
-  it("keeps the unbuilt items under Coming soon, raid alerts among them", async () => {
+  it("keeps only what is not built under Coming soon, and shows the parties, requests and codes", async () => {
     const page = await open("dad");
     const planned = page.findAll(".xp-coming-soon__item h2").map((title) => title.text());
-    expect(planned).toEqual(
-      expect.arrayContaining(["Parties with friends", "Join requests", "Party invites", "Family circle posts", "Raid alerts"])
-    );
+    expect(planned).toEqual(["Family circle posts", "Raid alerts"]);
+    expect(page.findComponent({ name: "PartyOutside" }).exists()).toBe(true);
   });
 });

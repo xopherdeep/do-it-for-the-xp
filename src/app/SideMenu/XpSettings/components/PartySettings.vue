@@ -36,6 +36,8 @@
         </ion-card-content>
       </ion-card>
 
+      <party-outside />
+
       <xp-coming-soon-card :items="items" />
     </ion-content>
   </ion-page>
@@ -63,6 +65,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import debug from "@/lib/utils/debug";
 import PartyHeroModes from "./PartyHeroModes.vue";
+import PartyOutside from "./PartyOutside.vue";
 import XpComingSoonCard from "./XpComingSoonCard.vue";
 import { PARTY_COMING_SOON } from "./comingSoon";
 import type { HeroModeRow } from "./partyModes";

@@ -40,57 +40,68 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide">
-      <!-- Party Stats Summary -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-subtitle>
-            <ion-chip color="success">
-              <i class="fad fa-users"></i>
-              <ion-label>{{ partyMembers.length }} Members</ion-label>
-            </ion-chip>
-            <ion-chip color="warning">
-              <i class="fad fa-fire"></i>
-              <ion-label>{{ partyStreak }} Day Streak</ion-label>
-            </ion-chip>
-          </ion-card-subtitle>
-        </ion-card-header>
-      </ion-card>
-
-      <!-- ROSTER TAB -->
-      <party-roster-tab
-        v-if="activeTab === 'roster'"
-        :members="partyMembers"
+      <!-- The panel that forms a party or asks to join one by a code -->
+      <party-form-join
+        v-if="isNewParty"
+        :heroes="partyHeroes"
         :can-manage="canManage"
-        @cheer="cheerMember"
-        @poke="pokeMember"
-        @open-profile="openMemberProfile"
-        @invite-member="handleInviteMember"
-        @link-phone="handleLinkPhone"
+        @formed="showFormedParty"
       />
 
-      <!-- ACTIVITY TAB -->
-      <party-activity-tab
-        v-if="activeTab === 'activity'"
-        :activities="activityFeed"
-      />
+      <template v-else>
+        <!-- Party Stats Summary -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-subtitle>
+              <ion-chip color="success">
+                <i class="fad fa-users"></i>
+                <ion-label>{{ scope.members.length }} Members</ion-label>
+              </ion-chip>
+              <ion-chip v-if="showHome" color="warning">
+                <i class="fad fa-fire"></i>
+                <ion-label>{{ partyStreak }} Day Streak</ion-label>
+              </ion-chip>
+            </ion-card-subtitle>
+          </ion-card-header>
+        </ion-card>
 
-      <!-- SYNERGIES TAB -->
-      <party-synergies-tab
-        v-if="activeTab === 'synergies'"
-        :members="partyMembers"
-        :hero-ids-today="heroIdsToday"
-      />
+        <!-- ROSTER TAB -->
+        <party-roster-tab
+          v-if="activeTab === 'roster'"
+          :members="scope.members"
+          :can-manage="canManage"
+          @cheer="cheerMember"
+          @poke="pokeMember"
+          @open-profile="openMemberProfile"
+          @invite-member="handleInviteMember"
+          @link-phone="handleLinkPhone"
+        />
 
-      <!-- RAIDS TAB -->
-      <party-raids-tab
-        v-if="activeTab === 'raids'"
-        :members="partyMembers"
-        :party-id="activePartyId"
-      />
+        <!-- ACTIVITY TAB -->
+        <party-activity-tab
+          v-if="activeTab === 'activity'"
+          :activities="scope.activity"
+        />
+
+        <!-- SYNERGIES TAB -->
+        <party-synergies-tab
+          v-if="activeTab === 'synergies'"
+          :members="scope.members"
+          :hero-ids-today="scope.heroIdsToday"
+        />
+
+        <!-- RAIDS TAB -->
+        <party-raids-tab
+          v-if="activeTab === 'raids'"
+          :members="scope.members"
+          :party-id="activePartyId"
+        />
+      </template>
     </ion-content>
 
-    <!-- Which party the tabs show, at the foot of the screen where a thumb reaches -->
+    <!-- The fixed words and the party switcher, at the foot of the screen where a thumb reaches -->
     <ion-footer>
+      <party-preset-bar v-if="showWords" :party-id="activePartyId" :hero-id="senderHeroId" />
       <party-switcher :parties="parties" :active="activePartyId" @select="activePartyId = $event" />
     </ion-footer>
   </ion-page>

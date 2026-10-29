@@ -30,8 +30,11 @@ import {
 } from "ionicons/icons";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import XpHeroPhonesModal from "@/app/SideMenu/XpSettings/components/XpHeroPhonesModal.vue";
+import { usePartyScope, type HomeScope } from "@/hooks/usePartyScope";
+import { usePartyVoice } from "@/hooks/usePartyVoice";
 import ionic from "@/lib/mixins/ionic";
 import { getQuestLogDb, type QuestLogEntry } from "@/lib/databases/QuestLogDb";
+import { problemText } from "@/lib/services/party/partyProblemText";
 import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import {
   calculatePartyStreak,
@@ -44,8 +47,9 @@ import { useFamilyStore } from "@/lib/store/stores/family";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily } from "@/router/_Guards/gm.guard";
 import debug from "@/lib/utils/debug";
-import { HOME_CHIP, type PartyChip } from "./party/partyChips";
 import PartyActivityTab from "./party/PartyActivityTab.vue";
+import PartyFormJoin from "./party/PartyFormJoin.vue";
+import PartyPresetBar from "./party/PartyPresetBar.vue";
 import PartyRaidsTab from "./party/PartyRaidsTab.vue";
 import PartyRosterTab from "./party/PartyRosterTab.vue";
 import PartySwitcher from "./party/PartySwitcher.vue";
@@ -75,6 +79,8 @@ export default defineComponent({
     PartySynergiesTab,
     PartyRaidsTab,
     PartySwitcher,
+    PartyFormJoin,
+    PartyPresetBar,
   },
   mixins: [ionic as any],
   setup() {
@@ -105,14 +111,19 @@ export default defineComponent({
       calculatePartyStreak(questLogEntries.value)
     );
 
-    // The party the tabs show; the household's own until outside parties exist
-    const activePartyId = ref(HOME_PARTY_ID);
-    const parties = computed<PartyChip[]>(() => [HOME_CHIP]);
-    const heroIdsToday = computed(() => heroesFinishedOn(questLogEntries.value, toDayKey()));
-
     const activityFeed = computed(() =>
       partyActivityFeed(questLogEntries.value, userStore.users)
     );
+
+    // The party the tabs show: the household's own, or one with other families (the tabs read one scope either way)
+    const homeScope = computed<HomeScope>(() => ({
+      members: partyMembers.value,
+      activity: activityFeed.value,
+      heroIdsToday: heroesFinishedOn(questLogEntries.value, toDayKey()),
+    }));
+    const { activePartyId, parties, outsideParty, isNewParty, scope } = usePartyScope(homeScope, activeTab);
+    const showHome = computed(() => activePartyId.value === HOME_PARTY_ID);
+    const { senderHeroId, showWords, partyHeroes, sendWordTo } = usePartyVoice(outsideParty);
 
     const showToast = async (message: string, color = "success") => {
       const toast = await toastController.create({
@@ -124,14 +135,33 @@ export default defineComponent({
       await toast.present();
     };
 
-    const cheerMember = (member: PartyMember) => {
+    /** A cheer or a poke: a toast at home, and one of the fixed words aimed at the member in a party with other families */
+    const sayTo = async (member: PartyMember, word: "cheer" | "poke"): Promise<void> => {
       const name = member.name?.nick || "Hero";
-      void showToast(`💚 Sent encouragement to ${name}!`);
+      const isCheer = word === "cheer";
+      const sentText = isCheer ? `💚 Sent encouragement to ${name}!` : `👋 Nudged ${name}!`;
+      const sentColor = isCheer ? "success" : "warning";
+      const isAtHome = !outsideParty.value;
+      if (isAtHome) {
+        await showToast(sentText, sentColor);
+        return;
+      }
+
+      const result = await sendWordTo(String(member.id), word);
+      await showToast(result.ok ? sentText : problemText(result.problem), result.ok ? sentColor : "warning");
+    };
+
+    const cheerMember = (member: PartyMember) => {
+      void sayTo(member, "cheer");
     };
 
     const pokeMember = (member: PartyMember) => {
-      const name = member.name?.nick || "Hero";
-      void showToast(`👋 Nudged ${name}!`, "warning");
+      void sayTo(member, "poke");
+    };
+
+    /** A party with other families was just formed: show it */
+    const showFormedParty = (partyId: string) => {
+      activePartyId.value = partyId;
     };
 
     const openMemberProfile = (member: PartyMember) => {
@@ -200,6 +230,14 @@ export default defineComponent({
     };
 
     const handleInviteMember = async () => {
+      // In a party with other families, inviting means handing a friend's Game Master the code
+      const party = outsideParty.value;
+      if (party) {
+        const shareText = party.code ? `Party code: ${party.code}. Give it to a friend's Game Master.` : "Ask the party leader for the code.";
+        void showToast(shareText, "success");
+        return;
+      }
+
       const isManager = canManage.value;
       if (!isManager) {
         void showToast("Only the Game Master can add party members.", "warning");
@@ -274,14 +312,20 @@ export default defineComponent({
       activeTab,
       activePartyId,
       parties,
+      scope,
+      showHome,
+      isNewParty,
+      outsideParty,
+      senderHeroId,
+      showWords,
+      partyHeroes,
       partyMembers,
       partyStreak,
-      activityFeed,
-      heroIdsToday,
       canManage,
       // Methods
       cheerMember,
       pokeMember,
+      showFormedParty,
       openMemberProfile,
       openPartySettings,
       handleInviteMember,

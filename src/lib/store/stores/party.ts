@@ -2,8 +2,8 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { getPartyDb } from "@/lib/databases/PartyDb";
-import type { MyParties } from "@/lib/services/party/partyClient";
-import { HOME_PARTY_ID, defaultModeFor, type HeroPartyMode } from "@/lib/services/party/partyRules";
+import type { MyParties, PartyProblem } from "@/lib/services/party/partyClient";
+import { HOME_PARTY_ID, defaultModeFor, toHeroCard, type HeroPartyMode, type PartyHeroCard } from "@/lib/services/party/partyRules";
 import { cleanPartyState, type PartyState } from "@/lib/services/party/partyState";
 import {
   addStrike,
@@ -22,6 +22,8 @@ import { useUserStore } from "./user";
 
 /** How many events of one party the store keeps for the Activity tab */
 const EVENTS_KEPT = 50;
+
+export type HeroCardResult = { ok: true; card: PartyHeroCard } | { ok: false; problem: PartyProblem };
 
 export interface HomeRaidArgs {
   beastId: string;
@@ -85,6 +87,16 @@ export const usePartyStore = defineStore("party", () => {
     const chosen = heroModes.value[heroId];
     const isAdult = Boolean(useUserStore().users[heroId]?.isAdult);
     return chosen ?? defaultModeFor(isAdult);
+  }
+
+  /** The public card of one of our heroes when it may leave the household; why not otherwise (unknown, or home only) */
+  function heroCard(heroId: string): HeroCardResult {
+    const hero = useUserStore().users[heroId];
+    const isKnown = Boolean(hero);
+    const staysHome = modeOf(heroId) === "home";
+    if (!isKnown) return { ok: false, problem: "invalid" };
+    if (staysHome) return { ok: false, problem: "forbidden" };
+    return { ok: true, card: toHeroCard(hero) };
   }
 
   function setMode(heroId: string, mode: HeroPartyMode): void {
@@ -229,6 +241,7 @@ export const usePartyStore = defineStore("party", () => {
     outgoing,
     load,
     modeOf,
+    heroCard,
     setMode,
     isApproved,
     approveParty,

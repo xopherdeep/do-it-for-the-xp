@@ -1,7 +1,12 @@
 <template>
   <div class="party-raids" data-cy="party-raids">
+    <section v-if="isOutside" class="party-raids__empty" data-cy="party-raids-outside">
+      <i class="fad fa-dragon" aria-hidden="true"></i>
+      <h2>Raids with this party</h2>
+      <p>Raids with other families begin soon.</p>
+    </section>
     <party-raid-start
-      v-if="isStarting"
+      v-else-if="isStarting"
       :beasts="beasts"
       :default-window="store.defaultWindow"
       :initial-beast-id="lastBeastId"
@@ -55,6 +60,7 @@ const isStarting = ref(false);
 const now = ref(new Date());
 const claimedLines = ref<Record<string, string>>({});
 
+const isOutside = computed(() => props.partyId !== HOME_PARTY_ID);
 const names = computed(() =>
   Object.fromEntries(props.members.map((member) => [member.id, member.name?.nick || member.name?.full || "Hero"]))
 );
