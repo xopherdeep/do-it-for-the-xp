@@ -9,6 +9,7 @@ import { AUTO_APPROVED_NOTE, isSoleGameMaster } from "@/lib/services/quests/appr
 import { announceClaim } from "@/lib/services/quests/approvalFlow";
 import { asksForPhoto, claimNeedsApproval } from "@/lib/services/quests/claimPhotos";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
+import { difficultyOfQuest } from "@/lib/services/quests/questDifficulty";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { rewardGpPayload } from "@/lib/services/gp/autoSave";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
@@ -110,9 +111,15 @@ const clearGrudges = (quest: Pick<Achievement, "id" | "type" | "assignee">, user
 };
 
 /** Tells multiplayer a quest paid `xp`; a quest finished by winning its battle is a fight */
-const announcePaid = (heroId: string, questId: string, xp: number, source: QuestLogSource | undefined): void => {
+const announcePaid = (
+  heroId: string,
+  questId: string,
+  xp: number,
+  source: QuestLogSource | undefined,
+  settled: { difficulty?: number; entryId: string }
+): void => {
   const fight = source === "battle";
-  emitQuestPaid({ heroId, questId: String(questId), xp, fight });
+  emitQuestPaid({ heroId, questId: String(questId), xp, fight, ...settled });
 };
 
 /**
@@ -185,7 +192,7 @@ export const completeQuest = async (
   const paid = paidQuestRewards(userId, owed);
   const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`, undefined, `Quest: ${quest.achievementName}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
-  announcePaid(userId, quest.id, owed.xp, source);
+  announcePaid(userId, quest.id, owed.xp, source, { difficulty: quest.difficulty, entryId: entry.id });
   if (isProjectQuest(quest)) await settleFloorAfterPayment(quest, at.toISOString());
   return { entry: settled || entry, levelUp, awaitingApproval, paid, lateNote };
 };
@@ -216,7 +223,7 @@ export const recordBattleCompletion = async (quest: Achievement, userId: string,
     rewardsApplied: true,
   });
   clearGrudges(quest, userId);
-  announcePaid(userId, quest.id, rewards.xp, "battle");
+  announcePaid(userId, quest.id, rewards.xp, "battle", { difficulty: quest.difficulty, entryId: entry.id });
   if (isProjectQuest(quest)) await settleFloorAfterPayment(quest, entry.completedAt);
   return entry;
 };
@@ -257,7 +264,8 @@ export const approveCompletion = (entryId: string, reviewerId?: string): Promise
       reviewedBy: reviewerId,
     });
     if (shouldPay) {
-      announcePaid(entry.userId, entry.questId, owed.xp, entry.source);
+      const difficulty = await difficultyOfQuest(entry.questId);
+      announcePaid(entry.userId, entry.questId, owed.xp, entry.source, { difficulty, entryId: entry.id });
       // An approval has the log entry, not the quest: the project service reads the chore by its id
       if (isProjectQuestId(entry.questId)) await settleFloorAfterPayment(String(entry.questId), entry.completedAt);
     }

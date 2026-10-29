@@ -29,3 +29,15 @@ ion-card-subtitle {
   flex-wrap: wrap;
   gap: 4px;
 }
+
+// The portal floats its bottom nav over the foot of the page (--xp-dock-height): lift the words and the switcher above it,
+// or the nav hides them and a thumb cannot reach them
+.party-footer {
+  padding-bottom: var(--xp-dock-height, 56px);
+}
+
+// The footer above already clears the nav, so the content keeps no padding of its own for it: a sticky action row
+// (the raid start panel) then pins to the real foot of the screen instead of floating a nav-height above it
+.party-content {
+  --padding-bottom: 0px;
+}

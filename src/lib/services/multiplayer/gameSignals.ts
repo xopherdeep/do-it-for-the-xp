@@ -12,6 +12,10 @@ export interface QuestPaid {
   xp: number;
   /** True when the quest was finished by winning its battle */
   fight: boolean;
+  /** The quest's Fibonacci difficulty (never its name); absent when it could not be read */
+  difficulty?: number;
+  /** The quest log entry this payment settled, so a listener can tell one completion from the next */
+  entryId?: string;
 }
 
 /** A hero's claim was logged through completeQuest: waiting for a Game Master (`held`) or paid at once */
