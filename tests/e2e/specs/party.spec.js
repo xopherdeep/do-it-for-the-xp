@@ -2,13 +2,15 @@
 // Checks:
 // 1. Roster has no online status dots
 // 2. Activity feed shows a seeded quest completion
-// 3. The Raids tab starts a household raid and shows the beast, its health and every hero
-// 4. Paid chores strike the raid, and every striker is paid once when the beast falls
-// 5. The party switcher stays above the bottom nav, where a thumb reaches it
+// 3. The Raids tab starts a household raid (a Game Master's job) and shows the beast, its health and every hero
+// 4. A hero is told to ask a Game Master to start one
+// 5. Paid chores strike the raid, and every striker is paid once when the beast falls
+// 6. The party switcher stays above the bottom nav, where a thumb reaches it
 // Run (dev server on :8100 first):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/party.spec.js
 
 const HERO_ID = "hero-1";
+const GAME_MASTER_ID = "gm-1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const withSeededQuestLog = (backup) => {
@@ -84,8 +86,11 @@ const wornDownRaid = () => {
   };
 };
 
-/** Loads the seeded household (Max, Dad, Luna), signs Max in, saves any raids the spec asks for, then opens My Party. */
-const openMyParty = ({ raids } = {}) => {
+/**
+ * Loads the seeded household (Max, Dad, Luna), signs in the hero named (Dad, the Game Master, unless the spec says
+ * otherwise), saves any raids the spec asks for, then opens My Party.
+ */
+const openMyParty = ({ raids, as = GAME_MASTER_ID } = {}) => {
   cy.fixture("battle-backup.json").then((fixture) => {
     cy.visit("/", {
       timeout: 120000,
@@ -99,7 +104,7 @@ const openMyParty = ({ raids } = {}) => {
     cy.window().then((win) => win.__xp.signInSeedGameMaster());
     cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(Cypress.withGuideSeen(withSeededQuestLog(fixture))), { timeout: 60000 }));
     cy.window().then((win) => {
-      expect(win.__xp.loginUser(HERO_ID), `${HERO_ID} is loaded`).to.eq(true);
+      expect(win.__xp.loginUser(as), `${as} is loaded`).to.eq(true);
     });
     if (raids) {
       // The seam answers how many raids it kept: a raid that is not shaped right is dropped, which fails here
@@ -107,7 +112,7 @@ const openMyParty = ({ raids } = {}) => {
     }
   });
 
-  cy.visit(`/my-portal/${HERO_ID}/my-party`, {
+  cy.visit(`/my-portal/${as}/my-party`, {
     timeout: 120000,
     onBeforeLoad(win) {
       win.localStorage.setItem("xp.battleAlerts", "off");
@@ -143,7 +148,7 @@ describe("Party Tab", () => {
   });
 
   it("starts a household raid and shows the beast, its health and every hero", () => {
-    openMyParty();
+    openMyParty({ raids: [] }); // the party record lives on in the browser between tests: start from none
 
     cy.contains("ion-segment-button", "Raids", { timeout: 30000 }).click({ force: true });
     cy.get("[data-cy=party-start-raid]", { timeout: 30000 }).click();
@@ -157,6 +162,14 @@ describe("Party Tab", () => {
     cy.get("[data-cy=raid-hp]").should("contain", "270 / 270");
     cy.get("[data-cy=raid-status]").should("contain", "left");
     cy.get("[data-cy=raid-ledger-row]").should("have.length", 3);
+  });
+
+  it("leaves starting a raid to a Game Master: a hero is told to ask one", () => {
+    openMyParty({ as: HERO_ID, raids: [] });
+
+    cy.contains("ion-segment-button", "Raids", { timeout: 30000 }).click({ force: true });
+    cy.get("[data-cy=party-raids-waiting]", { timeout: 30000 }).should("contain", "Ask a Game Master to start a raid");
+    cy.get("[data-cy=party-start-raid]").should("not.exist");
   });
 
   it("strikes the raid with paid chores, and pays each striker once when the beast falls", () => {
