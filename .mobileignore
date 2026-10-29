@@ -10,8 +10,5 @@ media/**
 img/[*,*].*.webp
 img/world-map.*.webp
 
-# Beast / Monster Roster Sprites
-img/[0-9][0-9][0-9].*.webp
-
 # Redundant Font Awesome SVG font files emitted by Webpack
 img/fa-*.svg
