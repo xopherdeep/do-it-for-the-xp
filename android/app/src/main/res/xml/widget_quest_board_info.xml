@@ -5,6 +5,7 @@
     android:minWidth="250dp"
     android:minHeight="140dp"
     android:previewImage="@mipmap/ic_launcher"
+    android:previewLayout="@layout/widget_quest_board_preview"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="4"
     android:targetCellHeight="2"

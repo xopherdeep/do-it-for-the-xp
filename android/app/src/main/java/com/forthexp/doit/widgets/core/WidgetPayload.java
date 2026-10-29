@@ -2,6 +2,9 @@ package com.forthexp.doit.widgets.core;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,15 +30,17 @@ public final class WidgetPayload {
     private final JSONObject hero;
     private final JSONObject counts;
     private final JSONArray quests;
+    private final List<JSONObject> allHeroes;
 
-    private WidgetPayload(JSONObject hero, JSONArray quests) {
+    private WidgetPayload(JSONObject hero, JSONArray quests, List<JSONObject> allHeroes) {
         this.hero = hero;
         this.counts = hero == null ? null : hero.optJSONObject("counts");
         this.quests = quests == null ? NO_QUESTS : quests;
+        this.allHeroes = allHeroes == null ? new ArrayList<>() : allHeroes;
     }
 
     private static WidgetPayload empty() {
-        return new WidgetPayload(null, null);
+        return new WidgetPayload(null, null, null);
     }
 
     /**
@@ -72,7 +77,18 @@ public final class WidgetPayload {
 
             JSONObject questsByHero = root.optJSONObject("questsByHero");
             JSONArray rows = questsByHero == null ? null : questsByHero.optJSONArray(heroId);
-            return new WidgetPayload(hero, rows);
+
+            List<JSONObject> heroList = new ArrayList<>();
+            Iterator<String> keys = heroes.keys();
+            while (keys.hasNext()) {
+                String k = keys.next();
+                JSONObject h = heroes.optJSONObject(k);
+                if (h != null) {
+                    heroList.add(h);
+                }
+            }
+
+            return new WidgetPayload(hero, rows, heroList);
         } catch (JSONException malformed) {
             return empty();
         }
@@ -103,5 +119,18 @@ public final class WidgetPayload {
     /** This hero's quest rows, nearest due first; empty rather than null when there is nothing to show */
     public JSONArray quests() {
         return quests;
+    }
+
+    /** All family heroes from the payload */
+    public List<JSONObject> allHeroes() {
+        return allHeroes;
+    }
+
+    /** First pending quest row, or null if no quests */
+    public JSONObject firstPendingQuest() {
+        if (quests == null || quests.length() == 0) {
+            return null;
+        }
+        return quests.optJSONObject(0);
     }
 }

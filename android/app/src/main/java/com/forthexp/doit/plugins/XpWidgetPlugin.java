@@ -6,10 +6,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import com.forthexp.doit.R;
+import com.forthexp.doit.widgets.BountyApprovalsWidget;
 import com.forthexp.doit.widgets.GoldVaultWidget;
 import com.forthexp.doit.widgets.HeroCardWidget;
+import com.forthexp.doit.widgets.HeroCompanionWidget;
+import com.forthexp.doit.widgets.LevelGaugeWidget;
+import com.forthexp.doit.widgets.NextQuestWidget;
+import com.forthexp.doit.widgets.PartyRosterWidget;
 import com.forthexp.doit.widgets.QuestBoardWidget;
 import com.forthexp.doit.widgets.QuickDockWidget;
+import com.forthexp.doit.widgets.SpellbookWidget;
 import com.forthexp.doit.widgets.StreakAltarWidget;
 import com.forthexp.doit.widgets.core.WidgetThemeHelper;
 import com.getcapacitor.JSObject;
@@ -75,7 +81,13 @@ public class XpWidgetPlugin extends Plugin {
             StreakAltarWidget.class,
             GoldVaultWidget.class,
             QuickDockWidget.class,
-            QuestBoardWidget.class
+            QuestBoardWidget.class,
+            NextQuestWidget.class,
+            LevelGaugeWidget.class,
+            PartyRosterWidget.class,
+            HeroCompanionWidget.class,
+            BountyApprovalsWidget.class,
+            SpellbookWidget.class
         };
 
         for (Class<?> providerClass : providers) {

@@ -81,6 +81,24 @@
           <ion-segment-button value="dock">
             <ion-label>Action Dock</ion-label>
           </ion-segment-button>
+          <ion-segment-button value="nextQuest">
+            <ion-label>Next Quest</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="level">
+            <ion-label>Level Gauge</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="party">
+            <ion-label>Party Vitals</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="companion">
+            <ion-label>Companion</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="bounty">
+            <ion-label>Bounty Desk</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="spellbook">
+            <ion-label>Spellbook</ion-label>
+          </ion-segment-button>
         </ion-segment>
 
         <!-- Preview Box -->
@@ -157,6 +175,104 @@
             <div class="dock-btn">CHORES</div>
             <div class="dock-btn green">DUNGEON</div>
             <div class="dock-btn gold">PARTY</div>
+          </div>
+
+          <!-- Next Quest Mockup -->
+          <div v-else-if="isNextQuestSelected" class="mockup-next-quest">
+            <div class="next-quest-header">
+              <span class="next-quest-label">NEXT QUEST</span>
+              <span class="next-quest-badge">Today</span>
+            </div>
+            <div class="next-quest-body">
+              <span class="next-quest-title">Clear Dungeon Floor</span>
+            </div>
+            <div class="next-quest-footer">
+              <span class="next-quest-reward">+50 XP • 10 GP</span>
+              <span class="next-quest-btn">VIEW</span>
+            </div>
+          </div>
+
+          <!-- Level Gauge Mockup -->
+          <div v-else-if="isLevelSelected" class="mockup-level">
+            <div class="mockup-header">
+              <span class="mockup-name">{{ heroName }}</span>
+              <span class="mockup-badge">LV {{ heroLevel }}</span>
+            </div>
+            <div class="level-progress-row">
+              <span class="level-label">EXPERIENCE</span>
+              <span class="level-pct">{{ xpPercent }}%</span>
+            </div>
+            <div class="mockup-bar">
+              <div class="bar-fill xp-fill" :style="{ width: `${xpPercent}%` }"></div>
+            </div>
+            <span class="level-subtext">{{ heroXp }} / {{ heroNextLevelXp }} XP</span>
+            <span class="level-remaining">{{ heroRemainingXp }} XP to next level</span>
+          </div>
+
+          <!-- Party Vitals Mockup -->
+          <div v-else-if="isPartySelected" class="mockup-party">
+            <div class="party-header">
+              <span class="party-title">PARTY VITALS</span>
+              <span class="party-badge">PARTY</span>
+            </div>
+            <div class="party-row">
+              <span class="party-name">{{ heroName }}</span>
+              <span class="party-lvl">LV {{ heroLevel }}</span>
+              <div class="party-bar hp"><div class="bar-fill hp-fill" :style="{ width: `${hpPercent}%` }"></div></div>
+              <div class="party-bar mp"><div class="bar-fill mp-fill" :style="{ width: `${mpPercent}%` }"></div></div>
+            </div>
+            <div class="party-row">
+              <span class="party-name">Mage</span>
+              <span class="party-lvl">LV 2</span>
+              <div class="party-bar hp"><div class="bar-fill hp-fill" style="width: 80%"></div></div>
+              <div class="party-bar mp"><div class="bar-fill mp-fill" style="width: 60%"></div></div>
+            </div>
+          </div>
+
+          <!-- Companion Mockup -->
+          <div v-else-if="isCompanionSelected" class="mockup-companion">
+            <div class="mockup-header">
+              <span class="mockup-name">{{ heroName }}</span>
+              <span class="mockup-badge">LV {{ heroLevel }}</span>
+            </div>
+            <span class="mockup-class">{{ heroClass }}</span>
+            <div class="companion-bubble">
+              "Ready for adventure! Check the quest board!"
+            </div>
+            <div class="companion-footer">
+              <span class="companion-streak">{{ currentStreak }}-Day Streak</span>
+              <span class="companion-hint">Tap to visit</span>
+            </div>
+          </div>
+
+          <!-- Bounty Desk Mockup -->
+          <div v-else-if="isBountySelected" class="mockup-bounty">
+            <div class="bounty-header">
+              <span class="bounty-title">BOUNTY DESK</span>
+              <span class="bounty-badge">GM</span>
+            </div>
+            <div class="bounty-stats">
+              <div class="bounty-col">
+                <span class="bounty-label">APPROVALS</span>
+                <span class="bounty-val gold">0</span>
+              </div>
+              <div class="bounty-col">
+                <span class="bounty-label">OVERDUE</span>
+                <span class="bounty-val red">0</span>
+              </div>
+            </div>
+            <span class="bounty-hint">Tap to review approvals</span>
+          </div>
+
+          <!-- Spellbook Mockup -->
+          <div v-else-if="isSpellbookSelected" class="mockup-spellbook">
+            <div class="spell-ap-box">
+              <span class="spell-ap-label">ACTION</span>
+              <span class="spell-ap-val">{{ heroAp }} AP</span>
+            </div>
+            <div class="spell-btn green">HEAL</div>
+            <div class="spell-btn accent">BOOST</div>
+            <div class="spell-btn blue">SPELLS</div>
           </div>
         </div>
       </ion-card-content>
@@ -240,6 +356,12 @@ const isStreakSelected = computed(() => selectedWidgetType.value === "streak");
 const isVaultSelected = computed(() => selectedWidgetType.value === "vault");
 const isBoardSelected = computed(() => selectedWidgetType.value === "board");
 const isDockSelected = computed(() => selectedWidgetType.value === "dock");
+const isNextQuestSelected = computed(() => selectedWidgetType.value === "nextQuest");
+const isLevelSelected = computed(() => selectedWidgetType.value === "level");
+const isPartySelected = computed(() => selectedWidgetType.value === "party");
+const isCompanionSelected = computed(() => selectedWidgetType.value === "companion");
+const isBountySelected = computed(() => selectedWidgetType.value === "bounty");
+const isSpellbookSelected = computed(() => selectedWidgetType.value === "spellbook");
 
 const activeWidgetTitle = computed(() => {
   if (isHeroSelected.value) return "Hero Status Card (2x2)";
@@ -247,6 +369,12 @@ const activeWidgetTitle = computed(() => {
   if (isVaultSelected.value) return "Gold Vault Kiosk (2x1)";
   if (isBoardSelected.value) return "Quest Board (4x2)";
   if (isDockSelected.value) return "Quick Action Dock (4x1)";
+  if (isNextQuestSelected.value) return "Next Quest Radar (2x1)";
+  if (isLevelSelected.value) return "Level & XP Gauge (2x1)";
+  if (isPartySelected.value) return "Party Vitals Roster (4x2)";
+  if (isCompanionSelected.value) return "Hero Companion Altar (2x2)";
+  if (isBountySelected.value) return "Bounty Approvals Desk (2x1)";
+  if (isSpellbookSelected.value) return "Spellbook Action Dock (4x1)";
   return "Widget Preview";
 });
 
@@ -273,6 +401,11 @@ const savingsGp = computed(() => Math.max(0, Math.round(Number(hero.value.stats?
 
 const hpPercent = computed(() => Math.min(100, Math.max(0, (heroHp.value / heroMaxHp.value) * 100)));
 const mpPercent = computed(() => Math.min(100, Math.max(0, (heroMp.value / heroMaxMp.value) * 100)));
+const heroXp = computed(() => Math.max(0, heroStats.value.xp));
+const heroNextLevelXp = computed(() => Math.max(1, heroStats.value.nextLevelXp));
+const xpPercent = computed(() => Math.min(100, Math.max(0, Math.round((heroXp.value / heroNextLevelXp.value) * 100))));
+const heroRemainingXp = computed(() => Math.max(0, heroNextLevelXp.value - heroXp.value));
+const heroAp = computed(() => Math.max(0, heroStats.value.ap));
 
 /** The board widget draws the hero's own rows; this modal loads none, so the preview shows the shape */
 const boardSample = [
@@ -353,7 +486,7 @@ const handleSyncNow = async () => {
   margin: 0.75rem 0 0;
   font-size: 0.7rem;
   line-height: 1.5;
-  color: #94a3b8;
+  color: rgb(148, 163, 184);
 }
 
 .widget-mockup {
@@ -548,12 +681,12 @@ const handleSyncNow = async () => {
 .board-title {
   font-size: 0.8rem;
   font-weight: bold;
-  color: #ffd700;
+  color: rgb(255, 215, 0);
 }
 
 .board-count {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: rgb(148, 163, 184);
 }
 
 .board-row {
@@ -561,13 +694,13 @@ const handleSyncNow = async () => {
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  border-top: 1px solid #2d3748;
+  border-top: 1px solid rgb(45, 55, 72);
   padding-top: 4px;
 }
 
 .board-quest {
   flex: 1;
-  color: #ffffff;
+  color: rgb(255, 255, 255);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -575,15 +708,15 @@ const handleSyncNow = async () => {
 
 .board-due {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: rgb(148, 163, 184);
 
-  &.late { color: #ff6d00; }
+  &.late { color: rgb(255, 109, 0); }
 }
 
 .board-xp {
   font-size: 0.65rem;
   font-weight: bold;
-  color: #10b981;
+  color: rgb(16, 185, 129);
 }
 
 .mockup-dock {
@@ -605,5 +738,290 @@ const handleSyncNow = async () => {
   &.accent { color: rgb(255, 216, 74); }
   &.green { color: rgb(16, 185, 129); }
   &.gold { color: rgb(255, 215, 0); }
+}
+
+.mockup-next-quest {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.next-quest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.next-quest-label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: rgb(255, 216, 74);
+}
+
+.next-quest-badge {
+  background: rgb(45, 55, 72);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: rgb(203, 213, 225);
+}
+
+.next-quest-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: rgb(255, 255, 255);
+}
+
+.next-quest-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.next-quest-reward {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: rgb(255, 215, 0);
+}
+
+.next-quest-btn {
+  background: rgb(45, 55, 72);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: rgb(16, 185, 129);
+}
+
+.mockup-level {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.level-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.level-label {
+  color: rgb(168, 85, 247);
+}
+
+.level-pct {
+  color: rgb(255, 255, 255);
+}
+
+.xp-fill {
+  background: rgb(168, 85, 247);
+}
+
+.level-subtext {
+  font-size: 0.65rem;
+  color: rgb(148, 163, 184);
+}
+
+.level-remaining {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: rgb(255, 215, 0);
+  margin-top: 2px;
+}
+
+.mockup-party {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.party-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.party-title {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: rgb(255, 216, 74);
+}
+
+.party-badge {
+  background: rgb(45, 55, 72);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: rgb(203, 213, 225);
+}
+
+.party-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.party-name {
+  flex: 1;
+  font-weight: bold;
+  color: rgb(255, 255, 255);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.party-lvl {
+  font-size: 0.65rem;
+  color: rgb(255, 216, 74);
+}
+
+.party-bar {
+  width: 40px;
+  height: 6px;
+  background: rgb(51, 65, 85);
+  border-radius: 2px;
+  overflow: hidden;
+
+  &.mp {
+    width: 30px;
+  }
+}
+
+.mockup-companion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.companion-bubble {
+  background: rgb(45, 55, 72);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: rgb(203, 213, 225);
+  text-align: center;
+  margin: 4px 0;
+}
+
+.companion-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.companion-streak {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: rgb(255, 109, 0);
+}
+
+.companion-hint {
+  font-size: 0.65rem;
+  color: rgb(148, 163, 184);
+}
+
+.mockup-bounty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bounty-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bounty-title {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: rgb(255, 216, 74);
+}
+
+.bounty-badge {
+  background: rgb(45, 55, 72);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: rgb(255, 215, 0);
+}
+
+.bounty-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 4px 0;
+}
+
+.bounty-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bounty-label {
+  font-size: 0.65rem;
+  color: rgb(148, 163, 184);
+}
+
+.bounty-val {
+  font-size: 1.1rem;
+  font-weight: bold;
+
+  &.gold { color: rgb(255, 216, 74); }
+  &.red { color: rgb(239, 68, 68); }
+}
+
+.bounty-hint {
+  font-size: 0.65rem;
+  color: rgb(148, 163, 184);
+  text-align: center;
+}
+
+.mockup-spellbook {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.spell-ap-box {
+  background: rgb(45, 55, 72);
+  padding: 6px 8px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.spell-ap-label {
+  font-size: 0.55rem;
+  color: rgb(148, 163, 184);
+}
+
+.spell-ap-val {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: rgb(245, 158, 11);
+}
+
+.spell-btn {
+  flex: 1;
+  background: rgb(45, 55, 72);
+  padding: 10px 4px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 1px solid rgb(74, 85, 104);
+
+  &.accent { color: rgb(255, 216, 74); }
+  &.green { color: rgb(16, 185, 129); }
+  &.blue { color: rgb(59, 130, 246); }
 }
 </style>

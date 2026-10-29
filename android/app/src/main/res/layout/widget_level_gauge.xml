@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_window_earthbound"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- Header Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_hero_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Hero"
+            android:textColor="@color/widget_accent_earthbound"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_hero_level"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_badge_bg"
+            android:paddingLeft="6dp"
+            android:paddingTop="1dp"
+            android:paddingRight="6dp"
+            android:paddingBottom="1dp"
+            android:text="LV 1"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- XP Progress Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="EXPERIENCE"
+                android:textColor="@color/widget_xp_purple"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_xp_pct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/widget_bar_xp"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_progress_xp" />
+
+        <TextView
+            android:id="@+id/widget_text_xp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="0 / 100 XP"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- Footer: Remaining to Next LV -->
+    <TextView
+        android:id="@+id/widget_xp_to_next"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="100 XP to next level"
+        android:textColor="@color/widget_gold"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+</LinearLayout>

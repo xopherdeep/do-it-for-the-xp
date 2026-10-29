@@ -41,6 +41,10 @@ const PATHS: Record<string, string> = {
   party: `${PORTAL}/my-party`,
   // The Dock's chores button: the quest log
   chores: QUEST_LOG,
+  // The Spellbook widget: the hero's abilities
+  abilities: `/my-abilities/${HERO}`,
+  // The Bounty Approvals widget: approvals admin desk
+  approvals: `/admin/approvals`,
 };
 
 /**

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_window_earthbound"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="6dp">
+
+    <!-- AP Badge -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ACTION"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="8sp" />
+
+        <TextView
+            android:id="@+id/widget_spellbook_ap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 AP"
+            android:textColor="@color/widget_ap_amber"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Ability Buttons -->
+    <TextView
+        android:id="@+id/btn_spell_heal"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="HEAL"
+        android:textColor="@color/widget_hp_green"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/btn_spell_boost"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="BOOST"
+        android:textColor="@color/widget_accent_earthbound"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/btn_spell_spells"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:text="SPELLS"
+        android:textColor="@color/widget_mp_blue"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -5,6 +5,7 @@
     android:minWidth="140dp"
     android:minHeight="70dp"
     android:previewImage="@mipmap/ic_launcher"
+    android:previewLayout="@layout/widget_gold_vault"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="2"
     android:targetCellHeight="1"

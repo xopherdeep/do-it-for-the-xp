@@ -23,5 +23,7 @@
     <color name="widget_flame">#ff6d00</color>
     <color name="widget_hp_green">#10b981</color>
     <color name="widget_mp_blue">#3b82f6</color>
+    <color name="widget_xp_purple">#a855f7</color>
+    <color name="widget_ap_amber">#f59e0b</color>
     <color name="widget_track">#334155</color>
 </resources>

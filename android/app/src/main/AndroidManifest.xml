@@ -82,6 +82,78 @@
                 android:resource="@xml/widget_quest_board_info" />
         </receiver>
 
+        <receiver
+            android:name=".widgets.NextQuestWidget"
+            android:exported="true"
+            android:label="@string/widget_next_quest_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_quest_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.LevelGaugeWidget"
+            android:exported="true"
+            android:label="@string/widget_level_gauge_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_level_gauge_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.PartyRosterWidget"
+            android:exported="true"
+            android:label="@string/widget_party_roster_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_party_roster_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.HeroCompanionWidget"
+            android:exported="true"
+            android:label="@string/widget_hero_companion_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_hero_companion_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.BountyApprovalsWidget"
+            android:exported="true"
+            android:label="@string/widget_bounty_approvals_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_bounty_approvals_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.SpellbookWidget"
+            android:exported="true"
+            android:label="@string/widget_spellbook_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_spellbook_info" />
+        </receiver>
+
         <service
             android:name=".widgets.QuestWidgetRemoteViewsService"
             android:permission="android.permission.BIND_REMOTEVIEWS" />

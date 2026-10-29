@@ -14,7 +14,7 @@ import java.util.List;
 public abstract class BaseXpWidgetProvider extends AppWidgetProvider {
 
     /**
-     * A distinct value per provider, 0-7. PendingIntent request codes live in one space for
+     * A distinct value per provider, 0-31. PendingIntent request codes live in one space for
      * the whole app, so without it two widgets of different kinds that happen to share an
      * appWidgetId would resolve to a single intent and both launch the same screen.
      */
@@ -25,7 +25,7 @@ public abstract class BaseXpWidgetProvider extends AppWidgetProvider {
      * eight click targets within the layout, packed together.
      */
     protected final int requestCode(int appWidgetId, int target) {
-        return (appWidgetId << 6) | ((providerSlot() & 0x7) << 3) | (target & 0x7);
+        return (appWidgetId << 8) | ((providerSlot() & 0x1F) << 3) | (target & 0x7);
     }
 
     protected PendingIntent createLaunchPendingIntent(Context context, String deepLinkUri, int requestCode) {

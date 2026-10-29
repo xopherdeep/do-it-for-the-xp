@@ -46,6 +46,14 @@ describe("parseWidgetLink", () => {
     expect(parseWidgetLink("com.forthexp.doit://chores")).toEqual({ path: "/my-tasks/:userId" });
   });
 
+  it("sends the Spellbook widget to abilities", () => {
+    expect(parseWidgetLink("com.forthexp.doit://abilities")).toEqual({ path: "/my-abilities/:userId" });
+  });
+
+  it("sends the Bounty Desk widget to approvals", () => {
+    expect(parseWidgetLink("com.forthexp.doit://approvals")).toEqual({ path: "/admin/approvals" });
+  });
+
   it("sends the Dock's dungeon button to the world map, where the temples are", () => {
     expect(parseWidgetLink("com.forthexp.doit://dungeon")).toEqual({ path: "/my-portal/:userId/world-map" });
   });
