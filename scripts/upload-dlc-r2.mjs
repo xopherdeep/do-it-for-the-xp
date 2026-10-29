@@ -106,6 +106,38 @@ async function main() {
 
   console.log(`[upload-r2] Prepared ${uploadItems.length} files (${mb(totalBytes)} MB) for R2 upload.`);
 
+function getMimeType(filePath) {
+  if (filePath.endsWith(".webp")) return "image/webp";
+  if (filePath.endsWith(".png")) return "image/png";
+  if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) return "image/jpeg";
+  if (filePath.endsWith(".svg")) return "image/svg+xml";
+  if (filePath.endsWith(".mp3")) return "audio/mpeg";
+  if (filePath.endsWith(".json")) return "application/json";
+  if (filePath.endsWith(".zip")) return "application/zip";
+  return "application/octet-stream";
+}
+
+function getAuthCredentials() {
+  let token = process.env.CLOUDFLARE_API_TOKEN || "";
+  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID || "45e0186b9150f152feba7d10effb7550";
+
+  if (!token) {
+    const wranglerConfig = path.join(process.env.HOME || "", ".config/.wrangler/config/default.toml");
+    if (fs.existsSync(wranglerConfig)) {
+      const content = fs.readFileSync(wranglerConfig, "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("oauth_token")) {
+          token = trimmed.split("=")[1].trim().replace(/^["']|["']$/g, "");
+          break;
+        }
+      }
+    }
+  }
+
+  return { token, accountId };
+}
+
   if (isDryRun) {
     console.log("\n[upload-r2] Dry run complete. Sample uploads:");
     for (const item of uploadItems.slice(0, 10)) {
@@ -114,25 +146,65 @@ async function main() {
     return;
   }
 
+  const { token, accountId } = getAuthCredentials();
   let uploadedCount = 0;
-  for (const item of uploadItems) {
-    console.log(`  Uploading [${uploadedCount + 1}/${uploadItems.length}]: ${item.key}...`);
-    try {
-      execFileSync("npx", [
-        "--yes",
-        "wrangler@4",
-        "r2",
-        "object",
-        "put",
-        `${bucket}/${item.key}`,
-        `--file=${item.full}`,
-        "--remote",
-      ], {
-        stdio: "pipe",
-      });
-      uploadedCount += 1;
-    } catch (err) {
-      console.error(`[upload-r2] Failed to upload ${item.key}: ${err.message}`);
+
+  if (token && accountId) {
+    console.log(`[upload-r2] Using Cloudflare API concurrent HTTP upload (Account: ${accountId})`);
+    const concurrency = 16;
+    let nextIndex = 0;
+
+    const worker = async () => {
+      while (nextIndex < uploadItems.length) {
+        const item = uploadItems[nextIndex++];
+        const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${bucket}/objects/${item.key}`;
+        try {
+          const body = fs.readFileSync(item.full);
+          const res = await fetch(url, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": getMimeType(item.full),
+            },
+            body,
+          });
+          if (res.ok) {
+            uploadedCount++;
+            if (uploadedCount % 50 === 0 || uploadedCount === uploadItems.length) {
+              console.log(`  Uploaded ${uploadedCount}/${uploadItems.length} objects...`);
+            }
+          } else {
+            const txt = await res.text();
+            console.error(`  Failed ${item.key}: HTTP ${res.status} - ${txt}`);
+          }
+        } catch (err) {
+          console.error(`  Failed ${item.key}: ${err.message}`);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(workers);
+  } else {
+    for (const item of uploadItems) {
+      console.log(`  Uploading [${uploadedCount + 1}/${uploadItems.length}]: ${item.key}...`);
+      try {
+        execFileSync("npx", [
+          "--yes",
+          "wrangler@4",
+          "r2",
+          "object",
+          "put",
+          `${bucket}/${item.key}`,
+          `--file=${item.full}`,
+          "--remote",
+        ], {
+          stdio: "pipe",
+        });
+        uploadedCount += 1;
+      } catch (err) {
+        console.error(`[upload-r2] Failed to upload ${item.key}: ${err.message}`);
+      }
     }
   }
 
