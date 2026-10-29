@@ -10,14 +10,14 @@
       data-cy="rebalance-prompt"
       @keydown.esc="cancel"
     >
-      <div class="rb__backdrop" aria-hidden="true" @click="cancel"></div>
+      <button type="button" class="rb__backdrop" tabindex="-1" aria-label="Close" @click="cancel"></button>
 
       <section class="rb__panel">
         <h2 class="rb__title">Rebalance</h2>
 
-        <p v-if="loading" class="rb__text">Counting the old price tags...</p>
+        <p v-if="isLoading" class="rb__text">Counting the old price tags...</p>
 
-        <template v-else-if="done">
+        <template v-else-if="isDone">
           <p class="rb__text" data-cy="rebalance-done">{{ doneLine }}</p>
         </template>
 
@@ -60,17 +60,17 @@
 
         <div class="rb__actions">
           <button
-            v-if="!loading && !done && rows.length"
+            v-if="canApply"
             type="button"
             class="rb__button rb__button--primary"
-            :disabled="saving || picked.size === 0"
+            :disabled="isApplyDisabled"
             data-cy="rebalance-apply"
             @click="apply"
           >
             Update {{ picked.size }} <i class="fas fa-caret-right" aria-hidden="true"></i>
           </button>
-          <button type="button" class="rb__button rb__button--ghost" :disabled="saving" data-cy="rebalance-close" @click="cancel">
-            {{ done || rows.length === 0 ? "Close" : "Not now" }}
+          <button type="button" class="rb__button rb__button--ghost" :disabled="isSaving" data-cy="rebalance-close" @click="cancel">
+            {{ closeLabel }}
           </button>
         </div>
       </section>
@@ -107,9 +107,9 @@ const KIND_UNIT: Record<RebalanceKind, string> = { reward: "GP", power: "AP", ra
 const accessoriesDb = new AccessoriesDb(accessoriesStorage);
 const abilitiesDb = new AbilitiesDb(abilitiesStorage);
 
-const loading = ref(false);
-const saving = ref(false);
-const done = ref(false);
+const isLoading = ref(false);
+const isSaving = ref(false);
+const isDone = ref(false);
 const error = ref("");
 const updated = ref(0);
 const rows = ref<RebalanceRow[]>([]);
@@ -117,13 +117,17 @@ const picked = ref(new Set<string>());
 let state: RebalanceState | null = null;
 let settings: FamilySettings | null = null;
 
+const canApply = computed(() => !isLoading.value && !isDone.value && rows.value.length > 0);
+const isApplyDisabled = computed(() => isSaving.value || picked.value.size === 0);
+const closeLabel = computed(() => (isDone.value || rows.value.length === 0 ? "Close" : "Not now"));
+
 const doneLine = computed(() =>
   updated.value === 1 ? "Done. 1 price tag now uses the new economy." : `Done. ${updated.value} price tags now use the new economy.`,
 );
 
 const load = async () => {
-  loading.value = true;
-  done.value = false;
+  isLoading.value = true;
+  isDone.value = false;
   error.value = "";
   try {
     const [accessories, abilities, family] = await Promise.all([
@@ -139,7 +143,7 @@ const load = async () => {
     rows.value = [];
     error.value = "The ledger would not open. Try again in a moment.";
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 };
 
@@ -162,38 +166,44 @@ const toggle = (id: string) => {
 };
 
 const apply = async () => {
-  if (!state || !settings || picked.value.size === 0) return;
-  saving.value = true;
+  const before = state;
+  const family = settings;
+  const isMissingData = !before || !family;
+  const isNothingPicked = picked.value.size === 0;
+  const isBlocked = isMissingData || isNothingPicked;
+  if (isBlocked) return;
+  isSaving.value = true;
   error.value = "";
   try {
-    const before = state;
     const after = applyRebalance(before, picked.value);
     // Only the records that changed are written back, each through its own save path
     const writes: Promise<unknown>[] = [];
     after.accessories.forEach((item, index) => {
-      if (item !== before.accessories[index]) writes.push(accessoriesDb.setAccessory(item));
+      const isChanged = item !== before.accessories[index];
+      if (isChanged) writes.push(accessoriesDb.setAccessory(item));
     });
     after.abilities.forEach((ability, index) => {
-      if (ability !== before.abilities[index]) writes.push(abilitiesDb.setAbility(ability));
+      const isChanged = ability !== before.abilities[index];
+      if (isChanged) writes.push(abilitiesDb.setAbility(ability));
     });
     const rateChanged = after.cashOut !== before.cashOut;
-    if (rateChanged) writes.push(saveFamilySettings({ ...settings, cashOut: after.cashOut }));
+    if (rateChanged) writes.push(saveFamilySettings({ ...family, cashOut: after.cashOut }));
     await Promise.all(writes);
     updated.value = writes.length;
     state = after;
-    done.value = true;
+    isDone.value = true;
     play$fx("select");
   } catch {
     error.value = "Some price tags would not save. Nothing was removed; try again.";
     play$fx("no");
   } finally {
-    saving.value = false;
+    isSaving.value = false;
   }
 };
 
 const cancel = () => {
-  if (saving.value) return;
-  if (!done.value) play$fx("no");
+  if (isSaving.value) return;
+  if (!isDone.value) play$fx("no");
   emit("close");
 };
 </script>
@@ -214,6 +224,9 @@ const cancel = () => {
 
 .rb__backdrop {
   position: absolute;
+  padding: 0;
+  border: 0;
+  cursor: default;
   inset: 0;
   background: rgba(10, 2, 10, 0.62);
 }

@@ -162,7 +162,10 @@ export function planRebalance(state: RebalanceState): RebalanceRow[] {
   for (const item of state.accessories ?? []) {
     if (!hasOwn(OLD_REWARD_PRICES, item?.id)) continue;
     const to = rewardPrices.get(item.id);
-    if (to === undefined || item.basePrice !== OLD_REWARD_PRICES[item.id] || item.basePrice === to) continue;
+    const isStillOldPrice = item.basePrice === OLD_REWARD_PRICES[item.id];
+    const isPriceChange = to !== undefined && item.basePrice !== to;
+    const isRowDue = isStillOldPrice && isPriceChange;
+    if (!isRowDue) continue;
     rows.push({ kind: "reward", id: item.id, name: item.name, from: item.basePrice, to });
   }
 
@@ -170,12 +173,16 @@ export function planRebalance(state: RebalanceState): RebalanceRow[] {
     if (!hasOwn(OLD_POWER_AP, ability?.id)) continue;
     const from = ability.apRequirement?.amount;
     const to = powerAp.get(ability.id);
-    if (to === undefined || from !== OLD_POWER_AP[ability.id] || from === to) continue;
+    const isStillOldGate = from === OLD_POWER_AP[ability.id];
+    const isGateChange = to !== undefined && from !== to;
+    const isRowDue = isStillOldGate && isGateChange;
+    if (!isRowDue) continue;
     rows.push({ kind: "power", id: ability.id, name: ability.name, from, to });
   }
 
   const rate = state.cashOut?.gpPerDollar;
-  if (rate === OLD_CASH_OUT_RATE && GP_PER_DOLLAR !== OLD_CASH_OUT_RATE) {
+  const shouldMoveRate = rate === OLD_CASH_OUT_RATE && GP_PER_DOLLAR !== OLD_CASH_OUT_RATE;
+  if (shouldMoveRate) {
     rows.push({ kind: "rate", id: CASH_OUT_ROW_ID, name: "Cash-out rate (GP per $1)", from: rate, to: GP_PER_DOLLAR });
   }
 
