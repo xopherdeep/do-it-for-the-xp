@@ -20,7 +20,7 @@
               <p>A Maker can draw beasts and suggest quests. A Game Master checks every one before it enters the game.</p>
             </ion-label>
           </ion-item>
-          <ion-item v-for="(hero, index) in heroes" :key="hero.id" :lines="index === heroes.length - 1 ? 'none' : undefined">
+          <ion-item v-for="(hero, index) in makerHeroes" :key="hero.id" :lines="index === makerHeroes.length - 1 ? 'none' : undefined">
             <ion-avatar slot="start">
               <ion-img :src="$getUserAvatar(hero)" />
             </ion-avatar>
@@ -35,7 +35,7 @@
               @ionChange="rules.setMaker(String(hero.id), $event.detail.checked)"
             ></ion-toggle>
           </ion-item>
-          <ion-item v-if="!heroes.length" lines="none">
+          <ion-item v-if="!makerHeroes.length" lines="none">
             <ion-label><p>No heroes yet.</p></ion-label>
           </ion-item>
         </ion-list>
@@ -129,9 +129,15 @@ void rules.load();
 /** Only a Game Master picks the Makers: this is a family rule, and a hero's phone cannot change it */
 const canManage = computed(() => canAccessGameMaster(userStore));
 /** Every profile that is not a Game Master; a Game Master can always make things, so they need no switch */
-const heroes = computed(() => Object.values(userStore.users as Record<string, any>).filter((profile) => profile && !profile.isAdult));
+const makerHeroes = computed(() => Object.values(userStore.users as Record<string, any>).filter((profile) => profile && !profile.isAdult));
 
-const modes = computed(() => Object.fromEntries(heroes.value.map((hero: any) => [String(hero.id), store.modeOf(String(hero.id))])));
+const heroes = computed<HeroModeRow[]>(() =>
+  userStore.usersAz.map((user: any) => ({
+    id: String(user.id),
+    name: user.name?.nick || user.name?.full || "Hero",
+  }))
+);
+const modes = computed(() => Object.fromEntries(heroes.value.map((hero) => [hero.id, store.modeOf(hero.id)])));
 const canEdit = computed(() => canManageFamily(userStore));
 const isReadOnly = computed(() => !canEdit.value);
 
@@ -139,8 +145,7 @@ const isReadOnly = computed(() => !canEdit.value);
 const setMode = async (heroId: string, mode: HeroPartyMode): Promise<void> => {
   store.setMode(heroId, mode);
   const staysHome = mode === "home";
-  const hero = heroes.value.find((h: any) => String(h.id) === heroId);
-  const name = hero?.name?.nick || hero?.name?.full || "This hero";
+  const name = heroes.value.find((hero) => hero.id === heroId)?.name ?? "This hero";
   leaveNote.value = staysHome ? leaveNoteFor(name, await removeHeroFromParties(heroId)) : "";
 };
 

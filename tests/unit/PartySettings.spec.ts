@@ -118,7 +118,12 @@ describe("Settings, Party", () => {
       ben: { id: "ben", isAdult: false, name: { nick: "Ben" } },
     });
     users.currentUser.id = viewerId;
-    wrapper = mount(PartySettings, { global: { stubs: { "xp-back-button": true, PartyOutside: true } } });
+    wrapper = mount(PartySettings, {
+      global: {
+        mocks: { $getUserAvatar: () => "avatar.svg" },
+        stubs: { "xp-back-button": true, PartyOutside: true },
+      },
+    });
     await flushPromises();
     return wrapper;
   };

@@ -33,6 +33,9 @@ const KIND_LABELS: Record<XpNotificationKind, string> = {
   gold: "Gold",
   "weekly-recap": "Recap",
   system: "System",
+  "creation-waiting": "Creation Waiting",
+  "creation-approved": "Creation Approved",
+  "creation-returned": "Creation Returned",
 };
 
 export const kindLabelOf = (kind: XpNotificationKind): string => KIND_LABELS[kind] ?? "Notice";
