@@ -1,3 +1,4 @@
+import { flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { HOME_PARTY_ID } from "@/lib/services/party/partyRules";
 import { RAID_BASE_REWARD, raidMaxHp } from "@/lib/services/party/raidRules";
@@ -216,7 +217,6 @@ describe("party store: load", () => {
 });
 
 describe("party store: a change made before the saved record is read", () => {
-  const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
   const raidOf = (id: string, strikes: unknown[] = []) => ({
     id,
     partyId: "p9",
@@ -241,7 +241,7 @@ describe("party store: a change made before the saved record is read", () => {
     mockGetState.mockResolvedValue(saved);
     const store = usePartyStore();
     store.setMode("ben", "open");
-    await settle();
+    await flushPromises();
     expect(mockSaveState).toHaveBeenLastCalledWith(
       expect.objectContaining({
         heroModes: { ana: "home", ben: "open" },
@@ -295,7 +295,7 @@ describe("party store: a change made before the saved record is read", () => {
     mockGetState.mockRejectedValue(new Error("disk"));
     const store = usePartyStore();
     store.setMode("ana", "home");
-    await settle();
+    await flushPromises();
     expect(mockSaveState).not.toHaveBeenCalled();
   });
 });
