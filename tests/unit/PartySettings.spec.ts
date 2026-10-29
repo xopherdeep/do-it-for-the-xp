@@ -1,14 +1,34 @@
 import { reactive } from "vue";
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import PartySettings from "@/app/SideMenu/XpSettings/components/PartySettings.vue";
+import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useUserStore } from "@/lib/store/stores/user";
 
-/**
- * Settings > Party is the Game Master's control room: how each hero may party (open, ask first, home only), the usual raid
- * length, and the planned items. Everyone else may read it, not change it.
- */
+jest.mock("@ionic/vue", () => {
+  // The page's Ionic parts as plain boxes; the toggle is a real checkbox that says ionChange the way Ionic's does
+  const boxes: Record<string, unknown> = {};
+  for (const name of ["IonPage", "IonHeader", "IonToolbar", "IonButtons", "IonTitle", "IonContent", "IonCard", "IonCardContent", "IonCardHeader", "IonCardSubtitle", "IonCardTitle", "IonList", "IonItemDivider", "IonItem", "IonLabel", "IonAvatar", "IonImg", "IonBadge"]) {
+    boxes[name] = { name, template: "<div><slot /></div>" };
+  }
+  boxes.IonToggle = {
+    name: "IonToggle",
+    props: ["checked", "disabled"],
+    emits: ["ionChange"],
+    template: `<input type="checkbox" :checked="checked" :disabled="disabled" @change="$emit('ionChange', { detail: { checked: $event.target.checked } })" />`,
+  };
+  return { __esModule: true, ...boxes, toastController: { create: jest.fn() }, alertController: { create: jest.fn() }, modalController: { create: jest.fn(), dismiss: jest.fn() } };
+});
+
+jest.mock("@/lib/databases/profileStorage", () => {
+  const data = new Map<string, unknown>();
+  const memory = { data, create: async () => memory, set: async () => undefined, get: async () => undefined, keys: async () => [], remove: async () => undefined, clear: async () => undefined };
+  return { __esModule: true, profileStorage: memory, default: memory };
+});
+jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn().mockResolvedValue(undefined) } }));
+// The rest of the signals stay real: the record signals (family sync) are made with makeSignal when the user store loads
+jest.mock("@/lib/services/multiplayer/gameSignals", () => ({ ...jest.requireActual("@/lib/services/multiplayer/gameSignals"), emitHeroRemoved: jest.fn() }));
 
 const mockFamily = reactive({ isKidMode: false });
 jest.mock("@/lib/store/stores/family", () => ({ __esModule: true, useFamilyStore: () => mockFamily }));
@@ -25,38 +45,98 @@ jest.mock("@/lib/databases/PartyDb", () => ({
   }),
 }));
 
-let wrapper: VueWrapper | null = null;
+describe("Settings > Party: who may make beasts and quests", () => {
+  let saved: Record<string, unknown> | null = null;
 
-/** A household of one Game Master and two kids, with `viewerId` signed in */
-const open = async (viewerId: string): Promise<VueWrapper> => {
-  const users = useUserStore();
-  // The roster and the signed-in hero are reactive objects the store's getters close over: fill them in place
-  Object.assign(users.users, {
-    dad: { id: "dad", isAdult: true, name: { nick: "Dad" } },
-    ana: { id: "ana", isAdult: false, name: { nick: "Ana" } },
-    ben: { id: "ben", isAdult: false, name: { nick: "Ben" } },
+  const mountParty = (signedInAs: string) => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const users = useUserStore();
+    users.users["dad"] = { id: "dad", isAdult: true, name: { nick: "Dad" } } as any;
+    users.users["mia"] = { id: "mia", isAdult: false, name: { nick: "Mia" } } as any;
+    users.users["leo"] = { id: "leo", isAdult: false, name: { nick: "Leo" } } as any;
+    users.currentUser.id = signedInAs;
+    return mount(PartySettings, {
+      global: { plugins: [pinia], mocks: { $getUserAvatar: () => "avatar.svg" }, stubs: { "xp-back-button": true, "xp-coming-soon-card": true, "party-hero-modes": true, "party-outside": true, "raid-window-picker": true } },
+    });
+  };
+
+  beforeEach(() => {
+    saved = null;
+    const db = getFamilySettingsDb();
+    jest.spyOn(db, "getSettings").mockImplementation(async () => saved as any);
+    jest.spyOn(db, "saveSettings").mockImplementation(async (settings) => {
+      saved = settings as unknown as Record<string, unknown>;
+    });
   });
-  users.currentUser.id = viewerId;
-  wrapper = mount(PartySettings, { global: { stubs: { "xp-back-button": true, PartyOutside: true } } });
-  await flushPromises();
-  return wrapper;
-};
 
-const pressed = (page: VueWrapper, selector: string): string | undefined => page.find(selector).attributes("aria-pressed");
+  afterEach(() => jest.restoreAllMocks());
 
-beforeEach(() => {
-  setActivePinia(createPinia());
-  mockFamily.isKidMode = false;
-  mockSaveState.mockClear();
-  mockMembership.removeHeroFromParties.mockReset().mockResolvedValue({ ok: true, value: 0 });
-});
+  it("lists every hero with a switch, and no switch for a Game Master", async () => {
+    const wrapper = mountParty("dad");
+    await flushPromises();
+    expect(wrapper.find('[data-cy="maker-mia"]').exists()).toBe(true);
+    expect(wrapper.find('[data-cy="maker-leo"]').exists()).toBe(true);
+    expect(wrapper.find('[data-cy="maker-dad"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("Mia");
+    expect(wrapper.text()).toContain("Leo");
+  });
 
-afterEach(() => {
-  wrapper?.unmount();
-  wrapper = null;
+  it("shows the saved Makers as on", async () => {
+    saved = { makers: ["mia"] };
+    const wrapper = mountParty("dad");
+    await flushPromises();
+    expect((wrapper.find('[data-cy="maker-mia"]').element as HTMLInputElement).checked).toBe(true);
+    expect((wrapper.find('[data-cy="maker-leo"]').element as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("saves a hero as a Maker when a Game Master flips the switch", async () => {
+    const wrapper = mountParty("dad");
+    await flushPromises();
+    await wrapper.find('[data-cy="maker-leo"]').setValue(true);
+    await flushPromises();
+    expect(saved).toMatchObject({ makers: ["leo"] });
+  });
+
+  it("locks the switches for a hero, so a kid's phone cannot flip them", async () => {
+    const wrapper = mountParty("mia");
+    await flushPromises();
+    expect((wrapper.find('[data-cy="maker-leo"]').element as HTMLInputElement).disabled).toBe(true);
+  });
 });
 
 describe("Settings, Party", () => {
+  let wrapper: VueWrapper | null = null;
+
+  /** A household of one Game Master and two kids, with `viewerId` signed in */
+  const open = async (viewerId: string): Promise<VueWrapper> => {
+    const users = useUserStore();
+    // The roster and the signed-in hero are reactive objects the store's getters close over: fill them in place
+    Object.assign(users.users, {
+      dad: { id: "dad", isAdult: true, name: { nick: "Dad" } },
+      ana: { id: "ana", isAdult: false, name: { nick: "Ana" } },
+      ben: { id: "ben", isAdult: false, name: { nick: "Ben" } },
+    });
+    users.currentUser.id = viewerId;
+    wrapper = mount(PartySettings, { global: { stubs: { "xp-back-button": true, PartyOutside: true } } });
+    await flushPromises();
+    return wrapper;
+  };
+
+  const pressed = (page: VueWrapper, selector: string): string | undefined => page.find(selector).attributes("aria-pressed");
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    mockFamily.isKidMode = false;
+    mockSaveState.mockClear();
+    mockMembership.removeHeroFromParties.mockReset().mockResolvedValue({ ok: true, value: 0 });
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = null;
+  });
+
   it("says the household is always a party", async () => {
     const page = await open("dad");
     expect(page.text()).toContain("Your household is always a party");

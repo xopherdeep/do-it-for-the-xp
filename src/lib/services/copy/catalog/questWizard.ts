@@ -72,6 +72,22 @@ export const questWizard = {
     adventure: "The Game Master checks it when you finish.",
     classic: "Requires Game Master approval on completion.",
   },
+  // A maker (a hero allowed to make things) chooses who the quest is for; the words are the same in every voice
+  "questWizard.who.me": {
+    adventure: "Me",
+  },
+  "questWizard.who.everyone": {
+    adventure: "Everyone",
+  },
+  "questWizard.who.parent": {
+    adventure: "A parent",
+  },
+  // The note on the last screen when the quest goes to a Game Master before any hero sees it
+  "questWizard.ready.makerNote": {
+    simple: "A grown-up looks at it first.",
+    adventure: "A Game Master looks at it first.",
+    classic: "Awaits Game Master review.",
+  },
   "questWizard.summon": {
     simple: "Summon!",
     adventure: "Summon!",
@@ -82,6 +98,12 @@ export const questWizard = {
     simple: "New quest!",
     adventure: "A new quest joins the log!",
     classic: "Quest added to the log.",
+  },
+  // The same reveal on a proposal: the quest is with the Game Master, not in the log yet
+  "questWizard.fanfare.proposed": {
+    simple: "Sent!",
+    adventure: "Sent to the Game Master!",
+    classic: "Sent for review.",
   },
   "questWizard.fanfare.action": {
     simple: "Accept",
@@ -109,5 +131,12 @@ export const questWizard = {
     simple: "{name}. The Game Master checks it after.",
     adventure: "{name}: the Game Master checks it when you finish.",
     classic: "{name}. Awaiting Game Master approval.",
+  },
+  // A maker at the cap (creations.MAKER_CAP, beasts and quests together) cannot propose another; the Beast Maker says
+  // the same words (beastMaker.cap)
+  "questWizard.cap": {
+    simple: "Ask a grown-up to look at your creations first.",
+    adventure: "Ask a Game Master to look at your creations first.",
+    classic: "Creation limit reached. Await Game Master review.",
   },
 } satisfies CopyCatalog;

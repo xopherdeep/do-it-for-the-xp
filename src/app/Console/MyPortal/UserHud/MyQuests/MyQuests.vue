@@ -42,7 +42,9 @@
             :class="{ 'is-overdue': row.status === 'overdue', 'is-tamed': row.status === 'done', 'is-pending': row.status === 'pending', 'is-later': row.status === 'later', 'is-celebrating': celebrating?.id === row.id, 'is-celebrating--pending': celebrating?.id === row.id && celebrating.pending, 'is-landed': landed === row.id }"
             :data-status="row.status" :title="row.title" :subtitle="row.subtitle" :image="row.image" :icon="row.icon"
             :chevron="!(view === 'list' && row.canFinish)" :disabled="finishing === row.id" @click="openRow(row)">
-            <template v-if="row.hasChips" #chips>
+            <template v-if="row.hasChips || row.credit" #chips>
+              <!-- Who suggested it: a small line of its own, so the subtitle's ellipsis cannot cut it short (empty: hidden) -->
+              <span class="quest-credit" data-test="quest-credit">{{ row.credit }}</span>
               <xp-app-chips :chips="row.chips" />
             </template>
             <template v-if="(view === 'list' && row.canFinish) || row.stateLabel" #trailing>
@@ -67,6 +69,9 @@
       <!-- The Quest Wizard: any player adds a quest, a picture and a few taps at a time -->
       <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
         @saved="onQuestSaved" />
+
+      <!-- The Beast Maker: the signed-in maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
+      <XpBeastMakerModal :open="makerOpen" @close="makerOpen = false" @saved="loadBoard" @quest="openWizardWith" />
 
       <!-- A tap on a quest opens its bestiary entry: the beast, its checklist, and Hunt / Claim -->
       <XpBeastCardModal v-if="activeRow" @didDismiss="onTaskDismissed" :quest="activeRow.quest"

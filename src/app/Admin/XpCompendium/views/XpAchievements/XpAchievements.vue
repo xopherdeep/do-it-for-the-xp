@@ -167,8 +167,8 @@
               <span
                 v-if="achievement.draft"
                 class="draft-badge"
-                title="Draft: heroes don't see this quest until Ready is tapped"
-              >Draft</span>
+                title="Heroes don't see this quest until Ready is tapped (or, a kid's creation, approved)"
+              >{{ draftLabel(achievement) }}</span>
               <div class="quest-card-avatar">
                 <!-- Beast Preview -->
                 <template v-if="achievement.adventureType === 'beast'">

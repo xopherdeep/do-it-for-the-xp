@@ -5,6 +5,7 @@
  */
 import {
   draftAction,
+  draftLabel,
   findUnfinishedDraft,
   hideDrafts,
   isDraft,
@@ -14,7 +15,11 @@ import {
   unfinishedDrafts,
 } from "@/lib/services/quests/questDrafts";
 
-const quest = (id: string, patch: { achievementName?: string; draft?: boolean } = {}) => ({ id, achievementName: `Quest ${id}`, ...patch });
+const quest = (id: string, patch: { achievementName?: string; draft?: boolean; proposal?: { state: string } } = {}) => ({
+  id,
+  achievementName: `Quest ${id}`,
+  ...patch,
+});
 
 describe("isDraft", () => {
   it("is true only for a quest marked draft", () => {
@@ -70,6 +75,24 @@ describe("the unfinished drafts New Quest finds", () => {
   it("finds none when every quest is live", () => {
     expect(findUnfinishedDraft([quest("live"), quest("old", { draft: false })])).toBeNull();
     expect(findUnfinishedDraft([])).toBeNull();
+  });
+
+  it("leaves a kid's proposal alone: waiting or sent back, it is theirs to finish, not an unfinished draft of the Game Master's", () => {
+    const waiting = quest("kid", { draft: true, proposal: { state: "proposed" } });
+    const sentBack = quest("back", { draft: true, proposal: { state: "returned" } });
+    // An approved quest hidden by an edit is the Game Master's again
+    const hidden = quest("hidden", { draft: true, proposal: { state: "approved" } });
+    const quests = [waiting, quest("d1", { draft: true }), sentBack, hidden];
+    expect(unfinishedDrafts(quests).map((q) => q.id)).toEqual(["d1", "hidden"]);
+    expect(findUnfinishedDraft([waiting, sentBack])).toBeNull();
+    expect(newQuestOpening([waiting, sentBack])).toEqual({ kind: "fresh" });
+  });
+
+  it("badges a kid's proposal Waiting in the Compendium, and the Game Master's own hidden quest Draft", () => {
+    expect(draftLabel(quest("kid", { draft: true, proposal: { state: "proposed" } }))).toBe("Waiting");
+    expect(draftLabel(quest("back", { draft: true, proposal: { state: "returned" } }))).toBe("Waiting");
+    expect(draftLabel(quest("d1", { draft: true }))).toBe("Draft");
+    expect(draftLabel(quest("hidden", { draft: true, proposal: { state: "approved" } }))).toBe("Draft");
   });
 });
 

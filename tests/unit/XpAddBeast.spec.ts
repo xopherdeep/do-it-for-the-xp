@@ -80,10 +80,22 @@ jest.mock("@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/c
   beastPortraitUrl: (avatar?: number | null) => (avatar ? `beast-${avatar}.webp` : null),
 }));
 jest.mock("@/components/molecules/AvatarSelect", () => ({ __esModule: true, default: { name: "AvatarSelectStub" } }));
+jest.mock("@/components/organisms/BeastPhoto/BeastPhotoPicker.vue", () => ({
+  __esModule: true,
+  default: { name: "BeastPhotoPickerStub" },
+}));
 jest.mock("@/app/Admin/XpCompendium/views/XpBestiary/components/BeastDetailsModal.vue", () => ({
   __esModule: true,
   default: { name: "BeastDetailsModalStub" },
 }));
+// The review service is the creation rules' own (tests/unit/creationReview.spec.ts); here only the call is proven
+jest.mock("@/lib/services/creations/creationReview", () => ({
+  __esModule: true,
+  approveStoredBeast: jest.fn().mockResolvedValue(true),
+}));
+import { approveStoredBeast } from "@/lib/services/creations/creationReview";
+import { useUserStore } from "@/lib/store/stores/user";
+const approveBeast = approveStoredBeast as jest.Mock;
 
 const create = modalController.create as jest.Mock;
 const toast = toastController.create as jest.Mock;
@@ -512,5 +524,153 @@ describe("editing a beast", () => {
     const wrapper = await mountForm({ id: "beast-gone" });
     expect(wrapper.get(".xp-app-header__title").text()).toBe("New Beast");
     expect(wrapper.find('[data-test="step-look"]').exists()).toBe(true);
+  });
+});
+
+describe("a kid's beast opened from Approvals", () => {
+  const sockMonster = (): Beast => ({
+    ...grownBeast(),
+    id: "beast-sock",
+    name: "Sock Monster",
+    madeBy: "ronan",
+    proposal: { by: "ronan", on: "2026-10-26T08:00:00.000Z", state: "proposed" },
+  });
+
+  it("is approved with the edits when the Game Master saves it, and the toast says so", async () => {
+    await bestiaryDb.setBeast(sockMonster());
+    approveBeast.mockResolvedValue(true);
+    const wrapper = await mountForm({ id: "beast-sock" });
+    useUserStore().currentUser.id = "mom";
+    await tap(wrapper, "summary-name");
+    await setField(wrapper, "name-input", "Sock Gobbo");
+    await tap(wrapper, "next");
+    await tap(wrapper, "next");
+    await tap(wrapper, "submit");
+
+    expect((await storedBeasts())[0]).toMatchObject({ id: "beast-sock", name: "Sock Gobbo", madeBy: "ronan" });
+    expect(approveBeast).toHaveBeenCalledWith("beast-sock", "mom");
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ message: "Approved, with changes" }));
+    expect(mockPush).toHaveBeenCalledWith({ name: "xp-bestiary" });
+  });
+
+  it("leaves a beast the family already fights alone", async () => {
+    await bestiaryDb.setBeast(grownBeast());
+    const wrapper = await mountForm({ id: "beast-dish-goblin" });
+    await tap(wrapper, "submit");
+    expect(approveBeast).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("Updated") }));
+  });
+});
+
+describe("a drawing for the look", () => {
+  const DRAWING = "data:image/jpeg;base64,DRAWING";
+
+  /** The drawing sheet answers as a modal that closed with Use it (picked) or Not now (cancel) would */
+  const snapAnswers = (data: string | null, role: "picked" | "cancel") => {
+    create.mockResolvedValueOnce({
+      present: jest.fn(),
+      onDidDismiss: () => Promise.resolve({ data, role }),
+      onWillDismiss: () => Promise.resolve({ data, role }),
+    });
+  };
+
+  const artSrc = (wrapper: Form) => wrapper.find('[data-test="beast-art"] img').attributes("src");
+
+  it("opens the drawing sheet from Snap a drawing, and a drawing is the look and the portrait with no library beast", async () => {
+    const wrapper = await mountForm();
+    snapAnswers(DRAWING, "picked");
+    await tap(wrapper, "snap-drawing");
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ component: expect.objectContaining({ name: "BeastPhotoPickerStub" }), cssClass: "beast-photo-modal" })
+    );
+    expect(artSrc(wrapper)).toBe(DRAWING);
+    expect(wrapper.get('[data-test="next"]').attributes("disabled")).toBeUndefined();
+  });
+
+  it("changes nothing when the sheet is closed with Not now", async () => {
+    const wrapper = await mountForm();
+    snapAnswers(null, "cancel");
+    await tap(wrapper, "snap-drawing");
+    expect(wrapper.find('[data-test="beast-art"] img').exists()).toBe(false);
+    expect(wrapper.get('[data-test="why"]').text()).toBe("Pick a look");
+  });
+
+  it("saves the drawing with the beast and reads 'Your drawing' on the summary", async () => {
+    const wrapper = await mountForm();
+    snapAnswers(DRAWING, "picked");
+    await tap(wrapper, "snap-drawing");
+    await tap(wrapper, "next");
+    await setField(wrapper, "name-input", "Sockto");
+    await tap(wrapper, "next");
+    await addChore(wrapper, "Pair the socks");
+    await tap(wrapper, "next");
+    expect(wrapper.get('[data-test="summary-look"]').text()).toContain("Your drawing");
+
+    await tap(wrapper, "submit");
+    expect((await storedBeasts())[0]).toMatchObject({ name: "Sockto", avatar: 0, localImage: DRAWING });
+  });
+
+  it("keeps a library beast picked before it, and the portrait shows the drawing", async () => {
+    const wrapper = await mountForm();
+    pickerAnswers(12);
+    await tap(wrapper, "pick-beast");
+    expect(artSrc(wrapper)).toBe("beast-12.webp");
+    snapAnswers(DRAWING, "picked");
+    await tap(wrapper, "snap-drawing");
+    expect(artSrc(wrapper)).toBe(DRAWING);
+
+    await tap(wrapper, "next");
+    await setField(wrapper, "name-input", "Sockto");
+    await tap(wrapper, "next");
+    await addChore(wrapper, "Pair the socks");
+    await tap(wrapper, "next");
+    await tap(wrapper, "submit");
+    expect((await storedBeasts())[0]).toMatchObject({ avatar: 12, localImage: DRAWING });
+  });
+
+  it("lets the drawing go when a library beast is picked after it", async () => {
+    const wrapper = await mountForm();
+    snapAnswers(DRAWING, "picked");
+    await tap(wrapper, "snap-drawing");
+    pickerAnswers(12);
+    await tap(wrapper, "pick-beast");
+    expect(artSrc(wrapper)).toBe("beast-12.webp");
+
+    await tap(wrapper, "next");
+    await setField(wrapper, "name-input", "Kitchen Dragon");
+    await tap(wrapper, "next");
+    await addChore(wrapper, "Wipe the counters");
+    await tap(wrapper, "next");
+    expect(wrapper.get('[data-test="summary-look"]').text()).toContain("Beast 012");
+    await tap(wrapper, "submit");
+    const stored = (await storedBeasts())[0];
+    expect(stored.avatar).toBe(12);
+    expect(stored.localImage).toBeFalsy();
+  });
+
+  describe("on a beast that already has one", () => {
+    beforeEach(async () => {
+      await bestiaryDb.setBeast({ ...grownBeast(), avatar: 0, localImage: DRAWING });
+    });
+
+    it("opens on the summary with the drawing as its look, and a save keeps it", async () => {
+      const wrapper = await mountForm({ id: "beast-dish-goblin" });
+      expect(wrapper.get('[data-test="summary-look"]').text()).toContain("Your drawing");
+      expect(wrapper.get('[data-test="submit"]').attributes("disabled")).toBeUndefined();
+      await tap(wrapper, "submit");
+      expect((await storedBeasts())[0]).toMatchObject({ avatar: 0, localImage: DRAWING, achievementIds: ["quest-1", "quest-2"] });
+    });
+
+    it("wipes the stored drawing when a library beast is picked in its place", async () => {
+      const wrapper = await mountForm({ id: "beast-dish-goblin" });
+      await tap(wrapper, "summary-look");
+      pickerAnswers(9);
+      await tap(wrapper, "pick-beast");
+      await tap(wrapper, "dot-summon");
+      await tap(wrapper, "submit");
+      const stored = (await storedBeasts())[0];
+      expect(stored.avatar).toBe(9);
+      expect(stored.localImage).toBeFalsy();
+    });
   });
 });

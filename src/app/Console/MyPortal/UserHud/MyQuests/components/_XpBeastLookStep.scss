@@ -1,0 +1,124 @@
+// The Beast Maker's look step: the stage, two big tiles, then the library as picture tiles (the Quest Wizard's).
+.bl-step {
+  padding: 4px 12px 8px;
+}
+
+.bl-stage {
+  margin: 2px 0 12px;
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+}
+
+.bl-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 8px 0;
+  color: var(--xp-app-text-dim);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.bl-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  &--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.bl-library {
+  margin-top: 12px;
+}
+
+.bl-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 112px;
+  padding: 8px 6px 10px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+  color: var(--xp-app-text);
+  cursor: pointer;
+  font-family: var(--xp-app-font-title);
+  font-size: 0.74rem;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: var(--xp-app-title-transform);
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background: var(--xp-app-press);
+  }
+
+  &.is-picked {
+    background: var(--xp-app-surface-2);
+    border-color: var(--xp-app-accent);
+    box-shadow: 0 0 0 2px var(--xp-app-accent);
+  }
+
+  &__art {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 76px;
+    overflow: hidden;
+    background: var(--xp-app-tile-bg);
+    border: var(--xp-app-tile-border);
+    border-radius: var(--xp-app-radius-tile);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    i {
+      color: var(--xp-app-tile-fg);
+      font-size: 2rem;
+    }
+  }
+
+  &__label {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  &__check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: var(--xp-app-accent);
+    background: var(--xp-app-bg);
+    border-radius: 50%;
+    font-size: 1.1rem;
+  }
+
+  // The two big ones: a picture of a drawing, or the library
+  &--big {
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 10px;
+    font-size: 0.9rem;
+  }
+
+  &__icon {
+    color: var(--xp-app-accent);
+    font-size: 2.4rem;
+  }
+}

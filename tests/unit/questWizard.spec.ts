@@ -5,6 +5,7 @@ import {
   addStep,
   buildWizardQuest,
   canAdvance,
+  chooseFamilyBeast,
   choreTiles,
   clampDifficulty,
   cleanSteps,
@@ -25,10 +26,12 @@ import {
   STEP_ICON,
   suggestedRewards,
   toggleDay,
+  toggleEveryone,
   toggleHero,
   typeChore,
   weekdayOf,
   whenLine,
+  willPropose,
   wizardCategory,
   wizardSteps,
 } from "@/lib/services/quests/questWizard";
@@ -65,6 +68,11 @@ describe("the wizard's screens", () => {
     expect(wizardSteps(false)).toEqual(["what", "steps", "when", "size", "ready"]);
   });
 
+  it("gives a maker the Who screen too, so a kid can choose who the quest is for", () => {
+    expect(wizardSteps(false, true)).toEqual(["what", "steps", "when", "size", "who", "ready"]);
+    expect(wizardSteps(false, false)).toEqual(["what", "steps", "when", "size", "ready"]);
+  });
+
   it("blocks Next only on the screen that names the quest", () => {
     expect(canAdvance("what", { name: "" })).toBe(false);
     expect(canAdvance("what", { name: "  " })).toBe(false);
@@ -77,6 +85,11 @@ describe("the wizard's screens as shell steps", () => {
   it("gives a Game Master six steps and a hero five, in the order of the screens", () => {
     expect(questWizardSteps(true).map((step) => step.id)).toEqual(["what", "steps", "when", "size", "who", "ready"]);
     expect(questWizardSteps(false).map((step) => step.id)).toEqual(["what", "steps", "when", "size", "ready"]);
+  });
+
+  it("gives a maker six steps, with the Who in the same place a Game Master has it", () => {
+    expect(questWizardSteps(false, "adventure", true).map((step) => step.id)).toEqual(["what", "steps", "when", "size", "who", "ready"]);
+    expect(questWizardSteps(false, "adventure").map((step) => step.id)).not.toContain("who");
   });
 
   it("carries each screen's guide line in the hero's voice and its picture", () => {
@@ -258,6 +271,33 @@ describe("the draft's defaults and the Calendar's prefill", () => {
     expect(newDraft({ isGm: false, heroId: "kid-1", prefill, today: TODAY }).heroIds).toEqual(["kid-1"]);
   });
 
+  it("lets a maker keep the hero the Calendar named, and a family beast the Maker just made", () => {
+    const prefill = { ...questPrefill(prefillQueryFor(TODAY, "all", "kid-2")), beastId: "b9" };
+    const draft = newDraft({ isGm: false, isMaker: true, heroId: "kid-1", prefill, today: TODAY });
+    expect(draft.heroIds).toEqual(["kid-2"]);
+    expect(draft.beastId).toBe("b9");
+    expect(draft.entry).toBeNull();
+    // the same prefill for a hero who may not make things still keeps the hero to themself
+    expect(newDraft({ isGm: false, heroId: "kid-1", prefill, today: TODAY }).heroIds).toEqual(["kid-1"]);
+    expect(newDraft({ isGm: false, isMaker: true, heroId: "kid-1", today: TODAY }).beastId).toBeUndefined();
+  });
+
+  it("picks a family beast outright: its name names the quest unless the draft has one, and its steps fill an empty list", () => {
+    const beast = { id: "b9", name: "Sock Monster", checklist: ["Find the pair", "Roll them"] };
+    const blank = newDraft({ isGm: false, isMaker: true, heroId: "kid-1", today: TODAY });
+    expect(chooseFamilyBeast(blank, beast)).toMatchObject({ beastId: "b9", name: "Sock Monster", steps: ["Find the pair", "Roll them"], entry: null });
+    const named = { ...blank, name: "Pair the socks", steps: ["Dump the basket"] };
+    expect(chooseFamilyBeast(named, beast)).toMatchObject({ beastId: "b9", name: "Pair the socks", steps: ["Dump the basket"] });
+  });
+
+  it("lets go of the family beast when a chore is picked or typed instead", () => {
+    const beast = { id: "b9", name: "Sock Monster", checklist: ["Find the pair"] };
+    const withBeast = chooseFamilyBeast(newDraft({ isGm: false, isMaker: true, heroId: "kid-1", today: TODAY }), beast);
+    expect(pickChore(withBeast, bySlug("bed-basilisk")).beastId).toBeUndefined();
+    expect(typeChore(withBeast, "juggle flaming torches").beastId).toBeUndefined();
+    expect(typeChore(withBeast, "").beastId).toBeUndefined();
+  });
+
   it("ignores a prefill it cannot read", () => {
     const draft = newDraft({ isGm: false, heroId: "kid-1", prefill: questPrefill({ day: "tomorrow", time: "teatime" }), today: TODAY });
     expect(draft).toMatchObject({ day: "2026-10-14", time: "anytime" });
@@ -392,6 +432,166 @@ describe("how a hero's quest is protected", () => {
 
   it("records the hero who made it", () => {
     expect(buildWizardQuest(picked("bed-basilisk"), kidCtx).quest.createdBy).toBe("kid-1");
+  });
+});
+
+describe("what a maker may do", () => {
+  const makerCtx: BuildContext = { ...kidCtx, isMaker: true };
+  const sentOn = "2026-10-20T08:00:00.000Z";
+  // A beast the kid made: waiting for a Game Master, sent back with a note, or approved
+  const familyBeast = (state: "proposed" | "returned" | "approved") => ({
+    id: "beast-sock",
+    name: "Sock Monster",
+    checklist: ["Find the pair", "Roll them"],
+    proposal: { by: "kid-1", on: sentOn, state },
+  });
+  const forBeast = (over: Partial<WizardDraft> = {}): WizardDraft => ({
+    ...chooseFamilyBeast(newDraft({ isGm: false, isMaker: true, heroId: "kid-1", today: TODAY }), familyBeast("proposed")),
+    ...over,
+  });
+
+  it("still saves a quest for themself on a library beast live, with no proposal (D5)", () => {
+    const draft = picked("bed-basilisk");
+    const { quest, linkBeast } = buildWizardQuest(draft, makerCtx);
+    expect(quest.proposal).toBeUndefined();
+    expect(quest.draft).toBeFalsy();
+    expect(quest.assignee).toEqual(["kid-1"]);
+    expect(quest.requiresApproval).toBe(true);
+    expect(linkBeast).toBeUndefined();
+    expect(willPropose(draft, makerCtx)).toBe(false);
+  });
+
+  it("proposes a quest for a sibling, hidden from the heroes until a Game Master approves it", () => {
+    const draft = picked("bed-basilisk", { heroIds: ["kid-1", "kid-2"] });
+    const { quest, linkBeast } = buildWizardQuest(draft, makerCtx);
+    expect(quest).toMatchObject({ draft: true, assignee: ["kid-1", "kid-2"], createdBy: "kid-1", requiresApproval: true });
+    expect(quest.proposal).toEqual({ by: "kid-1", on: TODAY.toISOString(), state: "proposed" });
+    expect(linkBeast).toBeUndefined();
+    expect(willPropose(draft, makerCtx)).toBe(true);
+  });
+
+  it("proposes a quest made only for someone else, and keeps the maker out of the party they did not pick", () => {
+    const draft = picked("bed-basilisk", { heroIds: ["kid-2"] });
+    expect(buildWizardQuest(draft, makerCtx).quest).toMatchObject({ assignee: ["kid-2"], draft: true });
+    expect(willPropose(draft, makerCtx)).toBe(true);
+  });
+
+  it("still falls back to themself when no hero is ticked, and that stays live", () => {
+    const draft = picked("bed-basilisk", { heroIds: [] });
+    const { quest } = buildWizardQuest(draft, makerCtx);
+    expect(quest).toMatchObject({ assignee: ["kid-1"], draft: false });
+    expect(quest.proposal).toBeUndefined();
+    expect(willPropose(draft, makerCtx)).toBe(false);
+  });
+
+  it("proposes a quest on a family beast that is still waiting, and points the beast back at the quest", () => {
+    const familyBeasts = [familyBeast("proposed")];
+    const draft = forBeast();
+    const { quest, beast, linkBeast } = buildWizardQuest(draft, { ...makerCtx, familyBeasts });
+    expect(quest).toMatchObject({ beastId: "beast-sock", adventureType: "beast", noBeast: false, draft: true });
+    expect(quest.achievementName).toBe("Sock Monster");
+    expect(quest.proposal).toMatchObject({ state: "proposed", by: "kid-1" });
+    // the family's beast is the beast: nothing is adopted or copied, even though the draft carries no edits
+    expect(beast).toBeNull();
+    expect(linkBeast).toEqual({ id: "beast-sock", proposal: { by: "kid-1", on: sentOn, state: "proposed", questId: quest.id } });
+    expect(willPropose(draft, { ...makerCtx, familyBeasts })).toBe(true);
+  });
+
+  it("proposes a quest on a family beast a Game Master sent back, linking it too", () => {
+    const familyBeasts = [familyBeast("returned")];
+    const { quest, linkBeast } = buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts });
+    expect(quest.proposal?.state).toBe("proposed");
+    expect(linkBeast?.proposal).toMatchObject({ state: "returned", questId: quest.id });
+    expect(willPropose(forBeast(), { ...makerCtx, familyBeasts })).toBe(true);
+  });
+
+  it("saves a quest for themself on an approved family beast live", () => {
+    const familyBeasts = [familyBeast("approved")];
+    const draft = forBeast();
+    const { quest, beast, linkBeast } = buildWizardQuest(draft, { ...makerCtx, familyBeasts });
+    expect(quest).toMatchObject({ beastId: "beast-sock", adventureType: "beast", noBeast: false, draft: false });
+    expect(quest.proposal).toBeUndefined();
+    expect(beast).toBeNull();
+    expect(linkBeast).toBeUndefined();
+    expect(willPropose(draft, { ...makerCtx, familyBeasts })).toBe(false);
+  });
+
+  it("saves a quest on a Game Master's family beast (no proposal on it) live too", () => {
+    const { id, name, checklist } = familyBeast("approved");
+    const familyBeasts = [{ id, name, checklist }];
+    expect(willPropose(forBeast(), { ...makerCtx, familyBeasts })).toBe(false);
+    expect(buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts }).quest.proposal).toBeUndefined();
+  });
+
+  it("proposes for a sibling even on an approved family beast", () => {
+    const familyBeasts = [familyBeast("approved")];
+    const draft = forBeast({ heroIds: ["kid-1", "kid-2"] });
+    const { quest, linkBeast } = buildWizardQuest(draft, { ...makerCtx, familyBeasts });
+    expect(quest).toMatchObject({ draft: true, beastId: "beast-sock" });
+    expect(linkBeast).toBeUndefined();
+  });
+
+  it("keeps a beast's first link: a second quest made with it proposes on its own, pointing at the beast by id", () => {
+    const linked = { ...familyBeast("proposed"), proposal: { ...familyBeast("proposed").proposal, questId: "quest-first" } };
+    const { quest, linkBeast } = buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts: [linked] });
+    expect(quest).toMatchObject({ beastId: "beast-sock", draft: true });
+    expect(quest.proposal?.state).toBe("proposed");
+    expect(linkBeast).toBeUndefined();
+  });
+
+  it("still links a beast that already names this very quest (the quest saved again)", () => {
+    const linked = { ...familyBeast("proposed"), proposal: { ...familyBeast("proposed").proposal, questId: "quest-abcdef123456" } };
+    const { linkBeast } = buildWizardQuest(forBeast(), { ...makerCtx, familyBeasts: [linked] });
+    expect(linkBeast?.proposal.questId).toBe("quest-abcdef123456");
+  });
+
+  it("proposes the family's copy of a library beast with the quest when the maker edited its steps for a sibling (M3)", () => {
+    const draft = addStep(picked("dish-goblin", { heroIds: ["kid-1", "kid-2"] }), "Say thank you to the dishwasher");
+    const { quest, beast } = buildWizardQuest(draft, makerCtx);
+    expect(quest.proposal?.state).toBe("proposed");
+    expect(beast).toMatchObject({ id: "beast-dish-goblin-quest-ab", madeBy: "kid-1" });
+    expect(beast?.proposal).toEqual({ by: "kid-1", on: TODAY.toISOString(), state: "proposed", questId: quest.id });
+    expect(beast?.checklist.slice(-1)[0]).toBe("Say thank you to the dishwasher");
+  });
+
+  it("keeps the copy live, nobody's creation, when the quest stays live (D5): edited steps for themself", () => {
+    const draft = addStep(picked("dish-goblin"), "Say thank you to the dishwasher");
+    const { quest, beast } = buildWizardQuest(draft, makerCtx);
+    expect(quest.proposal).toBeUndefined();
+    expect(beast?.proposal).toBeUndefined();
+    expect(beast?.madeBy).toBeUndefined();
+  });
+
+  it("never proposes for a hero who may not make things, whatever the draft says", () => {
+    const familyBeasts = [familyBeast("proposed")];
+    const draft = forBeast({ heroIds: ["kid-1", "kid-2"] });
+    expect(willPropose(draft, { ...kidCtx, familyBeasts })).toBe(false);
+    expect(buildWizardQuest(draft, { ...kidCtx, familyBeasts }).quest).toMatchObject({ assignee: ["kid-1"], draft: false });
+  });
+
+  it("never proposes for a Game Master, who approves their own", () => {
+    const familyBeasts = [familyBeast("proposed")];
+    const draft = forBeast({ heroIds: ["kid-1", "kid-2"] });
+    const ctx = { ...gmCtx, isMaker: true, familyBeasts };
+    expect(willPropose(draft, ctx)).toBe(false);
+    const { quest, linkBeast } = buildWizardQuest(draft, ctx);
+    expect(quest.proposal).toBeUndefined();
+    expect(linkBeast).toBeUndefined();
+  });
+
+  it("is still never bigger than Big", () => {
+    expect(buildWizardQuest(picked("bed-basilisk", { difficulty: 13 }), makerCtx).quest.difficulty).toBe(5);
+  });
+
+  it("taps Everyone to put every profile in the party, and taps it again to go back to themself", () => {
+    const everyone = ["kid-1", "kid-2", "gm-1"];
+    const base = picked("bed-basilisk");
+    const all = toggleEveryone(base, everyone, "kid-1");
+    expect(all.heroIds).toEqual(everyone);
+    expect(buildWizardQuest(all, makerCtx).quest).toMatchObject({ assignee: everyone, draft: true });
+    expect(toggleEveryone(all, everyone, "kid-1").heroIds).toEqual(["kid-1"]);
+    // a party of two out of three is not everyone yet
+    expect(toggleEveryone(toggleHero(base, "kid-2"), everyone, "kid-1").heroIds).toEqual(everyone);
   });
 });
 

@@ -31,6 +31,7 @@ jest.mock("@/lib/databases/AchievementDb", () => ({
 jest.mock("@/lib/databases/BestiaryDb", () => {
   class MockBestiaryDb {
     getBeasts = jest.fn(async () => mockBestiary.beasts);
+    getLiveBeasts = jest.fn(async () => mockBestiary.beasts);
     getBeastById = jest.fn(async (id: string) => mockBestiary.beasts.find((b) => String(b.id) === id) ?? null);
   }
   return { __esModule: true, default: MockBestiaryDb, beastStorage: {} };

@@ -1,7 +1,8 @@
 /**
  * The Quest Wizard: a kid-friendly way to add a quest from the Calendar or the Beast Log (XpQuestWizardModal). One
- * question per screen: which chore, its steps, when, how big, who (a Game Master only), then Summon. Pure: no storage,
- * no Vue, no router; the screen holds a draft, calls these to change it and builds the quest with `buildWizardQuest`.
+ * question per screen: which chore, its steps, when, how big, who (a Game Master or a maker only), then Summon. Pure:
+ * no storage, no Vue, no router; the screen holds a draft, calls these to change it and builds the quest with
+ * `buildWizardQuest`.
  *
  * The quest is built the way the Compendium form saves one (useAchievementForm): a beast quest on a basic schedule,
  * the rewards of its size (`suggestedRewards`: the Quick Start pack's table, so Small pays 120 XP / 30 GP), the name
@@ -10,6 +11,7 @@
  *
  * A quest made by a hero who is not a Game Master is kept small and safe, and the rules live in the builder, not in
  * the screen: it is for that hero alone, at most Big (5), it needs the Game Master's approval, and it records who made it.
+ * A maker (a hero allowed to make things) may also choose who it is for and propose it: questWizardMaker.ts.
  */
 import { format, startOfDay } from "date-fns";
 import { v4 as uuidv4 } from "uuid";
@@ -17,21 +19,24 @@ import type { Achievement, AchievementCategoryInterface } from "@/lib/databases/
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { DAY_TOKENS, TIMES_OF_DAY } from "@/lib/engine/quests/QuestSchedule";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
-import { adoptLibraryBeast, browseLibrary, suggestBeasts } from "@/lib/services/bestiary/librarySuggest";
+import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
 import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
-import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
-import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { Voice } from "@/lib/services/copy/voices";
-import { heroBandFor } from "@/lib/services/core/packs/packCommon";
-import type { PackBand } from "@/lib/services/core/packs/packCommon";
-import { activeSuggestion, beastQuestPatch, beastToAdopt } from "@/lib/services/quests/questFormRules";
+import { beastQuestPatch, beastToAdopt } from "@/lib/services/quests/questFormRules";
 import type { QuestPrefill } from "@/lib/services/quests/questPrefill";
 import { parseDayKey } from "@/lib/services/quests/questPrefill";
+import { choreName, defaultChore, suggestChore } from "@/lib/services/quests/questWizardChores";
+import { familyBeastFields, partyOf, proposeCopyBeast, proposeForMaker } from "@/lib/services/quests/questWizardMaker";
+import type { FamilyBeastRef, LinkBeast } from "@/lib/services/quests/questWizardMaker";
 import { suggestedRewards } from "@/lib/services/quests/sizeRewards";
 import type { SizeRewards } from "@/lib/services/quests/sizeRewards";
 import { formatQuestName } from "@/lib/utils/format";
 import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
+
+// The chore library (questWizardChores.ts) and what a maker adds (questWizardMaker.ts): screens and specs import them from here
+export { bandOf, choreName, choreTiles, COMMON_CHORES, DEFAULT_CHORE_SLUG, defaultChore, searchChores, suggestChore } from "@/lib/services/quests/questWizardChores";
+export { chooseFamilyBeast, toggleEveryone, willPropose } from "@/lib/services/quests/questWizardMaker";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The steps of the wizard
@@ -39,9 +44,14 @@ import type { WizardStep } from "@/lib/services/wizard/wizardSteps";
 
 export type WizardStepId = "what" | "steps" | "when" | "size" | "who" | "ready";
 
-/** The screens in order. A hero who is not a Game Master makes the quest for themself, so their wizard has no Who. */
-export const wizardSteps = (isGm: boolean): WizardStepId[] =>
-  isGm ? ["what", "steps", "when", "size", "who", "ready"] : ["what", "steps", "when", "size", "ready"];
+/**
+ * The screens in order. A hero who is neither a Game Master nor a maker makes the quest for themself, so their wizard
+ * has no Who.
+ */
+export const wizardSteps = (isGm: boolean, isMaker = false): WizardStepId[] => {
+  const choosesWho = isGm || isMaker;
+  return choosesWho ? ["what", "steps", "when", "size", "who", "ready"] : ["what", "steps", "when", "size", "ready"];
+};
 
 /** The guide's line on each screen, in the hero's voice (catalog/questWizard.ts): the simple voice is read aloud. */
 export const stepGuide = (step: WizardStepId, voice: Voice = "adventure"): string =>
@@ -76,8 +86,8 @@ const STEP_TITLE: Record<WizardStepId, string> = {
  * the one rule. Only the name is required and it gives no reason line on purpose: the guide's question already asks for
  * it. Nothing is skipped; a hero's missing Who is simply not in the list.
  */
-export const questWizardSteps = (isGm: boolean, voice: Voice = "adventure"): WizardStep<WizardDraft>[] =>
-  wizardSteps(isGm).map((id) => ({
+export const questWizardSteps = (isGm: boolean, voice: Voice = "adventure", isMaker = false): WizardStep<WizardDraft>[] =>
+  wizardSteps(isGm, isMaker).map((id) => ({
     id,
     title: STEP_TITLE[id],
     guide: stepGuide(id, voice),
@@ -155,69 +165,6 @@ export type { SizeRewards };
 export const rewardsOf = (difficulty: number): SizeRewards => suggestedRewards(difficulty);
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Which chore: the library, sorted for the hero
-// ---------------------------------------------------------------------------------------------------------------------
-
-/** Chores nearly every home has, most common first: they lead their age band's tiles. Slugs of the chore library. */
-export const COMMON_CHORES: readonly string[] = [
-  "bed-basilisk", "fang-fairy", "toybox-troll", "pajama-pooka", "hamper-hound", "dish-goblin", "plate-pixie",
-  "gravy-ghoul", "kibble-kobold", "homework-hydra", "clutter-chimera", "laundry-lurker", "garbage-gargoyle",
-  "trash-troll", "cupboard-kobold", "wrinkle-wyvern", "crumb-gremlin", "zoomie-zephyr", "fluffalo", "bookwyrm",
-  "shoe-shrew", "backpack-boggart", "socktopus", "hairball-harpy", "grubgoblin",
-];
-
-const AGE_ORDER: Record<PackBand, LibraryBeast["age"][]> = {
-  little: ["little", "kid", "teen"],
-  kid: ["kid", "teen", "little"],
-  grownup: ["teen", "kid", "little"],
-};
-
-/** The hero's band for sorting: little (8 and under), kid, or grown-up (packCommon's rule). */
-export const bandOf = heroBandFor;
-
-/** The chore beasts to pick from, the hero's age band first and the most common chores first inside each band. */
-export function choreTiles(band: PackBand): LibraryBeast[] {
-  const ages = AGE_ORDER[band];
-  const commonRank = (slug: string): number => {
-    const index = COMMON_CHORES.indexOf(slug);
-    return index === -1 ? COMMON_CHORES.length : index;
-  };
-  return BEAST_LIBRARY.map((beast, order) => ({ beast, order }))
-    .sort(
-      (a, b) =>
-        ages.indexOf(a.beast.age) - ages.indexOf(b.beast.age) ||
-        commonRank(a.beast.slug) - commonRank(b.beast.slug) ||
-        a.order - b.order
-    )
-    .map(({ beast }) => beast);
-}
-
-/**
- * The beasts that fit the words typed in the search field, best first: the library's suggestions (which know that
- * "dishwasher" is the Dish Goblin), then any beast whose name, chore or steps contain the text.
- */
-export function searchChores(text: string, limit = 12): LibraryEntry[] {
-  const needle = text.trim();
-  if (!needle) return [];
-  const ranked = suggestBeasts(needle, limit);
-  const seen = new Set(ranked.map((entry) => String(entry.id)));
-  const contained = browseLibrary({ text: needle }).filter((entry) => !seen.has(String(entry.id)));
-  return [...ranked, ...contained].slice(0, limit);
-}
-
-/** The beast every chore the library does not know fights as: the Mess Hog ("put things back where they belong"). */
-export const DEFAULT_CHORE_SLUG = "mess-hog";
-
-export const defaultChore = (): LibraryEntry => BEAST_LIBRARY.find((beast) => beast.slug === DEFAULT_CHORE_SLUG) ?? BEAST_LIBRARY[0];
-
-/** The library beast that fits a chore someone typed, or null when nothing fits (the form's own suggestion rule). */
-export const suggestChore = (name: string): LibraryEntry | null =>
-  activeSuggestion({ beastId: "", adventureType: "simple", achievementName: name, noBeast: false });
-
-/** A chore beast's own words for the chore ("Dust the shelves"); a classic beast has none, so its name stands in. */
-export const choreName = (entry: LibraryEntry): string => entry.chore || entry.name;
-
-// ---------------------------------------------------------------------------------------------------------------------
 // The draft
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -241,18 +188,22 @@ export interface WizardDraft {
   /** The day the quest starts, YYYY-MM-DD (the Calendar's day when it was opened from there) */
   day: string;
   difficulty: number;
-  /** Who fights it (a Game Master's choice; a hero is always alone) */
+  /** Who fights it (a Game Master's or a maker's choice; any other hero is always alone) */
   heroIds: string[];
   /** A Game Master's toggle on the last screen; a hero's quest always needs approval */
   requiresApproval: boolean;
   /** Ask for a photo when the chore is claimed (anyone may; it forces approval on). Absent means no. */
   requiresPhoto?: boolean;
+  /** A family beast chosen outright (the one a maker just made): `entry` stays null then and the beast fights the quest */
+  beastId?: string;
 }
 
 export interface NewDraftOptions {
   isGm: boolean;
   /** The signed-in hero */
   heroId: string;
+  /** A hero a Game Master allowed to make things: may choose who the quest is for (not a Game Master) */
+  isMaker?: boolean;
   /** From the Calendar: the day, part of the day and hero on screen (questPrefill) */
   prefill?: QuestPrefill;
   today?: Date;
@@ -261,11 +212,12 @@ export interface NewDraftOptions {
 const dayKey = (date: Date): string => format(date, "yyyy-MM-dd");
 
 /** A fresh draft with every default in place: today, anytime, Small, the hero themself. */
-export function newDraft({ isGm, heroId, prefill = {}, today = new Date() }: NewDraftOptions): WizardDraft {
+export function newDraft({ isGm, isMaker = false, heroId, prefill = {}, today = new Date() }: NewDraftOptions): WizardDraft {
   const starts = prefill.startsOn ? new Date(prefill.startsOn) : null;
   const hasStart = starts !== null && !Number.isNaN(starts.getTime());
   const time = prefill.timesOfDay?.[0];
-  const prefilledHeroes = isGm ? (prefill.assignee ?? []).map(String).filter(Boolean) : [];
+  const choosesWho = isGm || isMaker;
+  const prefilledHeroes = choosesWho ? (prefill.assignee ?? []).map(String).filter(Boolean) : [];
   return {
     name: "",
     entry: null,
@@ -278,13 +230,15 @@ export function newDraft({ isGm, heroId, prefill = {}, today = new Date() }: New
     difficulty: 2,
     heroIds: prefilledHeroes.length ? prefilledHeroes : [heroId],
     requiresApproval: !isGm,
+    ...(prefill.beastId ? { beastId: String(prefill.beastId) } : {}),
   };
 }
 
-/** A chore picked from the tiles or the search: its beast, its name and its steps come with it. */
+/** A chore picked from the tiles or the search: its beast, its name and its steps come with it (a family beast gives way). */
 export const pickChore = (draft: WizardDraft, entry: LibraryEntry): WizardDraft => ({
   ...draft,
   entry,
+  beastId: undefined,
   isOwn: false,
   name: choreName(entry).slice(0, MAX_NAME_LENGTH),
   steps: [...entry.checklist],
@@ -298,13 +252,13 @@ export const pickChore = (draft: WizardDraft, entry: LibraryEntry): WizardDraft 
 export function typeChore(draft: WizardDraft, text: string): WizardDraft {
   const name = text.slice(0, MAX_NAME_LENGTH);
   const isBlank = !name.trim();
-  if (isBlank) return { ...draft, name, entry: null, isOwn: true, steps: [] };
+  if (isBlank) return { ...draft, name, entry: null, beastId: undefined, isOwn: true, steps: [] };
   const matched = suggestChore(name);
   const entry = matched ?? defaultChore();
   const sameBeast = draft.isOwn && draft.entry !== null && String(draft.entry.id) === String(entry.id);
   const suggested = matched ? [...matched.checklist] : [];
   const steps = sameBeast ? draft.steps : suggested;
-  return { ...draft, name, entry, isOwn: true, steps };
+  return { ...draft, name, entry, beastId: undefined, isOwn: true, steps };
 }
 
 /** Steps as they are stored: trimmed, no blanks, no repeats, a sensible length and count. */
@@ -385,12 +339,14 @@ export const HERO_QUESTS_CATEGORY: AchievementCategoryInterface = { id: "cat-her
 export interface BuildContext {
   /** The signed-in person may open the Game Master area (canAccessGameMaster) */
   isGm: boolean;
+  /** A hero a Game Master allowed to make things (canMake): may choose who the quest is for, and proposes it */
+  isMaker?: boolean;
   /** The hero making the quest */
   creatorId: string;
   /** The category the quest goes in (HERO_QUESTS_CATEGORY's id unless the family chose another) */
   categoryId: string;
-  /** The family's beasts, so an adopted library beast is never overwritten */
-  familyBeasts: ReadonlyArray<Pick<Beast, "id">>;
+  /** The family's beasts (the proposed ones too), so an adopted library beast is never overwritten */
+  familyBeasts: ReadonlyArray<FamilyBeastRef>;
   /** An id for the new quest; a fresh one by default */
   questId?: string;
   today?: Date;
@@ -400,6 +356,8 @@ export interface BuiltQuest {
   quest: Achievement;
   /** The beast to add to the bestiary, or null when the family has it already */
   beast: Beast | null;
+  /** The family beast still waiting on a Game Master, with the proposal it should now carry: it points at this quest */
+  linkBeast?: LinkBeast;
 }
 
 const sameSteps = (a: readonly string[], b: readonly string[]): boolean =>
@@ -410,24 +368,31 @@ const sameSteps = (a: readonly string[], b: readonly string[]): boolean =>
  * making it. Throws when the draft has no name (the screen checks draftProblem first).
  *
  * The checklist belongs to the beast, so a beast whose steps were edited is saved as the family's own copy of it
- * (the same art and name, a new id, the edited steps) and the library beast and every other quest keep theirs.
+ * (the same art and name, a new id, the edited steps) and the library beast and every other quest keep theirs. A
+ * family beast chosen outright is used as it stands. A maker's quest may come back as a proposal (questWizardMaker).
  */
 export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQuest {
   const problem = draftProblem(draft);
   if (problem) throw new Error("A quest needs a name");
   const questId = ctx.questId ?? uuidv4();
-  const entry = draft.entry ?? defaultChore();
   const difficulty = clampDifficulty(draft.difficulty, ctx.isGm);
-  const heroIds = ctx.isGm && draft.heroIds.length ? [...new Set(draft.heroIds.map(String))] : [ctx.creatorId];
+  const heroIds = partyOf(draft, ctx);
   const startsOn = (parseDayKey(draft.day) ?? startOfDay(ctx.today ?? new Date())).toISOString();
 
+  const entry = draft.entry ?? defaultChore();
   const steps = cleanSteps(draft.steps);
   const isEdited = !sameSteps(steps, cleanSteps(entry.checklist));
   let beast: Beast | null;
+  // The family's copy of a library beast, when the edited steps make one: a maker's work, so it waits with a proposed quest
+  let copy: Beast | null = null;
   let beastFields: Pick<Achievement, "beastId" | "adventureType" | "noBeast">;
-  if (isEdited) {
+  if (draft.beastId) {
+    beast = null;
+    beastFields = familyBeastFields(draft.beastId);
+  } else if (isEdited) {
     const copyId = `${entry.id}-${questId.slice(0, 8)}`;
     beast = { ...adoptLibraryBeast(entry), id: copyId, checklist: steps };
+    copy = beast;
     beastFields = { beastId: copyId, adventureType: "beast", noBeast: false };
   } else {
     beast = beastToAdopt(entry, ctx.familyBeasts);
@@ -461,7 +426,9 @@ export function buildWizardQuest(draft: WizardDraft, ctx: BuildContext): BuiltQu
     draft: false,
     createdBy: ctx.creatorId,
   };
-  return { quest, beast };
+
+  const built = proposeForMaker(quest, draft, ctx);
+  return { beast: copy ? proposeCopyBeast(copy, built.quest, ctx) : beast, ...built };
 }
 
 /** The ticked weekdays, in week order; none ticked means the weekday the quest starts on. */

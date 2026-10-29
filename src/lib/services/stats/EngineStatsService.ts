@@ -57,9 +57,10 @@ class EngineStatsService {
         await this.ready();
         const profiles = await this.loadProfiles();
 
+        // The beast count is the beasts in play: a creation waiting for a Game Master is not one yet
         const [achievements, beasts, abilities, allDosDonts, templeRecords, shopRecords, accessories] = await Promise.all([
             this.achievementDb.getTasks(),
-            this.bestiaryDb.getBeasts(),
+            this.bestiaryDb.getLiveBeasts(),
             this.abilitiesDb.getAbilities(),
             this.dosDontsDb.getAll(),
             this.templeDb.getAll(),
@@ -94,10 +95,11 @@ class EngineStatsService {
 
     private async loadCompendiumStats(): Promise<CompendiumStats> {
         await this.ready();
+        // Only the beasts in play, as in getSystemStats
         const [profiles, quests, beasts, questLog, temples] = await Promise.all([
             this.loadProfiles(),
             this.achievementDb.getTasks(),
-            this.bestiaryDb.getBeasts(),
+            this.bestiaryDb.getLiveBeasts(),
             getQuestLogDb().getEntries(),
             this.loadTemples()
         ]);

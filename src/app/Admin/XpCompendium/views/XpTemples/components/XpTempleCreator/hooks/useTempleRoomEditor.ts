@@ -342,7 +342,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       allBeasts.value = store.cachedBestiary;
       return;
     }
-    const beasts = await bestiary.getBeasts();
+    const beasts = await bestiary.getLiveBeasts();
     store.cachedBestiary = beasts;
     allBeasts.value = beasts;
   };

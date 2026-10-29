@@ -8,6 +8,21 @@
       </ion-button>
     </template>
 
+    <!-- All: the beasts in play. Creations: every beast a hero made, waiting or not. A bar at the bottom, in thumb
+         reach; the round button floats in the page just above it -->
+    <template #footer>
+      <ion-toolbar>
+        <ion-segment v-model="segment" aria-label="Show beasts">
+          <ion-segment-button value="all">
+            <ion-label>All</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="creations">
+            <ion-label>Creations</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
+    </template>
+
     <!-- Search Area -->
     <div class="search-container">
       <div class="search-box">
@@ -21,22 +36,22 @@
     <div class="beast-grid">
       <ion-grid>
         <ion-row>
-          <!-- Add New Card -->
-          <ion-col size="4" size-md="3" size-lg="2">
+          <!-- Add New Card (a Game Master's own beast: not among the kids' creations) -->
+          <ion-col v-if="!isCreations" size="4" size-md="3" size-lg="2">
             <XpBeastSelectorItem id="__add_new__" name="Add New" icon="fa-paw-claws" :bg1="addNewBg1" :bg2="addNewBg2"
               class="add-new-card" @click="clickAddBeast()" />
           </ion-col>
 
           <ion-col size="4" size-md="3" size-lg="2" v-for="beast in filteredBeasts" :key="beast.id">
-            <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :bg1="beast.bg1"
-              :bg2="beast.bg2" @click="presentBeastOptions(beast)" />
+            <XpBeastSelectorItem :id="beast.id" :name="beast.name" :avatar="beast.avatar" :picture="beast.localImage"
+              :bg1="beast.bg1" :bg2="beast.bg2" :badge="badgeOf(beast)" @click="presentBeastOptions(beast)" />
           </ion-col>
         </ion-row>
       </ion-grid>
 
       <div v-if="filteredBeasts.length === 0" class="no-results">
         <i class="fad fa-ghost fa-3x"></i>
-        <p>No beasts found in the bestiary...</p>
+        <p>{{ emptyLine }}</p>
       </div>
     </div>
 
@@ -61,14 +76,7 @@ import {
   IonCol,
   IonButton, // Added IonButton import
 } from "@ionic/vue";
-import {
-  createOutline,
-  saveOutline,
-  trashOutline,
-  attachOutline,
-  createSharp,
-  listOutline,
-} from "ionicons/icons";
+import { createOutline, saveOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import XpAttachBeast from "./components/XpAttachBeast.vue";
 import XpBeastSelectorItem from "./components/XpBeastSelectorItem.vue";
@@ -79,6 +87,12 @@ import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb
 import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
+import { creationAp } from "@/lib/services/creations/creations";
+import { approveStoredBeast, returnStoredBeast } from "@/lib/services/creations/creationReview";
+import { beastBadge, bestiaryFilter, emptyBestiaryLine } from "./bestiaryFilter";
+import type { BestiarySegment } from "./bestiaryFilter";
+import { beastSheetButtons } from "./beastSheet";
+import { useUserStore } from "@/lib/store/stores/user";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -98,49 +112,69 @@ export default defineComponent({
     return {};
   },
   methods: {
+    // The lines are beastSheet.ts's: a kid's beast not yet in the game offers Approve and Send back in place of Attach
     async presentBeastOptions(beast: Beast) {
       const actionSheet = await actionSheetController.create({
         header: beast.name,
         subHeader: `${beast.checklist?.length || 0} Checks | ${beast.achievementIds?.length || 0
           } Quests`,
         mode: "ios",
+        buttons: beastSheetButtons(beast, {
+          edit: () => this.clickAddBeast(beast),
+          tasks: () => this.presentBeastTasks(beast),
+          attach: () => this.clickAttachBeast(beast),
+          approve: () => this.approveCreation(beast),
+          sendBack: () => this.sendBackCreation(beast),
+          remove: () => this.clickDeleteBeast(beast),
+        }),
+      });
+      await actionSheet.present();
+    },
+    // Approve a kid's beast from here: the same verdict as Approvals > Creations, through creationReview
+    async approveCreation(beast: Beast) {
+      const alert = await alertController.create({
+        header: "Approve Beast",
+        mode: "ios",
+        message: `Approve ${escapeHtml(beast.name)}? Its maker earns ${creationAp("beast")} AP.`,
         buttons: [
+          { text: "Cancel", role: "cancel" },
           {
-            text: "Edit Beast",
-            icon: createSharp,
+            text: "Approve",
             handler: () => {
-              this.clickAddBeast(beast);
+              void approveStoredBeast(String(beast.id), this.reviewerId()).then((isApproved) =>
+                isApproved
+                  ? this.loadBeasts(true).then(() => this.toast(`Approved! ${beast.name} is in the game.`, "success"))
+                  : this.toast("That beast is already in the game.", "warning")
+              );
             },
-          },
-          {
-            text: "View Task List",
-            icon: listOutline,
-            handler: () => {
-              this.presentBeastTasks(beast);
-            },
-          },
-          {
-            text: "Attach to Quests",
-            icon: attachOutline,
-            handler: () => {
-              this.clickAttachBeast(beast);
-            },
-          },
-          {
-            text: "Delete Beast",
-            role: "destructive",
-            icon: trashOutline,
-            handler: () => {
-              this.clickDeleteBeast(beast);
-            },
-          },
-          {
-            text: "Cancel",
-            role: "cancel",
           },
         ],
       });
-      await actionSheet.present();
+      await alert.present();
+    },
+    // Send a kid's beast back with a note, the quest sent with it too (the same sheet as the lane's)
+    async sendBackCreation(beast: Beast) {
+      const alert = await alertController.create({
+        header: "Send Beast Back",
+        mode: "ios",
+        message: `Send ${escapeHtml(beast.name)} back to its maker? They can fix it and send it again.`,
+        inputs: [{ name: "note", type: "textarea", placeholder: "A short note for the maker (optional)", attributes: { maxlength: 140 } }],
+        buttons: [
+          { text: "Cancel", role: "cancel" },
+          {
+            text: "Send back",
+            handler: (data) => {
+              const note = String(data?.note ?? "").trim();
+              void returnStoredBeast(String(beast.id), this.reviewerId(), note || undefined).then((isSentBack) =>
+                isSentBack
+                  ? this.loadBeasts(true).then(() => this.toast(`Sent back. ${beast.name} waits for its maker.`, "medium"))
+                  : this.toast("That beast is no longer waiting for a look.", "warning")
+              );
+            },
+          },
+        ],
+      });
+      await alert.present();
     },
     async toast(message: string, color?: string) {
       const toast = await toastController.create({
@@ -398,15 +432,16 @@ export default defineComponent({
     const beasts = ref([] as Beast[]);
     const router = useRouter();
     const searchQuery = ref("");
+    const segment = ref<BestiarySegment>("all");
     const isLoading = ref(true);
+    const userStore = useUserStore();
 
-    const filteredBeasts = computed(() => {
-      if (!searchQuery.value) return beasts.value;
-      const query = searchQuery.value.toLowerCase();
-      return beasts.value.filter((beast) =>
-        beast.name.toLowerCase().includes(query)
-      );
-    });
+    const isCreations = computed(() => segment.value === "creations");
+    const emptyLine = computed(() => emptyBestiaryLine(segment.value));
+    const filteredBeasts = computed(() => bestiaryFilter(beasts.value, segment.value, searchQuery.value));
+    const badgeOf = (beast: Beast) => beastBadge(beast, (id) => userStore.users[id]?.name?.nick ?? "");
+    /** The signed-in Game Master, who approves or sends back a kid's beast from the card's menu */
+    const reviewerId = () => String(userStore.currentUser.id ?? "");
 
     // Generate fresh backgrounds for Add New box (refs so they can be updated)
     const addNewBg1 = ref(Math.floor(Math.random() * 325));
@@ -424,7 +459,12 @@ export default defineComponent({
       achievementDb,
       router,
       searchQuery,
+      segment,
+      isCreations,
+      emptyLine,
       filteredBeasts,
+      badgeOf,
+      reviewerId,
       addNewBg1,
       addNewBg2,
       isLoading,

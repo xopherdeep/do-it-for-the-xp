@@ -23,6 +23,7 @@ import {
 import { LORE_COMBO_MATRIX } from "@/constants";
 import { formatQuestName } from "@/lib/utils/format";
 import { formatPoints } from "@/lib/services/quests/QuestLabels";
+import { draftLabel } from "@/lib/services/quests/questDrafts";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 import AchievementDb, {
@@ -542,6 +543,7 @@ Feed the pets`,
       thumbsUpSharp,
       bestiaryDb,
       beasts,
+      draftLabel,
       formatQuestName,
       formatPoints,
       sanitizeHtml,

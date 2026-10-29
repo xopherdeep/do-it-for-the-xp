@@ -38,11 +38,19 @@ describe("dashboard tile counts", () => {
     expect(approvalsTotal(undefined, 4)).toBe(4);
   });
 
+  it("adds the kids' creations waiting on a verdict, and reads the same without them", () => {
+    expect(approvalsTotal(2, 1, 3)).toBe(6);
+    expect(approvalsTotal(2, 1)).toBe(3);
+    expect(approvalsTotal(0, 0, 2)).toBe(2);
+    expect(approvalsTotal(1, 1, undefined)).toBe(2);
+    expect(approvalsTotal(1, 1, "many")).toBe(2);
+  });
+
   it("counts a family reward that is earned and not yet handed over as one more", () => {
-    expect(approvalsTotal(2, 3, 1)).toBe(6);
-    expect(approvalsTotal(0, 0, 1)).toBe(1);
-    expect(approvalsTotal(2, 3, 0)).toBe(5);
-    expect(approvalsTotal(2, 3, undefined)).toBe(5);
+    expect(approvalsTotal(2, 3, 0, 1)).toBe(6);
+    expect(approvalsTotal(0, 0, 0, 1)).toBe(1);
+    expect(approvalsTotal(2, 3, 0, 0)).toBe(5);
+    expect(approvalsTotal(2, 3, 0, undefined)).toBe(5);
   });
 });
 
@@ -54,6 +62,11 @@ describe("dashboard page", () => {
     expect(vue).not.toMatch(/\|\|\s*80/);
     expect(vue).toContain(':value="stats.items || 0"');
     expect(script).not.toContain("This would come from actual data");
+  });
+
+  it("counts the waiting creations and family reward on the Approvals tile with the chores and the purchases", () => {
+    expect(script).toContain('loadCreationRows(["proposed"])');
+    expect(script).toContain("approvalsTotal(chores, rewards, creations, familyReward)");
   });
 
   it("lays the tiles out in two columns on a phone", () => {

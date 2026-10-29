@@ -61,6 +61,23 @@
       white-space: normal;
     }
 
+    // Who suggested the quest: a line of its own under the subtitle (the kit's chips area wraps, so it takes the full width)
+    .quest-credit {
+      flex: 1 1 100%;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--xp-app-text-dim);
+      font-size: 0.72rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      // A quest nobody suggested has no credit: no empty line (and no gap) in the chips area
+      &:empty {
+        display: none;
+      }
+    }
+
     // Late: the due time and the tile turn red; the Overdue section label says it too
     &.is-overdue :deep(.xp-app-row__subtitle) {
       color: var(--quest-late);

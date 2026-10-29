@@ -107,8 +107,8 @@
         <span
           v-if="achievement.draft"
           class="draft-badge"
-          title="Draft: heroes don't see this quest until it is finished"
-        >Draft</span>
+          title="Heroes don't see this quest until it is finished (or, a kid's creation, approved)"
+        >{{ draftLabel(achievement) }}</span>
       </h2>
 
       <!-- Who & When, Rewards Row -->
@@ -166,6 +166,7 @@ import {
 import ionic from "@/lib/mixins/ionic";
 import { formatQuestName } from "@/lib/utils/format";
 import { formatPoints, questSubtitle, statusIconLabels } from "@/lib/services/quests/QuestLabels";
+import { draftLabel } from "@/lib/services/quests/questDrafts";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 export default defineComponent({
   // users: the family's profiles, for the hero nicknames; groupBy: the list's grouping, so the subtitle skips what the group header already says
@@ -236,6 +237,7 @@ export default defineComponent({
     },
   },
   methods: {
+    draftLabel,
     formatQuestName,
     formatPoints,
     sanitizeHtml,

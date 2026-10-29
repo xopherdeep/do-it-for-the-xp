@@ -135,6 +135,10 @@
             <i class="fad fa-paw-claws" aria-hidden="true"></i>
             {{ draft.avatar ? "Change beast" : "Pick a beast" }}
           </button>
+          <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="snap-drawing" @click="snapDrawing">
+            <i class="fad fa-camera" aria-hidden="true"></i>
+            {{ t("beastMaker.photo.title") }}
+          </button>
           <button type="button" class="xp-app-btn xp-app-btn--ghost bw-pick" data-test="pick-background" @click="pickBackground">
             <i class="fad fa-image" aria-hidden="true"></i>
             Background
@@ -214,12 +218,16 @@ import { useRoute, useRouter } from "vue-router";
 import { play$fx } from "@/assets/fx";
 import AvatarSelect from "@/components/molecules/AvatarSelect";
 import XpBackgroundSelector from "@/components/molecules/BackgroundSelector/XpBackgroundSelector.vue";
+import BeastPhotoPicker from "@/components/organisms/BeastPhoto/BeastPhotoPicker.vue";
 import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import XpWizardShell from "@/components/organisms/WizardShell/XpWizardShell.vue";
 import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+import { isLive } from "@/lib/services/creations/creations";
+import { approveStoredBeast } from "@/lib/services/creations/creationReview";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import BeastDetailsModal from "./BeastDetailsModal.vue";
 import {
@@ -234,8 +242,10 @@ import {
   moveChore,
   newBeastDraft,
   openingIndex,
+  withLibraryLook,
 } from "../beastWizard";
 import type { BeastDraft, BeastStepId } from "../beastWizard";
+import { useCopy } from "@/hooks/useVoice";
 
 /**
  * The Game Master's beast form on the shared wizard shell (docs: compendium-wizards-design, W1): Pick its look, Name it,
@@ -252,6 +262,9 @@ const props = defineProps<{ id?: string }>();
 const router = useRouter();
 const route = useRoute();
 const bestiary = new BestiaryDb(beastStorage);
+const userStore = useUserStore();
+// The drawing tile shares the snap-a-drawing sheet's words (beastMaker.photo.*)
+const t = useCopy();
 // The Bestiary is the Beast Log's purple (owner: each app keeps its accent, cream text on it)
 const { rootClass, rootStyle } = useAppSkin("quests");
 
@@ -271,8 +284,11 @@ const position = ref(0);
 const isLoaded = ref(!beastId);
 const isSaving = ref(false);
 const isEditing = computed(() => draft.value.id !== "");
+// A kid's beast opened from Approvals: saving it here approves it with the edits (creationReview)
+const awaitsApproval = ref(false);
 
-const portrait = computed(() => beastPortraitUrl(draft.value.avatar) ?? "");
+// A snapped drawing is the portrait when there is one, even over a library beast picked before it
+const portrait = computed(() => draft.value.localImage || (beastPortraitUrl(draft.value.avatar) ?? ""));
 const summary = computed(() => beastSummary(draft.value));
 const chores = computed(() => filledChores(draft.value));
 
@@ -281,7 +297,10 @@ const loadBeast = async () => {
   try {
     const stored = (await bestiary.getBeasts()).find((beast) => beast?.id === beastId);
     // An id that is no beast opens a new one
-    if (stored) draft.value = draftFromBeast(stored);
+    if (stored) {
+      draft.value = draftFromBeast(stored);
+      awaitsApproval.value = !isLive(stored);
+    }
   } catch (error) {
     debug.error("Error loading beast data:", error);
   } finally {
@@ -375,9 +394,24 @@ const pickBeast = async () => {
     // The picker took the canvas over, whether it was cancelled or not
     await reclaimBackdrop();
     const isAvatarPicked = typeof data === "number" && data > 0;
-    if (isAvatarPicked) draft.value.avatar = data;
+    // A library beast replaces a drawing snapped before it
+    if (isAvatarPicked) draft.value = withLibraryLook(draft.value, data);
   } catch (error) {
     debug.warn("[BeastWizard] the beast picker could not be opened", error);
+  }
+};
+
+// A photo of a drawing is another way to the look: the avatar stays as it is, the portrait shows the drawing
+const snapDrawing = async () => {
+  play$fx("openMenu");
+  try {
+    const modal = await modalController.create({ component: BeastPhotoPicker, cssClass: "beast-photo-modal" });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<string | null>();
+    const isDrawingPicked = role === "picked" && typeof data === "string" && data.length > 0;
+    if (isDrawingPicked) draft.value.localImage = data;
+  } catch (error) {
+    debug.warn("[BeastWizard] the drawing picker could not be opened", error);
   }
 };
 
@@ -503,7 +537,10 @@ const summon = async () => {
       savedPortrait.value = portrait.value;
       showFanfare.value = true;
     } else {
-      await bestiary.showSuccessToast("Beast Updated Successfully");
+      // The Game Master's save of a kid's beast is its approval, with the edits; the maker is paid and told
+      const reviewerId = String(userStore.currentUser.id ?? "");
+      const isApproved = awaitsApproval.value && (await approveStoredBeast(draft.value.id, reviewerId));
+      await bestiary.showSuccessToast(isApproved ? "Approved, with changes" : "Beast Updated Successfully");
       await goToBestiary();
     }
   } catch (error) {

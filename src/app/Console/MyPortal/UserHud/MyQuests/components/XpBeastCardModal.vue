@@ -39,6 +39,10 @@
 
       <!-- The bestiary entry: tier, theme, due clock, kill count, grudge -->
       <div class="beast-facts">
+        <div v-if="credit" class="beast-fact" data-test="credit-line">
+          <i class="fad fa-palette" aria-hidden="true"></i>
+          <span>{{ credit }}</span>
+        </div>
         <div v-if="theme" class="beast-fact">
           <i class="fad fa-map-marked-alt" aria-hidden="true"></i>
           <span>{{ theme }}</span>
@@ -179,6 +183,7 @@ import type { Beast } from "@/lib/databases/BestiaryDb";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { grudgeLabel, marksFor } from "@/lib/services/battle/questGrudge";
+import { creditLine } from "@/lib/services/creations/creations";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
 import { claimWithProof } from "@/components/organisms/ClaimPhoto/claimWithProof";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
@@ -291,9 +296,12 @@ const questTitle = computed(() => formatQuestName(props.quest.achievementName));
 // A quest with a beast is shown as the beast; one without shows its own name and the stand-in that guards it
 const heading = computed(() => (face.value.isStandIn ? questTitle.value : face.value.name));
 const subheading = computed(() => (face.value.isStandIn ? `Guarded by ${face.value.name}` : questTitle.value));
+// A kid's own picture of the beast wins over the library portrait it may also carry
 const portrait = computed(
-  () => beastPortraitUrl(face.value.avatar) || face.value.picture || props.quest.localImage || props.quest.imageUrl || ""
+  () => face.value.picture || beastPortraitUrl(face.value.avatar) || props.quest.localImage || props.quest.imageUrl || ""
 );
+// "Drawn by Ronan" when a hero made the beast; nothing for a Game Master's or the library's
+const credit = computed(() => creditLine(beast.value ?? {}, "beast", (id) => userStore.users[id]?.name?.nick ?? ""));
 
 const theme = computed(() => themeLine(beast.value, categoryName.value));
 const rewards = computed(() => questRewards(props.quest));

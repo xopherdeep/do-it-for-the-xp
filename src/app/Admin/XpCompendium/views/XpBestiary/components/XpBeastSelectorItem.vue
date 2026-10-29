@@ -10,9 +10,10 @@
       <canvas ref="bgCanvas" class="beast-bg"></canvas>
       <div class="beast-avatar-container">
         <i v-if="icon" :class="['fad', icon, 'fa-3x', 'beast-icon']"></i>
-        <img v-else-if="avatarUrl" :src="avatarUrl" :alt="name" class="beast-avatar" />
+        <img v-else-if="faceUrl" :src="faceUrl" :alt="name" class="beast-avatar" />
         <div v-else class="beast-placeholder">?</div>
       </div>
+      <span v-if="badge" class="beast-badge" :title="badge" data-test="beast-badge">{{ badge }}</span>
       <div v-if="selected" class="selection-overlay">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -32,6 +33,10 @@ export default defineComponent({
   props: {
     name: { type: String, required: true },
     avatar: { type: Number, default: 0 },
+    // A picture of the beast's own (a kid's drawing): it wins over the library portrait
+    picture: { type: String, default: '' },
+    // A small chip over the card: "Waiting", "Came back" or "Drawn by Ronan"
+    badge: { type: String, default: '' },
     bg1: { type: Number, default: 0 },
     bg2: { type: Number, default: 0 },
     selected: { type: Boolean, default: false },
@@ -54,6 +59,8 @@ export default defineComponent({
         return null;
       }
     });
+
+    const faceUrl = computed(() => props.picture || avatarUrl.value);
 
     const canAnimateEngine = () =>
       Boolean(engine && typeof engine.animate === 'function');
@@ -146,7 +153,7 @@ export default defineComponent({
 
     return {
       bgCanvas,
-      avatarUrl,
+      faceUrl,
       startAnimation,
       stopAnimation,
       isHovered
@@ -249,6 +256,26 @@ export default defineComponent({
 .beast-selector-item:hover .beast-icon {
   color: var(--ion-color-primary);
   transform: scale(1.1);
+}
+
+// Over the card's top-left corner; the selection check has the top-right one
+.beast-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  max-width: calc(100% - 12px);
+  padding: 3px 5px;
+  overflow: hidden;
+  background: var(--gs-window, #280828);
+  border: 1px solid var(--gs-text, #e7e6b3);
+  border-radius: 2px;
+  color: var(--gs-text, #e7e6b3);
+  font-family: "Press Start 2P";
+  font-size: 0.4rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .selection-overlay {

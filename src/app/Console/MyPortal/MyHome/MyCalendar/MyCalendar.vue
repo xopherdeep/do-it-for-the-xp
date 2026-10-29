@@ -46,6 +46,9 @@
       <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
         @saved="onQuestSaved" />
 
+      <!-- The Beast Maker: the signed-in maker draws a beast and sends it to the Game Master; "Make a quest with it" opens the wizard on it -->
+      <XpBeastMakerModal :open="makerOpen" @close="makerOpen = false" @saved="onQuestSaved" @quest="openWizardWith" />
+
       <!-- FAB (the same one the town's buildings and the Gold Bank use) to open the calendar's actions -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button color="warning" aria-label="Calendar actions" data-test="calendar-fab" @click="presentActionSheet">
@@ -113,6 +116,8 @@ import { calendarOutline, close } from "ionicons/icons";
 import { format, isToday } from "date-fns";
 import XpBeastCardModal from "../../UserHud/MyQuests/components/XpBeastCardModal.vue";
 import XpQuestWizardModal from "../../UserHud/MyQuests/components/XpQuestWizardModal.vue";
+import XpBeastMakerModal from "../../UserHud/MyQuests/components/XpBeastMakerModal.vue";
+import { useBeastMaker } from "../../UserHud/MyQuests/useBeastMaker";
 import { calendarCardStatus } from "../../UserHud/MyQuests/beastCard";
 import type { BeastCardStatus } from "../../UserHud/MyQuests/beastCard";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
@@ -325,15 +330,20 @@ const prevDay = () => {
 };
 
 // Every player can start a quest. The Quest Wizard opens on the day and part of the day on screen (a hero's quest waits
-// for the Game Master's approval; the rules live in questWizard.ts)
-const wizardOpen = ref(false);
-const wizardPrefill = computed(() =>
+// for the Game Master's approval; the rules live in questWizard.ts). The signed-in maker can also draw a beast, and the
+// wizard then opens on it (useBeastMaker owns both open flags and the hand-off).
+const { isMaker, makerOpen, wizardOpen, wizardPrefill, openWizardWith } = useBeastMaker(() =>
   questPrefill(prefillQueryFor(selectedDate.value, activeSegment.value, heroId.value))
 );
 
 const openAddQuest = () => {
   play$fx("openMenu");
   wizardOpen.value = true;
+};
+
+const openMaker = () => {
+  play$fx("openMenu");
+  makerOpen.value = true;
 };
 
 // The new quest shows on the board as soon as it is saved (when it is due on the day on screen)
@@ -344,6 +354,8 @@ const onQuestSaved = () => {
 const runAction = (id: CalendarActionId) => {
   const isNewQuest = id === "new-quest";
   if (isNewQuest) return openAddQuest();
+  const isDrawBeast = id === "draw-beast";
+  if (isDrawBeast) return openMaker();
   const isJumpToToday = id === "today";
   if (isJumpToToday) {
 
@@ -358,7 +370,7 @@ const presentActionSheet = async () => {
     ...appSheet("calendar"),
     header: "Daily Agenda",
     buttons: [
-      ...calendarActions({ isToday: isSelectedToday.value }).map(({ id, text }) => ({
+      ...calendarActions({ isToday: isSelectedToday.value, isMaker: isMaker.value }).map(({ id, text }) => ({
         text,
         handler: () => {
           runAction(id);

@@ -1,8 +1,12 @@
 import { createPinia, setActivePinia } from "pinia";
 import {
+  CREATIONS_LINK,
   MAX_NOTIFICATIONS_PER_HERO,
   approvedNotification,
   bloodMoonNotification,
+  creationApprovedNotification,
+  creationReturnedNotification,
+  creationWaitingNotification,
   dedupeKeyOf,
   dueInCopy,
   iconOfKind,
@@ -155,6 +159,48 @@ describe("Notifications helpers", () => {
       link: "/my-gold-points/hero-1/",
     });
     expect(purchaseNotification(HERO, { id: "p1", itemName: "Cape", price: 30, status: "refunded" }).body).toContain("30 GP");
+  });
+
+  it("tells a Game Master of a kid's creation, and the maker of the verdict", () => {
+    expect(iconOfKind("creation-waiting")).toBe("fa-paint-brush");
+    expect(iconOfKind("creation-approved")).toBe("fa-sparkles");
+    expect(iconOfKind("creation-returned")).toBe("fa-undo");
+    expect(CREATIONS_LINK).toBe("/game-master/approvals?segment=creations");
+
+    const beast = { key: "beast:b1", name: "Sock Monster", kind: "beast" as const };
+    const quest = { key: "quest:q1", name: "Do The Dishes", kind: "quest" as const };
+    expect(creationWaitingNotification("gm-1", beast, "Ronan", NOON)).toMatchObject({
+      heroId: "gm-1",
+      kind: "creation-waiting",
+      refId: "beast:b1",
+      title: "A new creation awaits",
+      body: 'Ronan made a beast: "Sock Monster".',
+      link: CREATIONS_LINK,
+      createdAt: NOON.toISOString(),
+    });
+    expect(creationWaitingNotification("gm-1", quest, "Jack").body).toBe('Jack suggested a quest: "Do The Dishes".');
+
+    expect(creationApprovedNotification(HERO, beast, 3)).toMatchObject({
+      heroId: HERO,
+      kind: "creation-approved",
+      refId: "beast:b1",
+      title: "Your creation is in the game!",
+      body: '"Sock Monster" was approved. +3 AP.',
+      link: "/my-tasks/hero-1/",
+    });
+
+    // The note first, then where to go: the Beast Maker holds the kid's list, quests too, with Fix it and Send again
+    expect(creationReturnedNotification(HERO, beast, "Bigger teeth")).toMatchObject({
+      heroId: HERO,
+      kind: "creation-returned",
+      refId: "beast:b1",
+      title: "Your creation came back",
+      body: '"Sock Monster" came back: Bigger teeth. Open the Beast Maker to fix it or send it again.',
+      link: "/my-tasks/hero-1/",
+    });
+    expect(creationReturnedNotification(HERO, quest, "Which day?").body).toBe('"Do The Dishes" came back: Which day? Open the Beast Maker to fix it or send it again.');
+    expect(creationReturnedNotification(HERO, beast).body).toBe('"Sock Monster" came back. Open the Beast Maker to fix it or send it again.');
+    expect(creationReturnedNotification(HERO, quest).body).toBe('"Do The Dishes" came back. Open the Beast Maker to fix it or send it again.');
   });
 });
 

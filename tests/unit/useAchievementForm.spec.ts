@@ -85,6 +85,17 @@ jest.mock("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/com
   __esModule: true,
   default: {},
 }));
+// The review service is the creation rules' own (tests/unit/creationReview.spec.ts); here only the call is proven
+jest.mock("@/lib/services/creations/creationReview", () => ({
+  __esModule: true,
+  approveStoredQuest: jest.fn().mockResolvedValue(true),
+  freshProposalOf: jest.fn().mockResolvedValue({}),
+}));
+jest.mock("@/lib/store/stores/user", () => ({ useUserStore: () => ({ currentUser: { id: "mom" } }) }));
+import { toastController } from "@ionic/vue";
+import { approveStoredQuest, freshProposalOf } from "@/lib/services/creations/creationReview";
+const approveQuest = approveStoredQuest as jest.Mock;
+const freshProposal = freshProposalOf as jest.Mock;
 
 const achievementDb = new AchievementDb(achievementStorage);
 const bestiaryDb = new BestiaryDb(beastStorage);
@@ -455,5 +466,62 @@ describe("opening a quest", () => {
     expect(await form.loadData("q-draft")).toEqual({ isSaved: true, wasDraft: true });
     expect(await form.loadData("q-live")).toEqual({ isSaved: true, wasDraft: false });
     expect(await form.loadData("q-nowhere")).toEqual({ isSaved: false, wasDraft: false });
+  });
+});
+
+describe("a kid's quest opened from Approvals", () => {
+  const kidQuest = () => ({
+    ...AchievementDb.getDefault(),
+    id: "q-kid",
+    achievementName: "Do The Dishes",
+    categoryId: "cat-1",
+    assignee: ["hero-1"],
+    draft: true,
+    createdBy: "jack",
+    proposal: { by: "jack", on: "2026-10-26T08:00:00.000Z", state: "proposed" as const },
+  });
+
+  beforeEach(() => {
+    approveQuest.mockClear();
+  });
+
+  it("is approved with the edits when the Game Master taps Ready, says so, and stays live after", async () => {
+    await achievementDb.setTask(kidQuest());
+    const form = useAchievementForm();
+    await form.loadData("q-kid");
+    form.achievement.value.difficulty = 3;
+    expect(await form.confirmReady()).toBe(true);
+    expect(approveQuest).toHaveBeenCalledWith("q-kid", "mom");
+    expect(toastController.create).toHaveBeenCalledWith(expect.objectContaining({ message: "Approved, with changes" }));
+
+    form.achievement.value.difficulty = 5;
+    expect(await savedQuest(form)).toMatchObject({ draft: false, difficulty: 5 });
+    expect(approveQuest).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays waiting while the Game Master only edits, without Ready", async () => {
+    await achievementDb.setTask(kidQuest());
+    const form = useAchievementForm();
+    await form.loadData("q-kid");
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ draft: true, proposal: { state: "proposed" } });
+    expect(approveQuest).not.toHaveBeenCalled();
+  });
+
+  it("writes the proposal storage holds now, never the one it opened with (an approval made elsewhere meanwhile)", async () => {
+    await achievementDb.setTask(kidQuest());
+    const form = useAchievementForm();
+    await form.loadData("q-kid");
+    const approved = { ...kidQuest().proposal, state: "approved" as const, reviewedBy: "dad", paidOn: "2026-10-27T10:00:00.000Z" };
+    freshProposal.mockResolvedValueOnce({ proposal: approved });
+    form.achievement.value.difficulty = 3;
+    expect(await savedQuest(form)).toMatchObject({ difficulty: 3, proposal: approved });
+    expect(freshProposal).toHaveBeenCalledWith("q-kid");
+  });
+
+  it("is never asked about a quest a Game Master made", async () => {
+    const form = await newForm();
+    await form.confirmReady();
+    expect(approveQuest).not.toHaveBeenCalled();
   });
 });

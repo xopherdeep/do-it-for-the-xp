@@ -169,6 +169,14 @@
   &--hero {
     min-height: 120px;
   }
+
+  // A small line under a hero's name: a maker's tile for a parent says so
+  &__tag {
+    color: var(--xp-app-text-dim);
+    font-size: 0.62rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
 }
 
 .qw-chosen {

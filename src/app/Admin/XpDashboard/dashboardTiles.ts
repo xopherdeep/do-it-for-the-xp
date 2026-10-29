@@ -35,8 +35,9 @@ export const tileStatsOf = (system?: TileSource | null): TileStats => ({
 });
 
 /**
- * Quests waiting on the Game Master plus shop purchases waiting to be handed over, plus the family reward of a cleared
- * project that is earned and not yet handed over (1 while one waits, 0 otherwise)
+ * Quests waiting on the Game Master, shop purchases waiting to be handed over, the kids' creations waiting on a
+ * verdict, and the family reward of a cleared project that is earned and not yet handed over (1 while one waits,
+ * 0 otherwise)
  */
-export const approvalsTotal = (chores: unknown, rewards: unknown, familyReward: unknown = 0): number =>
-  wholeCount(chores) + wholeCount(rewards) + wholeCount(familyReward);
+export const approvalsTotal = (chores: unknown, rewards: unknown, creations: unknown = 0, familyReward: unknown = 0): number =>
+  wholeCount(chores) + wholeCount(rewards) + wholeCount(creations) + wholeCount(familyReward);

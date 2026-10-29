@@ -31,6 +31,11 @@ export interface FamilySettings {
   approveAllPurchases: boolean;
   /** The first day of the week for calendars and the weekly recap: 1 Monday, 0 Sunday */
   weekStartsOn: number;
+  /**
+   * Settings > Party: the heroes (profile ids) who may draw beasts and suggest quests; a Game Master checks each one
+   * before it enters the game. Empty until a Game Master picks. Family scope on purpose: a kid's phone cannot flip it.
+   */
+  makers: string[];
 }
 
 export interface CashOutSettings {
@@ -74,17 +79,21 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   autoSavePercent: 0,
   approveAllPurchases: false,
   weekStartsOn: 1,
+  makers: [],
 };
 
 const clock = (value: unknown, fallback: string): string =>
   typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : fallback;
+
+/** A saved list of profile ids as non-empty strings; anything that is not a list is no ids */
+const idListOf = (value: unknown): string[] => (Array.isArray(value) ? value.filter(Boolean).map(String) : []);
 
 const normalizeCashOut = (stored: Partial<CashOutSettings> | null | undefined): CashOutSettings => {
   const rate = Number(stored?.gpPerDollar) > 0 ? clampCashOutRate(stored?.gpPerDollar) : null;
   return {
     enabled: stored?.enabled === true,
     gpPerDollar: rate ?? DEFAULT_FAMILY_SETTINGS.cashOut.gpPerDollar,
-    heroIds: Array.isArray(stored?.heroIds) ? stored!.heroIds.filter(Boolean).map(String) : [],
+    heroIds: idListOf(stored?.heroIds),
   };
 };
 
@@ -103,6 +112,7 @@ const normalize = (stored: Partial<FamilySettings> | null | undefined): FamilySe
   autoSavePercent: autoSavePercentOf(stored?.autoSavePercent),
   approveAllPurchases: stored?.approveAllPurchases === true,
   weekStartsOn: Number(stored?.weekStartsOn) === 0 ? 0 : 1,
+  makers: idListOf(stored?.makers),
 });
 
 export const loadFamilySettings = async (): Promise<FamilySettings> => {
@@ -115,6 +125,20 @@ export const loadFamilySettings = async (): Promise<FamilySettings> => {
 
 export const saveFamilySettings = async (settings: FamilySettings): Promise<void> => {
   await getFamilySettingsDb().saveSettings(normalize(settings));
+};
+
+/**
+ * May this person draw beasts and suggest quests? A Game Master always may; a hero only when a Game Master listed them
+ * under Settings > Party. No id (nobody signed in) never may.
+ */
+export const canMake = (
+  heroId: string | number | null | undefined,
+  settings: Pick<FamilySettings, "makers">,
+  isGm = false
+): boolean => {
+  if (isGm) return true;
+  const hasId = heroId !== null && heroId !== undefined && heroId !== "";
+  return hasId && settings.makers.includes(String(heroId));
 };
 
 /** "21:00" as the family reads it on the clock face: "9:00 PM" */

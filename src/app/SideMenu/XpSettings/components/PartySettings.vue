@@ -10,6 +10,37 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+      <ion-card class="max-w-2xl" data-cy="maker-settings">
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Makers</ion-label>
+          </ion-item-divider>
+          <ion-item lines="none">
+            <ion-label class="ion-text-wrap">
+              <p>A Maker can draw beasts and suggest quests. A Game Master checks every one before it enters the game.</p>
+            </ion-label>
+          </ion-item>
+          <ion-item v-for="(hero, index) in heroes" :key="hero.id" :lines="index === heroes.length - 1 ? 'none' : undefined">
+            <ion-avatar slot="start">
+              <ion-img :src="$getUserAvatar(hero)" />
+            </ion-avatar>
+            <ion-label>
+              <h2>{{ heroName(hero) }}</h2>
+            </ion-label>
+            <ion-toggle
+              :data-cy="`maker-${hero.id}`"
+              :checked="rules.makers.includes(String(hero.id))"
+              :disabled="!canManage"
+              :aria-label="`${heroName(hero)} is a Maker`"
+              @ionChange="rules.setMaker(String(hero.id), $event.detail.checked)"
+            ></ion-toggle>
+          </ion-item>
+          <ion-item v-if="!heroes.length" lines="none">
+            <ion-label><p>No heroes yet.</p></ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card>
+
       <ion-card class="max-w-2xl">
         <ion-card-content>
           <p>
@@ -52,6 +83,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import {
+  IonAvatar,
   IonButtons,
   IonCard,
   IonCardContent,
@@ -60,16 +92,24 @@ import {
   IonCardTitle,
   IonContent,
   IonHeader,
+  IonImg,
+  IonItem,
+  IonItemDivider,
+  IonLabel,
+  IonList,
   IonPage,
   IonTitle,
+  IonToggle,
   IonToolbar,
 } from "@ionic/vue";
 import RaidWindowPicker from "@/app/Console/MyPortal/party/RaidWindowPicker.vue";
 import { usePartyMembership } from "@/hooks/usePartyMembership";
 import type { HeroPartyMode } from "@/lib/services/party/partyRules";
 import { usePartyStore } from "@/lib/store/stores/party";
+import { useGameRulesStore } from "@/lib/store/stores/gameRules";
 import { useUserStore } from "@/lib/store/stores/user";
-import { canManageFamily } from "@/router/_Guards/gm.guard";
+import { canAccessGameMaster, canManageFamily } from "@/router/_Guards/gm.guard";
+import { heroName } from "@/lib/services/gp/gpGifts";
 import debug from "@/lib/utils/debug";
 import PartyHeroModes from "./PartyHeroModes.vue";
 import PartyOutside from "./PartyOutside.vue";
@@ -83,13 +123,15 @@ const { removeHeroFromParties } = usePartyMembership();
 const items = PARTY_COMING_SOON;
 const leaveNote = ref("");
 
-const heroes = computed<HeroModeRow[]>(() =>
-  userStore.usersAz.map((user: any) => ({
-    id: String(user.id),
-    name: user.name?.nick || user.name?.full || "Hero",
-  }))
-);
-const modes = computed(() => Object.fromEntries(heroes.value.map((hero) => [hero.id, store.modeOf(hero.id)])));
+const rules = useGameRulesStore();
+void rules.load();
+
+/** Only a Game Master picks the Makers: this is a family rule, and a hero's phone cannot change it */
+const canManage = computed(() => canAccessGameMaster(userStore));
+/** Every profile that is not a Game Master; a Game Master can always make things, so they need no switch */
+const heroes = computed(() => Object.values(userStore.users as Record<string, any>).filter((profile) => profile && !profile.isAdult));
+
+const modes = computed(() => Object.fromEntries(heroes.value.map((hero: any) => [String(hero.id), store.modeOf(String(hero.id))])));
 const canEdit = computed(() => canManageFamily(userStore));
 const isReadOnly = computed(() => !canEdit.value);
 
@@ -97,7 +139,8 @@ const isReadOnly = computed(() => !canEdit.value);
 const setMode = async (heroId: string, mode: HeroPartyMode): Promise<void> => {
   store.setMode(heroId, mode);
   const staysHome = mode === "home";
-  const name = heroes.value.find((hero) => hero.id === heroId)?.name ?? "This hero";
+  const hero = heroes.value.find((h: any) => String(h.id) === heroId);
+  const name = hero?.name?.nick || hero?.name?.full || "This hero";
   leaveNote.value = staysHome ? leaveNoteFor(name, await removeHeroFromParties(heroId)) : "";
 };
 

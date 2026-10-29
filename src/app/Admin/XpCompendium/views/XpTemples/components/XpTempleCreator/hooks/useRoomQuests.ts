@@ -119,7 +119,7 @@ export function useRoomQuests(options: UseRoomQuestsOptions) {
   const ensureBeast = async (beastId: string | undefined) => {
     if (!beastId) return;
     try {
-      const owned = (await bestiaryDb.getBeasts()).map((beast: Beast) => beast.id);
+      const owned = (await bestiaryDb.getLiveBeasts()).map((beast: Beast) => beast.id);
       const adopted = beastToAdopt(beastId, owned);
       if (!adopted) return;
       await bestiaryDb.setBeast(adopted);

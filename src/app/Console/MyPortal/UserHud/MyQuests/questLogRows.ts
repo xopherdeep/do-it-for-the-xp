@@ -4,6 +4,7 @@ import type { AppChipSpec } from "@/components/organisms/XpApp/appChips";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
+import { creditLine } from "@/lib/services/creations/creations";
 import { scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import type { QuestListRow, QuestListStatus } from "@/lib/services/quests/QuestList";
 import { questBeastId } from "@/lib/services/temples/questRooms";
@@ -156,7 +157,9 @@ export interface QuestLogRow {
   id: string;
   title: string;
   subtitle: string;
-  /** The tile's picture: the beast's portrait, else its picture, else the quest's own; "" when the tile shows the icon */
+  /** "Suggested by Jack" on a quest a hero suggested and a Game Master approved; absent on every other quest */
+  credit?: string;
+  /** The tile's picture: the beast's own picture, else its library portrait, else the quest's own; "" when the tile shows the icon */
   image: string;
   /** The tile's icon when there is no picture (a Font Awesome name) */
   icon: string;
@@ -185,12 +188,18 @@ export interface QuestLogContext {
   heroNick: string;
   /** The URL of a portrait number, or null (the page's webpack require) */
   portraitUrl: (avatar?: number | null) => string | null;
+  /** A hero's nick by id, "" for one the family does not know (for the credit line) */
+  nickOf: (id: string) => string;
 }
 
 /** One quest list row as the Quest Log app draws it. */
-export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: QuestLogContext): QuestLogRow {
+export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl, nickOf }: QuestLogContext): QuestLogRow {
   const face = beastFaceOf(row.quest, beasts);
-  const image = portraitUrl(face.avatar) || face.picture || row.quest.localImage || row.quest.imageUrl || "";
+  // A kid's own picture of a beast wins over the library portrait it may also carry
+  const image = face.picture || portraitUrl(face.avatar) || row.quest.localImage || row.quest.imageUrl || "";
+  // A quest with a creator but no proposal came from a Game Master's wizard: only a hero's suggestion is credited
+  const wasSuggested = Boolean(row.quest.proposal);
+  const credit = wasSuggested ? creditLine(row.quest, "quest", nickOf) : "";
   const isHeroAlone = row.assigneeName === heroNick;
   const who = isHeroAlone ? "" : row.assigneeName;
   const chips = rewardChips(row.rewards);
@@ -201,6 +210,7 @@ export function toLogRow(row: QuestListRow, { beasts, heroNick, portraitUrl }: Q
     id: row.id,
     title: formatQuestName(row.title),
     subtitle: subtitleOf(row),
+    ...(credit ? { credit } : {}),
     image,
     icon: STATUS_ICONS[row.status],
     status: row.status,
