@@ -65,7 +65,7 @@ export interface WidgetQuestRowPayload {
   title: string;
   /** Epoch ms, so the native side can re-label a stale payload after midnight; null when the quest has no due time */
   dueAt: number | null;
-  /** "6:00pm", "Tomorrow 6:00pm", "Anytime" — what the app itself would show right now */
+  /** "6:00pm", "Tomorrow 6:00pm", "Anytime" - what the app itself would show right now */
   dueLabel: string;
   status: "open" | "overdue" | "later" | "pending" | "done";
   xpReward: number;
@@ -80,7 +80,7 @@ export interface WidgetHeroPayload {
   name: string;
   level: number;
   className: string;
-  /** The avatar slug ("003-gamer"), not a number — profiles store it as a string */
+  /** The avatar slug ("003-gamer"), not a number: profiles store it as a string */
   avatar: string;
   hp: number;
   maxHp: number;

@@ -13,8 +13,8 @@ import { hasWidgetHost, syncWidgetData, type WidgetSyncResult } from "./widgetSy
 export type { WidgetSyncResult };
 
 /**
- * How long a burst of syncs is held. persistUser fires on every stat tick — three of them land in
- * one battle turn — and each sync is a full board read plus a bridge hop into SharedPreferences.
+ * How long a burst of syncs is held. persistUser fires on every stat tick: three of them land in
+ * one battle turn, and each sync is a full board read plus a bridge hop into SharedPreferences.
  */
 export const WIDGET_SYNC_DEBOUNCE_MS = 1500;
 

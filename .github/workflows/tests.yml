@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  CHEMX_VERSION: 26.10.19-530
+  CHEMX_VERSION: 26.10.29-360
 
 jobs:
   # One job, one checkout and one install: Lint runs first so a lint error fails fast, then Verify.

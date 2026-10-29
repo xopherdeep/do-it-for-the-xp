@@ -27,7 +27,7 @@ const nickOf = (user: any): string => {
  * One hero's glanceable state.
  *
  * Stats come from `statsOf` (heroSheet.ts), which is the one place that knows the real
- * nested profile shape — `stats.hp.now`, `stats.xp.next_level`, `stats.gp.wallet`. Reading
+ * nested profile shape: `stats.hp.now`, `stats.xp.next_level`, `stats.gp.wallet`. Reading
  * those flat (`stats.hp`) yields NaN, which serialises to null and leaves every widget
  * showing a hardcoded native default.
  */
@@ -64,7 +64,7 @@ export const extractWidgetHeroPayload = (
   };
 };
 
-/** The rows a hero still has to do, nearest first — `questListFor` has already sorted them. */
+/** The rows a hero still has to do, nearest first: `questListFor` has already sorted them. */
 export const extractWidgetQuestPayload = (
   rows: QuestListRow[],
   limit: number = MAX_WIDGET_QUESTS

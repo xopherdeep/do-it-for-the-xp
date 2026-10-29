@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-  CHEMX_VERSION: 26.10.19-530
+  CHEMX_VERSION: 26.10.29-360
 
 jobs:
   build-mobile:
