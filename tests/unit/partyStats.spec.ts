@@ -2,6 +2,7 @@ import {
   calculatePartyStreak,
   formatPartyActivityLine,
   formatTime,
+  heroesFinishedOn,
   nicknameOf,
   partyActivityFeed,
   partyStreak,
@@ -246,6 +247,37 @@ describe("partyStats", () => {
       expect(formatTime("2026-10-13T11:45:00Z", NOW)).toBe("15m ago");
       expect(formatTime("2026-10-13T09:00:00Z", NOW)).toBe("3h ago");
       expect(formatTime("2026-10-11T12:00:00Z", NOW)).toBe("2d ago");
+    });
+  });
+
+  describe("heroesFinishedOn", () => {
+    const DAY = "2026-10-28";
+    const done = (userId: string, completedAt: string, status = "approved"): QuestLogEntryLike => ({ userId, completedAt, status });
+    const local = (hour: number, day = 28): string => new Date(2026, 9, day, hour, 0, 0).toISOString();
+
+    it("lists each hero with an approved chore that day, once, in the order they finished", () => {
+      const entries = [done("ben", local(9)), done("ana", local(10)), done("ben", local(11))];
+      expect(heroesFinishedOn(entries, DAY)).toEqual(["ben", "ana"]);
+    });
+
+    it("leaves out chores that are held, rejected or from another day", () => {
+      const entries = [
+        done("ana", local(9), "pending"),
+        done("ben", local(9), "rejected"),
+        done("cam", local(9, 27)),
+        done("dev", local(9)),
+      ];
+      expect(heroesFinishedOn(entries, DAY)).toEqual(["dev"]);
+    });
+
+    it("trusts an entry's own day key over its time", () => {
+      const entries: QuestLogEntryLike[] = [{ userId: "ana", status: "approved", completedAt: local(9, 27), dayKey: DAY }];
+      expect(heroesFinishedOn(entries, DAY)).toEqual(["ana"]);
+    });
+
+    it("skips empty rows and entries with no hero or no time", () => {
+      const entries = [null, undefined, { status: "approved", completedAt: local(9) }, { userId: "ana", status: "approved" }];
+      expect(heroesFinishedOn(entries, DAY)).toEqual([]);
     });
   });
 });

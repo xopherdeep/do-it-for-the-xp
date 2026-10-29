@@ -57,6 +57,7 @@ import { requestPersistentStorage } from '@/lib/services/core/persistentStorage'
 import { createPinia } from 'pinia';
 import { useProStore } from '@/lib/store/stores/pro';
 import { listenForStreakChests } from '@/lib/services/streaks/StreakService';
+import { listenForRaidStrikes } from '@/lib/services/party/strikeCapture';
 
 // Capacitor (the phone apps)
 import { Capacitor } from '@capacitor/core';
@@ -221,6 +222,9 @@ function readyRouterMountApp() {
   // Streak chests: paid whenever a quest pays and a run reaches 3, 7, 14, 30 days
   listenForStreakChests();
 
+  // Raids: every paid quest strikes the household's raid (and any party raid the hero is in)
+  listenForRaidStrikes();
+
   // Family registration from the phone apps comes back through the app's own address
   listenForTownHallReturn();
 
@@ -269,7 +273,7 @@ import('@/lib/engine/core/dungeons/importAllTemples').then(({ ensureBuiltInTempl
 // E2E seam, development builds only: the Cypress suite seeds every store from a backup file and
 // signs a hero in without driving the whole onboarding flow (tests/e2e/support/commands.js).
 if (process.env.NODE_ENV !== 'production') {
-  Promise.all([import('./lib/services/core/BackupService'), import('./lib/utils/e2eProjectSeam')]).then(([{ backupService }, { projectTowerSeam }]) => {
+  Promise.all([import('./lib/services/core/BackupService'), import('./lib/utils/e2eProjectSeam'), import('./lib/utils/e2ePartySeam')]).then(([{ backupService }, { projectTowerSeam }, { partySeam }]) => {
     (window as any).__xp = {
       restoreBackup: (backup: unknown) => backupService.restoreBackup(backup as any),
       // Restoring a backup is Game Master only, so a spec signs in as a throwaway Game Master first.
@@ -289,6 +293,8 @@ if (process.env.NODE_ENV !== 'production') {
       getUser: (userId: string) => JSON.parse(JSON.stringify(useUserStore().users[userId] ?? null)),
       // Reads and claims for the project tower walk (tests/e2e/specs/project-tower.spec.js)
       ...projectTowerSeam(),
+      // A worn-down raid and a chore claimed as a hero, for the party walk (tests/e2e/specs/party.spec.js)
+      ...partySeam(),
     };
   });
 }

@@ -21,7 +21,7 @@ export interface DialogMessage {
   note?: string;
 }
 
-const escapeHtml = (text: string): string =>
+export const escapeHtml = (text: string): string =>
   text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

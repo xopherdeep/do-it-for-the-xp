@@ -45,7 +45,7 @@
           <!-- Quick Actions -->
           <ion-buttons slot="end">
             <ion-button
-              v-if="canManage"
+              v-if="canManage && isHome"
               fill="clear"
               color="primary"
               aria-label="Link phone"
@@ -83,8 +83,8 @@
         >
           <ion-icon :icon="personAddOutline" slot="start" color="primary" class="text-xl" />
           <ion-label color="primary">
-            <h2><strong>Add Hero / Invite Family</strong></h2>
-            <p>Create a hero profile or link a kid's phone</p>
+            <h2><strong>{{ isHome ? "Add Hero / Invite Family" : "Invite a family" }}</strong></h2>
+            <p>{{ isHome ? "Create a hero profile or link a kid's phone" : "Share this party's code with a friend's Game Master" }}</p>
           </ion-label>
         </ion-item>
       </ion-item-group>
@@ -113,6 +113,8 @@ import type { PartyMember } from "@/lib/services/party/partyStats";
 interface PartyRosterProps {
   members: PartyMember[];
   canManage?: boolean;
+  /** The household's own party. False in a party with other families: their heroes have no phone of ours to link, and inviting is sharing the party's code */
+  isHome?: boolean;
 }
 
 interface PartyRosterEmits {
@@ -125,6 +127,7 @@ interface PartyRosterEmits {
 
 withDefaults(defineProps<PartyRosterProps>(), {
   canManage: true,
+  isHome: true,
 });
 
 const emit = defineEmits<PartyRosterEmits>();

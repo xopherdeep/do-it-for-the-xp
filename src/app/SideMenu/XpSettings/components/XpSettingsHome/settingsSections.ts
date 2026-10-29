@@ -41,10 +41,9 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: "party",
         title: "Party",
-        description: "Play together with other families.",
+        description: "Raids together, and who may join parties with other families.",
         icon: require("@/assets/icons/collaboration.png"),
         route: "/xp-settings/party",
-        soon: true,
       },
     ],
   },
