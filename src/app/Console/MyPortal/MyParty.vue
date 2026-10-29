@@ -39,7 +39,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide">
+    <ion-content :fullscreen="true" class="rpg-box bg-slide party-content">
       <!-- The panel that forms a party or asks to join one by a code -->
       <party-form-join
         v-if="isNewParty"
@@ -100,7 +100,7 @@
     </ion-content>
 
     <!-- The fixed words and the party switcher, at the foot of the screen where a thumb reaches -->
-    <ion-footer>
+    <ion-footer class="party-footer">
       <party-preset-bar v-if="showWords" :party-id="activePartyId" :hero-id="senderHeroId" />
       <party-switcher :parties="parties" :active="activePartyId" @select="activePartyId = $event" />
     </ion-footer>

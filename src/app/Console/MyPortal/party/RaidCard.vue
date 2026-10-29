@@ -10,7 +10,7 @@
 
     <div class="raid-card__health">
       <progress class="raid-card__hp" :value="summary.hp" :max="healthMax" aria-label="Beast health"></progress>
-      <span data-cy="raid-hp">{{ summary.hp }} / {{ summary.maxHp }}</span>
+      <span class="raid-card__readout" data-cy="raid-hp">{{ summary.hp }} / {{ summary.maxHp }}</span>
     </div>
 
     <ol class="raid-card__ledger">
@@ -146,6 +146,14 @@ const againLabel = computed(() => {
 
 .raid-card__hp {
   @include party-meter(var(--gs-danger));
+  flex: 1;
+  min-width: 0;
+}
+
+// The number stays on one line; the bar takes what is left
+.raid-card__readout {
+  flex: none;
+  white-space: nowrap;
 }
 
 .raid-card__ledger {
