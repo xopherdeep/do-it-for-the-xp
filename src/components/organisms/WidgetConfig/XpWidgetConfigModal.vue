@@ -256,8 +256,8 @@ const handleSyncNow = async () => {
 
 <style scoped lang="scss">
 .xp-widget-config-content {
-  --background: #0f121d;
-  color: #ffffff;
+  --background: rgb(15, 18, 29);
+  color: rgb(255, 255, 255);
 }
 
 .guide-steps {
@@ -265,7 +265,7 @@ const handleSyncNow = async () => {
   padding-left: 1.25rem;
   line-height: 1.6;
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: rgb(203, 213, 225);
 }
 
 .widget-mockup {
@@ -279,24 +279,24 @@ const handleSyncNow = async () => {
   transition: all 0.2s ease;
 
   &.theme--earthbound {
-    background: #18233c;
-    border: 3px solid #4a75a0;
+    background: rgb(24, 35, 60);
+    border: 3px solid rgb(74, 117, 160);
   }
   &.theme--gameboy {
-    background: #0f380f;
-    border: 3px solid #306230;
+    background: rgb(15, 56, 15);
+    border: 3px solid rgb(48, 98, 48);
   }
   &.theme--lava {
-    background: #2b0d0d;
-    border: 3px solid #b71c1c;
+    background: rgb(43, 13, 13);
+    border: 3px solid rgb(183, 28, 28);
   }
   &.theme--dungeon {
-    background: #121214;
-    border: 3px solid #424242;
+    background: rgb(18, 18, 20);
+    border: 3px solid rgb(66, 66, 66);
   }
   &.theme--gold {
-    background: #261c02;
-    border: 3px solid #ffb300;
+    background: rgb(38, 28, 2);
+    border: 3px solid rgb(255, 179, 0);
   }
 }
 
@@ -315,11 +315,11 @@ const handleSyncNow = async () => {
 .mockup-name {
   font-weight: bold;
   font-size: 1.1rem;
-  color: #ffd84a;
+  color: rgb(255, 216, 74);
 }
 
 .mockup-badge {
-  background: #2d3748;
+  background: rgb(45, 55, 72);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -328,7 +328,7 @@ const handleSyncNow = async () => {
 
 .mockup-class {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: rgb(148, 163, 184);
 }
 
 .mockup-bar-row {
@@ -341,27 +341,27 @@ const handleSyncNow = async () => {
 .bar-label {
   font-weight: bold;
   width: 20px;
-  &.hp-label { color: #10b981; }
-  &.mp-label { color: #3b82f6; }
+  &.hp-label { color: rgb(16, 185, 129); }
+  &.mp-label { color: rgb(59, 130, 246); }
 }
 
 .mockup-bar {
   flex: 1;
   height: 8px;
-  background: #334155;
+  background: rgb(51, 65, 85);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  &.hp-fill { background: #10b981; }
-  &.mp-fill { background: #3b82f6; }
+  &.hp-fill { background: rgb(16, 185, 129); }
+  &.mp-fill { background: rgb(59, 130, 246); }
 }
 
 .bar-val {
   font-size: 0.75rem;
-  color: #cbd5e1;
+  color: rgb(203, 213, 225);
 }
 
 .mockup-footer {
@@ -372,8 +372,8 @@ const handleSyncNow = async () => {
   font-size: 0.8rem;
 }
 
-.gp-text { color: #ffd700; }
-.streak-text { color: #ff6d00; }
+.gp-text { color: rgb(255, 215, 0); }
+.streak-text { color: rgb(255, 109, 0); }
 
 .mockup-streak {
   text-align: center;
@@ -385,23 +385,23 @@ const handleSyncNow = async () => {
 .streak-num {
   font-size: 2.2rem;
   font-weight: bold;
-  color: #ff6d00;
+  color: rgb(255, 109, 0);
   line-height: 1;
 }
 
 .streak-caption {
   font-size: 0.75rem;
   font-weight: bold;
-  color: #cbd5e1;
+  color: rgb(203, 213, 225);
 }
 
 .multiplier-badge {
   margin-top: 4px;
-  background: #2d3748;
+  background: rgb(45, 55, 72);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.75rem;
-  color: #ffd700;
+  color: rgb(255, 215, 0);
   font-weight: bold;
 }
 
@@ -414,7 +414,7 @@ const handleSyncNow = async () => {
 .vault-title {
   font-size: 0.8rem;
   font-weight: bold;
-  color: #ffd700;
+  color: rgb(255, 215, 0);
 }
 
 .vault-row {
@@ -429,19 +429,19 @@ const handleSyncNow = async () => {
 
 .vault-caption {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: rgb(148, 163, 184);
 }
 
 .vault-val {
   font-size: 1rem;
   font-weight: bold;
-  &.gold { color: #ffd700; }
-  &.green { color: #10b981; }
+  &.gold { color: rgb(255, 215, 0); }
+  &.green { color: rgb(16, 185, 129); }
 }
 
 .vault-hint {
   font-size: 0.65rem;
-  color: #64748b;
+  color: rgb(100, 116, 139);
 }
 
 .mockup-dock {
@@ -451,17 +451,17 @@ const handleSyncNow = async () => {
 
 .dock-btn {
   flex: 1;
-  background: #2d3748;
+  background: rgb(45, 55, 72);
   padding: 10px 4px;
   border-radius: 4px;
   text-align: center;
   font-size: 0.75rem;
   font-weight: bold;
-  color: #ffffff;
-  border: 1px solid #4a5568;
+  color: rgb(255, 255, 255);
+  border: 1px solid rgb(74, 85, 104);
 
-  &.accent { color: #ffd84a; }
-  &.green { color: #10b981; }
-  &.gold { color: #ffd700; }
+  &.accent { color: rgb(255, 216, 74); }
+  &.green { color: rgb(16, 185, 129); }
+  &.gold { color: rgb(255, 215, 0); }
 }
 </style>
