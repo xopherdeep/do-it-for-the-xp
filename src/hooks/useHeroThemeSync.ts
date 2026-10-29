@@ -1,6 +1,7 @@
 import { watch } from "vue";
 import { sameTheme, themeOf } from "@/lib/services/profile/heroTheme";
 import { isPreviewingLook } from "@/lib/services/profile/lookPreview";
+import { queueWidgetSync } from "@/lib/services/widgets/widgetSyncTrigger";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -27,6 +28,7 @@ export function useHeroThemeSync(): void {
       // The sound player reads its own copy of the choice
       const fx = audioStore.bgm?.$fx;
       if (fx) fx.theme = { ...fx.theme, ...theme };
+      queueWidgetSync();
     },
     { immediate: true }
   );
@@ -40,6 +42,7 @@ export function useHeroThemeSync(): void {
       const current = themeOf(hero());
       const isChangeToKeep = Boolean(heroId) && !(current && sameTheme(current, { rpg, ui }));
       if (isChangeToKeep) userStore.setThemeChoice(heroId as string, { rpg, ui });
+      queueWidgetSync();
     }
   );
 }

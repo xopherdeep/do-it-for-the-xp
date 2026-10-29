@@ -1,4 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
+import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import {
   queueWidgetSync,
@@ -163,6 +164,17 @@ describe("syncAllWidgets", () => {
     expect(Object.keys(payload.heroes).sort()).toEqual(["hero-1", "hero-2"]);
     expect(payload.heroes["hero-2"].maxHp).toBe(12);
     expect(payload.questsByHero["hero-2"]).toEqual([]);
+  });
+
+  it("includes the active RPG game style from the game store", async () => {
+    familyStore([maxPower()], maxPower());
+    const gameStore = useGameStore();
+    gameStore.theme.rpg = "dragonquest";
+
+    await syncAllWidgets();
+
+    const payload = lastPayload();
+    expect(payload.gameStyle).toBe("dragonquest");
   });
 
   it("counts the hero's streak from the quest log, and sends 0 when the Game Master switched streaks off", async () => {

@@ -5,6 +5,7 @@ import { sentBackFor } from "@/lib/services/quests/sentBack";
 import { questListFor } from "@/lib/services/quests/QuestList";
 import { dailyStreak } from "@/lib/services/streaks/dailyStreak";
 import { useGameRulesStore } from "@/lib/store/stores/gameRules";
+import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { buildWidgetSyncPayload, type WidgetHeroInput } from "./widgetDataExtractor";
@@ -97,7 +98,10 @@ export const syncAllWidgets = async (): Promise<WidgetSyncResult> => {
       heroes.push(await heroInputFor(user, entries, rules.streaks, now));
     }
 
-    return await syncWidgetData(buildWidgetSyncPayload(primaryHeroId, heroes, now.getTime()));
+    const gameStore = useGameStore();
+    const gameStyle = gameStore.theme?.rpg || "earthbound";
+
+    return await syncWidgetData(buildWidgetSyncPayload(primaryHeroId, heroes, now.getTime(), gameStyle));
   } catch (error) {
     debug.error("[WidgetSync] could not build the widget payload", error);
     return { ok: false, reason: "could not read the family's quests" };

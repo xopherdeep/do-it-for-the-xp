@@ -119,4 +119,6 @@ export interface WidgetSyncPayload {
   heroes: Record<string, WidgetHeroPayload>;
   questsByHero: Record<string, WidgetQuestRowPayload[]>;
   timestamp: number;
+  /** Active RPG game style (earthbound, finalFantasy, chronoTrigger, etc.) */
+  gameStyle?: string;
 }

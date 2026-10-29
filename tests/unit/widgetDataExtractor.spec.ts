@@ -261,6 +261,11 @@ describe("buildWidgetSyncPayload", () => {
     expect(payload.questsByHero["hero-2"]).toEqual([]);
   });
 
+  it("includes gameStyle when provided", () => {
+    const payload = buildWidgetSyncPayload("hero-1", [{ user: maxProfile() }], SYNCED_AT, "finalfantasy");
+    expect(payload.gameStyle).toBe("finalfantasy");
+  });
+
   it("skips a profile with no id: no widget could ever bind to it", () => {
     const payload = buildWidgetSyncPayload("hero-1", [{ user: maxProfile({ id: "" }) }, { user: maxProfile() }], SYNCED_AT);
 

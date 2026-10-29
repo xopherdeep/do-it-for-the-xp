@@ -39,6 +39,15 @@ public class XpWidgetPlugin extends Plugin {
         SharedPreferences prefs = WidgetThemeHelper.getPrefs(context);
         prefs.edit().putString(WidgetThemeHelper.KEY_WIDGET_DATA, data).apply();
 
+        try {
+            org.json.JSONObject root = new org.json.JSONObject(data);
+            String gameStyle = root.optString("gameStyle", null);
+            if (gameStyle != null && !gameStyle.isEmpty()) {
+                prefs.edit().putString(WidgetThemeHelper.KEY_GAME_STYLE, gameStyle).apply();
+            }
+        } catch (org.json.JSONException ignored) {
+        }
+
         triggerAllWidgetUpdates(context);
 
         JSObject ret = new JSObject();

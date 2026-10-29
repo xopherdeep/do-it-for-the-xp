@@ -102,14 +102,16 @@ export interface WidgetHeroInput {
 export const buildWidgetSyncPayload = (
   primaryHeroId: string,
   heroes: WidgetHeroInput[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  gameStyle?: string
 ): WidgetSyncPayload => {
   const payload: WidgetSyncPayload = {
     version: WIDGET_PAYLOAD_VERSION,
     primaryHeroId: String(primaryHeroId ?? ""),
     heroes: {},
     questsByHero: {},
-    timestamp: now
+    timestamp: now,
+    ...(gameStyle ? { gameStyle } : {})
   };
 
   for (const entry of heroes) {
