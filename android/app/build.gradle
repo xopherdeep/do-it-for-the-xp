@@ -1,10 +1,23 @@
 apply plugin: 'com.android.application'
+import groovy.json.JsonSlurper
+
+// Read version from package.json (stamped by CI: YY.M.D-minutes)
+def packageJson = new JsonSlurper().parse(file('../../package.json'))
+def appVersion = packageJson.version ?: '1.0.0'
+// Convert "YY.M.D-minutes" to integer versionCode
+def versionParts = appVersion.replace('-', '.').split('\\.').collect { it.toInteger() }
+def computedVersionCode = versionParts.size() >= 4
+    ? versionParts[0] * 10000000 + versionParts[1] * 100000 + versionParts[2] * 1000 + versionParts[3]
+    : 1
 
 android {
 
     packagingOptions {
         resources {
             excludes += ['META-INF/NOTICE', 'META-INF/LICENSE']
+        }
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
     namespace "com.forthexp.doit"
@@ -13,8 +26,8 @@ android {
         applicationId "com.forthexp.doit"
         minSdkVersion 21
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode computedVersionCode
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

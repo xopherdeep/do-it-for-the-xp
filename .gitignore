@@ -27,6 +27,7 @@ npm-debug.log*
 /coverage
 /dist
 /dist-dlc
+/.wrangler
 /node_modules
 /platforms
 /plugins

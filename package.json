@@ -24,6 +24,7 @@
     "assets:analyze": "node scripts/package-mobile-assets.mjs --dry-run",
     "cap:sync:mobile": "npx cap sync && node scripts/package-mobile-assets.mjs --prune-only",
     "build:mobile": "ionic build && npx cap sync && node scripts/package-mobile-assets.mjs",
+    "assets:upload:r2": "node scripts/upload-dlc-r2.mjs",
     "typecheck": "tsc --noEmit",
     "test": "sh -c 'if [ \"$1\" = \"--\" ]; then shift; fi; exec jest \"$@\"' sh",
     "test:unit": "vue-cli-service test:unit",

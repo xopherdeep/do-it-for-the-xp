@@ -2,6 +2,11 @@
   <ion-app :id="rpgTheme">
     <xp-studio-splash v-if="studioSplash" @done="studioSplash = false" />
     <xp-audio-permission-modal />
+    <xp-dlc-modal
+      :is-open="isDlcModalOpen"
+      @close="isDlcModalOpen = false"
+      @completed="isDlcModalOpen = false"
+    />
     <ion-split-pane content-id="main-content" @click="clickSound">
       <xp-side-menu 
         v-show="!battleState('active')" 
