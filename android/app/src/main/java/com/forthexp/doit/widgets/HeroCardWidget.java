@@ -3,71 +3,74 @@ package com.forthexp.doit.widgets;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.widget.RemoteViews;
 import com.forthexp.doit.R;
 import com.forthexp.doit.widgets.core.BaseXpWidgetProvider;
+import com.forthexp.doit.widgets.core.WidgetPayload;
 import com.forthexp.doit.widgets.core.WidgetThemeHelper;
-import org.json.JSONObject;
 
 public class HeroCardWidget extends BaseXpWidgetProvider {
 
+    /** Shown in place of a number the app has not synced yet, so an empty widget never claims 0 */
+    private static final String NO_VALUE = "--";
+
+    @Override
+    protected int providerSlot() {
+        return 1;
+    }
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        SharedPreferences prefs = WidgetThemeHelper.getPrefs(context);
-        String rawData = prefs.getString(WidgetThemeHelper.KEY_WIDGET_DATA, null);
-
-        String name = "Hero";
-        int level = 1;
-        String jobClass = "Novice";
-        int hp = 20, maxHp = 20;
-        int mp = 10, maxMp = 10;
-        int gp = 0;
-        int streak = 0;
-
-        if (rawData != null) {
-            try {
-                JSONObject root = new JSONObject(rawData);
-                if (root.has("hero")) {
-                    JSONObject hero = root.getJSONObject("hero");
-                    name = hero.optString("name", "Hero");
-                    level = hero.optInt("level", 1);
-                    jobClass = hero.optString("className", "Novice");
-                    hp = hero.optInt("hp", 20);
-                    maxHp = Math.max(1, hero.optInt("maxHp", 20));
-                    mp = hero.optInt("mp", 10);
-                    maxMp = Math.max(1, hero.optInt("maxMp", 10));
-                    gp = hero.optInt("gp", 0);
-                    streak = hero.optInt("streak", 0);
-                }
-            } catch (Exception ignored) {}
-        }
-
         for (int appWidgetId : appWidgetIds) {
+            WidgetPayload payload = WidgetPayload.read(context, appWidgetId);
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_hero_card);
 
             int themeBg = WidgetThemeHelper.getWidgetThemeDrawable(context, appWidgetId);
             views.setInt(R.id.widget_root, "setBackgroundResource", themeBg);
 
-            views.setTextViewText(R.id.widget_hero_name, name);
-            views.setTextViewText(R.id.widget_hero_level, "LV " + level);
-            views.setTextViewText(R.id.widget_hero_class, jobClass);
+            if (payload.hasData()) {
+                int hp = Math.max(0, payload.heroInt("hp", 0));
+                int maxHp = Math.max(1, payload.heroInt("maxHp", 1));
+                int mp = Math.max(0, payload.heroInt("mp", 0));
+                int maxMp = Math.max(1, payload.heroInt("maxMp", 1));
+                int streak = payload.heroInt("streak", 0);
 
-            int hpPercent = (int) Math.min(100, Math.max(0, ((float) hp / maxHp) * 100));
-            views.setProgressBar(R.id.widget_bar_hp, 100, hpPercent, false);
-            views.setTextViewText(R.id.widget_text_hp, hp + "/" + maxHp);
+                views.setTextViewText(R.id.widget_hero_name, payload.heroString("name", "Hero"));
+                views.setTextViewText(R.id.widget_hero_level, "LV " + payload.heroInt("level", 1));
+                views.setTextViewText(R.id.widget_hero_class, payload.heroString("className", "Novice"));
 
-            int mpPercent = (int) Math.min(100, Math.max(0, ((float) mp / maxMp) * 100));
-            views.setProgressBar(R.id.widget_bar_mp, 100, mpPercent, false);
-            views.setTextViewText(R.id.widget_text_mp, mp + "/" + maxMp);
+                views.setProgressBar(R.id.widget_bar_hp, 100, percent(hp, maxHp), false);
+                views.setTextViewText(R.id.widget_text_hp, hp + "/" + maxHp);
 
-            views.setTextViewText(R.id.widget_hero_gp, gp + " GP");
-            views.setTextViewText(R.id.widget_hero_streak, streak + (streak == 1 ? " Day Streak" : " Days Streak"));
+                views.setProgressBar(R.id.widget_bar_mp, 100, percent(mp, maxMp), false);
+                views.setTextViewText(R.id.widget_text_mp, mp + "/" + maxMp);
 
-            PendingIntent launchIntent = createLaunchPendingIntent(context, "com.forthexp.doit://my-portal", appWidgetId);
+                views.setTextViewText(R.id.widget_hero_gp, payload.heroInt("gp", 0) + " GP");
+                views.setTextViewText(R.id.widget_hero_streak, streak + (streak == 1 ? " Day Streak" : " Days Streak"));
+            } else {
+                views.setTextViewText(R.id.widget_hero_name, "Hero");
+                views.setTextViewText(R.id.widget_hero_level, "LV " + NO_VALUE);
+                views.setTextViewText(R.id.widget_hero_class, "Tap to begin");
+
+                views.setProgressBar(R.id.widget_bar_hp, 100, 0, false);
+                views.setTextViewText(R.id.widget_text_hp, NO_VALUE);
+
+                views.setProgressBar(R.id.widget_bar_mp, 100, 0, false);
+                views.setTextViewText(R.id.widget_text_mp, NO_VALUE);
+
+                views.setTextViewText(R.id.widget_hero_gp, NO_VALUE + " GP");
+                views.setTextViewText(R.id.widget_hero_streak, NO_VALUE);
+            }
+
+            PendingIntent launchIntent = createLaunchPendingIntent(
+                context, "com.forthexp.doit://my-portal", requestCode(appWidgetId, 0));
             views.setOnClickPendingIntent(R.id.widget_root, launchIntent);
 
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
+    }
+
+    private static int percent(int value, int max) {
+        return (int) Math.min(100, Math.max(0, ((float) value / max) * 100));
     }
 }

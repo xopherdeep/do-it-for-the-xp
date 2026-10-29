@@ -47,6 +47,10 @@
             <ion-label>{{ theme.name }}</ion-label>
           </ion-segment-button>
         </ion-segment>
+        <p class="theme-note">
+          Saved on this device as the family default. Widgets already sitting on your home screen keep the
+          palette they were placed with until each one gets a picker of its own.
+        </p>
       </ion-card-content>
     </ion-card>
 
@@ -70,6 +74,9 @@
           </ion-segment-button>
           <ion-segment-button value="vault">
             <ion-label>Gold Vault</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="board">
+            <ion-label>Quest Board</ion-label>
           </ion-segment-button>
           <ion-segment-button value="dock">
             <ion-label>Action Dock</ion-label>
@@ -112,7 +119,7 @@
           <div v-else-if="isStreakSelected" class="mockup-streak">
             <span class="streak-num">{{ currentStreak }}</span>
             <span class="streak-caption">DAY STREAK</span>
-            <span class="multiplier-badge">{{ streakMultiplier }}x XP</span>
+            <span class="multiplier-badge">{{ nextChestLabel }}</span>
           </div>
 
           <!-- Vault Mockup -->
@@ -129,6 +136,19 @@
               </div>
             </div>
             <span class="vault-hint">Tap to visit ATM</span>
+          </div>
+
+          <!-- Quest Board Mockup -->
+          <div v-else-if="isBoardSelected" class="mockup-board">
+            <div class="board-header">
+              <span class="board-title">QUEST BOARD</span>
+              <span class="board-count">3 open</span>
+            </div>
+            <div v-for="row in boardSample" :key="row.title" class="board-row">
+              <span class="board-quest">{{ row.title }}</span>
+              <span class="board-due" :class="{ late: row.late }">{{ row.dueLabel }}</span>
+              <span class="board-xp">+{{ row.xp }} XP</span>
+            </div>
           </div>
 
           <!-- Dock Mockup -->
@@ -176,18 +196,40 @@ import {
   IonSegmentButton,
   IonLabel,
   IonSpinner,
-  modalController
+  modalController,
+  toastController
 } from "@ionic/vue";
+import { play$fx } from "@/assets/fx";
+import { useHeroStreak } from "@/hooks/useHeroStreak";
+import { statsOf } from "@/lib/services/multiplayer/heroSheet";
 import { WIDGET_THEMES, type WidgetThemeId } from "@/lib/services/widgets/widgetCatalog";
 import { useUserStore } from "@/lib/store/stores/user";
 import { syncAllWidgets } from "@/lib/services/widgets/widgetSyncTrigger";
 import { reloadAllWidgets } from "@/lib/services/widgets/widgetSync";
-import { streakMultiplierFor } from "@/lib/services/widgets/widgetDataExtractor";
+import { nextChest } from "@/lib/services/streaks/streakChests";
+import debug from "@/lib/utils/debug";
+
+/**
+ * The palette the family picked, remembered on this device (widgets sit on this device's home
+ * screen). It is a default and not a repaint: restyling a placed widget needs its appWidgetId,
+ * which only a configure activity can hand over, and there is none yet.
+ */
+const THEME_STORAGE_KEY = "xp-widget-theme";
+
+const storedTheme = (): WidgetThemeId => {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return saved && saved in WIDGET_THEMES ? (saved as WidgetThemeId) : "earthbound";
+  } catch (error) {
+    debug.warn("widgets: could not read the saved theme", error);
+    return "earthbound";
+  }
+};
 
 const emit = defineEmits(["dismiss"]);
 
 const userStore = useUserStore();
-const activeTheme = ref<WidgetThemeId>("earthbound");
+const activeTheme = ref<WidgetThemeId>(storedTheme());
 const selectedWidgetType = ref("hero");
 const isSyncing = ref(false);
 
@@ -196,38 +238,57 @@ const availableThemes = computed(() => Object.values(WIDGET_THEMES));
 const isHeroSelected = computed(() => selectedWidgetType.value === "hero");
 const isStreakSelected = computed(() => selectedWidgetType.value === "streak");
 const isVaultSelected = computed(() => selectedWidgetType.value === "vault");
+const isBoardSelected = computed(() => selectedWidgetType.value === "board");
 const isDockSelected = computed(() => selectedWidgetType.value === "dock");
 
 const activeWidgetTitle = computed(() => {
   if (isHeroSelected.value) return "Hero Status Card (2x2)";
   if (isStreakSelected.value) return "Streak Flame Altar (1x1)";
   if (isVaultSelected.value) return "Gold Vault Kiosk (2x1)";
+  if (isBoardSelected.value) return "Quest Board (4x2)";
   if (isDockSelected.value) return "Quick Action Dock (4x1)";
   return "Widget Preview";
 });
 
 const hero = computed(() => userStore.currentUser || {});
-const heroStats = computed(() => hero.value.stats || {});
+// The profile is nested (stats.hp.now, stats.gp.wallet); statsOf is the one reader that knows it
+const heroStats = computed(() => statsOf(hero.value));
+const heroId = computed(() => String(hero.value.id ?? ""));
+const { streak } = useHeroStreak(heroId);
 
-const heroName = computed(() => hero.value.nickname || hero.value.name?.nick || "Hero");
-const heroLevel = computed(() => Number(heroStats.value.level ?? 1));
+const heroName = computed(() => hero.value.name?.nick || hero.value.name?.first || "Hero");
+const heroLevel = computed(() => heroStats.value.level);
 const heroClass = computed(() => String(hero.value.jobClass || "Novice"));
-const heroHp = computed(() => Number(heroStats.value.hp ?? 20));
-const heroMaxHp = computed(() => Math.max(1, Number(heroStats.value.maxHp ?? 20)));
-const heroMp = computed(() => Number(heroStats.value.mp ?? 10));
-const heroMaxMp = computed(() => Math.max(1, Number(heroStats.value.maxMp ?? 10)));
-const heroGp = computed(() => Number(heroStats.value.gp ?? 0));
-const currentStreak = computed(() => Number(heroStats.value.streak ?? 0));
-const streakMultiplier = computed(() => streakMultiplierFor(currentStreak.value).toFixed(1));
-const savingsGp = computed(() => Number(heroStats.value.savings ?? 0));
+const heroHp = computed(() => heroStats.value.hp);
+const heroMaxHp = computed(() => Math.max(1, heroStats.value.maxHp));
+const heroMp = computed(() => heroStats.value.mp);
+const heroMaxMp = computed(() => Math.max(1, heroStats.value.maxMp));
+const heroGp = computed(() => heroStats.value.gp);
+const currentStreak = computed(() => streak.value.current);
+const nextChestLabel = computed(() => {
+  const days = nextChest(currentStreak.value).day - currentStreak.value;
+  return days === 1 ? "Chest tomorrow" : `Chest in ${Math.max(0, days)}`;
+});
+const savingsGp = computed(() => Math.max(0, Math.round(Number(hero.value.stats?.gp?.savings) || 0)));
 
 const hpPercent = computed(() => Math.min(100, Math.max(0, (heroHp.value / heroMaxHp.value) * 100)));
 const mpPercent = computed(() => Math.min(100, Math.max(0, (heroMp.value / heroMaxMp.value) * 100)));
 
+/** The board widget draws the hero's own rows; this modal loads none, so the preview shows the shape */
+const boardSample = [
+  { title: "Make the bed", dueLabel: "8:00am", late: true, xp: 100 },
+  { title: "Dishes", dueLabel: "6:00pm", late: false, xp: 100 },
+  { title: "Water plants", dueLabel: "Anytime", late: false, xp: 50 }
+];
+
 const handleThemeChange = (event: CustomEvent) => {
   const selected = event.detail.value as WidgetThemeId;
-  if (selected) {
-    activeTheme.value = selected;
+  if (!selected) return;
+  activeTheme.value = selected;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, selected);
+  } catch (error) {
+    debug.warn("widgets: could not remember the theme", error);
   }
 };
 
@@ -243,11 +304,31 @@ const handleDismiss = () => {
   emit("dismiss");
 };
 
+const sayHowItWent = async (message: string): Promise<void> => {
+  const toast = await toastController.create({
+    message,
+    position: "middle",
+    cssClass: "rpg-toast",
+    buttons: [{ text: "OK", role: "cancel" }]
+  });
+  await toast.present();
+};
+
+// The button used to claim success whatever happened, so a widget full of stale numbers looked synced
 const handleSyncNow = async () => {
+  play$fx("select");
   isSyncing.value = true;
   try {
-    await syncAllWidgets([], currentStreak.value, savingsGp.value);
+    const result = await syncAllWidgets();
+    if (!result.ok) {
+      // The reason names a bridge or a store ("not android"): it belongs in the log, not in front of a kid
+      debug.warn("widgets: the sync was refused", result.reason);
+      play$fx("no");
+      await sayHowItWent("The home screen would not take the update.");
+      return;
+    }
     await reloadAllWidgets();
+    await sayHowItWent("Your home screen widgets are up to date.");
   } finally {
     isSyncing.value = false;
   }
@@ -266,6 +347,13 @@ const handleSyncNow = async () => {
   line-height: 1.6;
   font-size: 0.9rem;
   color: rgb(203, 213, 225);
+}
+
+.theme-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: #94a3b8;
 }
 
 .widget-mockup {
@@ -442,6 +530,60 @@ const handleSyncNow = async () => {
 .vault-hint {
   font-size: 0.65rem;
   color: rgb(100, 116, 139);
+}
+
+.mockup-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.board-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.board-count {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  border-top: 1px solid #2d3748;
+  padding-top: 4px;
+}
+
+.board-quest {
+  flex: 1;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-due {
+  font-size: 0.65rem;
+  color: #94a3b8;
+
+  &.late { color: #ff6d00; }
+}
+
+.board-xp {
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #10b981;
 }
 
 .mockup-dock {
