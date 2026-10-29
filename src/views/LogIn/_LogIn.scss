@@ -138,7 +138,37 @@ h1 {
     }
   }
   
-  // Settings button
+  // Settings link
+  .settings-link {
+    --color: rgba(255, 255, 255, 0.7);
+    --color-hover: rgb(255, 255, 255);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: -0.25rem;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    i {
+      margin-right: 0.5rem;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    &:hover {
+      --color: rgb(255, 255, 255);
+      transform: translateY(-1px);
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+
+      i {
+        animation: rotate 2s infinite linear;
+      }
+    }
+  }
+
+  // Settings button (legacy compatibility)
   .settings-button {
     --background: rgba(30, 30, 60, 0.5);
     --border-radius: 8px;
@@ -157,21 +187,6 @@ h1 {
       i {
         animation: rotate 2s infinite linear;
       }
-    }
-  }
-  
-  // Menu toggle
-  .menu-toggle {
-    opacity: 0;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    animation: fadeIn 0.5s ease-in forwards;
-    animation-delay: 3.7s;
-    
-    &:hover {
-      color: white;
-      text-decoration: underline;
     }
   }
   
@@ -238,7 +253,8 @@ h1 {
     animation-delay: 3.1s; // Increased delay
   }
   
-  &.settings-button {
+  &.settings-button,
+  &.settings-link {
     animation: fadeInUp 0.8s ease-out forwards;
     animation-delay: 3.4s; // Increased delay
   }
@@ -364,31 +380,7 @@ ion-content::part(scroll) {
   }
 }
 
-// Settings modal styling
-.settings-modal {
-  .settings-card {
-    background: rgba(20, 20, 40, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
 
-    .card-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: white;
-      padding: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-      i {
-        color: var(--ion-color-primary);
-      }
-    }
-
-    .close-button {
-      margin-top: 1rem;
-    }
-  }
-}
 
 // Additional ion-modal styling
 ion-modal {
@@ -460,15 +452,4 @@ ion-modal {
     transform: translateY(0);
   }
 }
-// Always-visible menu button, top left (the start screen has no header)
-.menu-corner {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
-  left: 8px;
-  z-index: 10;
 
-  ion-button {
-    --color: rgba(255, 255, 255, 0.85);
-    font-size: 1.4rem;
-  }
-}

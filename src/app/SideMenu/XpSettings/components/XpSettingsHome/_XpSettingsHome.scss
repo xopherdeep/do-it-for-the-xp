@@ -44,13 +44,17 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    margin: 28px 16px 24px;
+    margin: 0 10px 30px 10px;
     padding: 14px 16px;
     border-radius: 12px;
     text-decoration: none;
     color: #fff6dc;
     background:
-      radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+      radial-gradient(
+        ellipse at 15% 0%,
+        rgba(255, 255, 255, 0.16),
+        transparent 55%
+      ),
       linear-gradient(140deg, #4a2178, #150a2c);
     box-shadow:
       0 0 0 2px #0b0610,
@@ -67,7 +71,12 @@
     height: 44px;
     border-radius: 50%;
     font-size: 22px;
-    background: radial-gradient(circle at 35% 30%, #fff2a8, #e8b030 55%, #7a4a10);
+    background: radial-gradient(
+      circle at 35% 30%,
+      #fff2a8,
+      #e8b030 55%,
+      #7a4a10
+    );
     box-shadow: 0 0 0 2px #0b0610;
     --fa-primary-color: #7a4a10;
     --fa-secondary-color: #0b0610;

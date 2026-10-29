@@ -6,38 +6,38 @@ name: Deploy to Cloudflare Pages
 # variable CLOUDFLARE_ACCOUNT_ID.
 
 on:
-  push:
-    branches: [master]
+  workflow_run:
+    workflows: ["Autobump"]
+    branches: [main, master]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
-  group: pages-deploy-master
+  group: pages-deploy-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
   deployments: write
 
 jobs:
   deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
-      # The build's version is YY.M.D-MINS (UTC date, minutes since midnight UTC), the same shape the
-      # old auto-bump commits used. It is stamped into package.json in this checkout only and never
-      # committed: master is protected (Verify required), so a bot push to it is refused. The app reads
-      # the version from package.json at build time (vue.config.js, the start page, Support).
-      - name: Stamp the version
+      - name: Read version
         id: version
         run: |
-          version="$(date -u +%y.%-m.%-d)-$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))"
-          npm pkg set version="$version"
+          version=$(node -p "require('./package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building version $version"
+          echo "Deploying version $version"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -68,18 +68,13 @@ jobs:
         if: env.HAS_CLOUDFLARE_TOKEN == 'true'
         # wrangler-action installs Wrangler with the repo's package manager, which pnpm refuses here,
         # so call Wrangler 4 through npx like the manual deploys do.
-        run: npx --yes wrangler@4 pages deploy dist --project-name do-it-for-the-xp --branch master --commit-hash "$GITHUB_SHA"
+        run: |
+          commit_hash=$(git rev-parse HEAD)
+          target_branch="${{ github.event.workflow_run.head_branch || 'master' }}"
+          npx --yes wrangler@4 pages deploy dist --project-name do-it-for-the-xp --branch "$target_branch" --commit-hash "$commit_hash"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-
-      # Tags are not covered by the master protection, so the deployed commit still gets its vYY.M.D-MINS tag.
-      - name: Tag the deployed commit
-        if: env.HAS_CLOUDFLARE_TOKEN == 'true'
-        continue-on-error: true
-        run: |
-          git tag "v${{ steps.version.outputs.version }}" "$GITHUB_SHA"
-          git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Explain a skipped deploy
         if: env.HAS_CLOUDFLARE_TOKEN != 'true'

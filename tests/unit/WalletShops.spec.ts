@@ -79,6 +79,11 @@ describe("walletOfferAt", () => {
     expect(walletOfferAt("plains", undefined, 3)?.status).toBe("for-sale");
     expect(walletOfferAt("plains", null, undefined)?.status).toBe("locked");
   });
+
+  it("offers the 1500 wallet to a hero carrying a legacy sub-500 wallet", () => {
+    const ware = walletOfferAt("plains", { limit: 100 }, 3);
+    expect(ware).toMatchObject({ status: "for-sale", offer: { limit: 1500 } });
+  });
 });
 
 describe("shopHintFor", () => {
@@ -93,6 +98,10 @@ describe("shopHintFor", () => {
 
   it("steps an odd old limit up to the next real tier", () => {
     expect(shopHintFor({ limit: 4000 })).toBe("A bigger wallet is sold at the Wrecked Ship on the Islands.");
+  });
+
+  it("steps an old limit below the base size up to the first shop", () => {
+    expect(shopHintFor({ limit: 100 })).toBe("A bigger wallet is sold at the Pegasus Ranch in the Plains.");
   });
 
   it("says so when the hero carries the biggest wallet", () => {

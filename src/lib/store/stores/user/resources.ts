@@ -18,6 +18,9 @@ export function applyGpChange(existingStats: any, payload: GpPayload): any {
   const hasNoPurse = !userStats.gp;
   if (hasNoPurse) userStats.gp = { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT };
 
+  const hasOutdatedLimit = typeof userStats.gp.limit === 'number' && userStats.gp.limit < DEFAULT_WALLET_LIMIT;
+  if (hasOutdatedLimit) userStats.gp.limit = DEFAULT_WALLET_LIMIT;
+
   const hasWalletChange = wallet !== undefined;
   if (hasWalletChange) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
   const hasSavingsChange = savings !== undefined;

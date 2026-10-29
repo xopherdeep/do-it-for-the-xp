@@ -42,4 +42,20 @@ describe("ProfileDb and PINs", () => {
     expect(isSealed((storage.data.get("dad") as { passcode: string }).passcode)).toBe(true);
     expect(JSON.stringify(Array.from(storage.data.values()))).not.toContain("1234");
   });
+
+  it("migrates legacy wallet limits below DEFAULT_WALLET_LIMIT on read", async () => {
+    const storage = memoryStorage({
+      oldHero: { id: "oldHero", passcode: "", stats: { gp: { wallet: 40, limit: 100 } } },
+      normalHero: { id: "normalHero", passcode: "", stats: { gp: { wallet: 50, limit: 1500 } } },
+    });
+    const db = new ProfileDb(storage as any);
+    const profiles = await db.getAll();
+    const oldHero = profiles.find((p: any) => p.id === "oldHero");
+    const normalHero = profiles.find((p: any) => p.id === "normalHero");
+    expect(oldHero.stats.gp.limit).toBe(500);
+    expect(normalHero.stats.gp.limit).toBe(1500);
+
+    const storedOldHero = storage.data.get("oldHero") as any;
+    expect(storedOldHero.stats.gp.limit).toBe(500);
+  });
 });

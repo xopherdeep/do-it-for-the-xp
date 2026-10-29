@@ -1,0 +1,28 @@
+name: Autobump
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: autobump-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  get-version:
+    if: "${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]') }}"
+    uses: HalloftheGods/.github/.github/workflows/calculate-version.yml@main
+
+  bump:
+    needs: get-version
+    permissions:
+      contents: write
+    uses: HalloftheGods/.github/.github/workflows/wp-plugin-update.yml@main
+    with:
+      version_string: ${{ needs.get-version.outputs.version_string }}

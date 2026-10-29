@@ -7,6 +7,7 @@ import { Entry, SpecialStats } from '@/lib/utils/User/stats';
 import debug from '@/lib/utils/debug';
 import { emitHeroRemoved } from '@/lib/services/multiplayer/gameSignals';
 import { hasUnsealedSecrets, sealProfileSecrets } from '@/lib/services/profile/pinSeal';
+import { DEFAULT_WALLET_LIMIT } from '@/lib/services/gp/wallet';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {
@@ -78,25 +79,52 @@ export interface NewProfileForm {
   autoRead?: boolean;
 }
 
+/** Whether a profile carries a legacy wallet limit below the base game tier */
+export const hasOutdatedWalletLimit = (profile: Record<string, any> | undefined): boolean => {
+  const limit = Number(profile?.stats?.gp?.limit);
+  return Number.isFinite(limit) && limit > 0 && limit < DEFAULT_WALLET_LIMIT;
+};
+
+/** Ensure the profile's wallet limit is at least the starting tier */
+export const normalizeProfileWallet = <T extends Record<string, any>>(profile: T): T => {
+  const needsFix = hasOutdatedWalletLimit(profile);
+  if (!needsFix) return profile;
+  return {
+    ...profile,
+    stats: {
+      ...profile.stats,
+      gp: {
+        ...profile.stats?.gp,
+        limit: DEFAULT_WALLET_LIMIT,
+      },
+    },
+  };
+};
+
 export class ProfileDb extends DbStorageApi {
   /** Every profile write goes through here, so a PIN is never stored as typed */
   public async set(key: string, value: any) {
     await super.set(key, sealProfileSecrets(value))
   }
 
-  /** Profiles saved before PINs were sealed (or restored from an old backup) are sealed as they are read */
+  /** Profiles saved before PINs were sealed or with outdated wallet limits are migrated as they are read */
   public async getAll() {
     const profiles = await super.getAll()
-    const unsealed = profiles.filter((profile) => hasUnsealedSecrets(profile))
-    const hasUnsealed = unsealed.length > 0
-    if (hasUnsealed) {
-      for (const profile of unsealed) {
+    const needsMigration = profiles.filter(
+      (profile) => hasUnsealedSecrets(profile) || hasOutdatedWalletLimit(profile)
+    )
+    const hasMigration = needsMigration.length > 0
+    if (hasMigration) {
+      for (const profile of needsMigration) {
         const hasId = Boolean(profile.id)
-        if (hasId) await this.set(profile.id, profile)
+        if (hasId) {
+          const migrated = normalizeProfileWallet(sealProfileSecrets(profile))
+          await this.set(profile.id, migrated)
+        }
       }
       await this.backupProfiles()
     }
-    return profiles.map((profile) => sealProfileSecrets(profile))
+    return profiles.map((profile) => sealProfileSecrets(normalizeProfileWallet(profile)))
   }
 
   public newProfile(profile: NewProfileForm) {

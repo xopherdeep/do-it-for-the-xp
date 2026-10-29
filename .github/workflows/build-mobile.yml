@@ -1,12 +1,14 @@
 name: Build Mobile App & Assets
 
 on:
-  push:
-    branches: [master]
+  workflow_run:
+    workflows: ["Autobump"]
+    branches: [main, master]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
-  group: build-mobile-master
+  group: build-mobile-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -17,16 +19,18 @@ env:
 
 jobs:
   build-mobile:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
-      - name: Stamp the version
+      - name: Read version
         id: version
         run: |
-          version="$(date -u +%y.%-m.%-d)-$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))"
-          npm pkg set version="$version"
+          version=$(node -p "require('./package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Building mobile version $version"
 
@@ -89,7 +93,7 @@ jobs:
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master'
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_run'
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}

@@ -4,9 +4,8 @@
       <ion-toolbar class="rpg-box">
         <ion-title> Settings </ion-title>
         <ion-buttons slot="start">
-          <ion-menu-button
-            @click="$fx.ui[$fx.theme.ui].select.play()"
-          ></ion-menu-button>
+          <xp-back-button default-href="/log-in"></xp-back-button>
+          <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()"></ion-menu-button>
           <ion-icon
             :ios="pizzaOutline"
             :md="pizzaSharp"
@@ -21,8 +20,33 @@
     >
       <xp-backup-nudge v-if="!isKidMode" />
 
+      <!-- XP Pro closes the page, full width -->
+      <router-link
+        :to="proItem.route"
+        class="settings-pro"
+        :data-test="`settings-${proItem.id}`"
+      >
+        <span
+          class="settings-pro__crown"
+          aria-hidden="true"
+        ><i class="fad fa-crown"></i></span>
+        <span class="settings-pro__text">
+          <strong>{{ proItem.title }}</strong>
+          <small>{{ proItem.description }}</small>
+        </span>
+        <i
+          class="fad fa-chevron-right settings-pro__go"
+          aria-hidden="true"
+        ></i>
+      </router-link>
+
       <!-- One panel for each question: who plays, how the game runs, what this phone does, the account -->
-      <ion-card v-for="section in sections" :key="section.id" class="settings-section" :data-section="section.id">
+      <ion-card
+        v-for="section in sections"
+        :key="section.id"
+        class="settings-section"
+        :data-section="section.id"
+      >
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
@@ -41,29 +65,32 @@
               :data-test="`settings-${item.id}`"
               @click="runRow(item)"
             >
-              <ion-img slot="start" class="settings-row__icon" :src="item.icon" alt="" />
+              <ion-img
+                slot="start"
+                class="settings-row__icon"
+                :src="item.icon"
+                alt=""
+              />
               <ion-label class="ion-text-wrap">
                 <h2>{{ item.title }}</h2>
                 <p>{{ item.description }}</p>
               </ion-label>
-              <ion-badge v-if="item.soon" slot="end" color="medium" class="soon-badge">Soon</ion-badge>
+              <ion-badge
+                v-if="item.soon"
+                slot="end"
+                color="medium"
+                class="soon-badge"
+              >Soon</ion-badge>
             </ion-item>
           </ion-item-group>
         </ion-list>
       </ion-card>
 
-      <!-- XP Pro closes the page, full width -->
-      <router-link :to="proItem.route" class="settings-pro" :data-test="`settings-${proItem.id}`">
-        <span class="settings-pro__crown" aria-hidden="true"><i class="fad fa-crown"></i></span>
-        <span class="settings-pro__text">
-          <strong>{{ proItem.title }}</strong>
-          <small>{{ proItem.description }}</small>
-        </span>
-        <i class="fad fa-chevron-right settings-pro__go" aria-hidden="true"></i>
-      </router-link>
-
       <!-- The clerk asks before a kid phone leaves the family -->
-      <xp-reveal-prompt :prompt="prompt" @respond="respond" />
+      <xp-reveal-prompt
+        :prompt="prompt"
+        @respond="respond"
+      />
     </ion-content>
   </ion-page>
 </template>

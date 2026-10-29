@@ -27,6 +27,8 @@ describe("wallet upgrades", () => {
     expect(nextWalletUpgrade({ limit: 6000 })).toEqual({ limit: 12000, minLevel: 15, price: 2400 });
     // an odd limit (an old profile) still steps up to the next tier above it
     expect(nextWalletUpgrade({ limit: 2000 })).toEqual({ limit: 3000, minLevel: 5, price: 600 });
+    // an outdated limit below the starting size steps up to the first real upgrade
+    expect(nextWalletUpgrade({ limit: 100 })).toEqual({ limit: 1500, minLevel: 3, price: 300 });
     expect(nextWalletUpgrade({ limit: WALLET_TIERS[WALLET_TIERS.length - 1].limit })).toBeNull();
   });
 

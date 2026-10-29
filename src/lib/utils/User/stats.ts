@@ -108,7 +108,7 @@ export default class Stats {
       ledger: xp?.ledger,
     };
     this.gp = {
-      limit: gp?.limit || DEFAULT_WALLET_LIMIT,
+      limit: Math.max(Number(gp?.limit) || 0, DEFAULT_WALLET_LIMIT),
       // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
       debt: (Number(gp?.debt) || 0) + Number(debt),
       hospitalBill: Math.max(0, Number(gp?.hospitalBill) || 0),

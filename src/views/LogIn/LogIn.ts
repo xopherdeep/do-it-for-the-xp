@@ -5,10 +5,6 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 // Import package.json for version information
 import packageInfo from '@/../package.json';
 
-import InputSettings from "@/app/SideMenu/XpSettings/components/InputSettings.vue";
-
-import { modalController } from "@ionic/vue";
-
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useAudioStore } from "@/lib/store/stores/audio";
@@ -30,9 +26,6 @@ interface ComponentData {
 export default defineComponent({
   name: "log-in",
   mixins: [ionic],
-  components: {
-    InputSettings,
-  },
   data(): ComponentData {
     return {
       toggleBGDirection: false,
@@ -130,9 +123,8 @@ export default defineComponent({
       // setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
 
-    closeModal(): void {
-      modalController.dismiss();
-      (this as any).play$fx("closePage");
+    openSettings(): void {
+      this.router.push({ name: "xp-settings-home" });
     },
 
     animateLogo(): void {

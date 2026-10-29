@@ -84,7 +84,8 @@ export function walletUpgradePrice(limit: number): number {
 /** The next wallet on sale for this purse, or null when the hero already carries the biggest one. */
 export function nextWalletUpgrade(gp?: GpPurse | null): WalletUpgradeOffer | null {
   const current = walletLimitOf(gp);
-  const next = WALLET_TIERS.find((tier) => tier.limit > current);
+  const floor = Math.max(current, DEFAULT_WALLET_LIMIT);
+  const next = WALLET_TIERS.find((tier) => tier.limit > floor);
   return next ? { ...next, price: walletUpgradePrice(next.limit) } : null;
 }
 
