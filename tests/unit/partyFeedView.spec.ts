@@ -1,4 +1,5 @@
 import { activityOf, heroIdsToday, memberKey, ownHeroIn, rosterOf } from "@/lib/services/party/partyFeedView";
+import { raidFromParty } from "@/lib/services/party/partyWire";
 import type { WireEvent, WireParty } from "@/lib/services/party/partyWire";
 
 /**
@@ -91,6 +92,43 @@ describe("activityOf", () => {
   it("gives each line a stable id, the hero it is about and when it happened", () => {
     const [line] = activityOf([event(4, "strike", ["f1", "ana"], { damage: 30 })], PARTY);
     expect(line).toMatchObject({ id: "p1:4", userId: "f1|ana", nickname: "Ana", completedAt: "2026-10-28T10:04:00Z" });
+  });
+});
+
+describe("raidFromParty", () => {
+  const withRaid: WireParty = {
+    ...PARTY,
+    raid: {
+      id: "r1",
+      beastId: "beast-fluffalo",
+      window: "quick",
+      maxHp: 180,
+      memberCount: 2,
+      startedAt: "2026-10-28T08:00:00Z",
+      endsAt: "2026-10-31T08:00:00Z",
+      hp: 150,
+      status: "active",
+      top: null,
+      last: null,
+      strikes: [{ key: "k1", familyId: "f2", heroId: "ben", damage: 30, day: "2026-10-28", at: "2026-10-28T09:00:00Z" }],
+    },
+  };
+
+  it("reads the party's raid as a raid the app's rules understand, heroes named family|hero", () => {
+    expect(raidFromParty(withRaid)).toEqual({
+      id: "r1",
+      partyId: "p1",
+      beastId: "beast-fluffalo",
+      window: "quick",
+      startedAt: "2026-10-28T08:00:00Z",
+      maxHp: 180,
+      memberIds: ["f1|ana", "f2|ben"],
+      strikes: [{ key: "k1", heroId: "f2|ben", damage: 30, at: "2026-10-28T09:00:00Z" }],
+    });
+  });
+
+  it("is nothing for a party with no raid", () => {
+    expect(raidFromParty(PARTY)).toBeNull();
   });
 });
 

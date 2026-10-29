@@ -1,9 +1,12 @@
 import { onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { usePartyStore } from "@/lib/store/stores/party";
+import { useProStore } from "@/lib/store/stores/pro";
 import debug from "@/lib/utils/debug";
+import { heroIdsToday, memberKey } from "./partyFeedView";
 import { synergyBuff } from "./partyRules";
 import { toDayKey } from "./partyStats";
-import { strikeDamage, type Raid } from "./raidRules";
+import { raidState, strikeDamage, type Raid } from "./raidRules";
+import { flushOutbox } from "./strikeOutbox";
 
 /**
  * Raid strikes from paid chores. Every time a quest pays (a claim paid at once, a Game Master's approval, a battle win)
@@ -24,6 +27,35 @@ const strikeKeyOf = (paid: QuestPaid, now: Date): string => {
 };
 
 /**
+ * Queues a strike for every raid with other families that this hero may strike now, and starts sending. The site counts
+ * the strike (its caps, its health), so nothing is counted here: the raid shows the blow once the site has taken it.
+ */
+const queueOutsideStrikes = (paid: QuestPaid, base: number, now: Date): void => {
+  const store = usePartyStore();
+  const familyId = useProStore().familyId;
+  const day = toDayKey(now);
+  let queued = false;
+  for (const party of store.outside) {
+    const raid = store.raids.find((candidate) => candidate.partyId === party.id && candidate.id === party.raid?.id);
+    const isOurs = party.members.some((member) => member.familyId === familyId && member.heroId === paid.heroId);
+    const isActive = raid ? raidState(raid, now).status === "active" : false;
+    const mayStrike = raid !== undefined && isOurs && isActive;
+    if (!mayStrike) continue;
+    const buff = synergyBuff([...heroIdsToday(party, day), memberKey(familyId, paid.heroId)]);
+    store.queueStrike({
+      raidId: raid.id,
+      key: strikeKeyOf(paid, now),
+      heroId: paid.heroId,
+      damage: Math.round(base * buff),
+      day,
+      at: now.toISOString(),
+    });
+    queued = true;
+  }
+  if (queued) void flushOutbox();
+};
+
+/**
  * Turns one paid quest into a blow on every raid the hero may strike now. The blow is the chore's size, a little harder
  * when other heroes finished chores today too (synergyBuff); the raid trims it to the hero's daily cap. A chore with no
  * size strikes nothing. Waits for the saved raids to load first, so the read can never erase the blow.
@@ -40,6 +72,7 @@ export const recordPaidStrike = async (paid: QuestPaid, now: Date = new Date()):
     const damage = Math.round(base * buff);
     store.strike(raid.id, { key: strikeKeyOf(paid, now), heroId: paid.heroId, damage, at: now.toISOString() });
   }
+  queueOutsideStrikes(paid, base, now);
 };
 
 /** Starts striking on every paid quest. Call once at start-up; returns how to stop. */

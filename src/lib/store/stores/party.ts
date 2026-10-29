@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getPartyDb } from "@/lib/databases/PartyDb";
 import type { MyParties, PartyProblem } from "@/lib/services/party/partyClient";
 import { HOME_PARTY_ID, defaultModeFor, toHeroCard, type HeroPartyMode, type PartyHeroCard } from "@/lib/services/party/partyRules";
-import { cleanPartyState, type PartyState } from "@/lib/services/party/partyState";
+import { cleanPartyState, type PartyState, type QueuedStrike } from "@/lib/services/party/partyState";
 import {
   addStrike,
   raidMaxHp,
@@ -16,7 +16,7 @@ import {
   type RaidWindow,
   type Strike,
 } from "@/lib/services/party/raidRules";
-import type { WireEvent, WireParty, WireRequest } from "@/lib/services/party/partyWire";
+import { raidFromParty, type WireEvent, type WireParty, type WireRequest } from "@/lib/services/party/partyWire";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "./user";
 
@@ -41,6 +41,7 @@ export const usePartyStore = defineStore("party", () => {
   const raids = ref<Raid[]>([]);
   const paid = ref<string[]>([]);
   const defaultWindow = ref<RaidWindow>("standard");
+  const outbox = ref<QueuedStrike[]>([]);
 
   // Parties with other families are the site's to keep: held for the screens, never saved to the device
   const outside = ref<WireParty[]>([]);
@@ -54,6 +55,7 @@ export const usePartyStore = defineStore("party", () => {
     raids: raids.value,
     paid: paid.value,
     defaultWindow: defaultWindow.value,
+    outbox: outbox.value,
   });
 
   function save(): void {
@@ -69,6 +71,7 @@ export const usePartyStore = defineStore("party", () => {
     raids.value = saved.raids;
     paid.value = saved.paid;
     defaultWindow.value = saved.defaultWindow;
+    outbox.value = saved.outbox;
   }
 
   /** Reads the saved record once however often it is asked (a read that failed is tried again); await it before showing raids or striking */
@@ -193,6 +196,38 @@ export const usePartyStore = defineStore("party", () => {
     outside.value = answer.parties;
     incoming.value = answer.incoming;
     outgoing.value = answer.outgoing;
+    cacheRaids(answer.parties);
+  }
+
+  /**
+   * Keeps a copy of each party's raid beside the household's own (so health, state and the reward rules read one way),
+   * the site's copy winning. A raid the party has moved on from stays until the party itself is gone, so loot not yet
+   * claimed can still be claimed. Saved to the device only when a copy changed.
+   */
+  function cacheRaids(parties: WireParty[]): void {
+    const present = new Set(parties.map((party) => party.id));
+    const fresh = parties.map(raidFromParty).filter((raid): raid is Raid => raid !== null);
+    const freshIds = new Set(fresh.map((raid) => raid.id));
+    const stays = (raid: Raid): boolean => (raid.partyId === HOME_PARTY_ID || present.has(raid.partyId)) && !freshIds.has(raid.id);
+    const next = [...raids.value.filter(stays), ...fresh];
+    const isChanged = JSON.stringify(next) !== JSON.stringify(raids.value);
+    if (!isChanged) return;
+    raids.value = next;
+    save();
+  }
+
+  /** Waits to send a strike to the site: once for a raid and key, however often it is queued */
+  function queueStrike(strike: QueuedStrike): void {
+    const isQueued = outbox.value.some((queued) => queued.raidId === strike.raidId && queued.key === strike.key);
+    if (isQueued) return;
+    outbox.value = [...outbox.value, strike];
+    save();
+  }
+
+  /** Takes the queue the sender leaves after a try */
+  function setOutbox(left: QueuedStrike[]): void {
+    outbox.value = left;
+    save();
   }
 
   /** Forgets everything the site said (a family without XP Pro, or one that unlinked, sees no outside parties) */
@@ -236,6 +271,7 @@ export const usePartyStore = defineStore("party", () => {
     raids,
     paid,
     defaultWindow,
+    outbox,
     outside,
     incoming,
     outgoing,
@@ -253,6 +289,8 @@ export const usePartyStore = defineStore("party", () => {
     strike,
     claimReward,
     applyServer,
+    queueStrike,
+    setOutbox,
     clearServer,
     replaceOutside,
     outsideParty,

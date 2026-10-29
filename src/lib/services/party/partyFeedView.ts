@@ -5,10 +5,9 @@
 import { libraryEntryOf } from "@/lib/services/temples/templeQuestRows";
 import { presetText } from "./presets";
 import type { PartyActivityItem, PartyMember } from "./partyStats";
-import type { WireEvent, WireParty } from "./partyWire";
+import { memberKey, type WireEvent, type WireParty } from "./partyWire";
 
-/** A hero of any family, as one string: hero ids are only unique inside a family */
-export const memberKey = (familyId: string, heroId: string): string => `${familyId}|${heroId}`;
+export { memberKey };
 
 /** The members as rows for the Roster tab, the leader marked */
 export const rosterOf = (party: WireParty): PartyMember[] =>

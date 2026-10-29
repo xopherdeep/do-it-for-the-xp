@@ -102,7 +102,73 @@ describe("party store: outside parties", () => {
     expect(store.lastSeq("p1")).toBe(7);
   });
 
-  it("saves none of it to the device", () => {
+  describe("the raids of those parties", () => {
+    const withRaid = (id: string, raidId: string, hp = 150): WireParty =>
+      party(id, {
+        members: [{ familyId: "f1", heroId: "ana", card: { heroId: "ana", nickname: "Ana", level: 3, jobClass: "knight", look: null }, role: "leader", joinedAt: "" }],
+        raid: {
+          id: raidId,
+          beastId: "beast-fluffalo",
+          window: "quick",
+          maxHp: 180,
+          memberCount: 2,
+          startedAt: "2026-10-28T08:00:00Z",
+          endsAt: "2026-10-31T08:00:00Z",
+          hp,
+          status: "active",
+          top: null,
+          last: null,
+          strikes: [{ key: "k1", familyId: "f1", heroId: "ana", damage: 180 - hp, day: "2026-10-28", at: "2026-10-28T09:00:00Z" }],
+        },
+      });
+
+    it("keeps a copy of each party's raid with the household's own, and saves that copy to the device", () => {
+      const store = usePartyStore();
+      store.applyServer({ parties: [withRaid("p1", "r1")], incoming: [], outgoing: [] });
+      expect(store.raidsOf("p1").map((raid) => [raid.id, raid.memberIds, raid.strikes[0].heroId])).toEqual([["r1", ["f1|ana"], "f1|ana"]]);
+      expect(mockSaveState).toHaveBeenCalledWith(expect.objectContaining({ raids: [expect.objectContaining({ id: "r1" })] }));
+    });
+
+    it("replaces a copy with the site's fresher one, and keeps an older raid that is no longer the party's newest", () => {
+      const store = usePartyStore();
+      store.applyServer({ parties: [withRaid("p1", "r1", 150)], incoming: [], outgoing: [] });
+      store.applyServer({ parties: [withRaid("p1", "r1", 90)], incoming: [], outgoing: [] });
+      expect(store.raidsOf("p1")[0].strikes[0].damage).toBe(90);
+      store.applyServer({ parties: [withRaid("p1", "r2", 150)], incoming: [], outgoing: [] });
+      expect(store.raidsOf("p1").map((raid) => raid.id).sort()).toEqual(["r1", "r2"]);
+    });
+
+    it("drops the copies of a party the family is no longer in, and never touches the household's raids", () => {
+      const store = usePartyStore();
+      store.startHomeRaid({ beastId: "b1", window: "quick", memberIds: ["ana", "ben"] });
+      store.applyServer({ parties: [withRaid("p1", "r1")], incoming: [], outgoing: [] });
+      store.applyServer({ parties: [], incoming: [], outgoing: [] });
+      expect(store.raids.map((raid) => raid.partyId)).toEqual(["home"]);
+    });
+  });
+
+  describe("the strike outbox", () => {
+    const item = (key: string, raidId = "r1") => ({ raidId, key, heroId: "ana", damage: 30, day: "2026-10-28", at: "2026-10-28T09:00:00.000Z" });
+
+    it("queues a strike once however often it is queued, and saves the queue", () => {
+      const store = usePartyStore();
+      store.queueStrike(item("k1"));
+      store.queueStrike(item("k1"));
+      store.queueStrike(item("k1", "r2"));
+      expect(store.outbox.map((queued) => [queued.raidId, queued.key])).toEqual([["r1", "k1"], ["r2", "k1"]]);
+      expect(mockSaveState).toHaveBeenLastCalledWith(expect.objectContaining({ outbox: expect.any(Array) }));
+    });
+
+    it("takes the queue the sender leaves, and saves it", () => {
+      const store = usePartyStore();
+      store.queueStrike(item("k1"));
+      store.queueStrike(item("k2"));
+      store.setOutbox([item("k2")]);
+      expect(store.outbox.map((queued) => queued.key)).toEqual(["k2"]);
+    });
+  });
+
+  it("saves none of the party list, requests or events to the device", () => {
     const store = usePartyStore();
     store.applyServer({ parties: [party("p1")], incoming: [request("q1")], outgoing: [] });
     store.appendEvents("p1", [event(1)]);

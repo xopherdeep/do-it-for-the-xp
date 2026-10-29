@@ -21,6 +21,9 @@ jest.mock("@/lib/databases/PartyDb", () => ({
   getPartyDb: () => ({ getState: async () => null, saveState: async () => undefined }),
 }));
 
+const mockFlush = jest.fn();
+jest.mock("@/lib/services/party/strikeOutbox", () => ({ flushOutbox: (...args: unknown[]) => mockFlush(...args) }));
+
 const mockMyParties = jest.fn();
 const mockReadFeed = jest.fn();
 jest.mock("@/lib/services/party/partyClient", () => {
@@ -55,6 +58,7 @@ beforeEach(() => {
   mockPro.isPro = true;
   mockMyParties.mockReset().mockResolvedValue(ANSWER);
   mockReadFeed.mockReset();
+  mockFlush.mockReset().mockResolvedValue(undefined);
 });
 
 describe("usePartyFeed: refresh", () => {
@@ -64,6 +68,15 @@ describe("usePartyFeed: refresh", () => {
     expect(mockMyParties).toHaveBeenCalledWith(mockTownHall.auth);
     expect(usePartyStore().outside.map((p) => p.id)).toEqual(["p1"]);
     expect(feed.problem.value).toBeNull();
+  });
+
+  it("tries the strike outbox again after a good answer, and not after a bad one", async () => {
+    const feed = usePartyFeed();
+    await feed.refresh();
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    mockMyParties.mockRejectedValue(new TownHallError("offline", "no network"));
+    await feed.refresh();
+    expect(mockFlush).toHaveBeenCalledTimes(1);
   });
 
   it("asks nothing of a family without XP Pro, and forgets what it knew", async () => {

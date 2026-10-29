@@ -2,6 +2,7 @@ import { reactive } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { usePartyControls } from "@/hooks/usePartyControls";
 import { usePartyMembership } from "@/hooks/usePartyMembership";
+import { usePartyRaids } from "@/hooks/usePartyRaids";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useUserStore } from "@/lib/store/stores/user";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
@@ -32,6 +33,7 @@ const mockClient = {
   rotateCode: jest.fn(),
   blockCode: jest.fn(),
   sendPreset: jest.fn(),
+  startPartyRaid: jest.fn(),
   myParties: jest.fn(),
 };
 jest.mock("@/lib/services/party/partyClient", () => {
@@ -45,6 +47,7 @@ jest.mock("@/lib/services/party/partyClient", () => {
     rotateCode: (...a: unknown[]) => mockClient.rotateCode(...a),
     blockCode: (...a: unknown[]) => mockClient.blockCode(...a),
     sendPreset: (...a: unknown[]) => mockClient.sendPreset(...a),
+    startPartyRaid: (...a: unknown[]) => mockClient.startPartyRaid(...a),
     myParties: (...a: unknown[]) => mockClient.myParties(...a),
   };
 });
@@ -134,6 +137,17 @@ describe("usePartyActions: forming and joining", () => {
   it("refuses a hero it does not know", async () => {
     expect(await actions().requestJoin("ABCD2345", "nobody")).toEqual({ ok: false, problem: "invalid" });
     expect(mockClient.joinByCode).not.toHaveBeenCalled();
+  });
+});
+
+describe("usePartyActions: raids", () => {
+  it("starts a raid on a library beast and refreshes, or says why the site refused", async () => {
+    mockClient.startPartyRaid.mockResolvedValueOnce({ id: "r1" }).mockRejectedValueOnce(new TownHallError("server", "no", 409, "xp_party_raid_running"));
+    const raids = usePartyRaids();
+    expect(await raids.startRaid("p1", "beast-fluffalo", "quick")).toEqual({ ok: true, value: { id: "r1" } });
+    expect(mockClient.startPartyRaid).toHaveBeenCalledWith(AUTH, "p1", "beast-fluffalo", "quick");
+    expect(mockClient.myParties).toHaveBeenCalledTimes(1);
+    expect(await raids.startRaid("p1", "beast-fluffalo", "quick")).toEqual({ ok: false, problem: "raid-running" });
   });
 });
 

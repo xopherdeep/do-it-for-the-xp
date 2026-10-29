@@ -4,7 +4,10 @@
  * or missing one falls back to a plain default. Pure: no network, no stores.
  */
 import type { PartyHeroCard } from "./partyRules";
-import type { RaidWindow } from "./raidRules";
+import type { Raid, RaidWindow } from "./raidRules";
+
+/** A hero of any family, as one string: hero ids are only unique inside a family */
+export const memberKey = (familyId: string, heroId: string): string => `${familyId}|${heroId}`;
 
 /** A hero of any family: hero ids are only unique inside one family */
 export interface WireRef {
@@ -195,6 +198,30 @@ export const eventFromWire = (value: unknown): WireEvent | null => {
     heroId: typeof source.heroId === "string" ? source.heroId : null,
     data: rec(source.data),
     at: text(source.at),
+  };
+};
+
+/**
+ * The party's raid as a raid the app's rules read (health, caps, state, who is owed the reward): the members are named
+ * family|hero, so a strike by "f2|ben" is the same hero everywhere. Null for a party that has not fought yet.
+ */
+export const raidFromParty = (party: WireParty): Raid | null => {
+  const raid = party.raid;
+  if (!raid) return null;
+  return {
+    id: raid.id,
+    partyId: party.id,
+    beastId: raid.beastId,
+    window: raid.window,
+    startedAt: raid.startedAt,
+    maxHp: raid.maxHp,
+    memberIds: party.members.map((member) => memberKey(member.familyId, member.heroId)),
+    strikes: raid.strikes.map((strike) => ({
+      key: strike.key,
+      heroId: memberKey(strike.familyId, strike.heroId),
+      damage: strike.damage,
+      at: strike.at,
+    })),
   };
 };
 

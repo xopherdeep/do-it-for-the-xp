@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { useTimers } from "@/hooks/useTimers";
 import { myParties, partyProblem, readFeed, type PartyProblem } from "@/lib/services/party/partyClient";
+import { flushOutbox } from "@/lib/services/party/strikeOutbox";
 import { usePartyStore } from "@/lib/store/stores/party";
 import { useProStore } from "@/lib/store/stores/pro";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
@@ -44,6 +45,7 @@ export const usePartyFeed = () => {
     try {
       store.applyServer(await myParties(townHall.auth));
       problem.value = null;
+      void flushOutbox();
     } catch (error) {
       problem.value = partyProblem(error);
     } finally {

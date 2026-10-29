@@ -6,6 +6,17 @@
 import type { HeroPartyMode } from "./partyRules";
 import type { Raid, RaidWindow, Strike } from "./raidRules";
 
+/** A strike waiting to reach the site (a chore finished offline, or before the site answered) */
+export interface QueuedStrike {
+  raidId: string;
+  key: string;
+  heroId: string;
+  damage: number;
+  day: string;
+  /** ISO */
+  at: string;
+}
+
 export interface PartyState {
   heroModes: Record<string, HeroPartyMode>;
   approvedParties: Record<string, string[]>;
@@ -13,6 +24,8 @@ export interface PartyState {
   /** One key per reward paid: "raid:{raidId}:{heroId}" */
   paid: string[];
   defaultWindow: RaidWindow;
+  /** Strikes for raids with other families that the site has not taken yet */
+  outbox: QueuedStrike[];
 }
 
 const MODES: readonly string[] = ["open", "ask", "home"];
@@ -24,6 +37,7 @@ export const emptyPartyState = (): PartyState => ({
   raids: [],
   paid: [],
   defaultWindow: "standard",
+  outbox: [],
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -74,6 +88,13 @@ const cleanRaid = (value: unknown): Raid | null => {
   };
 };
 
+const cleanQueued = (value: unknown): QueuedStrike | null => {
+  const source = isRecord(value) ? value : {};
+  const hasText = isText(source.raidId) && isText(source.key) && isText(source.heroId) && isText(source.day) && isText(source.at);
+  const isQueued = hasText && isCount(source.damage);
+  return isQueued ? (source as unknown as QueuedStrike) : null;
+};
+
 /** A saved record turned into a state the store can use; anything missing or malformed takes its default */
 export const cleanPartyState = (saved: unknown): PartyState => {
   const defaults = emptyPartyState();
@@ -86,5 +107,6 @@ export const cleanPartyState = (saved: unknown): PartyState => {
     raids: raids.filter((raid): raid is Raid => raid !== null),
     paid: textsOf(source.paid),
     defaultWindow: hasWindow ? (source.defaultWindow as RaidWindow) : defaults.defaultWindow,
+    outbox: (Array.isArray(source.outbox) ? source.outbox : []).map(cleanQueued).filter((item): item is QueuedStrike => item !== null),
   };
 };
