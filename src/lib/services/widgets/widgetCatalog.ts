@@ -52,41 +52,71 @@ export const WIDGET_THEMES: Record<WidgetThemeId, WidgetThemeConfig> = {
   }
 };
 
+/**
+ * The payload version the native side reads. Bump it whenever a field the Java
+ * relies on changes shape: `XpWidgetPlugin` keeps the raw JSON in SharedPreferences,
+ * so a widget can wake up holding a payload written by an older build.
+ */
+export const WIDGET_PAYLOAD_VERSION = 2;
+
+/** One quest row as a widget shows it. */
+export interface WidgetQuestRowPayload {
+  id: string;
+  title: string;
+  /** Epoch ms, so the native side can re-label a stale payload after midnight; null when the quest has no due time */
+  dueAt: number | null;
+  /** "6:00pm", "Tomorrow 6:00pm", "Anytime" — what the app itself would show right now */
+  dueLabel: string;
+  status: "open" | "overdue" | "later" | "pending" | "done";
+  xpReward: number;
+  gpReward: number;
+  requiresPhoto: boolean;
+  requiresApproval: boolean;
+}
+
+/** One hero's glanceable state. Every number is already finite: the extractor guarantees it. */
 export interface WidgetHeroPayload {
+  id: string;
   name: string;
   level: number;
+  className: string;
+  /** The avatar slug ("003-gamer"), not a number — profiles store it as a string */
+  avatar: string;
   hp: number;
   maxHp: number;
   mp: number;
   maxMp: number;
   xp: number;
   nextLevelXp: number;
+  /** The wallet */
   gp: number;
+  savings: number;
+  ap: number;
   streak: number;
-  className?: string;
-  avatarNumber?: number;
+  /** The streak day that opens the next chest (streakChests.ts), and what that chest pays */
+  nextChestDay: number;
+  nextChestXp: number;
+  nextChestGp: number;
+  /** questListCounts for this hero, so a widget can show a count without walking the rows */
+  counts: {
+    overdue: number;
+    open: number;
+    later: number;
+    pending: number;
+    done: number;
+  };
 }
 
-export interface WidgetQuestRowPayload {
-  id: string;
-  title: string;
-  dueLabel: string;
-  status: "open" | "overdue" | "later" | "pending" | "done";
-  xpReward: number;
-  gpReward: number;
-  requiresPhoto: boolean;
-}
-
+/**
+ * What the app hands the native widgets. Keyed by hero because the family shares a
+ * tablet: a widget bound to a hero reads `heroes[boundId]`, and one that is not yet
+ * bound falls back to `primaryHeroId` (whoever is signed in).
+ */
 export interface WidgetSyncPayload {
-  hero: WidgetHeroPayload;
-  quests: WidgetQuestRowPayload[];
-  streak: {
-    current: number;
-    multiplier: number;
-  };
-  bank: {
-    wallet: number;
-    savings: number;
-  };
+  version: number;
+  /** The signed-in hero: the fallback for any widget with no hero of its own */
+  primaryHeroId: string;
+  heroes: Record<string, WidgetHeroPayload>;
+  questsByHero: Record<string, WidgetQuestRowPayload[]>;
   timestamp: number;
 }
