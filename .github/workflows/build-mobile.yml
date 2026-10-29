@@ -1,8 +1,10 @@
 name: Build Mobile App & Assets
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Tests"]
     branches: [master]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -12,8 +14,12 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  CHEMX_VERSION: 26.10.19-530
+
 jobs:
   build-mobile:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -47,6 +53,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache ChemX
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-chemx-${{ runner.os }}-${{ env.CHEMX_VERSION }}
+
+      - name: ChemX Verify Gate
+        run: npx --yes "chemx@$CHEMX_VERSION" verify
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Build Web App
         run: pnpm build
