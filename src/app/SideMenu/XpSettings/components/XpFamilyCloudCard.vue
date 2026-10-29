@@ -226,8 +226,8 @@ async function openConflictModal(): Promise<void> {
   }
 
   .mismatch-banner {
-    --background: var(--ion-color-warning-tint, #fff4cc);
-    --color: var(--ion-color-warning-contrast, #222);
+    --background: var(--ion-color-warning-tint, rgba(255, 244, 204, 0.9));
+    --color: var(--ion-color-warning-contrast, rgba(34, 34, 34, 1));
   }
 
   .cloud-card-actions {

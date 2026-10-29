@@ -59,6 +59,8 @@ export interface PowerGroup {
 const byTypeThenName = (a: Ability, b: Ability): number =>
   (TYPE_ORDER[a.type] ?? 2) - (TYPE_ORDER[b.type] ?? 2) || a.name.localeCompare(b.name);
 
+import XpPowerCard from "./components/XpPowerCard.vue";
+
 export default defineComponent({
   props: ["userId"],
   name: "my-abilities",
@@ -66,6 +68,7 @@ export default defineComponent({
     XpLoading,
     XpAppBottomNav,
     XpPowerTimerBar,
+    XpPowerCard,
   },
   mixins: [ionic],
   setup(props) {
@@ -240,6 +243,7 @@ export default defineComponent({
       search,
       visible,
       casting,
+      timerLeftOf,
       cast,
       segmentChanged,
       powerTabs: POWER_TABS,
