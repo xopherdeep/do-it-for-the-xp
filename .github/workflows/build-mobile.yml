@@ -1,0 +1,96 @@
+name: Build Mobile App & Assets
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-mobile-master
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stamp the version
+        id: version
+        run: |
+          version="$(date -u +%y.%-m.%-d)-$(( 10#$(date -u +%H) * 60 + 10#$(date -u +%M) ))"
+          npm pkg set version="$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building mobile version $version"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web App
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Sync and Package Mobile DLC Assets
+        run: |
+          pnpm cap:sync:mobile
+          pnpm assets:pack
+
+      - name: Build Android Debug & Release APKs
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug assembleRelease --no-daemon
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Stage Release Artifacts
+        id: artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp dist-dlc/assets-bundle.zip release-artifacts/
+          cp dist-dlc/manifest.json release-artifacts/
+          cp android/app/build/outputs/apk/debug/*.apk release-artifacts/
+          cp android/app/build/outputs/apk/release/*.apk release-artifacts/ 2>/dev/null || true
+          ls -lh release-artifacts/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-build-v${{ steps.version.outputs.version }}
+          path: release-artifacts/*
+          retention-days: 14
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

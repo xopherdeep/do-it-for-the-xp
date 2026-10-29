@@ -109,7 +109,8 @@ export default defineComponent({
     position: relative;
     min-height: 180px;
     height: 100%;
-    margin: 0;
+    margin: 0 !important;
+    width: 100% !important;
     display: flex;
     flex-direction: column;
     transition: all 0.25s ease;
@@ -118,7 +119,14 @@ export default defineComponent({
 
     &.is-large {
       min-height: 320px;
-      padding: 1rem;
+
+      ion-card-header {
+        padding: 1.5rem 1rem 0.5rem;
+      }
+
+      ion-card-content {
+        padding: 0 1rem 1rem;
+      }
 
       .gm-badge {
         right: -1.1rem;
@@ -222,7 +230,7 @@ export default defineComponent({
   }
 
   ion-card-header {
-    padding-bottom: 0.5rem;
+    padding: 1rem 0.75rem 0.5rem;
   }
 
   .profile-nickname {
@@ -259,8 +267,7 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding-top: 0;
-    padding-bottom: 0.75rem;
+    padding: 0 0.75rem 0.75rem;
   }
 
 

@@ -149,6 +149,7 @@ describe("XpFabUserHud - notification badge on avatar circle", () => {
     userStore.loginUser(userStore.users[HERO_ID]);
     expect(userStore.currentUser.id).toBe(HERO_ID);
 
+    (wrapper.vm as any).showSaveQuitModal = true; // the question is open before it can be answered
     (wrapper.vm as any).confirmSaveQuit();
     (wrapper.vm as any).closeSaveQuitModal();
     await flushPromises();
@@ -164,6 +165,7 @@ describe("XpFabUserHud - notification badge on avatar circle", () => {
     const userStore = useUserStore();
     userStore.loginUser(userStore.users[HERO_ID]);
 
+    (wrapper.vm as any).showSaveQuitModal = true; // the question is open before it can be answered
     (wrapper.vm as any).confirmSaveQuit();
     (wrapper.vm as any).closeSaveQuitModal();
     await flushPromises();
