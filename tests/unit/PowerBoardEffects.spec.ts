@@ -314,10 +314,10 @@ describe("which Powers bend the board", () => {
     }));
     const weekly = (amount: number) => ({ amount, period: "weekly" });
     expect(rows).toEqual([
-      { id: "irl-snooze", description: "Move one quest to tomorrow.", mp: 10, ap: weekly(150), icon: "fad alarm-snooze", position: { x: 100, y: 600 }, boardEffect: "snooze", frequency: "weekly", type: "real-life" },
-      { id: "irl-extra-time", description: "24 more hours on one quest's deadline.", mp: 10, ap: weekly(150), icon: "fad hourglass-half", position: { x: 200, y: 600 }, boardEffect: "extra-time", frequency: "weekly", type: "real-life" },
-      { id: "irl-quiet-day", description: "No ambushes for 24 hours.", mp: 15, ap: weekly(200), icon: "fad eye-slash", position: { x: 300, y: 600 }, boardEffect: "quiet-day", frequency: "weekly", type: "real-life" },
-      { id: "irl-trusted-hour", description: "For one hour, your claims skip the approval queue.", mp: 20, ap: weekly(300), icon: "fad user-shield", position: { x: 400, y: 600 }, boardEffect: "trusted-hour", frequency: "weekly", type: "real-life" },
+      { id: "irl-snooze", description: "Move one quest to tomorrow.", mp: 10, ap: weekly(30), icon: "fad alarm-snooze", position: { x: 100, y: 600 }, boardEffect: "snooze", frequency: "weekly", type: "real-life" },
+      { id: "irl-extra-time", description: "24 more hours on one quest's deadline.", mp: 10, ap: weekly(30), icon: "fad hourglass-half", position: { x: 200, y: 600 }, boardEffect: "extra-time", frequency: "weekly", type: "real-life" },
+      { id: "irl-quiet-day", description: "No ambushes for 24 hours.", mp: 15, ap: weekly(40), icon: "fad eye-slash", position: { x: 300, y: 600 }, boardEffect: "quiet-day", frequency: "weekly", type: "real-life" },
+      { id: "irl-trusted-hour", description: "For one hour, your claims skip the approval queue.", mp: 20, ap: weekly(60), icon: "fad user-shield", position: { x: 400, y: 600 }, boardEffect: "trusted-hour", frequency: "weekly", type: "real-life" },
     ]);
   });
 });

@@ -91,7 +91,7 @@ describe("questsForProject", () => {
       difficulty: 3,
       estimatedMinutes: 25,
       xp: 300,
-      gp: 30,
+      gp: 45,
       ap: 3,
       adventureType: "beast",
       project: { projectId: "spring-cleaning-2027-04-03", floor: "2F", dueOn: "2027-04-08" },
@@ -125,7 +125,7 @@ describe("questsForProject", () => {
   });
 
   it("pays the Fibonacci rewards for the chore's size", () => {
-    expect(questOf(chore({ id: "c", difficulty: 13, assignee: ["dad"] }))).toMatchObject({ difficulty: 13, xp: 1300, gp: 130, ap: 13 });
+    expect(questOf(chore({ id: "c", difficulty: 13, assignee: ["dad"] }))).toMatchObject({ difficulty: 13, xp: 1300, gp: 195, ap: 13 });
   });
 
   it("leaves the beast and the minutes out when the chore has none, so the library and the default clock take over", () => {

@@ -1,4 +1,5 @@
 /** The Fitness pack: movement, food, water and sleep as daily quests for anyone getting in shape */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const FITNESS_PACK = definePack(
@@ -40,11 +41,11 @@ export const FITNESS_PACK = definePack(
       { id: "fit-dont-soda", type: "dont", whatFor: "A sugary drink instead of water", difficulty: 1 },
     ],
     rewards: [
-      reward("fit-reward-smoothie", "Smoothie", "A fresh smoothie after a workout.", 80, "blender"),
-      reward("fit-reward-socks", "New Training Socks", "A fresh pair of sports socks.", 120, "socks"),
-      reward("fit-reward-class", "Drop-in Class", "Try a new class: climbing, yoga, dance or spin.", 300, "running"),
-      reward("fit-reward-gear", "New Workout Gear", "A shirt, shorts or a water bottle of your choice.", 450, "tshirt"),
-      reward("fit-reward-massage", "Massage", "A massage to recover.", 600, "spa"),
+      reward("fit-reward-smoothie", "Smoothie", "A fresh smoothie after a workout.", gpForDollars(8), "blender"), // about $8
+      reward("fit-reward-socks", "New Training Socks", "A fresh pair of sports socks.", gpForDollars(12), "socks"), // about $12
+      reward("fit-reward-class", "Drop-in Class", "Try a new class: climbing, yoga, dance or spin.", gpForDollars(25), "running"), // about $25
+      reward("fit-reward-gear", "New Workout Gear", "A shirt, shorts or a water bottle of your choice.", gpForDollars(40), "tshirt"), // about $40
+      reward("fit-reward-massage", "Massage", "A massage to recover.", gpForDollars(80), "spa"), // about $80
     ],
     powers: [
       "irl-day-off",

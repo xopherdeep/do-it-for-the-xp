@@ -22,10 +22,10 @@ export interface StreakChestLedger {
 }
 
 export const STREAK_CHESTS: readonly StreakChest[] = [
-  { day: 3, xp: 15, gp: 10 },
-  { day: 7, xp: 40, gp: 25 },
-  { day: 14, xp: 80, gp: 50 },
-  { day: 30, xp: 150, gp: 100 },
+  { day: 3, xp: 15, gp: 20 },
+  { day: 7, xp: 40, gp: 50 },
+  { day: 14, xp: 80, gp: 100 },
+  { day: 30, xp: 150, gp: 200 },
 ];
 
 /** After the last chest on the ladder, one more like it every this many days */

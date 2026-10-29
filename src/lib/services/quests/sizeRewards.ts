@@ -14,7 +14,7 @@ const roundedTo = (value: number, multiple: number): number => Math.round(value 
 
 /**
  * What a size pays: one table for the wizard and the packs. Sizes 1, 2 and 3 are the Quick Start pack's own rewards
- * (packSeeds.SEED_REWARDS: Tiny 60 XP / 15 GP, Small 120 / 30, Medium 220 / 60), so a quest made by hand pays the same
+ * (packSeeds.SEED_REWARDS: Tiny 60 XP / 15 GP, Small 120 / 30, Medium 220 / 45), so a quest made by hand pays the same
  * as a quest of that size from a pack. Bigger sizes carry on at Medium's rate per point of difficulty, which keeps
  * every size paying more than the one below it. A size that is no number, or under 1, pays as Tiny.
  */

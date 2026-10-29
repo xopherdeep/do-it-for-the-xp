@@ -1,4 +1,5 @@
 /** The Solo adult habits pack: a grown-up running the game for themselves, from morning routine to money admin */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const SOLO_PACK = definePack(
@@ -45,11 +46,11 @@ export const SOLO_PACK = definePack(
       { id: "solo-dont-impulse", type: "dont", whatFor: "An impulse buy you didn't plan", difficulty: 2 },
     ],
     rewards: [
-      reward("solo-reward-coffee", "Fancy Coffee", "The good coffee from the café.", 60, "coffee"),
-      reward("solo-reward-book", "A New Book", "A book you've been wanting.", 150, "book"),
-      reward("solo-reward-takeout", "Takeout Night", "Order in from your favorite place.", 250, "pizza-slice"),
-      reward("solo-reward-movie", "Night at the Movies", "A movie at the theater, snacks included.", 300, "film"),
-      reward("solo-reward-treat", "Treat Yourself", "Something you've had your eye on.", 600, "gift"),
+      reward("solo-reward-coffee", "Fancy Coffee", "The good coffee from the café.", gpForDollars(6), "coffee"), // about $6
+      reward("solo-reward-book", "A New Book", "A book you've been wanting.", gpForDollars(15), "book"), // about $15
+      reward("solo-reward-takeout", "Takeout Night", "Order in from your favorite place.", gpForDollars(25), "pizza-slice"), // about $25
+      reward("solo-reward-movie", "Night at the Movies", "A movie at the theater, snacks included.", gpForDollars(20), "film"), // about $20
+      reward("solo-reward-treat", "Treat Yourself", "Something you've had your eye on.", gpForDollars(40), "gift"), // about $40
     ],
     powers: [
       "irl-day-off",

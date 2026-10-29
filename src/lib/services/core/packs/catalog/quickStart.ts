@@ -27,17 +27,17 @@ export const QUICK_START_PACK = definePack(
   },
   {
     categories: [{ id: "cat-quick-tonight", name: "Tonight's Quests" }],
-    // Difficulty 2 pays 30 GP each: two chores buy a small treat, all three the movie. A hero claims a quest and
+    // Difficulty 2 pays 30 GP each: two chores (60 GP) buy a dessert, three chores (90 GP) buy the sticker or the movie. A hero claims a quest and
     // the Game Master approves it, as the Quick start screen says, so the pay waits for Approvals.
     quests: [
       { id: "quick-dishes", name: "Banish the Dish Goblin", categoryId: "cat-quick-tonight", beastId: "beast-dish-goblin", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
       { id: "quick-room", name: "Corner the Clutter Chimera", categoryId: "cat-quick-tonight", beastId: "beast-clutter-chimera", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
       { id: "quick-homework", name: "Behead the Homework Hydra", categoryId: "cat-quick-tonight", beastId: "beast-homework-hydra", schedule: "daily", difficulty: 2, requiresApproval: true, timesOfDay: ["evening"] },
     ],
-    // Every price fits the 100 GP a new hero's wallet holds
+    // Every price fits the 500 GP wallet and one evening's 90 GP
     rewards: [
       reward("quick-reward-dessert", "Pick Tonight's Dessert", "You choose what the family has for dessert.", 45, "ice-cream"),
-      preset("reward-frost-treat"),
+      preset("reward-sticker"),
       reward("quick-reward-movie", "Pick the Family Movie", "You choose what everyone watches on movie night.", 90, "film"),
     ],
     // The cheapest timed privileges, there for when the family grows the game past tonight

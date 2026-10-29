@@ -44,8 +44,8 @@ export const heroBandFor = (profile: { isAdult?: unknown; birthday?: unknown }, 
   return age <= 8 ? "little" : "kid";
 };
 
-/** The Fibonacci scale's rewards, as the quest form sets them: d x 100 XP, d x 10 GP, d AP */
-export const rewardsFor = (difficulty: number) => ({ xp: difficulty * 100, gp: difficulty * 10, ap: difficulty });
+/** The Fibonacci scale's rewards, as the quest form sets them: d x 100 XP, d x 15 GP, d AP */
+export const rewardsFor = (difficulty: number) => ({ xp: difficulty * 100, gp: difficulty * 15, ap: difficulty });
 
 /** The Fibonacci slider's steps, ascending: every size a chore can have */
 export const FIBONACCI_STEPS: readonly number[] = [1, 2, 3, 5, 8, 13];
