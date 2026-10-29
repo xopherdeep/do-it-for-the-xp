@@ -6,6 +6,9 @@
  */
 import type { HeroLook } from "@/lib/hero-look/types";
 
+/** The party id of a family's own household party */
+export const HOME_PARTY_ID = "home";
+
 /** Where a hero may go: anywhere (open), only where a Game Master said yes (ask), or nowhere outside the household (home) */
 export type HeroPartyMode = "open" | "ask" | "home";
 
