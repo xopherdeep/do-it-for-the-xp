@@ -1,3 +1,4 @@
+import { flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { emitQuestClaimed, emitQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { listenForRaidStrikes, recordPaidStrike } from "@/lib/services/party/strikeCapture";
@@ -42,7 +43,7 @@ const startedRaid = async () => {
   return { store, raid };
 };
 
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -132,7 +133,14 @@ describe("recordPaidStrike", () => {
 
 describe("recordPaidStrike: a raid with other families", () => {
   const card = (heroId: string, nickname: string) => ({ heroId, nickname, level: 3, jobClass: "knight", look: null });
-  const outsideParty = (over: { status?: "active" | "defeated" | "retreated"; strikers?: [string, string][]; startedAgoMs?: number; members?: [string, string][] } = {}): WireParty => {
+  /** What a case changes about the party it opens: the raid's state, who struck today, how long ago it began, who is in it */
+  interface PartyOptions {
+    status?: "active" | "defeated" | "retreated";
+    strikers?: [string, string][];
+    startedAgoMs?: number;
+    members?: [string, string][];
+  }
+  const outsideParty = (over: PartyOptions = {}): WireParty => {
     const now = Date.now();
     const members = (over.members ?? [["fam-1", "ana"], ["fam-2", "ben"]]).map(([familyId, heroId]) => ({
       familyId,
@@ -251,11 +259,11 @@ describe("listenForRaidStrikes", () => {
     const { store } = await startedRaid();
     const stop = listenForRaidStrikes();
     emitQuestPaid(paid());
-    await flush();
+    await flushPromises();
     expect(store.raids[0].strikes).toHaveLength(1);
     stop();
     emitQuestPaid(paid({ entryId: "e2" }));
-    await flush();
+    await flushPromises();
     expect(store.raids[0].strikes).toHaveLength(1);
   });
 
@@ -263,7 +271,7 @@ describe("listenForRaidStrikes", () => {
     const { store } = await startedRaid();
     const stop = listenForRaidStrikes();
     emitQuestClaimed({ heroId: "ana", questId: "q1", difficulty: 5, requiresApproval: true });
-    await flush();
+    await flushPromises();
     expect(store.raids[0].strikes).toEqual([]);
     stop();
   });
