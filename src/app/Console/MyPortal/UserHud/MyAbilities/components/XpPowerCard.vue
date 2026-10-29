@@ -211,7 +211,7 @@ const onCast = () => {
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--xp-app-surface, #1e1a2b);
+  background: var(--xp-app-surface, rgb(30, 26, 43));
   border: var(--xp-app-section-border, 1px solid rgba(255, 255, 255, 0.08));
   border-radius: var(--xp-app-radius-section, 12px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
@@ -219,11 +219,11 @@ const onCast = () => {
   overflow: hidden;
 
   &.type-real-life {
-    --card-accent: #f0a330;
+    --card-accent: rgb(240, 163, 48);
   }
 
   &.type-in-game {
-    --card-accent: #3a8fe6;
+    --card-accent: rgb(58, 143, 230);
   }
 
   &.is-ready {
@@ -236,7 +236,7 @@ const onCast = () => {
   }
 
   &.is-running {
-    border-color: color-mix(in srgb, #3fbf5f 60%, transparent);
+    border-color: color-mix(in srgb, rgb(63, 191, 95) 60%, transparent);
   }
 }
 
@@ -254,18 +254,18 @@ const onCast = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--xp-app-surface-2, #2a2539);
+  background: var(--xp-app-surface-2, rgb(42, 37, 57));
   border-radius: var(--xp-app-radius-tile, 10px);
   border: var(--xp-app-tile-border, 1px solid rgba(255, 255, 255, 0.08));
 
   .power-icon {
     font-size: 1.55rem;
-    color: var(--card-accent, var(--xp-app-tile-fg, #f7e8a8));
+    color: var(--card-accent, var(--xp-app-tile-fg, rgb(247, 232, 168)));
     transition: transform 0.2s ease;
   }
 
   &.has-glow .power-icon {
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--card-accent, #3a8fe6) 60%, transparent));
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--card-accent, rgb(58, 143, 230)) 60%, transparent));
   }
 }
 
@@ -280,20 +280,20 @@ const onCast = () => {
   align-items: center;
   justify-content: center;
   font-size: 0.65rem;
-  color: #fff;
-  border: 1.5px solid var(--xp-app-surface, #1e1a2b);
+  color: rgb(255, 255, 255);
+  border: 1.5px solid var(--xp-app-surface, rgb(30, 26, 43));
 
   &.locked-badge {
-    background: #64748b;
+    background: rgb(100, 116, 139);
   }
 
   &.running-badge {
-    background: #3fbf5f;
+    background: rgb(63, 191, 95);
     animation: pulse 1.8s infinite;
   }
 
   &.cooling-badge {
-    background: #e08a2e;
+    background: rgb(224, 138, 46);
   }
 }
 
@@ -323,7 +323,7 @@ const onCast = () => {
   font-family: var(--xp-app-font-title);
   font-size: 1.05rem;
   font-weight: 700;
-  color: var(--xp-app-text, #f2eefb);
+  color: var(--xp-app-text, rgb(242, 238, 251));
   letter-spacing: 0.3px;
   text-transform: var(--xp-app-title-transform, none);
   overflow: hidden;
@@ -337,9 +337,9 @@ const onCast = () => {
   font-size: 0.65rem;
   font-weight: 600;
   border-radius: var(--xp-app-radius-chip, 999px);
-  background: color-mix(in srgb, var(--card-accent, #3a8fe6) 18%, transparent);
-  color: var(--card-accent, #7fd0f0);
-  border: 1px solid color-mix(in srgb, var(--card-accent, #3a8fe6) 35%, transparent);
+  background: color-mix(in srgb, var(--card-accent, rgb(58, 143, 230)) 18%, transparent);
+  color: var(--card-accent, rgb(127, 208, 240));
+  border: 1px solid color-mix(in srgb, var(--card-accent, rgb(58, 143, 230)) 35%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -365,7 +365,7 @@ const onCast = () => {
   }
 
   &.mp-tag {
-    color: var(--xp-color-mp, #3880ff);
+    color: var(--xp-color-mp, rgb(56, 128, 255));
   }
 
   &.freq-tag {
@@ -373,7 +373,7 @@ const onCast = () => {
   }
 
   &.timer-tag {
-    color: #3fbf5f;
+    color: rgb(63, 191, 95);
   }
 }
 
@@ -408,7 +408,7 @@ const onCast = () => {
 }
 
 .power-ap-text {
-  color: var(--xp-color-ap, #7fd0f0);
+  color: var(--xp-color-ap, rgb(127, 208, 240));
   font-weight: 700;
   font-family: var(--xp-app-font-title);
   letter-spacing: 0.3px;
@@ -429,10 +429,10 @@ const onCast = () => {
 
 .power-meter-fill {
   height: 100%;
-  background: var(--xp-color-ap, #7fd0f0);
+  background: var(--xp-color-ap, rgb(127, 208, 240));
   border-radius: inherit;
   transition: width 0.35s steps(8);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--xp-color-ap, #7fd0f0) 50%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--xp-color-ap, rgb(127, 208, 240)) 50%, transparent);
 }
 
 .power-cost {
@@ -473,7 +473,7 @@ const onCast = () => {
   justify-content: center;
   border: var(--xp-app-btn-border, 1px solid rgba(255, 255, 255, 0.12));
   border-radius: var(--xp-app-radius-control, 8px);
-  background: var(--xp-app-surface-2, #2a2539);
+  background: var(--xp-app-surface-2, rgb(42, 37, 57));
   color: var(--xp-app-text-dim, rgba(242, 238, 251, 0.5));
   font-family: var(--xp-app-font-title);
   font-size: 0.85rem;
@@ -483,11 +483,11 @@ const onCast = () => {
 
   &.is-active {
     cursor: pointer;
-    background: var(--card-accent, var(--xp-app-accent, #3a8fe6));
-    color: var(--xp-app-on-accent, #f7e8a8);
+    background: var(--card-accent, var(--xp-app-accent, rgb(58, 143, 230)));
+    color: var(--xp-app-on-accent, rgb(247, 232, 168));
     text-shadow: var(--xp-app-on-accent-shadow, none);
-    border-color: color-mix(in srgb, var(--card-accent, #3a8fe6) 80%, #fff);
-    box-shadow: 0 2px 10px color-mix(in srgb, var(--card-accent, #3a8fe6) 40%, transparent);
+    border-color: color-mix(in srgb, var(--card-accent, rgb(58, 143, 230)) 80%, rgb(255, 255, 255));
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--card-accent, rgb(58, 143, 230)) 40%, transparent);
 
     &:hover {
       filter: brightness(1.12);

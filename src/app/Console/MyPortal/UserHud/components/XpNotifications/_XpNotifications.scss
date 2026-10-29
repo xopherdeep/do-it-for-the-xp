@@ -21,16 +21,16 @@
       font-weight: 700;
     }
 
-    &.kind-quest-due :deep(.xp-app-row__tile) { color: var(--ion-color-warning, #f0a330); }
+    &.kind-quest-due :deep(.xp-app-row__tile) { color: var(--ion-color-warning, rgb(240, 163, 48)); }
     &.kind-quest-overdue :deep(.xp-app-row__tile),
     &.kind-rejected :deep(.xp-app-row__tile),
-    &.kind-late-penalty :deep(.xp-app-row__tile) { color: var(--ion-color-danger, #f05a5b); }
+    &.kind-late-penalty :deep(.xp-app-row__tile) { color: var(--ion-color-danger, rgb(240, 90, 91)); }
     &.kind-approved :deep(.xp-app-row__tile),
-    &.kind-purchase :deep(.xp-app-row__tile) { color: var(--ion-color-success, #3fbf5f); }
-    &.kind-level-up :deep(.xp-app-row__tile) { color: var(--ion-color-primary, #3880ff); }
-    &.kind-power-cast :deep(.xp-app-row__tile) { color: var(--xp-color-ap, #7fd0f0); }
-    &.kind-gold :deep(.xp-app-row__tile) { color: var(--ion-color-warning, #d4a017); }
-    &.kind-blood-moon :deep(.xp-app-row__tile) { color: var(--ion-color-danger, #b82d56); }
+    &.kind-purchase :deep(.xp-app-row__tile) { color: var(--ion-color-success, rgb(63, 191, 95)); }
+    &.kind-level-up :deep(.xp-app-row__tile) { color: var(--ion-color-primary, rgb(56, 128, 255)); }
+    &.kind-power-cast :deep(.xp-app-row__tile) { color: var(--xp-color-ap, rgb(127, 208, 240)); }
+    &.kind-gold :deep(.xp-app-row__tile) { color: var(--ion-color-warning, rgb(212, 160, 23)); }
+    &.kind-blood-moon :deep(.xp-app-row__tile) { color: var(--ion-color-danger, rgb(184, 45, 86)); }
   }
 
   .unread-dot {
@@ -126,7 +126,7 @@
     padding: 1px 6px;
     border-radius: var(--xp-app-radius-chip, 999px);
     background: var(--ion-color-danger);
-    color: #fff;
+    color: rgb(255, 255, 255);
     font-size: 0.65rem;
     font-weight: 700;
   }

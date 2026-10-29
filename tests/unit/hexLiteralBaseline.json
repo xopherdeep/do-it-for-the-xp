@@ -1,5 +1,5 @@
 {
-  "total": 1541,
+  "total": 1536,
   "files": {
     "src/app/Admin/XpApprovals/components/ApprovalClaimRow.vue": 3,
     "src/app/Admin/XpApprovals/components/ApprovalPhoto.vue": 11,
@@ -78,7 +78,6 @@
     "src/app/Console/MyPortal/HomeTown/TownHall/_TownHall.scss": 6,
     "src/app/Console/MyPortal/HomeTown/TownHall/components/TownHallCompose.vue": 4,
     "src/app/Console/MyPortal/MyHome/_MyHome.scss": 1,
-    "src/app/Console/MyPortal/UserHud/MyAbilities/_MyAbilities.scss": 2,
     "src/app/Console/MyPortal/UserHud/MyGoldPoints/_MyGoldPoints.scss": 5,
     "src/app/Console/MyPortal/UserHud/MyInventory/_MyInventory.scss": 1,
     "src/app/Console/MyPortal/UserHud/MyQuests/_MyQuests.scss": 7,
@@ -94,7 +93,6 @@
     "src/app/Console/MyPortal/UserHud/components/XpGroundedChip.vue": 6,
     "src/app/Console/MyPortal/UserHud/components/XpHudBar.vue": 6,
     "src/app/Console/MyPortal/UserHud/components/XpMainHud.vue": 5,
-    "src/app/Console/MyPortal/UserHud/components/XpNotifications/_XpNotifications.scss": 3,
     "src/app/Console/MyPortal/UserHud/components/XpPurseBar.vue": 8,
     "src/app/Console/MyPortal/UserHud/components/XpStatSelectorModal.vue": 2,
     "src/app/Console/MyPortal/UserHud/components/XpStreakChip.vue": 25,
