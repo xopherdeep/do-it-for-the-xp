@@ -2,7 +2,7 @@
 import './publicPath'
 
 // FRAMEWORK LIBS
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { IonicVue } from '@ionic/vue';
 
 // PLUGINS
@@ -34,6 +34,7 @@ import appConfig from "./app.config"
 
 // ROUTER & STORE
 import { createAppRouter as useRouter } from './router';
+import type { Router } from 'vue-router';
 
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
@@ -119,6 +120,46 @@ function listenForTownHallReturn() {
     .catch((error) => debug.warn('The Town Hall return is unavailable', error));
 }
 
+/** How long a widget tap waits for a hero to sign in before the app keeps the screen it landed on. */
+const WIDGET_TAP_WAIT_MS = 15000;
+
+// Phone apps: a tap on a home-screen widget opens the app at one of its own addresses (see widgetLinks.ts).
+// Registered once, beside the Town Hall's listener; both hear every address and each one takes only its own.
+function listenForWidgetLinks(router: Router) {
+  if (!Capacitor.isNativePlatform()) return;
+  import('@/lib/services/widgets/widgetLinks')
+    .then(({ heroPath, listenForWidgetLink }) =>
+      listenForWidgetLink((destination) => {
+        const userStore = useUserStore();
+        // A widget on the home screen knows nothing about the family: the tap belongs to whoever is signed in
+        const open = (userId: string | number) =>
+          router
+            .push(heroPath(destination, String(userId)))
+            .catch((error) => debug.warn('A widget tap could not be followed', error));
+
+        const signedIn = userStore.currentUser?.id;
+        if (signedIn) {
+          void open(signedIn);
+          return;
+        }
+
+        // A cold start is what a widget is for, and the address lands before App.vue has read the roster, so
+        // there is nobody to open it for yet. Hold the tap for the hero who signs in; if the app only ever
+        // reaches the start screen, let it go rather than yank the family off it minutes later.
+        const stopWaiting = watch(
+          () => userStore.currentUser?.id,
+          (hero) => {
+            if (!hero) return;
+            stopWaiting();
+            void open(hero);
+          }
+        );
+        setTimeout(stopWaiting, WIDGET_TAP_WAIT_MS);
+      })
+    )
+    .catch((error) => debug.warn('The widget links are unavailable', error));
+}
+
 
 function readyRouterMountApp() {
   // WordPress sends the parent back with the new password in the address: it leaves the address bar and the history
@@ -182,6 +223,9 @@ function readyRouterMountApp() {
 
   // Family registration from the phone apps comes back through the app's own address
   listenForTownHallReturn();
+
+  // Home-screen widgets open the app at the screen the tap meant
+  listenForWidgetLinks(router);
 
   // Initialize the AbilitySystem
   const abilitiesDb = new AbilitiesDb(abilitiesStorage);

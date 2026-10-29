@@ -31,6 +31,7 @@ import XpQuestRowTrailing from "./components/XpQuestRowTrailing.vue";
 import { questLogActions } from "./questLogActions";
 import type { QuestLogActionId } from "./questLogActions";
 import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
+import { QUICK_TASK_QUERY } from "@/lib/services/widgets/widgetLinks";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
@@ -96,12 +97,15 @@ export default defineComponent({
       landed: "",
       // the linked quest has been looked for (once, so closing its card does not reopen it)
       linkedQuestChecked: false,
+      // the home-screen "+" has been honoured (once, so dismissing the sheet does not reopen it)
+      quickTaskLinkChecked: false,
     };
   },
   mixins: [ionic],
   watch: {
     isLoading() {
       this.openLinkedQuest();
+      this.openQuickTaskFromLink();
     },
     // Another notification's link while this page is open
     taskId() {
@@ -184,6 +188,18 @@ export default defineComponent({
   },
   methods: {
     // The board has loaded: open the quest the link points at, if it is still there
+    // The Quick Dock's "+" lands here carrying QUICK_TASK_QUERY. Open the sheet once, then drop the
+    // query: without that, going back to the board would reopen it.
+    openQuickTaskFromLink() {
+      const [param, value] = Object.entries(QUICK_TASK_QUERY)[0];
+      const isAsked = String(this.$route?.query?.[param] ?? "") === value;
+      if (!isAsked || this.quickTaskLinkChecked) return;
+      this.quickTaskLinkChecked = true;
+      this.addOpen = true;
+      const { [param]: dropped, ...kept } = this.$route.query;
+      void dropped;
+      void this.$router.replace({ query: kept });
+    },
     openLinkedQuest() {
       const isNotReady = !this.taskId || this.linkedQuestChecked || this.isLoading;
       if (isNotReady) return;

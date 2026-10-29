@@ -21,12 +21,17 @@ async function closeBrowser(): Promise<void> {
 
 /**
  * Hear WordPress send the parent back from the in-app browser: the system opens the app's own address
- * (`NATIVE_RETURN_URL` plus WordPress's query), and this hands the query on. Any other address is not ours to read.
- * Resolves with the function that stops listening.
+ * (`NATIVE_RETURN_URL` plus WordPress's query), and this hands the query on. Resolves with the function that stops
+ * listening.
+ *
+ * The app's scheme carries more than the Town Hall: the home-screen widgets open their own addresses on it too (see
+ * services/widgets/widgetLinks.ts). Capacitor gives every `appUrlOpen` to every listener, so leaving an address that
+ * is not the Town Hall's alone passes it to whoever owns it instead of swallowing it.
  */
 export async function listenForTownHallReturn(onReturn: (search: string) => void): Promise<() => void> {
   const handle = await App.addListener("appUrlOpen", ({ url }) => {
-    if (!isTownHallReturn(url)) return;
+    const isSomeoneElses = !isTownHallReturn(url);
+    if (isSomeoneElses) return;
     void closeBrowser();
     onReturn(searchOf(url));
   });
