@@ -12,7 +12,7 @@ export const HYBRID_PRESETS: Ability[] = [
     frequency: TimePeriod.Weekly,
     mpCost: 45,
     apRequirement: {
-      amount: 350,
+      amount: 70,
       period: TimePeriod.Weekly
     },
     icon: 'flashOutline',

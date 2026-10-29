@@ -485,7 +485,7 @@
   const formTier = computed(() => TIER_NAMES[questTier(form.value.difficulty)]);
   const formRewards = computed(() => {
     const d = form.value.difficulty;
-    return `${(d * 100).toLocaleString()} XP, ${d * 10} GP, ${d} AP`;
+    return `${(d * 100).toLocaleString()} XP, ${d * 15} GP, ${d} AP`;
   });
   const formProblem = computed(() => libraryFormProblem(form.value));
   const formCard = computed(() => (formBeast.value ? libraryCardOf(formBeast.value) : null));

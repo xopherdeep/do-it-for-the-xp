@@ -98,9 +98,9 @@ describe("dailyStreak", () => {
 
 describe("streak chests", () => {
   it("opens on days 3, 7, 14, 30 and then every 30", () => {
-    expect(chestOn(3)).toEqual({ day: 3, xp: 15, gp: 10 });
+    expect(chestOn(3)).toEqual({ day: 3, xp: 15, gp: 20 });
     expect(chestOn(4)).toBeNull();
-    expect(chestOn(60)).toEqual({ day: 60, xp: 150, gp: 100 });
+    expect(chestOn(60)).toEqual({ day: 60, xp: 150, gp: 200 });
     expect(chestOn(75)).toBeNull();
     expect(chestDaysUpTo(65)).toEqual([3, 7, 14, 30, 60]);
   });
@@ -117,7 +117,7 @@ describe("streak chests", () => {
     const first = chestsOwed(run, null);
     expect(first.owed.map((chest) => chest.day)).toEqual([3, 7]);
     expect(first.ledger).toEqual({ runStart: "2026-10-09", paid: [3, 7] });
-    expect(chestTotal(first.owed)).toEqual({ xp: 55, gp: 35 });
+    expect(chestTotal(first.owed)).toEqual({ xp: 55, gp: 70 });
     expect(chestsOwed(run, first.ledger).owed).toEqual([]);
   });
 
@@ -145,7 +145,7 @@ describe("streak copy", () => {
     expect(streakAriaLabel(streak)).toContain("at risk");
     expect(streakLines(streak)).toEqual([
       "2 days in a row. Finish a quest before midnight to keep it.",
-      "Next chest in 1 day (day 3): +15 XP, +10 GP.",
+      "Next chest in 1 day (day 3): +15 XP, +20 GP.",
       "Every 7th day earns a Streak Shield that saves a missed day.",
       "Best streak: 2 days.",
     ]);

@@ -10,6 +10,7 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 import { dueTimeOn } from "@/lib/engine/quests/QuestSchedule";
 import { adoptLibraryBeast, beastTheme, browseLibrary, isClassicBeast } from "@/lib/services/bestiary/librarySuggest";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
+import { rewardsFor } from "@/lib/services/core/packs/packCommon";
 import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import type { FamilyMember } from "@/lib/services/quests/QuestList";
 import {
@@ -284,9 +285,7 @@ export function questFromLibraryBeast(beast: LibraryBeast, form: LibraryQuestFor
     customPeriodNumber: 1,
     repeatOnDays: [],
     difficulty,
-    xp: difficulty * 100,
-    gp: difficulty * 10,
-    ap: difficulty,
+    ...rewardsFor(difficulty),
     adventureType: "beast",
   };
 }

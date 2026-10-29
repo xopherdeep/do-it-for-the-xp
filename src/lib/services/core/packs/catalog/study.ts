@@ -1,4 +1,5 @@
 /** The Study & exam prep pack: steady study habits and an exam run-up for teens and students */
+import { gpForDollars } from "@/lib/services/gp/exchangeRate";
 import { definePack, reward } from "./definePack";
 
 export const STUDY_PACK = definePack(
@@ -40,10 +41,10 @@ export const STUDY_PACK = definePack(
       { id: "study-dont-phone", type: "dont", whatFor: "Phone out during a study block", difficulty: 1 },
     ],
     rewards: [
-      reward("study-reward-snack", "Study Break Snack", "A favorite snack for a well-earned break.", 50, "cookie"),
-      reward("study-reward-notebook", "New Notebook Set", "Fresh notebooks, pens or highlighters.", 120, "pencil-alt"),
+      reward("study-reward-snack", "Study Break Snack", "A favorite snack for a well-earned break.", gpForDollars(3), "cookie"), // about $3
+      reward("study-reward-notebook", "New Notebook Set", "Fresh notebooks, pens or highlighters.", gpForDollars(12), "pencil-alt"), // about $12
       reward("study-reward-game", "Guilt-free Game Night", "An evening of games once the week's study is done.", 200, "gamepad"),
-      reward("study-reward-movie", "After-exam Movie", "A trip to the movies when the exam is over.", 300, "film"),
+      reward("study-reward-movie", "After-exam Movie", "A trip to the movies when the exam is over.", gpForDollars(20), "film"), // about $20
     ],
     powers: [
       "irl-extra-time",

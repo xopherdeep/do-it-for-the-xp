@@ -157,15 +157,15 @@ const loseTheFight = () => {
   step(120);
 };
 
-/** The battle fixture's family: Dad (Game Master) and Max, who is low on HP and has 20 GP and no savings. */
+/** The battle fixture's family: Dad (Game Master) and Max, who is low on HP and has 10 GP and no savings. */
 const seedFamily = () => {
   cy.intercept("**/compass/v1/gatekeeper/xp-pro/*", { statusCode: 200, body: PRO });
   cy.fixture("battle-backup.json").then((backup) => {
     const world = JSON.parse(JSON.stringify(backup));
     const max = world.stores.__profiles[0];
-    // 20 GP now (the Dish Goblin quest pays 20 more: 40 in the wallet at the lost fight) and none in savings (so the
+    // 10 GP now (the Dish Goblin quest pays 30 more: 40 in the wallet at the lost fight) and none in savings (so the
     // Hospital's 100 leaves 60 owed); 12 of 42 HP, so a couple of strikes end a fight
-    max.value.stats.gp.wallet = 20;
+    max.value.stats.gp.wallet = 10;
     max.value.stats.gp.savings = 0;
     max.value.stats.hp.now = 12;
 
@@ -254,7 +254,7 @@ describe("Quest rooms: a temple full of real chores", () => {
     shot("04-room-lurks");
 
     maxStats().then((stats) => {
-      expect(stats.gp.wallet, "wallet before the fight").to.eq(20);
+      expect(stats.gp.wallet, "wallet before the fight").to.eq(10);
     });
     fightFromTheRoom();
     cy.get(".chores-left-label").should("have.text", "4 tasks left");
@@ -274,12 +274,12 @@ describe("Quest rooms: a temple full of real chores", () => {
     shot("06-victory");
     cy.get("[data-cy=victory-card]").click("center");
 
-    // Back in the temple: the quest paid its 20 GP (the formula is 10 x difficulty 2), the room is cleared and the beast is gone
+    // Back in the temple: the quest paid its 30 GP (the formula is 15 x difficulty 2), the room is cleared and the beast is gone
     cy.location("pathname", { timeout: 30000 }).should("eq", `/temple/${TEMPLE}/hero-1/2/5`);
     cy.get("#room-action .cleared-mark", { timeout: 60000 }).should("exist");
     cy.get(".xp-monster-model-wrapper").should("not.exist");
     maxStats().then((stats) => {
-      expect(stats.gp.wallet, "wallet after the win: the quest paid its 20 GP").to.eq(40);
+      expect(stats.gp.wallet, "wallet after the win: the quest paid its 30 GP").to.eq(40);
     });
     openRoomSheet("Back tomorrow");
     cy.get("[data-cy=choice-reveal]").should("contain", "Nothing left here but the smell.");

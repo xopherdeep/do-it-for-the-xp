@@ -26,14 +26,14 @@ export interface WalletShop {
   where: string;
 }
 
-/** Which shop sells which wallet, smallest first. The starting wallet (₲100) is nobody's to sell. */
+/** Which shop sells which wallet, smallest first. The starting wallet (₲500) is nobody's to sell. */
 export const WALLET_SHOPS: readonly WalletShop[] = [
-  { limit: 300, region: "plains", merchant: "pegasus-ranch", shop: "Pegasus Ranch", where: "the Pegasus Ranch in the Plains" },
-  { limit: 500, region: "forest", merchant: "hermits-tent", shop: "Hermit's Tent", where: "the Hermit's Tent in the Forest" },
-  { limit: 1000, region: "islands", merchant: "wrecked-ship", shop: "Wrecked Ship", where: "the Wrecked Ship on the Islands" },
-  { limit: 2500, region: "mountains", merchant: "crystal-caverns", shop: "Crystal Caverns", where: "the Crystal Caverns in the Mountains" },
-  { limit: 5000, region: "sands", merchant: "pond-of-life", shop: "Pond of Life", where: "the Pond of Life in the Sands" },
-  { limit: 10000, region: "moon", merchant: "theia-city", shop: "Theia City", where: "Theia City on the Moon" },
+  { limit: 1500, region: "plains", merchant: "pegasus-ranch", shop: "Pegasus Ranch", where: "the Pegasus Ranch in the Plains" },
+  { limit: 3000, region: "forest", merchant: "hermits-tent", shop: "Hermit's Tent", where: "the Hermit's Tent in the Forest" },
+  { limit: 6000, region: "islands", merchant: "wrecked-ship", shop: "Wrecked Ship", where: "the Wrecked Ship on the Islands" },
+  { limit: 12000, region: "mountains", merchant: "crystal-caverns", shop: "Crystal Caverns", where: "the Crystal Caverns in the Mountains" },
+  { limit: 25000, region: "sands", merchant: "pond-of-life", shop: "Pond of Life", where: "the Pond of Life in the Sands" },
+  { limit: 50000, region: "moon", merchant: "theia-city", shop: "Theia City", where: "Theia City on the Moon" },
 ];
 
 /** GP the way the shops print it */
@@ -64,9 +64,9 @@ export type WalletWareStatus =
 export interface WalletWare {
   shop: WalletShop;
   tier: WalletTier;
-  /** "Bigger Wallet (₲300)" */
+  /** "Bigger Wallet (₲1500)" */
   name: string;
-  /** "Holds ₲300." */
+  /** "Holds ₲1500." */
   blurb: string;
   /** What it costs here, whether or not the hero may buy it today */
   price: number;
