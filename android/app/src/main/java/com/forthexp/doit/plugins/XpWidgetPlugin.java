@@ -17,6 +17,8 @@ import com.forthexp.doit.widgets.QuestBoardWidget;
 import com.forthexp.doit.widgets.QuickDockWidget;
 import com.forthexp.doit.widgets.SpellbookWidget;
 import com.forthexp.doit.widgets.StreakAltarWidget;
+import com.forthexp.doit.widgets.VoxelHeroWidget;
+import com.forthexp.doit.widgets.core.WidgetImageHelper;
 import com.forthexp.doit.widgets.core.WidgetThemeHelper;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -44,6 +46,21 @@ public class XpWidgetPlugin extends Plugin {
             String gameStyle = root.optString("gameStyle", null);
             if (gameStyle != null && !gameStyle.isEmpty()) {
                 prefs.edit().putString(WidgetThemeHelper.KEY_GAME_STYLE, gameStyle).apply();
+            }
+
+            org.json.JSONObject heroes = root.optJSONObject("heroes");
+            if (heroes != null) {
+                java.util.Iterator<String> keys = heroes.keys();
+                while (keys.hasNext()) {
+                    String heroId = keys.next();
+                    org.json.JSONObject hero = heroes.optJSONObject(heroId);
+                    if (hero != null) {
+                        String avatarImage = hero.optString("avatarImage", null);
+                        if (avatarImage != null && !avatarImage.isEmpty()) {
+                            WidgetImageHelper.cacheHeroVoxel(context, heroId, avatarImage);
+                        }
+                    }
+                }
             }
         } catch (org.json.JSONException ignored) {
         }
@@ -96,7 +113,8 @@ public class XpWidgetPlugin extends Plugin {
             PartyRosterWidget.class,
             HeroCompanionWidget.class,
             BountyApprovalsWidget.class,
-            SpellbookWidget.class
+            SpellbookWidget.class,
+            VoxelHeroWidget.class
         };
 
         for (Class<?> providerClass : providers) {

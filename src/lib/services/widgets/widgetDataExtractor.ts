@@ -47,6 +47,9 @@ export const extractWidgetHeroPayload = (
     level: Math.max(1, stats.level),
     className: String(user?.jobClass || "Novice"),
     avatar: String(user?.avatar || ""),
+    ...(typeof user?.avatarImage === "string" && user.avatarImage.startsWith("data:image/")
+      ? { avatarImage: user.avatarImage }
+      : {}),
     hp: Math.max(0, stats.hp),
     maxHp: Math.max(1, stats.maxHp),
     mp: Math.max(0, stats.mp),

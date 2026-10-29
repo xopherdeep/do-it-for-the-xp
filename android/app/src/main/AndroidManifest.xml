@@ -154,6 +154,18 @@
                 android:resource="@xml/widget_spellbook_info" />
         </receiver>
 
+        <receiver
+            android:name=".widgets.VoxelHeroWidget"
+            android:exported="true"
+            android:label="@string/widget_voxel_hero_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_voxel_hero_info" />
+        </receiver>
+
         <service
             android:name=".widgets.QuestWidgetRemoteViewsService"
             android:permission="android.permission.BIND_REMOTEVIEWS" />

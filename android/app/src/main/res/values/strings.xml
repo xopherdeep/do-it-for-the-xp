@@ -15,4 +15,6 @@
     <string name="widget_hero_companion_name">XP: Hero Companion</string>
     <string name="widget_bounty_approvals_name">XP: Bounty Desk</string>
     <string name="widget_spellbook_name">XP: Spellbook Dock</string>
+    <string name="widget_voxel_hero_name">XP: Voxel Figurine</string>
+    <string name="widget_voxel_hero_description">Display your custom 3D voxel hero diorama on your home screen.</string>
 </resources>

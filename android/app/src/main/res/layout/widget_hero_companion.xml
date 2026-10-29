@@ -50,22 +50,31 @@
         android:textColor="@color/widget_text_muted"
         android:textSize="10sp" />
 
-    <!-- Center Dialogue Bubble -->
+    <!-- Center Voxel Avatar & Dialogue Bubble -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingTop="4dp"
         android:paddingBottom="4dp">
 
+        <ImageView
+            android:id="@+id/widget_companion_voxel"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_marginRight="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="Hero Voxel Companion" />
+
         <TextView
             android:id="@+id/widget_companion_quote"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:background="@drawable/widget_badge_bg"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:padding="8dp"
             android:text="&quot;Ready for adventure! Check the quest board!&quot;"
             android:textColor="@color/widget_text_secondary"

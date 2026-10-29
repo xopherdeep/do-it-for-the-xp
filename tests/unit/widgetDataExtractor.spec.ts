@@ -242,6 +242,16 @@ describe("the streak reward a widget shows", () => {
     expect(extractWidgetHeroPayload(maxProfile(), [], 13)).toMatchObject({ nextChestDay: 14, nextChestGp: 100 });
     expect(extractWidgetHeroPayload(maxProfile(), [], 30)).toMatchObject({ nextChestDay: 60 });
   });
+
+  it("extracts avatarImage when hero has a rendered 3D snapshot data URL", () => {
+    const fakeDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const heroWithVoxel = maxProfile({ avatarImage: fakeDataUrl });
+    const payload = extractWidgetHeroPayload(heroWithVoxel);
+    expect(payload.avatarImage).toBe(fakeDataUrl);
+
+    const heroWithoutVoxel = maxProfile({ avatarImage: undefined });
+    expect(extractWidgetHeroPayload(heroWithoutVoxel).avatarImage).toBeUndefined();
+  });
 });
 
 describe("buildWidgetSyncPayload", () => {

@@ -99,6 +99,9 @@
           <ion-segment-button value="spellbook">
             <ion-label>Spellbook</ion-label>
           </ion-segment-button>
+          <ion-segment-button value="voxel">
+            <ion-label>Voxel Figurine</ion-label>
+          </ion-segment-button>
         </ion-segment>
 
         <!-- Preview Box -->
@@ -236,8 +239,14 @@
               <span class="mockup-badge">LV {{ heroLevel }}</span>
             </div>
             <span class="mockup-class">{{ heroClass }}</span>
-            <div class="companion-bubble">
-              "Ready for adventure! Check the quest board!"
+            <div class="companion-body">
+              <img v-if="heroAvatar" :src="heroAvatar" class="companion-avatar" alt="Hero Voxel" />
+              <div v-else class="companion-avatar-placeholder">
+                <i class="fad fa-user-astronaut"></i>
+              </div>
+              <div class="companion-bubble">
+                "Ready for adventure! Check the quest board!"
+              </div>
             </div>
             <div class="companion-footer">
               <span class="companion-streak">{{ currentStreak }}-Day Streak</span>
@@ -273,6 +282,27 @@
             <div class="spell-btn green">HEAL</div>
             <div class="spell-btn accent">BOOST</div>
             <div class="spell-btn blue">SPELLS</div>
+          </div>
+
+          <!-- Voxel Figurine Mockup -->
+          <div v-else-if="isVoxelSelected" class="mockup-voxel">
+            <div class="mockup-header">
+              <span class="mockup-name">{{ heroName }}</span>
+              <span class="mockup-badge">LV {{ heroLevel }}</span>
+            </div>
+            <span class="mockup-class">{{ heroClass }}</span>
+            <div class="voxel-stage">
+              <img v-if="heroAvatar" :src="heroAvatar" class="voxel-model-img" alt="Hero Voxel" />
+              <div v-else class="voxel-placeholder">
+                <i class="fad fa-cube"></i>
+                <span>3D Voxel Hero</span>
+              </div>
+              <div class="voxel-pedestal"></div>
+            </div>
+            <div class="voxel-footer">
+              <span class="voxel-status">{{ currentStreak > 0 ? `${currentStreak}-Day Streak` : `${heroHp}/${heroMaxHp} HP` }}</span>
+              <span class="voxel-hint">Tap to customize</span>
+            </div>
           </div>
         </div>
       </ion-card-content>
@@ -362,6 +392,7 @@ const isPartySelected = computed(() => selectedWidgetType.value === "party");
 const isCompanionSelected = computed(() => selectedWidgetType.value === "companion");
 const isBountySelected = computed(() => selectedWidgetType.value === "bounty");
 const isSpellbookSelected = computed(() => selectedWidgetType.value === "spellbook");
+const isVoxelSelected = computed(() => selectedWidgetType.value === "voxel");
 
 const activeWidgetTitle = computed(() => {
   if (isHeroSelected.value) return "Hero Status Card (2x2)";
@@ -375,10 +406,15 @@ const activeWidgetTitle = computed(() => {
   if (isCompanionSelected.value) return "Hero Companion Altar (2x2)";
   if (isBountySelected.value) return "Bounty Approvals Desk (2x1)";
   if (isSpellbookSelected.value) return "Spellbook Action Dock (4x1)";
+  if (isVoxelSelected.value) return "Voxel Figurine Diorama (2x2)";
   return "Widget Preview";
 });
 
 const hero = computed(() => userStore.currentUser || {});
+const heroAvatar = computed(() => {
+  const img = hero.value?.avatarImage;
+  return typeof img === "string" && img.startsWith("data:image/") ? img : "";
+});
 // The profile is nested (stats.hp.now, stats.gp.wallet); statsOf is the one reader that knows it
 const heroStats = computed(() => statsOf(hero.value));
 const heroId = computed(() => String(hero.value.id ?? ""));
@@ -899,14 +935,39 @@ const handleSyncNow = async () => {
   gap: 4px;
 }
 
+.companion-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.companion-avatar {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.companion-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: rgb(45, 55, 72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: rgb(255, 216, 74);
+}
+
 .companion-bubble {
+  flex: 1;
   background: rgb(45, 55, 72);
   padding: 8px;
   border-radius: 6px;
   font-size: 0.75rem;
   color: rgb(203, 213, 225);
   text-align: center;
-  margin: 4px 0;
 }
 
 .companion-footer {
@@ -1023,5 +1084,71 @@ const handleSyncNow = async () => {
   &.accent { color: rgb(255, 216, 74); }
   &.green { color: rgb(16, 185, 129); }
   &.blue { color: rgb(59, 130, 246); }
+}
+
+.mockup-voxel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voxel-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 100px;
+  margin: 4px 0;
+}
+
+.voxel-model-img {
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  z-index: 2;
+}
+
+.voxel-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: rgb(148, 163, 184);
+  gap: 4px;
+  z-index: 2;
+
+  i {
+    font-size: 2rem;
+    color: rgb(255, 216, 74);
+  }
+}
+
+.voxel-pedestal {
+  width: 100px;
+  height: 18px;
+  border-radius: 10px;
+  background: rgb(45, 55, 72);
+  border: 1.5px solid rgb(74, 85, 104);
+  margin-top: -10px;
+  z-index: 1;
+}
+
+.voxel-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.voxel-status {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: rgb(255, 109, 0);
+}
+
+.voxel-hint {
+  font-size: 0.65rem;
+  color: rgb(148, 163, 184);
 }
 </style>

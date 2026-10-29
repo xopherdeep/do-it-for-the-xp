@@ -99,6 +99,14 @@ public final class WidgetPayload {
         return hero != null;
     }
 
+    public String heroId() {
+        return hero == null ? "" : hero.optString("id", "");
+    }
+
+    public String heroAvatarImage() {
+        return hero == null ? null : hero.optString("avatarImage", null);
+    }
+
     public String heroString(String field, String fallback) {
         return hero == null ? fallback : hero.optString(field, fallback);
     }

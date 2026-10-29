@@ -82,6 +82,8 @@ export interface WidgetHeroPayload {
   className: string;
   /** The avatar slug ("003-gamer"), not a number: profiles store it as a string */
   avatar: string;
+  /** Rendered 3D voxel character snapshot PNG data URL or empty */
+  avatarImage?: string;
   hp: number;
   maxHp: number;
   mp: number;
