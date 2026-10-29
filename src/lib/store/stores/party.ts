@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { getPartyDb } from "@/lib/databases/PartyDb";
+import type { MyParties } from "@/lib/services/party/partyClient";
 import { HOME_PARTY_ID, defaultModeFor, type HeroPartyMode } from "@/lib/services/party/partyRules";
 import { cleanPartyState, type PartyState } from "@/lib/services/party/partyState";
 import {
@@ -15,8 +16,12 @@ import {
   type RaidWindow,
   type Strike,
 } from "@/lib/services/party/raidRules";
+import type { WireEvent, WireParty, WireRequest } from "@/lib/services/party/partyWire";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "./user";
+
+/** How many events of one party the store keeps for the Activity tab */
+const EVENTS_KEPT = 50;
 
 export interface HomeRaidArgs {
   beastId: string;
@@ -34,6 +39,12 @@ export const usePartyStore = defineStore("party", () => {
   const raids = ref<Raid[]>([]);
   const paid = ref<string[]>([]);
   const defaultWindow = ref<RaidWindow>("standard");
+
+  // Parties with other families are the site's to keep: held for the screens, never saved to the device
+  const outside = ref<WireParty[]>([]);
+  const incoming = ref<WireRequest[]>([]);
+  const outgoing = ref<WireRequest[]>([]);
+  const events = ref<Record<string, WireEvent[]>>({});
 
   const snapshot = (): PartyState => ({
     heroModes: heroModes.value,
@@ -165,12 +176,57 @@ export const usePartyStore = defineStore("party", () => {
     return reward;
   }
 
+  /** Takes what the site last said about the family's parties and join requests, replacing the last answer whole */
+  function applyServer(answer: MyParties): void {
+    outside.value = answer.parties;
+    incoming.value = answer.incoming;
+    outgoing.value = answer.outgoing;
+  }
+
+  /** Forgets everything the site said (a family without XP Pro, or one that unlinked, sees no outside parties) */
+  function clearServer(): void {
+    outside.value = [];
+    incoming.value = [];
+    outgoing.value = [];
+    events.value = {};
+  }
+
+  /** Swaps in a fresher copy of a party the store already holds (a party it never heard of is left to the next full answer) */
+  function replaceOutside(fresh: WireParty): void {
+    outside.value = outside.value.map((party) => (party.id === fresh.id ? fresh : party));
+  }
+
+  function outsideParty(partyId: string): WireParty | undefined {
+    return outside.value.find((party) => party.id === partyId);
+  }
+
+  function eventsOf(partyId: string): WireEvent[] {
+    return events.value[partyId] ?? [];
+  }
+
+  /** The number of the newest event held for a party, or 0 */
+  function lastSeq(partyId: string): number {
+    const held = eventsOf(partyId);
+    const newest = held[held.length - 1];
+    return newest ? newest.seq : 0;
+  }
+
+  /** Adds events to a party's feed: in order, each number once, and only the newest fifty kept */
+  function appendEvents(partyId: string, fresh: WireEvent[]): void {
+    const bySeq = new Map([...eventsOf(partyId), ...fresh].map((event) => [event.seq, event]));
+    const merged = [...bySeq.values()].sort((a, b) => a.seq - b.seq).slice(-EVENTS_KEPT);
+    events.value = { ...events.value, [partyId]: merged };
+  }
+
   return {
     heroModes,
     approvedParties,
     raids,
     paid,
     defaultWindow,
+    outside,
+    incoming,
+    outgoing,
     load,
     modeOf,
     setMode,
@@ -183,5 +239,12 @@ export const usePartyStore = defineStore("party", () => {
     startHomeRaid,
     strike,
     claimReward,
+    applyServer,
+    clearServer,
+    replaceOutside,
+    outsideParty,
+    eventsOf,
+    lastSeq,
+    appendEvents,
   };
 });
