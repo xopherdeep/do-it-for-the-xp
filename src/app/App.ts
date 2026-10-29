@@ -42,6 +42,7 @@ import {
 
 
 import { useQueryProvider } from "vue-query";
+import { Capacitor } from "@capacitor/core";
 
 import XpSideMenu from "@/app/SideMenu/SideMenu.vue";
 import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
