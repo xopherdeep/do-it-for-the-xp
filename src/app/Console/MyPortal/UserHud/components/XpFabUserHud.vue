@@ -80,7 +80,7 @@ import XpNotifications from "./XpNotifications/XpNotifications.vue";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 import XpRpgMenu, { RpgMenuAction } from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import { USER_MENU_CONFIG } from "@/constants";
-import { goAfterSignOut } from "@/router/signOutRoute";
+import { useSaveAndQuit } from "@/hooks/useSaveAndQuit";
 
 export default defineComponent({
   name: "xp-fab-user-hud",
@@ -206,7 +206,6 @@ export default defineComponent({
     // A Game Master sees how many chores wait on their word (always zero for a hero)
     const waitingCount = computed(() => waitingClaimCount.value);
     const fabActive = ref(false);
-    const showSaveQuitModal = ref(false);
 
     const userFab = ref(null);
 
@@ -224,22 +223,12 @@ export default defineComponent({
       fabActive.value = event.detail;
     };
 
-    const shouldLogout = ref(false);
-
-    const closeSaveQuitModal = () => {
-      showSaveQuitModal.value = false;
-      if (shouldLogout.value) {
-        shouldLogout.value = false;
-        // Signing out rests the hero's turn (the sync store watches who is signed in): what waits goes up first
-        userStore.logoutUser();
-        goAfterSignOut(router);
-      }
-    };
-
-    const confirmSaveQuit = () => {
-      shouldLogout.value = true;
-      showSaveQuitModal.value = false;
-    };
+    const {
+      isOpen: showSaveQuitModal,
+      open: openSaveQuitModal,
+      cancel: closeSaveQuitModal,
+      confirm: confirmSaveQuit,
+    } = useSaveAndQuit();
 
     const clickAction = async (action) => {
       closeFab(); // Close the fab menu on any action
@@ -350,7 +339,7 @@ export default defineComponent({
         id: USER_MENU_CONFIG.saveQuit.id,
         faIcon: USER_MENU_CONFIG.saveQuit.icon,
         click() {
-          showSaveQuitModal.value = true;
+          openSaveQuitModal();
         },
       },
     ];

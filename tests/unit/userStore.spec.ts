@@ -177,7 +177,7 @@ describe("GP and the wallet", () => {
   it("starts a purse for a hero with no stats", async () => {
     const store = freshStore({ ava: {} });
     await store.updateUserGP({ userId: "ava", wallet: 40 });
-    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, hospitalBill: 0, limit: 500 });
     expect(mockSyncGP).toHaveBeenCalledWith("ava");
   });
 
@@ -188,30 +188,30 @@ describe("GP and the wallet", () => {
   });
 
   it("sends wallet overflow to savings", async () => {
-    const store = freshStore({ ava: { stats: { gp: { wallet: 90, savings: 7, debt: 0 } } } });
+    const store = freshStore({ ava: { stats: { gp: { wallet: 450, savings: 7, debt: 0 } } } });
     await store.updateUserGP({ userId: "ava", wallet: 80 });
-    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 100, savings: 77, debt: 0 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 500, savings: 37, debt: 0 });
   });
 
   it("gives stats that lack a purse the starting purse", async () => {
     const store = freshStore({ ava: { stats: { level: 3 } } });
     await store.updateUserGP({ userId: "ava", savings: 12 });
     expect(plain(store.users.ava.stats).level).toBe(3);
-    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 12, debt: 0, hospitalBill: 0, limit: 100 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 12, debt: 0, hospitalBill: 0, limit: 500 });
   });
 
   it("writes each move to the wallet's history, in the caller's words when it gives some", async () => {
-    const store = freshStore({ ava: { stats: { gp: { wallet: 90, savings: 7, debt: 0 } } } });
+    const store = freshStore({ ava: { stats: { gp: { wallet: 450, savings: 7, debt: 0 } } } });
     await store.updateUserGP({ userId: "ava", wallet: 80, note: "Quest: Feed the cat" });
     await store.updateUserGP({ userId: "ava", wallet: -30 });
-    store.setWallet("ava", { wallet: 20, savings: 127 }, { kind: "deposit" });
+    store.setWallet("ava", { wallet: 20, savings: 487 }, { kind: "deposit" });
     const ledger = plain(store.users.ava.stats.gp.ledger);
     expect(ledger.map((line: any) => [line.kind, line.gp, line.note])).toEqual([
       ["earn", 80, "Quest: Feed the cat"],
       ["spend", -30, "GP spent"],
       ["deposit", 0, "Deposited to savings"],
     ]);
-    expect(ledger[0]).toMatchObject({ wallet: 10, savings: 70 });
+    expect(ledger[0]).toMatchObject({ wallet: 50, savings: 30 });
   });
 
   it("does nothing for an unknown hero", async () => {
@@ -231,7 +231,7 @@ describe("GP and the wallet", () => {
   it("falls back to 0 for a broken number and to the starting limit", () => {
     const store = freshStore({ ava: {} });
     store.setWallet("ava", { wallet: Number.NaN, savings: undefined, limit: -5 });
-    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
+    expect(purseOf(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 500 });
     expect(() => store.setWallet("ghost", { wallet: 1 })).not.toThrow();
   });
 });

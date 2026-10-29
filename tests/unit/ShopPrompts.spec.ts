@@ -13,7 +13,7 @@ import {
 } from "@/lib/services/shop/shopPrompts";
 
 const voice = { shopkeeper: "Old Hermit", accent: "forest" };
-const purse = (extra: object = {}) => ({ wallet: 100, savings: 0, debt: 0, hospitalBill: 0, limit: 100, ...extra });
+const purse = (extra: object = {}) => ({ wallet: 100, savings: 0, debt: 0, hospitalBill: 0, limit: 500, ...extra });
 
 describe("a shop's colour", () => {
   it("is the region's own, by the world the shop stands in", () => {
@@ -83,16 +83,16 @@ describe("notices", () => {
 });
 
 describe("the wallet on the shelf", () => {
-  // Level 3 and 100 wallet: the Pegasus Ranch's wallet is the next one, price 150
+  // Level 3 and 500 wallet: the Pegasus Ranch's wallet is the next one, price 300
   const ranch = (gp = purse(), level = 3) => walletOfferAt("pegasus-ranch", gp, level)!;
 
   it("pitches the wallet, coins rising, with Buy for the price and No thanks", () => {
-    const prompt = walletPitch(voice, ranch(purse({ savings: 200 })), purse({ savings: 200 }), 3);
+    const prompt = walletPitch(voice, ranch(purse({ savings: 400 })), purse({ savings: 400 }), 3);
     expect(prompt.sprite).toBe("coins");
-    expect(prompt.title).toBe("Bigger Wallet (₲300)");
-    expect(prompt.lines[0]).toBe("Holds ₲300. That'll be ₲150, out of your savings first.");
+    expect(prompt.title).toBe("Bigger Wallet (₲1500)");
+    expect(prompt.lines[0]).toBe("Holds ₲1500. That'll be ₲300, out of your savings first.");
     expect(prompt.choices.map((choice) => [choice.id, choice.label, choice.icon])).toEqual([
-      ["yes", "Buy for ₲150", "coins"],
+      ["yes", "Buy for ₲300", "coins"],
       ["no", "No thanks", "times"],
     ]);
     expect(prompt.cancelId).toBe("no");
@@ -101,7 +101,7 @@ describe("the wallet on the shelf", () => {
   it("says the hero is short, savings and all, instead of asking", () => {
     const gp = purse({ wallet: 100, savings: 20 });
     const prompt = walletPitch(voice, ranch(gp), gp, 3);
-    expect(prompt.lines[0]).toBe("You are ₲30 short, savings and all. Come back when your purse is fuller!");
+    expect(prompt.lines[0]).toBe("You are ₲180 short, savings and all. Come back when your purse is fuller!");
     expect(prompt.choices.map((choice) => choice.id)).toEqual(["ok"]);
     expect(prompt.sound).toBe("no");
   });
@@ -114,7 +114,7 @@ describe("the wallet on the shelf", () => {
   });
 
   it("says a hero already carries a bigger wallet, and where the next one is", () => {
-    const gp = purse({ limit: 500 });
+    const gp = purse({ limit: 1500 });
     const prompt = walletPitch(voice, ranch(gp), gp, 5);
     expect(prompt.lines[0]).toContain("You already carry a bigger wallet.");
     expect(prompt.choices.map((choice) => choice.id)).toEqual(["ok"]);
@@ -122,7 +122,7 @@ describe("the wallet on the shelf", () => {
 
   it("reads each refusal of the sale in a few words", () => {
     expect(walletRefusal({ ok: false, reason: "poor", offer: null, short: 12 })).toContain("₲12 short");
-    expect(walletRefusal({ ok: false, reason: "locked", offer: { limit: 300, price: 150, minLevel: 3 }, short: 0 })).toBe("Come back at level 3, kid.");
+    expect(walletRefusal({ ok: false, reason: "locked", offer: { limit: 1500, price: 300, minLevel: 3 }, short: 0 })).toBe("Come back at level 3, kid.");
     expect(walletRefusal({ ok: false, reason: "maxed", offer: null, short: 0 })).toBe("You already carry the biggest wallet there is.");
   });
 

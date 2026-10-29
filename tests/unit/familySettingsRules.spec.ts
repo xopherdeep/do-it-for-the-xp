@@ -34,7 +34,7 @@ describe("Cash out starts off until the Game Master agrees to real money", () =>
   it("is off on a fresh family and in the defaults", async () => {
     mockStored = null;
     expect(DEFAULT_FAMILY_SETTINGS.cashOut.enabled).toBe(false);
-    expect((await loadFamilySettings()).cashOut).toMatchObject({ enabled: false, gpPerDollar: 10, heroIds: [] });
+    expect((await loadFamilySettings()).cashOut).toMatchObject({ enabled: false, gpPerDollar: 100, heroIds: [] });
   });
 
   it("stays off in an older save that never said", async () => {

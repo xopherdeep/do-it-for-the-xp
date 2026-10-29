@@ -295,9 +295,9 @@ describe("the quest made from a library beast", () => {
     expect(made.draft).toBeUndefined();
   });
 
-  it("pays the way the quest form does: xp 100 x, gp 10 x and ap 1 x the difficulty", () => {
+  it("pays the way the quest form does: xp 100 x, gp 15 x and ap 1 x the difficulty", () => {
     const made = questFromLibraryBeast(libraryBeast("dish-goblin"), { ...form, difficulty: 8 }, "tq-2", now);
-    expect([made.difficulty, made.xp, made.gp, made.ap]).toEqual([8, 800, 80, 8]);
+    expect([made.difficulty, made.xp, made.gp, made.ap]).toEqual([8, 800, 120, 8]);
   });
 
   it("keeps a daily quest on the board until it is done, and does not for a weekly one", () => {

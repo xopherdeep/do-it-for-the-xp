@@ -16,7 +16,7 @@ describe("streakCard", () => {
 
   it("walks the road between chests", () => {
     const { chest } = streakCardModel(streak({ current: 5 }));
-    expect(chest).toMatchObject({ day: 7, fromDay: 3, toGo: 2, percent: 50, xp: 40, gp: 25 });
+    expect(chest).toMatchObject({ day: 7, fromDay: 3, toGo: 2, percent: 50, xp: 40, gp: 50 });
     expect(streakCardModel(streak({ current: 0 })).chest).toMatchObject({ day: 3, fromDay: 0, percent: 0 });
   });
 

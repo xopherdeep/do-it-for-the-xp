@@ -18,10 +18,10 @@
     </div>
 
     <template #footer>
-      <ion-button @click.stop="$emit('close')" class="cancel-button">
+      <ion-button @click.stop="cancel" class="cancel-button">
         Cancel
       </ion-button>
-      <ion-button @click="$emit('confirm')" class="confirm-button">
+      <ion-button @click.stop="$emit('confirm')" class="confirm-button">
         <i class="fad fa-sign-out-alt" style="margin-right: 8px;"></i>
         Save & Quit
       </ion-button>
@@ -32,6 +32,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { IonButton } from "@ionic/vue";
+import { play$fx } from "@/assets/fx";
 import XpRpgModal from "@/components/templates/modals/XpRpgModal.vue";
 
 export default defineComponent({
@@ -51,6 +52,14 @@ export default defineComponent({
     },
   },
   emits: ["close", "confirm"],
+  setup(_props, { emit }) {
+    // Cancel says "no" itself, like the X and the backdrop do, so the owner of the flow stays silent on close
+    const cancel = () => {
+      play$fx("no");
+      emit("close");
+    };
+    return { cancel };
+  },
 });
 </script>
 

@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { alertController, loadingController } from "@ionic/vue";
 import { useToast } from "@/hooks/useToast";
 import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
-import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
+import type { BackupFile, BackupSummary, RestoreMode, RestoreResult } from "@/lib/services/core/BackupService";
 import { canRestoreHere } from "@/lib/services/core/restoreAccess";
 import { useUserStore } from "@/lib/store/stores/user";
 import { dialogMessage } from "@/lib/utils/dialogMessage";
@@ -60,14 +60,16 @@ export function useBackupRestore() {
 
   /** Caches and open screens still hold the old data, so the only button reloads the app */
   const showRestoreDone = async (result: RestoreResult) => {
-    const lead = `Restored ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`;
+    const isMerged = result.mode === "merge";
+    const actionWord = isMerged ? "Merged" : "Restored";
+    const lead = `${actionWord} ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`;
     const warnings = [
       ...(result.ignored.length ? [`Skipped (not in this app version): ${result.ignored.join(", ")}`] : []),
       ...(result.usersReloaded ? [] : ["The profile list could not be refreshed"]),
     ];
 
     const alert = await alertController.create({
-      header: "Restore complete",
+      header: isMerged ? "Merge complete" : "Restore complete",
       cssClass: RPG_ALERT,
       message: dialogMessage({
         lead,
@@ -90,9 +92,10 @@ export function useBackupRestore() {
     await alert.present();
   };
 
-  const runRestore = async (backup: BackupFile) => {
+  const runRestore = async (backup: BackupFile, mode: RestoreMode = "replace") => {
     try {
-      const result = await runWithLoading("Restoring your data...", () => backupService.restoreBackup(backup));
+      const message = mode === "merge" ? "Merging your data..." : "Restoring your data...";
+      const result = await runWithLoading(message, () => backupService.restoreBackup(backup, { mode }));
       await showRestoreDone(result);
     } catch (error) {
       await showAlert("Restore failed", errorMessage(error));
@@ -103,31 +106,49 @@ export function useBackupRestore() {
     // On a device with no profiles nothing is replaced: the backup simply comes back
     const isEmptyDevice = Object.keys(userStore.users).length === 0;
     const alert = await alertController.create({
-      header: isEmptyDevice ? "Restore this backup?" : "Replace everything?",
+      header: isEmptyDevice ? "Restore this backup?" : "Restore or merge backup?",
       subHeader: `Backup made ${formatBackupDate(summary.exportedAt)}`,
       cssClass: isEmptyDevice ? RPG_ALERT : [RPG_ALERT, "rpg-alert--danger"],
       message: dialogMessage({
         lead: isEmptyDevice
           ? `These ${summary.total} entries come back onto this device:`
-          : `These ${summary.total} entries replace what is here now:`,
+          : `Choose how to restore these ${summary.total} entries:`,
         groups: [
           {
             tone: "info",
             lines: summary.stores.map(({ label, count }) => `${label}: ${count}`),
           },
         ],
-        note: isEmptyDevice ? "Your heroes wait on the File Select screen afterward." : "Anything not listed stays. This can't be undone.",
+        note: isEmptyDevice
+          ? "Your heroes wait on the File Select screen afterward."
+          : "Merge keeps existing profiles and adds backup data. Replace overwrites everything.",
       }),
-      buttons: [
-        { text: "Cancel", role: "cancel" },
-        {
-          text: isEmptyDevice ? "Restore" : "Replace everything",
-          ...(isEmptyDevice ? {} : { role: "destructive" }),
-          handler: () => {
-            void runRestore(backup);
-          },
-        },
-      ],
+      buttons: isEmptyDevice
+        ? [
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Restore",
+              handler: () => {
+                void runRestore(backup, "replace");
+              },
+            },
+          ]
+        : [
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Merge with current data",
+              handler: () => {
+                void runRestore(backup, "merge");
+              },
+            },
+            {
+              text: "Replace everything",
+              role: "destructive",
+              handler: () => {
+                void runRestore(backup, "replace");
+              },
+            },
+          ],
     });
     await alert.present();
   };

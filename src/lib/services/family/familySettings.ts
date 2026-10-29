@@ -1,5 +1,6 @@
 import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { dayKeyOf, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { GP_PER_DOLLAR } from "@/lib/services/gp/exchangeRate";
 import { DEFAULT_SAVINGS_INTEREST, normalizeSavingsInterest, type SavingsInterestSettings } from "@/lib/services/gp/savingsInterest";
 import { DEFAULT_LATE_CHORES, normalizeLateChores, type LateChoreSettings } from "@/lib/services/quests/lateRules";
 
@@ -67,7 +68,7 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   bedtime: { enabled: false, from: "21:00", to: "07:00" },
   dayOffBroadcast: false,
   streaks: true,
-  cashOut: { enabled: false, gpPerDollar: 10, heroIds: [] },
+  cashOut: { enabled: false, gpPerDollar: GP_PER_DOLLAR, heroIds: [] },
   savingsInterest: { ...DEFAULT_SAVINGS_INTEREST },
   lateChores: { ...DEFAULT_LATE_CHORES },
   autoSavePercent: 0,

@@ -13,7 +13,7 @@ export function createCustomAbility(partial: Partial<Ability> = {}): Ability {
     frequency: partial.frequency || TimePeriod.Daily,
     mpCost: partial.mpCost !== undefined ? partial.mpCost : 10,
     apRequirement: partial.apRequirement || {
-      amount: 100,
+      amount: 5,
       period: TimePeriod.Daily
     },
     icon: partial.icon || 'colorWandOutline',

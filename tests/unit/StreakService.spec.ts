@@ -56,12 +56,12 @@ describe("settleStreakChests", () => {
 
     const paid = await settleStreakChests(HERO, NOW);
     expect(paid.map((chest) => chest.day)).toEqual([3]);
-    expect(wallet()).toBe(110);
+    expect(wallet()).toBe(120);
     expect(hero().stats.xp.now).toBe(xpBefore + 15);
     expect(hero().streakChests).toEqual({ runStart: "2026-10-13", paid: [3] });
 
     expect(await settleStreakChests(HERO, NOW)).toEqual([]);
-    expect(wallet()).toBe(110);
+    expect(wallet()).toBe(120);
   });
 
   it("counts only approved days, so a held claim opens nothing yet", async () => {
@@ -87,8 +87,8 @@ describe("settleStreakChests", () => {
 
 describe("chestMessage", () => {
   it("names the hero, the longest streak and the total", () => {
-    expect(chestMessage("Sam", [{ day: 3, xp: 15, gp: 10 }, { day: 7, xp: 40, gp: 25 }])).toBe(
-      "Sam hit a 7-day streak! Chest: +55 XP, +35 GP"
+    expect(chestMessage("Sam", [{ day: 3, xp: 15, gp: 20 }, { day: 7, xp: 40, gp: 50 }])).toBe(
+      "Sam hit a 7-day streak! Chest: +55 XP, +70 GP"
     );
   });
 });

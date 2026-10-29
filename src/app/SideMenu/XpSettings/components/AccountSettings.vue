@@ -30,6 +30,17 @@
               <ion-button fill="outline" class="pro-button-outline" @click="openSite(passwordResetUrl())">Change password</ion-button>
             </div>
             <p class="account-note">You'll sign in on the site.</p>
+            <div v-if="isOtherFamily" class="account-conflict-banner ion-margin-top" data-cy="account-conflict">
+              <p class="text-danger font-semibold mb-1">
+                <i class="fad fa-exclamation-triangle mr-1"></i> Cloud Family Mismatch
+              </p>
+              <p class="text-sm mb-2">
+                This account runs a different family on the cloud. Resolve the mismatch to enable multiplayer and sync.
+              </p>
+              <ion-button size="small" color="warning" @click="openConflictModal">
+                Resolve Mismatch
+              </ion-button>
+            </div>
             <div class="pro-actions">
               <ion-button fill="outline" class="pro-button-outline account-unlink" data-cy="account-unlink" @click="confirmUnlink">
                 Unlink this device
@@ -40,7 +51,7 @@
             <p v-if="townHall.signedInThroughWebsite">You're signed in through the website.</p>
             <p>Link your For the XP account to post for your family from any device.</p>
             <div class="pro-actions">
-              <ion-button class="pro-button" data-cy="account-link" @click="link.openAuthorizePage()">Link account</ion-button>
+              <ion-button class="pro-button" data-cy="account-link" @click="handleLinkAccount">Link account</ion-button>
               <ion-button fill="outline" class="pro-button-outline" @click="openSite(SIGNUP_URL)">Create one</ion-button>
             </div>
           </ion-card-content>
@@ -67,12 +78,15 @@
 <script setup lang="ts">
 // The old develop branch had a mock of this page (tools/reference/develop/AccountSettings.vue.txt); this one is wired to the Town Hall link.
 import { computed, onMounted, ref, watch } from "vue";
-import { IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, alertController } from "@ionic/vue";
+import { IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, alertController, modalController } from "@ionic/vue";
 import XpComingSoonCard from "./XpComingSoonCard.vue";
+import XpFamilyConflictModal from "./XpFamilyConflictModal.vue";
 import { ACCOUNT_COMING_SOON } from "./comingSoon";
 import { useTownHallStore, type LinkResult } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useFamilyStore } from "@/lib/store/stores/family";
 import { useProStore } from "@/lib/store/stores/pro";
+import backupService from "@/lib/services/core/BackupService";
 import { useTownHallLink } from "@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallLink";
 import { SIGNUP_URL, passwordResetUrl, profileUrl, townHallSiteUrl } from "@/lib/services/townhall/townHallSite";
 import { PLAN_NAMES } from "@/lib/services/pro/proPlans";
@@ -82,8 +96,10 @@ import debug from "@/lib/utils/debug";
 
 const items = ACCOUNT_COMING_SOON;
 const townHall = useTownHallStore();
+const family = useFamilyStore();
 const pro = useProStore();
 const userStore = useUserStore();
+const isOtherFamily = computed(() => family.home === "other-family" || (family.problem as string) === "other-family");
 // A computed, not a one-time read: after a reload the profiles load a moment later, and the page must follow them
 const isGameMaster = computed(() => canManageFamily(userStore));
 
@@ -161,6 +177,52 @@ async function confirmUnlink(): Promise<void> {
     ],
   });
   await alert.present();
+}
+
+async function handleLinkAccount(): Promise<void> {
+  const hasProfiles = Object.keys(userStore.users).length > 0;
+  if (!hasProfiles) {
+    await link.openAuthorizePage();
+    return;
+  }
+
+  const alert = await alertController.create({
+    header: "Back up before linking?",
+    message: "Save a backup of your local heroes and quests to your device before linking your cloud account.",
+    cssClass: "rpg-alert",
+    buttons: [
+      { text: "Cancel", role: "cancel" },
+      {
+        text: "Link without backup",
+        handler: () => {
+          void link.openAuthorizePage();
+        },
+      },
+      {
+        text: "Back up & Link",
+        handler: () => {
+          void (async () => {
+            try {
+              await backupService.exportAll();
+              await proToast("Backup downloaded safely.", "success");
+            } catch (err) {
+              debug.error("[AccountSettings] pre-link backup failed", err);
+            }
+            await link.openAuthorizePage();
+          })();
+        },
+      },
+    ],
+  });
+  await alert.present();
+}
+
+async function openConflictModal(): Promise<void> {
+  const modal = await modalController.create({
+    component: XpFamilyConflictModal,
+    cssClass: "rpg-modal",
+  });
+  await modal.present();
 }
 
 // The link loads once, as soon as a Game Master is on screen: at mount, or later when a reload signs them back in

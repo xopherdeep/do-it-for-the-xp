@@ -24,9 +24,9 @@ describe("the shop's shelves filter", () => {
   });
 
   describe("the Bigger Wallet a world shop sells", () => {
-    // A level 3 hero with the starting ₲100 wallet: the Pegasus Ranch sells their next one (₲300) for 150 GP
-    const poor = { limit: 100, wallet: 40, savings: 100 };
-    const rich = { limit: 100, wallet: 60, savings: 90 };
+    // A level 3 hero with the starting ₲500 wallet: the Pegasus Ranch sells their next one (₲1500) for 300 GP
+    const poor = { limit: 500, wallet: 40, savings: 250 };
+    const rich = { limit: 500, wallet: 60, savings: 240 };
     const ranch = (gp: typeof poor, level = 3) => walletOfferAt("pegasus-ranch", gp, level);
 
     it("is affordable only when savings and wallet together cover it", () => {
@@ -53,7 +53,7 @@ describe("the shop's shelves filter", () => {
     });
 
     it("shows a wallet the hero already carries, or one that is not their next, under All only", () => {
-      const carried = { limit: 300, wallet: 0, savings: 0 };
+      const carried = { limit: 1500, wallet: 0, savings: 0 };
       const owned = walletOfferAt("pegasus-ranch", carried, 3);
       const ahead = walletOfferAt("hermits-tent", poor, 3);
       expect(owned?.status).toBe("owned");

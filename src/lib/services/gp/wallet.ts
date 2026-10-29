@@ -13,13 +13,13 @@ export interface WalletTier {
 
 /** Wallet sizes, smallest first. A new hero starts with the first. */
 export const WALLET_TIERS: readonly WalletTier[] = [
-  { limit: 100, minLevel: 1 },
-  { limit: 300, minLevel: 3 },
-  { limit: 500, minLevel: 5 },
-  { limit: 1000, minLevel: 10 },
-  { limit: 2500, minLevel: 15 },
-  { limit: 5000, minLevel: 20 },
-  { limit: 10000, minLevel: 30 },
+  { limit: 500, minLevel: 1 },
+  { limit: 1500, minLevel: 3 },
+  { limit: 3000, minLevel: 5 },
+  { limit: 6000, minLevel: 10 },
+  { limit: 12000, minLevel: 15 },
+  { limit: 25000, minLevel: 20 },
+  { limit: 50000, minLevel: 30 },
 ];
 
 export const DEFAULT_WALLET_LIMIT: number = WALLET_TIERS[0].limit;
@@ -76,9 +76,9 @@ export function isGrounded(gp?: GpPurse | null): boolean {
   return hospitalBillOf(gp) > 0;
 }
 
-/** A bigger wallet costs half its size. */
+/** A bigger wallet costs a fifth of its size. */
 export function walletUpgradePrice(limit: number): number {
-  return Math.round(limit / 2);
+  return Math.round(limit / 5);
 }
 
 /** The next wallet on sale for this purse, or null when the hero already carries the biggest one. */
