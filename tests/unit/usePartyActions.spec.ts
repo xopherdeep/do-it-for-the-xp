@@ -21,9 +21,10 @@ jest.mock("@/lib/store/stores/townHall", () => ({ __esModule: true, useTownHallS
 const mockPro = reactive({ isPro: true, familyId: "fam-1" });
 jest.mock("@/lib/store/stores/pro", () => ({ __esModule: true, useProStore: () => mockPro }));
 
+const mockGetState = jest.fn().mockResolvedValue(null);
 jest.mock("@/lib/databases/PartyDb", () => ({
   __esModule: true,
-  getPartyDb: () => ({ getState: async () => null, saveState: async () => undefined }),
+  getPartyDb: () => ({ getState: (...args: unknown[]) => mockGetState(...args), saveState: async () => undefined }),
 }));
 
 const mockClient = {
@@ -186,6 +187,25 @@ describe("usePartyActions: a hero who stays home", () => {
     const result = await usePartyMembership().removeHeroFromParties("ana");
     expect(result).toEqual({ ok: false, problem: "offline" });
     expect(mockClient.leaveParty).toHaveBeenCalledTimes(1);
+  });
+
+  /** A fresh start: the saved record says Ana stays home, and nothing has read it yet */
+  const freshStartWithAnaHome = (): void => {
+    setActivePinia(createPinia());
+    seedHeroes();
+    mockGetState.mockResolvedValue({ heroModes: { ana: "home" } });
+  };
+
+  it("knows from the saved modes that a hero who stays home cannot ask to join, as the first thing done after the app starts", async () => {
+    freshStartWithAnaHome();
+    expect(await actions().requestJoin("ABCD2345", "ana")).toEqual({ ok: false, problem: "forbidden" });
+    expect(mockClient.joinByCode).not.toHaveBeenCalled();
+  });
+
+  it("knows from the saved modes that a hero who stays home cannot lead a new party, as the first thing done after the app starts", async () => {
+    freshStartWithAnaHome();
+    expect(await actions().createParty({ name: "Raiders", emblem: "dragon", inviteRule: "leader", leaderId: "ana" })).toEqual({ ok: false, problem: "forbidden" });
+    expect(mockClient.formParty).not.toHaveBeenCalled();
   });
 
   it("sends no word for a hero who stays home, even in a party they joined before", async () => {
