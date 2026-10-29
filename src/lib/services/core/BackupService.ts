@@ -109,8 +109,8 @@ const mirrorProfiles = async (entries: readonly BackupEntry[]): Promise<void> =>
  * phone's own claims, answers and server cursor (`__xp_hero_phone`, they belong to that phone's link, so a restore
  * would resend old claims and point the cursor into a stream the phone may not be on), the Town Hall sign-in and
  * unsent posts (`__xp_town_hall`), this install's XP Pro license (`__xp_pro`), photo proof for held claims
- * (`__xp_claim_photos`, big and private) and Family Sync's queue, server number and hero turns (`__xp_sync`, a restore
- * would resend old records, and the turns belong to this device).
+ * (`__xp_claim_photos`, big and private), Family Sync's queue, server number and hero turns (`__xp_sync`, a restore
+ * would resend old records, and the turns belong to this device) and the party record (`__xp_party`, a restore revives fought raids).
  */
 export const BACKUP_STORES: readonly BackupStoreDef[] = [
   { name: "__profiles", label: "Profiles", storage: profileStorage, afterRestore: mirrorProfiles, cleanRecord: sealProfileSecrets },

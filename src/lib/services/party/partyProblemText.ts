@@ -3,7 +3,7 @@ import type { PartyProblem } from "./partyClient";
 /** What each refusal says to a Game Master, in plain words with a way forward where there is one */
 const TEXT: Record<string, string> = {
   "pro-required": "Parties with other families need XP Pro. Add it in Settings to play together.",
-  unlinked: "Link your Town Hall account first (Settings > Town Hall), then try again.",
+  unlinked: "Link your Town Hall account first (Settings > Account), then try again.",
   offline: "No connection right now. Check the internet and try again.",
   server: "The Town Hall could not do that just now. Try again in a moment.",
   invalid: "That did not look right. Check what you typed and try again.",
