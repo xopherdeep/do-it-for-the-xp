@@ -1,4 +1,4 @@
-// The hero's Powers app (Spells, blue like MP): rows of the phone apps kit, Privileges first and then Spells.
+// The hero's Powers app (Spells, blue like MP): rich spell card grid.
 // Colours, frames and fonts come from the kit tokens (`.xp-app--retro` / `.xp-app--modern`, _xp-app.scss).
 
 .my-abilities {
@@ -6,68 +6,25 @@
   font-family: var(--xp-app-font-body);
 
   .powers-list {
-    padding: 4px 0;
+    padding: 6px 0 24px;
   }
 
-  // The kit rows are children of this page's sections: their own markup is reached through :deep.
-  .power-row {
-    // A tapped row opens in place: the one-line description wraps
-    &.is-open :deep(.xp-app-row__subtitle) {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
+  .powers-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 6px 8px;
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      padding: 8px 12px;
     }
 
-    // A Power that is still locked sits a little dimmer than one that can be cast; the AP meter stays readable
-    &.is-locked :deep(.xp-app-row__tile),
-    &.is-locked :deep(.xp-app-row__title) {
-      opacity: 0.6;
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
     }
-  }
-
-  // The AP meter: a thin bar right under the description, with what it reads on one small line below
-  .power-ap {
-    flex: 1 0 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-bottom: 2px;
-  }
-
-  .power-meter {
-    height: 4px;
-    overflow: hidden;
-    background: var(--xp-app-line);
-    border-radius: var(--xp-app-radius-chip);
-  }
-
-  .power-meter-fill {
-    height: 100%;
-    background: var(--xp-color-ap, #7fd0f0);
-    border-radius: inherit;
-    transition: width 0.3s steps(8);
-  }
-
-  .power-ap-text {
-    color: var(--xp-color-ap, #7fd0f0);
-    font-family: var(--xp-app-font-title);
-    font-size: 0.68rem;
-    letter-spacing: 0.3px;
-    line-height: 1.2;
-    text-transform: var(--xp-app-title-transform);
-  }
-
-  // Why the Power cannot be cast right now (Need 5 MP, Cooling, a Hospital bill ...)
-  .power-state {
-    flex: 1 0 100%;
-    margin: 2px 0 0;
-    color: var(--xp-app-text-dim);
-    font-size: 0.72rem;
-    line-height: 1.25;
-  }
-
-  .cast-btn {
-    min-width: 64px;
   }
 }
 
@@ -75,3 +32,4 @@
 .abilities-footer {
   background: transparent;
 }
+

@@ -314,7 +314,7 @@ const cancel = () => {
   margin: 8px 4px 0;
   font-family: $eb-font-status;
   font-size: 0.95rem;
-  color: #ff9aa8;
+  color: var(--gs-danger);
   text-shadow: 1px 1px 0 $reveal-ink;
 }
 
