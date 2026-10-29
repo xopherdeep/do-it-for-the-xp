@@ -61,7 +61,7 @@
         android:layout_marginBottom="2dp">
 
         <!-- Pedestal Base Under Character -->
-        <View
+        <FrameLayout
             android:layout_width="120dp"
             android:layout_height="22dp"
             android:layout_gravity="bottom|center_horizontal"
