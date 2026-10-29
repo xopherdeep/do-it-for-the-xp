@@ -29,23 +29,15 @@
 import { computed } from "vue";
 import { synergyBuff } from "@/lib/services/party/partyRules";
 import type { PartyMember } from "@/lib/services/party/partyStats";
+import { synergyHint } from "./partyWording";
 
 const props = defineProps<{ members: PartyMember[]; heroIdsToday: string[] }>();
 
 const buff = computed(() => synergyBuff(props.heroIdsToday));
 const heroCount = computed(() => new Set(props.heroIdsToday).size);
 
-/** What the party needs to do next to power up */
-const hint = computed(() => {
-  const count = heroCount.value;
-  const hints = [
-    "Two heroes finishing chores today make strikes x1.1",
-    "Two heroes finishing chores today make strikes x1.1",
-    "One more hero today makes strikes x1.2",
-    "Full party power!",
-  ];
-  return hints[Math.min(count, hints.length - 1)];
-});
+/** What the party needs to do next to power up, for the party it has */
+const hint = computed(() => synergyHint(heroCount.value, props.members.length));
 
 const isDone = (member: PartyMember): boolean => props.heroIdsToday.includes(member.id);
 const nameOf = (member: PartyMember): string => member.name?.nick || member.name?.full || "Hero";

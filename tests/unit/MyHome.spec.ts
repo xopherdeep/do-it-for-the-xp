@@ -1,4 +1,4 @@
-import { shallowMount } from "@vue/test-utils";
+import { flushPromises, shallowMount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive } from "vue";
 import MyHome from "@/app/Console/MyPortal/MyHome/MyHome.vue";
@@ -65,26 +65,28 @@ describe("MyHome", () => {
     expect(mockPush).not.toHaveBeenCalledWith({ name: "home-town", params: { userId: "hero-1" } });
   });
 
-  it("Save & Quit signs the hero out, so their Family Sync turn rests, and opens the profile picker", () => {
+  it("Save & Quit signs the hero out, so their Family Sync turn rests, and opens the profile picker", async () => {
     const userStore = useUserStore();
     userStore.loginUser(userStore.users["hero-1"]);
     const wrapper = mountHome();
 
+    (wrapper.vm as any).openSaveQuitModal(); // the question comes first: confirming one that is not open does nothing
     (wrapper.vm as any).confirmSaveQuit();
-    (wrapper.vm as any).closeSaveQuitModal();
+    await flushPromises();
 
     expect(userStore.currentUser.id).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith({ name: "xp-profile" });
   });
 
-  it("Save & Quit on a kid phone signs the hero out and returns to the hero-phone screen, not the picker", () => {
+  it("Save & Quit on a kid phone signs the hero out and returns to the hero-phone screen, not the picker", async () => {
     const userStore = useUserStore();
     useFamilyStore().device = { heroId: "hero-1", label: "Arthur's phone" } as never;
     userStore.loginUser(userStore.users["hero-1"]);
     const wrapper = mountHome();
 
+    (wrapper.vm as any).openSaveQuitModal();
     (wrapper.vm as any).confirmSaveQuit();
-    (wrapper.vm as any).closeSaveQuitModal();
+    await flushPromises();
 
     expect(userStore.currentUser.id).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith({ name: "hero-phone" });

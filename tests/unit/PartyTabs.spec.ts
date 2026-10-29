@@ -254,8 +254,9 @@ describe("Party Raids tab", () => {
 });
 
 describe("Party Synergies tab", () => {
-  const mountSynergies = (heroIdsToday: string[]) => {
-    wrapper = mount(PartySynergiesTab, { props: { members: HEROES, heroIdsToday } });
+  const THREE: PartyMember[] = [...HEROES, { id: "cam", name: { nick: "Cam" } }];
+  const mountSynergies = (heroIdsToday: string[], members: PartyMember[] = HEROES) => {
+    wrapper = mount(PartySynergiesTab, { props: { members, heroIdsToday } });
     return wrapper;
   };
 
@@ -264,16 +265,27 @@ describe("Party Synergies tab", () => {
     expect(wrapper!.text()).toContain("Two heroes finishing chores today make strikes x1.1");
   });
 
-  it("shows x1.1 for two heroes and points at the next step", () => {
-    const tab = mountSynergies(["ana", "ben"]);
+  it("asks for one more hero, not two, once one has finished", () => {
+    expect(mountSynergies(["ana"]).text()).toContain("One more hero today makes strikes x1.1");
+  });
+
+  it("shows x1.1 for two heroes of a party of three and points at the next step", () => {
+    const tab = mountSynergies(["ana", "ben"], THREE);
     expect(tab.find('[data-cy="party-synergy-buff"]').text()).toContain("x1.1");
     expect(tab.text()).toContain("One more hero today makes strikes x1.2");
   });
 
   it("shows x1.2 for three heroes at full party power", () => {
-    const tab = mountSynergies(["ana", "ben", "cam"]);
+    const tab = mountSynergies(["ana", "ben", "cam"], THREE);
     expect(tab.find('[data-cy="party-synergy-buff"]').text()).toContain("x1.2");
     expect(tab.text()).toContain("Full party power");
+  });
+
+  it("gives a party of two full power once both have finished, without promising a third hero it does not have", () => {
+    const tab = mountSynergies(["ana", "ben"]);
+    expect(tab.find('[data-cy="party-synergy-buff"]').text()).toContain("x1.1");
+    expect(tab.text()).toContain("Full party power");
+    expect(tab.text()).not.toContain("One more hero");
   });
 
   it("marks which heroes have finished a chore today", () => {

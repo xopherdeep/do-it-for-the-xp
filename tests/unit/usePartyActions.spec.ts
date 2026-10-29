@@ -59,7 +59,7 @@ const actions = () => ({ ...usePartyMembership(), ...usePartyControls() });
 
 const seedHeroes = (): void => {
   Object.assign(useUserStore().users, {
-    ana: { id: "ana", isAdult: false, name: { nick: "Ana", full: "Amelia Pollard" }, stats: { level: 4 }, jobClass: "knight", pin: "1234" },
+    ana: { id: "ana", isAdult: false, name: { nick: "Ana", full: "Pat Example" }, stats: { level: 4 }, jobClass: "knight", pin: "1234" },
     ben: { id: "ben", isAdult: false, name: { nick: "Ben" }, stats: { level: 2 }, jobClass: "mage" },
   });
 };
@@ -78,7 +78,6 @@ beforeEach(() => {
 
 describe("usePartyActions: the checks before any call", () => {
   it("asks nothing of the site for a family without XP Pro or an account that is not linked", async () => {
-    
     mockPro.isPro = false;
     expect(await actions().rotateCode("p1")).toEqual({ ok: false, problem: "pro-required" });
     mockPro.isPro = true;

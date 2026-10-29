@@ -29,6 +29,8 @@ describe("problemText", () => {
   it("says what to do about the ones the family can fix", () => {
     expect(problemText("pro-required")).toContain("XP Pro");
     expect(problemText("unlinked")).toContain("Town Hall");
+    expect(problemText("unlinked")).toContain("Settings > Account"); // the Town Hall account lives there; Settings has no Town Hall page
+    expect(problemText("unlinked")).not.toContain("Settings > Town Hall");
     expect(problemText("code-unknown")).toContain("code");
     expect(problemText("forbidden")).toContain("home");
   });

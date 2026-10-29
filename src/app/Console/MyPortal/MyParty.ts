@@ -54,7 +54,7 @@ import PartyRaidsTab from "./party/PartyRaidsTab.vue";
 import PartyRosterTab from "./party/PartyRosterTab.vue";
 import PartySwitcher from "./party/PartySwitcher.vue";
 import PartySynergiesTab from "./party/PartySynergiesTab.vue";
-import { sentWordToast } from "./party/partyWording";
+import { inviteCodeText, sentWordToast } from "./party/partyWording";
 
 export default defineComponent({
   name: "my-party",
@@ -132,6 +132,20 @@ export default defineComponent({
         duration: 2000,
         position: "bottom",
         color,
+      });
+      await toast.present();
+    };
+
+    /** The party code is read out or copied by a Game Master, so its toast stays long enough and has a close button (the project's rpg-toast) */
+    const showCodeToast = async (message: string): Promise<void> => {
+      const toast = await toastController.create({
+        header: "Invite a family",
+        message,
+        duration: 12000,
+        position: "middle",
+        buttons: [{ text: "Close", role: "cancel" }],
+        cssClass: "rpg-toast",
+        color: "success",
       });
       await toast.present();
     };
@@ -231,8 +245,7 @@ export default defineComponent({
       // In a party with other families, inviting means handing a friend's Game Master the code
       const party = outsideParty.value;
       if (party) {
-        const shareText = party.code ? `Party code: ${party.code}. Give it to a friend's Game Master.` : "Ask the party leader for the code.";
-        void showToast(shareText, "success");
+        void showCodeToast(inviteCodeText(party.code));
         return;
       }
 

@@ -33,11 +33,11 @@ describe("partyRules", () => {
   describe("toHeroCard", () => {
     const hero = {
       id: "h1",
-      name: { full: "Amelia Quinn Pollard", nick: "Mina" },
+      name: { full: "Pat Quinn Example", nick: "Mina" },
       email: "mina@example.com",
       pin: "1234",
-      realName: "Amelia",
-      birthday: "2014-02-03",
+      realName: "Pat",
+      birthday: "2000-01-01",
       jobClass: "paladin",
       stats: { level: 7, xp: 900 },
       look: { skin: "peach", hair: "short", outfit: "paladin-1", secret: "x", leftHand: "fa-sword" },
@@ -55,7 +55,7 @@ describe("partyRules", () => {
     });
 
     it("never falls back to a real name", () => {
-      const card = toHeroCard({ id: "h2", name: { full: "Amelia Quinn Pollard" } });
+      const card = toHeroCard({ id: "h2", name: { full: "Pat Quinn Example" } });
       expect(card.nickname).toBe("Hero");
     });
 
