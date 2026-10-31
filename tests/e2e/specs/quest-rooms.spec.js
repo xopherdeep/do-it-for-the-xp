@@ -131,7 +131,8 @@ const tackleChore = (name) => {
 const loseTheFight = () => {
   const step = (left) => {
     cy.location("pathname").then((path) => {
-      if (!path.startsWith("/battle/")) return;
+      const hasLeftTheBattle = !path.startsWith("/battle/");
+      if (hasLeftTheBattle) return;
       expect(left, "laps left before the hero falls").to.be.greaterThan(0);
       cy.get("body").then(($body) => {
         const isMenuUp = hasMenu($body);
