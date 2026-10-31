@@ -112,7 +112,7 @@ export default defineComponent({
       play$fx("select");
       const success = await dlcService.startDownload(handleProgressUpdate);
       if (success) {
-        play$fx("reward");
+        play$fx("finish");
         emit("completed");
       }
     };
