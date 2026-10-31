@@ -172,7 +172,6 @@
   import { claimsFor } from "@/lib/services/quests/waitingClaims";
   import type { ProjectRecord } from "@/lib/services/projects/projectRecord";
   import { readRewardToGive } from "@/lib/services/projects/projectService";
-  import { play$fx } from "@/assets/fx";
   import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
   import { HISTORY_LIMIT, latestHistory, purchaseHistoryRow, questHistoryRow } from "./approvalHistory";
   import type { HistoryRow } from "./approvalHistory";
