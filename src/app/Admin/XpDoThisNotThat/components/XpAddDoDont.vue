@@ -205,6 +205,7 @@
   import ionic from "@/lib/mixins/ionic";
 
   import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
+  import { doDontPoints } from "@/lib/services/dosDonts/doDontPoints";
   import EFFORTS from "@/constants/EFFORTS";
 
   const dosDontsDb = new DosDontsDb();
@@ -322,14 +323,7 @@
       },
 
       updatePoints() {
-        const { difficulty } = this.form;
-        const multiplier = 200;
-        const negator = this.form.type === "do" ? 1 : -1;
-        this.form.points = {
-          xp: difficulty * multiplier * negator,
-          gp: difficulty * (multiplier / 10) * negator,
-          ap: difficulty * (multiplier / 100) * negator,
-        };
+        this.form.points = doDontPoints(this.form.difficulty, this.form.type);
       },
       increaseDifficulty() {
         const currentIndex = this.fibonacciArray.indexOf(this.form.difficulty);

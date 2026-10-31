@@ -8,6 +8,7 @@ import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { DosDont } from "@/lib/databases/DosDontsDb";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { doDontPoints } from "@/lib/services/dosDonts/doDontPoints";
 
 /** A fixed day in the past, so every repeating quest is already running */
 export const PACK_STARTED_ON = "2026-01-01T00:00:00.000Z";
@@ -73,8 +74,8 @@ export interface DoDontSeed {
   notes?: string;
 }
 
-/** GP per point of effort, as the Add Do form prices it (a do pays it, a don't takes it away): the chore rate, 15 GP per point */
-export const DO_DONT_GP_PER_EFFORT = 15;
+/** GP per point of effort: the shared chore rate, the same the Add Do form pays, 15 GP a point. A do pays it and a don't takes it away. */
+export const DO_DONT_GP_PER_EFFORT = doDontPoints(1, "do").gp;
 
 export const doDontFromSeed = (seed: DoDontSeed): DosDont => ({
   id: seed.id,
@@ -85,7 +86,7 @@ export const doDontFromSeed = (seed: DoDontSeed): DosDont => ({
   awardPoints: { xp: false, gp: true, ap: false },
   points: {
     xp: 0,
-    gp: seed.difficulty * DO_DONT_GP_PER_EFFORT * (seed.type === "do" ? 1 : -1),
+    gp: doDontPoints(seed.difficulty, seed.type).gp,
     ap: 0,
   },
   notes: seed.notes ?? "",

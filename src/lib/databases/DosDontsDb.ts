@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 import { Drivers, Storage } from "@ionic/storage";
+import { awardedDoDontPoints } from '@/lib/services/dosDonts/doDontPoints';
 
 export const dosDontsStorage = new Storage({
   name: "__dosDonts",
@@ -66,13 +67,8 @@ export class DosDontsDb extends DbStorageApi {
     const id = dosDont.id || uuidv4();
     const now = Date.now();
     
-    // Calculate points based on difficulty
-    const baseValue = dosDont.type === 'do' ? dosDont.difficulty : -dosDont.difficulty;
-    const points = {
-      xp: dosDont.awardPoints.xp ? baseValue : 0,
-      gp: dosDont.awardPoints.gp ? baseValue : 0,
-      ap: dosDont.awardPoints.ap ? baseValue : 0,
-    };
+    // The shared chore curve for each kind of points it awards, the same the Add Do form shows
+    const points = awardedDoDontPoints(dosDont.difficulty, dosDont.type, dosDont.awardPoints);
 
     await this.set(id, {
       ...this.createDosDont(dosDont.type),
