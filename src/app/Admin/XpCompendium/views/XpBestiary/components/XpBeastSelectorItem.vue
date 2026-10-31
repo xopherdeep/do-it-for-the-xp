@@ -267,10 +267,10 @@ export default defineComponent({
   max-width: calc(100% - 12px);
   padding: 3px 5px;
   overflow: hidden;
-  background: var(--gs-window, #280828);
-  border: 1px solid var(--gs-text, #e7e6b3);
+  background: var(--gs-window);
+  border: 1px solid var(--gs-text);
   border-radius: 2px;
-  color: var(--gs-text, #e7e6b3);
+  color: var(--gs-text);
   font-family: "Press Start 2P";
   font-size: 0.4rem;
   line-height: 1.3;

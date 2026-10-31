@@ -147,20 +147,20 @@ export default defineComponent({
   .dlc-headline {
     font-size: 1.15rem;
     font-weight: bold;
-    color: var(--ion-color-light, #ffffff);
+    color: var(--ion-color-light);
     margin: 0 0 8px 0;
   }
 
   .dlc-subtext {
     font-size: 0.9rem;
-    color: var(--ion-color-medium, #a0aec0);
+    color: var(--ion-color-medium);
     margin: 0 0 16px 0;
     line-height: 1.4;
   }
 
   .dlc-error-text {
     font-size: 0.9rem;
-    color: var(--ion-color-danger, #e53e3e);
+    color: var(--ion-color-danger);
     margin: 0 0 16px 0;
   }
 
@@ -168,7 +168,7 @@ export default defineComponent({
     width: 100%;
     height: 14px;
     background: rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--ion-color-medium, #718096);
+    border: 2px solid var(--ion-color-medium);
     border-radius: 4px;
     overflow: hidden;
     margin: 12px 0 8px 0;
@@ -177,14 +177,14 @@ export default defineComponent({
   .progress-bar-fill {
     height: 100%;
     width: var(--progress-percent, 0%);
-    background: linear-gradient(90deg, #48bb78, #38a169);
+    background: var(--ion-color-success);
     transition: width 0.2s ease-in-out;
   }
 
   .progress-stats {
     font-family: monospace;
     font-size: 0.85rem;
-    color: var(--ion-color-light, #edf2f7);
+    color: var(--ion-color-light);
     margin: 4px 0 0 0;
   }
 }
@@ -195,13 +195,13 @@ export default defineComponent({
 
 .cancel-button {
   --background: transparent;
-  --color: var(--ion-color-medium, #a0aec0);
+  --color: var(--ion-color-medium);
 }
 
 .confirm-button,
 .download-button {
-  --background: var(--ion-color-primary, #4299e1);
-  --color: #ffffff;
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
   font-weight: bold;
 }
 </style>

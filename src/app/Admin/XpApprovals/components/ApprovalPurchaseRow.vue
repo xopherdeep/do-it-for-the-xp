@@ -190,16 +190,16 @@ const deliveryLine = computed(() => (props.entry.packed ? "game item, goes in th
   }
 
   &:focus-visible {
-    outline: 2px solid #fff;
+    outline: 2px solid var(--xp-app-text);
     outline-offset: 2px;
   }
 
   &--approve {
-    background: #2f7a3c;
+    background: var(--gs-good, var(--xp-app-accent));
   }
 
   &--back {
-    background: #9a4a1c;
+    background: var(--gs-danger, var(--xp-app-accent));
   }
 }
 </style>
