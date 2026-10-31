@@ -271,7 +271,7 @@
           />
         </label>
         <template v-else-if="asked.id === 'cost'">
-          <div class="xp-app-segments" role="group" aria-label="Quick prices">
+          <div class="xp-app-segments xp-app-segments--wrap iw-prices" role="group" aria-label="Quick prices">
             <button
               v-for="price in PRICE_CHOICES"
               :key="price"

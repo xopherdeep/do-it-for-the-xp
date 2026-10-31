@@ -1,6 +1,9 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import XpCreateUpdateAccessory from "@/app/Admin/XpCompendium/views/XpAccessories/components/XpCreateUpdateAccessory.vue";
+import { PRICE_CHOICES } from "@/app/Admin/XpCompendium/views/XpAccessories/itemWizard";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { AccessoryType, Rarity } from "@/lib/databases/AccessoriesDb";
 import type { Accessory } from "@/lib/databases/AccessoriesDb";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -180,6 +183,20 @@ describe("a new item", () => {
     await type(wrapper, "price", "4a2");
     expect(wrapper.get('[data-test="price-plate"]').text()).toContain("42");
     expect((wrapper.get('[data-test="price"]').element as HTMLInputElement).value).toBe("42");
+  });
+
+  it("wraps the quick prices onto rows, one chip per price, instead of scrolling the big ones off-screen (board #1641)", async () => {
+    const wrapper = await mountForm();
+    await type(wrapper, "name", "Pizza night");
+    await tap(wrapper, "next");
+    const row = wrapper.get('[aria-label="Quick prices"]');
+    expect(row.classes()).toContain("xp-app-segments--wrap");
+    const chips = row.findAll("button");
+    expect(chips).toHaveLength(PRICE_CHOICES.length);
+    expect(chips.map((chip) => chip.attributes("data-test"))).toEqual(PRICE_CHOICES.map((price) => `price-${price}`));
+    // jsdom loads no CSS, so the rule that makes the row wrap is checked in the kit's source
+    const kit = readFileSync(join(__dirname, "../../src/components/organisms/XpApp/_xp-app.scss"), "utf8");
+    expect(kit).toMatch(/\.xp-app-segments \{[\s\S]*?&--wrap \{\s*flex-wrap: wrap;\s*overflow: visible;/);
   });
 
   it("skips Gear stats for a Real Life item: four steps, Who goes straight to Stock it", async () => {

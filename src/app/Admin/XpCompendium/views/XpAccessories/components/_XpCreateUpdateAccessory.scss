@@ -134,6 +134,13 @@
   }
 }
 
+// The quick prices sit in the bottom bar under the thumb: as tall as the rarity chips
+.iw-prices {
+  .xp-app-segment {
+    min-height: 40px;
+  }
+}
+
 .iw-input {
   display: block;
   margin-top: 12px;

@@ -691,6 +691,12 @@
   &::-webkit-scrollbar {
     display: none;
   }
+
+  // A long chip row wraps onto more rows on a phone instead of scrolling its last chips off-screen (board #1641).
+  &--wrap {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
 }
 
 .xp-app-segment {
