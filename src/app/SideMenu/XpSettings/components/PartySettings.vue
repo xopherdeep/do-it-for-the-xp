@@ -145,8 +145,8 @@ const isReadOnly = computed(() => !canEdit.value);
 const setMode = async (heroId: string, mode: HeroPartyMode): Promise<void> => {
   store.setMode(heroId, mode);
   const staysHome = mode === "home";
-  const hero = heroes.value.find((h: any) => String(h.id) === heroId);
-  const name = hero?.name?.nick || hero?.name?.full || "This hero";
+  const hero = heroes.value.find((row) => row.id === heroId);
+  const name = hero?.name || "This hero"; // the row already carries the display name (nick, then full name)
   leaveNote.value = staysHome ? leaveNoteFor(name, await removeHeroFromParties(heroId)) : "";
 };
 

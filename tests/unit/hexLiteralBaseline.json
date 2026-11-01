@@ -1,9 +1,7 @@
 {
-  "total": 1536,
+  "total": 1523,
   "files": {
-    "src/app/Admin/XpApprovals/components/ApprovalClaimRow.vue": 3,
     "src/app/Admin/XpApprovals/components/ApprovalPhoto.vue": 11,
-    "src/app/Admin/XpApprovals/components/ApprovalPurchaseRow.vue": 3,
     "src/app/Admin/XpChat/components/XpChatMessage.vue": 4,
     "src/app/Admin/XpCompendium/_XpCompendiumDashboard.scss": 2,
     "src/app/Admin/XpCompendium/views/XpAbilities/_XpAbilities.scss": 7,
@@ -172,7 +170,6 @@
     "src/components/organisms/BottomNav/XpBottomNav.vue": 5,
     "src/components/organisms/BuildingModel/XpBuildingModel.vue": 5,
     "src/components/organisms/CardUserStats/_CardUserStats.scss": 1,
-    "src/components/organisms/ClaimPhoto/ClaimPhotoPrompt.vue": 7,
     "src/components/organisms/DraggableSpot/XpDraggableSpot.vue": 9,
     "src/components/organisms/FirstRunTour/XpFirstRunTour.vue": 1,
     "src/components/organisms/HeroFanfare/_XpHeroFanfare.scss": 3,
