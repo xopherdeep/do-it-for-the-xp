@@ -54,6 +54,14 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         route: "/xp-settings/family",
       },
       {
+        id: "family-overview",
+        title: "Family Overview",
+        description:
+          "Everyone's chores today, streaks and GP, and quests to approve.",
+        icon: require("@/assets/icons/012-people.svg"),
+        route: "/xp-settings/family-overview",
+      },
+      {
         id: "party",
         title: "Party",
         description:
