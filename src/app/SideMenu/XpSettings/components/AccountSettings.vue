@@ -10,14 +10,14 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card v-if="!isGameMaster" class="max-w-2xl">
+      <ion-card v-if="!isGameMaster">
         <ion-card-content>
           <p>Only a Game Master manages the family's account.</p>
         </ion-card-content>
       </ion-card>
 
       <template v-else>
-        <ion-card class="max-w-2xl" data-cy="account-family">
+        <ion-card data-cy="account-family">
           <ion-card-header>
             <ion-card-title>Family account</ion-card-title>
           </ion-card-header>
@@ -57,7 +57,7 @@
           </ion-card-content>
         </ion-card>
 
-        <ion-card class="max-w-2xl">
+        <ion-card>
           <ion-card-header>
             <ion-card-title>Plan</ion-card-title>
           </ion-card-header>

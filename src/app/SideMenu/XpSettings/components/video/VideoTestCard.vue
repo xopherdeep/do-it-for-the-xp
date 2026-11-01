@@ -2,7 +2,7 @@
   <div ref="root" class="video-test-card__root">
     <!-- Always in the page, so screen readers announce text that changes inside it -->
     <div class="video-test-card__live" aria-live="polite" data-cy="test-live">{{ liveText }}</div>
-    <ion-card v-if="hasStarted" class="settings-card video-test-card max-w-2xl" data-cy="video-test-card">
+    <ion-card v-if="hasStarted" class="settings-card video-test-card" data-cy="video-test-card">
       <ion-list>
         <ion-item-group>
           <ion-item-divider>

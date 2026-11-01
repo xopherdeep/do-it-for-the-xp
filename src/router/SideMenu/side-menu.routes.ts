@@ -21,6 +21,16 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
       requiresAuth: false,
     },
   },
+  // Family Overview
+  {
+    path: "/family-overview",
+    name: "family-overview",
+    component: () =>
+      import("@/app/SideMenu/FamilyOverview/FamilyOverview.vue"),
+    meta: {
+      requiresAuth: false,
+    },
+  },
   // Hero phone link route
   {
     path: "/link",

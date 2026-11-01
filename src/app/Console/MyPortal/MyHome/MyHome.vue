@@ -13,7 +13,6 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true" class="my-home-bg">
-      <IonRouterOutlet />
       <div class="my-home-plaza">
         <xp-draggable-spot screen="my-home" spot-id="home-bed" :default-x="25" :default-y="25">
           <xp-building-model building-id="home-bed" label="Cozy Bed" sublabel="Rest & heal" :size="115" @click="restInBed" />

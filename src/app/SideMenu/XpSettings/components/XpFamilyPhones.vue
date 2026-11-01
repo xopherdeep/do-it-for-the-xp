@@ -1,5 +1,5 @@
 <template>
-  <ion-card v-if="visible" class="max-w-2xl xp-family-phones" data-cy="family-phones">
+  <ion-card v-if="visible" class="xp-family-phones" data-cy="family-phones">
     <ion-card-header>
       <ion-card-title>Hero phones</ion-card-title>
     </ion-card-header>
@@ -47,7 +47,7 @@
     <xp-reveal-prompt :prompt="prompt" @respond="respond" />
   </ion-card>
 
-  <ion-card v-else-if="showUnlinkedPrompt" class="max-w-2xl xp-family-phones-connect" data-cy="family-phones-connect">
+  <ion-card v-else-if="showUnlinkedPrompt" class="xp-family-phones-connect" data-cy="family-phones-connect">
     <ion-card-header>
       <ion-card-title>Hero phones</ion-card-title>
     </ion-card-header>

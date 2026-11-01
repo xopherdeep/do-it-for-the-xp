@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="max-w-2xl xp-family-cloud-card" data-cy="family-cloud-card">
+  <ion-card class="xp-family-cloud-card" data-cy="family-cloud-card">
     <ion-card-header>
       <div class="flex items-center justify-between">
         <ion-card-title>

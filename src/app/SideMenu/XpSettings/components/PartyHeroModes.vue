@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="max-w-2xl party-modes" data-cy="party-hero-modes">
+  <ion-card class="party-modes" data-cy="party-hero-modes">
     <ion-card-header>
       <ion-card-title>Who may join parties</ion-card-title>
       <ion-card-subtitle>How each hero may party with other families</ion-card-subtitle>

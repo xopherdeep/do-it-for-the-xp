@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-card-header>
           <ion-card-title>Write to us</ion-card-title>
         </ion-card-header>
@@ -32,7 +32,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-list>
           <ion-item-divider>
             <ion-label>Before you write</ion-label>
@@ -54,7 +54,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-list>
           <ion-item-divider>
             <ion-label>This app</ion-label>

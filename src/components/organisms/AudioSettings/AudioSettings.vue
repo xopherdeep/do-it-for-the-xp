@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="audio-settings max-w-2xl">
+  <ion-card class="audio-settings">
     <ion-list>
       <ion-item-group>
         <ion-item-divider>

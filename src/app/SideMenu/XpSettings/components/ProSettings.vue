@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="bg-slide rpg-box ion-padding">
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-card-header>
           <ion-card-title data-cy="pro-status">{{ pro.isPro ? "XP Pro is on" : "XP Pro is off" }}</ion-card-title>
         </ion-card-header>
@@ -41,7 +41,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-card-header>
           <ion-card-title><i class="fad fa-key mr-2" aria-hidden="true"></i>Restore with key</ion-card-title>
         </ion-card-header>
@@ -60,7 +60,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-card-header>
           <ion-card-title><i class="fad fa-envelope-open-text mr-2" aria-hidden="true"></i>Lost your key?</ion-card-title>
         </ion-card-header>

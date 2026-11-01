@@ -19,7 +19,7 @@ export const FIRST_RUN_TOUR: readonly TourStop[] = [
     target: "purse",
     title: "XP and GP",
     lines: [
-      "Up top is your XP on the left and your GP on the right.",
+      "Down below is your XP on the left and your GP on the right.",
       "Beat a chore beast and both go up. Fill the XP bar to level up!",
     ],
   },

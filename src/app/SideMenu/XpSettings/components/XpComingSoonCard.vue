@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="max-w-2xl xp-coming-soon" data-cy="coming-soon">
+  <ion-card class="xp-coming-soon" data-cy="coming-soon">
     <ion-list>
       <ion-item-divider>
         <ion-label>{{ title }}</ion-label>

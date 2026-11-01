@@ -1,7 +1,7 @@
 <template>
   <div ref="root" class="video-tier" data-cy="video-tier-content">
     <!-- On a card like the other settings: loose on the page, this text sat on the busy checkerboard and could not be read -->
-    <ion-card class="settings-card max-w-2xl">
+    <ion-card class="settings-card">
       <ion-card-content>
         <!-- Mounted only once the page has painted twice, so a slow first hero cannot freeze the page it is meant to fix -->
         <div class="video-tier__preview" data-cy="tier-preview">
@@ -117,7 +117,6 @@
 
 <style scoped>
   .video-tier {
-    max-width: 42rem;
     margin: 0 auto;
     padding: 0 0 16px;
     color: var(--gs-text);

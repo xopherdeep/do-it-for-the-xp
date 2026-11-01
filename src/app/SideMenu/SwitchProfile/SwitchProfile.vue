@@ -137,6 +137,16 @@
 
       <!-- Populated Profiles Views -->
       <template v-else-if="users.length > 0">
+        <!-- Family Overview Button in Card View -->
+        <ion-row v-if="!isRetroView && showFamilyOverview" class="md:hidden justify-content-center items-center mb-3">
+          <ion-col size="12" class="ion-no-padding">
+            <ion-button expand="block" fill="outline" color="primary" class="overview-quick-btn" data-cy="family-overview-btn" @click="openFamilyOverview">
+              <i class="fad fa-users mr-2"></i>
+              Family Overview
+            </ion-button>
+          </ion-col>
+        </ion-row>
+
         <!-- Card View (Default) -->
         <ion-row v-if="!isRetroView" class="md:hidden profile-grid"
           :class="{ 'justify-content-center items-center': users.length === 1 }">
@@ -222,12 +232,38 @@
                   <i class="fad fa-chevron-right eb-new-arrow"></i>
                 </div>
               </div>
+
+              <!-- Family Overview Slot -->
+              <div
+                v-if="showFamilyOverview"
+                class="eb-file-slot eb-overview-slot"
+                role="button"
+                tabindex="0"
+                data-cy="family-overview-slot"
+                @click="openFamilyOverview"
+                @keydown.enter="openFamilyOverview"
+              >
+                <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+                <div class="eb-slot-tag"><i class="fad fa-users"></i></div>
+                <div class="eb-slot-avatar-frame eb-new-avatar">
+                  <i class="fad fa-chart-network"></i>
+                </div>
+                <div class="eb-slot-details">
+                  <div class="eb-slot-hero-name">Family Overview</div>
+                  <div class="eb-slot-meta-row">
+                    <span class="eb-slot-desc">See the whole family at a glance</span>
+                  </div>
+                </div>
+                <div class="eb-slot-badge-column">
+                  <i class="fad fa-chevron-right eb-new-arrow"></i>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <ion-row class="ion-no-padding hidden md:block">
-          <ion-card v-show="!isLoading" class="settings-card max-w-2xl">
+          <ion-card v-show="!isLoading" class="settings-card">
             <ion-list>
               <ion-item v-if="!isKidMode" detail button @click="openNewProfileModal">
                 <ion-buttons slot="start" class="icon-colors">
@@ -236,6 +272,15 @@
                 <ion-label>
                   New Profile
                   <p>New players Start Here.</p>
+                </ion-label>
+              </ion-item>
+              <ion-item v-if="showFamilyOverview" detail button data-cy="family-overview-desktop" @click="openFamilyOverview">
+                <ion-buttons slot="start" class="icon-colors">
+                  <i class="fad fa-users fa-3x"></i>
+                </ion-buttons>
+                <ion-label>
+                  Family Overview
+                  <p>See the whole family at a glance.</p>
                 </ion-label>
               </ion-item>
               <ion-item v-for="user in users" :key="user.id" @click="selectProfile(user)" button detail
@@ -301,7 +346,7 @@
 </template>
 
 <script lang="ts">
-import { landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
+import { familyOverviewOnPicker, landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
 // "vue" comes before "@ionic/vue": the jest transform names the template's own `vue` import vue_1, which would replace a
 // script import that took the name first
 import { computed, defineComponent, ref, onUnmounted } from "vue";
@@ -583,6 +628,11 @@ export default defineComponent({
       // Additional cleanup if needed
     });
 
+    const showFamilyOverview = computed(() => familyOverviewOnPicker());
+    const openFamilyOverview = () => {
+      ionRouter.push("/family-overview");
+    };
+
     return {
       isLoading,
       users,
@@ -612,6 +662,8 @@ export default defineComponent({
       selectRestoreFile,
       turnPrompt,
       answerTurn,
+      showFamilyOverview,
+      openFamilyOverview,
     };
   },
 });

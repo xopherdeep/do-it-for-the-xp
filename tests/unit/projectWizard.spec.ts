@@ -124,7 +124,7 @@ describe("the type step", () => {
   });
 
   it("does not take a type it does not know", () => {
-    const stray = { ...newProjectDraft(TODAY), typeId: "holiday-prep" } as unknown as ProjectDraft;
+    const stray = { ...newProjectDraft(TODAY), typeId: "unknown-project" } as unknown as ProjectDraft;
     expect(type.isValid(stray)).not.toBe(true);
   });
 });

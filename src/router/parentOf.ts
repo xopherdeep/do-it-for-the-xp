@@ -130,6 +130,7 @@ const NAMED_RULES: Record<string, ParentRule> = {
   "my-inventory": toHome,
   "my-profile": toHome,
   "my-party": () => PROFILE_CHOOSER,
+  "family-overview": () => PROFILE_CHOOSER,
   "home-town": toHome,
   "world-map": toHome,
   "xp-pro-return": () => `${SETTINGS}/pro`,

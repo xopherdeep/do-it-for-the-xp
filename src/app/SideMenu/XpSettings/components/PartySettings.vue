@@ -9,39 +9,11 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl" data-cy="maker-settings">
-        <ion-list>
-          <ion-item-divider>
-            <ion-label>Makers</ion-label>
-          </ion-item-divider>
-          <ion-item lines="none">
-            <ion-label class="ion-text-wrap">
-              <p>A Maker can draw beasts and suggest quests. A Game Master checks every one before it enters the game.</p>
-            </ion-label>
-          </ion-item>
-          <ion-item v-for="(hero, index) in makerHeroes" :key="hero.id" :lines="index === makerHeroes.length - 1 ? 'none' : undefined">
-            <ion-avatar slot="start">
-              <ion-img :src="$getUserAvatar(hero)" />
-            </ion-avatar>
-            <ion-label>
-              <h2>{{ heroName(hero) }}</h2>
-            </ion-label>
-            <ion-toggle
-              :data-cy="`maker-${hero.id}`"
-              :checked="rules.makers.includes(String(hero.id))"
-              :disabled="!canManage"
-              :aria-label="`${heroName(hero)} is a Maker`"
-              @ionChange="rules.setMaker(String(hero.id), $event.detail.checked)"
-            ></ion-toggle>
-          </ion-item>
-          <ion-item v-if="!makerHeroes.length" lines="none">
-            <ion-label><p>No heroes yet.</p></ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card>
-
-      <ion-card class="max-w-2xl">
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide ion-padding"
+    >
+      <ion-card>
         <ion-card-content>
           <p>
             Your household is always a party. Raids are fought together, and heroes can also join parties with other
@@ -50,15 +22,70 @@
         </ion-card-content>
       </ion-card>
 
-      <party-hero-modes :heroes="heroes" :modes="modes" :can-edit="canEdit" @change="setMode" />
+      <ion-card
+        data-cy="maker-settings"
+      >
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Makers</ion-label>
+          </ion-item-divider>
+          <ion-item lines="none">
+            <ion-label class="ion-text-wrap">
+              <p>A Maker can draw beasts and suggest quests. A Game Master checks every one before it enters the game.
+              </p>
+            </ion-label>
+          </ion-item>
+          <ion-item
+            v-for="(hero, index) in makerHeroes"
+            :key="hero.id"
+            :lines="index === makerHeroes.length - 1 ? 'none' : undefined"
+          >
+            <ion-avatar slot="start">
+              <ion-img :src="$getUserAvatar(hero)" />
+            </ion-avatar>
+            <ion-label>
+              <h2>{{ heroName(hero) }}</h2>
+            </ion-label>
+            <ion-toggle
+              slot="end"
+              :data-cy="`maker-${hero.id}`"
+              :checked="rules.makers.includes(String(hero.id))"
+              :disabled="!canManage"
+              :aria-label="`${heroName(hero)} is a Maker`"
+              @ionChange="rules.setMaker(String(hero.id), $event.detail.checked)"
+            ></ion-toggle>
+          </ion-item>
+          <ion-item
+            v-if="!makerHeroes.length"
+            lines="none"
+          >
+            <ion-label>
+              <p>No heroes yet.</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card>
 
-      <ion-card v-if="leaveNote" class="max-w-2xl">
+
+
+      <party-hero-modes
+        :heroes="heroes"
+        :modes="modes"
+        :can-edit="canEdit"
+        @change="setMode"
+      />
+
+      <ion-card
+        v-if="leaveNote"
+      >
         <ion-card-content>
           <p data-cy="party-home-note">{{ leaveNote }}</p>
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl" data-cy="party-raid-defaults">
+      <ion-card
+        data-cy="party-raid-defaults"
+      >
         <ion-card-header>
           <ion-card-title>How long raids last</ion-card-title>
           <ion-card-subtitle>The usual length when a raid begins</ion-card-subtitle>
@@ -146,7 +173,7 @@ const setMode = async (heroId: string, mode: HeroPartyMode): Promise<void> => {
   store.setMode(heroId, mode);
   const staysHome = mode === "home";
   const hero = heroes.value.find((h: any) => String(h.id) === heroId);
-  const name = hero?.name?.nick || hero?.name?.full || "This hero";
+  const name = hero?.name || "This hero";
   leaveNote.value = staysHome ? leaveNoteFor(name, await removeHeroFromParties(heroId)) : "";
 };
 

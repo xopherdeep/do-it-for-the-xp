@@ -286,6 +286,7 @@ $gs-star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
   // The same windows on settings pages: keep the settings layout, change only the look
   .xp-settings-page ion-content ion-card {
     width: calc(100% - 32px);
+    max-width: none;
     margin: 16px auto;
 
     & ~ ion-card {

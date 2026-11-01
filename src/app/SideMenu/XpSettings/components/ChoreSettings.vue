@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl chore-rules">
+      <ion-card class="chore-rules">
         <ion-list>
           <ion-item-divider>
             <ion-label>Game rules</ion-label>
@@ -30,7 +30,7 @@
         </ion-list>
       </ion-card>
       <xp-late-chores-card :can-manage="canManage" />
-      <ion-card class="max-w-2xl" data-cy="auto-save-settings">
+      <ion-card data-cy="auto-save-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Savings</ion-label>
@@ -56,7 +56,7 @@
           </ion-item>
         </ion-list>
       </ion-card>
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-card-content>
           <p>Each quest also carries its own rules: GM Review or Honor System, due time, repeats and reward, set in the Compendium.</p>
         </ion-card-content>

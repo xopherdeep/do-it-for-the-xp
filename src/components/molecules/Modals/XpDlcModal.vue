@@ -1,7 +1,13 @@
 <template>
-  <xp-rpg-modal :is-open="isOpen" title="Game Asset Pack" modal-class="dlc-modal" @close="handleClose">
+  <xp-rpg-modal
+    :is-open="isOpen"
+    title="Game Asset Pack"
+    modal-class="dlc-modal"
+    :show-close-button="!isDownloading"
+    @close="handleClose"
+  >
     <template #icon>
-      <i class="fad fa-box-open"></i>
+      <i class="fad fa-box-open dlc-header-icon"></i>
     </template>
 
     <div class="dlc-content">
@@ -19,11 +25,17 @@
       </div>
 
       <div v-else-if="isReady" class="dlc-ready-section">
+        <div class="dlc-status-icon is-ready">
+          <i class="fad fa-check-circle"></i>
+        </div>
         <p class="dlc-headline">Assets Ready!</p>
         <p class="dlc-subtext">All beasts, dungeon floors, and soundtrack loops are saved locally.</p>
       </div>
 
       <div v-else-if="hasError" class="dlc-error-section">
+        <div class="dlc-status-icon is-error">
+          <i class="fad fa-exclamation-triangle"></i>
+        </div>
         <p class="dlc-headline">Download Interrupted</p>
         <p class="dlc-error-text">{{ progress.errorMessage || "Could not complete the download." }}</p>
       </div>
@@ -39,6 +51,7 @@
     <template #footer>
       <template v-if="isDownloading">
         <ion-button disabled class="download-button">
+          <i class="fad fa-spinner-third fa-spin btn-icon"></i>
           Downloading ({{ progress.percent }}%)...
         </ion-button>
       </template>
@@ -140,52 +153,106 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.dlc-header-icon {
+  font-size: 3rem;
+  color: var(--gs-accent, rgb(247, 232, 168));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
 .dlc-content {
   text-align: center;
-  padding: 12px 8px;
+  padding: 4px 8px 12px;
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+  font-family: "Apple Kid", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  letter-spacing: normal !important;
+  font-size-adjust: none !important;
+
+  .dlc-status-icon {
+    font-size: 2.2rem;
+    margin: 0 auto 10px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    &.is-ready {
+      color: var(--gs-good, rgb(72, 187, 120));
+      filter: drop-shadow(0 0 8px rgba(72, 187, 120, 0.5));
+    }
+
+    &.is-error {
+      color: var(--gs-danger, rgb(255, 110, 110));
+      filter: drop-shadow(0 0 8px rgba(255, 110, 110, 0.5));
+    }
+  }
 
   .dlc-headline {
-    font-size: 1.15rem;
+    font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
+    font-size: 1.25rem !important;
     font-weight: bold;
-    color: var(--ion-color-light, #ffffff);
-    margin: 0 0 8px 0;
+    letter-spacing: 0.5px !important;
+    font-size-adjust: none !important;
+    color: var(--gs-accent, rgb(247, 232, 168)) !important;
+    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.8));
+    margin: 0 0 10px 0;
+    line-height: 1.3;
   }
 
   .dlc-subtext {
-    font-size: 0.9rem;
-    color: var(--ion-color-medium, #a0aec0);
+    font-family: "Apple Kid", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1.2rem !important;
+    line-height: 1.45 !important;
+    letter-spacing: normal !important;
+    font-size-adjust: none !important;
+    color: var(--gs-text, rgb(255, 255, 255)) !important;
+    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.8));
     margin: 0 0 16px 0;
-    line-height: 1.4;
+    opacity: 0.95;
   }
 
   .dlc-error-text {
-    font-size: 0.9rem;
-    color: var(--ion-color-danger, #e53e3e);
+    font-family: "Apple Kid", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1.15rem !important;
+    line-height: 1.4 !important;
+    letter-spacing: normal !important;
+    font-size-adjust: none !important;
+    color: var(--gs-danger, rgb(255, 110, 110)) !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     margin: 0 0 16px 0;
   }
 
   .progress-bar-track {
     width: 100%;
-    height: 14px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--ion-color-medium, #718096);
-    border-radius: 4px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid var(--gs-divider, rgba(255, 255, 255, 0.35));
+    border-radius: 9px;
     overflow: hidden;
-    margin: 12px 0 8px 0;
+    margin: 14px 0 10px 0;
+    padding: 2px;
+    box-sizing: border-box;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
   }
 
   .progress-bar-fill {
     height: 100%;
     width: var(--progress-percent, 0%);
-    background: linear-gradient(90deg, #48bb78, #38a169);
-    transition: width 0.2s ease-in-out;
+    background: linear-gradient(90deg, var(--gs-good, rgb(72, 176, 72)), var(--gs-accent, rgb(248, 208, 48)));
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(72, 176, 72, 0.5);
+    transition: width 0.25s ease-in-out;
   }
 
   .progress-stats {
-    font-family: monospace;
-    font-size: 0.85rem;
-    color: var(--ion-color-light, #edf2f7);
-    margin: 4px 0 0 0;
+    font-family: "StatusPlz", "Apple Kid", monospace !important;
+    font-size: 1.15rem !important;
+    letter-spacing: 0.5px !important;
+    font-size-adjust: none !important;
+    color: var(--gs-accent, rgb(247, 232, 168)) !important;
+    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.9));
+    margin: 6px 0 0 0;
+    font-weight: bold;
   }
 }
 
@@ -194,14 +261,59 @@ export default defineComponent({
 }
 
 .cancel-button {
-  --background: transparent;
-  --color: var(--ion-color-medium, #a0aec0);
+  --border-radius: 12px;
+  --background: rgba(255, 255, 255, 0.14);
+  --color: var(--gs-text, rgb(255, 255, 255));
+  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.5px !important;
+  font-size-adjust: none !important;
+  height: 46px;
+  min-width: 120px;
+  flex: 1;
+  transition: transform 0.2s ease, --background 0.2s ease;
+
+  &:hover {
+    --background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+  }
 }
 
-.confirm-button,
-.download-button {
-  --background: var(--ion-color-primary, #4299e1);
-  --color: #ffffff;
+.confirm-button {
+  --border-radius: 12px;
+  --background: var(--gs-button, var(--ion-color-primary, rgb(66, 153, 225)));
+  --color: rgb(255, 255, 255);
+  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.5px !important;
+  font-size-adjust: none !important;
   font-weight: bold;
+  height: 46px;
+  min-width: 130px;
+  flex: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.download-button {
+  --border-radius: 12px;
+  --background: var(--gs-button, var(--ion-color-primary, rgb(66, 153, 225)));
+  --color: rgb(255, 255, 255) !important;
+  --opacity: 1 !important;
+  opacity: 1 !important;
+  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.5px !important;
+  font-size-adjust: none !important;
+  font-weight: bold;
+  height: 46px;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: default;
 }
 </style>

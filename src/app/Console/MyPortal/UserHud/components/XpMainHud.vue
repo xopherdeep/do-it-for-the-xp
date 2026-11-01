@@ -28,11 +28,11 @@
 
       <!-- CENTER: AVATAR / USER FAB -->
       <div class="hud-center">
+        <!-- Owes the Hospital: grounded, and a tap goes to the Gold Bank (nothing shows for a free hero) -->
+        <xp-grounded-chip class="center-top" :stats="stats" />
         <div class="avatar-anchor">
           <slot name="avatar"></slot>
         </div>
-        <!-- Owes the Hospital: grounded, and a tap goes to the Gold Bank (nothing shows for a free hero) -->
-        <xp-grounded-chip class="center-bottom" :stats="stats" />
       </div>
 
       <!-- RIGHT WING: MP -->
@@ -109,10 +109,8 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .xp-main-hud {
-  position: fixed;
-  top: 32px;
-  left: 0;
-  right: 0;
+  position: relative;
+  width: 100%;
   display: flex;
   justify-content: center;
   pointer-events: none;
@@ -121,7 +119,7 @@ export default defineComponent({
 
   .hud-organism {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 4px;
     width: 95vw;
     max-width: 800px;
@@ -133,7 +131,7 @@ export default defineComponent({
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding-top: 5px;
+    padding: 2px 0;
 
     &.left {
       justify-content: flex-end;
@@ -204,15 +202,15 @@ export default defineComponent({
     gap: 2px;
     pointer-events: auto;
     width: 70px;
-    margin-top: -12px;
+    margin-top: 0;
 
     .avatar-anchor {
       position: relative;
       z-index: 10;
     }
 
-    .center-bottom {
-      margin-top: -5px;
+    .center-top {
+      margin-bottom: -2px;
     }
 
   }

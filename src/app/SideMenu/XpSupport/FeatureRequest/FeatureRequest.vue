@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-card-header>
           <ion-card-title>Shape what comes next</ion-card-title>
         </ion-card-header>
@@ -32,7 +32,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-card-content>
           <p>
             The Town Hall needs the internet and a free account on the Town Hall site; it offers to set one up the

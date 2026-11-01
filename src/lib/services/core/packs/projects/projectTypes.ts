@@ -5,12 +5,36 @@
  */
 import type { MovingRoomId } from "../movingPack";
 import type { PackBand } from "../packCommon";
+import { BACK_TO_SCHOOL } from "./backToSchool";
+import { GARAGE_RECLAMATION } from "./garageReclamation";
+import { HOLIDAY_PREP } from "./holidayPrep";
+import { MOVING_IN } from "./movingIn";
 import { MOVING_OUT } from "./movingOut";
 import { SPRING_CLEANING } from "./springCleaning";
+import { VACATION_PREP } from "./vacationPrep";
+import { YARD_OVERHAUL } from "./yardOverhaul";
+export {
+  BACK_TO_SCHOOL,
+  GARAGE_RECLAMATION,
+  HOLIDAY_PREP,
+  MOVING_IN,
+  MOVING_OUT,
+  SPRING_CLEANING,
+  VACATION_PREP,
+  YARD_OVERHAUL,
+};
 
 // The data files import only the types above, so there is no import cycle at run time.
 
-export type ProjectTypeId = "spring-cleaning" | "moving-out";
+export type ProjectTypeId =
+  | "spring-cleaning"
+  | "moving-out"
+  | "holiday-prep"
+  | "back-to-school"
+  | "yard-overhaul"
+  | "moving-in"
+  | "garage-reclamation"
+  | "vacation-prep";
 
 /** One chore a type suggests; the Game Master ticks, renames, resizes and reassigns it before the build. */
 export interface ProjectChoreSuggestion {
@@ -54,6 +78,12 @@ export interface ProjectType {
 export const PROJECT_TYPES: Readonly<Record<ProjectTypeId, ProjectType>> = {
   "spring-cleaning": SPRING_CLEANING,
   "moving-out": MOVING_OUT,
+  "holiday-prep": HOLIDAY_PREP,
+  "back-to-school": BACK_TO_SCHOOL,
+  "yard-overhaul": YARD_OVERHAUL,
+  "moving-in": MOVING_IN,
+  "garage-reclamation": GARAGE_RECLAMATION,
+  "vacation-prep": VACATION_PREP,
 };
 
 export const projectTypeOf = (id: string): ProjectType | undefined =>

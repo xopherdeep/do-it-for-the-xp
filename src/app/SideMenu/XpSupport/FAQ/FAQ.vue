@@ -9,7 +9,7 @@
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card v-for="group in groups" :key="group.title" class="max-w-2xl help-card">
+      <ion-card v-for="group in groups" :key="group.title" class="help-card">
         <ion-list>
           <ion-item-divider>
             <ion-label>{{ group.title }}</ion-label>
@@ -33,7 +33,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-card-content class="help-more">
           <p>Didn't find it?</p>
           <div class="help-actions">

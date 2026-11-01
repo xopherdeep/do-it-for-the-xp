@@ -44,4 +44,47 @@ describe("Settings, General", () => {
     expect(text).toContain("Helper dialogs");
     expect(text).toContain("Landing page");
   });
+
+  it("renders the app language selector and updates language dynamically", async () => {
+    const wrapper = await open();
+
+    expect(wrapper.text()).toContain("App language");
+    const langSelect = wrapper.find('[data-cy="app-language"]');
+    expect(langSelect.exists()).toBe(true);
+
+    const vm = wrapper.vm as unknown as { handleLocaleChange: (code: string) => void };
+    vm.handleLocaleChange("ja");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("アプリ言語");
+    expect(wrapper.text()).toContain("一般設定");
+
+    // Reset back to English
+    vm.handleLocaleChange("en");
+    await flushPromises();
+    expect(wrapper.text()).toContain("App language");
+  });
+
+  it("renders the Family Overview link and profile chooser toggle", async () => {
+    const wrapper = await open();
+
+    expect(wrapper.text()).toContain("Family Overview");
+    expect(wrapper.text()).toContain("Show on profile chooser");
+
+    const navItem = wrapper.find('[data-cy="family-overview-nav"]');
+    expect(navItem.exists()).toBe(true);
+    expect(navItem.html()).toContain("/xp-settings/family-overview");
+
+    const toggle = wrapper.find('[data-cy="family-overview-picker-toggle"]');
+    expect(toggle.exists()).toBe(true);
+
+    const vm = wrapper.vm as unknown as { showOnPicker: boolean; setShowOnPicker: (on: boolean) => void };
+    expect(vm.showOnPicker).toBe(true);
+
+    vm.setShowOnPicker(false);
+    expect(vm.showOnPicker).toBe(false);
+
+    vm.setShowOnPicker(true);
+    expect(vm.showOnPicker).toBe(true);
+  });
 });

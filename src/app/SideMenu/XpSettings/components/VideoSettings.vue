@@ -15,7 +15,7 @@
 
       <video-tier-picker></video-tier-picker>
 
-      <ion-card class="settings-card max-w-2xl">
+      <ion-card class="settings-card">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>

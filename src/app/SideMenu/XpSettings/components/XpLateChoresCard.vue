@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="max-w-2xl late-chores" data-cy="late-chores">
+  <ion-card class="late-chores" data-cy="late-chores">
     <ion-list>
       <ion-item-divider>
         <ion-label>Late chores</ion-label>

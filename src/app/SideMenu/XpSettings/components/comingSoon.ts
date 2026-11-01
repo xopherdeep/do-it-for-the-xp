@@ -7,11 +7,7 @@ export interface ComingSoonItem {
   description: string;
 }
 
-/** Every screen's words are written in English in the code, so a second language needs a translation pass first */
-export const GENERAL_COMING_SOON: ComingSoonItem[] = [
-  { title: "App language", description: "Play in Spanish, French, German or Japanese" },
-  { title: "Family overview", description: "See the whole family from Choose A Profile" },
-];
+export const GENERAL_COMING_SOON: ComingSoonItem[] = [];
 
 /** Each game style paints its own windows and colors, so a dark mode and color sets need a pass over every style */
 export const THEME_COMING_SOON: ComingSoonItem[] = [

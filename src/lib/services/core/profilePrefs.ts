@@ -4,7 +4,7 @@
  * mark; blocked storage just means the defaults.
  */
 
-export type LandingChoice = "my-home" | "home-town" | "world-map" | "my-party" | "game-master";
+export type LandingChoice = "my-home" | "home-town" | "world-map" | "my-party" | "game-master" | "family-overview";
 
 export interface LandingOption {
   value: LandingChoice;
@@ -18,6 +18,7 @@ export const LANDING_OPTIONS: readonly LandingOption[] = [
   { value: "home-town", label: "Home Town" },
   { value: "world-map", label: "World Map" },
   { value: "my-party", label: "Party" },
+  { value: "family-overview", label: "Family Overview" },
   { value: "game-master", label: "Game Master console", gameMasterOnly: true },
 ];
 
@@ -25,6 +26,7 @@ export const DEFAULT_LANDING: LandingChoice = "my-home";
 
 const landingKey = (profileId: string) => `xp.landing.${profileId}`;
 const guidesKey = (profileId: string) => `xp.guides.${profileId}`;
+const familyOverviewOnPickerKey = "xp.familyOverviewOnPicker";
 
 const read = (key: string): string | null => {
   try {
@@ -65,6 +67,8 @@ export const landingPathFor = (profile: { id: string | number; isAdult?: unknown
   const isGameMaster = profile.isAdult === true;
   const isAllowed = landingOptionsFor(isGameMaster).some((option) => option.value === choice);
   const landing = isAllowed ? choice : DEFAULT_LANDING;
+  const isOverview = landing === "family-overview";
+  if (isOverview) return "/family-overview";
   const isConsole = landing === "game-master";
   if (isConsole) return "/game-master/dashboard";
   return `/my-portal/${id}/${landing}`;
@@ -75,4 +79,11 @@ export const guidesOn = (profileId: string): boolean => (profileId ? read(guides
 
 export const setGuidesOn = (profileId: string, on: boolean): void => {
   if (profileId) write(guidesKey(profileId), on ? "on" : "off");
+};
+
+/** Whether Choose A Profile shows the Family Overview shortcut */
+export const familyOverviewOnPicker = (): boolean => read(familyOverviewOnPickerKey) !== "off";
+
+export const setFamilyOverviewOnPicker = (on: boolean): void => {
+  write(familyOverviewOnPickerKey, on ? "on" : "off");
 };

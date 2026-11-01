@@ -6,7 +6,7 @@
       Only a Game Master can answer requests, take a hero out of a party or change a party code.
     </p>
 
-    <ion-card class="max-w-2xl" data-cy="party-requests">
+    <ion-card data-cy="party-requests">
       <ion-card-header>
         <ion-card-title>Join requests</ion-card-title>
         <ion-card-subtitle>Heroes who want into your parties, and the ones yours asked for</ion-card-subtitle>
@@ -27,7 +27,7 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-card class="max-w-2xl" data-cy="party-my-parties">
+    <ion-card data-cy="party-my-parties">
       <ion-card-header>
         <ion-card-title>Parties with other families</ion-card-title>
       </ion-card-header>

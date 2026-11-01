@@ -221,9 +221,9 @@ describe("a project already running", () => {
   });
 
   it("names the project by its id when the type is one this version does not know", async () => {
-    projectDb.getActive.mockResolvedValue({ id: "holiday-prep-2026-12-01", typeId: "holiday-prep", status: "active" });
+    projectDb.getActive.mockResolvedValue({ id: "unknown-future-project-2026-12-01", typeId: "unknown-future-project", status: "active" });
     const wrapper = await mountWizard();
-    expect(wrapper.get('[data-test="blocked"]').text()).toContain("holiday-prep-2026-12-01");
+    expect(wrapper.get('[data-test="blocked"]').text()).toContain("unknown-future-project-2026-12-01");
     expect(wrapper.find('[data-test="submit"]').exists()).toBe(false);
   });
 });

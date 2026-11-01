@@ -10,13 +10,13 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-card-content>
           <p>Heroes spend GP in the shops, and Real Life rewards and cash outs wait in Approvals until a Game Master hands them over.</p>
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl" data-cy="cash-out-settings">
+      <ion-card data-cy="cash-out-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Cash out GP</ion-label>
@@ -97,7 +97,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="max-w-2xl" data-cy="interest-settings">
+      <ion-card data-cy="interest-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Savings interest</ion-label>
@@ -138,7 +138,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="max-w-2xl" data-cy="purchase-settings">
+      <ion-card data-cy="purchase-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Shop purchases</ion-label>

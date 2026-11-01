@@ -1,5 +1,5 @@
 <template>
-  <ion-card v-if="isShown" class="backup-nudge max-w-2xl" data-cy="backup-nudge">
+  <ion-card v-if="isShown" class="backup-nudge" data-cy="backup-nudge">
     <ion-card-content>
       <p class="backup-nudge__title"><i class="fad fa-shield-alt" aria-hidden="true"></i> Back up your family</p>
       <p class="backup-nudge__text">

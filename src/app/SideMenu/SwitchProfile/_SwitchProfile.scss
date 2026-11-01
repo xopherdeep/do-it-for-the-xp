@@ -54,6 +54,12 @@ ion-content {
 }
 
 .switch-profile {
+  .overview-quick-btn {
+    font-family: "StatusPlz", monospace;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
   ion-card {
     text-align: center;
   }

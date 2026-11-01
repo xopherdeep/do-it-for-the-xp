@@ -1,8 +1,10 @@
 import {
+  familyOverviewOnPicker,
   guidesOn,
   landingChoiceOf,
   landingOptionsFor,
   landingPathFor,
+  setFamilyOverviewOnPicker,
   setGuidesOn,
   setLandingChoice,
 } from "@/lib/services/core/profilePrefs";
@@ -40,5 +42,18 @@ describe("Profile start-up choices", () => {
     expect(guidesOn("hero-2")).toBe(true);
     setGuidesOn("hero-1", true);
     expect(guidesOn("hero-1")).toBe(true);
+  });
+
+  it("supports family-overview as a landing option and routes to /family-overview", () => {
+    expect(landingOptionsFor(false).map((option) => option.value)).toContain("family-overview");
+    expect(landingPathFor({ id: "hero-1" }, "family-overview")).toBe("/family-overview");
+  });
+
+  it("defaults familyOverviewOnPicker to true and persists toggling", () => {
+    expect(familyOverviewOnPicker()).toBe(true);
+    setFamilyOverviewOnPicker(false);
+    expect(familyOverviewOnPicker()).toBe(false);
+    setFamilyOverviewOnPicker(true);
+    expect(familyOverviewOnPicker()).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 <template>
   <!-- USER MENU -->
-  <ion-fab ref="userFab" vertical="top" horizontal="center" class="fab-user user-hud icon-colors" :class="$options.name"
+  <ion-fab ref="userFab" vertical="bottom" horizontal="center" class="fab-user user-hud icon-colors" :class="$options.name"
     v-if="user.stats && isUserFabOn" @ionFabActivated="onFabActivated">
     <ion-grid class="p-0">
       <ion-row>
@@ -28,7 +28,7 @@
         </ion-col>
       </ion-row>
     </ion-grid>
-    <ion-fab-list class="fab-user" side="bottom">
+    <ion-fab-list class="fab-user" side="top">
       <xp-rpg-menu :actions="allUserActions" @action-click="clickAction">
         <template #header>
           <div class="header-content">

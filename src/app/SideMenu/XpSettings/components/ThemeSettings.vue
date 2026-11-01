@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
@@ -92,7 +92,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-list>
           <ion-item-group>
             <ion-item-divider>

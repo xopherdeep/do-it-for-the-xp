@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <div class="packs max-w-5xl mx-auto">
+      <div class="packs">
         <ion-card class="pack-card packs__intro">
           <ion-card-content>
             A pack adds a ready-made set of quests, beasts, rewards and house rules. What you made yourself always stays.

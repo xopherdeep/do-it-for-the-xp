@@ -15,7 +15,9 @@ ion-fab {
     transform: none;
 
     ion-fab-list {
-      margin-top: 65px;
+      margin-top: 0;
+      margin-bottom: 14px;
+      bottom: 100%;
 
       ion-col {
         padding: 0;

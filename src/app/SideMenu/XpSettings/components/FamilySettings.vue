@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl">
+      <ion-card>
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
@@ -56,7 +56,7 @@
 
       <xp-family-phones v-if="canManage" />
 
-      <ion-card v-if="canManage" class="max-w-2xl family-items">
+      <ion-card v-if="canManage" class="family-items">
         <ion-list>
           <ion-item-divider>
             <ion-label>Item rules</ion-label>
@@ -71,7 +71,7 @@
         </ion-list>
       </ion-card>
 
-      <ion-card v-if="canManage" class="max-w-2xl family-bedtime" data-cy="bedtime-settings">
+      <ion-card v-if="canManage" class="family-bedtime" data-cy="bedtime-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Bedtime</ion-label>
@@ -119,7 +119,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-card v-if="canReissueCode" class="max-w-2xl family-recovery" data-cy="recovery-code-settings">
+      <ion-card v-if="canReissueCode" class="family-recovery" data-cy="recovery-code-settings">
         <ion-list>
           <ion-item-divider>
             <ion-label>Recovery code</ion-label>

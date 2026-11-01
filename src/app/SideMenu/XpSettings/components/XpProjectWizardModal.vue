@@ -1,5 +1,5 @@
 <template>
-  <ion-modal :is-open="open" class="project-wizard" :class="rootClass" :style="rootStyle" :backdrop-dismiss="false" @didDismiss="emit('close')">
+  <ion-modal :is-open="open" class="project-wizard fullscreen" :class="rootClass" :style="rootStyle" :backdrop-dismiss="false" @didDismiss="emit('close')">
     <!-- A project is already running: one at a time, so there is nothing to build -->
     <template v-if="view === 'blocked'">
       <ion-header>

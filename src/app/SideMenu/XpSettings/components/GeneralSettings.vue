@@ -5,17 +5,32 @@
         <ion-buttons slot="start">
           <xp-back-button></xp-back-button>
         </ion-buttons>
-        <ion-title>General</ion-title>
+        <ion-title>{{ t("settings.general.title") }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide ion-padding"
+    >
+      <ion-card
+        v-if="!isKidMode"
+        class="settings-card"
+      >
+        <ion-card-content>
+          <p>{{ t("settings.general.backupDisclaimer") }}</p>
+        </ion-card-content>
+      </ion-card>
+
       <!-- A kid phone never saves or restores the family's file -->
-      <ion-card v-if="!isKidMode" class="settings-card max-w-2xl">
+      <ion-card
+        v-if="!isKidMode"
+        class="settings-card"
+      >
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Backup &amp; Restore</ion-label>
+              <ion-label>{{ t("settings.general.backupRestore") }}</ion-label>
             </ion-item-divider>
 
             <ion-item
@@ -24,9 +39,13 @@
               :disabled="isBackupBusy"
               @click="confirmBackup"
             >
-              <ion-icon slot="start" color="rpg" :icon="cloudDownloadOutline"></ion-icon>
+              <ion-icon
+                slot="start"
+                color="rpg"
+                :icon="cloudDownloadOutline"
+              ></ion-icon>
               <ion-label>
-                <h2>Back up everything</h2>
+                <h2>{{ t("settings.general.backupEverything") }}</h2>
                 <p>Download one file with all of your family's data. {{ backupAge }}.</p>
               </ion-label>
             </ion-item>
@@ -39,10 +58,14 @@
               lines="none"
               @click="selectRestoreFile"
             >
-              <ion-icon slot="start" color="rpg" :icon="cloudUploadOutline"></ion-icon>
+              <ion-icon
+                slot="start"
+                color="rpg"
+                :icon="cloudUploadOutline"
+              ></ion-icon>
               <ion-label>
-                <h2>Restore from backup</h2>
-                <p>Replace what the app holds with the contents of a backup file. Game Masters only.</p>
+                <h2>{{ t("settings.general.restoreBackup") }}</h2>
+                <p>{{ t("settings.general.restoreDesc") }}</p>
               </ion-label>
             </ion-item>
           </ion-item-group>
@@ -55,11 +78,11 @@
         @completed="handleDlcCompleted"
       />
 
-      <ion-card class="settings-card max-w-2xl">
+      <ion-card class="settings-card">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Game Assets &amp; Storage</ion-label>
+              <ion-label>{{ t("settings.general.gameAssets") }}</ion-label>
             </ion-item-divider>
 
             <ion-item
@@ -69,12 +92,19 @@
               data-cy="dlc-settings-row"
               @click="openDlcModal"
             >
-              <ion-icon slot="start" color="rpg" :icon="cloudDownloadOutline"></ion-icon>
+              <ion-icon
+                slot="start"
+                color="rpg"
+                :icon="cloudDownloadOutline"
+              ></ion-icon>
               <ion-label class="ion-text-wrap">
-                <h2>Game Asset Pack</h2>
+                <h2>{{ t("settings.general.assetPack") }}</h2>
                 <p>{{ dlcSummaryText }}</p>
               </ion-label>
-              <ion-badge slot="end" :color="isDlcReady ? 'success' : 'warning'">
+              <ion-badge
+                slot="end"
+                :color="isDlcReady ? 'success' : 'warning'"
+              >
                 {{ isDlcReady ? "Ready" : "Download" }}
               </ion-badge>
             </ion-item>
@@ -82,19 +112,23 @@
         </ion-list>
       </ion-card>
 
-      <ion-card class="settings-card max-w-2xl">
+      <ion-card class="settings-card">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Guides</ion-label>
+              <ion-label>{{ t("settings.general.guides") }}</ion-label>
             </ion-item-divider>
 
             <ion-item :disabled="!currentHeroId">
               <ion-label class="ion-text-wrap">
-                <h2>Helper dialogs</h2>
-                <p>The Guide and the portal tour speak up on their own. Off, they wait until you open the Journal from your avatar menu.</p>
+                <h2>{{ t("settings.general.helperDialogs") }}</h2>
+                <p>{{ t("settings.general.helperDesc") }}</p>
               </ion-label>
-              <ion-toggle data-cy="guides-toggle" :checked="guides" @ionChange="setGuides($event.detail.checked)"></ion-toggle>
+              <ion-toggle
+                data-cy="guides-toggle"
+                :checked="guides"
+                @ionChange="setGuides($event.detail.checked)"
+              ></ion-toggle>
             </ion-item>
 
             <ion-item
@@ -105,28 +139,35 @@
               data-cy="replay-tour"
               @click="replayTour"
             >
-              <ion-icon slot="start" color="rpg" :icon="mapOutline"></ion-icon>
+              <ion-icon
+                slot="start"
+                color="rpg"
+                :icon="mapOutline"
+              ></ion-icon>
               <ion-label>
-                <h2>Show the portal tour again</h2>
-                <p>The guide walks this hero through the XP bar and the buttons next time their portal opens</p>
+                <h2>{{ t("settings.general.replayTour") }}</h2>
+                <p>{{ t("settings.general.replayTourDesc") }}</p>
               </ion-label>
             </ion-item>
           </ion-item-group>
         </ion-list>
       </ion-card>
 
-      <ion-card class="settings-card max-w-2xl">
+      <ion-card class="settings-card">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
-              <ion-label>Start up</ion-label>
+              <ion-label>{{ t("settings.general.startUp") }}</ion-label>
             </ion-item-divider>
 
-            <ion-item class="setting-stacked" :disabled="!currentHeroId">
+            <ion-item
+              class="setting-stacked"
+              :disabled="!currentHeroId"
+            >
               <div class="setting-stacked__body">
                 <ion-label class="ion-text-wrap">
-                  <h2>Landing page</h2>
-                  <p>The screen {{ profileName }} sees after signing in on this device</p>
+                  <h2>{{ t("settings.general.landingPage") }}</h2>
+                  <p>{{ t("settings.general.landingPageDesc", { name: profileName }) }}</p>
                 </ion-label>
                 <ion-select
                   class="setting-stacked__select"
@@ -136,16 +177,24 @@
                   :value="landing"
                   @ionChange="setLanding($event.detail.value)"
                 >
-                  <ion-select-option v-for="option in landingOptions" :key="option.value" :value="option.value">{{ option.label }}</ion-select-option>
+                  <ion-select-option
+                    v-for="option in landingOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >{{ option.label }}</ion-select-option>
                 </ion-select>
               </div>
             </ion-item>
 
-            <ion-item class="setting-stacked" lines="none" :disabled="!canManage">
+            <ion-item
+              class="setting-stacked"
+              lines="none"
+              :disabled="!canManage"
+            >
               <div class="setting-stacked__body">
                 <ion-label class="ion-text-wrap">
-                  <h2>Week starts on</h2>
-                  <p>The first day of the week in date pickers, quest day rows and the weekly recap, for the whole family</p>
+                  <h2>{{ t("settings.general.weekStartsOn") }}</h2>
+                  <p>{{ t("settings.general.weekStartsDesc") }}</p>
                 </ion-label>
                 <ion-select
                   class="setting-stacked__select"
@@ -155,8 +204,8 @@
                   :value="rules.weekStartsOn"
                   @ionChange="rules.setWeekStartsOn(Number($event.detail.value))"
                 >
-                  <ion-select-option :value="1">Monday</ion-select-option>
-                  <ion-select-option :value="0">Sunday</ion-select-option>
+                  <ion-select-option :value="1">{{ t("settings.general.monday") }}</ion-select-option>
+                  <ion-select-option :value="0">{{ t("settings.general.sunday") }}</ion-select-option>
                 </ion-select>
               </div>
             </ion-item>
@@ -164,17 +213,80 @@
         </ion-list>
       </ion-card>
 
-      <ion-card v-if="!isKidMode" class="settings-card max-w-2xl">
-        <ion-card-content>
-          <p>
-            Everything lives on this device. Back up before you clear the browser, switch phones or try a
-            pack, and keep the file somewhere safe: it holds your whole family's game. Passcodes are saved scrambled, so the
-            file never shows them.
-          </p>
-        </ion-card-content>
+      <ion-card class="settings-card">
+        <ion-list>
+          <ion-item-group>
+            <ion-item-divider>
+              <ion-label>{{ t("settings.general.appPreferences") }}</ion-label>
+            </ion-item-divider>
+
+            <ion-item
+              class="setting-stacked"
+            >
+              <div class="setting-stacked__body">
+                <ion-label class="ion-text-wrap">
+                  <h2>{{ t("settings.general.appLanguage") }}</h2>
+                  <p>{{ t("settings.general.appLanguageDesc") }}</p>
+                </ion-label>
+                <ion-select
+                  class="setting-stacked__select"
+                  interface="action-sheet"
+                  :aria-label="t('settings.general.appLanguage')"
+                  data-cy="app-language"
+                  :value="activeLocale"
+                  @ionChange="handleLocaleChange($event.detail.value)"
+                >
+                  <ion-select-option
+                    v-for="opt in languageOptions"
+                    :key="opt.code"
+                    :value="opt.code"
+                  >
+                    {{ opt.nativeLabel }} ({{ opt.label }})
+                  </ion-select-option>
+                </ion-select>
+              </div>
+            </ion-item>
+
+            <ion-item
+              button
+              :detail="true"
+              router-link="/xp-settings/family-overview"
+              data-cy="family-overview-nav"
+            >
+              <ion-icon
+                slot="start"
+                color="rpg"
+                :icon="peopleOutline"
+              ></ion-icon>
+              <ion-label class="ion-text-wrap">
+                <h2>Family Overview</h2>
+                <p>See the whole family's progress, chores, and stats at a glance.</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item
+              lines="none"
+              data-cy="family-overview-picker-row"
+            >
+              <ion-label class="ion-text-wrap">
+                <h2>Show on profile chooser</h2>
+                <p>Display a shortcut to the Family Overview on Choose A Profile.</p>
+              </ion-label>
+              <ion-toggle
+                data-cy="family-overview-picker-toggle"
+                :checked="showOnPicker"
+                @ionChange="setShowOnPicker($event.detail.checked)"
+              ></ion-toggle>
+            </ion-item>
+          </ion-item-group>
+        </ion-list>
       </ion-card>
 
-      <xp-coming-soon-card title="App preferences" :items="comingSoon" />
+      <xp-coming-soon-card
+        v-if="comingSoon.length > 0"
+        title="App preferences"
+        :items="comingSoon"
+      />
     </ion-content>
   </ion-page>
 </template>
@@ -182,7 +294,7 @@
 <script lang="ts">
   import { computed, defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { cloudDownloadOutline, cloudUploadOutline, mapOutline } from "ionicons/icons";
+  import { cloudDownloadOutline, cloudUploadOutline, mapOutline, peopleOutline } from "ionicons/icons";
   import { alertController, toastController } from "@ionic/vue";
   import { rpgToastOptions } from "@/hooks/useToast";
   import { useBackupRestore } from "@/hooks/useBackupRestore";
@@ -193,12 +305,15 @@
   import XpComingSoonCard from "./XpComingSoonCard.vue";
   import XpDlcModal from "@/components/molecules/Modals/XpDlcModal.vue";
   import { dlcService } from "@/lib/services/dlc/assetDlcService";
+  import { useI18n, type SupportedLocale } from "@/hooks/useI18n";
   import { GENERAL_COMING_SOON } from "./comingSoon";
   import { resetTour } from "@/lib/services/tutorial/firstRunTour";
   import {
+    familyOverviewOnPicker,
     guidesOn,
     landingChoiceOf,
     landingOptionsFor,
+    setFamilyOverviewOnPicker,
     setGuidesOn,
     setLandingChoice,
     type LandingChoice,
@@ -344,13 +459,37 @@
         isDlcReady.value = true;
       };
 
+      const {
+        t,
+        locale: activeLocale,
+        setLocale: changeLocale,
+        availableLocales: languageOptions,
+      } = useI18n();
+
+      const handleLocaleChange = (value: SupportedLocale) => {
+        changeLocale(value);
+      };
+
+      const showOnPicker = ref(familyOverviewOnPicker());
+      const setShowOnPicker = (on: boolean) => {
+        showOnPicker.value = on;
+        setFamilyOverviewOnPicker(on);
+      };
+
       return {
+        t,
+        activeLocale,
+        handleLocaleChange,
+        languageOptions,
         isBackupBusy,
         isKidMode,
         lastBackup,
         backupAge,
         currentHeroId,
         mapOutline,
+        peopleOutline,
+        showOnPicker,
+        setShowOnPicker,
         profileName,
         landingOptions,
         landing,

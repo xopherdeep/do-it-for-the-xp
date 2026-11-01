@@ -115,13 +115,28 @@ describe.each(Object.values(PROJECT_TYPES))("the $name project type", (type) => 
 describe("PROJECT_TYPES and projectTypeOf", () => {
   it("keys each type by its own id", () => {
     for (const [id, type] of Object.entries(PROJECT_TYPES)) expect(type.id).toBe(id);
-    expect(Object.keys(PROJECT_TYPES).sort()).toEqual(["moving-out", "spring-cleaning"]);
+    expect(Object.keys(PROJECT_TYPES).sort()).toEqual([
+      "back-to-school",
+      "garage-reclamation",
+      "holiday-prep",
+      "moving-in",
+      "moving-out",
+      "spring-cleaning",
+      "vacation-prep",
+      "yard-overhaul",
+    ]);
   });
 
   it("finds a type by id and answers undefined for anything else", () => {
     expect(projectTypeOf("spring-cleaning")).toBe(PROJECT_TYPES["spring-cleaning"]);
     expect(projectTypeOf("moving-out")).toBe(PROJECT_TYPES["moving-out"]);
-    expect(projectTypeOf("holiday-prep")).toBeUndefined();
+    expect(projectTypeOf("holiday-prep")).toBe(PROJECT_TYPES["holiday-prep"]);
+    expect(projectTypeOf("back-to-school")).toBe(PROJECT_TYPES["back-to-school"]);
+    expect(projectTypeOf("yard-overhaul")).toBe(PROJECT_TYPES["yard-overhaul"]);
+    expect(projectTypeOf("moving-in")).toBe(PROJECT_TYPES["moving-in"]);
+    expect(projectTypeOf("garage-reclamation")).toBe(PROJECT_TYPES["garage-reclamation"]);
+    expect(projectTypeOf("vacation-prep")).toBe(PROJECT_TYPES["vacation-prep"]);
+    expect(projectTypeOf("unknown-tower")).toBeUndefined();
     expect(projectTypeOf("")).toBeUndefined();
     expect(projectTypeOf("toString")).toBeUndefined();
     expect(projectTypeOf("constructor")).toBeUndefined();

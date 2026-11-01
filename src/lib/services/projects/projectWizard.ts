@@ -76,8 +76,16 @@ export const newProjectDraft = (today: string): ProjectDraft => ({
 export const draftType = (draft: Pick<ProjectDraft, "typeId">): ProjectType | undefined =>
   draft.typeId === undefined ? undefined : projectTypeOf(draft.typeId);
 
-/** The picture on a type's card; a type added later without one gets the dungeon */
-const TYPE_ICON: Readonly<Record<string, string>> = { "spring-cleaning": "broom", "moving-out": "truck-moving" };
+const TYPE_ICON: Readonly<Record<string, string>> = {
+  "spring-cleaning": "broom",
+  "moving-out": "truck-moving",
+  "holiday-prep": "gift",
+  "back-to-school": "backpack",
+  "yard-overhaul": "seedling",
+  "moving-in": "boxes",
+  "garage-reclamation": "tools",
+  "vacation-prep": "suitcase-rolling",
+};
 
 export const projectTypeIcon = (typeId: string): string => TYPE_ICON[typeId] ?? "dungeon";
 

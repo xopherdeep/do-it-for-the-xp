@@ -53,6 +53,17 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       },
     },
     {
+      path: "family-overview",
+      name: "xp-settings-family-overview",
+      component: () =>
+        import(
+          "@/app/SideMenu/FamilyOverview/FamilyOverview.vue"
+        ),
+      meta: {
+        requiresAuth: false,
+      },
+    },
+    {
       path: "sound",
       name: "xp-settings-sound",
       component: () =>

@@ -10,7 +10,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
-      <ion-card class="max-w-2xl help-card">
+      <ion-card class="help-card">
         <ion-list>
           <ion-accordion-group :value="openChapter">
             <ion-accordion

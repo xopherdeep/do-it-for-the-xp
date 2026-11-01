@@ -397,6 +397,7 @@ ion-app {
       // (the page's 16px ion-padding)
       ion-card {
         width: calc(100% - 32px);
+        max-width: none;
         margin: 16px auto;
 
         & ~ ion-card {
@@ -494,6 +495,7 @@ ion-app {
 
         // an off switch still shows its track on the dark window
         > ion-toggle {
+          width: auto;
           --track-background: #{rgba($eb-color-cream, 0.28)};
         }
 

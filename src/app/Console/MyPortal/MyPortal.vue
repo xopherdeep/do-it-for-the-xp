@@ -2,14 +2,16 @@
   <xp-portal-page :loading="!user" page-class="my-portal icon-colors">
     <!-- HUD Overlay (stats, avatar) -->
     <template #hud>
-      <div class="portal-docked-xp" v-if="user?.stats && !battleState('active')">
-        <xp-purse-bar :stats="user.stats" />
+      <div class="portal-docked-hud" v-if="user?.stats && !battleState('active')">
+        <div class="portal-docked-xp">
+          <xp-purse-bar :stats="user.stats" />
+        </div>
+        <xp-main-hud v-if="isUserFabOn" :stats="user.stats">
+          <template #avatar>
+            <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" @open-guide="openGuide" />
+          </template>
+        </xp-main-hud>
       </div>
-      <xp-main-hud v-if="isUserFabOn && user?.stats" :stats="user.stats">
-        <template #avatar>
-          <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" @open-guide="openGuide" />
-        </template>
-      </xp-main-hud>
       <!-- Timed privileges (30 minutes of games...): the countdown floats above the bottom nav on every screen -->
       <xp-power-timer-bar v-if="user?.id && !battleState('active')" :hero-id="user.id" floating />
       <!-- THE GUIDE: after the tour, the goal of the game; the Journal in the avatar menu says the current goal -->
@@ -30,7 +32,7 @@
         <ion-router-outlet ref="outlet" :userId="user?.id"></ion-router-outlet>
 
         <!-- Bottom nav floats over the bottom of the page so the scene shows through -->
-        <div class="portal-dock" v-if="user.stats && !battleState('active')" slot="bottom">
+        <div class="portal-dock" v-if="user?.stats && !battleState('active')" slot="bottom">
           <xp-bottom-nav
             :profile-label="user.name?.nick || 'Hero'"
             :area-label="compass.name"
