@@ -18,6 +18,7 @@ import {
   type FamilyOverviewSummary,
 } from "@/lib/services/family/familyOverviewService";
 import { landingChoiceOf, landingPathFor } from "@/lib/services/core/profilePrefs";
+import debug from "@/lib/utils/debug";
 
 const emptySummary: FamilyOverviewSummary = {
   totalMembers: 0,
@@ -98,7 +99,8 @@ export default defineComponent({
           pendingApprovals,
           today,
         });
-      } catch (err) {
+      } catch (error) {
+        debug.warn("[FamilyOverview] the overview could not load", error);
         const toast = await toastController.create({
           message: "Failed to load family overview",
           duration: 2500,
