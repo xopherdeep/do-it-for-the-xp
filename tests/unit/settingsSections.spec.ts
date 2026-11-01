@@ -34,7 +34,7 @@ describe("the Settings page sections", () => {
   });
 
   it("groups the pages by the question they answer, with no empty group", () => {
-    expect(SETTINGS_SECTIONS.map((section) => section.id)).toEqual(["family", "game", "device", "account"]);
+    expect(SETTINGS_SECTIONS.map((section) => section.id)).toEqual(["account", "family", "device", "game"]);
     for (const section of SETTINGS_SECTIONS) expect(section.items.length).toBeGreaterThan(0);
   });
 
@@ -55,7 +55,7 @@ describe("the Settings page on a kid phone", () => {
 
   it("kid mode hides family, packs, general backup and account, and shows Unlink this phone", () => {
     const sections = sectionsFor({ isKidMode: true });
-    expect(idsOf(sections)).toEqual(["game", "device"]);
+    expect(idsOf(sections)).toEqual(["device", "game"]);
 
     const ids = idsOf(kidItems());
     for (const hidden of ["family", "party", "packs", "account"]) expect(ids).not.toContain(hidden);

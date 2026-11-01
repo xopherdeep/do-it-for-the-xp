@@ -12,7 +12,7 @@ import { standInMonster } from "@/lib/services/temples/RoomBeast";
 import { useRoomBeast, type RoomBeastDeps } from "@/app/Console/TempleGrounds/templeGrounds/useRoomBeast";
 
 const mockGetBeastById = jest.fn();
-const mockGetBeasts = jest.fn();
+const mockGetLiveBeasts = jest.fn();
 const mockLoadBeastById = jest.fn();
 const mockWhenQuestRoomsReady = jest.fn();
 const mockQuestRoomStateFor = jest.fn();
@@ -22,7 +22,8 @@ jest.mock("@/lib/databases/BestiaryDb", () => ({
   beastStorage: {},
   default: class {
     getBeastById = (id: string) => mockGetBeastById(id);
-    getBeasts = () => mockGetBeasts();
+    // The beasts in play: a room never draws one a hero proposed that no Game Master has approved (kid creations)
+    getLiveBeasts = () => mockGetLiveBeasts();
   },
 }));
 jest.mock("@/lib/services/battle/BestiaryService", () => ({
@@ -56,7 +57,7 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.resetAllMocks();
-  mockGetBeasts.mockResolvedValue([]);
+  mockGetLiveBeasts.mockResolvedValue([]);
   mockGetBeastById.mockResolvedValue(null);
   mockLoadBeastById.mockResolvedValue(null);
   mockWhenQuestRoomsReady.mockResolvedValue(undefined);
@@ -123,7 +124,7 @@ describe("the monster that roams a room", () => {
     await settle();
 
     expect(beast.showVoxelMonster.value).toBe(false);
-    expect(mockGetBeasts).not.toHaveBeenCalled();
+    expect(mockGetLiveBeasts).not.toHaveBeenCalled();
     expect(mockGetBeastById).not.toHaveBeenCalled();
   });
 
@@ -394,7 +395,7 @@ describe("a room that holds a quest", () => {
 
     expect(beast.activeMonster.value.name).toBe(standInMonster(room, "fire").name);
     expect(beast.showVoxelMonster.value).toBe(true);
-    expect(mockGetBeasts).not.toHaveBeenCalled();
+    expect(mockGetLiveBeasts).not.toHaveBeenCalled();
   });
 
   it("keeps the stand-in for a quest whose beast nothing knows", async () => {
@@ -419,7 +420,7 @@ describe("a room that holds a quest", () => {
 
   it("plays as a classic fight when the run has no board to read for the quest", async () => {
     mockQuestRoomStateFor.mockReturnValue(null);
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
     const { beast } = roomScreen(questRoom());
     await settle();
 
@@ -427,7 +428,7 @@ describe("a room that holds a quest", () => {
   });
 
   it("plays as a classic fight, and reads no board, when no hero's run is behind the screen", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
     const { beast } = roomScreen(questRoom(), { progressHeroId: undefined });
     await settle();
 
@@ -465,7 +466,7 @@ describe("a room that holds a quest", () => {
 
 describe("a room with no authored beast: the one the bestiary picks for the temple", () => {
   it("is the element's beast for the room's place, by position", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One", { avatar: 3 }), fireBeast("n2", "Native Two", { avatar: 4 })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One", { avatar: 3 }), fireBeast("n2", "Native Two", { avatar: 4 })]);
     const { beast } = roomScreen(monster());
     await settle();
 
@@ -474,24 +475,24 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
   });
 
   it("takes the picked beast's image url, then its local image, then the stand-in's face", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One", { imageUrl: "one.png" })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One", { imageUrl: "one.png" })]);
     const withUrl = roomScreen(monster());
     await settle();
     expect(withUrl.beast.activeMonster.value).toEqual({ name: "Native One", avatar: "one.png" });
 
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One", { localImage: "local.png" })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One", { localImage: "local.png" })]);
     const withLocal = roomScreen(monster());
     await settle();
     expect(withLocal.beast.activeMonster.value.avatar).toBe("local.png");
 
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
     const withNone = roomScreen(monster());
     await settle();
     expect(withNone.beast.activeMonster.value).toEqual({ name: "Native One", avatar: "avatar-74" });
   });
 
   it("matches a named monster type before the element", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One"), fireBeast("w1", "Grey Wolf", { element: "ice" })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One"), fireBeast("w1", "Grey Wolf", { element: "ice" })]);
     const { beast } = roomScreen(monster({ monsterType: "wolf" }));
     await settle();
 
@@ -499,7 +500,7 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
   });
 
   it("uses the temple's element, fire when it has none", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One"), fireBeast("i1", "Ice One", { element: "ice" })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One"), fireBeast("i1", "Ice One", { element: "ice" })]);
     const iceTemple = roomScreen(monster(), { templeElement: computed(() => "ice") });
     await settle();
     expect(iceTemple.beast.activeMonster.value.name).toBe("Ice One");
@@ -511,7 +512,7 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
 
   it("stands in when the temple's element has no beasts in the bestiary", async () => {
     const room = monster();
-    mockGetBeasts.mockResolvedValue([fireBeast("i1", "Ice One", { element: "ice" })]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("i1", "Ice One", { element: "ice" })]);
     const { beast } = roomScreen(room);
     await settle();
 
@@ -521,7 +522,7 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
 
   it("stands in when the bestiary cannot be read, and the voxel is not held back", async () => {
     const room = monster();
-    mockGetBeasts.mockRejectedValue(new Error("storage is gone"));
+    mockGetLiveBeasts.mockRejectedValue(new Error("storage is gone"));
     const { beast } = roomScreen(room);
     await settle();
 
@@ -531,7 +532,7 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
 
   it("holds the voxel back while the bestiary is read", async () => {
     const list = deferred<unknown[]>();
-    mockGetBeasts.mockReturnValue(list.promise);
+    mockGetLiveBeasts.mockReturnValue(list.promise);
     const { beast } = roomScreen(monster());
     await settle();
     expect(beast.showVoxelMonster.value).toBe(false);
@@ -544,7 +545,7 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
 
   it("does not hand the picked beast to a room the hero has since left", async () => {
     const list = deferred<unknown[]>();
-    mockGetBeasts.mockReturnValueOnce(list.promise);
+    mockGetLiveBeasts.mockReturnValueOnce(list.promise);
     const { beast, currentRoom } = roomScreen(monster());
     await settle();
 
@@ -558,11 +559,11 @@ describe("a room with no authored beast: the one the bestiary picks for the temp
   });
 
   it("waits, asking nothing, for a generated temple's metadata (its element comes with it), then picks", async () => {
-    mockGetBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
+    mockGetLiveBeasts.mockResolvedValue([fireBeast("n1", "Native One")]);
     const { beast, templeMeta } = roomScreen(monster(), {}, { generated: true, meta: null });
     await settle();
     expect(beast.showVoxelMonster.value).toBe(false);
-    expect(mockGetBeasts).not.toHaveBeenCalled();
+    expect(mockGetLiveBeasts).not.toHaveBeenCalled();
 
     templeMeta.value = { element: "fire" };
     await settle();

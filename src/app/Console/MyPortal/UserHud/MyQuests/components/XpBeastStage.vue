@@ -68,7 +68,7 @@ watch(
   justify-content: center;
   height: 168px;
   overflow: hidden;
-  background: #000;
+  background: var(--xp-app-bg);
 
   &__backdrop {
     position: absolute;
@@ -102,7 +102,7 @@ watch(
 
   // The engine at rest: a still night stands in for the battlefield
   &--still {
-    background: radial-gradient(circle at 50% 70%, var(--xp-app-surface-2), #000);
+    background: radial-gradient(circle at 50% 70%, var(--xp-app-surface-2), var(--xp-app-bg));
   }
 }
 </style>

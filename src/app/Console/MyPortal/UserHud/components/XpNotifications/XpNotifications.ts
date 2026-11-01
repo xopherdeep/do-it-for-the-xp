@@ -147,7 +147,7 @@ export default defineComponent({
     };
 
     const deleteNotification = (notification: XpNotification) => {
-      play$fx("trash");
+      play$fx("closeTask");
       notificationsStore.remove(notification.id);
     };
 
@@ -159,7 +159,7 @@ export default defineComponent({
 
     const deleteAllNotifications = () => {
       const cleared = notificationsStore.clear(heroId.value);
-      play$fx("trash");
+      play$fx("closeTask");
       void showToast(cleared ? "Notifications cleared" : "Nothing to clear");
     };
 

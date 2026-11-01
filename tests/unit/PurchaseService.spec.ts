@@ -417,13 +417,13 @@ describe("PurchaseService", () => {
     });
 
     it("sends refunded GP past the wallet limit to savings instead of losing it", async () => {
-      store.users["hero-1"] = hero("hero-1", 100, 120);
+      store.users["hero-1"] = hero("hero-1", 480, 500);
       const bought = await buyItem("hero-1", lego);
-      store.users["hero-1"].stats.gp.wallet = 110;
+      store.users["hero-1"].stats.gp.wallet = 490;
 
       await refundPurchase(bought.id, "gm-1");
 
-      expect(wallet()).toBe(120);
+      expect(wallet()).toBe(500);
       expect(savings()).toBe(50);
     });
   });
