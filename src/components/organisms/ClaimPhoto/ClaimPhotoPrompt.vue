@@ -124,11 +124,11 @@ const cancel = () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #fff8e6;
-  color: #2b2118;
-  border: 4px solid #2b2118;
+  background: var(--xp-parchment-paper);
+  color: var(--xp-parchment-ink);
+  border: 4px solid var(--xp-parchment-ink);
   border-radius: 8px;
-  box-shadow: 0 0 0 3px #d9b45a inset;
+  box-shadow: 0 0 0 3px var(--xp-parchment-gilt) inset;
   font-family: "StatusPlz", monospace;
 }
 
@@ -148,7 +148,7 @@ const cancel = () => {
   margin: 0;
   font-size: 0.8rem;
   text-align: center;
-  color: #b3261e;
+  color: var(--xp-parchment-red);
 }
 
 .claim-photo__frame {
@@ -156,7 +156,7 @@ const cancel = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2b2118;
+  background: var(--xp-parchment-ink);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -169,7 +169,7 @@ const cancel = () => {
 
 .claim-photo__placeholder {
   font-size: 4rem;
-  color: #d9b45a;
+  color: var(--xp-parchment-gilt);
 }
 
 .claim-photo__input {

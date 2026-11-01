@@ -125,7 +125,7 @@ export default defineComponent({
       play$fx("select");
       const success = await dlcService.startDownload(handleProgressUpdate);
       if (success) {
-        play$fx("reward");
+        play$fx("finish");
         emit("completed");
       }
     };
@@ -188,71 +188,47 @@ export default defineComponent({
   }
 
   .dlc-headline {
-    font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
-    font-size: 1.25rem !important;
+    font-size: 1.15rem;
     font-weight: bold;
-    letter-spacing: 0.5px !important;
-    font-size-adjust: none !important;
-    color: var(--gs-accent, rgb(247, 232, 168)) !important;
-    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.8));
-    margin: 0 0 10px 0;
-    line-height: 1.3;
+    color: var(--ion-color-light);
+    margin: 0 0 8px 0;
   }
 
   .dlc-subtext {
-    font-family: "Apple Kid", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    font-size: 1.2rem !important;
-    line-height: 1.45 !important;
-    letter-spacing: normal !important;
-    font-size-adjust: none !important;
-    color: var(--gs-text, rgb(255, 255, 255)) !important;
-    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.8));
+    font-size: 0.9rem;
+    color: var(--ion-color-medium);
     margin: 0 0 16px 0;
-    opacity: 0.95;
+    line-height: 1.4;
   }
 
   .dlc-error-text {
-    font-family: "Apple Kid", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    font-size: 1.15rem !important;
-    line-height: 1.4 !important;
-    letter-spacing: normal !important;
-    font-size-adjust: none !important;
-    color: var(--gs-danger, rgb(255, 110, 110)) !important;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    font-size: 0.9rem;
+    color: var(--ion-color-danger);
     margin: 0 0 16px 0;
   }
 
   .progress-bar-track {
     width: 100%;
-    height: 18px;
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid var(--gs-divider, rgba(255, 255, 255, 0.35));
-    border-radius: 9px;
+    height: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--ion-color-medium);
+    border-radius: 4px;
     overflow: hidden;
-    margin: 14px 0 10px 0;
-    padding: 2px;
-    box-sizing: border-box;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    margin: 12px 0 8px 0;
   }
 
   .progress-bar-fill {
     height: 100%;
     width: var(--progress-percent, 0%);
-    background: linear-gradient(90deg, var(--gs-good, rgb(72, 176, 72)), var(--gs-accent, rgb(248, 208, 48)));
-    border-radius: 6px;
-    box-shadow: 0 0 10px rgba(72, 176, 72, 0.5);
-    transition: width 0.25s ease-in-out;
+    background: var(--ion-color-success);
+    transition: width 0.2s ease-in-out;
   }
 
   .progress-stats {
-    font-family: "StatusPlz", "Apple Kid", monospace !important;
-    font-size: 1.15rem !important;
-    letter-spacing: 0.5px !important;
-    font-size-adjust: none !important;
-    color: var(--gs-accent, rgb(247, 232, 168)) !important;
-    text-shadow: var(--gs-text-shadow, 1px 1px 2px rgba(0, 0, 0, 0.9));
-    margin: 6px 0 0 0;
-    font-weight: bold;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--ion-color-light);
+    margin: 4px 0 0 0;
   }
 }
 
@@ -261,32 +237,14 @@ export default defineComponent({
 }
 
 .cancel-button {
-  --border-radius: 12px;
-  --background: rgba(255, 255, 255, 0.14);
-  --color: var(--gs-text, rgb(255, 255, 255));
-  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
-  font-size: 0.95rem !important;
-  letter-spacing: 0.5px !important;
-  font-size-adjust: none !important;
-  height: 46px;
-  min-width: 120px;
-  flex: 1;
-  transition: transform 0.2s ease, --background 0.2s ease;
-
-  &:hover {
-    --background: rgba(255, 255, 255, 0.22);
-    transform: translateY(-1px);
-  }
+  --background: transparent;
+  --color: var(--ion-color-medium);
 }
 
-.confirm-button {
-  --border-radius: 12px;
-  --background: var(--gs-button, var(--ion-color-primary, rgb(66, 153, 225)));
-  --color: rgb(255, 255, 255);
-  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
-  font-size: 0.95rem !important;
-  letter-spacing: 0.5px !important;
-  font-size-adjust: none !important;
+.confirm-button,
+.download-button {
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
   font-weight: bold;
   height: 46px;
   min-width: 130px;
@@ -297,23 +255,5 @@ export default defineComponent({
   &:hover {
     transform: translateY(-1px);
   }
-}
-
-.download-button {
-  --border-radius: 12px;
-  --background: var(--gs-button, var(--ion-color-primary, rgb(66, 153, 225)));
-  --color: rgb(255, 255, 255) !important;
-  --opacity: 1 !important;
-  opacity: 1 !important;
-  font-family: var(--gs-font-title, "Silkscreen", "Apple Kid", sans-serif) !important;
-  font-size: 0.95rem !important;
-  letter-spacing: 0.5px !important;
-  font-size-adjust: none !important;
-  font-weight: bold;
-  height: 46px;
-  width: 100%;
-  max-width: 320px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  cursor: default;
 }
 </style>
