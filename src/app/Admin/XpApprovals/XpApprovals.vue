@@ -163,7 +163,6 @@
   import XpHeroWriteGate from "@/components/organisms/HeroWriteGate/XpHeroWriteGate.vue";
   import { saveHeroEdit, type HeroWriteGate } from "@/hooks/useHeroWrite";
   import { useTownHallStore } from "@/lib/store/stores/townHall";
-  import { useSentVerdicts } from "./useSentVerdicts";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
   import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
@@ -201,9 +200,6 @@
       const userStore = useUserStore();
       // Follows the profile's Retro / Modern toggle, like the other phone apps
       const { rootClass, rootStyle } = useAppSkin("quests");
-      // A verdict on a hero another device holds goes to that device (family sync); the row says so until it is applied,
-      // then the claims are read again
-      const sentLineOf = useSentVerdicts(() => void loadApprovals());
       // A purchase is fulfilled or refunded on its hero's turn (family sync): not at all while another device plays the hero
       const heroGate = ref<HeroWriteGate | null>(null);
       const writeHero = (heroId: string, change: () => Promise<void>): Promise<boolean> =>
@@ -263,9 +259,6 @@
         }
       };
 
-      /** The line for a claim whose verdict went to the device holding the hero's turn; "" while it waits on this Game Master */
-      const sentLine = (entry: QuestLogEntry): string => sentLineOf(entry, heroName(entry.userId));
-
       const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const isUnreadableDate = !dateString || Number.isNaN(date.getTime());
@@ -283,7 +276,7 @@
         await toast.present();
       };
 
-      const { approveItem, rejectItem, confirmDelivery, sendRefund, creations } = useApprovalReviews({
+      const { claims, confirmDelivery, sendRefund, creations } = useApprovalReviews({
         heroName,
         isKnownHero: (userId) => Boolean(heroFor(userId)),
         profiles: () => userStore.usersAz,
@@ -292,6 +285,9 @@
         reload: () => loadApprovals(),
         writeHero,
       });
+
+      /** The line for a claim whose verdict went to the device holding the hero's turn; "" while it waits on this Game Master */
+      const sentLine = (entry: QuestLogEntry): string => claims.sentLineOf(entry, heroName(entry.userId));
 
       // Reviewed quests, reviewed shop purchases and reviewed creations in one list, newest first
       const historyRows = computed<HistoryRow[]>(() =>
@@ -409,8 +405,8 @@
         heroAvatar,
         sentLine,
         formatDate,
-        approveItem,
-        rejectItem,
+        approveItem: claims.approveItem,
+        rejectItem: claims.rejectItem,
         fulfilItem: confirmDelivery,
         refundItem: sendRefund,
         targetsOf: (row: CreationRow) => creationTargets(row, heroName),
