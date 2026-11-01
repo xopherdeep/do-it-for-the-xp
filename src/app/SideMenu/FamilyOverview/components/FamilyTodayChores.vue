@@ -81,6 +81,40 @@ import {
 import type { FamilyChoreItem } from "@/lib/services/family/familyOverviewService";
 import type { QuestListStatus } from "@/lib/services/quests/QuestList";
 
+/** The four segment buttons on the card; "all" is the unfiltered list. */
+type ChoreSegment = "all" | "open" | "pending" | "done";
+type ChorePredicate = (chore: FamilyChoreItem) => boolean;
+
+/** An overdue chore is still open, so the Open segment and its count take both. */
+const isOpen: ChorePredicate = (chore) => chore.status === "open" || chore.status === "overdue";
+const isPending: ChorePredicate = (chore) => chore.status === "pending";
+const isDone: ChorePredicate = (chore) => chore.status === "done";
+
+/** What each segment lets through; the counts on the buttons ask the same questions. */
+const SEGMENT_PREDICATES: Record<ChoreSegment, ChorePredicate> = {
+  all: () => true,
+  open: isOpen,
+  pending: isPending,
+  done: isDone,
+};
+
+/** Icon and colour per status, written out for every status so a new one cannot reach the card unstyled. */
+const STATUS_ICONS: Record<QuestListStatus, string> = {
+  overdue: alertCircle,
+  open: ellipseOutline,
+  later: ellipseOutline,
+  pending: timeOutline,
+  done: checkmarkCircle,
+};
+
+const STATUS_COLORS: Record<QuestListStatus, string> = {
+  overdue: "danger",
+  open: "medium",
+  later: "medium",
+  pending: "warning",
+  done: "success",
+};
+
 export default defineComponent({
   name: "FamilyTodayChores",
   components: {
@@ -105,34 +139,22 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const filterSegment = ref<"all" | "open" | "pending" | "done">("all");
+    const filterSegment = ref<ChoreSegment>("all");
 
-    const openCount = computed(() => props.chores.filter((c) => c.status === "open" || c.status === "overdue").length);
-    const pendingCount = computed(() => props.chores.filter((c) => c.status === "pending").length);
-    const doneCount = computed(() => props.chores.filter((c) => c.status === "done").length);
+    const openCount = computed(() => props.chores.filter(isOpen).length);
+    const pendingCount = computed(() => props.chores.filter(isPending).length);
+    const doneCount = computed(() => props.chores.filter(isDone).length);
 
+    // The template stores the segment event's value unchecked (as any), so it can be a name the card never offered.
+    // Only a name the table owns counts: anything else, even an inherited one like "valueOf", reads as "all".
     const filteredChores = computed(() => {
-      const seg = filterSegment.value;
-      if (seg === "all") return props.chores;
-      if (seg === "open") return props.chores.filter((c) => c.status === "open" || c.status === "overdue");
-      if (seg === "pending") return props.chores.filter((c) => c.status === "pending");
-      if (seg === "done") return props.chores.filter((c) => c.status === "done");
-      return props.chores;
+      const segment = filterSegment.value;
+      const isKnownSegment = Object.prototype.hasOwnProperty.call(SEGMENT_PREDICATES, segment);
+      return props.chores.filter(SEGMENT_PREDICATES[isKnownSegment ? segment : "all"]);
     });
 
-    const statusIcon = (status: QuestListStatus) => {
-      if (status === "done") return checkmarkCircle;
-      if (status === "pending") return timeOutline;
-      if (status === "overdue") return alertCircle;
-      return ellipseOutline;
-    };
-
-    const statusColor = (status: QuestListStatus): string => {
-      if (status === "done") return "success";
-      if (status === "pending") return "warning";
-      if (status === "overdue") return "danger";
-      return "medium";
-    };
+    const statusIcon = (status: QuestListStatus) => STATUS_ICONS[status];
+    const statusColor = (status: QuestListStatus): string => STATUS_COLORS[status];
 
     return {
       filterSegment,

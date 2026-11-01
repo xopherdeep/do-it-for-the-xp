@@ -164,8 +164,7 @@ export default defineComponent({
 
     const jobClassIconClass = computed(() => {
       const selectedJob = JOB_CLASS_OPTIONS.find((job) => job?.name === props.member.jobClass);
-      const icon = selectedJob ? selectedJob.icon : "fad fa-user-ninja";
-      return icon;
+      return selectedJob ? selectedJob.icon : "fad fa-user-ninja";
     });
 
     const hpFraction = computed(() => {

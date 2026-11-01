@@ -299,14 +299,13 @@
   import { rpgToastOptions } from "@/hooks/useToast";
   import { useBackupRestore } from "@/hooks/useBackupRestore";
   import backupService from "@/lib/services/core/BackupService";
-  import { canRestoreHere } from "@/lib/services/core/restoreAccess";
-  import { canManageFamily } from "@/router/_Guards/gm.guard";
   import { dialogMessage } from "@/lib/utils/dialogMessage";
   import XpComingSoonCard from "./XpComingSoonCard.vue";
   import XpDlcModal from "@/components/molecules/Modals/XpDlcModal.vue";
   import { dlcService } from "@/lib/services/dlc/assetDlcService";
   import { useI18n, type SupportedLocale } from "@/hooks/useI18n";
   import { GENERAL_COMING_SOON } from "./comingSoon";
+  import { useSignedInProfile } from "./general/useSignedInProfile";
   import { resetTour } from "@/lib/services/tutorial/firstRunTour";
   import {
     familyOverviewOnPicker,
@@ -318,9 +317,7 @@
     setLandingChoice,
     type LandingChoice,
   } from "@/lib/services/core/profilePrefs";
-  import { useFamilyStore } from "@/lib/store/stores/family";
   import { useGameRulesStore } from "@/lib/store/stores/gameRules";
-  import { useUserStore } from "@/lib/store/stores/user";
   import { backupAgeLabel, lastBackupAt, recordBackup } from "@/lib/services/core/backupReminder";
 
   const errorMessage = (error: unknown): string =>
@@ -400,21 +397,12 @@
     setup() {
       // A backup or restore is running; the restore flow is shared with the empty File Select screen
       const { isBackupBusy, runWithLoading, selectRestoreFile } = useBackupRestore();
-      const userStore = useUserStore();
-      const family = useFamilyStore();
-      // A kid phone (family sync spec, section 7) has no Backup & Restore
-      const isKidMode = computed(() => family.isKidMode);
-      const currentHeroId = computed(() => String(userStore.currentUser?.id || ""));
+      const { isKidMode, currentHeroId, profile, canManage, canRestore } = useSignedInProfile();
       // When the last backup was made, and how to say so under "Back up everything"
       const lastBackup = ref(lastBackupAt());
       const backupAge = computed(() => backupAgeLabel(lastBackup.value));
 
-      // This profile's own start-up choices, kept on this device. The signed-in profile comes from `users`:
-      // `currentUser` is only the login copy, with no name and a possibly stale isAdult.
-      const profile = computed(() => {
-        const signedInId = userStore.currentUser?.id;
-        return signedInId ? userStore.users[String(signedInId)] : undefined;
-      });
+      // This profile's own start-up choices, kept on this device
       const profileName = computed(() => profile.value?.name?.nick || profile.value?.name?.full || "this profile");
       const landingOptions = computed(() => landingOptionsFor(profile.value?.isAdult === true));
       const landing = ref<LandingChoice>(landingChoiceOf(currentHeroId.value));
@@ -431,9 +419,6 @@
       // The first day of the week is the family's, so only a Game Master moves it
       const rules = useGameRulesStore();
       void rules.load();
-      const canManage = computed(() => canManageFamily(userStore));
-      // Restore is for a Game Master, or for anybody while the device has no profile yet
-      const canRestore = computed(() => canRestoreHere(userStore));
 
       const isDlcModalOpen = ref(false);
       const isDlcReady = ref(false);

@@ -71,8 +71,11 @@ export const resolveInitialLocale = (): SupportedLocale => {
     return stored;
   }
 
-  if (typeof navigator !== "undefined" && navigator.language) {
-    const navCode = navigator.language.slice(0, 2).toLowerCase();
+  // No navigator, or a navigator with no language, reads as an empty string.
+  const browserLanguage = typeof navigator === "undefined" ? "" : navigator.language || "";
+  const hasNavigatorLanguage = Boolean(browserLanguage);
+  if (hasNavigatorLanguage) {
+    const navCode = browserLanguage.slice(0, 2).toLowerCase();
     const isNavSupported = isSupportedLocale(navCode);
     if (isNavSupported) {
       return navCode;
@@ -123,14 +126,16 @@ export const t = (path: string, params?: TranslationParams): string => {
   const currentDict = dictionaries[currentLang];
 
   const primaryValue = currentDict ? extractPathValue(currentDict, segments) : undefined;
-  if (primaryValue !== undefined) {
+  const hasPrimary = primaryValue !== undefined;
+  if (hasPrimary) {
     return interpolate(primaryValue, params);
   }
 
   const isNotEnglish = currentLang !== "en";
   if (isNotEnglish) {
     const fallbackValue = extractPathValue(dictionaries.en, segments);
-    if (fallbackValue !== undefined) {
+    const hasFallback = fallbackValue !== undefined;
+    if (hasFallback) {
       return interpolate(fallbackValue, params);
     }
   }

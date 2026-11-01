@@ -114,10 +114,11 @@ import {
   IonSpinner,
   modalController,
 } from "@ionic/vue";
+import type { HomeStatus } from "@/lib/databases/FamilyEventsDb";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
-import { ageGroupOf } from "@/lib/services/multiplayer/ageGroup";
+import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
 import XpFamilyConflictModal from "./XpFamilyConflictModal.vue";
 import { proToast } from "@/lib/services/pro/proUi";
 import debug from "@/lib/utils/debug";
@@ -146,30 +147,39 @@ const cloudOnlyHeroes = computed(() => {
   );
 });
 
-const statusBadgeColor = computed(() => {
-  if (isOtherFamily.value) return "danger";
-  if (family.home === "home") return "success";
-  if (family.home === "home-elsewhere") return "secondary";
-  return "medium";
-});
+interface HomeBadge {
+  color: string;
+  label: string;
+}
 
-const statusBadgeLabel = computed(() => {
-  if (isOtherFamily.value) return "Mismatch";
-  if (family.home === "home") return "Home Device";
-  if (family.home === "home-elsewhere") return "Family Device";
-  return "Connected";
-});
+/** What the account badge shows for each answer about the family's home, so its colour and words never drift apart */
+const HOME_BADGES: Record<HomeStatus, HomeBadge> = {
+  home: { color: "success", label: "Home Device" },
+  "home-elsewhere": { color: "secondary", label: "Family Device" },
+  "other-family": { color: "danger", label: "Mismatch" },
+  unknown: { color: "medium", label: "Connected" },
+};
+
+/** A problem of "other-family" is a mismatch even when `home` has not caught up, so it picks the same badge */
+const statusBadge = computed(() => HOME_BADGES[isOtherFamily.value ? "other-family" : family.home]);
+
+const statusBadgeColor = computed(() => statusBadge.value.color);
+
+const statusBadgeLabel = computed(() => statusBadge.value.label);
 
 const heroName = (hero: { name?: { nick?: string; full?: string; first?: string } }): string => {
   return hero.name?.nick || hero.name?.full || hero.name?.first || "Hero";
 };
 
-const heroAgeLabel = (hero: { id: string; birthday?: string }): string => {
-  const group = ageGroupOf(hero, family.ageGroupPicks[hero.id]);
-  if (group === "teen") return "Teen (13-17)";
-  if (group === "adult") return "Adult (18+)";
-  return "Child (Under 13)";
+/** The words under a hero's name for each age group the family server knows */
+const AGE_LABELS: Record<AgeGroup, string> = {
+  child: "Child (Under 13)",
+  teen: "Teen (13-17)",
+  adult: "Adult (18+)",
 };
+
+const heroAgeLabel = (hero: { id: string; birthday?: string }): string =>
+  AGE_LABELS[ageGroupOf(hero, family.ageGroupPicks[hero.id])];
 
 interface SyncStatus {
   label: string;
