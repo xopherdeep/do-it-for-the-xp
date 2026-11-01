@@ -119,14 +119,14 @@
             <div class="mockup-bar-row">
               <span class="bar-label hp-label">HP</span>
               <div class="mockup-bar">
-                <div class="bar-fill hp-fill" :style="{ width: `${hpPercent}%` }"></div>
+                <div class="bar-fill hp-fill" :style="{ '--fill': `${hpPercent}%` }"></div>
               </div>
               <span class="bar-val">{{ heroHp }}/{{ heroMaxHp }}</span>
             </div>
             <div class="mockup-bar-row">
               <span class="bar-label mp-label">MP</span>
               <div class="mockup-bar">
-                <div class="bar-fill mp-fill" :style="{ width: `${mpPercent}%` }"></div>
+                <div class="bar-fill mp-fill" :style="{ '--fill': `${mpPercent}%` }"></div>
               </div>
               <span class="bar-val">{{ heroMp }}/{{ heroMaxMp }}</span>
             </div>
@@ -206,7 +206,7 @@
               <span class="level-pct">{{ xpPercent }}%</span>
             </div>
             <div class="mockup-bar">
-              <div class="bar-fill xp-fill" :style="{ width: `${xpPercent}%` }"></div>
+              <div class="bar-fill xp-fill" :style="{ '--fill': `${xpPercent}%` }"></div>
             </div>
             <span class="level-subtext">{{ heroXp }} / {{ heroNextLevelXp }} XP</span>
             <span class="level-remaining">{{ heroRemainingXp }} XP to next level</span>
@@ -221,14 +221,14 @@
             <div class="party-row">
               <span class="party-name">{{ heroName }}</span>
               <span class="party-lvl">LV {{ heroLevel }}</span>
-              <div class="party-bar hp"><div class="bar-fill hp-fill" :style="{ width: `${hpPercent}%` }"></div></div>
-              <div class="party-bar mp"><div class="bar-fill mp-fill" :style="{ width: `${mpPercent}%` }"></div></div>
+              <div class="party-bar hp"><div class="bar-fill hp-fill" :style="{ '--fill': `${hpPercent}%` }"></div></div>
+              <div class="party-bar mp"><div class="bar-fill mp-fill" :style="{ '--fill': `${mpPercent}%` }"></div></div>
             </div>
             <div class="party-row">
               <span class="party-name">Mage</span>
               <span class="party-lvl">LV 2</span>
-              <div class="party-bar hp"><div class="bar-fill hp-fill" style="width: 80%"></div></div>
-              <div class="party-bar mp"><div class="bar-fill mp-fill" style="width: 60%"></div></div>
+              <div class="party-bar hp"><div class="bar-fill hp-fill" :style="{ '--fill': '80%' }"></div></div>
+              <div class="party-bar mp"><div class="bar-fill mp-fill" :style="{ '--fill': '60%' }"></div></div>
             </div>
           </div>
 
@@ -394,21 +394,23 @@ const isBountySelected = computed(() => selectedWidgetType.value === "bounty");
 const isSpellbookSelected = computed(() => selectedWidgetType.value === "spellbook");
 const isVoxelSelected = computed(() => selectedWidgetType.value === "voxel");
 
-const activeWidgetTitle = computed(() => {
-  if (isHeroSelected.value) return "Hero Status Card (2x2)";
-  if (isStreakSelected.value) return "Streak Flame Altar (1x1)";
-  if (isVaultSelected.value) return "Gold Vault Kiosk (2x1)";
-  if (isBoardSelected.value) return "Quest Board (4x2)";
-  if (isDockSelected.value) return "Quick Action Dock (4x1)";
-  if (isNextQuestSelected.value) return "Next Quest Radar (2x1)";
-  if (isLevelSelected.value) return "Level & XP Gauge (2x1)";
-  if (isPartySelected.value) return "Party Vitals Roster (4x2)";
-  if (isCompanionSelected.value) return "Hero Companion Altar (2x2)";
-  if (isBountySelected.value) return "Bounty Approvals Desk (2x1)";
-  if (isSpellbookSelected.value) return "Spellbook Action Dock (4x1)";
-  if (isVoxelSelected.value) return "Voxel Figurine Diorama (2x2)";
-  return "Widget Preview";
-});
+// Keys are the ion-segment-button values in the template, so a mismatch silently shows the fallback title
+const WIDGET_TITLES: Record<string, string> = {
+  hero: "Hero Status Card (2x2)",
+  streak: "Streak Flame Altar (1x1)",
+  vault: "Gold Vault Kiosk (2x1)",
+  board: "Quest Board (4x2)",
+  dock: "Quick Action Dock (4x1)",
+  nextQuest: "Next Quest Radar (2x1)",
+  level: "Level & XP Gauge (2x1)",
+  party: "Party Vitals Roster (4x2)",
+  companion: "Hero Companion Altar (2x2)",
+  bounty: "Bounty Approvals Desk (2x1)",
+  spellbook: "Spellbook Action Dock (4x1)",
+  voxel: "Voxel Figurine Diorama (2x2)"
+};
+
+const activeWidgetTitle = computed(() => WIDGET_TITLES[selectedWidgetType.value] ?? "Widget Preview");
 
 const hero = computed(() => userStore.currentUser || {});
 const heroAvatar = computed(() => {
@@ -612,6 +614,7 @@ const handleSyncNow = async () => {
 
 .bar-fill {
   height: 100%;
+  width: var(--fill, 0%);
   &.hp-fill { background: rgb(16, 185, 129); }
   &.mp-fill { background: rgb(59, 130, 246); }
 }

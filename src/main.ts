@@ -267,7 +267,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 readyRouterMountApp()
 
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+const hasServiceWorker = typeof window !== 'undefined' && 'serviceWorker' in navigator;
+if (hasServiceWorker) {
   navigator.serviceWorker.register(`${process.env.BASE_URL ?? './'}alerts-sw.js`).catch(() => undefined);
 }
 

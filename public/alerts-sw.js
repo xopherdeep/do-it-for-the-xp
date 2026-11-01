@@ -1,5 +1,6 @@
 // The hero's alert bell: lets the browser ring an OS notification while the game tab sits in the background,
-// and brings the game back when it is tapped. It only does this: no fetch handler, nothing is ever cached.
+// and brings the game back when it is tapped. It also serves the pruned /img/ and /media/ assets from the DLC
+// cache, falling back to the remote DLC bases (and caching what they return) when the app does not carry them.
 // chemx-allow: LIFECYCLE_ORPHANED_LISTENER a service worker's handlers live as long as the worker itself
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -37,12 +38,15 @@ self.addEventListener("fetch", (event) => {
       const cachedResponse = await cache.match(event.request);
       if (cachedResponse) return cachedResponse;
 
+      const failures = [];
       try {
         const localResponse = await fetch(event.request);
         const isLocalOk = Boolean(localResponse && localResponse.ok);
         if (isLocalOk) return localResponse;
-      } catch {
+        failures.push(`local: HTTP ${localResponse.status}`);
+      } catch (error) {
         // Local asset missing from APK, proceed to remote fallback
+        failures.push(`local: ${error.message}`);
       }
 
       for (const base of DLC_FALLBACKS) {
@@ -54,12 +58,17 @@ self.addEventListener("fetch", (event) => {
             cache.put(event.request, remoteResponse.clone());
             return remoteResponse;
           }
-        } catch {
+          failures.push(`${base}: HTTP ${remoteResponse.status}`);
+        } catch (error) {
           // Continue to next fallback
+          failures.push(`${base}: ${error.message}`);
         }
       }
 
-      return new Response("DLC Asset Not Found", { status: 404 });
+      return new Response(`DLC asset not found: ${failures.join("; ")}`, {
+        status: 404,
+        headers: { "Content-Type": "text/plain" },
+      });
     })()
   );
 });
