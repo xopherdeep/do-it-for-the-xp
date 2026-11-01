@@ -81,7 +81,8 @@ export interface NewProfileForm {
 
 /** Whether a profile carries a legacy wallet limit below the base game tier */
 export const hasOutdatedWalletLimit = (profile: Record<string, any> | undefined): boolean => {
-  const limit = Number(profile?.stats?.gp?.limit);
+  const purse = profile?.stats?.gp;
+  const limit = Number(purse?.limit);
   return Number.isFinite(limit) && limit > 0 && limit < DEFAULT_WALLET_LIMIT;
 };
 

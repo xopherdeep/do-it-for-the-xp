@@ -8,8 +8,22 @@ const DEFAULT_DLC_DIR = path.join(ROOT_DIR, "dist-dlc");
 const DEFAULT_BUCKET = "xp-bgm";
 const DEFAULT_PREFIX = "dlc";
 
+const MIME_BY_EXTENSION = {
+  ".webp": "image/webp",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".mp3": "audio/mpeg",
+  ".json": "application/json",
+  ".zip": "application/zip",
+};
+
+// A command-line script's console is its output, so everything it prints goes through this one door.
+const report = (line) => process.stdout.write(`${line}\n`);
+
 function printUsage() {
-  console.log(`
+  report(`
 Usage: node scripts/upload-dlc-r2.mjs [options]
 
 Options:
@@ -38,30 +52,54 @@ function walkDirectory(dir, base = "") {
   return results;
 }
 
+// Undefined when the flag is missing or nothing follows it, so the caller keeps its default.
+const optionValue = (args, flag) => {
+  const index = args.indexOf(flag);
+  const hasValue = index > -1 && Boolean(args[index + 1]);
+  return hasValue ? args[index + 1] : undefined;
+};
+
+const getMimeType = (filePath) =>
+  MIME_BY_EXTENSION[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+
+function getAuthCredentials() {
+  let token = process.env.CLOUDFLARE_API_TOKEN || "";
+  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID || "45e0186b9150f152feba7d10effb7550";
+
+  if (!token) {
+    const wranglerConfig = path.join(process.env.HOME || "", ".config/.wrangler/config/default.toml");
+    if (fs.existsSync(wranglerConfig)) {
+      const content = fs.readFileSync(wranglerConfig, "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("oauth_token")) {
+          token = trimmed.split("=")[1].trim().replace(/^["']|["']$/g, "");
+          break;
+        }
+      }
+    }
+  }
+
+  return { token, accountId };
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  if (args.includes("--help") || args.includes("-h")) {
+  const wantsHelp = args.includes("--help") || args.includes("-h");
+  if (wantsHelp) {
     printUsage();
     return;
   }
 
   const isDryRun = args.includes("--dry-run");
 
-  let bucket = DEFAULT_BUCKET;
-  let prefix = DEFAULT_PREFIX;
-  let dlcDir = DEFAULT_DLC_DIR;
+  const bucket = optionValue(args, "--bucket") ?? DEFAULT_BUCKET;
+  const prefix = optionValue(args, "--prefix") ?? DEFAULT_PREFIX;
+  const dlcDirArg = optionValue(args, "--dlc-dir");
+  const dlcDir = dlcDirArg ? path.resolve(dlcDirArg) : DEFAULT_DLC_DIR;
 
-  const bucketIdx = args.indexOf("--bucket");
-  if (bucketIdx > -1 && args[bucketIdx + 1]) bucket = args[bucketIdx + 1];
-
-  const prefixIdx = args.indexOf("--prefix");
-  if (prefixIdx > -1 && args[prefixIdx + 1]) prefix = args[prefixIdx + 1];
-
-  const dirIdx = args.indexOf("--dlc-dir");
-  if (dirIdx > -1 && args[dirIdx + 1]) dlcDir = path.resolve(args[dirIdx + 1]);
-
-  console.log(`[upload-r2] Source directory: ${path.relative(ROOT_DIR, dlcDir)}`);
-  console.log(`[upload-r2] Target bucket:    ${bucket}/${prefix}`);
+  report(`[upload-r2] Source directory: ${path.relative(ROOT_DIR, dlcDir)}`);
+  report(`[upload-r2] Target bucket:    ${bucket}/${prefix}`);
 
   const manifestPath = path.join(dlcDir, "manifest.json");
   const zipPath = path.join(dlcDir, "assets-bundle.zip");
@@ -104,53 +142,23 @@ async function main() {
   const totalBytes = uploadItems.reduce((acc, curr) => acc + curr.size, 0);
   const mb = (bytes) => (bytes / (1024 * 1024)).toFixed(2);
 
-  console.log(`[upload-r2] Prepared ${uploadItems.length} files (${mb(totalBytes)} MB) for R2 upload.`);
-
-function getMimeType(filePath) {
-  if (filePath.endsWith(".webp")) return "image/webp";
-  if (filePath.endsWith(".png")) return "image/png";
-  if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) return "image/jpeg";
-  if (filePath.endsWith(".svg")) return "image/svg+xml";
-  if (filePath.endsWith(".mp3")) return "audio/mpeg";
-  if (filePath.endsWith(".json")) return "application/json";
-  if (filePath.endsWith(".zip")) return "application/zip";
-  return "application/octet-stream";
-}
-
-function getAuthCredentials() {
-  let token = process.env.CLOUDFLARE_API_TOKEN || "";
-  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID || "45e0186b9150f152feba7d10effb7550";
-
-  if (!token) {
-    const wranglerConfig = path.join(process.env.HOME || "", ".config/.wrangler/config/default.toml");
-    if (fs.existsSync(wranglerConfig)) {
-      const content = fs.readFileSync(wranglerConfig, "utf8");
-      for (const line of content.split("\n")) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("oauth_token")) {
-          token = trimmed.split("=")[1].trim().replace(/^["']|["']$/g, "");
-          break;
-        }
-      }
-    }
-  }
-
-  return { token, accountId };
-}
+  report(`[upload-r2] Prepared ${uploadItems.length} files (${mb(totalBytes)} MB) for R2 upload.`);
 
   if (isDryRun) {
-    console.log("\n[upload-r2] Dry run complete. Sample uploads:");
+    report("\n[upload-r2] Dry run complete. Sample uploads:");
     for (const item of uploadItems.slice(0, 10)) {
-      console.log(`  ${item.key} (${item.size} bytes)`);
+      report(`  ${item.key} (${item.size} bytes)`);
     }
     return;
   }
 
   const { token, accountId } = getAuthCredentials();
+  const failures = [];
   let uploadedCount = 0;
 
-  if (token && accountId) {
-    console.log(`[upload-r2] Using Cloudflare API concurrent HTTP upload (Account: ${accountId})`);
+  const hasApiCredentials = Boolean(token && accountId);
+  if (hasApiCredentials) {
+    report(`[upload-r2] Using Cloudflare API concurrent HTTP upload (Account: ${accountId})`);
     const concurrency = 16;
     let nextIndex = 0;
 
@@ -170,15 +178,18 @@ function getAuthCredentials() {
           });
           if (res.ok) {
             uploadedCount++;
-            if (uploadedCount % 50 === 0 || uploadedCount === uploadItems.length) {
-              console.log(`  Uploaded ${uploadedCount}/${uploadItems.length} objects...`);
+            const isProgressTick = uploadedCount % 50 === 0 || uploadedCount === uploadItems.length;
+            if (isProgressTick) {
+              report(`  Uploaded ${uploadedCount}/${uploadItems.length} objects...`);
             }
           } else {
             const txt = await res.text();
             console.error(`  Failed ${item.key}: HTTP ${res.status} - ${txt}`);
+            failures.push({ key: item.key, reason: `HTTP ${res.status}` });
           }
         } catch (err) {
           console.error(`  Failed ${item.key}: ${err.message}`);
+          failures.push({ key: item.key, reason: err.message });
         }
       }
     };
@@ -187,7 +198,7 @@ function getAuthCredentials() {
     await Promise.all(workers);
   } else {
     for (const item of uploadItems) {
-      console.log(`  Uploading [${uploadedCount + 1}/${uploadItems.length}]: ${item.key}...`);
+      report(`  Uploading [${uploadedCount + 1}/${uploadItems.length}]: ${item.key}...`);
       try {
         execFileSync("npx", [
           "--yes",
@@ -204,11 +215,21 @@ function getAuthCredentials() {
         uploadedCount += 1;
       } catch (err) {
         console.error(`[upload-r2] Failed to upload ${item.key}: ${err.message}`);
+        failures.push({ key: item.key, reason: err.message });
       }
     }
   }
 
-  console.log(`\n[upload-r2] Finished. Uploaded ${uploadedCount}/${uploadItems.length} objects.`);
+  const hasFailures = failures.length > 0;
+  if (hasFailures) {
+    for (const failure of failures) {
+      report(`  ${failure.key}: ${failure.reason}`);
+    }
+    report(`[upload-r2] ${failures.length} of ${uploadItems.length} objects failed to upload.`);
+    process.exitCode = 1;
+  }
+
+  report(`\n[upload-r2] Finished. Uploaded ${uploadedCount}/${uploadItems.length} objects.`);
 }
 
 main().catch((err) => {

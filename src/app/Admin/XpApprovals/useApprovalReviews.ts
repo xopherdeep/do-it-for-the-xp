@@ -9,12 +9,14 @@ import { fulfillPurchase, PurchaseError, refundPurchase } from "@/lib/services/s
 import debug from "@/lib/utils/debug";
 import { useCreationApprovals } from "./useCreationApprovals";
 import type { Profile } from "./useCreationApprovals";
+import { useSentVerdicts } from "./useSentVerdicts";
 
 /**
  * The Approvals screen's verdicts on quests (approve, send back) and shop purchases (deliver, refund): the confirm
  * dialogs and the one review runner they share, moved out of XpApprovals.vue as they stood. The Creations lane
- * (useCreationApprovals) rides along on the same runner, so the page mounts one composable and only the lists. The
- * game rules stay in approvalFlow, PurchaseService and creationReview.
+ * (useCreationApprovals) and the sent-verdict row line (useSentVerdicts) ride along on it, so the page mounts this one
+ * composable for every verdict and only the lists, and stays within the four-composable budget of a setup(). The game
+ * rules stay in approvalFlow, PurchaseService and creationReview.
  */
 
 export type ToastColor = "success" | "warning" | "danger" | "medium";
@@ -39,15 +41,18 @@ export interface ReviewDeps {
   writeHero: (heroId: string, change: () => Promise<void>) => Promise<boolean>;
 }
 
-export const useApprovalReviews = (deps: ReviewDeps) => {
-  const { heroName, isKnownHero, reviewerId, showToast, reload, writeHero } = deps;
+/** The runner every lane hands its verdict to: the review itself, then the lists again and a toast */
+type ReviewRunner = (entry: { id: string }, review: () => Promise<ReviewMessage>) => Promise<void>;
+
+const createReviewRunner = (deps: ReviewDeps): ReviewRunner => {
+  const { reload, showToast } = deps;
 
   // Entries with a review in flight. approveCompletion and refundPurchase are
   // read-then-write, so a double tap must not reach them twice for the same entry
   // (that would pay or refund twice).
   const reviewing = new Set<string>();
 
-  const runReview = async (entry: { id: string }, review: () => Promise<ReviewMessage>) => {
+  return async (entry, review) => {
     const isInFlight = reviewing.has(entry.id);
     if (isInFlight) return;
     reviewing.add(entry.id);
@@ -68,6 +73,15 @@ export const useApprovalReviews = (deps: ReviewDeps) => {
     const hasMessage = outcome.message !== "";
     if (hasMessage) void showToast(outcome.message, outcome.color);
   };
+};
+
+/**
+ * The claims lane (Achievements tab): approve a claim, send it back, and the row line for a verdict that went to the
+ * device holding the hero's turn. The line comes with the verdicts because it reports on them: once a sent verdict is
+ * applied, the claims are read again.
+ */
+const useClaimReviews = (deps: ReviewDeps, runReview: ReviewRunner) => {
+  const { heroName, isKnownHero, reviewerId, showToast, reload } = deps;
 
   const unsettled = (reason: Extract<ReviewOutcome, { ok: false }>["reason"]): ReviewMessage =>
     reason === "own-claim"
@@ -148,6 +162,18 @@ export const useApprovalReviews = (deps: ReviewDeps) => {
     });
     await alert.present();
   };
+
+  // Family sync: a verdict on a hero another device holds goes to that device, and the row says so until it is applied
+  const sentLineOf = useSentVerdicts(() => void reload());
+
+  return { approveItem, rejectItem, sentLineOf };
+};
+
+export const useApprovalReviews = (deps: ReviewDeps) => {
+  const { heroName, isKnownHero, reviewerId, showToast, writeHero } = deps;
+
+  const runReview = createReviewRunner(deps);
+  const claims = useClaimReviews(deps, runReview);
 
   // The hero already paid; the Game Master hands over the real thing and marks it done.
   const confirmDelivery = async (entry: PurchaseLogEntry) => {
@@ -261,5 +287,5 @@ export const useApprovalReviews = (deps: ReviewDeps) => {
     runReview,
   });
 
-  return { approveItem, rejectItem, confirmDelivery, sendRefund, creations };
+  return { claims, confirmDelivery, sendRefund, creations };
 };
