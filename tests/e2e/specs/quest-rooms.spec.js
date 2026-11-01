@@ -1,8 +1,8 @@
 // Quest Rooms end to end (docs/Quest-Rooms-Spec.md section 13): a temple's combat rooms hold the family's real chores.
 //
 //   1. A Game Master wakes the Shadow temple's Dish Goblin quest for Max from the temple's Quests tab (the real Wake sheet).
-//      The room lurks; winning the fight completes the quest (the board says Tamed) and clears the room; the next day the
-//      beast is back.
+//      The room lurks (Max's first steps in the temple wake its other beasts for him, and the floor says so); winning the
+//      fight completes the quest (the board says Tamed) and clears the room; the next day the beast is back.
 //   2. A second fight: Run costs one parting strike, and one grudge mark shows on the beast at the next fight.
 //   3. A lost fight with 40 GP in the wallet: Max is carried to the Hospital, treated to full HP and MP, billed 100 (40 from
 //      the wallet, 60 owed) and GROUNDED; the Power's Cast is refused. A quest pays 60 GP, the Gold Bank takes the bill, the
@@ -11,22 +11,28 @@
 // The tests run in order and share one seeded world (IndexedDB survives from one test to the next; Cypress only clears
 // localStorage, so every test signs its hero in again).
 //
-// Time: the "next day" is a live offset on the page's Date (see installClock), not cy.clock. cy.clock freezes Date, and the
-// battle's own guards read Date.now (the 250 ms double-tap guard on Done!, the strike clock), so a frozen Date would swallow
-// taps and stop the clock. The offset keeps time moving and lets the spec also run the strike clock out (a lost fight) by
-// moving Date forward ten minutes.
+// Time: the "next day" is a live offset on the page's Date (tests/e2e/support/clock.js), not cy.clock, which would freeze the
+// battle's own guards; the offset keeps time moving and lets a lost fight run the strike clock out (ten minutes on).
 //
 // Run (a dev server that does not reload mid-run; the Quests tab and the fights are long walks):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/quest-rooms.spec.js
 // Screenshots land in tests/e2e/screenshots/quest-rooms.spec.js.
 
 import { finishChore, hasMenu, readUntilMenu, runAway, tapDialog, tapUntilSays, waitForMenu } from "../support/battle";
+import { clock, installClock } from "../support/clock";
 
 const TEMPLE = "shadow-temple";
 /** The quest the Wake sheet makes for the Dish Goblin template: `tq-<temple>-<beast without "beast-">` */
 const QUEST_ID = "tq-shadow-temple-dish-goblin";
-/** Shadow temple, floor 3F, row 5, column 2: the Dish Goblin room (the route reads x as the column, y as the row) */
-const ROOM = `/temple/${TEMPLE}/hero-1/2/5?level=3F`;
+/**
+ * The Dish Goblin room: the Shadow temple (rebuilt from the Palace of Darkness, src/lib/engine/temples/shadow-temple.ts)
+ * holds the quest in three basement rooms; m002 (B1, row 3, column 2) does not bar its doors. The route reads x as the
+ * column and y as the row, the floor rides in ?level (routeStart.ts), and a battle returns to the room by the same route.
+ */
+const ROOM_PATH = `/temple/${TEMPLE}/hero-1/2/3`;
+const ROOM = `${ROOM_PATH}?level=B1`;
+/** The Stop Power's card on the Powers page */
+const STOP = ".power-card[data-ability-id=ability-stop]";
 const CHORES = ["Scrape the plates", "Rinse and load them", "Add a pod and start it", "Wipe the counter"];
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -39,29 +45,6 @@ const PRO = {
   expires_at: "2099-01-01T00:00:00Z",
   env: "production",
   family_id: "3f6c2a1e-8b4d-4c7a-9e2f-1a2b3c4d5e6f",
-};
-
-// ---------------------------------------------------------------------------------------------------------------------
-// The clock
-// ---------------------------------------------------------------------------------------------------------------------
-
-/** How far the page's Date is ahead of the real one. Read live, so changing it moves the open page too. */
-let shiftMs = 0;
-
-/** Replaces the page's Date with one that reports real time plus `shiftMs`. Runs before the page's own scripts. */
-const installClock = (win) => {
-  const RealDate = win.Date;
-  if (RealDate.isShifted) return;
-  function ShiftedDate() {
-    if (!(this instanceof ShiftedDate)) return new RealDate(RealDate.now() + shiftMs).toString();
-    const args = arguments.length ? Array.prototype.slice.call(arguments) : [RealDate.now() + shiftMs];
-    return Reflect.construct(RealDate, args, ShiftedDate);
-  }
-  ShiftedDate.prototype = RealDate.prototype;
-  Object.setPrototypeOf(ShiftedDate, RealDate);
-  ShiftedDate.now = () => RealDate.now() + shiftMs;
-  ShiftedDate.isShifted = true;
-  win.Date = ShiftedDate;
 };
 
 // Every page the spec opens: the clock offset, and the hero has already answered the one-time ambush-alert ask
@@ -113,6 +96,18 @@ const openRoomSheet = (bodyText) => {
   cy.wait(1500); // the beast shows first, then the sheet slides in over the room
 };
 
+/**
+ * Max's first steps in the temple wake its sleeping beasts for him (wakeOnEntry): the entrance floor's quietly, and the
+ * floor he arrives on with a prompt that says so ("A beast stirs on B1.": the Mug Thug, the one beast of B1 not already
+ * his). Onward closes it; every later visit to the floor wakes nothing and asks nothing.
+ */
+const onwardFromTheFloorWake = () => {
+  cy.get("[data-cy=reveal-prompt]", { timeout: 30000 }).should("be.visible");
+  cy.get("[data-cy=reveal-text]").invoke("text").should("match", /stirs on B1|woke up on B1/);
+  cy.get("[data-cy=reveal-choice-onward]", { timeout: 20000 }).should("not.be.disabled").click();
+  cy.get("[data-cy=reveal-prompt]").should("not.exist");
+};
+
 /** The Dish Goblin fight, reached from the room: the sheet's first button is Fight. */
 const fightFromTheRoom = () => {
   cy.get("[data-cy=choice-0]").should("contain", "Fight").click();
@@ -136,13 +131,14 @@ const tackleChore = (name) => {
 const loseTheFight = () => {
   const step = (left) => {
     cy.location("pathname").then((path) => {
-      if (!path.startsWith("/battle/")) return;
+      const hasLeftTheBattle = !path.startsWith("/battle/");
+      if (hasLeftTheBattle) return;
       expect(left, "laps left before the hero falls").to.be.greaterThan(0);
       cy.get("body").then(($body) => {
         const isMenuUp = hasMenu($body);
         const hasBox = $body.find("[data-cy=battle-dialog]").length > 0;
         if (isMenuUp) {
-          shiftMs += TEN_MINUTES;
+          clock.shiftMs += TEN_MINUTES;
           cy.wait(500);
         } else if (hasBox) {
           tapDialog();
@@ -200,7 +196,7 @@ describe("Quest rooms: a temple full of real chores", () => {
   before(() => {
     Cypress.on("uncaught:exception", (error) => !/play\(\)|AbortError|NotAllowedError/.test(error.message));
     Cypress.config("defaultCommandTimeout", 30000);
-    shiftMs = 0;
+    clock.shiftMs = 0;
     seedFamily();
   });
 
@@ -236,7 +232,8 @@ describe("Quest rooms: a temple full of real chores", () => {
 
     // The room now holds the quest instead of sleeping
     cy.contains(".quest-row", "Load the dishwasher").should("have.class", "kind-quest").find(".dot-lurking").should("have.length", 1);
-    cy.get(".wake-open").should("contain", "8 asleep");
+    // The temple sleeps seven beasts (five monsters, the miniboss and the boss, each counted once however many rooms it has)
+    cy.get(".wake-open").should("contain", "6 asleep");
   });
 
   it("the Dish Goblin room lurks, and winning the fight completes the quest and clears the room", () => {
@@ -244,6 +241,7 @@ describe("Quest rooms: a temple full of real chores", () => {
     go(ROOM);
     // The beast is the quest's: the sheet words the chore, when it is due and nothing about a grudge
     cy.get(".xp-monster-model-wrapper", { timeout: 90000 }).should("be.visible").and("have.attr", "title", "Attack Dish Goblin");
+    onwardFromTheFloorWake();
     openRoomSheet("Load the dishwasher");
     // The beast is named in the title itself, with nothing repeated under it
     cy.get("[data-cy=choice-reveal]").should("contain", "A Dish Goblin approaches!");
@@ -275,7 +273,7 @@ describe("Quest rooms: a temple full of real chores", () => {
     cy.get("[data-cy=victory-card]").click("center");
 
     // Back in the temple: the quest paid its 30 GP (the formula is 15 x difficulty 2), the room is cleared and the beast is gone
-    cy.location("pathname", { timeout: 30000 }).should("eq", `/temple/${TEMPLE}/hero-1/2/5`);
+    cy.location("pathname", { timeout: 30000 }).should("eq", ROOM_PATH);
     cy.get("#room-action .cleared-mark", { timeout: 60000 }).should("exist");
     cy.get(".xp-monster-model-wrapper").should("not.exist");
     maxStats().then((stats) => {
@@ -298,7 +296,7 @@ describe("Quest rooms: a temple full of real chores", () => {
   });
 
   it("the next day the beast is back", () => {
-    shiftMs = DAY;
+    clock.shiftMs = DAY;
     signIn("hero-1");
     go("/my-tasks/hero-1");
     cy.contains(".xp-app-header__title", "Beast Log", { timeout: 60000 }).should("exist");
@@ -342,7 +340,7 @@ describe("Quest rooms: a temple full of real chores", () => {
         shot("11-parting-strike");
         tapUntilSays("Got away safely");
         tapDialog();
-        cy.location("pathname", { timeout: 30000 }).should("eq", `/temple/${TEMPLE}/hero-1/2/5`);
+        cy.location("pathname", { timeout: 30000 }).should("eq", ROOM_PATH);
         maxStats().then((after) => {
           expect(after.hp.now, "HP after the parting strike").to.eq(before.hp.now - damage);
         });
@@ -407,13 +405,13 @@ describe("Quest rooms: a temple full of real chores", () => {
 
     go("/my-abilities/hero-1/");
     cy.contains(".xp-app-header__title", "Powers", { timeout: 60000 }).should("exist");
-    cy.get(".power-row[data-ability-id=ability-stop]", { timeout: 30000 }).scrollIntoView().within(() => {
+    cy.get(STOP, { timeout: 30000 }).scrollIntoView().within(() => {
       cy.get(".cast-btn").should("be.disabled");
       cy.get(".power-state").should("contain", "Grounded: pay your hospital bill at the Gold Bank.");
     });
     shot("18-cast-refused-while-grounded");
     // A tap on the disabled button does nothing: the MP stays whole
-    cy.get(".power-row[data-ability-id=ability-stop] .cast-btn").click({ force: true });
+    cy.get(`${STOP} .cast-btn`).click({ force: true });
     maxStats().then((stats) => {
       expect(stats.mp.now, "MP after the refused cast").to.eq(stats.mp.max);
     });
@@ -481,17 +479,17 @@ describe("Quest rooms: a temple full of real chores", () => {
     signIn("hero-1");
     go("/my-abilities/hero-1/");
     cy.contains(".xp-app-header__title", "Powers", { timeout: 60000 }).should("exist");
-    cy.get(".power-row[data-ability-id=ability-stop] .cast-btn", { timeout: 30000 }).scrollIntoView().should("not.be.disabled");
+    cy.get(`${STOP} .cast-btn`, { timeout: 30000 }).scrollIntoView().should("not.be.disabled");
     shot("24-cast-is-open");
     // Stop costs 25 MP. (The claim's XP levelled Max up, which settled his MP at the class's own number, so read it first.)
     maxStats().then((before) => {
       expect(before.mp.now, "MP before the cast covers the 25 MP").to.be.at.least(25);
-      cy.get(".power-row[data-ability-id=ability-stop] .cast-btn").click();
-      cy.get(".power-row[data-ability-id=ability-stop] .cast-btn", { timeout: 20000 }).should("be.disabled");
+      cy.get(`${STOP} .cast-btn`).click();
+      cy.get(`${STOP} .cast-btn`, { timeout: 20000 }).should("be.disabled");
       expectOnMax("MP after the cast", (max) => max.stats.mp.now, before.mp.now - 25);
     });
     // The card no longer blames the Hospital: it is spent now (the card says what it needs next, not the grounding)
-    cy.get(".power-row[data-ability-id=ability-stop] .power-state").should("not.contain", "Grounded");
+    cy.get(`${STOP} .power-state`).should("not.contain", "Grounded");
     shot("25-power-cast");
   });
 });
