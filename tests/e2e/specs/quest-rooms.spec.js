@@ -102,7 +102,7 @@ const openRoomSheet = (bodyText) => {
  * his). Onward closes it; every later visit to the floor wakes nothing and asks nothing.
  */
 const onwardFromTheFloorWake = () => {
-  cy.get("[data-cy=reveal-prompt]", { timeout: 30000 }).should("be.visible");
+  cy.get("[data-cy=reveal-prompt]", { timeout: 90000 }).should("be.visible");
   cy.get("[data-cy=reveal-text]").invoke("text").should("match", /stirs on B1|woke up on B1/);
   cy.get("[data-cy=reveal-choice-onward]", { timeout: 20000 }).should("not.be.disabled").click();
   cy.get("[data-cy=reveal-prompt]").should("not.exist");
@@ -239,9 +239,12 @@ describe("Quest rooms: a temple full of real chores", () => {
   it("the Dish Goblin room lurks, and winning the fight completes the quest and clears the room", () => {
     signIn("hero-1");
     go(ROOM);
-    // The beast is the quest's: the sheet words the chore, when it is due and nothing about a grudge
-    cy.get(".xp-monster-model-wrapper", { timeout: 90000 }).should("be.visible").and("have.attr", "title", "Attack Dish Goblin");
+    // The arrival prompt ("A beast stirs on B1.") opens once the floor's wake has run, and its backdrop covers the room until
+    // Onward. On CI's software GL it opens before the voxel beast has drawn, so wait for the beast, answer it, then look.
+    cy.get(".xp-monster-model-wrapper", { timeout: 90000 }).should("exist");
     onwardFromTheFloorWake();
+    // The beast is the quest's: the sheet words the chore, when it is due and nothing about a grudge
+    cy.get(".xp-monster-model-wrapper").should("be.visible").and("have.attr", "title", "Attack Dish Goblin");
     openRoomSheet("Load the dishwasher");
     // The beast is named in the title itself, with nothing repeated under it
     cy.get("[data-cy=choice-reveal]").should("contain", "A Dish Goblin approaches!");
