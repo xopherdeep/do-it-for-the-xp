@@ -110,7 +110,7 @@
         </ion-list>
       </ion-card>
 
-      <xp-coming-soon-card title="Display" :items="comingSoon" />
+      <xp-coming-soon-card v-if="comingSoon.length > 0" title="Display" :items="comingSoon" />
     </ion-content>
   </ion-page>
 </template>

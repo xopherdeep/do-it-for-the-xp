@@ -14,6 +14,10 @@ jest.mock("@/lib/services/notifications/questWatch", () => ({
 jest.mock("@/lib/services/notifications/approvalWatch", () => ({
   startApprovalWatch: (gmId: string) => mockStartApproval(gmId),
 }));
+const mockRunRaidAlerts = jest.fn(async (_now?: Date) => ({ booked: 0, rung: 0 }));
+jest.mock("@/lib/services/notifications/raidAlertWatch", () => ({
+  runRaidAlerts: (now?: Date) => mockRunRaidAlerts(now),
+}));
 jest.mock("@/lib/services/notifications/alertBridge", () => ({
   isNativeApp: () => mockIsNative,
 }));
@@ -65,6 +69,7 @@ describe("startAppReminders", () => {
     await settle();
     expect(mockBook.mock.calls.map(([heroId]) => heroId).sort()).toEqual(["dad", "kid1", "kid2"]);
     expect(mockStartApproval).not.toHaveBeenCalled();
+    expect(mockRunRaidAlerts).toHaveBeenCalled();
   });
 
   it("books nothing before the stores have loaded", async () => {

@@ -493,9 +493,9 @@ ion-app {
           --placeholder-color: #{$eb-color-pale-yellow};
         }
 
-        // an off switch still shows its track on the dark window
+        // an off switch still shows its track on the dark window. No width here: a toggle without its own label
+        // takes its size from the host, and width: auto squashed every switch on the settings pages to nothing
         > ion-toggle {
-          width: auto;
           --track-background: #{rgba($eb-color-cream, 0.28)};
         }
 

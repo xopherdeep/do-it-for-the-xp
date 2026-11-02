@@ -9,11 +9,11 @@ export interface ComingSoonItem {
 
 export const GENERAL_COMING_SOON: ComingSoonItem[] = [];
 
-/** Each game style paints its own windows and colors, so a dark mode and color sets need a pass over every style */
-export const THEME_COMING_SOON: ComingSoonItem[] = [
-  { title: "Dark mode", description: "A darker look across the app" },
-  { title: "Color theme", description: "Fantasy and retro color sets" },
-];
+/**
+ * Dark mode and color themes were dropped (2026-11-02): the game is dark only (dark-variables.scss), and the game
+ * styles (Settings > Theme) are the color sets
+ */
+export const THEME_COMING_SOON: ComingSoonItem[] = [];
 
 /**
  * Telling a Game Master's own phone about a hero's chore goes through the family server. The multiplayer flag is on in
@@ -25,12 +25,11 @@ export const ALERTS_COMING_SOON: ComingSoonItem[] = [
 ];
 
 /**
- * Parties with other families are built (Settings > Party, My Party). Left planned: posts from a circle of families,
- * and raid alerts, which need an OS alert booked ahead (alertBridge.scheduleAlert) and a device to test it on
+ * Parties with other families are built (Settings > Party, My Party), and raid alerts live in Settings > Alerts
+ * (raidAlertWatch.ts). Left planned: posts from a circle of families, which the site does not serve yet
  */
 export const PARTY_COMING_SOON: ComingSoonItem[] = [
   { title: "Family circle posts", description: "See posts from families in your circle, and choose who can post or read" },
-  { title: "Raid alerts", description: "Hear when a raid beast is about to flee" },
 ];
 
 /** Social sign-in is a site job (a login plugin on the Town Hall network); the app's link flow picks it up once the site offers it */

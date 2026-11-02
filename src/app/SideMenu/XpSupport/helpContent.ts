@@ -269,7 +269,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         question: "Will the phone remind us?",
-        answer: "Yes, on this device. Settings, Alerts has Chore reminders, a nudge half an hour before a chore is due, even when the game is closed. They are booked for every hero from the app, so a kid doesn't have to open their portal first. Game Masters also get Approval reminders when a claim has waited too long, and you choose how long (1 to 8 hours, or Off).",
+        answer: "Yes, on this device. Settings, Alerts has Chore reminders, a nudge half an hour before a chore is due, even when the game is closed. They are booked for every hero from the app, so a kid doesn't have to open their portal first. Raid alerts give a heads-up the day before a raid beast flees, while it still stands. Game Masters also get Approval reminders when a claim has waited too long, and you choose how long (1 to 8 hours, or Off).",
       },
       {
         question: "Can the week start on Sunday?",
