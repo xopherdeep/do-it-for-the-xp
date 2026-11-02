@@ -17,7 +17,7 @@
               <ion-label>On this device</ion-label>
             </ion-item-divider>
             <ion-item lines="none">
-              <ion-label>
+              <ion-label class="ion-text-wrap">
                 <h2>Ambush alerts</h2>
                 <p>{{ ambushAlertsMessage }}</p>
               </ion-label>
@@ -28,7 +28,7 @@
               ></ion-toggle>
             </ion-item>
             <ion-item lines="none">
-              <ion-label>
+              <ion-label class="ion-text-wrap">
                 <h2>Chore reminders</h2>
                 <p>A reminder on your phone half an hour before a chore is due, even when the game is closed.</p>
               </ion-label>
@@ -36,6 +36,18 @@
                 v-model="choreReminders"
                 :disabled="ambushAlertsDisabled"
                 @ionChange="handleChoreRemindersChange"
+              ></ion-toggle>
+            </ion-item>
+            <ion-item lines="none" data-cy="raid-alerts">
+              <ion-label class="ion-text-wrap">
+                <h2>Raid alerts</h2>
+                <p>A heads-up the day before a raid beast flees, while it still stands and a hero here is in the raid.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="raidAlerts"
+                :disabled="ambushAlertsDisabled"
+                data-cy="raid-alerts-toggle"
+                @ionChange="handleRaidAlertsChange"
               ></ion-toggle>
             </ion-item>
             <approval-reminder-row />
@@ -78,6 +90,8 @@
     setBattleAlertsChoice,
   } from "@/lib/services/notifications/alertBridge";
   import { choreRemindersChoice, setChoreRemindersChoice } from "@/lib/services/notifications/reminderChoice";
+  import { raidAlertsChoice, setRaidAlertsChoice } from "@/lib/services/notifications/raidAlerts";
+  import { runRaidAlerts } from "@/lib/services/notifications/raidAlertWatch";
 
   export default defineComponent({
     name: "NotificationSettings",
@@ -102,6 +116,7 @@
     setup() {
       const ambushAlerts = ref(battleAlertsChoice() === "on");
       const choreReminders = ref(choreRemindersChoice() === "on");
+      const raidAlerts = ref(raidAlertsChoice() === "on");
       const ambushAlertsDisabled = ref(false);
       const ambushAlertsMessage = ref(
         "A heads-up when a beast ambushes your hero while the game is in the background."
@@ -117,6 +132,7 @@
         } else if (isRevoked) {
           // Alerts were turned off in the browser since the hero said yes
           ambushAlerts.value = false;
+          raidAlerts.value = false;
         }
       });
 
@@ -162,7 +178,31 @@
         await toast.present();
       };
 
+      const handleRaidAlertsChange = async (event: any) => {
+        const isOn = event.detail.checked;
+        if (!isOn) {
+          setRaidAlertsChoice("off");
+          await runRaidAlerts();
+          return;
+        }
+        const perm = await requestAlertPermission();
+        const isGranted = perm === "granted";
+        if (isGranted) {
+          setRaidAlertsChoice("on");
+          await runRaidAlerts();
+          return;
+        }
+        setRaidAlertsChoice("off");
+        raidAlerts.value = false;
+        const toast = await toastController.create(
+          rpgToastOptions("Alerts are blocked. Allow notifications in your phone's settings, then try again.", 3000)
+        );
+        await toast.present();
+      };
+
       return {
+        raidAlerts,
+        handleRaidAlertsChange,
         choreReminders,
         handleChoreRemindersChange,
         ambushAlerts,

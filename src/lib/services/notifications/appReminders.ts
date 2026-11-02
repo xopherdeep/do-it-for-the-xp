@@ -6,14 +6,16 @@
  * - a hero signs in or the profile switches: "login";
  * - the app comes back to the front: "resume".
  *
- * A sign out wakes only the scheduler, which ends the Game Master's approval watch. The real stores, the phone check
- * and the watches are wired here so the scheduler itself stays pure.
+ * Raid alerts (raidAlertWatch.ts) hear every wake too. A sign out wakes only the scheduler, which ends the Game
+ * Master's approval watch. The real stores, the phone check and the watches are wired here so the scheduler itself
+ * stays pure.
  */
 import { watch } from "vue";
 import { isNativeApp } from "./alertBridge";
 import { startApprovalWatch } from "./approvalWatch";
 import { listenForResume, onAppWake, runAppWake } from "./appWake";
 import { bookHeroReminders } from "./questWatch";
+import { runRaidAlerts } from "./raidAlertWatch";
 import { createReminderScheduler } from "./reminderScheduler";
 
 /** The part of the user store the wiring reads (the store itself fits). */
@@ -51,6 +53,8 @@ export const startAppReminders = (store: AppReminderStore, storesLoaded: Promise
   let isStopped = false;
 
   const stopHook = onAppWake(() => scheduler.wake());
+  // Raid alerts run on every wake, in a browser too: there the wake inside a raid's last day is what rings it
+  const stopRaidAlerts = onAppWake(({ now }) => runRaidAlerts(now).then(() => undefined));
   const stopResume = listenForResume(() => void runAppWake("resume"));
   const stopSignInWatch = watch(
     () => signedInIdOf(store),
@@ -67,6 +71,7 @@ export const startAppReminders = (store: AppReminderStore, storesLoaded: Promise
   return () => {
     isStopped = true;
     stopHook();
+    stopRaidAlerts();
     stopResume();
     stopSignInWatch();
     scheduler.stop();
