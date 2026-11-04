@@ -1,0 +1,289 @@
+// The setup wizard: the shared wizard shell on the Quests purple; every colour is the kit's token (Retro and Modern skins).
+.setup-wizard {
+  :deep(ion-content) {
+    --background: var(--xp-app-bg);
+  }
+}
+
+.sw-section {
+  padding: 4px 12px 16px;
+}
+
+.sw-sub {
+  margin: 14px 2px 8px;
+  color: var(--xp-app-text-dim);
+  font-family: var(--xp-app-font-title);
+  font-size: 0.9rem;
+  text-transform: var(--xp-app-title-transform);
+}
+
+.sw-note {
+  margin: 10px 4px;
+  color: var(--xp-app-text-dim);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+// ---- Family --------------------------------------------------------------------------------------------------------
+
+.sw-heroes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sw-hero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--xp-app-text);
+    font-family: var(--xp-app-font-title);
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__tag {
+    color: var(--xp-app-accent);
+    font-size: 0.8rem;
+  }
+
+  &__x {
+    flex: 0 0 auto;
+    padding: 6px;
+    background: none;
+    border: 0;
+    color: var(--xp-app-text-dim);
+    font-size: 1.3rem;
+  }
+}
+
+.sw-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  --background: var(--xp-app-surface);
+  --color: var(--xp-app-text);
+  --placeholder-color: var(--xp-app-text-dim);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+  font-size: 1rem;
+
+  &--pin {
+    flex: 0 0 96px;
+    letter-spacing: 4px;
+  }
+
+  &--search {
+    margin-top: 8px;
+  }
+}
+
+.sw-age {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+
+  &__btn {
+    width: 40px;
+    height: 40px;
+    background: var(--xp-app-surface-2);
+    border: var(--xp-app-section-border);
+    border-radius: var(--xp-app-radius-tile);
+    color: var(--xp-app-text);
+
+    &:active {
+      background: var(--xp-app-press);
+    }
+  }
+
+  &__n {
+    min-width: 28px;
+    color: var(--xp-app-text);
+    font-family: var(--xp-app-font-title);
+    font-size: 1.1rem;
+    text-align: center;
+  }
+}
+
+.sw-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 4px;
+  background: none;
+  border: 0;
+  color: var(--xp-app-accent);
+  font-family: var(--xp-app-font-title);
+  font-size: 1rem;
+}
+
+// ---- House ---------------------------------------------------------------------------------------------------------
+
+.sw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sw-chip {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-chip);
+  color: var(--xp-app-text);
+  font-family: var(--xp-app-font-title);
+  font-size: 0.95rem;
+  text-transform: capitalize;
+
+  &.is-picked {
+    background: var(--xp-app-surface-2);
+    border-color: var(--xp-app-accent);
+    box-shadow: 0 0 0 2px var(--xp-app-accent);
+  }
+}
+
+// ---- Review --------------------------------------------------------------------------------------------------------
+
+.sw-beasts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &--found {
+    margin-top: 10px;
+  }
+}
+
+.sw-beast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 4px 10px 4px 6px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+  color: var(--xp-app-text);
+  text-align: left;
+
+  &.is-picked {
+    border-color: var(--xp-app-accent);
+  }
+
+  &__art {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    color: var(--xp-app-accent);
+    font-size: 1.8rem;
+    line-height: 44px;
+    text-align: center;
+  }
+
+  &__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    font-family: var(--xp-app-font-title);
+    font-size: 0.95rem;
+  }
+
+  &__chore {
+    color: var(--xp-app-text-dim);
+    font-size: 0.85rem;
+  }
+
+  &__tick {
+    flex: 0 0 auto;
+    color: var(--xp-app-accent);
+    font-size: 1.4rem;
+  }
+}
+
+// ---- Extras --------------------------------------------------------------------------------------------------------
+
+.sw-extras {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+
+  &__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    color: var(--xp-app-text);
+    font-family: var(--xp-app-font-title);
+    font-size: 1rem;
+  }
+
+  &__what {
+    color: var(--xp-app-text-dim);
+    font-size: 0.9rem;
+  }
+}
+
+// ---- Summary -------------------------------------------------------------------------------------------------------
+
+.sw-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  background: var(--xp-app-surface);
+  border: var(--xp-app-section-border);
+  border-radius: var(--xp-app-radius-tile);
+  color: var(--xp-app-text);
+  font-size: 1rem;
+  text-align: left;
+
+  i {
+    flex: 0 0 auto;
+    padding-top: 2px;
+    color: var(--xp-app-accent);
+  }
+
+  &__list {
+    display: block;
+    color: var(--xp-app-text-dim);
+    font-size: 0.85rem;
+  }
+}
+
+.sw-error {
+  margin: 8px 4px 0;
+  color: var(--gs-danger);
+  font-size: 0.95rem;
+}
