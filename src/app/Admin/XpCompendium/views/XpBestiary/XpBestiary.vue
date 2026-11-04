@@ -52,6 +52,7 @@
       <div v-if="filteredBeasts.length === 0" class="no-results">
         <i class="fad fa-ghost fa-3x"></i>
         <p>{{ emptyLine }}</p>
+        <ion-button v-if="!isLoading && !beasts.length" size="small" data-cy="bestiary-run-setup" @click="runSetup">Run setup</ion-button>
       </div>
     </div>
 
@@ -93,6 +94,7 @@ import { beastBadge, bestiaryFilter, emptyBestiaryLine } from "./bestiaryFilter"
 import type { BestiarySegment } from "./bestiaryFilter";
 import { beastSheetButtons } from "./beastSheet";
 import { useUserStore } from "@/lib/store/stores/user";
+import { openSetupWizard } from "@/app/SideMenu/SetupWizard/useSetupOffer";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -323,6 +325,12 @@ export default defineComponent({
       } finally {
         if (!silent) this.isLoading = false;
       }
+    },
+
+    /** The empty bestiary offers the setup wizard, then shows what it made */
+    async runSetup() {
+      await openSetupWizard();
+      await this.loadBeasts();
     },
 
     setBeasts(beasts: Beast[]) {

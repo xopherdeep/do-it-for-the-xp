@@ -108,6 +108,7 @@
                 {{ isDlcReady ? "Ready" : "Download" }}
               </ion-badge>
             </ion-item>
+            <xp-run-setup-row />
           </ion-item-group>
         </ion-list>
       </ion-card>
@@ -307,16 +308,8 @@
   import { GENERAL_COMING_SOON } from "./comingSoon";
   import { useSignedInProfile } from "./general/useSignedInProfile";
   import { resetTour } from "@/lib/services/tutorial/firstRunTour";
-  import {
-    familyOverviewOnPicker,
-    guidesOn,
-    landingChoiceOf,
-    landingOptionsFor,
-    setFamilyOverviewOnPicker,
-    setGuidesOn,
-    setLandingChoice,
-    type LandingChoice,
-  } from "@/lib/services/core/profilePrefs";
+  import { familyOverviewOnPicker, guidesOn, landingChoiceOf, landingOptionsFor, setFamilyOverviewOnPicker, setGuidesOn, setLandingChoice, type LandingChoice } from "@/lib/services/core/profilePrefs";
+  import XpRunSetupRow from "@/app/SideMenu/SetupWizard/XpRunSetupRow.vue";
   import { useGameRulesStore } from "@/lib/store/stores/gameRules";
   import { backupAgeLabel, lastBackupAt, recordBackup } from "@/lib/services/core/backupReminder";
 
@@ -328,7 +321,7 @@
 
   export default defineComponent({
     name: "general-settings",
-    components: { XpComingSoonCard, XpDlcModal },
+    components: { XpComingSoonCard, XpDlcModal, XpRunSetupRow },
 
     mixins: [ionic],
     methods: {
