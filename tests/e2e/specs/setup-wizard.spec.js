@@ -83,7 +83,7 @@ describe("Setup wizard", () => {
     rowsInStore("__beasts").should("have.length", 0);
     rowsInStore("__achievements").should("have.length", 0);
 
-    // 1. Family: a parent and one hero with a name and an age (the stepper starts at "?")
+    // 1. Family: a parent and one hero with a name and an age (a new hero starts at 8; an existing kid shows "?" until the first tap lands on 8)
     cy.get('[data-test="gm-name"]').find("input").type("Mom", { force: true });
     cy.get('[data-test="gm-pin"]').find("input").type("1234", { force: true });
     cy.get('[data-test="add-hero"]').click();

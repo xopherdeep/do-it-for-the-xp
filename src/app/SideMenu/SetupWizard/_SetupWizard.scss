@@ -149,10 +149,16 @@
   font-size: 0.95rem;
   text-transform: capitalize;
 
+  // A tap leaves the browser's focus ring on the chip; only keyboard focus keeps one, so a picked chip is the one that looks picked
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+
   &.is-picked {
-    background: var(--xp-app-surface-2);
+    background: var(--xp-app-accent);
     border-color: var(--xp-app-accent);
-    box-shadow: 0 0 0 2px var(--xp-app-accent);
+    color: var(--xp-app-on-accent);
+    text-shadow: var(--xp-app-on-accent-shadow);
   }
 }
 
@@ -239,6 +245,11 @@
     flex: 1 1 auto;
     flex-direction: column;
     gap: 2px;
+  }
+
+  ion-toggle {
+    --track-background-checked: var(--xp-app-accent);
+    --handle-background-checked: var(--xp-app-on-accent);
   }
 
   &__title {
