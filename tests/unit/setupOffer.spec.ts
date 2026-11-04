@@ -1,0 +1,50 @@
+import { offerSetupOnce, openSetupWizard, resetSetupOfferForTests } from "@/app/SideMenu/SetupWizard/useSetupOffer";
+import { modalController } from "@ionic/vue";
+import { isGameEmpty } from "@/lib/services/setup/runSetup";
+
+jest.mock("@/app/SideMenu/SetupWizard/SetupWizard.vue", () => ({ __esModule: true, default: {} }));
+jest.mock("@ionic/vue", () => ({ modalController: { create: jest.fn() } }));
+jest.mock("@/lib/services/setup/runSetup", () => ({ isGameEmpty: jest.fn() }));
+
+const createMock = modalController.create as unknown as jest.Mock;
+const emptyMock = isGameEmpty as unknown as jest.Mock;
+
+const fakeModal = (data?: { done: boolean; heroCount?: number }) => ({
+  present: jest.fn().mockResolvedValue(undefined),
+  onDidDismiss: jest.fn().mockResolvedValue({ data }),
+});
+
+describe("setup offer", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetSetupOfferForTests();
+  });
+
+  it("openSetupWizard returns the dismiss data, or a not-done default", async () => {
+    createMock.mockResolvedValueOnce(fakeModal({ done: true, heroCount: 3 }));
+    expect(await openSetupWizard()).toEqual({ done: true, heroCount: 3 });
+    createMock.mockResolvedValueOnce(fakeModal(undefined));
+    expect(await openSetupWizard()).toEqual({ done: false, heroCount: 0 });
+  });
+
+  it("offers the wizard when the game is empty", async () => {
+    emptyMock.mockResolvedValue(true);
+    createMock.mockResolvedValue(fakeModal({ done: true, heroCount: 2 }));
+    expect(await offerSetupOnce()).toEqual({ done: true, heroCount: 2 });
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not offer when the game is not empty", async () => {
+    emptyMock.mockResolvedValue(false);
+    expect(await offerSetupOnce()).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("offers only once a session, even when the first run was skipped", async () => {
+    emptyMock.mockResolvedValue(true);
+    createMock.mockResolvedValue(fakeModal({ done: false }));
+    expect((await offerSetupOnce())?.done).toBe(false);
+    expect(await offerSetupOnce()).toBeNull();
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -371,6 +371,7 @@ import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
 import QuickStart from "./QuickStart/QuickStart.vue";
+import { offerSetupOnce } from "../SetupWizard/useSetupOffer";
 import { rpgToastOptions } from "@/hooks/useToast";
 import ProfileLoadingModal from "../../../components/templates/modals/ProfileLoadingModal.vue";
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
@@ -613,10 +614,20 @@ export default defineComponent({
       await toast.present();
     };
 
+    // First launch on an empty game: offer the setup wizard once a session, then show the new heroes
+    const offerSetup = async () => {
+      const result = await offerSetupOnce();
+      if (!result?.done) return;
+      await loadProfiles();
+      const toast = await toastController.create(rpgToastOptions(`Setup done: ${result.heroCount} heroes await.`, 4000));
+      await toast.present();
+    };
+
     // Lifecycle hooks
     onIonViewWillEnter(async () => {
       // Load profiles when entering the view
       await loadProfiles();
+      await offerSetup();
     });
 
     onIonViewDidLeave(() => {
