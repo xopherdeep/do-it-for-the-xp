@@ -2,18 +2,23 @@
  * Setup wizard, the storage side: is this game empty, who already plays, and the one merge restore that applies a plan.
  *
  * Like Quick start it is all or nothing (a single BackupService restore) and it only ever adds: existing heroes are
- * never rewritten and a shop that already exists is kept.
+ * never rewritten and anything that already exists (shops, beasts, quests, abilities...) is kept.
  */
 import type { BackupFile } from "@/lib/services/core/BackupService";
 import { firstRunService, readAll, storageOf } from "@/lib/services/core/packs/quickStart";
 import type { PackStorage } from "@/lib/services/core/packs/packService";
+import { BackupPermissionError } from "@/lib/services/core/BackupService";
+import { canManageFamily } from "@/router/_Guards/gm.guard";
+import { setupBlockedReason } from "./setupGuard";
 import { setupPlan } from "./setupPlan";
-import type { SetupAnswers, SetupHero, SetupPlan } from "./setupPlan";
+import type { SetupAnswers, SetupHero, SetupPlan, SetupStored } from "./setupPlan";
 
 export interface SetupDeps {
   storage: (name: string) => PackStorage;
   /** A merge restore of the plan's backup */
   restore: (file: BackupFile) => Promise<unknown>;
+  /** Whether the person at the device may manage the family (canManageFamily); a test may leave it out */
+  canManage?: () => boolean;
 }
 
 const defaultDeps: SetupDeps = {
@@ -43,10 +48,31 @@ export const existingHeroes = async (deps: SetupDeps = defaultDeps): Promise<Set
   });
 };
 
+/** The ids of what the game already holds, which the plan must not overwrite */
+export const readSetupStored = async (deps: SetupDeps = defaultDeps): Promise<SetupStored> => {
+  const ids = async (name: string) => new Set((await readAll(deps.storage(name))).keys());
+  return {
+    achievements: await readAll(deps.storage("__achievements")),
+    beasts: await ids("__beasts"),
+    abilities: await ids("__abilities"),
+    accessories: await ids("__accessories"),
+    dosDonts: await ids("__dosDonts"),
+  };
+};
+
+/** Why this person may not run setup (a Game Master exists and they cannot manage the family), or null */
+export const setupBlocked = async (deps: SetupDeps = defaultDeps): Promise<string | null> => {
+  const profiles = await readAll(deps.storage("__profiles"));
+  const canManage = (deps.canManage ?? (() => canManageFamily()))();
+  return setupBlockedReason(Array.from(profiles.values()) as { isAdult?: unknown }[], canManage);
+};
+
 /** Builds the plan from the answers and applies it in one merge restore; a failed restore rejects and can be retried */
 export const runSetup = async (answers: SetupAnswers, deps: SetupDeps = defaultDeps): Promise<SetupPlan> => {
+  const blocked = await setupBlocked(deps);
+  if (blocked) throw new BackupPermissionError(blocked);
   const shopsNow = await readAll(deps.storage("__shops"));
-  const plan = setupPlan(answers, shopsNow);
+  const plan = setupPlan(answers, shopsNow, new Date(), undefined, await readSetupStored(deps));
   await deps.restore(plan.backup);
   return plan;
 };

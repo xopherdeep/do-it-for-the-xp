@@ -1,7 +1,8 @@
 import { BACKUP_STORES, BackupService } from "@/lib/services/core/BackupService";
 import type { BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
-import { existingHeroes, isGameEmpty, runSetup } from "@/lib/services/setup/runSetup";
+import { existingHeroes, isGameEmpty, runSetup, setupBlocked } from "@/lib/services/setup/runSetup";
 import type { SetupDeps } from "@/lib/services/setup/runSetup";
+import { setupBlockedReason, SETUP_GM_ONLY_MESSAGE } from "@/lib/services/setup/setupGuard";
 import type { SetupAnswers } from "@/lib/services/setup/setupPlan";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
@@ -153,5 +154,57 @@ describe("runSetup", () => {
     expect(plan.newProfiles).toEqual([]);
     expect(plan.backup.stores.__profiles).toEqual([]);
     expect(Array.from(stores.__profiles.data.keys())).toEqual(["p1"]);
+  });
+
+  it("refuses when a Game Master exists and the person cannot manage the family, and writes nothing", async () => {
+    const { stores, deps } = device({ __profiles: { gm: { id: "gm", name: { full: "Dad" }, isAdult: true } } });
+    const kid: SetupDeps = { ...deps, canManage: () => false };
+    await expect(runSetup(answers(), kid)).rejects.toThrow(SETUP_GM_ONLY_MESSAGE);
+    expect(await setupBlocked(kid)).toBe(SETUP_GM_ONLY_MESSAGE);
+    expect(stores.__achievements.data.size).toBe(0);
+    expect(stores.__profiles.data.size).toBe(1);
+    const gm: SetupDeps = { ...deps, canManage: () => true };
+    await runSetup(answers(), gm);
+    expect(stores.__achievements.data.size).toBe(1);
+  });
+
+  it("stays open while the device has no Game Master", async () => {
+    const { deps } = device({ __profiles: { k: { id: "k", name: { full: "Mia" }, isAdult: false } } });
+    expect(await setupBlocked({ ...deps, canManage: () => false })).toBeNull();
+  });
+
+  it("a re-run keeps an edited beast and quest, and only adds the new hero to the quest", async () => {
+    const { stores, deps } = device();
+    const first = await runSetup(answers(), deps);
+    const [oldHero] = Object.values(first.profileIds);
+    const [questId] = Array.from(stores.__achievements.data.keys());
+    const beastId = "beast-dish-goblin";
+    stores.__beasts.data.set(beastId, { ...(stores.__beasts.data.get(beastId) as object), localImage: "mine.png", achievementIds: ["quest-x"] });
+    stores.__achievements.data.set(questId, { ...(stores.__achievements.data.get(questId) as object), name: "Dishes!", reward: 42 });
+    await runSetup(
+      answers({
+        heroes: [
+          { id: oldHero, name: "Mia", age: 9, existing: true, isParent: false },
+          { id: "w2", name: "Leo", age: 9, existing: false, isParent: false },
+        ],
+        chores: { [oldHero]: [beastId], w2: [beastId] },
+        extras: true,
+      }),
+      deps
+    );
+    expect(stores.__beasts.data.get(beastId)).toMatchObject({ localImage: "mine.png", achievementIds: ["quest-x"] });
+    const quest = stores.__achievements.data.get(questId) as { name: string; reward: number; assignee: string[] };
+    expect(quest).toMatchObject({ name: "Dishes!", reward: 42 });
+    expect(quest.assignee).toHaveLength(2);
+    expect(quest.assignee[0]).toBe(oldHero);
+  });
+});
+
+describe("setupBlockedReason", () => {
+  it("blocks only when a Game Master exists and the caller cannot manage", () => {
+    expect(setupBlockedReason([{ isAdult: true }], false)).toBe(SETUP_GM_ONLY_MESSAGE);
+    expect(setupBlockedReason([{ isAdult: true }], true)).toBeNull();
+    expect(setupBlockedReason([{ isAdult: false }], false)).toBeNull();
+    expect(setupBlockedReason([], false)).toBeNull();
   });
 });

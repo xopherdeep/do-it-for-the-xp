@@ -1,5 +1,5 @@
 import {
-  bandForAge, bandOf, categoryForRoom, suggestedChores, choreQuest, setupPlan,
+  bandForAge, bandOf, categoryForRoom, suggestedChores, choreQuest, setupPlan, keptCounts, keptLine,
 } from "@/lib/services/setup/setupPlan";
 import type { SetupAnswers, SetupHero } from "@/lib/services/setup/setupPlan";
 import { libraryRooms } from "@/lib/services/bestiary/librarySuggest";
@@ -185,5 +185,54 @@ describe("setupPlan", () => {
     // A new parent with no Game Master form is a plain hero profile
     expect(plan.profileIds).toEqual({ a: "id-1", old: "old", p: "id-2" });
     expect(plan.newProfiles.map((p) => p.id)).toEqual(["id-1", "id-2"]);
+  });
+
+  describe("add-only re-run", () => {
+    const [x, y] = BEAST_LIBRARY;
+    const answers: SetupAnswers = {
+      heroes: [hero({ id: "a" })], rooms: [], chores: { a: [x.id, y.id] }, extras: true,
+    };
+
+    it("skips beasts, abilities, accessories and house rules that are already stored", () => {
+      const first = setupPlan(answers, new Map(), now, counter());
+      const stored = {
+        beasts: new Set([x.id]),
+        abilities: new Set(keysOf(first, "__abilities")),
+        accessories: new Set(keysOf(first, "__accessories").slice(0, 1)),
+        dosDonts: new Set(keysOf(first, "__dosDonts")),
+      };
+      const plan = setupPlan(answers, new Map(), now, counter(), stored);
+      expect(keysOf(plan, "__beasts")).toEqual([y.id]);
+      expect(keysOf(plan, "__abilities")).toEqual([]);
+      expect(keysOf(plan, "__dosDonts")).toEqual([]);
+      expect(keysOf(plan, "__accessories")).toEqual(keysOf(first, "__accessories").slice(1));
+    });
+
+    it("keeps a stored quest and only unions the new hero into its assignees", () => {
+      const stored = { id: `quest-${x.slug}`, name: "Mine", assignee: ["z", "q"], reward: 99 };
+      const plan = setupPlan(answers, new Map(), now, counter(), { achievements: new Map([[stored.id, stored]]) });
+      const quest = plan.backup.stores.__achievements.find((e) => e.key === stored.id)!.value as typeof stored;
+      expect(quest).toMatchObject({ name: "Mine", reward: 99, assignee: ["z", "q", "id-1"] });
+      expect(keysOf(plan, "__achievements")).toContain(`quest-${y.slug}`);
+    });
+
+    it("leaves a stored quest out when it already lists every hero", () => {
+      const existing = hero({ id: "p1", existing: true });
+      const stored = { id: `quest-${x.slug}`, assignee: ["p1"] };
+      const plan = setupPlan(
+        { heroes: [existing], rooms: [], chores: { p1: [x.id] }, extras: false }, new Map(), now, counter(),
+        { achievements: new Map([[stored.id, stored]]) }
+      );
+      expect(keysOf(plan, "__achievements")).toEqual([]);
+    });
+
+    it("counts and words what stays", () => {
+      const stored = { achievements: new Map([[`quest-${x.slug}`, {}]]), beasts: new Set([x.id, y.id]) };
+      expect(keptCounts(answers, stored)).toEqual({ chores: 1, beasts: 2 });
+      expect(keptCounts(answers)).toEqual({ chores: 0, beasts: 0 });
+      expect(keptLine({ chores: 3, beasts: 2 })).toBe("3 chores and 2 beasts are already in your game and stay as they are");
+      expect(keptLine({ chores: 1, beasts: 0 })).toBe("1 chore is already in your game and stay as they are");
+      expect(keptLine({ chores: 0, beasts: 0 })).toBeNull();
+    });
   });
 });

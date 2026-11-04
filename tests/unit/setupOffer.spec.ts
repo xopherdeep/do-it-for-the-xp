@@ -1,13 +1,15 @@
 import { offerSetupOnce, openSetupWizard, resetSetupOfferForTests } from "@/app/SideMenu/SetupWizard/useSetupOffer";
 import { modalController } from "@ionic/vue";
-import { isGameEmpty } from "@/lib/services/setup/runSetup";
+import { isGameEmpty, setupBlocked } from "@/lib/services/setup/runSetup";
 
 jest.mock("@/app/SideMenu/SetupWizard/SetupWizard.vue", () => ({ __esModule: true, default: {} }));
 jest.mock("@ionic/vue", () => ({ modalController: { create: jest.fn() } }));
-jest.mock("@/lib/services/setup/runSetup", () => ({ isGameEmpty: jest.fn() }));
+jest.mock("@/lib/services/setup/runSetup", () => ({ isGameEmpty: jest.fn(), setupBlocked: jest.fn() }));
+jest.mock("@/lib/utils/debug", () => ({ __esModule: true, default: { error: jest.fn() } }));
 
 const createMock = modalController.create as unknown as jest.Mock;
 const emptyMock = isGameEmpty as unknown as jest.Mock;
+const blockedMock = setupBlocked as unknown as jest.Mock;
 
 const fakeModal = (data?: { done: boolean; heroCount?: number }) => ({
   present: jest.fn().mockResolvedValue(undefined),
@@ -18,6 +20,21 @@ describe("setup offer", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetSetupOfferForTests();
+    blockedMock.mockResolvedValue(null);
+  });
+
+  it("stays quiet when a Game Master exists and this person cannot manage the family", async () => {
+    emptyMock.mockResolvedValue(true);
+    blockedMock.mockResolvedValue("Only a Game Master can run setup.");
+    expect(await offerSetupOnce()).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("resets the session flag and returns null when the check throws", async () => {
+    emptyMock.mockRejectedValueOnce(new Error("storage down")).mockResolvedValue(true);
+    createMock.mockResolvedValue(fakeModal({ done: false }));
+    expect(await offerSetupOnce()).toBeNull();
+    expect(await offerSetupOnce()).not.toBeNull();
   });
 
   it("openSetupWizard returns the dismiss data, or a not-done default", async () => {

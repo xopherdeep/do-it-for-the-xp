@@ -1,6 +1,7 @@
 import { modalController } from "@ionic/vue";
+import debug from "@/lib/utils/debug";
 import SetupWizard from "./SetupWizard.vue";
-import { isGameEmpty } from "@/lib/services/setup/runSetup";
+import { isGameEmpty, setupBlocked } from "@/lib/services/setup/runSetup";
 
 export interface SetupResult {
   done: boolean;
@@ -31,7 +32,15 @@ export function openSetupWizard(): Promise<SetupResult> {
 export async function offerSetupOnce(): Promise<SetupResult | null> {
   if (offeredThisSession) return null;
   offeredThisSession = true;
-  if (!(await isGameEmpty())) {
+  try {
+    // Quiet when a Game Master exists and this is not them: the Settings row is theirs too
+    const isOffered = (await isGameEmpty()) && !(await setupBlocked());
+    if (!isOffered) {
+      offeredThisSession = false;
+      return null;
+    }
+  } catch (failure) {
+    debug.error("Setup offer could not check the game", failure);
     offeredThisSession = false;
     return null;
   }

@@ -99,11 +99,61 @@ const BAND_ORDER: AgeBand[] = ["little", "kid", "teen"];
 
 const EXTRA_STORES = ["__abilities", "__accessories", "__shops", "__dosDonts"] as const;
 
+const STORED_BY_STORE = {
+  __abilities: (stored: SetupStored) => stored.abilities,
+  __accessories: (stored: SetupStored) => stored.accessories,
+  __dosDonts: (stored: SetupStored) => stored.dosDonts,
+};
+
+/** What the game already holds, by id: the plan only ever adds to it */
+export interface SetupStored {
+  /** Stored quests by id (a re-run keeps them and only adds heroes to their assignees) */
+  achievements?: ReadonlyMap<string, unknown>;
+  beasts?: ReadonlySet<string>;
+  abilities?: ReadonlySet<string>;
+  accessories?: ReadonlySet<string>;
+  dosDonts?: ReadonlySet<string>;
+}
+
+export interface SetupKept {
+  chores: number;
+  beasts: number;
+}
+
+/** The ticked chores and beasts that are already in the game and stay as they are */
+export const keptCounts = (answers: Pick<SetupAnswers, "heroes" | "chores">, stored: SetupStored = {}): SetupKept => {
+  const ids = new Set(answers.heroes.flatMap((hero) => answers.chores[hero.id] ?? []));
+  const beasts = BEAST_LIBRARY.filter((beast) => ids.has(beast.id));
+  return {
+    chores: beasts.filter((beast) => stored.achievements?.has(`quest-${beast.slug}`)).length,
+    beasts: beasts.filter((beast) => stored.beasts?.has(String(beast.id))).length,
+  };
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** The summary's reassurance line, or null when nothing is kept */
+export const keptLine = ({ chores, beasts }: SetupKept): string | null => {
+  const parts = [chores && plural(chores, "chore", "chores"), beasts && plural(beasts, "beast", "beasts")].filter(Boolean);
+  if (!parts.length) return null;
+  const isOne = parts.length === 1 && (chores === 1 || beasts === 1);
+  return `${parts.join(" and ")} ${isOne ? "is" : "are"} already in your game and stay as they are`;
+};
+
+/** A stored quest with the new heroes added to its assignees, or null when it needs no change (or lists no assignees) */
+const withAssignees = (stored: unknown, heroIds: readonly string[]): Achievement | null => {
+  const quest = stored as Achievement;
+  if (!Array.isArray(quest.assignee)) return null;
+  const added = heroIds.filter((id) => !quest.assignee.includes(id));
+  return added.length ? { ...quest, assignee: [...quest.assignee, ...added] } : null;
+};
+
 export const setupPlan = (
   answers: SetupAnswers,
   shopsNow: ReadonlyMap<string, unknown> = new Map(),
   now: Date = new Date(),
-  newId: () => string = uuidv4
+  newId: () => string = uuidv4,
+  stored: SetupStored = {}
 ): SetupPlan => {
   const newProfiles: StoredProfile[] = [];
   // Wizard hero id -> the profile id the quests assign (a new hero gets a fresh one)
@@ -138,20 +188,29 @@ export const setupPlan = (
     }
   }
   const picked = Array.from(tickers.values());
-  const quests = picked.map(({ beast, band, heroIds }) => choreQuest(beast, band, heroIds));
+  // Add-only: a stored quest keeps everything the family tuned and only gains the new heroes
+  const quests = picked.flatMap(({ beast, band, heroIds }): Achievement[] => {
+    const fresh = choreQuest(beast, band, heroIds);
+    const old = stored.achievements?.get(fresh.id);
+    if (old === undefined) return [fresh];
+    const merged = withAssignees(old, heroIds);
+    return merged ? [merged] : [];
+  });
+  const isNew = (known: ReadonlySet<string> | undefined) => (record: { id?: unknown }) => !known?.has(String(record.id));
   const asEntries = (records: readonly { id?: unknown }[]): BackupEntry[] =>
     records.map((record) => ({ key: String(record.id), value: record }));
 
   const stores: Record<string, BackupEntry[]> = {
     __profiles: newProfiles.map((profile) => ({ key: String(profile.id), value: profile })),
     __achievementCategories: asEntries(STARTER_CATEGORIES),
-    __beasts: asEntries(picked.map(({ beast }) => plainBeast(beast))),
+    __beasts: asEntries(picked.map(({ beast }) => plainBeast(beast)).filter(isNew(stored.beasts))),
     __achievements: asEntries(quests),
   };
   if (answers.extras) {
     const world = buildStarterWorld(now).stores;
     for (const name of EXTRA_STORES) {
-      stores[name] = name === "__shops" ? world[name].filter((e) => !shopsNow.has(e.key)) : world[name];
+      const known = name === "__shops" ? new Set(shopsNow.keys()) : STORED_BY_STORE[name](stored);
+      stores[name] = world[name].filter((entry) => !known?.has(entry.key));
     }
   }
   return { newProfiles, profileIds: Object.fromEntries(profileIdOf), backup: { version: BACKUP_VERSION, exportedAt: now.toISOString(), stores } };
