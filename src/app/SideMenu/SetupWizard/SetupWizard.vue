@@ -182,6 +182,7 @@
           <i class="fad fa-sparkles" aria-hidden="true"></i>
           <span>{{ draft.extras ? "Starter world on" : "Starter world off" }}</span>
         </button>
+        <p v-if="keptText" class="sw-note" data-test="kept-line">{{ keptText }}.</p>
         <p v-if="error" class="sw-error" role="alert" data-test="setup-error">{{ error }}</p>
       </section>
     </template>
@@ -199,7 +200,7 @@ import { useSetupWizard } from "./useSetupWizard";
 const rooms = libraryRooms();
 const portrait = (beast: { avatar?: number | null }): string | null => beastPortraitUrl(beast.avatar);
 const {
-  draft, index, isBusy, error, searches, hasNewParent, canAddHero, nameLength,
+  draft, index, isBusy, error, searches, hasNewParent, canAddHero, keptText, nameLength,
   addHero, removeHero, stepAge, toggleRoom, tickedFor, toggleChore, suggestionsFor, addSuggested, goTo, close, begin,
 } = useSetupWizard();
 </script>

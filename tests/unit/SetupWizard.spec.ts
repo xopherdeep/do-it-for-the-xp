@@ -2,7 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import SetupWizard from "@/app/SideMenu/SetupWizard/SetupWizard.vue";
 import { libraryRooms } from "@/lib/services/bestiary/librarySuggest";
-import { runSetup, existingHeroes } from "@/lib/services/setup/runSetup";
+import { runSetup, existingHeroes, readSetupStored } from "@/lib/services/setup/runSetup";
 
 /** The setup wizard through the shared shell: steps in order, Next shut with its reason, Begin runs the setup and closes. */
 const mockDismiss = jest.fn();
@@ -23,6 +23,7 @@ jest.mock("@/lib/services/setup/runSetup", () => ({
   __esModule: true,
   existingHeroes: jest.fn(() => Promise.resolve([])),
   runSetup: jest.fn(() => Promise.resolve({})),
+  readSetupStored: jest.fn(() => Promise.resolve({})),
 }));
 
 const slot = { template: "<div><slot /></div>" };
@@ -126,5 +127,43 @@ describe("SetupWizard", () => {
     expect(wrapper.find("[data-test=setup-error]").text()).toBe("Disk is full");
     expect(wrapper.find("[data-test=submit]").attributes("disabled")).toBeUndefined();
     expect(mockDismiss).not.toHaveBeenCalled();
+  });
+
+  it("says what already lives in the game on the summary", async () => {
+    const wrapper = await mountWizard();
+    await fillFamily(wrapper);
+    await next(wrapper);
+    await pickRooms(wrapper);
+    await next(wrapper);
+    const ticked = (wrapper.vm as unknown as { draft: { chores: Record<string, string[]> } }).draft.chores;
+    const [id] = Object.values(ticked)[0];
+    (readSetupStored as jest.Mock).mockResolvedValueOnce({ beasts: new Set([id]) });
+    await next(wrapper);
+    await next(wrapper);
+    expect(wrapper.find("[data-test=kept-line]").text()).toContain("already in your game and stay as they are");
+  });
+
+  it("does not run twice when closing after a finished setup throws", async () => {
+    mockDismiss.mockRejectedValueOnce(new Error("modal gone"));
+    const wrapper = await mountWizard();
+    await fillFamily(wrapper);
+    await next(wrapper);
+    await pickRooms(wrapper);
+    await next(wrapper);
+    await next(wrapper);
+    await next(wrapper);
+    await wrapper.find("[data-test=submit]").trigger("click");
+    await flushPromises();
+    await wrapper.find("[data-test=submit]").trigger("click");
+    await flushPromises();
+    expect(runSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it("the first age tap on an existing kid with no age lands on 8", async () => {
+    (existingHeroes as jest.Mock).mockResolvedValue([{ id: "k", name: "Kid", age: null, existing: true, isParent: false }]);
+    const wrapper = await mountWizard();
+    expect(wrapper.find("[data-test=age]").text()).toBe("?");
+    await wrapper.find("[data-test=age-down]").trigger("click");
+    expect(wrapper.find("[data-test=age]").text()).toBe("8");
   });
 });
