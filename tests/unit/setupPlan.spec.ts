@@ -138,4 +138,52 @@ describe("setupPlan", () => {
     expect(beasts[0].value).not.toHaveProperty("chore");
     expect(beasts[0].value).not.toHaveProperty("room");
   });
+
+  it("setupPlan: a little and a teen ticking the same beast make one quest at difficulty 1", () => {
+    const beast = BEAST_LIBRARY[0];
+    const plan = setupPlan({
+      heroes: [hero({ id: "t", age: 15 }), hero({ id: "l", age: 5 })],
+      rooms: [], chores: { t: [beast.id], l: [beast.id] }, extras: false,
+    }, new Map(), now, counter());
+    const quests = plan.backup.stores.__achievements;
+    expect(quests).toHaveLength(1);
+    const q = quests[0].value as { difficulty: number; assignee: string[] };
+    expect(q.difficulty).toBe(1);
+    expect(q.assignee).toEqual(["id-1", "id-2"]);
+  });
+
+  it("setupPlan: an existing hero is assigned under their own id and gets no profile", () => {
+    const beast = BEAST_LIBRARY[0];
+    const plan = setupPlan({
+      heroes: [hero({ id: "old", existing: true })], rooms: [], chores: { old: [beast.id] }, extras: false,
+    }, new Map(), now, counter());
+    expect(plan.newProfiles).toHaveLength(0);
+    expect((plan.backup.stores.__achievements[0].value as { assignee: string[] }).assignee).toEqual(["old"]);
+    expect(plan.profileIds).toEqual({ old: "old" });
+  });
+
+  it("setupPlan: an unknown beast id is skipped without throwing", () => {
+    const plan = setupPlan({
+      heroes: [hero({ id: "a" })], rooms: [], chores: { a: ["beast-nope"] }, extras: false,
+    }, new Map(), now, counter());
+    expect(plan.backup.stores.__achievements).toHaveLength(0);
+  });
+
+  it("setupPlan: the same beast listed twice for one hero assigns them once", () => {
+    const beast = BEAST_LIBRARY[0];
+    const plan = setupPlan({
+      heroes: [hero({ id: "a" })], rooms: [], chores: { a: [beast.id, beast.id] }, extras: false,
+    }, new Map(), now, counter());
+    expect((plan.backup.stores.__achievements[0].value as { assignee: string[] }).assignee).toEqual(["id-1"]);
+  });
+
+  it("setupPlan: profileIds maps every wizard hero id to its profile id", () => {
+    const plan = setupPlan({
+      heroes: [hero({ id: "a" }), hero({ id: "old", existing: true }), hero({ id: "p", isParent: true })],
+      rooms: [], chores: {}, extras: false,
+    }, new Map(), now, counter());
+    // A new parent with no Game Master form is a plain hero profile
+    expect(plan.profileIds).toEqual({ a: "id-1", old: "old", p: "id-2" });
+    expect(plan.newProfiles.map((p) => p.id)).toEqual(["id-1", "id-2"]);
+  });
 });

@@ -42,6 +42,8 @@ export interface SetupAnswers {
 export interface SetupPlan {
   backup: BackupFile;
   newProfiles: StoredProfile[];
+  /** Every wizard hero id -> the id its profile has or will have (existing heroes map to themselves) */
+  profileIds: Record<string, string>;
 }
 
 export const bandForAge = (age: number): AgeBand => {
@@ -113,9 +115,10 @@ export const setupPlan = (
       continue;
     }
     const id = newId();
-    const isNewParent = hero.isParent && answers.gameMaster;
-    const profile = isNewParent
-      ? quickStartGameMaster(answers.gameMaster as QuickStartGameMaster, id)
+    // A new parent with no Game Master form becomes a plain hero profile
+    const gm = hero.isParent ? answers.gameMaster : undefined;
+    const profile = gm
+      ? quickStartGameMaster(gm, id)
       : quickStartHero(hero.name, kidIndex++, id);
     newProfiles.push(profile);
     profileIdOf.set(hero.id, id);
@@ -124,13 +127,13 @@ export const setupPlan = (
   // One quest per beast, however many heroes ticked it; its band is the youngest ticker's
   const tickers = new Map<string, { beast: LibraryBeast; band: AgeBand; heroIds: string[] }>();
   for (const hero of answers.heroes) {
-    for (const beastId of answers.chores[hero.id] ?? []) {
+    for (const beastId of new Set(answers.chores[hero.id] ?? [])) {
       const beast = BEAST_LIBRARY.find((entry) => entry.id === beastId);
       if (!beast) continue;
       const entry = tickers.get(beastId) ?? { beast, band: bandOf(hero), heroIds: [] };
       const isYounger = BAND_ORDER.indexOf(bandOf(hero)) < BAND_ORDER.indexOf(entry.band);
       if (isYounger) entry.band = bandOf(hero);
-      entry.heroIds.push(profileIdOf.get(hero.id) ?? hero.id);
+      entry.heroIds.push(profileIdOf.get(hero.id) as string);
       tickers.set(beastId, entry);
     }
   }
@@ -151,5 +154,5 @@ export const setupPlan = (
       stores[name] = name === "__shops" ? world[name].filter((e) => !shopsNow.has(e.key)) : world[name];
     }
   }
-  return { newProfiles, backup: { version: BACKUP_VERSION, exportedAt: now.toISOString(), stores } };
+  return { newProfiles, profileIds: Object.fromEntries(profileIdOf), backup: { version: BACKUP_VERSION, exportedAt: now.toISOString(), stores } };
 };
