@@ -52,7 +52,7 @@
       <div v-if="filteredBeasts.length === 0" class="no-results">
         <i class="fad fa-ghost fa-3x"></i>
         <p>{{ emptyLine }}</p>
-        <ion-button v-if="!beasts.length" size="small" data-cy="bestiary-run-setup" @click="runSetup">Run setup</ion-button>
+        <ion-button v-if="!isLoading && !beasts.length" size="small" data-cy="bestiary-run-setup" @click="runSetup">Run setup</ion-button>
       </div>
     </div>
 

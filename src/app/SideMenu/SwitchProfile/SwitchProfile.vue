@@ -614,12 +614,13 @@ export default defineComponent({
       await toast.present();
     };
 
+    const setupDoneLine = (n: number) => (n < 1 ? "Your world is ready!" : `Setup done: ${n === 1 ? "1 hero awaits" : `${n} heroes await`}.`);
     // First launch on an empty game: offer the setup wizard once a session, then show the new heroes
     const offerSetup = async () => {
       const result = await offerSetupOnce();
       if (!result?.done) return;
       await loadProfiles();
-      const toast = await toastController.create(rpgToastOptions(`Setup done: ${result.heroCount} heroes await.`, 4000));
+      const toast = await toastController.create(rpgToastOptions(setupDoneLine(result.heroCount), 4000));
       await toast.present();
     };
 

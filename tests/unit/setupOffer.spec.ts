@@ -47,4 +47,28 @@ describe("setup offer", () => {
     expect(await offerSetupOnce()).toBeNull();
     expect(createMock).toHaveBeenCalledTimes(1);
   });
+
+  it("opens one wizard for two overlapping offers", async () => {
+    emptyMock.mockResolvedValue(true);
+    createMock.mockResolvedValue(fakeModal({ done: true, heroCount: 1 }));
+    const [a, b] = await Promise.all([offerSetupOnce(), offerSetupOnce()]);
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect([a, b].filter(Boolean)).toHaveLength(1);
+  });
+
+  it("can offer again after a not-empty check", async () => {
+    emptyMock.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    createMock.mockResolvedValue(fakeModal({ done: false }));
+    expect(await offerSetupOnce()).toBeNull();
+    expect(await offerSetupOnce()).not.toBeNull();
+  });
+
+  it("shares an open wizard between two openSetupWizard calls, then opens a fresh one", async () => {
+    createMock.mockResolvedValue(fakeModal({ done: true, heroCount: 2 }));
+    const [a, b] = await Promise.all([openSetupWizard(), openSetupWizard()]);
+    expect(a).toEqual(b);
+    expect(createMock).toHaveBeenCalledTimes(1);
+    await openSetupWizard();
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
 });
