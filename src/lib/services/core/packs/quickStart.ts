@@ -149,21 +149,21 @@ export interface QuickStartDeps {
   restore: (file: BackupFile) => Promise<RestoreResult>;
 }
 
-const storageOf = (name: string): PackStorage => {
+export const storageOf = (name: string): PackStorage => {
   const def = BACKUP_STORES.find((store) => store.name === name);
   if (!def) throw new Error(`Unknown store ${name}`);
   return def.storage as unknown as PackStorage;
 };
 
 // The first-run check below stands in for the Game Master check, which nobody can pass before a profile exists
-const firstRunService = new BackupService(BACKUP_STORES, () => useUserStore().loadUsers(), () => true);
+export const firstRunService = new BackupService(BACKUP_STORES, () => useUserStore().loadUsers(), () => true);
 
 const defaultDeps: QuickStartDeps = {
   storage: storageOf,
   restore: (file) => firstRunService.restoreBackup(file, { mode: "merge" }),
 };
 
-const readAll = async (storage: PackStorage): Promise<Map<string, unknown>> => {
+export const readAll = async (storage: PackStorage): Promise<Map<string, unknown>> => {
   const records = new Map<string, unknown>();
   await storage.create();
   await storage.forEach((value, key) => {
