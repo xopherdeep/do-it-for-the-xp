@@ -1,4 +1,4 @@
-import { emptyDraft, preTick, SETUP_STEPS } from "@/lib/services/setup/setupSteps";
+import { choreShape, emptyDraft, preTick, reconcileChores, SETUP_STEPS } from "@/lib/services/setup/setupSteps";
 import type { SetupDraft } from "@/lib/services/setup/setupSteps";
 import { bandOf, suggestedChores } from "@/lib/services/setup/setupPlan";
 import type { SetupHero } from "@/lib/services/setup/setupPlan";
@@ -73,5 +73,54 @@ describe("setup steps", () => {
     expect(d.extras).toBe(true);
     expect(d.rooms).toEqual([]);
     expect(d.heroes).toEqual([expect.objectContaining({ id: "a", existing: true })]);
+  });
+
+  it("family step only checks the names of new heroes (existing rows are read-only)", () => {
+    const family = step("family");
+    const old = (id: string, name: string) => hero(id, name, 8, { existing: true });
+    expect(family.isValid(draft({ heroes: [old("a", "Sam"), old("b", "sam")] }))).toBe(true);
+    expect(family.isValid(draft({ heroes: [old("a", "")] }))).toBe(true);
+    expect(family.isValid(draft({ heroes: [old("a", "Sam"), hero("n", " SAM ", 8)] }))).toBe("Every hero needs their own name");
+    expect(family.isValid(draft({ heroes: [old("a", "Sam"), hero("n", "Mia", 8)] }))).toBe(true);
+  });
+
+  describe("reconcileChores", () => {
+    const ann = hero("a", "Ann", 10);
+    const ben = hero("b", "Ben", 10);
+    const ids = (h: SetupHero, rooms: string[]) => suggestedChores(bandOf(h), rooms).map((beast) => beast.id);
+    const ticked = (rooms: string[], heroes = [ann, ben]) => preTick(draft({ heroes, rooms }));
+
+    it("a new room adds its chores and keeps unticks and added chores", () => {
+      const before = ticked(["kitchen"]);
+      const [gone, ...rest] = before.chores.a;
+      const edited = { ...before, chores: { ...before.chores, a: [...rest, "beast-fluffalo"] } };
+      const after = { ...edited, rooms: ["kitchen", "yard"] };
+      const chores = reconcileChores(choreShape(edited), after);
+      expect(chores.a).not.toContain(gone);
+      expect(chores.a).toContain("beast-fluffalo");
+      expect(chores.a).toEqual(expect.arrayContaining(ids(ann, ["yard"])));
+      expect(chores.b).toEqual([...before.chores.b, ...ids(ben, ["yard"])]);
+    });
+
+    it("removing a room drops only that room's chores", () => {
+      const before = ticked(["kitchen", "yard"]);
+      const chores = reconcileChores(choreShape(before), { ...before, rooms: ["kitchen"] });
+      expect(chores.a).toEqual(ids(ann, ["kitchen"]));
+      expect(chores.a).not.toEqual(before.chores.a);
+    });
+
+    it("one hero's age band change resets only that hero", () => {
+      const before = ticked(["kitchen", "yard"]);
+      const edited = { ...before, chores: { ...before.chores, b: ["beast-fluffalo"] } };
+      const teen = { ...ann, age: 15 };
+      const chores = reconcileChores(choreShape(edited), { ...edited, heroes: [teen, ben] });
+      expect(chores.a).toEqual(ids(teen, ["kitchen", "yard"]));
+      expect(chores.b).toEqual(["beast-fluffalo"]);
+    });
+
+    it("leaves a hero with no list yet for preTick", () => {
+      const before = draft({ heroes: [ann], rooms: ["kitchen"] });
+      expect(reconcileChores(choreShape(before), { ...before, rooms: ["yard"] })).toEqual({});
+    });
   });
 });
