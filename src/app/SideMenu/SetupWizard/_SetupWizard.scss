@@ -3,6 +3,11 @@
   :deep(ion-content) {
     --background: var(--xp-app-bg);
   }
+
+  // The shell's footer bar is 92% opaque: the profile page behind the modal (its scrollbar rail, its cards) shows through it
+  :deep(.xp-wiz-bar) {
+    background: var(--xp-app-bg);
+  }
 }
 
 .sw-section {
@@ -149,9 +154,14 @@
   font-size: 0.95rem;
   text-transform: capitalize;
 
-  // A tap leaves the browser's focus ring on the chip; only keyboard focus keeps one, so a picked chip is the one that looks picked
-  &:focus:not(:focus-visible) {
+  // The last chip tapped keeps the browser's white focus ring, which made it look more selected than a picked one:
+  // a picked chip is filled and rings nothing, an unpicked one rings only for the keyboard
+  &:focus {
     outline: none;
+  }
+
+  &:not(.is-picked):focus-visible {
+    outline: 2px solid var(--xp-app-accent);
   }
 
   &.is-picked {
